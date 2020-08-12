@@ -4089,19 +4089,19 @@ ijResult HandleSpool() throws IOException
     n=path()
     {
         utilInstance.startSpooling(n);
-        return null;
+        return new ijShellConfigResult();
     }
 |
     <STOP>
     {
         utilInstance.stopSpooling();
-        return null;
+        return new ijShellConfigResult();
     }
 |
     <CLEAR>
     {
         utilInstance.clearSpooling();
-        return null;
+        return new ijShellConfigResult();
     }
 }
 
