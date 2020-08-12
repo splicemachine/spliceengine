@@ -135,7 +135,7 @@ public class RSUtils {
     public static final com.google.common.base.Predicate<Object> isBinaryRSNExcludeUnion =
             Predicates.compose(Predicates.in(binaryRSNsExcludeUnion), classOf);
 
-    public static final org.spark_project.guava.base.Predicate<Object> isIntersectOrExcept =
+    public static final com.google.common.base.Predicate<Object> isIntersectOrExcept =
             Predicates.compose(Predicates.in(ImmutableSet.of(IntersectOrExceptNode.class)), classOf);
 
     // leafRSNs might need VTI eventually

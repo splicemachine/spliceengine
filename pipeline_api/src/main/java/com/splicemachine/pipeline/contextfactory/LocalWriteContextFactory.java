@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.splicemachine.pipeline.constraint.NoOpConstraintChecker;
 import com.google.common.base.Function;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
