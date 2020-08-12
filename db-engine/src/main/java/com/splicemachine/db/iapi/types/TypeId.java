@@ -44,6 +44,9 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.DecimalType;
+import org.apache.spark.sql.types.StructField;
 
 import java.sql.Types;
 
@@ -1715,6 +1718,80 @@ public class TypeId{
             default:
                 return false;
         }
+    }
+
+
+    /* this function is consistent with the getStructField() function in each child class of DataType
+     */
+    public StructField getStructField(String columnName, int precision, int scale, StructField childStructField) {
+        StructField structField;
+        switch (formatId) {
+            case StoredFormatIds.BIT_TYPE_ID:
+            case StoredFormatIds.VARBIT_TYPE_ID:
+            case StoredFormatIds.LONGVARBIT_TYPE_ID:
+            case StoredFormatIds.BLOB_TYPE_ID:
+            case StoredFormatIds.LIST_TYPE_ID:
+            case StoredFormatIds.REF_TYPE_ID:
+            case StoredFormatIds.USERDEFINED_TYPE_ID_V3:
+                structField = DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+                break;
+            case StoredFormatIds.BOOLEAN_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.BooleanType, true);
+                break;
+            case StoredFormatIds.CHAR_TYPE_ID:
+            case StoredFormatIds.VARCHAR_TYPE_ID:
+            case StoredFormatIds.LONGVARCHAR_TYPE_ID:
+            case StoredFormatIds.CLOB_TYPE_ID:
+            case StoredFormatIds.XML_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.StringType, true);
+                break;
+            case StoredFormatIds.INT_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.IntegerType, true);
+                break;
+
+            case StoredFormatIds.DECIMAL_TYPE_ID:
+                if (precision == -1 || scale == -1) {
+                    structField = DataTypes.createStructField(columnName, DecimalType.SYSTEM_DEFAULT(),true);
+                } else {
+                    structField = DataTypes.createStructField(columnName, DataTypes.createDecimalType(precision, scale), true);
+                }
+                break;
+            case StoredFormatIds.DOUBLE_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.DoubleType, true);
+                break;
+            case StoredFormatIds.LONGINT_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.LongType, true);
+                break;
+            case StoredFormatIds.REAL_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.FloatType, true);
+                break;
+            case StoredFormatIds.SMALLINT_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.ShortType, true);
+                break;
+            case StoredFormatIds.TINYINT_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.ByteType, true);
+                break;
+            case StoredFormatIds.DATE_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.DateType, true);
+                break;
+            case StoredFormatIds.TIME_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.TimestampType, true);
+                break;
+            case StoredFormatIds.TIMESTAMP_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.TimestampType, true);
+                break;
+            case StoredFormatIds.ARRAY_TYPE_ID:
+                if (childStructField == null)
+                    throw new RuntimeException("type" + this.getSQLTypeName() + "with no child type set not supported");
+
+                structField = DataTypes.createStructField(columnName, DataTypes.createArrayType(childStructField.dataType()), true);
+                break;
+            default:
+                throw new RuntimeException("type" + this.getSQLTypeName() + " not supported");
+
+        }
+
+        return structField;
     }
 }
 

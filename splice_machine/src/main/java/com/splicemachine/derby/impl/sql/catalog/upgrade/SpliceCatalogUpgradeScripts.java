@@ -58,15 +58,6 @@ public class SpliceCatalogUpgradeScripts{
             }
         };
         scripts=new TreeMap<>(ddComparator);
-        scripts.put(new Splice_DD_Version(sdd,1,0,0),new UpgradeScriptForFuji(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,1,1,1),new LassenUpgradeScript(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,6,0),new UpgradeScriptFor260(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,1), new UpgradeScriptForModifySchemaPermissionAndDefaultRole(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1812), new UpgradeScriptToCleanSysRoutinePerms(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1817), new UpgradeScriptForSysTokens(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1842), new UpgradeScriptForDroppedConglomerates(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1849), new UpgradeScriptToRemoveFKDependencyOnPrivileges(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1851), new UpgradeScriptToAddUseExtrapolationInSysColumns(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1901), new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1909), new UpgradeScriptForReplication(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1917), new UpgradeScriptForMultiTenancy(sdd,tc));
@@ -81,11 +72,10 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1948), new UpgradeScriptBase(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1948), new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1953), new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,0,0, 1954), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1959), new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1962), new UpgradeScriptForAddDefaultToColumnViewInSYSVW(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1964), new UpgradeScriptForAliasToTableView(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,0,0, 1965), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,0,0, 1969), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
     }
 
     public void run() throws StandardException{
@@ -108,5 +98,10 @@ public class SpliceCatalogUpgradeScripts{
             UpgradeScript script=scripts.get(version);
             script.run();
         }
+
+        // Always update system procedures and stored statements
+        sdd.clearSPSPlans();
+        sdd.createOrUpdateAllSystemProcedures(tc);
+        sdd.updateMetadataSPSes(tc);
     }
 }

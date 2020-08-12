@@ -394,8 +394,8 @@ public abstract class SingleChildResultSetNode extends FromTable{
     }
 
     @Override
-    public ResultSetNode changeAccessPath() throws StandardException{
-        childResult=childResult.changeAccessPath();
+    public ResultSetNode changeAccessPath(JBitSet joinedTableSet) throws StandardException{
+        childResult=childResult.changeAccessPath(joinedTableSet);
         return this;
     }
 

@@ -2403,6 +2403,10 @@ public class SQLParser
         src = src.replaceAll("(--)(?i)(?=splice-properties)(.*?)(\\n|\\r|\\r\\n)",
                                "$1$2$3"+Character.toString(endOfHintMarker));
 
+        // If there is a comment before the statement, replacement ops above produce spaces before the
+        // CREATE token. The first string after split below would be empty, causing charAt(0) to fail.
+        src = src.trim();
+
         for (String part : src.split("\\s+")) {
             if (part.charAt(0) == endOfHintMarker)
                 part = "\n" + part.substring(1);
@@ -3098,6 +3102,8 @@ TOKEN [IGNORE_CASE] :
 |    <WEEKDAYNAME: "weekdayname">
 |    <WHEN: "when">
 |   <MERGE: "merge">
+|   <TO_INSTANT: "to_instant">
+|   <TO_HBASE_ESCAPED: "to_hbase_escaped">
 }
 
 /*
@@ -4250,7 +4256,7 @@ deleteBody() throws StandardException :
                                                 FromBaseTable.DELETE),
                                         null,
                                         isBulkDelete,
-                                        -1L,
+                                        null,
                                         getContextManager());
 
 
@@ -8351,7 +8357,9 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLSERIALIZE ||
                 getToken(1).kind == XMLEXISTS ||
                 getToken(1).kind == XMLQUERY ||
-                getToken(1).kind == GROUPING) &&
+                getToken(1).kind == GROUPING ||
+                getToken(1).kind == TO_INSTANT ||
+                getToken(1).kind == TO_HBASE_ESCAPED ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -8484,6 +8492,22 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
     value = xmlFunction()
     {
         return value;
+    }
+|
+    <TO_INSTANT> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.TO_INSTANT_NODE,
+                                    value,
+                                    getContextManager());
+    }
+|
+    <TO_HBASE_ESCAPED> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.TO_HBASE_ESCAPED_NODE,
+                                    value,
+                                    getContextManager());
     }
 }
 
@@ -10934,21 +10958,21 @@ optionalTableClauses() throws StandardException :
     Properties       tableProperties = null;
     ResultColumnList derivedRCL = null;
     String           correlationName = null;
-    Long             txnId = -1L;
+    ValueNode        txnIdExpression = null;
 }
 {
     otc = optionalTableProperties()
     {
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
         return otc;
     }
 |
     LOOKAHEAD( { getToken(1).kind != AS || getToken(2).kind != OF })
     [ [ <AS> ]
         correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
-        [txnId = asOfClause()]
+        [txnIdExpression = asOfClause()]
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [tableProperties = propertyList(true) <CHECK_PROPERTIES>] ]
     {
@@ -10956,11 +10980,11 @@ optionalTableClauses() throws StandardException :
         otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
         return otc;
     }
 |
-    txnId = asOfClause()
+    txnIdExpression = asOfClause()
     [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
     [tableProperties = propertyList(true) <CHECK_PROPERTIES>]
     {
@@ -10968,7 +10992,7 @@ optionalTableClauses() throws StandardException :
         otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
         return otc;
     }
 }
@@ -11060,7 +11084,7 @@ FromTable tableFactor() throws StandardException :
                                             (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
                                             (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
                                             false,
-                                            (Long) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
+                                            (ValueNode) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
                                             getContextManager());
         return fromTable;
     }
@@ -12311,15 +12335,15 @@ windowDefinition(WindowList wl) throws StandardException :
     }
 }
 
-Long
+ValueNode
 asOfClause() throws StandardException :
 {
-    Long txId = null;
+    ValueNode txIdExpression = null;
 }
 {
-    <AS> <OF> txId = exactNumber()
+    <AS> <OF> txIdExpression = primaryExpression()
     {
-        return txId;
+        return txIdExpression;
     }
 }
 
