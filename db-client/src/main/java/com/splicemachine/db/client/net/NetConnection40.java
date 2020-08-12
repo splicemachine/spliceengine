@@ -167,7 +167,7 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
         if (timeout < 0) {
             throw new SqlException(agent_.logWriter_,
                                new ClientMessageId(SQLState.INVALID_API_PARAMETER),
-                               new Integer(timeout), "timeout",
+                               timeout, "timeout",
                                "java.sql.Connection.isValid" ).getSQLException();
         }
 
