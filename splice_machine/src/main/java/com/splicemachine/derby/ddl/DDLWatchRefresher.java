@@ -216,7 +216,7 @@ public class DDLWatchRefresher{
     private void assignDDLDemarcationPoint(DDLChange ddlChange) {
         try {
             TxnView txn = new LazyTxnView(ddlChange.getTxnId(),txnSupplier,exceptionFactory);
-            // Restore overwrites SPLICE_TXN, so the transaction used by restore
+            // A full Restore operation overwrite SPLICE_TXN, so the transaction used by the restore
             // may not be found.  Avoid the assertion to avoid crashing, e.g.,
             // 2020-08-11 18:28:11,785 (ZooKeeperDDLWatcherRefresher) ERROR [c.s.d.d.AsynchronousDDLWatcher] - Failed to refresh ddl
             //java.lang.RuntimeException: com.splicemachine.si.api.txn.TransactionMissing: Couldn't resolve transaction with id 81981952
