@@ -10357,7 +10357,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SystemProcedureGenerator procedureGenerator=getSystemProcedures();
 
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,tc,newlyCreatedRoutines);
-        procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,tc,newlyCreatedRoutines);
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,tc,newlyCreatedRoutines);
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,tc,newlyCreatedRoutines);
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,tc,newlyCreatedRoutines);
