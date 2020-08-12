@@ -379,7 +379,7 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
         "%s tab1.j = tab2.j and ((tab1.t = tab2.t or tab1.t is null) and tab1.t > TO_TIME('11:44', 'HH:mm')) ",
         };
 
-        /* for the scenario i=3, j=6, the not exists subquery is not flattened, so sortmerge join is not applicable,
+        /* for the scenario i=3, j=1, the not exists subquery is not flattened, so broadcast join is not applicable,
         use nestedloop join instead which is the only applicable join strategy */
         for (int i = 0; i < joins.length; i++)
             for (int j = 0; j < joinConditions3.length; j++) {
@@ -387,7 +387,7 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
                 "--splice-properties useSpark=%s, joinStrategy=%s\n" +
                 "%s " +
                 "%s"
-                , i, j, joins[i], useSpark, (j==6?"nestedloop" : joinStrategy), joinConditions3[j], closingParenthesis[i]);
+                , i, j, joins[i], useSpark, (j==1?"nestedloop" : joinStrategy), joinConditions3[j], closingParenthesis[i]);
                 sqlText = format(sqlText, whereOrOnClause[i]);
                 expected = format(expectedTemplate, expectedCounts3[i][j]);
                 testQueryUnsorted(sqlText, expected, methodWatcher);
