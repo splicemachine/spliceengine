@@ -37,9 +37,11 @@ import java.util.List;
 public class QuoteTrackingTokenizer extends AbstractTokenizer {
 
     private final List<Integer> valueSizeHints;
+    // the line number where a potential multi-line cell starts
     private int potentialSpaces;
     private int charIndex;
     private boolean wasQuoted;
+    // the line number where a potential multi-line cell starts
     private int quoteScopeStartingLine;
     private TokenizerState state;
     private int colIdx;
@@ -170,6 +172,18 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         return readColumns(columns, null);
     }
 
+    private void reset() {
+        // clear the reusable List and StringBuilders
+        colIdx = 0;
+        currentColumn.setLength(0);
+        // process each character in the line, catering for surrounding quotes (QUOTE_MODE)
+        state = TokenizerState.NORMAL;
+        quoteScopeStartingLine = -1;
+        potentialSpaces = 0;
+        charIndex = 0;
+        wasQuoted = false;
+    }
+
     /**
      * Parses the columns from current CSV row.
      *
@@ -184,18 +198,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         columns.clear();
         if (quotedColumns != null) quotedColumns.clear();
 
-        // clear the reusable List and StringBuilders
-        colIdx = 0;
-        currentColumn.setLength(0);
+        reset();
         currentRow.clear();
-        // process each character in the line, catering for surrounding quotes (QUOTE_MODE)
-        state = TokenizerState.NORMAL;
-        // the line number where a potential multi-line cell starts
-        quoteScopeStartingLine = -1;
-        // keep track of spaces (so leading/trailing space can be removed if required)
-        potentialSpaces = 0;
-        charIndex = 0;
-        wasQuoted = false;
 
         // read a line (ignoring empty lines/comments if necessary)
         if (!readFirstLine()) return false; // EOF
@@ -211,21 +215,11 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
 
         if (checkExactSizeFirst) {
             runStateMachine(new ArrayList<>(), null); // will only calculate exact size of each column
-            checkExactSizeFirst = false;
-
-            // clear the reusable List and StringBuilders
-            colIdx = 0;
-            currentColumn.setLength(0);
-            // process each character in the line, catering for surrounding quotes (QUOTE_MODE)
-            state = TokenizerState.NORMAL;
-            // the line number where a potential multi-line cell starts
-            quoteScopeStartingLine = -1;
-            // keep track of spaces (so leading/trailing space can be removed if required)
-            potentialSpaces = 0;
-            charIndex = 0;
-            rowIdx = 0;
-            wasQuoted = false;
-            resetColumn();
+            reset();
+            allocateColumnMemory();
+            checkExactSizeFirst = false; // allow setting the column in the next state machine run instead of
+                                         // just counting the characters.
+            rowIdx = 0; // rollback to start reading the data (again) from currentRow.
         }
 
         runStateMachine(columns, quotedColumns);
@@ -274,8 +268,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private void addToColumn(char c) {
         if (checkExactSizeFirst) {
             if (colIdx >= exactColumnSizes.size()) {
-                throw new SuperCsvException(String.format("unexpected extra column on line %d, number of expected columns " +
-                        "(%d) is less than actual columns", getLineNumber(), exactColumnSizes.size()));
+                // it seems this could happen, still we want to tolerate it and not throw. (see expected behavior in HdfsImportIT::testNullDatesWithMixedCaseAccuracy)
+                return;
             }
             exactColumnSizes.set(colIdx, exactColumnSizes.get(colIdx) + 1);
         } else {
@@ -283,11 +277,15 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         }
     }
 
-    private void resetColumn() {
+    private void allocateColumnMemory() {
         if (!checkExactSizeFirst) {
             if (exactColumnSizes != null) { // we set the column sizes before, use it to set the SB size correctly
-                System.out.println("reinit the StringBuilder with exact size: " + exactColumnSizes.get(colIdx) + " for column index " + colIdx);
-                currentColumn = new StringBuilder(exactColumnSizes.get(colIdx));
+                if(colIdx >= exactColumnSizes.size()) {
+                    // it seems this could happen, still we want to tolerate it and not throw. (see expected behavior in HdfsImportIT::testNullDatesWithMixedCaseAccuracy)
+                    currentColumn.setLength(0);
+                } else {
+                    currentColumn = new StringBuilder(exactColumnSizes.get(colIdx));
+                }
             } else { // we didn't because the column size is too small. Just reset the size and let SB grow exponentially.
                 currentColumn.setLength(0);
             }
@@ -326,7 +324,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
             if (c == delimeterChar) { // Delimiter. Save the column (trim trailing space if required) then continue to next character.
                 finishCol(columns, quotedColumns);
                 potentialSpaces = 0;
-                resetColumn();
+                allocateColumnMemory();
             } else if (c == SPACE) { // Space. Remember it, then continue to next character.
                 potentialSpaces++;
             } else if (c == quoteChar) { // A single quote ("). Update to QUOTESCOPE (but don't save quote), then continue to next character.

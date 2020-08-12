@@ -74,19 +74,11 @@ public class QuoteTrackingTokenizerTest {
     }
 
     @Test
-    public void boundaryCheckErrorsAreCorrect() throws Exception {
-        String invalidRow = "\"hello\",,,,,,,,,,,,,,,,,,,,,,,,,goodbye,parseThis!,\"boots\nma\n\n\ngoo\"";
-        List<String> correctCols = Arrays.asList("hello", "goodbye", "parseThis!", "boots\nma\n\n\ngoo");
-        BooleanList correctQuotes = BooleanList.wrap(true, false, false, true);
-        try {
-            checkResults(invalidRow, correctCols, correctQuotes, 3, true);
-            Assert.fail("expected exception to be thrown, but no exception was thrown");
-        } catch(Exception e) {
-            Assert.assertTrue(e instanceof SuperCsvException);
-            Assert.assertEquals("unexpected extra column on line 1, number of expected columns (4) is less than actual columns", e.getMessage());
-            return;
-        }
-        Assert.fail("expected exception to be thrown, but no exception was thrown");
+    public void extraColumnsAreTolerated() throws Exception {
+        String invalidRow = "\"hello\",,,goodbye,parseThis!,\"boots\nma\n\n\ngoo\"";
+        List<String> correctCols = Arrays.asList("hello", null, null, "goodbye", "parseThis!", "boots\nma\n\n\ngoo");
+        BooleanList correctQuotes = BooleanList.wrap(true, false, false, false, false, true);
+        checkResults(invalidRow, correctCols, correctQuotes, 3, false);
     }
 
     @Test

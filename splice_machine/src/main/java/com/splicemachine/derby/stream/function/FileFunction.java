@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
@@ -54,13 +55,10 @@ public class FileFunction extends AbstractFileFunction<String> {
     }
 
     /**
+     * Call Method for parsing the string into either a singleton List with a ExecRow or an empty list.
      *
-     * Call Method for parsing the string into either a singleton List with a ExecRow or
-     * an empty list.
-     *
-     * @param s
-     * @return
-     * @throws Exception
+     * @param s the input string, e.g. comma-separated.
+     * @return Iterator on parsed row(s) of the string.
      */
     @Override
     public Iterator<ExecRow> call(final String s) throws Exception {
@@ -69,10 +67,14 @@ public class FileFunction extends AbstractFileFunction<String> {
         if (!initialized) {
             Reader reader = new StringReader(s);
             checkPreference();
-            VTIOperation op = (VTIOperation) operationContext.getOperation();
-            List<Integer> valueSizeHints = new ArrayList<>(execRow.nColumns());
-            for(DataTypeDescriptor dtd : op.getResultColumnTypes()) {
-                valueSizeHints.add(dtd.getMaximumWidth());
+            List<Integer> valueSizeHints = null;
+            SpliceOperation op = operationContext.getOperation();
+            if(op instanceof VTIOperation) { // Currently, only VTI can provide the result set data types.
+                valueSizeHints = new ArrayList<>(execRow.nColumns());
+                DataTypeDescriptor[] dvds = ((VTIOperation)op).getResultColumnTypes();
+                for (DataTypeDescriptor dtd : dvds) {
+                    valueSizeHints.add(dtd.getMaximumWidth());
+                }
             }
             tokenizer= new MutableCSVTokenizer(reader,preference,valueSizeHints);
             initialized = true;
