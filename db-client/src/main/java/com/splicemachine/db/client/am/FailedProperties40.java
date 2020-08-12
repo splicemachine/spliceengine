@@ -55,10 +55,11 @@ public class FailedProperties40 {
      * @return the created <code>Properties</code> object
      */
     public static Properties makeProperties(String name, String value) {
-	Properties p = new Properties();
-        if (name != null || value != null)
+	    Properties p = new Properties();
+        // Properties is derived from HashTable, in which both key and value cannot be null
+        if (name != null && value != null)
             p.setProperty(name, value);
-	return p;
+	    return p;
     }
     
     /**
