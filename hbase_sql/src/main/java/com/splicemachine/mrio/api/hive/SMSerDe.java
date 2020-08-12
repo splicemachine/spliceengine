@@ -160,7 +160,7 @@ public class SMSerDe extends AbstractSerDe {
      */
     //@Override
     public ObjectInspector getObjectInspector() throws SerDeException {
-    	if (LOG.isDebugEnabled())
+    	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "getObjectInspector");
         return rowOI;
     }
@@ -170,7 +170,7 @@ public class SMSerDe extends AbstractSerDe {
      */
     //@Override
     public SerDeStats getSerDeStats() {
-    	if (LOG.isDebugEnabled())
+    	if (LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG, "serdeStats");
         return null;
     }
@@ -180,7 +180,8 @@ public class SMSerDe extends AbstractSerDe {
      */
     //@Override
     public Class<? extends Writable> getSerializedClass() {
-        LOG.debug("********" + Thread.currentThread().getStackTrace()[1].getMethodName());
+        if (LOG.isDebugEnabled())
+            LOG.debug("********" + Thread.currentThread().getStackTrace()[1].getMethodName());
         return ExecRowWritable.class;
     }
 
