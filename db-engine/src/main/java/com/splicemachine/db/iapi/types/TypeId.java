@@ -298,15 +298,9 @@ public class TypeId{
                     XML_ID,
             };
 
-    /**
-     * Implementation of DECIMAL datatype for generating holders through getNull.
-     * Set by the booted DataValueFactory implementation.
-     */
-    static DataValueDescriptor decimalImplementation;
-
-        /*
-        ** Static methods to obtain TypeIds
-        */
+    /*
+    ** Static methods to obtain TypeIds
+    */
 
     /**
      * Create a TypeId for the given format identifiers using
@@ -1386,9 +1380,6 @@ public class TypeId{
      *
      * @return SQL null value for this type.
      */
-    // SpotBugs reports decimalImplementation is never written to,
-    // but is written DataValueFactoryImpl.java / J2SEDataValueFactory.java
-    @SuppressWarnings("UWF_UNWRITTEN_FIELD")
     public DataValueDescriptor getNull(){
         switch(formatId){
             case StoredFormatIds.BIT_TYPE_ID:
@@ -1405,10 +1396,7 @@ public class TypeId{
 
             // Implementation of DECIMAL can change.
             case StoredFormatIds.DECIMAL_TYPE_ID:
-                if (decimalImplementation == null) {
-                    return new SQLDecimal();
-                }
-                return decimalImplementation.getNewNull();
+                return new SQLDecimal();
 
             case StoredFormatIds.DOUBLE_TYPE_ID:
                 return new SQLDouble();
@@ -1492,13 +1480,8 @@ public class TypeId{
             case StoredFormatIds.CHAR_TYPE_ID:
                 return new SQLChar("");
 
-            // Implementation of DECIMAL can change.
             case StoredFormatIds.DECIMAL_TYPE_ID:
-                if (decimalImplementation == null) {
-                    return new SQLDecimal("0");
-                }
-                throw new UnsupportedOperationException(StandardException.newException(
-                        SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + decimalImplementation));
+                return new SQLDecimal("0");
 
             case StoredFormatIds.DOUBLE_TYPE_ID:
                 return new SQLDouble(0);
