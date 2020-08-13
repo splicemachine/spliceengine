@@ -107,5 +107,10 @@ public class MutableCSVTokenizer extends QuoteTrackingTokenizer {
         return columns;
     }
 
+    @Override
+    public void clearRow() {
+        super.clearRow();
+        setLine(null);
+    }
 }
 
