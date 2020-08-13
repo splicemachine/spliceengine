@@ -26,6 +26,7 @@ import com.splicemachine.si.impl.server.CompactionContext;
 import com.splicemachine.si.impl.server.PurgeConfigBuilder;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.Cell;
@@ -57,6 +58,7 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
     }
 
     @Override
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="static attribute hostname is set from here")
     public List<Path> compact(CompactionRequest request, CompactionThroughputController throughputController, User user) throws IOException {
         if(!allowSpark || store.getRegionInfo().isSystemTable())
             return super.compact(request, throughputController, user);
@@ -92,7 +94,11 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                 hostName,
                 config.getOlapCompactionMaximumWait());
         CompactionResult result = null;
-        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
+        EngineDriver driver = EngineDriver.driver();
+        if (driver == null) {
+            throw new IOException("EngineDriver not available, compaction aborted");
+        }
+        Future<CompactionResult> futureResult = driver.getOlapClient().submit(jobRequest, getCompactionQueue());
         while(result == null) {
             try {
                 result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
@@ -196,10 +202,6 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                             state, scanner, purgeConfig.build(), resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
-                }
-                if (scanner == null) {
-                    // NULL scanner returned from coprocessor hooks means skip normal processing.
-                    return newFiles;
                 }
                 // Create the writer even if no kv(Empty store file is also ok),
                 // because we need record the max seq id for the store file, see HBASE-6059
