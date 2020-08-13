@@ -33,19 +33,21 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * @author Jun Yuan
@@ -55,6 +57,9 @@ public class ExplainNode extends DMLStatementNode {
 
     StatementNode node;
     private SparkExplainKind sparkExplainKind;
+
+    private final List<String> noStatsTables  = new ArrayList<>();
+    private final List<String> noStatsColumns = new ArrayList<>();
 
     public enum SparkExplainKind {
         NONE("none"),
@@ -104,6 +109,21 @@ public class ExplainNode extends DMLStatementNode {
             getCompilerContext().setDataSetProcessorType(DataSetProcessorType.FORCED_SPARK);
         }
         node.optimizeStatement();
+
+        CollectNodesVisitor cnv = new CollectNodesVisitor(FromBaseTable.class);
+        node.accept(cnv);
+        List<FromBaseTable> baseTableNodes = cnv.getList();
+        for (FromBaseTable t : baseTableNodes) {
+            String tableName = t.getExposedName();
+            if (!t.useRealTableStats()) {
+                noStatsTables.add(tableName);
+            } else if (!t.getNoStatsColumnIds().isEmpty()) {
+                TableDescriptor td = t.getTableDescriptor();
+                for (int columnId : t.getNoStatsColumnIds()) {
+                    noStatsColumns.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
+                }
+            }
+        }
     }
 
     @Override

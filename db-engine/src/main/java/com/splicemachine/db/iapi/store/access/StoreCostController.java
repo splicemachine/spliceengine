@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import java.util.BitSet;
+import java.util.List;
 
 /**
  * The StoreCostController interface provides methods that an access client
@@ -268,4 +269,8 @@ public interface StoreCostController extends RowCountable{
     DataValueDescriptor maxValue(int columnNumber) ;
 
     double getSelectivityExcludingValueIfSkewed(int columnNumber, DataValueDescriptor value);
+
+    boolean useRealTableStatistics();
+
+    List<Integer> getNoStatisticsColumnIds();
 }
