@@ -15,6 +15,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.stream.utils.BooleanList;
+import org.apache.log4j.Logger;
 import org.supercsv.comment.CommentMatcher;
 import org.supercsv.exception.SuperCsvException;
 import org.supercsv.io.AbstractTokenizer;
@@ -23,7 +24,7 @@ import org.supercsv.prefs.CsvPreference;
 import java.io.IOException;
 import java.io.Reader;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -35,6 +36,8 @@ import java.util.List;
  * Date: 9/29/16
  */
 public class QuoteTrackingTokenizer extends AbstractTokenizer {
+
+    private static final Logger LOG=Logger.getLogger(QuoteTrackingTokenizer.class);
 
     private final List<Integer> valueSizeHints;
     // the line number where a potential multi-line cell starts
@@ -48,7 +51,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private boolean firstRun;
     private boolean checkExactSizeFirst = false;
     private int rowIdx = 0;
-    private List<Integer> exactColumnSizes = null;
+    private int[] exactColumnSizes = null;
     final static int SCAN_THRESHOLD = 10000;
     int scanThresold = SCAN_THRESHOLD;
 
@@ -209,7 +212,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         if (valueSizeHints != null) {
             if (valueSizeHints.stream().max(Integer::compare).get() > scanThresold) {
                 checkExactSizeFirst = true;
-                exactColumnSizes = new ArrayList<>(Collections.nCopies(valueSizeHints.size(), 0));
+                exactColumnSizes = new int[valueSizeHints.size()];
             }
         }
 
@@ -222,10 +225,16 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         }
 
         runStateMachine(columns, quotedColumns);
+
+        clearRow();
         return true;
     }
 
-    List<Integer> getExactColumnSizes() {
+    public void clearRow() {
+        currentRow.clear();
+    }
+
+    int[] getExactColumnSizes() {
         return exactColumnSizes;
     }
 
@@ -266,11 +275,11 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
 
     private void addToColumn(char c) {
         if (checkExactSizeFirst) {
-            if (colIdx >= exactColumnSizes.size()) {
+            if (colIdx >= exactColumnSizes.length) {
                 // it seems this could happen, still we want to tolerate it and not throw. (see expected behavior in HdfsImportIT::testNullDatesWithMixedCaseAccuracy)
                 return;
             }
-            exactColumnSizes.set(colIdx, exactColumnSizes.get(colIdx) + 1);
+            exactColumnSizes[colIdx]++;
         } else {
             currentColumn.append(c);
         }
@@ -279,11 +288,19 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private void allocateColumnMemory() {
         if (!checkExactSizeFirst) {
             if (exactColumnSizes != null) { // we set the column sizes before, use it to set the SB size correctly
-                if(colIdx >= exactColumnSizes.size()) {
+                if(colIdx >= exactColumnSizes.length) {
                     // it seems this could happen, still we want to tolerate it and not throw. (see expected behavior in HdfsImportIT::testNullDatesWithMixedCaseAccuracy)
                     currentColumn.setLength(0);
                 } else {
-                    currentColumn = new StringBuilder(exactColumnSizes.get(colIdx));
+                    if(LOG.isDebugEnabled()) {
+                        LOG.debug(String.format("reinit column StringBuilder to exact size of %d", exactColumnSizes[colIdx]));
+                    }
+                    int maxExactColumnSize = Arrays.stream(exactColumnSizes).max().getAsInt();
+                    if(maxExactColumnSize > currentColumn.capacity()) {
+                        currentColumn = new StringBuilder(maxExactColumnSize);
+                    } else {
+                        currentColumn.setLength(0);
+                    }
                 }
             } else { // we didn't because the column size is too small. Just reset the size and let SB grow exponentially.
                 currentColumn.setLength(0);
@@ -315,7 +332,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     }
 
     private void handleNormalState(final List<String> columns, final BooleanList quotedColumns) {
-        if (charIndex == getCurrentLine().length()) { // Newline. Add any required spaces (if surrounding spaces don't need quotes) and return (we've read
+        if (charIndex == getCurrentLine().length()) { // Newline. Add any required spaces (if surrounding spaces don't need quotes) and return (we've read a line!).
             finishCol(columns, quotedColumns);
             state = TokenizerState.FINISHED;
         } else {
