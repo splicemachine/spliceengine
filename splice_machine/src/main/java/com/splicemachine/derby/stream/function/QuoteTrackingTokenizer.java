@@ -216,9 +216,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         if (checkExactSizeFirst) {
             runStateMachine(new ArrayList<>(), null); // will only calculate exact size of each column
             reset();
-            allocateColumnMemory();
-            checkExactSizeFirst = false; // allow setting the column in the next state machine run instead of
-                                         // just counting the characters.
+            checkExactSizeFirst = false; // allow setting the column in the next state machine run instead just counting the characters.
+            allocateColumnMemory(); // allocate memory for the first column
             rowIdx = 0; // rollback to start reading the data (again) from currentRow.
         }
 
