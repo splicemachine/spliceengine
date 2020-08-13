@@ -65,7 +65,9 @@ public class FileFunction extends AbstractFileFunction<String> {
         if (operationContext.isFailed())
             return Collections.<ExecRow>emptyList().iterator();
         if (!initialized) {
-            Reader reader = new StringReader(s);
+            Reader reader = new StringReader(""); // no need to pass the string here, rely on setLine() method to
+                                                     // pass the string to CSV tokenizer, this allows us to immediately
+                                                     // get rid of the string after reading it.
             checkPreference();
             List<Integer> valueSizeHints = null;
             SpliceOperation op = operationContext.getOperation();
