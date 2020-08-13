@@ -444,7 +444,6 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     }
 
-    @Test
     public void testWriteReadFromSimpleExternalTable(String fileFormat) throws Exception {
         String name = "write_all_datatypes_" + fileFormat;
         String file = getExternalResourceDirectory() + name;
