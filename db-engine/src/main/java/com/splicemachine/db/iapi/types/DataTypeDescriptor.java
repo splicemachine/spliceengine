@@ -1756,6 +1756,10 @@ public class DataTypeDescriptor implements Formatable{
      }
 
     public DataValueDescriptor getDefault() throws StandardException {
+        if (typeId.getTypeFormatId() == StoredFormatIds.BIT_TYPE_ID) {
+            return new SQLBit(new byte[typeDescriptor.getMaximumWidth()]);
+        }
+
         return typeId.getDefault();
     }
 
