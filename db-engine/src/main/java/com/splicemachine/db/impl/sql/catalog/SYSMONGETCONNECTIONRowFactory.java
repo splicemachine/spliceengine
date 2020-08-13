@@ -33,7 +33,7 @@ import java.util.List;
 /**
  * Created by zli on 8/10/20.
  */
-public class MONGETCONNECTIONRowFactory extends CatalogRowFactory
+public class SYSMONGETCONNECTIONRowFactory extends CatalogRowFactory
 {
     public static final String		TABLENAME_STRING = "MON_GET_CONNECTION";
     public static final String      MONGETCONNECTION_UUID = "51d833f1-b166-4fe0-b86b-da5e2e77edf0";
@@ -441,7 +441,7 @@ public class MONGETCONNECTIONRowFactory extends CatalogRowFactory
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    public MONGETCONNECTIONRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSMONGETCONNECTIONRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
     {
         super(uuidf,ef,dvf);
         initInfo(COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
