@@ -117,6 +117,8 @@ public class FromBaseTable extends FromTable {
     private boolean pin;
     int updateOrDelete;
     boolean skipStats;
+    boolean useRealTableStats;
+    List<Integer> noStatsColumnIds;
     int splits;
     long defaultRowCount;
     double defaultSelectivityFactor = -1d;
@@ -809,6 +811,8 @@ public class FromBaseTable extends FromTable {
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
+        useRealTableStats=scc.useRealTableStatistics();
+        noStatsColumnIds=scc.getNoStatisticsColumnIds();
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);
         costEstimate.setPredicateList(baseTableRestrictionList);
@@ -3566,5 +3570,11 @@ public class FromBaseTable extends FromTable {
 
     public AggregateNode getAggregateForSpecialMaxScan() {
         return aggrForSpecialMaxScan;
+    }
+
+    public boolean useRealTableStats() { return useRealTableStats; }
+
+    public List<Integer> getNoStatsColumnIds() {
+        return noStatsColumnIds;
     }
 }
