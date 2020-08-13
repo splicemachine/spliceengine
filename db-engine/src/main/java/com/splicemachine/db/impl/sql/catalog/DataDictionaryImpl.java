@@ -6390,7 +6390,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 int catalogNumber=noncoreCtr+NUM_CORE;
                 boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
                 SchemaDescriptor sd = systemSchemaDesc;
-                if (catalogNumber > 34 && catalogNumber < 38)
+                if (catalogNumber == SYSMONGETCONNECTION_CATALOG_NUM)
                     sd = sysIBMADMSchemaDesc;
                 else if (isDummy)
                     sd = sysIBMSchemaDesc;
@@ -7780,10 +7780,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSREPLICATION_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf));
                     break;
-                case SNAPAPPL_CATALOG_NUM:
-                case SNAPAPPL_INFO_CATALOG_NUM:
-                case APPLICATIONS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new MONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf));
+                case SYSMONGETCONNECTION_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSBACKUPFILESET_CATALOG_NUM:
                 case SYSBACKUPJOBS_CATALOG_NUM:

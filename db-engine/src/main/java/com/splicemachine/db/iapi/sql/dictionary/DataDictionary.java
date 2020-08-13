@@ -212,6 +212,7 @@ public interface DataDictionary{
 
     /**
      * Catalog numbers for non core system catalogs.
+     * All these entries are for system tables, not views.
      */
     int SYSCONSTRAINTS_CATALOG_NUM=4;
     int SYSKEYS_CATALOG_NUM=5;
@@ -244,9 +245,7 @@ public interface DataDictionary{
     int SYSSNAPSHOT_NUM=32;
     int SYSTOKENS_NUM=33;
     int SYSREPLICATION_CATALOG_NUM=34;
-    int SNAPAPPL_CATALOG_NUM=35;
-    int SNAPAPPL_INFO_CATALOG_NUM=36;
-    int APPLICATIONS_CATALOG_NUM=37;
+    int SYSMONGETCONNECTION_CATALOG_NUM=35;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
      */

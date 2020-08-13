@@ -228,7 +228,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         TableDescriptor td = getTableDescriptor(viewName, sd, tc);
         if (td != null) {
-            SpliceLogUtils.info(LOG, "View: " + viewName + " in SYSVW already exists!");
+            SpliceLogUtils.info(LOG, "View: " + viewName + " in " + sd.getSchemaName() + " already exists!");
             return;
         }
 
@@ -343,7 +343,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
         if(ibmConnectionTable==null){
-            ibmConnectionTable=new TabInfoImpl(new MONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf));
+            ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf));
         }
         initSystemIndexVariables(ibmConnectionTable);
         return ibmConnectionTable;
@@ -359,11 +359,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
         addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null);
 
-        createOneSystemView(tc, SNAPAPPL_CATALOG_NUM, "SNAPAPPL", 0, sysIBMADMSchemaDesc, MONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL);
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL", 0, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL);
 
-        createOneSystemView(tc, SNAPAPPL_INFO_CATALOG_NUM, "SNAPAPPL_INFO", 1, sysIBMADMSchemaDesc, MONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL);
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL_INFO", 1, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL);
 
-        createOneSystemView(tc, APPLICATIONS_CATALOG_NUM, "APPLICATIONS", 2, sysIBMADMSchemaDesc, MONGETCONNECTIONRowFactory.APPLICATIONS_VIEW_SQL);
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "APPLICATIONS", 2, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.APPLICATIONS_VIEW_SQL);
 
         SpliceLogUtils.info(LOG, "Tables and views in SYSIBMADM are created!");
     }
