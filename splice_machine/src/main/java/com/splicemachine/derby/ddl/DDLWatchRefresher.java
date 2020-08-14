@@ -216,27 +216,9 @@ public class DDLWatchRefresher{
     private void assignDDLDemarcationPoint(DDLChange ddlChange) {
         try {
             TxnView txn = new LazyTxnView(ddlChange.getTxnId(),txnSupplier,exceptionFactory);
-            // A full Restore operation overwrite SPLICE_TXN, so the transaction used by the restore
-            // may not be found.  Avoid the assertion to avoid crashing, e.g.,
-            // 2020-08-11 18:28:11,785 (ZooKeeperDDLWatcherRefresher) ERROR [c.s.d.d.AsynchronousDDLWatcher] - Failed to refresh ddl
-            //java.lang.RuntimeException: com.splicemachine.si.api.txn.TransactionMissing: Couldn't resolve transaction with id 81981952
-            //        at com.splicemachine.si.impl.txn.LazyTxnView.lookup(LazyTxnView.java:270)
-            //        at com.splicemachine.si.impl.txn.LazyTxnView.allowsWrites(LazyTxnView.java:197)
-            //        at com.splicemachine.derby.ddl.DDLWatchRefresher.assignDDLDemarcationPoint(DDLWatchRefresher.java:217)
-            //        at com.splicemachine.derby.ddl.DDLWatchRefresher.clearFinishedChanges(DDLWatchRefresher.java:203)
-            //        at com.splicemachine.derby.ddl.DDLWatchRefresher.refreshDDL(DDLWatchRefresher.java:90)
-            //        at com.splicemachine.derby.ddl.AsynchronousDDLWatcher$1.run(AsynchronousDDLWatcher.java:97)
-            //        at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
-            //        at java.util.concurrent.FutureTask.run(FutureTask.java:266)
-            //        at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
-            //        at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
-            //        at java.lang.Thread.run(Thread.java:748)
-            //Caused by: com.splicemachine.si.api.txn.TransactionMissing: Couldn't resolve transaction with id 81981952
-            //        at com.splicemachine.si.impl.CoprocessorTxnStore.decode(CoprocessorTxnStore.java:426)
-            //        at com.splicemachine.si.impl.CoprocessorTxnStore.getTransaction(CoprocessorTxnStore.java:299)
-            //        at com.splicemachine.si.impl.store.CompletedTxnCacheSupplier.getTransaction(CompletedTxnCacheSupplier.java:86)
-            //        at com.splicemachine.si.impl.store.CompletedTxnCacheSupplier.getTransaction(CompletedTxnCacheSupplier.java:72)
-            //        at com.splicemachine.si.impl.txn.LazyTxnView.lookup(LazyTxnView.java:266)
+            // A full Restore operation overwrites SPLICE_TXN, so the transaction used by the restore
+            // may not be found.  Avoid the assertion to avoid crashing.
+            // An example call stack can be found in https://splicemachine.atlassian.net/browse/DB-10025
             if (ddlChange.getDdlChangeType() != ENTER_RESTORE_MODE) {
                 assert txn.allowsWrites() : "DDLChange " + ddlChange + " does not have a writable transaction";
             }
