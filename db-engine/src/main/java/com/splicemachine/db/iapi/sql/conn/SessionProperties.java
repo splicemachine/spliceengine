@@ -51,7 +51,8 @@ public interface SessionProperties {
         OLAPPARALLELPARTITIONS(7),
         OLAPSHUFFLEPARTITIONS(8),
         SPARK_RESULT_STREAMING_BATCHES(9),
-        SPARK_RESULT_STREAMING_BATCH_SIZE(10);
+        SPARK_RESULT_STREAMING_BATCH_SIZE(10),
+        TABLELIMITFOREXHAUSTIVESEARCH(11);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -85,7 +86,7 @@ public interface SessionProperties {
             property = SessionProperties.PROPERTYNAME.valueOf(propertyNameString);
         } catch (IllegalArgumentException e) {
             throw StandardException.newException(SQLState.LANG_INVALID_SESSION_PROPERTY,propertyNameString,
-                    "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit");
+                    "useOLAP, useSpark (deprecated), defaultSelectivityFactor, skipStats, olapQueue, recursiveQueryIterationLimit, tableLimitForExhaustiveSearch");
         }
 
         String valString = pair.getSecond();
@@ -118,6 +119,7 @@ public interface SessionProperties {
             case SPARK_RESULT_STREAMING_BATCH_SIZE:
             case OLAPPARALLELPARTITIONS:
             case OLAPSHUFFLEPARTITIONS:
+            case TABLELIMITFOREXHAUSTIVESEARCH:
                 int value;
                 try {
                     value = Integer.parseInt(valString);
