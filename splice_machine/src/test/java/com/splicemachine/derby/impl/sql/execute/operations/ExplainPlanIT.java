@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -630,5 +631,45 @@ public class ExplainPlanIT extends SpliceUnitTest  {
                 rs.close();
             }
         }
+    }
+
+    @Test
+    public void testReportMissingTableStatistics() throws Exception {
+        String query ="explain select * from t4";
+        String[] expected = {
+                "Table statistics are missing or skipped for the following tables",
+                CLASS_NAME + ".T4"
+        };
+        rowContainsQuery(new int[]{4, 5}, query, spliceClassWatcher, expected);
+
+        methodWatcher.executeQuery(format("analyze table %s.t4", CLASS_NAME));
+        ResultSet rs  = methodWatcher.executeQuery(query);
+        String explainStr = TestUtils.FormattedResult.ResultFactory.toString(rs);
+        Assert.assertFalse(explainStr.contains(expected[0]) || explainStr.contains(expected[1]));
+    }
+
+    @Test
+    public void testTableSkipStatistics() throws Exception {
+        String query ="explain select * from t4 --splice-properties skipStats=true";
+        methodWatcher.executeQuery(format("analyze table %s.t4", CLASS_NAME));
+
+        String[] expected = {
+                "Table statistics are missing or skipped for the following tables",
+                CLASS_NAME + ".T4"
+        };
+        rowContainsQuery(new int[]{4, 5}, query, spliceClassWatcher, expected);
+    }
+
+    @Test
+    public void testReportMissingColumnStatistics() throws Exception {
+        String query ="explain select * from t4";
+        methodWatcher.execute(format("CALL SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s', 'T4', 'c4')", CLASS_NAME));
+        methodWatcher.executeQuery(format("analyze table %s.t4", CLASS_NAME));
+
+        String[] expected = {
+                "Column statistics are missing or skipped for the following columns",
+                CLASS_NAME + ".T4.C4"
+        };
+        rowContainsQuery(new int[]{4, 5}, query, spliceClassWatcher, expected);
     }
 }
