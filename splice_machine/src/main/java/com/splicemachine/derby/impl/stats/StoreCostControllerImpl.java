@@ -256,7 +256,7 @@ public class StoreCostControllerImpl implements StoreCostController {
             rowCnt = rowCnt/sampleFraction;
         if (missingPartitions > 0) {
             assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0 ";
-            return rowCnt + rowCnt * (missingPartitions / tableStatistics.numPartitions());
+            return rowCnt + rowCnt * ((double)missingPartitions / tableStatistics.numPartitions());
         }
         else
             return rowCnt;
@@ -269,7 +269,7 @@ public class StoreCostControllerImpl implements StoreCostController {
             notNullCount = notNullCount/sampleFraction;
         if (missingPartitions > 0) {
             assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0";
-            return notNullCount + notNullCount * (missingPartitions / tableStatistics.numPartitions());
+            return notNullCount + notNullCount * ((double)missingPartitions / tableStatistics.numPartitions());
         } else
             return notNullCount;
     }
@@ -395,7 +395,8 @@ public class StoreCostControllerImpl implements StoreCostController {
             throw StandardException.plainWrapException(ioe);
         } finally {
             try {
-                root.close();
+                if (root != null)
+                    root.close();
             } catch (IOException e) {
                 // ignore
             }
@@ -416,7 +417,8 @@ public class StoreCostControllerImpl implements StoreCostController {
             throw StandardException.plainWrapException(ioe);
         } finally {
             try {
-                root.close();
+                if (root != null)
+                    root.close();
             } catch (IOException e) {
                 // ignore
             }
