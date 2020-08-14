@@ -49,8 +49,8 @@ import java.sql.ClientInfoStatus;
 public class FailedProperties40 {
     private final HashMap<String,ClientInfoStatus> failedProps_ =
             new HashMap<>();
-    private final String firstKey_;
-    private final String firstValue_;
+    private String firstKey_;
+    private String firstValue_;
 
     /**
      * Helper method that creates a Propery object from the name-value
@@ -61,7 +61,8 @@ public class FailedProperties40 {
      */
     public static Properties makeProperties(String name, String value) {
 	Properties p = new Properties();
-	if (name != null || value != null)
+	// Properties is derived from HashTable, in which both key and value cannot be null
+	if (name != null && value != null)
 	    p.setProperty(name, value);
 	return p;
     }
@@ -90,6 +91,10 @@ public class FailedProperties40 {
         }
     }
 
+    public boolean isEmpty() {
+        return failedProps_.isEmpty();
+    }
+
     /**
      * <code>getProperties</code> provides a
      * <code>Map<String,ClientInfoStatus></code> object describing the
@@ -100,6 +105,16 @@ public class FailedProperties40 {
      * the failed property keys and the reason why each failed
      */
     public Map<String,ClientInfoStatus> getProperties() { return failedProps_; }
+
+    public boolean addProperty(String name, String value, ClientInfoStatus reason) {
+        if (firstKey_ == null && firstValue_ == null) {
+            assert failedProps_.isEmpty() : "corrupted structure of FailedProperties40";
+            firstKey_ = name;
+            firstValue_ = value;
+        }
+        ClientInfoStatus prevStatus = failedProps_.put(name, reason);
+        return prevStatus != reason;
+    }
 
     /**
      * <code>getFirstKey</code> returns the first property key. Used
