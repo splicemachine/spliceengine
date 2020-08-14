@@ -468,11 +468,12 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 if (closeCheckInterval > 0) {
                     bytesWritten += len;
                     if (bytesWritten > closeCheckInterval) {
-                        bytesWritten = 0;
-//                        if (!store.areWritesEnabled()) {
-//                            progress.cancel();
-//                            return false;
-//                        }
+                        bytesWritten = 0; // reset so check whether cancellation is requested in the next
+                                          // <closeCheckInterval>-bytes mark
+                        if (!store.areWritesEnabled()) { // this call could be expensive.
+                            progress.cancel();
+                            return false;
+                        }
                     }
                 }
             }
