@@ -31,21 +31,16 @@
 
 package com.splicemachine.db.impl.jdbc;
 
-import java.sql.Array;
-import java.sql.SQLClientInfoException;
-import java.sql.NClob;
-import java.sql.SQLException;
-import java.sql.SQLPermission;
-import java.sql.SQLXML;
-import java.sql.Struct;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.Executor;
-import com.splicemachine.db.jdbc.InternalDriver;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.EngineConnection40;
 import com.splicemachine.db.iapi.jdbc.FailedProperties40;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.jdbc.InternalDriver;
+
+import java.sql.*;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.Executor;
 
 public class EmbedConnection40
         extends EmbedConnection30 implements EngineConnection40 {
@@ -157,7 +152,7 @@ public class EmbedConnection40
      */
     public void setClientInfo(Properties properties)
     throws SQLClientInfoException {
-        FailedProperties40 fp = new FailedProperties40(properties);
+        FailedProperties40 fp = verifyClientInfo(properties);
         
         try { checkIfClosed(); }
         catch (SQLException se) {
@@ -165,23 +160,18 @@ public class EmbedConnection40
             		se.getErrorCode(), fp.getProperties());
         }
 
-        // Allow null to simplify compliance testing through
-        // reflection, (test all methods in an interface with null
-        // arguments)
-        // An empty properties object is meaningless, but allowed
-        if (properties == null || properties.isEmpty()) {
-            return;
-        }
+        // Allow properties == null to simplify compliance testing through
+        // reflection (test all methods in an interface with null arguments).
+        // An empty properties object is meaningless, but allowed.
 
-        StandardException se = 
-            StandardException.newException
-            (SQLState.PROPERTY_UNSUPPORTED_CHANGE, 
-             fp.getFirstKey(), 
-             fp.getFirstValue());
-        throw new SQLClientInfoException(se.getMessage(),
-        		se.getSQLState(), 
-        		se.getErrorCode(),
-        		fp.getProperties());
+        if (!fp.isEmpty()) {
+            StandardException se = StandardException.newException(SQLState.PROPERTY_UNSUPPORTED_CHANGE,
+                    fp.getFirstKey(), fp.getFirstValue());
+            throw new SQLClientInfoException(se.getMessage(),
+                    se.getSQLState(),
+                    se.getErrorCode(),
+                    fp.getProperties());
+        }
     }
     
     /**
@@ -327,5 +317,25 @@ public class EmbedConnection40
     {
         throw Util.notImplemented();
     }
-    
+
+    protected FailedProperties40 verifyClientInfo(Properties properties) {
+        FailedProperties40 badProperties = new FailedProperties40(null);
+        if (properties == null)
+            return badProperties;
+
+        for (Object k : properties.keySet()) {
+            String key = (String)k;
+            switch (key) {
+                case "ApplicationName":
+                case "ClientUser":
+                case "ClientHostname":
+                    break;
+                default:
+                    badProperties.addProperty(key, properties.getProperty(key),
+                            ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+                    break;
+            }
+        }
+        return badProperties;
+    }
 }
