@@ -112,23 +112,16 @@ public class SpliceSpark {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            if (isOlapWorker)
+            if (isOlapWorker) {
+                LOG.error("Olap server's connected to Spark is stopped, shutting down OLAP worker task.");
                 System.exit(0);
+            }
             sessionToUse = session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
         }
         else {
             if (sessionToUse == null || needsReinitialization) {
-                String allowMultipleContextsString = null;
-                try {
-                    allowMultipleContextsString = session.conf().get("spark.driver.allowMultipleContexts");
-                }
-                catch (NoSuchElementException e) {
-                }
-                boolean allowMultipleContexts =
-                        allowMultipleContextsString != null &&
-                        allowMultipleContextsString.equals("true");
-                if (session != null && !allowMultipleContexts)
+                if (session != null)
                     sessionToUse = session.newSession();
                 else
                     sessionToUse = initializeSparkSession();
