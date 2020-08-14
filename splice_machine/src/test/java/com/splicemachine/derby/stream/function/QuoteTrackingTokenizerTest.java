@@ -144,7 +144,7 @@ public class QuoteTrackingTokenizerTest {
             Assert.assertTrue("Did not properly read the columns!", qtt.readColumns(cols, quoteCols));
             Assert.assertEquals("Did not return correct column information", expectedColumns.get(i), cols);
             Assert.assertEquals("Did not return correct quoted column information", expectedQuotes.get(i), quoteCols);
-            Assert.assertEquals("Did not return correct column sizes", expectedValueSizes.get(i), qtt.getExactColumnSizes());
+            Assert.assertArrayEquals("Did not return correct column sizes", expectedValueSizes.get(i).stream().mapToInt(k->k).toArray(), qtt.getExactColumnSizes());
         }
     }
 
