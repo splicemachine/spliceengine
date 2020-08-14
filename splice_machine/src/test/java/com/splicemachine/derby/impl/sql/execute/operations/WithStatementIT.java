@@ -138,7 +138,7 @@ public class WithStatementIT extends SpliceUnitTest {
                 "select foo2.col1, count from foo2 " +
                 "inner join footest on foo2.col1 = footest.col2";
         ResultSet rs = methodWatcher.executeQuery(query);
-        Assert.assertEquals("explain plan incorrect",9,this.resultSetSize(rs));
+        Assert.assertEquals("explain plan incorrect",11,this.resultSetSize(rs));
     }
 
 
@@ -183,7 +183,7 @@ public class WithStatementIT extends SpliceUnitTest {
                 "select foo2.col1, count, sum_col1 from foo2 " +
                 "inner join footest1 on foo2.col1 = footest1.col2";
         ResultSet rs = methodWatcher.executeQuery(query);
-        Assert.assertEquals("explain plan incorrect",12,this.resultSetSize(rs));
+        Assert.assertEquals("explain plan incorrect",14,this.resultSetSize(rs));
     }
 
     @Test

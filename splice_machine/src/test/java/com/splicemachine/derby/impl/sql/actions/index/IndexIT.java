@@ -751,7 +751,7 @@ public class IndexIT extends SpliceUnitTest{
 
         List<String> arr2=methodWatcher.queryList(sql2);
 
-        assertTrue("Plan #1 has small size",arr1.size()==10);
+        assertTrue("Plan #1 has small size",arr1.size()==12);
         assertTrue("Plan #1 must be longer that plan #2",arr1.size()>arr2.size());
 
         String messages=Joiner.on("").join(arr1);
