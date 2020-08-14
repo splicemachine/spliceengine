@@ -99,6 +99,11 @@ public class MResult implements DataResult{
     }
 
     @Override
+    public boolean isEmpty(){
+        return dataCells == null || dataCells.isEmpty();
+    }
+
+    @Override
     public DataCell latestCell(byte[] family,byte[] qualifier){
         if(dataCells==null) return null;
         for(DataCell dc:dataCells){

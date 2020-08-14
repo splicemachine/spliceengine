@@ -150,7 +150,7 @@ public class IndexTransformer {
     public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException {
         // do a Get() on all the indexed columns of the base table
         DataResult result =fetchBaseRow(mutation,ctx,indexedColumns);
-        if(result==null||result.size()<=0){
+        if(result==null || result.isEmpty()){
             // we can't find the old row, may have been deleted already
             return null;
         }

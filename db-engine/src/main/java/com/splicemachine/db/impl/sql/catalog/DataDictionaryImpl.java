@@ -116,6 +116,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     protected SchemaDescriptor systemSchemaDesc;
     protected SchemaDescriptor sysIBMSchemaDesc;
+    protected SchemaDescriptor sysIBMADMSchemaDesc;
     protected SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
     protected SchemaDescriptor systemUtilSchemaDesc;
     protected SchemaDescriptor sysFunSchemaDesc;
@@ -666,6 +667,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         systemSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSTEM_SCHEMA_UUID);
         sysIBMSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID);
+        sysIBMADMSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,SchemaDescriptor.SYSIBMADM_SCHEMA_UUID);
         systemUtilSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID);
         sysFunSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,SchemaDescriptor.SYSFUN_SCHEMA_UUID);
         sysViewSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID);
@@ -5722,6 +5724,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException{
         updateSchemaAuth(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,aid,tc);
         updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,aid,tc);
+        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,aid,tc);
 
         updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,aid,tc);
         updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,aid,tc);
@@ -6315,6 +6318,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         systemSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
         sysIBMSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
+        sysIBMADMSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
         systemUtilSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
     }
 
@@ -6385,9 +6389,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ContextService.getFactory().setCurrentContextManager(cm);
                 int catalogNumber=noncoreCtr+NUM_CORE;
                 boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
+                SchemaDescriptor sd = systemSchemaDesc;
+                if (catalogNumber == SYSMONGETCONNECTION_CATALOG_NUM)
+                    sd = sysIBMADMSchemaDesc;
+                else if (isDummy)
+                    sd = sysIBMSchemaDesc;
                 TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
                 if (ti != null) {
-                    makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc);
+                    makeCatalog(ti, sd, tc);
                 }
                 if(isDummy)
                     populateSYSDUMMY1(tc);
@@ -6495,6 +6504,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         //Add the SYSIBM Schema
         sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID,tc);
+
+        //Add the SYSIBMADM Schema
+        sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,SchemaDescriptor.SYSIBMADM_SCHEMA_UUID,tc);
 
         /* Create the non-core tables and generate the UUIDs for their
          * heaps (before creating the indexes).
@@ -7767,6 +7779,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     break;
                 case SYSREPLICATION_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf));
+                    break;
+                case SYSMONGETCONNECTION_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf));
                     break;
                 case SYSBACKUPFILESET_CATALOG_NUM:
                 case SYSBACKUPJOBS_CATALOG_NUM:
