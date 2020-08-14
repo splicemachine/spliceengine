@@ -208,12 +208,12 @@ public class ExplainOperation extends SpliceBaseOperation {
 
     private void addNoStatsTablesAndColumns() {
         if (noStatsTables.length > 0) {
-            explainString.add("\nTable statistics are missing or skipped for the following tables:");
+            explainString.add("Table statistics are missing or skipped for the following tables:");
             explainString.add(
                     Arrays.stream(noStatsTables).map(SQLVarchar::toString).collect(Collectors.joining(", ")));
         }
         if (noStatsColumns.length > 0) {
-            explainString.add("\nColumn statistics are missing or skipped for the following columns:");
+            explainString.add("Column statistics are missing or skipped for the following columns:");
             explainString.add(
                     Arrays.stream(noStatsColumns).map(SQLVarchar::toString).collect(Collectors.joining(", ")));
         }
