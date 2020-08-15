@@ -29,10 +29,12 @@ class KafkaAdmin(kafkaServers: String) extends Serializable {
   props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
   val admin = AdminClient.create( props )
   
-  def createTopics(topicNames: collection.mutable.Set[String], numParitions: Int, repFactor: Short): Unit =
+  def createTopics(topicNames: collection.mutable.Set[String], numParitions: Int, repFactor: Short): Unit = {
     admin.createTopics(
       topicNames.map(new NewTopic(_,numParitions,repFactor)).asJava
     ).all.get
+    Thread.sleep(1000)
+  }
 
   def listTopics(): collection.mutable.Set[String] = admin.listTopics.names.get.asScala
 
