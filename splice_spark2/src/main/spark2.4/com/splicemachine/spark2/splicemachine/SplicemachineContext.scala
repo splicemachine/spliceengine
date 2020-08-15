@@ -551,13 +551,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
         val producer = new KafkaProducer[Integer, Externalizable](props)
         
-        val r = new java.util.Random()
+//        val r = new java.util.Random()
 
         while( itrRow.hasNext ) {
           producer.send( new ProducerRecord(
             topicName,
-            r.nextInt(insertTopicPartitions),
-            partition+msgIdx,
+//            r.nextInt(insertTopicPartitions),
+//            partition+msgIdx,
             externalizable(itrRow.next, schema)
           ))
           msgIdx += 1
