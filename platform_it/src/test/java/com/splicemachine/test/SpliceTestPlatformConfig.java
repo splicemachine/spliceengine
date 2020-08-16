@@ -341,10 +341,10 @@ class SpliceTestPlatformConfig {
         config.setLong("splice.optimizer.broadcastDatasetCostThreshold", -1);
 
         // Fix SessionPropertyIT.TestTableLimitForExhaustiveSearchSessionProperty
-        // by setting a min query planner timeout of 1 ms.  Otherwise, with small
+        // by setting a min query planner timeout of 5 ms.  Otherwise, with small
         // tables, we may timeout too quickly when the system is a little busy
         // and get an unexpected join plan.
-        config.setLong("splice.optimizer.minPlanTimeout", 1L);
+        config.setLong("splice.optimizer.minPlanTimeout", 5L);
 
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
             // we are a member, let's ignore transactions for testing
