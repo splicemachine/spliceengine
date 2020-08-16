@@ -384,8 +384,6 @@
                                 ${excluded.categories},
                                 ${excluded.longerthan}
                             </excludedGroups>
-                            <forkCount>10</forkCount>
-                            <reuseForks>true</reuseForks>
                             <parallel>classes</parallel>
                             <threadCount>1</threadCount>
                             <!-- -sf- single-threaded for now -->
