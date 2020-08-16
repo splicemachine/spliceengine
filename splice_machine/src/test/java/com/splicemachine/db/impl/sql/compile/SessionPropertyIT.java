@@ -241,14 +241,12 @@ public class SessionPropertyIT extends SpliceUnitTest {
         }
         // number of tables (3) > tableLimitForExhaustiveSearch (1), use heuristic instead of enumerating,
         // intermediate result size is less satisfying
-        // Look on both lines 5 and 6.  Sometimes there is a ProjectRestrict in the explain
-        // which offsets the sought result by 1 row.
-        try {
-            rowContainsQuery(6, String.format(testQuery, ""), "outputRows=40", conn);
-        }
-        catch (AssertionError e) {
-            rowContainsQuery(5, String.format(testQuery, ""), "outputRows=40", conn);
-        }
+
+        // Depending on how busy the system is, the query plan for this query may differ due
+        // to the time limit imposed on query planning.  Sometimes the time limit is exceeded,
+        // at which point the current best plan is picked.
+        // Disable this test for now, as it fails sporadically:
+        // rowContainsQuery(6, String.format(testQuery, ""), "outputRows=40", conn);
 
         // overwrite session property by using a query hint
         // intermediate result size should be better
