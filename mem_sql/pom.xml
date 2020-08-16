@@ -210,6 +210,8 @@
                         <configuration>
                             <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.HBaseTest, ${excluded.categories}, ${excluded.longerthan}</excludedGroups>
                             <!--<skipTests>${skip.integration.tests}</skipTests>-->
+                            <forkCount>10</forkCount>
+                            <reuseForks>true</reuseForks>
                             <parallel>classes</parallel>
                             <threadCount>4</threadCount>
                             <perCoreThreadCount>false</perCoreThreadCount>
