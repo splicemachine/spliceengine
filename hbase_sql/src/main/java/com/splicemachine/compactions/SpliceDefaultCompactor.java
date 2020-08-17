@@ -100,6 +100,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private String tableDisplayName;
     private String indexDisplayName;
     private static String hostName;
+    private boolean isSpark;
 
     private static final String TABLE_DISPLAY_NAME_ATTR = SIConstants.TABLE_DISPLAY_NAME_ATTR;
     private static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;
@@ -109,6 +110,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         conglomId = this.store.getTableName().getQualifierAsString();
         tableDisplayName = this.store.getHRegion().getTableDescriptor().getValue(TABLE_DISPLAY_NAME_ATTR);
         indexDisplayName = this.store.getHRegion().getTableDescriptor().getValue(INDEX_DISPLAY_NAME_ATTR);
+        isSpark = false;
 
         if (LOG.isDebugEnabled()) {
             SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", this.store.getHRegion());
@@ -128,14 +130,16 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="static attribute hostname is set from here")
     public List<Path> compact(CompactionRequestImpl request, ThroughputController throughputController, User user) throws IOException {
         assert request instanceof SpliceCompactionRequest;
+        SpliceCompactionRequest spliceRequest = (SpliceCompactionRequest)request;
         // Used if we cannot compact in Spark
-        ((SpliceCompactionRequest) request).setPurgeConfig(buildPurgeConfig(request));
+        spliceRequest.setPurgeConfig(buildPurgeConfig(request));
 
-        if(!allowSpark || store.getRegionInfo().getTable().isSystemTable())
+        if(!allowSpark || store.getRegionInfo().getTable().isSystemTable()) {
+            isSpark = false;
             return super.compact(request, throughputController, user);
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
+        }
 
+        SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
         smallestReadPoint = store.getSmallestReadPoint();
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
         this.progress = new CompactionProgress(fd.maxKeyCount);
@@ -163,7 +167,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 hostName,
                 config.getOlapCompactionMaximumWait());
         CompactionResult result = null;
-        SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
 
         EngineDriver driver = EngineDriver.driver();
         if (driver == null) {
@@ -196,12 +199,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
         List<String> sPaths = result.getPaths();
 
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
+        SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
 
         this.progress.complete();
 
-        scr.preStorefilesRename();
+        spliceRequest.preStorefilesRename();
 
         List<Path> paths = new ArrayList<>();
         for (String spath : sPaths) {
@@ -355,6 +357,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 }
 
                 writer = createTmpWriter(fd, dropBehind,favoredNodes);
+                isSpark = true;
                 boolean finished = performCompaction(fd, scanner,  writer, smallestReadPoint, cleanSeqId,
                         NoLimitThroughputController.INSTANCE, request.isMajor(), request.getFiles().size());
                 if (!finished) {
@@ -470,7 +473,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     bytesWrittenProgress += len;
                 }
                 // check periodically to see if a system stop is requested
-                if (closeCheckInterval > 0) {
+                if (!isSpark && closeCheckInterval > 0) {
                     bytesWritten += len;
                     if (bytesWritten > closeCheckInterval) {
                         bytesWritten = 0; // reset so check whether cancellation is requested in the next
