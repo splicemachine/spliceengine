@@ -475,23 +475,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     bytesWrittenProgress += len;
                 }
                 // check periodically to see if a system stop is requested
-                if (isSpark) {
-                    if (TaskContext.get().isInterrupted()) {
-                        SpliceLogUtils.debug(LOG, "Compaction cancelled (Spark task interrupted)");
-                        progress.cancel();
-                        return false;
-                    }
-                } else { // we're in HBase.
-                    if (closeCheckInterval > 0) {
-                        bytesWritten += len;
-                        if (bytesWritten > closeCheckInterval) {
-                            bytesWritten = 0; // reset so check whether cancellation is requested in the next
-                            // <closeCheckInterval>-bytes mark
-                            if (!store.areWritesEnabled()) { // this call could be expensive.
-                                SpliceLogUtils.debug(LOG, "Compaction cancelled");
-                                progress.cancel();
-                                return false;
-                            }
+                if (closeCheckInterval > 0) {
+                    bytesWritten += len;
+                    if (bytesWritten > closeCheckInterval) {
+                        bytesWritten = 0; // reset so check whether cancellation is requested in the next <closeCheckInterval>-bytes mark
+                        if ((isSpark && TaskContext.get().isInterrupted()) || (!isSpark && !store.areWritesEnabled())) {
+                            SpliceLogUtils.debug(LOG, "Compaction cancelled");
+                            progress.cancel();
+                            return false;
                         }
                     }
                 }
