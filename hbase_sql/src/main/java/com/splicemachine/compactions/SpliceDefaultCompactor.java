@@ -429,24 +429,23 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     @Override
-    protected boolean performCompaction(Compactor.FileDetails fd, InternalScanner scanner, CellSink writer, long smallestReadPoint, boolean cleanSeqId, ThroughputController throughputController, boolean major, int numofFilesToCompact) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"performCompaction");
+    protected boolean performCompaction(Compactor.FileDetails fd, InternalScanner scanner, CellSink writer,
+                                        long smallestReadPoint, boolean cleanSeqId,
+                                        ThroughputController throughputController, boolean major,
+                                        int numofFilesToCompact) throws IOException {
+        SpliceLogUtils.trace(LOG,"performCompaction");
         long bytesWritten = 0;
-        long bytesWrittenProgress = 0;
-
-        // Since scanner.next() can return 'false' but still be delivering data,
-        // we have to use a do/while loop.
-        List<Cell> cells =new ArrayList<>();
-        long closeCheckInterval = HStore.getCloseCheckInterval();
-        long lastMillis = 0;
+        final long closeCheckInterval = HStore.getCloseCheckInterval();
+        // these variables are used to log the progress of long-running compactions
+        long bytesWrittenProgress = 0, lastMillis = 0, now = 0;
         if (LOG.isDebugEnabled()) {
             lastMillis = EnvironmentEdgeManager.currentTime();
         }
-        long now = 0;
+        // Since scanner.next() can return 'false' but still be delivering data,
+        // we have to use a do/while loop.
+        List<Cell> cells = new ArrayList<>();
         boolean hasMore;
-        ScannerContext scannerContext =
-                ScannerContext.newBuilder().setBatchLimit(compactionKVMax).build();
+        ScannerContext scannerContext = ScannerContext.newBuilder().setBatchLimit(compactionKVMax).build();
         do {
             hasMore = scanner.next(cells, scannerContext);
             if (LOG.isDebugEnabled()) {
@@ -471,17 +470,17 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                         bytesWritten = 0; // reset so check whether cancellation is requested in the next
                                           // <closeCheckInterval>-bytes mark
                         if (!store.areWritesEnabled()) { // this call could be expensive.
+                            LOG.debug("Compaction cancelled");
                             progress.cancel();
                             return false;
                         }
                     }
                 }
             }
-            // Log the progress of long running compactions every minute if
-            // logging at DEBUG level
+            // Log the progress of long-running compactions every minute if logging at DEBUG level
             if (LOG.isDebugEnabled()) {
                 if ((now - lastMillis) >= 60 * 1000) {
-                    LOG.debug("Compaction progress: " + progress + String.format(", rate=%.2f kB/sec",
+                    LOG.debug(String.format("Compaction progress: %s, rate=%.2f kB/sec", progress.toString(),
                             (bytesWrittenProgress / 1024.0) / ((now - lastMillis) / 1000.0)));
                     lastMillis = now;
                     bytesWrittenProgress = 0;
