@@ -2494,6 +2494,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y31</name>
+                <text>Group by position '{0}' is invalid, must be an 1-based index of the select list.</text>
+                <arg>position</arg>
+            </msg>
+
+            <msg>
                 <name>42Y32</name>
                 <text>Aggregator class '{0}' for aggregate '{1}' on type {2} does not implement
                     com.splicemachine.db.iapi.sql.execute.ExecAggregator.
