@@ -1152,14 +1152,6 @@
             </properties>
         </profile>
         <profile>
-            <id>spark_3.0</id>
-            <properties>
-                <extraDependency>splice_sentry</extraDependency>
-                <extraDependency2>splice_ee</extraDependency2>
-                <extraDependency3>splice_ee</extraDependency3>
-            </properties>
-        </profile>
-        <profile>
             <id>dbaas</id>
             <properties>
                 <extraDependency>splice_ee</extraDependency>
