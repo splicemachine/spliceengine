@@ -999,7 +999,6 @@ public interface SQLState {
 	// String LANG_NO_TRIGGER_ON_SYSTEM_TABLE                             = "42Y28"; -- replaced by 42X62
 	String LANG_INVALID_NON_GROUPED_SELECT_LIST                        = "42Y29";
 	String LANG_INVALID_GROUPED_SELECT_LIST                            = "42Y30";
-	String LANG_INVALID_GROUP_POSITION                                 = "42Y31";
 	
 	String LANG_TOO_MANY_ELEMENTS                            = "54004";
 	String LANG_BAD_AGGREGATOR_CLASS2                                  = "42Y32";
