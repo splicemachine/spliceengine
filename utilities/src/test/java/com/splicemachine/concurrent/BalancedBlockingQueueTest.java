@@ -14,7 +14,7 @@
 
 package com.splicemachine.concurrent;
 
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.BalancedBlockingQueue;
 import org.junit.Assert;
 import org.junit.Test;

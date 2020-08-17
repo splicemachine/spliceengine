@@ -33,7 +33,7 @@ import com.splicemachine.si.api.txn.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -482,7 +482,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private class WriteAttemptContext{
         boolean refreshCache = false;
         boolean sleep = false;
-        boolean rejected= false;
         /*
          * Either directRetrySet !=null or nextWriteSet !=null. Otherwise, it's an error (since nextWriteSet is
          * necessarily a subset of the rows contained in directWriteSet).
@@ -505,7 +504,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
             sleep = false;
             nextWriteSet = null;
             directRetry = false;
-            rejected=false;
         }
 
         void addBulkWrites(Collection<KVPair> writes){
@@ -521,7 +519,6 @@ public class BulkWriteAction implements Callable<WriteStats>{
         }
 
         void rejected(){
-            rejected=true;
             rejectedCount++;
             rejectedCounter.increment();
             statusReporter.rejectedCount.incrementAndGet();

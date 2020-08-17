@@ -14,7 +14,7 @@
 
 package com.splicemachine.encoding;
 
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.testutil.RandomDerbyDecimalBuilder;
 import org.junit.Test;

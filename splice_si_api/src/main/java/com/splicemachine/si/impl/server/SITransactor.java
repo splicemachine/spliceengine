@@ -42,9 +42,9 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Collections2;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Maps;
 
 import java.io.IOException;
 import java.util.*;

@@ -51,9 +51,9 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.base.Predicates;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.base.Predicates;
+import splice.com.google.common.collect.Lists;
 
 import java.util.*;
 

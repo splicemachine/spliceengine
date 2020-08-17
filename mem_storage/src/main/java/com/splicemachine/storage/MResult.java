@@ -15,8 +15,8 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.base.Predicate;
+import splice.com.google.common.collect.Iterables;
 
 import java.util.*;
 
