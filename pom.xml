@@ -1030,6 +1030,47 @@
             </modules>
         </profile>
         <profile>
+            <id>dbaas3.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>dbaas3.0</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>6.3.2</cdh.parcel.version>
+                <envClassifier>dbaas3.0</envClassifier>
+                <envHbase>hbase2.1.4</envHbase>
+                <hadoop.version>3.0.0-cdh6.3.2</hadoop.version>
+                <hbase.version>2.1.0-cdh6.3.2</hbase.version>
+                <hive.version>2.1.1-cdh6.3.2</hive.version>
+                <zookeeper.version>3.4.5-cdh6.3.2</zookeeper.version>
+                <scala.binary.version>2.12</scala.binary.version>
+                <scala.version>2.12.12</scala.version>
+                <spark.version>3.0.0</spark.version>
+                <spark.major.version>spark3.0</spark.major.version>
+                <kafka.version>2.2.1-cdh6.3.2</kafka.version>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
+                <parquet.version>orc-spark-3.0</parquet.version>
+                <netty-all.version>4.1.17.Final</netty-all.version>
+                <scalatest.version>3.0.0</scalatest.version>
+                <scalamock.version>3.4.1</scalamock.version>
+                <commons.lang3.version>3.9</commons.lang3.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>standalone</module>
+                <module>platform_it</module>
+                <module>spark_sql</module>
+                <module>splice_spark</module>
+                <module>splice_spark2</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+        <profile>
             <id>ee</id>
             <activation>
                 <property>
