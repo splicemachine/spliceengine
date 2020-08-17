@@ -35,10 +35,8 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.*;
 import com.splicemachine.si.impl.server.CompactionContext;
-import com.splicemachine.si.impl.server.PurgeConfig;
-import com.splicemachine.si.impl.server.PurgeConfigBuilder;
-import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
@@ -457,7 +455,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     CellUtil.setSequenceId(c, 0);
                 }
                 writer.append(c);
-                int len = KeyValueUtil.length(c);
+                long len = 0;
+                // AbstractSICompactionScanner could eliminate the cells completely during compaction making the output
+                // byte size potentially zero. Therefore, we query the size of the input cells before compaction directly
+                // from it before compaction (DB-9554)
+                if(scanner instanceof AbstractSICompactionScanner) {
+                    len = ((AbstractSICompactionScanner)scanner).getSize();
+                } else {
+                    len = KeyValueUtil.length(c);
+                }
                 ++progress.currentCompactedKVs;
                 progress.totalCompactedSize += len;
                 if (LOG.isDebugEnabled()) {

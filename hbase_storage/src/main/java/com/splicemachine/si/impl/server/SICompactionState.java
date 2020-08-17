@@ -61,12 +61,13 @@ public class SICompactionState {
     /**
      * Given a list of key-values, populate the results list with possibly mutated values.
      *
-     * @param rawList - the input of key values to process
-     * @param results - the output key values
+     * @param rawList the input of key values to process
+     * @param results the output key values
+     * @return the size of all cells in the `row` parameter.
      */
-    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, PurgeConfig purgeConfig) throws IOException {
+    public long mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, PurgeConfig purgeConfig) throws IOException {
         SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig, TransactionsWatcher.getLowWatermarkTransaction());
-        impl.mutate(rawList, txns, results);
+        return impl.mutate(rawList, txns, results);
     }
 
     private void ensureTransactionCached(long timestamp,Cell element) {
