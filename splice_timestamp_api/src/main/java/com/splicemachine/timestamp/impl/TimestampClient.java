@@ -35,7 +35,7 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 import org.jboss.netty.channel.socket.nio.NioWorkerPool;
 import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 import org.jboss.netty.util.HashedWheelTimer;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.CountDownLatches;
 import com.splicemachine.timestamp.api.Callback;
 import com.splicemachine.timestamp.api.TimestampClientStatistics;

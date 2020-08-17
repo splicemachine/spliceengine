@@ -17,7 +17,7 @@ package com.splicemachine.derby.impl.store.access;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
-import org.spark_project.guava.base.Preconditions;
+import splice.com.google.common.base.Preconditions;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.primitives.Bytes;

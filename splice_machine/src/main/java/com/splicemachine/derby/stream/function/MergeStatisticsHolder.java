@@ -15,7 +15,7 @@
 
 package com.splicemachine.derby.stream.function;
 
-import org.spark_project.guava.collect.Iterators;
+import splice.com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
@@ -30,8 +30,9 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESTATISTICSRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.FluentIterable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.annotation.Nullable;
 import java.io.Externalizable;
@@ -67,6 +68,7 @@ public class MergeStatisticsHolder implements Externalizable {
         tableMergedStatistics = (ExecRow) in.readObject();
     }
 
+    @SuppressFBWarnings(value = "DM_NUMBER_CTOR", justification = "DB-9844")
     public void merge(ExecRow nextRow) throws StandardException {
         if (nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
             // process columnstats row
@@ -171,6 +173,7 @@ public class MergeStatisticsHolder implements Externalizable {
                 FluentIterable.from(columnStatisticsMergeHashMap.entrySet()).transform(new Function<Map.Entry<Integer, ColumnStatisticsMerge>, ExecRow>() {
                     @Nullable
                     @Override
+                    @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
                     public ExecRow apply(@Nullable Map.Entry<Integer, ColumnStatisticsMerge> entry) {
                         return  entry.getValue().toExecRow(entry.getKey());
                     }

@@ -14,7 +14,7 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 
-import org.spark_project.guava.cache.Cache;
+import splice.com.google.common.cache.Cache;
 
 import java.beans.ConstructorProperties;
 import java.io.Serializable;

@@ -26,7 +26,7 @@ import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.derby.test.ManagedCallableStatement;
 import com.splicemachine.stream.Accumulator;
 import com.splicemachine.stream.StreamException;
