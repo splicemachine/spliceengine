@@ -63,9 +63,9 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.base.Predicates;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.base.Predicates;
+import splice.com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -3479,7 +3479,7 @@ public class FromBaseTable extends FromTable {
            When searching the current FromBaseTable node for subqueries, we may get duplicate SubqueryNodes.
            So collect the subqueries directly from ResultColumns, storeRestrictionList and nonStoreRestrictionList.
         */
-        org.spark_project.guava.base.Predicate<Object> onAxis = Predicates.not(isRSN);
+        splice.com.google.common.base.Predicate<Object> onAxis = Predicates.not(isRSN);
         CollectingVisitorBuilder<SubqueryNode> builder = CollectingVisitorBuilder.forClass(SubqueryNode.class).onAxis(onAxis);
         builder.collect(resultColumns);
         builder.collect(nonStoreRestrictionList);

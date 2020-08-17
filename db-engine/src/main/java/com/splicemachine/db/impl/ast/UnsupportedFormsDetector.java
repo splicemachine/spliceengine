@@ -35,8 +35,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.*;
 
 /**
@@ -74,6 +75,7 @@ public class UnsupportedFormsDetector extends AbstractSpliceVisitor {
         String modder = dml instanceof DeleteNode ? "A Delete" : "An Update";
         List<String> sinkingOps = Lists.transform(rsns, new Function<ResultSetNode, String>() {
             @Override
+            @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
             public String apply(ResultSetNode input) {
                 return RSUtils.sinkingNames.get(input.getClass());
             }

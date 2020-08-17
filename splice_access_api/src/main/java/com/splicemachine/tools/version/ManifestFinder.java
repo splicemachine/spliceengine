@@ -15,7 +15,7 @@
 package com.splicemachine.tools.version;
 
 import org.apache.log4j.Logger;
-import org.spark_project.guava.io.Closeables;
+import splice.com.google.common.io.Closeables;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;

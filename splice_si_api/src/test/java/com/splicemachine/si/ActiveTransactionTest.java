@@ -30,7 +30,7 @@ import com.splicemachine.si.testenv.TestTransactionSetup;
 import com.splicemachine.timestamp.api.TimestampSource;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;

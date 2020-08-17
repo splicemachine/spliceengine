@@ -16,7 +16,7 @@
 package com.splicemachine.access.configuration;
 
 
-import org.spark_project.guava.base.Splitter;
+import splice.com.google.common.base.Splitter;
 
 import java.util.Collections;
 import java.util.function.Function;
