@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_tools.TableCreator;
@@ -23,7 +24,6 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
@@ -34,7 +34,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  * @author Scott Fines
  *         Date: 9/2/14
  */
-public class TruncateTableIT {
+public class TruncateTableIT extends SpliceUnitTest {
 
     public static String CLASS_NAME = TruncateTableIT.class.getSimpleName().toUpperCase();
 
@@ -235,5 +235,37 @@ public class TruncateTableIT {
         //DB-5539: truncate table should remove backing foreign key index and write handler and re-create them. After
         // child table is truncated, all rows in parent table should be allowed to delete
         Assert.assertTrue("wrong number of rows deleted n = " + n, n == 2);
+    }
+
+    @Test
+    public void testTruncateTableDeleteStatistics() throws Exception {
+        String tableStatsQuery = "select count(*) from sys.systablestats";
+        String columnStatsQuery = "select count(*) from sys.syscolumnstats";
+
+        String expectedEmpty = "1 |\n" +
+                "----\n" +
+                " 0 |";
+
+        // make sure both table and column stats are empty
+        testQuery(tableStatsQuery, expectedEmpty, methodWatcher);
+        testQuery(columnStatsQuery, expectedEmpty, methodWatcher);
+
+        // analyze table
+        methodWatcher.execute("analyze table " + table);
+
+        String expectedTableStatsCount = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testQuery(tableStatsQuery, expectedTableStatsCount, methodWatcher);
+
+        String expectedColumnStatsCount = "1 |\n" +
+                "----\n" +
+                " 2 |";
+        testQuery(columnStatsQuery, expectedColumnStatsCount, methodWatcher);
+
+        // truncate table should delete stats entries
+        methodWatcher.execute("truncate table "+ table);
+        testQuery(tableStatsQuery, expectedEmpty, methodWatcher);
+        testQuery(columnStatsQuery, expectedEmpty, methodWatcher);
     }
 }
