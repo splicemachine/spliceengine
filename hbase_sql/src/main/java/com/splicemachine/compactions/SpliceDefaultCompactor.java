@@ -65,6 +65,8 @@ import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.TaskContext;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.security.PrivilegedExceptionAction;
@@ -434,7 +436,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                                         long smallestReadPoint, boolean cleanSeqId,
                                         ThroughputController throughputController, boolean major,
                                         int numofFilesToCompact) throws IOException {
-        SpliceLogUtils.trace(LOG,"performCompaction");
+        SpliceLogUtils.trace(LOG, "performCompaction");
         long bytesWritten = 0;
         final long closeCheckInterval = HStore.getCloseCheckInterval();
         // these variables are used to log the progress of long-running compactions
@@ -462,8 +464,8 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 // AbstractSICompactionScanner could eliminate the cells completely during compaction making the output
                 // byte size potentially zero. Therefore, we query the size of the input cells before compaction directly
                 // from it before compaction (DB-9554)
-                if(scanner instanceof AbstractSICompactionScanner) {
-                    len = ((AbstractSICompactionScanner)scanner).getSize();
+                if (scanner instanceof AbstractSICompactionScanner) {
+                    len = ((AbstractSICompactionScanner) scanner).getSize();
                 } else {
                     len = KeyValueUtil.length(c);
                 }
@@ -473,15 +475,23 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     bytesWrittenProgress += len;
                 }
                 // check periodically to see if a system stop is requested
-                if (!isSpark && closeCheckInterval > 0) {
-                    bytesWritten += len;
-                    if (bytesWritten > closeCheckInterval) {
-                        bytesWritten = 0; // reset so check whether cancellation is requested in the next
-                                          // <closeCheckInterval>-bytes mark
-                        if (!store.areWritesEnabled()) { // this call could be expensive.
-                            LOG.debug("Compaction cancelled");
-                            progress.cancel();
-                            return false;
+                if (isSpark) {
+                    if (TaskContext.get().isInterrupted()) {
+                        SpliceLogUtils.debug(LOG, "Compaction cancelled (Spark task interrupted)");
+                        progress.cancel();
+                        return false;
+                    }
+                } else { // we're in HBase.
+                    if (closeCheckInterval > 0) {
+                        bytesWritten += len;
+                        if (bytesWritten > closeCheckInterval) {
+                            bytesWritten = 0; // reset so check whether cancellation is requested in the next
+                            // <closeCheckInterval>-bytes mark
+                            if (!store.areWritesEnabled()) { // this call could be expensive.
+                                SpliceLogUtils.debug(LOG, "Compaction cancelled");
+                                progress.cancel();
+                                return false;
+                            }
                         }
                     }
                 }
