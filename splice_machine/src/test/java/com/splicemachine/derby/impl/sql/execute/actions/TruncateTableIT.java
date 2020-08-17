@@ -14,11 +14,8 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -239,16 +236,20 @@ public class TruncateTableIT extends SpliceUnitTest {
 
     @Test
     public void testTruncateTableDeleteStatistics() throws Exception {
-        String tableStatsQuery = "select count(*) from sys.systablestats";
-        String columnStatsQuery = "select count(*) from sys.syscolumnstats";
+        long tableConglom = TestUtils.baseTableConglomerateId(conn1, table.getSchema(), table.tableName);
 
-        String expectedEmpty = "1 |\n" +
-                "----\n" +
-                " 0 |";
+        String tableStatsQuery = format("select count(*) from sys.systablestats group by conglomerateid having conglomerateid = %d", tableConglom);
+        String columnStatsQuery = format("select count(*) from sys.syscolumnstats group by conglom_id having conglom_id = %d", tableConglom);
 
         // make sure both table and column stats are empty
-        testQuery(tableStatsQuery, expectedEmpty, methodWatcher);
-        testQuery(columnStatsQuery, expectedEmpty, methodWatcher);
+        try (ResultSet rs = methodWatcher.executeQuery(tableStatsQuery)) {
+            if (rs.next())
+                Assert.fail("expect empty result set");
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(columnStatsQuery)) {
+            if (rs.next())
+                Assert.fail("expect empty result set");
+        }
 
         // analyze table
         methodWatcher.execute("analyze table " + table);
@@ -265,7 +266,13 @@ public class TruncateTableIT extends SpliceUnitTest {
 
         // truncate table should delete stats entries
         methodWatcher.execute("truncate table "+ table);
-        testQuery(tableStatsQuery, expectedEmpty, methodWatcher);
-        testQuery(columnStatsQuery, expectedEmpty, methodWatcher);
+        try (ResultSet rs = methodWatcher.executeQuery(tableStatsQuery)) {
+            if (rs.next())
+                Assert.fail("expect empty result set");
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(columnStatsQuery)) {
+            if (rs.next())
+                Assert.fail("expect empty result set");
+        }
     }
 }
