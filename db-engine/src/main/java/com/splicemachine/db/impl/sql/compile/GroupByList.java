@@ -111,7 +111,7 @@ public class GroupByList extends OrderedColumnList{
                 ResultColumnList targetCols = select.getResultColumns();
                 int columnPosition = (Integer) groupByCol.getColumnExpression().getConstantValueAsObject();
                 if (columnPosition <= 0) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_GROUP_POSITION,
+                    throw StandardException.newException(SQLState.LANG_COLUMN_OUT_OF_RANGE,
                             String.valueOf(columnPosition));
                 }
                 ResultColumn resultCol = targetCols.getResultColumn(columnPosition);

@@ -114,7 +114,7 @@ public class GroupByOrderByIT {
             methodWatcher.executeQuery(String.format("SELECT EMPNUM, PNUM, HOURS FROM %1$s GROUP BY 1,0,2", t1Watcher.toString()));
             Assert.fail("expect group by position error");
         } catch (SQLException e) {
-            Assert.assertEquals("42Y31", e.getSQLState());
+            Assert.assertEquals("42X77", e.getSQLState());
         }
 
         // group by position must be positive
@@ -122,7 +122,7 @@ public class GroupByOrderByIT {
             methodWatcher.executeQuery(String.format("SELECT EMPNUM, PNUM, HOURS FROM %1$s GROUP BY -1", t1Watcher.toString()));
             Assert.fail("expect group by position error");
         } catch (SQLException e) {
-            Assert.assertEquals("42Y31", e.getSQLState());
+            Assert.assertEquals("42X77", e.getSQLState());
         }
     }
 
