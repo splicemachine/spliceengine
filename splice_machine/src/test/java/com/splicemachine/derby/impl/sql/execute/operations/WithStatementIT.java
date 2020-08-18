@@ -48,7 +48,7 @@ public class WithStatementIT extends SpliceUnitTest {
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
 
     protected static final String TEST_USER = "test_" + SCHEMA;
-    protected static final String TEST_PASSWORD = "ajkgl;ja233";
+    protected static final String TEST_PASSWORD = "ajkglja233";
     protected static final String TEST_ROLE = "read_only";
 
     protected static TestConnection testUserConn;
