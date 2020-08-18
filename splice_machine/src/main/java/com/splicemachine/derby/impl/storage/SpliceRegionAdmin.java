@@ -782,7 +782,8 @@ public class SpliceRegionAdmin {
         for(DataValueDescriptor dvd : execRow.getRowArray()) {
             valueSizeHints.add(dvd.estimateMemoryUsage());
         }
-        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference, valueSizeHints);
+        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference, false,
+                EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
         tokenizer.setLine(splitKey);
         List<String> read=tokenizer.read();
         BooleanList quotedColumns=tokenizer.getQuotedColumns();

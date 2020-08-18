@@ -67,10 +67,11 @@ public class QuoteTrackingTokenizerTest {
 
     @Test
     public void exactSizeCalculationMultipleRowsIsCorrect() throws Exception {
-        CSVBuilder csvBuilder = new CSVBuilder();
+        CSVBuilder csvBuilder = new CSVBuilder(false);
         int colCount = 100, rowCount = 100;
         csvBuilder.initCsv(colCount, rowCount);
-        checkResults(csvBuilder.csv, csvBuilder.expectedStrings, csvBuilder.expectedQuotes, csvBuilder.expectedActualSizes, 2, Collections.nCopies(colCount, 10));
+        checkResults(csvBuilder.csv, csvBuilder.expectedStrings, csvBuilder.expectedQuotes,
+                csvBuilder.expectedActualSizes, 2, Collections.nCopies(colCount, 10), false);
     }
 
     @Test
@@ -114,6 +115,33 @@ public class QuoteTrackingTokenizerTest {
         Assert.fail("expected exception to be thrown, but no exception was thrown");
     }
 
+    @Test
+    public void exactSizeCalculationMultipleOneLineRecordsIsCorrect() throws Exception {
+        CSVBuilder csvBuilder = new CSVBuilder(true);
+        int colCount = 200, rowCount = 100;
+        csvBuilder.initCsv(colCount, rowCount);
+        checkResults(csvBuilder.csv, csvBuilder.expectedStrings, csvBuilder.expectedQuotes, csvBuilder.expectedActualSizes,
+                2, Collections.nCopies(colCount, 10), true);
+    }
+
+    @Test
+    public void quotedMultiRowRecordWithOneLineRecordSetThrowsProperly() throws Exception {
+        String invalidRow = "\"hello\",\"wrong\ncell\",goodbye\n";
+        try {
+            QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(invalidRow), CsvPreference.STANDARD_PREFERENCE, true);
+            List<String> columns = new ArrayList<>();
+            qtt.readColumns(columns);
+            Assert.fail("expected exception to be thrown, but no exception was thrown");
+        } catch(Exception e) {
+            Assert.assertTrue(e instanceof SuperCsvException);
+            Assert.assertEquals("partial record found [hello,goodbye,parseThis!,boots\n" +
+                    "] while reading quoted column beginning on line 1 and ending on line 1", e.getMessage());
+            return;
+        }
+        Assert.fail("expected exception to be thrown, but no exception was thrown");
+    }
+
+
     private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes, int size) throws IOException {
         checkResults(row, expectedColumns, expectedQuotes, size, false);
     }
@@ -121,10 +149,9 @@ public class QuoteTrackingTokenizerTest {
     private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes, int size, boolean triggerScan) throws IOException {
         QuoteTrackingTokenizer qtt = null;
         if(triggerScan) {
-            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE, Collections.nCopies(expectedColumns.size(), 10));
-            qtt.setScanThreshold(1);
+            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE, false, 1, Collections.nCopies(expectedColumns.size(), 10));
         } else {
-            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE);
+            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE, false);
         }
         List<String> actualColumns = new ArrayList<>(size);
         BooleanList actualQuotes = new BooleanList(size);
@@ -134,9 +161,8 @@ public class QuoteTrackingTokenizerTest {
     }
 
     private static void checkResults(String column, List<List<String>> expectedColumns, List<BooleanList> expectedQuotes,
-                                     List<List<Integer>> expectedValueSizes, int size, List<Integer> valueSizes ) throws IOException {
-        QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(column), CsvPreference.STANDARD_PREFERENCE, valueSizes);
-        qtt.setScanThreshold(1); // force scans for testing.
+                                     List<List<Integer>> expectedValueSizes, int size, List<Integer> valueSizes, boolean oneLineRecord) throws IOException {
+        QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(column), CsvPreference.STANDARD_PREFERENCE, oneLineRecord, 1, valueSizes);
 
         List<String> cols = new ArrayList<>(size);
         BooleanList quoteCols = new BooleanList(size);
@@ -144,14 +170,21 @@ public class QuoteTrackingTokenizerTest {
             Assert.assertTrue("Did not properly read the columns!", qtt.readColumns(cols, quoteCols));
             Assert.assertEquals("Did not return correct column information", expectedColumns.get(i), cols);
             Assert.assertEquals("Did not return correct quoted column information", expectedQuotes.get(i), quoteCols);
-            Assert.assertArrayEquals("Did not return correct column sizes", expectedValueSizes.get(i).stream().mapToInt(k->k).toArray(), qtt.getExactColumnSizes());
+            if(!oneLineRecord) {
+                Assert.assertArrayEquals("Did not return correct column sizes", expectedValueSizes.get(i).stream().mapToInt(k->k).toArray(), qtt.getExactColumnSizes());
+            }
         }
     }
 
     private static class CSVBuilder {
+        private final boolean oneLineRecord;
         private StringBuilder sb = new StringBuilder();
 
         private Random random = new Random();
+
+        CSVBuilder(boolean oneLineRecord) {
+            this.oneLineRecord = oneLineRecord;
+        }
 
         int nextInt() {
             return random.nextInt(20) + 23;
@@ -182,11 +215,13 @@ public class QuoteTrackingTokenizerTest {
                     if(nextInt() % 2 == 0) {
                         quoted = true;
 
-                        // add some new lines.
-                        int numNewLines = nextInt();
-                        String newLines = String.join("", Collections.nCopies(numNewLines, "\n"));
-                        csvString.append(newLines);
-                        expectedString.append(newLines);
+                        if(!oneLineRecord) {
+                            // add some new lines.
+                            int numNewLines = nextInt();
+                            String newLines = String.join("", Collections.nCopies(numNewLines, "\n"));
+                            csvString.append(newLines);
+                            expectedString.append(newLines);
+                        }
 
                         // also add some quotes, escape them in the CSV input.
                         int numQuotes = nextInt();

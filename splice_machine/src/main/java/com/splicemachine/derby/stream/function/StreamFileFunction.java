@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -78,7 +79,8 @@ import java.util.*;
                                     for(DataValueDescriptor dvd : execRow.getRowArray()) {
                                         valueSizeHints.add(dvd.estimateMemoryUsage());
                                     }
-                                    spliceCsvReader = new SpliceCsvReader(reader, preference, valueSizeHints);
+                                    spliceCsvReader = new SpliceCsvReader(reader, preference,
+                                            EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(),valueSizeHints);
                                     initialized = true;
                                 }
                                 while (true) {
