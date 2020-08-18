@@ -465,7 +465,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 // byte size potentially zero. Therefore, we query the size of the input cells before compaction directly
                 // from it before compaction (DB-9554)
                 if (scanner instanceof AbstractSICompactionScanner) {
-                    len = ((AbstractSICompactionScanner) scanner).getSize();
+                    len = ((AbstractSICompactionScanner) scanner).numberOfScannedBytes();
                 } else {
                     len = KeyValueUtil.length(c);
                 }
@@ -490,7 +490,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             // Log the progress of long-running compactions every minute if logging at DEBUG level
             if (LOG.isDebugEnabled()) {
                 if ((now - lastMillis) >= 60 * 1000) {
-                    LOG.debug(String.format("Compaction progress: %s, rate=%.2f kB/sec", progress.toString(),
+                    LOG.debug(String.format("Compaction progress: %s, rate=%.2f kB/sec", progress,
                             (bytesWrittenProgress / 1024.0) / ((now - lastMillis) / 1000.0)));
                     lastMillis = now;
                     bytesWrittenProgress = 0;
