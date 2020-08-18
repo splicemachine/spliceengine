@@ -28,7 +28,7 @@ import org.supercsv.prefs.CsvPreference;
  *
  * @author dwinters
  */
-@SuppressFBWarnings(value = "IT_NO_SUCH_ELEMENT", justification = "this is be design, the caller is responsible for " +
+@SuppressFBWarnings(value = "IT_NO_SUCH_ELEMENT", justification = "this is by design, the caller is responsible for " +
 		"calling hasNext first to check whether a new element is there.")
 public class SpliceCsvReader implements Iterator<List<String>> {
 
