@@ -205,8 +205,15 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         long totalMemstoreSize = 0;
         try(Admin admin=connection.getAdmin()){
             ClusterStatus clusterStatus=admin.getClusterStatus();
+            Set<ServerName> servers = serverToRegionMap.keySet();
+            Map<ServerName, ServerLoad> serverLoadMap=new HashMap<>();
+            for (ServerName s:servers) {
+                ServerLoad load = clusterStatus.getLoad(s);
+                serverLoadMap.put(s, load);
+            }
+
             for(Map.Entry<ServerName,List<HRegionInfo>> entry:serverToRegionMap.entrySet()){
-                ServerLoad load=clusterStatus.getLoad(entry.getKey());
+                ServerLoad load=serverLoadMap.get(entry.getKey());
                 Map<byte[], RegionLoad> regionsLoad=load.getRegionsLoad();
                 for(HRegionInfo info:entry.getValue()){
                     RegionLoad rl = regionsLoad.get(info.getRegionName());

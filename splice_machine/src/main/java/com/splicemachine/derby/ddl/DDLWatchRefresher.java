@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -221,6 +222,14 @@ public class DDLWatchRefresher{
             // An example call stack can be found in https://splicemachine.atlassian.net/browse/DB-10025
             if (ddlChange.getDdlChangeType() != ENTER_RESTORE_MODE) {
                 assert txn.allowsWrites() : "DDLChange " + ddlChange + " does not have a writable transaction";
+            }
+            else {
+                try {
+                    SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
+                }
+                catch (Exception e) {
+                }
+                ddlDemarcationPoint.set(null);
             }
             DDLFilter ddlFilter = txController.newDDLFilter(txn);
             if (ddlFilter.compareTo(ddlDemarcationPoint.get()) > 0) {
