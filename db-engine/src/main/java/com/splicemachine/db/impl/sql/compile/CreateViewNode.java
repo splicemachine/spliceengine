@@ -291,9 +291,6 @@ public class CreateViewNode extends DDLStatementNode
 			//cannot define views on temporary tables
 			if (queryExpr instanceof SelectNode)
 			{
-				//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
-				if (queryExpr.referencesSessionSchema())
-					throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
                 // check that no provider is a temp table (whether or not it's in SESSION schema)
                 for (Provider provider : apl.values()) {
                     if (provider instanceof TableDescriptor && ! provider.isPersistent()) {
@@ -411,10 +408,7 @@ public class CreateViewNode extends DDLStatementNode
 			RecursiveViewSyntaxCheckVisitor syntaxCheckVisitor = new RecursiveViewSyntaxCheckVisitor();
 			queryExpression.accept(syntaxCheckVisitor);
 
-			//cannot define views on temporary tables
-			//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
-			if (queryExpression.referencesSessionSchema())
-				throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
+			// cannot define views on temporary tables
 			// check that no provider is a temp table (whether or not it's in SESSION schema)
 			for (Provider provider : apl.values()) {
 				if (provider instanceof TableDescriptor && ! provider.isPersistent()) {
@@ -570,7 +564,8 @@ public class CreateViewNode extends DDLStatementNode
 
 	public TableDescriptor createDynamicView() throws StandardException {
 		DataDictionary dd = this.getDataDictionary();
-		SchemaDescriptor sd  = this.getSchemaDescriptor();
+		SchemaDescriptor sd  = getObjectName().hasSchema() ?
+				this.getSchemaDescriptor() : dd.getDeclaredGlobalTemporaryTablesSchemaDescriptor();  // SESSION schema
 		LanguageConnectionContext lcc = this.getLanguageConnectionContext();
 		TransactionController tc = lcc.getTransactionExecute();
 		TableDescriptor existingDescriptor = dd.getTableDescriptor(getRelativeName(), sd, tc);
