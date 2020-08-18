@@ -35,12 +35,13 @@ public class MutableCSVTokenizer extends QuoteTrackingTokenizer {
     private String line;
     private final List<String> columns =new ArrayList<>();
     private final BooleanList quotedColumns = new BooleanList();
-    public MutableCSVTokenizer(Reader reader, CsvPreference preferences) {
-        super(reader, preferences);
+    public MutableCSVTokenizer(Reader reader, CsvPreference preferences, boolean oneLineRecord) {
+        super(reader, preferences, oneLineRecord);
     }
 
-    public MutableCSVTokenizer(Reader reader, CsvPreference preferences, List<Integer> valueSizeHint) {
-        super(reader, preferences, valueSizeHint);
+    public MutableCSVTokenizer(Reader reader, CsvPreference preferences, boolean oneLineRecord, long scanThreshold,
+                               List<Integer> valueSizeHint) {
+        super(reader, preferences, oneLineRecord, scanThreshold, valueSizeHint);
     }
 
     /**

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.log4j.Logger;
 import org.supercsv.comment.CommentMatcher;
@@ -37,8 +38,9 @@ import java.util.List;
  */
 public class QuoteTrackingTokenizer extends AbstractTokenizer {
 
-    private static final Logger LOG=Logger.getLogger(QuoteTrackingTokenizer.class);
-
+    private static final Logger LOG = Logger.getLogger(QuoteTrackingTokenizer.class);
+    private static final char NEWLINE = '\n';
+    private static final char SPACE = ' ';
     private final List<Integer> valueSizeHints;
     // the line number where a potential multi-line cell starts
     private int potentialSpaces;
@@ -52,8 +54,18 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private boolean checkExactSizeFirst = false;
     private int rowIdx = 0;
     private int[] exactColumnSizes = null;
-    final static int SCAN_THRESHOLD = 10000;
-    int scanThresold = SCAN_THRESHOLD;
+    private StringBuilder currentColumn = new StringBuilder();
+    /* the raw, untokenized CSV row (may span multiple lines) */
+    private final LazyStringBuilder currentRow = new LazyStringBuilder();
+    private final int quoteChar;
+    private final int delimeterChar;
+    private final boolean surroundingSpacesNeedQuotes;
+    private final boolean ignoreEmptyLines;
+    private final CommentMatcher commentMatcher;
+    private final int maxLinesPerRow;
+    private long scanThresold;
+    private final boolean oneLineRecord;
+    private int oneLineRecordLength = 0;
 
     private static class LazyStringBuilder {
 
@@ -105,27 +117,6 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         }
     }
 
-    private static final char NEWLINE = '\n';
-
-    private static final char SPACE = ' ';
-
-    private StringBuilder currentColumn = new StringBuilder();
-
-    /* the raw, untokenized CSV row (may span multiple lines) */
-    private final LazyStringBuilder currentRow = new LazyStringBuilder();
-
-    private final int quoteChar;
-
-    private final int delimeterChar;
-
-    private final boolean surroundingSpacesNeedQuotes;
-
-    private final boolean ignoreEmptyLines;
-
-    private final CommentMatcher commentMatcher;
-
-    private final int maxLinesPerRow;
-
     /**
      * Enumeration of tokenizer states. QUOTE_MODE is activated between quotes.
      */
@@ -140,15 +131,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
      * @param preferences the CSV preferences
      * @throws NullPointerException if reader or preferences is null
      */
-    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences) {
-        super(reader, preferences);
-        this.quoteChar = preferences.getQuoteChar();
-        this.delimeterChar = preferences.getDelimiterChar();
-        this.surroundingSpacesNeedQuotes = preferences.isSurroundingSpacesNeedQuotes();
-        this.ignoreEmptyLines = preferences.isIgnoreEmptyLines();
-        this.commentMatcher = preferences.getCommentMatcher();
-        this.maxLinesPerRow = preferences.getMaxLinesPerRow();
-        valueSizeHints = null;
+    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final boolean oneLineRecord){
+        this(reader, preferences, oneLineRecord, -1, null);
     }
 
     /**
@@ -159,7 +143,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
      * @param valueSizeHints the maximum size of each column. this is used to optimize memory footprint of the reader.
      * @throws NullPointerException if reader or preferences is null
      */
-    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final List<Integer> valueSizeHints) {
+    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final boolean oneLineRecord,
+                                  final long scanThresold, final List<Integer> valueSizeHints) {
         super(reader, preferences);
         this.quoteChar = preferences.getQuoteChar();
         this.delimeterChar = preferences.getDelimiterChar();
@@ -168,6 +153,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         this.commentMatcher = preferences.getCommentMatcher();
         this.maxLinesPerRow = preferences.getMaxLinesPerRow();
         this.valueSizeHints = valueSizeHints;
+        this.scanThresold = scanThresold;
+        this.oneLineRecord = oneLineRecord;
     }
 
     @Override
@@ -207,25 +194,27 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         // read a line (ignoring empty lines/comments if necessary)
         if (!readFirstLine()) return false; // EOF
 
-        // now, if some column value is larger than scanThreshold we perform the dry run to avoid extra allocation of StringBuilder.
         checkExactSizeFirst = false;
-        if (valueSizeHints != null) {
-            if (valueSizeHints.stream().max(Integer::compare).get() > scanThresold) {
-                checkExactSizeFirst = true;
-                exactColumnSizes = new int[valueSizeHints.size()];
+        if(oneLineRecord) {
+            oneLineRecordLength = getCurrentLine().length();
+            currentColumn = new StringBuilder(oneLineRecordLength);
+        } else {
+            // now, if some column value is larger than scanThreshold we perform the dry run to avoid extra allocation of StringBuilder.
+            if (valueSizeHints != null) {
+                if (valueSizeHints.stream().max(Integer::compare).get() > scanThresold) {
+                    checkExactSizeFirst = true;
+                    exactColumnSizes = new int[valueSizeHints.size()];
+                }
+            }
+            if (checkExactSizeFirst) {
+                runStateMachine(new ArrayList<>(), null); // will only calculate exact size of each column
+                reset();
+                checkExactSizeFirst = false; // allow setting the column in the next state machine run instead just counting the characters.
+                allocateColumnMemory(); // allocate memory for the first column
+                rowIdx = 0; // rollback to start reading the data (again) from currentRow.
             }
         }
-
-        if (checkExactSizeFirst) {
-            runStateMachine(new ArrayList<>(), null); // will only calculate exact size of each column
-            reset();
-            checkExactSizeFirst = false; // allow setting the column in the next state machine run instead just counting the characters.
-            allocateColumnMemory(); // allocate memory for the first column
-            rowIdx = 0; // rollback to start reading the data (again) from currentRow.
-        }
-
         runStateMachine(columns, quotedColumns);
-
         clearRow();
         return true;
     }
@@ -256,7 +245,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private void appendToRowNewLine() {
         if (checkExactSizeFirst) {
             currentRow.append(String.valueOf(NEWLINE));
-        } else if (exactColumnSizes != null) {
+        } else if (exactColumnSizes != null && !oneLineRecord) {
             rowIdx++; // simulate adding a newline by moving a sequence by one
         } else {
             currentRow.append(String.valueOf(NEWLINE));
@@ -266,7 +255,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private void appendToRowFromFile() throws IOException {
         if (checkExactSizeFirst) {
             currentRow.append(readLine());
-        } else if (exactColumnSizes != null) {
+        } else if (exactColumnSizes != null && !oneLineRecord) {
             rowIdx++; // simulate adding a newline by moving a sequence by one
         } else {
             currentRow.append(readLine());
@@ -287,7 +276,9 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
 
     private void allocateColumnMemory() {
         if (!checkExactSizeFirst) {
-            if (exactColumnSizes != null) { // we set the column sizes before, use it to set the SB size correctly
+            if(oneLineRecord) {
+                currentColumn.delete(0, currentColumn.length());
+            } else if (exactColumnSizes != null) { // we set the column sizes before, use it to set the SB size correctly
                 if(colIdx >= exactColumnSizes.length) {
                     // it seems this could happen, still we want to tolerate it and not throw. (see expected behavior in HdfsImportIT::testNullDatesWithMixedCaseAccuracy)
                     currentColumn.setLength(0);
@@ -361,6 +352,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private void handleQuoteState() throws IOException {
         if (charIndex == getCurrentLine().length()) { // Newline. Doesn't count as newline while in QUOTESCOPE. Add the newline char, reset the charIndex
             // (will update to 0 for next iteration), read in the next line, then continue to next character)
+            if (oneLineRecord) {
+                String errorMessage = String.format("one-line record CSV has a record that spans over multiple lines at line %d", quoteScopeStartingLine);
+                throw new SuperCsvException(errorMessage);
+            }
             addToColumn(NEWLINE);
             appendToRowNewLine(); // specific line terminator lost, \n will have to suffice
             charIndex = 0;
@@ -435,7 +430,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         }
     }
 
-    void setScanThreshold(int scanThreshold) {
+    void setScanThreshold(long scanThreshold) {
         this.scanThresold = scanThreshold;
     }
 
