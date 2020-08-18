@@ -45,7 +45,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import org.joda.time.DateTime;
 
 import java.sql.Types;
 import java.util.Dictionary;
@@ -213,6 +212,7 @@ public interface DataDictionary{
 
     /**
      * Catalog numbers for non core system catalogs.
+     * All these entries are for system tables, not views.
      */
     int SYSCONSTRAINTS_CATALOG_NUM=4;
     int SYSKEYS_CATALOG_NUM=5;
@@ -245,6 +245,7 @@ public interface DataDictionary{
     int SYSSNAPSHOT_NUM=32;
     int SYSTOKENS_NUM=33;
     int SYSREPLICATION_CATALOG_NUM=34;
+    int SYSMONGETCONNECTION_CATALOG_NUM=35;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
      */
