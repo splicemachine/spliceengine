@@ -223,7 +223,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         }
 
         // Remove statistics
-        dd.deleteColumnStatistics(oldHeapConglom, tc);
         dd.deletePartitionStatistics(oldHeapConglom, tc);
 
         // Update the DataDictionary
