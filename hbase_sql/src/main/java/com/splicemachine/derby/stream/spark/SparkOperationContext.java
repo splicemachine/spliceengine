@@ -16,28 +16,14 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.client.SpliceClient;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.derby.stream.control.BadRecordsRecorder;
-import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
 import org.apache.log4j.Logger;
-import org.apache.spark.Accumulable;
-import org.apache.spark.TaskContext;
 import org.apache.spark.util.LongAccumulator;
-import org.apache.spark.util.TaskCompletionListener;
 
 import java.io.*;
-import java.sql.SQLException;
-import java.util.List;
 
 /**
  *
