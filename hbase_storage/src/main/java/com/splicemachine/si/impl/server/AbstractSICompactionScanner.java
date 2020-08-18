@@ -109,7 +109,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         }
     }
 
-    public long getSize() {
+    public long numberOfScannedBytes() {
         return size;
     }
 
