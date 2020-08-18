@@ -95,7 +95,7 @@ public class JoinInfo {
                          rightSingleRegionSize);
     }
 
-    public static Function<Object, String> className = new Function<Object, String>() {
+    public static final Function<Object, String> className = new Function<Object, String>() {
         @Override
         public String apply(Object o) {
             return o == null ? "" : o.getClass().getSimpleName();

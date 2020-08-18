@@ -44,10 +44,14 @@
             <artifactId>jsr305</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!--
+        Google guava will be shaded to be used instead of org.spark_project.guava.
+        To keep the compatibility with spark, the same version is used.
+        -->
         <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
-            <version>${spark.guava.version}</version>
+            <version>14.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

@@ -43,7 +43,7 @@ import java.util.List;
  */
 public class PredicateUtils {
 
-    public static splice.com.google.common.base.Predicate<Predicate> isEquiJoinPred = new splice.com.google.common.base.Predicate<Predicate>() {
+    public static final splice.com.google.common.base.Predicate<Predicate> isEquiJoinPred = new splice.com.google.common.base.Predicate<Predicate>() {
         @Override
         public boolean apply(Predicate p) {
             return p != null &&
@@ -55,7 +55,7 @@ public class PredicateUtils {
     /**
      * Return string representation of Derby Predicate
      */
-    public static Function<Predicate, String> predToString = new Function<Predicate, String>() {
+    public static final Function<Predicate, String> predToString = new Function<Predicate, String>() {
         @Override
         public String apply(Predicate predicate) {
             if (predicate == null) {
