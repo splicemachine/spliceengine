@@ -85,6 +85,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
             for (String s : bufferList) {
                 size += s.length();
             }
+            sizeCached = true;
             return size;
         }
 
