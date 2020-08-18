@@ -8,6 +8,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellComparator;
 import org.apache.hadoop.hbase.KeyValue;
@@ -73,7 +74,7 @@ class SICompactionStateMutate {
         assert dataToReturn.isEmpty();
         assert results.isEmpty();
         assert maxTombstone == null;
-        //assert isSorted(rawList): "CompactionStateMutate: rawList not sorted";
+        assert !LOG.isDebugEnabled() || isSorted(rawList) : "CompactionStateMutate: rawList not sorted";
         assert rawList.size() == txns.size();
 
         try {
@@ -88,7 +89,7 @@ class SICompactionStateMutate {
             if (shouldPurgeUpdates())
                 stream = stream.filter(not(this::purgeableOldUpdate));
             stream.forEachOrdered(results::add);
-            //assert isSorted(results) : "CompactionStateMutate: results not sorted";
+            assert !LOG.isDebugEnabled() || isSorted(results) : "CompactionStateMutate: results not sorted";
         } catch (AssertionError e) {
             LOG.error(e);
             LOG.error(rawList.toString());
@@ -173,14 +174,16 @@ class SICompactionStateMutate {
                 if (purgeConfig.shouldPurgeUpdates() && commitTimestamp < lowWatermarkTransaction) {
                     EntryDecoder decoder = new EntryDecoder(element.getValueArray(), element.getValueOffset(), element.getValueLength());
                     BitIndex index = decoder.getCurrentIndex();
-                    LOG.trace("BitIndex: " + index + " , length=" + index.length());
+                    if (LOG.isTraceEnabled())
+                        SpliceLogUtils.trace(LOG, "BitIndex: %s, length=%d", index, index.length());
                     boolean purge = !firstUpdateCell;
                     firstUpdateCell = false;
                     for (int col = index.nextSetBit(0); col >= 0; col = index.nextSetBit(col + 1)) {
                         if (!columnUpdateLatestTimestamp.containsKey(col)) {
                             columnUpdateLatestTimestamp.put(col, beginTimestamp);
                             purge = false;
-                            LOG.trace("Update cannot be purged: " + element);
+                            if (LOG.isTraceEnabled())
+                                SpliceLogUtils.trace(LOG, "Update cannot be purged: %s", element);
                         } else {
                             assert beginTimestamp < columnUpdateLatestTimestamp.get(col);
                         }

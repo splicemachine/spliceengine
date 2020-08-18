@@ -59,12 +59,12 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 {
 	public static final String		TABLENAME_STRING = "SYSTABLES";
 
-	protected static final int		SYSTABLES_COLUMN_COUNT = 15;
+	public static final int		SYSTABLES_COLUMN_COUNT = 15;
 	/* Column #s for systables (1 based) */
-	protected static final int		SYSTABLES_TABLEID = 1;
-	protected static final int		SYSTABLES_TABLENAME = 2;
+	public static final int		SYSTABLES_TABLEID = 1;
+	public static final int		SYSTABLES_TABLENAME = 2;
 	protected static final int		SYSTABLES_TABLETYPE = 3;
-	protected static final int		SYSTABLES_SCHEMAID = 4;
+	public static final int		SYSTABLES_SCHEMAID = 4;
 	protected static final int		SYSTABLES_LOCKGRANULARITY = 5;
 	protected static final int		SYSTABLES_VERSION = 6;
     /* Sequence for understanding coding/decoding with altering tables*/
@@ -171,6 +171,10 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 			** We only allocate a new UUID if the descriptor doesn't already have one.
 			** For descriptors replicated from a Source system, we already have an UUID.
 			*/
+			if (!(td instanceof TableDescriptor))
+				throw new RuntimeException("Unexpected TableDescriptor " + td.getClass().getName());
+			if (!(parent instanceof SchemaDescriptor))
+				throw new RuntimeException("Unexpected SchemaDescriptor " + parent.getClass().getName());
 			TableDescriptor descriptor = (TableDescriptor)td;
 			SchemaDescriptor schema = (SchemaDescriptor)parent;
 
@@ -257,6 +261,27 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		/* Build the row to insert  */
 		row = getExecutionFactory().getValueRow(SYSTABLES_COLUMN_COUNT);
 
+		setRowColumns(row, tableID, tableName, tabSType, schemaID, lockGranularity, tableVersion, columnSequence,
+				delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows);
+		return row;
+	}
+
+	public static void setRowColumns(ExecRow row,
+									 String tableID,
+									 String tableName,
+									 String tabSType,
+									 String schemaID,
+									 String lockGranularity,
+									 SQLVarchar tableVersion,
+									 int columnSequence,
+									 String delimited,
+									 String escaped,
+									 String lines,
+									 String storedAs,
+									 String location,
+									 String compression,
+									 boolean isPinned,
+									 boolean purgeDeletedRows) {
 		/* 1st column is TABLEID (UUID - char(36)) */
 		row.setColumn(SYSTABLES_TABLEID, new SQLChar(tableID));
 
@@ -275,18 +300,17 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		/* 6th column is VERSION (varchar(128)) */
 		row.setColumn(SYSTABLES_VERSION, tableVersion);
 
-        row.setColumn(SYSTABLES_COLUMN_SEQUENCE,new SQLInteger(columnSequence));
+		row.setColumn(SYSTABLES_COLUMN_SEQUENCE, new SQLInteger(columnSequence));
 
-		row.setColumn(SYSTABLES_DELIMITED_BY,new SQLVarchar(delimited));
-		row.setColumn(SYSTABLES_ESCAPED_BY,new SQLVarchar(escaped));
-		row.setColumn(SYSTABLES_LINES_BY,new SQLVarchar(lines));
-		row.setColumn(SYSTABLES_STORED_AS,new SQLVarchar(storedAs));
-		row.setColumn(SYSTABLES_LOCATION,new SQLVarchar(location));
-		row.setColumn(SYSTABLES_COMPRESSION,new SQLVarchar(compression));
+		row.setColumn(SYSTABLES_DELIMITED_BY, new SQLVarchar(delimited));
+		row.setColumn(SYSTABLES_ESCAPED_BY, new SQLVarchar(escaped));
+		row.setColumn(SYSTABLES_LINES_BY, new SQLVarchar(lines));
+		row.setColumn(SYSTABLES_STORED_AS, new SQLVarchar(storedAs));
+		row.setColumn(SYSTABLES_LOCATION, new SQLVarchar(location));
+		row.setColumn(SYSTABLES_COMPRESSION, new SQLVarchar(compression));
 		//NOT USED ANYMORE, for backward compatibility only
-		row.setColumn(SYSTABLES_IS_PINNED,new SQLBoolean(isPinned));
+		row.setColumn(SYSTABLES_IS_PINNED, new SQLBoolean(isPinned));
 		row.setColumn(SYSTABLES_PURGE_DELETED_ROWS, new SQLBoolean(purgeDeletedRows));
-		return row;
 	}
 
 	/**
@@ -322,6 +346,9 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 				/* 1st column is TABLEID (UUID - char(36)) */
 				row.setColumn(1,new SQLChar());
 				break;
+
+			default:
+				throw new IllegalArgumentException("unexpected indexNumber: " + indexNumber);
 		}	// end switch
 
 		return	row;
