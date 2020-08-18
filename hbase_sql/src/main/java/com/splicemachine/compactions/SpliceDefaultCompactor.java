@@ -96,11 +96,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     public SpliceDefaultCompactor(final Configuration conf, final HStore store) {
         super(conf, store);
         conglomId = this.store.getTableName().getQualifierAsString();
-        tableDisplayName = ((HStore)this.store).getHRegion().getTableDescriptor().getValue(TABLE_DISPLAY_NAME_ATTR);
-        indexDisplayName = ((HStore)this.store).getHRegion().getTableDescriptor().getValue(INDEX_DISPLAY_NAME_ATTR);
+        tableDisplayName = this.store.getHRegion().getTableDescriptor().getValue(TABLE_DISPLAY_NAME_ATTR);
+        indexDisplayName = this.store.getHRegion().getTableDescriptor().getValue(INDEX_DISPLAY_NAME_ATTR);
 
         if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", ((HStore)this.store).getHRegion());
+            SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", this.store.getHRegion());
         }
     }
 
@@ -154,7 +154,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         CompactionResult result = null;
         SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
 
-        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
+        EngineDriver driver = EngineDriver.driver();
+        if (driver == null) {
+            throw new IOException("EngineDriver not available, compaction aborted");
+        }
+        Future<CompactionResult> futureResult = driver.getOlapClient().submit(jobRequest, getCompactionQueue());
         while (result == null) {
             try {
                 result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);

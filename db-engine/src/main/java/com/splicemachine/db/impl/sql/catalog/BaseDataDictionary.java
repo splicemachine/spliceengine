@@ -37,7 +37,9 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value="MS_PKGPROTECT")
 public abstract class BaseDataDictionary implements DataDictionary, ModuleControl, ModuleSupportable,java.security.PrivilegedAction {
 	protected static final String		CFG_SYSTABLES_ID = "SystablesIdentifier";
 	protected static final String		CFG_SYSTABLES_INDEX1_ID = "SystablesIndex1Identifier";
@@ -163,7 +165,8 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 									"SYSSNAPSHOTS",
 									"SYSTOKENS",
                                     "SYSDUMMY1",
-									"SYSREPLICATION"
+									"SYSREPLICATION",
+			                        "MON_GET_CONNECTION"
     };
 
 	protected	static final int		NUM_NONCORE = nonCoreNames.length;
@@ -186,6 +189,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
         SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
         SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,
+        SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,
         SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME
