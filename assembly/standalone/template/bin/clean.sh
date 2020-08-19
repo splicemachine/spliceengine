@@ -13,7 +13,7 @@ ZPID=$(ps -ef | awk '/zookeeper/ && !/awk/ {print $2}')
 YPID=$(ps -ef | awk '/spliceYarn|SpliceTestYarnPlatform|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}')
 KPID=$(ps -ef | awk '/TestKafkaCluster/ && !/awk/ {print $2}')
 if [[ -n ${SPID} || -n ${ZPID} ]] || [[ -n ${YPID} || -n ${KPID} ]]; then
-     echo "Splice still running and must be shut down. Run stopdb.sh"
+     echo "Splice still running and must be shut down. Run stop-splice.sh"
      exit 1;
 fi
 
