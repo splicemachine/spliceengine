@@ -35,8 +35,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+
 import java.util.BitSet;
-import java.util.List;
 
 /**
  * The StoreCostController interface provides methods that an access client
@@ -272,5 +272,5 @@ public interface StoreCostController extends RowCountable{
 
     boolean useRealTableStatistics();
 
-    List<Integer> getNoStatisticsColumnIds();
+    boolean useRealColumnStatistics(int columnId);
 }

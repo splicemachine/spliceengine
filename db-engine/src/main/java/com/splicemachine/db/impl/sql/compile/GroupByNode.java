@@ -1445,4 +1445,24 @@ public class GroupByNode extends SingleChildResultSetNode{
         return sb.toString();
     }
 
+    public HashSet<String> getNoStatsColumns() throws StandardException {
+        if (costEstimate == null)
+            throw new RuntimeException("Should not be null");
+
+        HashSet<String> noStatsColumns = new HashSet<>();
+        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+        for (OrderedColumn oc : groupingList) {
+            oc.accept(cnv);
+        }
+        for (AggregateNode an : aggregateVector) {
+            an.accept(cnv);
+        }
+        List<ColumnReference> columnRefNodes = cnv.getList();
+        for (ColumnReference cr : columnRefNodes) {
+            if (!cr.useRealColumnStatistics())
+                noStatsColumns.add(cr.getSource().getSchemaName() + "." + cr.getSource().getFullName());
+        }
+        return noStatsColumns;
+    }
+
 }
