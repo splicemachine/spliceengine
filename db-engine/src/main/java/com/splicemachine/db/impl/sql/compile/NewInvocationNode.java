@@ -64,8 +64,6 @@ public class NewInvocationNode extends MethodCallNode
 	// Whether or not to do a single instantiation
 	private boolean singleInstantiation = false;
 
-	private boolean delimitedIdentifier;
-
 	private boolean isBuiltinVTI = false;
 
 	/**
@@ -88,8 +86,6 @@ public class NewInvocationNode extends MethodCallNode
 		addParms((List) params);
 
 		this.javaClassName = (String) javaClassName;
-		this.delimitedIdentifier =
-                (Boolean) delimitedIdentifier;
 	}
 
 	/* This version of the "init" method is used for mapping a table name
@@ -193,9 +189,6 @@ public class NewInvocationNode extends MethodCallNode
 					: SQLState.LANG_TABLE_NOT_FOUND,
 				vtiName.getFullTableName());
 		}
-
-		this.delimitedIdentifier =
-                (Boolean) delimitedIdentifier;
 	}
 
 	/**
