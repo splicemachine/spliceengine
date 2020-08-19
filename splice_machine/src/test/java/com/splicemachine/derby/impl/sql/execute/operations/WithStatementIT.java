@@ -21,8 +21,8 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -95,8 +95,27 @@ public class WithStatementIT extends SpliceUnitTest {
 
         testUserConn = spliceClassWatcher.createConnection(TEST_USER, TEST_PASSWORD);
 
-        Connection conn = spliceClassWatcher.createConnection();
-        conn.createStatement().execute(format("grant access,select on schema %s to %s", SCHEMA, TEST_USER));
+        connection.createStatement().execute(format("grant access,select on schema %s to %s", SCHEMA, TEST_USER));
+    }
+
+    private static class CreateDynamicViewTask implements Runnable {
+        private final TestConnection connection;
+        private final String viewName;
+
+        public CreateDynamicViewTask(TestConnection connection, String viewName) {
+            this.connection = connection;
+            this.viewName = viewName;
+        }
+
+        @Override
+        public void run() {
+            try {
+                connection.createStatement().executeQuery(
+                        format("with %s as (select * from t12) select * from %s", viewName, viewName));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     @Test
@@ -260,5 +279,15 @@ public class WithStatementIT extends SpliceUnitTest {
         }
         // user with no write privilege, dynamic view in current schema
         assertFailed(testUserConn, format("with %s.dt as (select * from t12) select * from dt", SCHEMA), SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+    }
+
+    @Test
+    public void testConcurrentDynamicViewCreationWithTheSameName() throws Exception {
+        Thread t1 = new Thread(new CreateDynamicViewTask(spliceClassWatcher.getOrCreateConnection(), "dt"));
+        Thread t2 = new Thread(new CreateDynamicViewTask(testUserConn, "dt"));
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
     }
 }
