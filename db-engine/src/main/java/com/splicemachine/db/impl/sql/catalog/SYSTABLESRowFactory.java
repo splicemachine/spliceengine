@@ -172,11 +172,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 
 		if (td != null)
 		{
-			if (!(td instanceof TableDescriptor))
-				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
-
-			if (!(parent instanceof SchemaDescriptor))
-				throw new RuntimeException("Unexpected TupleDescriptor " + parent.getClass().getName());
 			/*
 			** We only allocate a new UUID if the descriptor doesn't already have one.
 			** For descriptors replicated from a Source system, we already have an UUID.
