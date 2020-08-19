@@ -2012,7 +2012,17 @@ public class JoinNode extends TableOperatorNode{
         mb.push(rightResultSet.getFromSSQ());
 
         if (isCrossJoin()) {
-            mb.push(((Optimizable)rightResultSet).getTrulyTheBestAccessPath().getJoinStrategy().getBroadcastRight(rightResultSet.getFinalCostEstimate(true).getBase()));
+            Optimizable rightRS = (Optimizable)rightResultSet;
+            Properties rightProperties = rightRS.getProperties();
+            String hintedValue = null;
+            if (rightProperties != null) {
+                hintedValue = rightProperties.getProperty("broadcastCrossRight");
+            }
+            if (hintedValue == null) {
+                mb.push(rightRS.getTrulyTheBestAccessPath().getJoinStrategy().getBroadcastRight(rightResultSet.getFinalCostEstimate(true).getBase()));
+            } else {
+                mb.push(Boolean.parseBoolean(hintedValue));
+            }
             numArgs++;
         }
 
