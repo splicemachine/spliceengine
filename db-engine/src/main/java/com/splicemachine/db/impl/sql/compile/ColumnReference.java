@@ -1480,6 +1480,10 @@ public class ColumnReference extends ValueNode {
         return getStoreCostController().rowCount();
     }
 
+    public boolean useRealColumnStatistics() throws StandardException {
+        return getStoreCostController().useRealColumnStatistics(columnNumber);
+    }
+
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {
         return getSource() == null ? null : getSource().getBaseConglomerateDescriptor();
     }

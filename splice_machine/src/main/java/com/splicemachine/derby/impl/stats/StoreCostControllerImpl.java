@@ -20,11 +20,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnStatisticsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.*;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
@@ -45,7 +43,10 @@ import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Maps;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -76,7 +77,6 @@ public class StoreCostControllerImpl implements StoreCostController {
     private int missingPartitions;
     private final TableStatistics tableStatistics;
     private final boolean useRealTableStatistics;
-    private final List<Integer> noStatsColumnIds;  // if not empty, useRealTableStatistics must be true
     private final double fallbackLocalLatency;
     private final double fallbackRemoteLatencyRatio;
     private final ExecRow baseTableRow;
@@ -156,7 +156,6 @@ public class StoreCostControllerImpl implements StoreCostController {
          * we have no table information either, so just return an empty list and let the caller figure out
          * what to do
          */
-        noStatsColumnIds = new ArrayList<>();
         if (partitionStats.isEmpty()) {
             missingPartitions = 0;
             noStats = true;
@@ -183,22 +182,6 @@ public class StoreCostControllerImpl implements StoreCostController {
         } else {
             tableStatistics = new TableStatisticsImpl(tableId, partitionStats,fallbackNullFraction,extraQualifierMultiplier);
             useRealTableStatistics = true;
-            assert !partitionStatistics.isEmpty();
-
-            List<ColumnStatisticsDescriptor> columnStats = partitionStatistics.get(0).getColumnStatsDescriptors();
-            int numColumns = td.getColumnDescriptorList().size();
-            assert columnStats.size() <= numColumns : "Number of column statistics is bigger than number of columns";
-
-            if (columnStats.size() < numColumns) {
-                HashSet<Integer> statsColIds = new HashSet<>();
-                for (ColumnStatisticsDescriptor colStats : columnStats) {
-                    statsColIds.add(colStats.getColumnId());
-                }
-                for (ColumnDescriptor colDesc : td.getColumnDescriptorList()) {
-                    if (!statsColIds.contains(colDesc.getPosition()))
-                        noStatsColumnIds.add(colDesc.getPosition());
-                }
-            }
         }
     }
 
@@ -390,20 +373,11 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_EXCEPTION", justification = "DB-9844")
     public static int getPartitions(byte[] table, List<Partition> partitions, boolean refresh) throws StandardException {
-        Partition root = null;
-        try {
-            root = SIDriver.driver().getTableFactory().getTable(table);
+        try (Partition root = SIDriver.driver().getTableFactory().getTable(table)) {
             partitions.addAll(root.subPartitions(refresh));
             return partitions.size();
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
-        } finally {
-            try {
-                if (root != null)
-                    root.close();
-            } catch (IOException e) {
-                // ignore
-            }
         }
     }
 
@@ -413,20 +387,11 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_EXCEPTION", justification = "DB-9844")
     public static int getPartitions(String table, List<Partition> partitions, boolean refresh) throws StandardException {
-        Partition root = null;
-        try {
-            root = SIDriver.driver().getTableFactory().getTable(table);
+        try (Partition root = SIDriver.driver().getTableFactory().getTable(table)) {
             partitions.addAll(root.subPartitions(refresh));
             return partitions.size();
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
-        } finally {
-            try {
-                if (root != null)
-                    root.close();
-            } catch (IOException e) {
-                // ignore
-            }
         }
     }
 
@@ -440,7 +405,10 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
-    public List<Integer> getNoStatisticsColumnIds() {
-        return noStatsColumnIds;
+    public boolean useRealColumnStatistics(int columnNumber) {
+        if (!useRealTableStatistics || columnNumber <= 0)  // rowid column number == 0
+            return false;
+        PartitionStatistics ps = tableStatistics.getPartitionStatistics().get(0);
+        return ps.getColumnStatistics(columnNumber - 1) != null;
     }
 }

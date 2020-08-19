@@ -49,6 +49,7 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 
 /**
@@ -116,6 +117,9 @@ public class ExplainNode extends DMLStatementNode {
         if (sparkExplainKind != SparkExplainKind.NONE)
             return;
 
+        HashSet<String> noStatsColumnSet = new HashSet<>();
+
+        // collect no stats columns used to estimate scan cost
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromBaseTable.class);
         node.accept(cnv);
         List<FromBaseTable> baseTableNodes = cnv.getList();
@@ -126,9 +130,29 @@ public class ExplainNode extends DMLStatementNode {
             } else if (!t.getNoStatsColumnIds().isEmpty()) {
                 TableDescriptor td = t.getTableDescriptor();
                 for (int columnId : t.getNoStatsColumnIds()) {
-                    noStatsColumns.add(new SQLVarchar(tableName + "." + td.getColumnDescriptor(columnId).getColumnName()));
+                    noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
                 }
             }
+        }
+
+        // collect no stats columns used to estimate join selectivity
+        cnv = new CollectNodesVisitor(BinaryRelationalOperatorNode.class);
+        node.accept(cnv);
+        List<BinaryRelationalOperatorNode> binaryOpNodes = cnv.getList();
+        for (BinaryRelationalOperatorNode bop : binaryOpNodes) {
+            noStatsColumnSet.addAll(bop.getNoStatsColumns());
+        }
+
+        // collect no stats columns used to estimate grouping cardinality
+        cnv = new CollectNodesVisitor(GroupByNode.class);
+        node.accept(cnv);
+        List<GroupByNode> groupByNodes = cnv.getList();
+        for (GroupByNode gbn : groupByNodes) {
+            noStatsColumnSet.addAll(gbn.getNoStatsColumns());
+        }
+
+        for (String columnName : noStatsColumnSet) {
+            noStatsColumns.add(new SQLVarchar(columnName));
         }
     }
 

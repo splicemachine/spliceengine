@@ -31,24 +31,25 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.Orderable;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.util.JBitSet;
+ import com.splicemachine.db.iapi.error.StandardException;
+ import com.splicemachine.db.iapi.reference.ClassName;
+ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+ import com.splicemachine.db.iapi.services.sanity.SanityManager;
+ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+ import com.splicemachine.db.iapi.sql.compile.Optimizable;
+ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+ import com.splicemachine.db.iapi.store.access.ScanController;
+ import com.splicemachine.db.iapi.store.access.StoreCostController;
+ import com.splicemachine.db.iapi.types.DataValueDescriptor;
+ import com.splicemachine.db.iapi.types.Orderable;
+ import com.splicemachine.db.iapi.types.TypeId;
+ import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.sql.Types;
-import java.util.List;
+ import java.sql.Types;
+ import java.util.HashSet;
+ import java.util.List;
 
-import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
+ import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
 
  /**
  * This class represents the 6 binary operators: LessThan, LessThanEquals,
@@ -83,6 +84,8 @@ public class BinaryRelationalOperatorNode
      * in the latter method for more.
      */
     private InListOperatorNode inListProbeSource=null;
+
+    private HashSet<String> noStatsColumns;
 
     public void init(Object leftOperand,Object rightOperand){
         String methodName="";
@@ -132,6 +135,7 @@ public class BinaryRelationalOperatorNode
         }
         super.init(leftOperand, rightOperand, operatorName, methodName);
         btnVis=null;
+        noStatsColumns = new HashSet<>();
     }
 
     public void reInitWithNodeType(int nodeType){
@@ -1513,6 +1517,9 @@ public class BinaryRelationalOperatorNode
 
         if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null) {
             ColumnReference right = (ColumnReference) rightOperand;
+            if (!right.useRealColumnStatistics()) {
+                noStatsColumns.add(right.getSource().getSchemaName() + "." + right.getSource().getFullName());
+            }
             if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.LEFTOUTER)) {
                 selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
             } else if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.FULLOUTER)) {
@@ -1520,6 +1527,9 @@ public class BinaryRelationalOperatorNode
                 selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
             } else if (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
                 ColumnReference left = (ColumnReference) leftOperand;
+                if (!left.useRealColumnStatistics()) {
+                    noStatsColumns.add(left.getSource().getSchemaName() + "." + left.getSource().getFullName());
+                }
                 selectivity = ((1.0d - left.nullSelectivity()) * (1.0d - right.nullSelectivity())) /
                         Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
                 selectivity = selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.INNER) ?
@@ -2143,5 +2153,9 @@ public class BinaryRelationalOperatorNode
 
      public void setOuterJoinLevel(int level) {
          outerJoinLevel = level;
+     }
+
+     public HashSet<String> getNoStatsColumns() {
+        return noStatsColumns;
      }
 }

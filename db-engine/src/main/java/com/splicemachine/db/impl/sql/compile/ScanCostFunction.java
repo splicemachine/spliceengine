@@ -66,6 +66,7 @@ public class ScanCostFunction{
     private final int baseColumnCount;
     private final boolean forUpdate; // Will be used shortly
     private boolean basePredicatePossible = true;
+    private final HashSet<Integer> usedNoStatsColumnIds;
 
     /**
      *
@@ -100,7 +101,8 @@ public class ScanCostFunction{
                             DataValueDescriptor[] rowTemplate,
                             int[] keyColumns,
                             boolean forUpdate,
-                            ResultColumnList resultColumns){
+                            ResultColumnList resultColumns,
+                            HashSet<Integer> usedNoStatsColumnIds){
         this.scanColumns = scanColumns;
         this.lookupColumns = lookupColumns;
         this.baseTable=baseTable;
@@ -114,6 +116,7 @@ public class ScanCostFunction{
         totalColumns.or(scanColumns);
         if (lookupColumns != null)
             totalColumns.or(lookupColumns);
+        this.usedNoStatsColumnIds = usedNoStatsColumnIds;
     }
 
     /**
@@ -147,6 +150,25 @@ public class ScanCostFunction{
         return holders;
     }
 
+    private void checkInListPredColumnStats(Predicate p) throws StandardException {
+        if (p.getSourceInList() != null) {
+            for (Object o : p.getSourceInList().leftOperandList) {
+                ColumnReference cr = (ColumnReference) o;
+                if (!scc.useRealColumnStatistics(cr.getColumnNumber()))
+                    usedNoStatsColumnIds.add(cr.getColumnNumber());
+            }
+        }
+    }
+
+    private void checkUnaryAndBinaryPredColumnStats(Predicate p) throws StandardException {
+        if (p.getRelop() != null) {
+            ColumnReference cr = p.getRelop().getColumnOperand(baseTable);
+            if (cr != null && !scc.useRealColumnStatistics(cr.getColumnNumber())) {
+                usedNoStatsColumnIds.add(cr.getColumnNumber());
+            }
+        }
+    }
+
     /**
      *
      * Add Predicate and keep track of the selectivity
@@ -157,19 +179,29 @@ public class ScanCostFunction{
     public void addPredicate(Predicate p, double defaultSelectivityFactor) throws StandardException{
         if (p.isMultiProbeQualifier(keyColumns)) {// MultiProbeQualifier against keys (BASE)
             addSelectivity(new InListSelectivity(scc, p, QualifierPhase.BASE, defaultSelectivityFactor));
-        } else if (p.isInQualifier(scanColumns)) // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
-            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
-        else if (p.isInQualifier(lookupColumns)) // In Qualifier against looked up columns (FILTER_PROJECTION)
-            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
+            checkInListPredColumnStats(p);
+        } else if (p.isInQualifier(scanColumns)) { // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
+            addSelectivity(new InListSelectivity(scc, p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
+            checkInListPredColumnStats(p);
+        }
+        else if (p.isInQualifier(lookupColumns)) { // In Qualifier against looked up columns (FILTER_PROJECTION)
+            addSelectivity(new InListSelectivity(scc, p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
+            checkInListPredColumnStats(p);
+        }
         else if ( (p.isStartKey() || p.isStopKey()) && basePredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
             performQualifierSelectivity(p, QualifierPhase.BASE, defaultSelectivityFactor);
             if (!p.isStartKey() || !p.isStopKey()) // Only allows = to further restrict BASE scan numbers
                 basePredicatePossible = false;
+            checkUnaryAndBinaryPredColumnStats(p);
         }
-        else if (p.isQualifier()) // Qualifier in Base Table (FILTER_BASE)
+        else if (p.isQualifier()) { // Qualifier in Base Table (FILTER_BASE)
             performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, defaultSelectivityFactor);
-        else if (PredicateList.isQualifier(p,baseTable,false)) // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
+            checkUnaryAndBinaryPredColumnStats(p);
+        }
+        else if (PredicateList.isQualifier(p,baseTable,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
             performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor);
+            checkUnaryAndBinaryPredColumnStats(p);
+        }
         else // Project Restrict Selectivity Filter
             addSelectivity(new PredicateSelectivity(p,baseTable,QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
     }
