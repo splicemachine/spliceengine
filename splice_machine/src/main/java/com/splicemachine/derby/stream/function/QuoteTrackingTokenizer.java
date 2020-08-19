@@ -353,10 +353,6 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private void handleQuoteState() throws IOException {
         if (charIndex == getCurrentLine().length()) { // Newline. Doesn't count as newline while in QUOTESCOPE. Add the newline char, reset the charIndex
             // (will update to 0 for next iteration), read in the next line, then continue to next character)
-            if (oneLineRecord) {
-                String errorMessage = String.format("one-line record CSV has a record that spans over multiple lines at line %d", quoteScopeStartingLine);
-                throw new SuperCsvException(errorMessage);
-            }
             addToColumn(NEWLINE);
             appendToRowNewLine(); // specific line terminator lost, \n will have to suffice
             charIndex = 0;
@@ -367,6 +363,10 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
                         ? String.format("partial record found while scanning row at line %d and ending on line %d", quoteScopeStartingLine, getLineNumber())
                         : String.format("partial record found [%s] while reading quoted column beginning on line %d and ending on line %d",
                         this.currentColumn, quoteScopeStartingLine, getLineNumber());
+                throw new SuperCsvException(errorMessage);
+            }
+            if (oneLineRecord) {
+                String errorMessage = String.format("one-line record CSV has a record that spans over multiple lines at line %d", quoteScopeStartingLine);
                 throw new SuperCsvException(errorMessage);
             }
         } else { // QUOTE_MODE (within quotes).
