@@ -272,6 +272,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private int maxStatementLogLen;
     private boolean logQueryPlan;
 
+    // default to 6
+    private int tableLimitForExhaustiveSearch = 6;
+
     // this used to be computed in OptimizerFactoryContextImpl; i.e everytime a
     // connection was made. To keep the semantics same I'm putting it out here
     // instead of in the OptimizerFactory which is only initialized when the
@@ -398,6 +401,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         String logQueryPlanProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logQueryPlan");
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
 
+        try {
+            String valueString = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.tableLimitForExhaustiveSearch");
+            int value = Integer.parseInt(valueString);
+            if (value > 0)
+                tableLimitForExhaustiveSearch = value;
+        } catch (Exception e) {
+            // no op, use default value 6
+        }
+
         lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators=new ArrayList<>();
         triggerTables=new ArrayList<>();
@@ -409,26 +421,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (defaultSelectivityFactor > 0)
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, Double.toString(defaultSelectivityFactor));
         if (connectionProperties != null) {
-            String olapQueue = connectionProperties.getProperty(Property.CONNECTION_OLAP_QUEUE);
-            if (olapQueue != null) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE, olapQueue);
-            }
-            String snapshot = connectionProperties.getProperty(Property.CONNECTION_SNAPSHOT);
-            if (snapshot != null) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP, snapshot);
-            }
-            String parallelPartitions = connectionProperties.getProperty(Property.OLAP_PARALLEL_PARTITIONS);
-            if (parallelPartitions != null) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS, parallelPartitions);
-            }
-            String shufflePartitions = connectionProperties.getProperty(Property.OLAP_SHUFFLE_PARTITIONS);
-            if (shufflePartitions != null) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS, shufflePartitions);
-            }
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_OLAP_QUEUE, SessionProperties.PROPERTYNAME.OLAPQUEUE);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_SNAPSHOT, SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_PARALLEL_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
+
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
                 this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS, "TRUE".toString());
             }
+
+            setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCHES, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES);
+            setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCH_SIZE, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
         }
         if (type.isSessionHinted()) {
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USESPARK, type.isSpark());
@@ -440,6 +444,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
 
+    }
+
+    private void setSessionFromConnectionProperty(Properties connectionProperties, String connectionPropName, SessionProperties.PROPERTYNAME sessionPropName) {
+        String value = connectionProperties.getProperty(connectionPropName);
+        if (value != null) {
+            this.sessionProperties.setProperty(sessionPropName, value);
+        }
     }
 
     /**
@@ -598,6 +609,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public boolean getLogQueryPlan(){
         return logQueryPlan;
+    }
+
+    @Override
+    public int getTableLimitForExhaustiveSearch() {
+        Integer tableLimit = (Integer) sessionProperties.getProperty(
+                SessionProperties.PROPERTYNAME.TABLELIMITFOREXHAUSTIVESEARCH);
+        if (tableLimit != null)
+            return tableLimit;
+        return tableLimitForExhaustiveSearch;
     }
 
     @Override
@@ -3793,18 +3813,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void logStartFetching(String statement) {
+    public void logStartFetching(String uuid, String statement) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format("Start fetching from the result set. %s, %s",
-                    getLogHeader(), formatLogStmt(statement)));
+            stmtLogger.info(String.format("Start fetching from the result set. %s, uuid=%s, %s",
+                    getLogHeader(), uuid, formatLogStmt(statement)));
         }
     }
 
     @Override
-    public void logEndFetching(String statement, long fetchedRows) {
+    public void logEndFetching(String uuid, String statement, long fetchedRows) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format("End fetching from the result set. %s, fetchedRows=%d, %s",
-                    getLogHeader(), fetchedRows, formatLogStmt(statement)));
+            stmtLogger.info(String.format("End fetching from the result set. %s, uuid=%s, fetchedRows=%d, %s",
+                    getLogHeader(), uuid, fetchedRows, formatLogStmt(statement)));
         }
     }
 

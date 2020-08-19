@@ -71,11 +71,11 @@ public class ColumnDefinitionNode extends TableElementNode
      */
     DataTypeDescriptor type;
 
-    DataValueDescriptor            defaultValue;
-    DefaultInfoImpl                defaultInfo;
-    DefaultNode                    defaultNode;
-    boolean                        keepCurrentDefault;
-    GenerationClauseNode   generationClauseNode;
+    DataValueDescriptor         defaultValue;
+    DefaultInfoImpl             defaultInfo;
+    DefaultNode                 defaultNode;
+    boolean                     keepCurrentDefault;
+    GenerationClauseNode        generationClauseNode;
     long                        autoincrementIncrement;
     long                        autoincrementStart;
     //This variable tells if the autoincrement column is participating
@@ -119,37 +119,30 @@ public class ColumnDefinitionNode extends TableElementNode
     {
         super.init(name);
         this.type = (DataTypeDescriptor) dataTypeServices;
-        if (defaultNode instanceof UntypedNullConstantNode)
-        {
+        if (defaultNode instanceof UntypedNullConstantNode) {
             /* No DTS yet for MODIFY DEFAULT */
-            if (dataTypeServices != null)
-            {
-                defaultValue = ((UntypedNullConstantNode) defaultNode).convertDefaultNode(this.type);
+            if (type != null) {
+                defaultValue = ((UntypedNullConstantNode) defaultNode).convertDefaultNode(type);
             }
-        }
-        else if (defaultNode instanceof EmptyDefaultConstantNode)
-        {
+        } else if (defaultNode instanceof EmptyDefaultConstantNode) {
             /* No DTS yet for MODIFY DEFAULT */
-            if (dataTypeServices != null)
-            {
-                defaultValue = ((EmptyDefaultConstantNode) defaultNode).convertDefaultNode(this.type);
-            }
-        }
-        else if (defaultNode instanceof GenerationClauseNode)
-        {
-            generationClauseNode = (GenerationClauseNode) defaultNode;
-        }
-        else
-        {
-            if (SanityManager.DEBUG)
-            {
-                if (defaultNode != null &&
-                    ! (defaultNode instanceof DefaultNode))
-                {
-                    SanityManager.THROWASSERT(
-                        "defaultNode expected to be instanceof DefaultNode, not " +
-                        defaultNode.getClass().getName());
+            if (type != null) {
+                if (type.getTypeId().isDateTimeTimeStampTypeId()) {
+                    assert autoIncrementInfo == null;
+                    CurrentDatetimeOperatorNode currentDateTimeNode = new CurrentDatetimeOperatorNode(getContextManager());
+                    currentDateTimeNode.init(type.getTypeId());
+                    this.defaultNode = new DefaultNode();
+                    this.defaultNode.init(currentDateTimeNode, currentDateTimeNode.getMethodName());
+                } else {
+                    defaultValue = ((EmptyDefaultConstantNode) defaultNode).convertDefaultNode(type);
                 }
+            }
+        } else if (defaultNode instanceof GenerationClauseNode) {
+            generationClauseNode = (GenerationClauseNode) defaultNode;
+        } else {
+            if (SanityManager.DEBUG && defaultNode != null && ! (defaultNode instanceof DefaultNode)) {
+                SanityManager.THROWASSERT("defaultNode expected to be instanceof DefaultNode, not " +
+                    defaultNode.getClass().getName());
             }
             this.defaultNode = (DefaultNode) defaultNode;
             if (autoIncrementInfo != null)
@@ -472,22 +465,10 @@ public class ColumnDefinitionNode extends TableElementNode
         throws StandardException
     {
         /* DB2 requires non-nullable columns to have a default in ALTER TABLE */
-        if (td != null && !hasGenerationClause() && !getType().isNullable() && defaultNode == null)
+        if (td != null && !hasGenerationClause() && !getType().isNullable() && defaultNode == null && defaultValue == null)
         {
             if (!isAutoincrement )
                 throw StandardException.newException(SQLState.LANG_DB2_NOT_NULL_COLUMN_INVALID_DEFAULT, getColumnName());
-        }
-
-        // No work to do if no user specified default
-        if (defaultNode == null)
-        {
-            return;
-        }
-
-        // No work to do if user specified NULL
-        if (defaultValue != null)
-        {
-            return;
         }
 
         // Now validate the default
@@ -586,8 +567,15 @@ public class ColumnDefinitionNode extends TableElementNode
     void validateDefault(DataDictionary dd, TableDescriptor td)
         throws StandardException
     {
-        if (defaultNode == null)
+        if (defaultNode == null) {
+            if (defaultValue != null) {
+                // Empty default case
+                defaultInfo = new DefaultInfoImpl(false,
+                    defaultValue.toString(),
+                    defaultValue);
+            }
             return;
+        }
 
         //Examin whether default value is autoincrement.
         if (isAutoincrement){

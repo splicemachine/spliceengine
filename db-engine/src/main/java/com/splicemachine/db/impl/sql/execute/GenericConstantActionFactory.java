@@ -313,6 +313,7 @@ public abstract class GenericConstantActionFactory {
      *         (REMIND tableDescriptor ignored)
      *  @param constraintActions    CreateConstraintConstantAction[] for constraints
      *  @param properties    Optional table properties
+     * @param createBehavior  CREATE_IF_NOT_EXISTS or CREATE_DEFAULT
      * @param lockGranularity    The lock granularity.
      * @param onCommitDeleteRows    If true, on commit delete rows else on commit preserve rows of temporary table.
      * @param onRollbackDeleteRows    If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
@@ -327,6 +328,7 @@ public abstract class GenericConstantActionFactory {
         ColumnInfo[]    columnInfo,
         ConstantAction[] constraintActions,
         Properties        properties,
+        int             createBehavior,
         char            lockGranularity,
         boolean            onCommitDeleteRows,
         boolean            onRollbackDeleteRows,

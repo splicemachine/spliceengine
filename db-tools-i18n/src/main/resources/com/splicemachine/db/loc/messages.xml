@@ -3217,6 +3217,18 @@ Guide.
             </msg>
 
             <msg>
+                <name>42ZD2</name>
+                <text>Using time travel clause with {0} is not allowed</text>
+                <arg>artifactName</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD5</name>
+                <text>In the Properties list, the invalid value '{0}' was specified for the tableLimitForExhaustiveSearch property. Expecting a positive integer.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
                 <name>43001</name>
                 <text>The truncate function was provided a null operand.</text>
             </msg>
@@ -9240,7 +9252,7 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
            <msg>
                <name>EXT23</name>
-               <text>Only '{0}' attributes defined but '{1}' present in the external file : '{2}'. Suggested Schema is '{3}'.</text>
+               <text>{0} attribute(s) defined but {1} present in the external file : '{2}'. Suggested Schema is '{3}'.</text>
                <arg>definedAttributeCount</arg>
                <arg>externalAttributeCount</arg>
                <arg>location</arg>
