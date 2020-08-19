@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
@@ -26,6 +27,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.txn.TxnView;
+import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -407,4 +409,8 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
                             DataSet<ExecRow> leftDataSet,
                             DataSet<ExecRow> rightDataSet,
                             DataSetProcessor dsp);
+
+    DataTypeDescriptor[] getResultColumnDataTypes();
+
+    StructType schema() throws StandardException;
 }

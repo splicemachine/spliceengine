@@ -109,6 +109,21 @@ public class GroupByOrderByIT {
         System.out.println("testSelectAllColumnsGroupBy");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
 
+        // group by position must be 1-based
+        try {
+            methodWatcher.executeQuery(String.format("SELECT EMPNUM, PNUM, HOURS FROM %1$s GROUP BY 1,0,2", t1Watcher.toString()));
+            Assert.fail("expect group by position error");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X77", e.getSQLState());
+        }
+
+        // group by position must be positive
+        try {
+            methodWatcher.executeQuery(String.format("SELECT EMPNUM, PNUM, HOURS FROM %1$s GROUP BY -1", t1Watcher.toString()));
+            Assert.fail("expect group by position error");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X77", e.getSQLState());
+        }
     }
 
     @Test

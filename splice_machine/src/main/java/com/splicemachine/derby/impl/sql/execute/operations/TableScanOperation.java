@@ -15,22 +15,33 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -38,6 +49,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 
@@ -56,6 +68,7 @@ public class TableScanOperation extends ScanOperation{
     protected int[] baseColumnMap;
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
+    protected long pastTx;
 
     /**
      *
@@ -119,6 +132,7 @@ public class TableScanOperation extends ScanOperation{
      * @param storedAs
      * @param defaultRowFunc
      * @param defaultValueMapItem
+     * @param pastTxFunctor a functor that returns the id of a committed transaction for time-travel queries, -1 for not set.
      *
      * @throws StandardException
      */
@@ -159,7 +173,8 @@ public class TableScanOperation extends ScanOperation{
                               String location,
                               int partitionByRefItem,
                               GeneratedMethod defaultRowFunc,
-                              int defaultValueMapItem) throws StandardException{
+                              int defaultValueMapItem,
+                              GeneratedMethod pastTxFunctor) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
@@ -174,9 +189,34 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
+        this.pastTx=-1;
         init();
+        if(pastTxFunctor != null) {
+            this.pastTx = mapToTxId((DataValueDescriptor)pastTxFunctor.invoke(activation));
+            if(pastTx == -1){
+                pastTx = SIConstants.OLDEST_TIME_TRAVEL_TX; // force going back to the oldest transaction instead of ignoring it.
+            }
+        } else {
+            this.pastTx = -1; // nothing is set, go ahead and use the latest transaction.
+        }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
+    }
+
+    private long mapToTxId(DataValueDescriptor dataValue) throws StandardException {
+        if(dataValue instanceof SQLTimestamp) {
+            Timestamp ts = ((SQLTimestamp)dataValue).getTimestamp(null);
+            SpliceLogUtils.trace(LOG,"time travel ts=%s", ts.toString());
+            try {
+                return SIDriver.driver().getTxnStore().getTxnAt(ts.getTime());
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+        }else if(dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
+            return dataValue.getLong();
+        }else {
+            throw StandardException.newException(SQLState.NOT_IMPLEMENTED); // fix me, we should read SqlTime as well.
+        }
     }
 
     /**
@@ -195,6 +235,7 @@ public class TableScanOperation extends ScanOperation{
         tableDisplayName=in.readUTF();
         tableNameBytes=Bytes.toBytes(tableName);
         indexColItem=in.readInt();
+        pastTx=in.readLong();
         if(in.readBoolean())
             indexName=in.readUTF();
     }
@@ -212,6 +253,7 @@ public class TableScanOperation extends ScanOperation{
         out.writeUTF(tableName);
         out.writeUTF(tableDisplayName);
         out.writeInt(indexColItem);
+        out.writeLong(pastTx);
         out.writeBoolean(indexName!=null);
         if(indexName!=null)
             out.writeUTF(indexName);
@@ -322,10 +364,7 @@ public class TableScanOperation extends ScanOperation{
     }
 
     /**
-     *
-     * Return the string representation for TableScan.
-     *
-     * @return
+     * @return the string representation for TableScan.
      */
     @Override
     public String toString(){
@@ -337,16 +376,40 @@ public class TableScanOperation extends ScanOperation{
     }
 
     /**
-     *
-     * Retrieve the Table Scan Builder for creating the actual data set from a scan.
-     *
-     * @param dsp
-     * @return
+     * @param pastTx The ID of the past transaction.
+     * @return a view of a past transaction.
+     */
+    private TxnView getPastTransaction(long pastTx) throws StandardException {
+        TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
+        ContextManager cm = ContextService.getFactory().newContextManager();
+        TransactionController pastTC = transactionExecute.getAccessManager().getReadOnlyTransaction(cm, pastTx);
+        Transaction rawStoreXact=((TransactionManager)pastTC).getRawStoreXact();
+        return ((BaseSpliceTransaction)rawStoreXact).getActiveStateTxn();
+    }
+
+    /**
+     * @return either current transaction or a committed transaction in the past.
+     */
+    protected TxnView getTransaction() throws StandardException {
+        return (pastTx >= 0) ? getPastTransaction(pastTx) : super.getCurrentTransaction();
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return getTransaction();
+    }
+
+    /**
+     * @return the Table Scan Builder for creating the actual data set from a scan.
      * @throws StandardException
      */
     public DataSet<ExecRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
-        TxnView txn=getCurrentTransaction();
+        TxnView txn = getTransaction();
         operationContext = dsp.createOperationContext(this);
+
+        // we currently don't support external tables in Control, so this shouldn't happen
+        assert storedAs == null || !( dsp.getType() == DataSetProcessor.Type.CONTROL && !storedAs.isEmpty() )
+                : "tried to access external table " + tableDisplayName + ":" + tableName + " over control/OLTP";
         return dsp.<TableScanOperation,ExecRow>newScanSet(this,tableName)
                 .tableDisplayName(tableDisplayName)
                 .activation(activation)

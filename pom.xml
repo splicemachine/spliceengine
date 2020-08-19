@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>2.8.0.1965-SNAPSHOT</version>
+    <version>2.8.0.1971-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -598,6 +598,9 @@
                     <groupId>com.github.spotbugs</groupId>
                     <artifactId>spotbugs-maven-plugin</artifactId>
                     <version>3.1.12.2</version>
+                    <configuration>
+                        <excludeFilterFile>${session.executionRootDirectory}/findbugs-exclude-filter.xml</excludeFilterFile>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -1052,6 +1055,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1085,6 +1089,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1118,6 +1123,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1151,6 +1157,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1184,6 +1191,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1218,6 +1226,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1252,6 +1261,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1285,6 +1295,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1318,6 +1329,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1352,6 +1364,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1386,6 +1399,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1420,6 +1434,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1457,6 +1472,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1494,6 +1510,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1530,6 +1547,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1566,6 +1584,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1602,6 +1621,7 @@
                 <module>hbase_sql</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>scala_util</module>
                 <module>assembly</module>
@@ -1882,6 +1902,9 @@
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
                 <version>3.1.12.2</version>
+                <configuration>
+                    <excludeFilterFile>${session.executionRootDirectory}/findbugs-exclude-filter.xml</excludeFilterFile>
+                </configuration>
             </plugin>
         </plugins>
     </reporting>

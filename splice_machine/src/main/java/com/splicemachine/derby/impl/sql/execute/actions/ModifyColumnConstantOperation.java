@@ -118,8 +118,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
              * We need to scan the table to find out how many rows
              * there are.
              */
-            if ((aColumnInfo.action == ColumnInfo.CREATE) && !(aColumnInfo.dataType.isNullable()) &&
-                    (aColumnInfo.defaultInfo == null) && (aColumnInfo.autoincInc == 0)) {
+            if (aColumnInfo.action == ColumnInfo.CREATE && !aColumnInfo.dataType.isNullable() &&
+                    aColumnInfo.defaultInfo == null && aColumnInfo.defaultValue == null && aColumnInfo.autoincInc == 0) {
                 tableNeedsScanning = true;
             }
         }
@@ -360,11 +360,14 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     private void updateNewColumnToDefault(ColumnDescriptor columnDescriptor, TableDescriptor td, LanguageConnectionContext lcc)
         throws StandardException {
         DefaultInfo defaultInfo = columnDescriptor.getDefaultInfo();
-        String  columnName = columnDescriptor.getColumnName();
-        String  defaultText;
+        String columnName = columnDescriptor.getColumnName();
+        String defaultText;
 
-        if ( defaultInfo.isGeneratedColumn() ) { defaultText = "default"; }
-        else { defaultText = columnDescriptor.getDefaultInfo().getDefaultText(); }
+        if ( defaultInfo == null || defaultInfo.isGeneratedColumn() ) {
+            defaultText = "default";
+        } else {
+            defaultText = defaultInfo.getDefaultText();
+        }
 
         /* Need to use delimited identifiers for all object names
          * to ensure correctness.
@@ -373,7 +376,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
             " SET " + IdUtil.normalToDelimited(columnName) + "=" +
             defaultText;
-
 
         executeUpdate(lcc, updateStmt);
     }

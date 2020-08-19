@@ -267,9 +267,9 @@ public class BackupUtils {
         return false;
     }
 
-    public static boolean backupCanceled() throws KeeperException, InterruptedException {
+    public static boolean backupCanceled(long backupId) throws KeeperException, InterruptedException {
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-        String path = BackupUtils.getBackupPath();
+        String path = BackupUtils.getBackupPath() + "/" + backupId;
         return zooKeeper.exists(path, false) == null;
     }
 

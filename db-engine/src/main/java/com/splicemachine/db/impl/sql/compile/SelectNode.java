@@ -963,10 +963,20 @@ public class SelectNode extends ResultSetNode{
             }
 
             if(orderByList!=null){
+
+                // When left outer join is flattened, its ON clause condition could be released to the WHERE clause but
+                // with an outerJoinLevel > 0. These predicates cannot be used to eliminate order by columns
+                PredicateList levelZeroPredicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+                for (int i = wherePredicates.size()-1; i >= 0 ; i--) {
+                    Predicate pred = wherePredicates.elementAt(i);
+                    if (pred.getOuterJoinLevel() == 0) {
+                        levelZeroPredicateList.addOptPredicate(pred);
+                    }
+                }
                 // Remove constant columns from order by list.  Constant
                 // columns are ones that have equality comparisons with
                 // constant expressions (e.g. x = 3)
-                orderByList.removeConstantColumns(wherePredicates);
+                orderByList.removeConstantColumns(levelZeroPredicateList);
                 /*
                 ** It's possible for the order by list to shrink to nothing
                 ** as a result of removing constant columns.  If this happens,
@@ -976,6 +986,7 @@ public class SelectNode extends ResultSetNode{
                     orderByList=null;
                     resultColumns.removeOrderByColumns();
                 }
+                levelZeroPredicateList.removeAllPredicates();
             }
         }
 
@@ -1772,7 +1783,7 @@ public class SelectNode extends ResultSetNode{
         **
         ** This should be the same optimizer we got above.
         */
-        optimizer.modifyAccessPaths();
+        optimizer.modifyAccessPaths(null);
 
         // Load the costEstimate for the final "best" join order.
         costEstimate=optimizer.getFinalCost();

@@ -458,9 +458,7 @@ public class SparkDataSet<V> implements DataSet<V> {
                     .createDataFrame(
                         rdd.map(
                             new LocatedRowToRowFunction()),
-                        context.getOperation()
-                               .getExecRowDefinition()
-                               .schema());
+                        context.getOperation().schema());
 
             return new NativeSparkDataSet(left, context).intersect(dataSet, name, context, pushScope, scopeDetail);
         }finally {
@@ -689,7 +687,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> join(OperationContext context, DataSet<V> rightDataSet, JoinType joinType, boolean isBroadcast) throws StandardException {
         Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
-                        context.getOperation().getLeftOperation().getExecRowDefinition().schema());
+                        context.getOperation().getLeftOperation().schema());
         OperationContext<SpliceOperation> leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
 
         return new NativeSparkDataSet(leftDF, leftContext).join(context, rightDataSet, joinType, isBroadcast);
@@ -700,7 +698,7 @@ public class SparkDataSet<V> implements DataSet<V> {
     public DataSet<V> crossJoin(OperationContext context, DataSet<V> rightDataSet, Broadcast type) throws StandardException {
         Dataset<Row> leftDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
-                        context.getOperation().getLeftOperation().getExecRowDefinition().schema());
+                        context.getOperation().getLeftOperation().schema());
         OperationContext<SpliceOperation> leftContext = EngineDriver.driver().processorFactory().distributedProcessor().createOperationContext(context.getOperation().getLeftOperation());
 
         return new NativeSparkDataSet(leftDF, leftContext).crossJoin(context, rightDataSet, type);
@@ -720,9 +718,7 @@ public class SparkDataSet<V> implements DataSet<V> {
                 .createDataFrame(
                         ((SparkDataSet)dataSet).rdd
                                 .map(new LocatedRowToRowFunction()),
-                        context.getOperation()
-                                .getExecRowDefinition()
-                                .schema());
+                        context.getOperation().schema());
     }
 
     /**
@@ -866,7 +862,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
-                context.getOperation().getExecRowDefinition().schema());
+                context.getOperation().schema());
 
         return new NativeSparkDataSet<>(insertDF, context).writeTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context);
     }

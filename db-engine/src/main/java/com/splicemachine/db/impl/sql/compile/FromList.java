@@ -56,6 +56,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     // true by default.
     boolean useStatistics=true;
 
+    int tableLimitForExhaustiveSearch;
+
     // FromList could have a view in it's list. If the view is defined in SESSION
     // schema, then we do not want to cache the statement's plan. This boolean
     // will help keep track of such a condition.
@@ -89,6 +91,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     public void init(Object optimizeJoinOrder){
         fixedJoinOrder=!((Boolean)optimizeJoinOrder);
         isTransparent=false;
+        tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
     }
 
     /**
@@ -704,6 +707,19 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
          */
         predicateList.categorize();
 
+        // When left outer join is flattend, its ON clause condition could be released to the WHERE clause but
+        // with an outerJoinLevel > 0. These predicates cannot be pushed to tables whose outerJoinLevel does not match.
+        // As a simplification, we don't push predicates down whoe OuterJoinLevel is greater than 0.
+        PredicateList levelZeroPredicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        for (int i = predicateList.size()-1; i >= 0 ; i--) {
+            Predicate pred = predicateList.elementAt(i);
+            if (pred.getOuterJoinLevel() == 0) {
+                levelZeroPredicateList.addOptPredicate(pred);
+                predicateList.removeOptPredicate(i);
+            }
+        }
+
+
         int size=size();
         for(int index=0;index<size;index++){
             FromTable fromTable=(FromTable)elementAt(index);
@@ -712,8 +728,15 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             // ON clause condition) to right of outer join for now, it can be enhanced in the future
             if (fromTable.getOuterJoinLevel() > 0)
                 continue;
-            fromTable.pushExpressions(predicateList);
+            fromTable.pushExpressions(levelZeroPredicateList);
         }
+
+        // append the predicates that are not pushed down back to the original predicatelist
+        for ( int i=0; i < levelZeroPredicateList.size(); i++) {
+            predicateList.addOptPredicate(levelZeroPredicateList.elementAt(i));
+        }
+        levelZeroPredicateList.removeAllPredicates();
+
     }
 
 
@@ -767,6 +790,15 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     }else{
                         throw StandardException.newException(SQLState.LANG_INVALID_STATISTICS_SPEC,value);
                     }
+                    break;
+                case "tableLimitForExhaustiveSearch":
+                    try {
+                        tableLimitForExhaustiveSearch = Integer.parseInt(value);
+                    } catch (NumberFormatException nfe) {
+                        throw StandardException.newException(SQLState.LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH, value);
+                    }
+                    if (tableLimitForExhaustiveSearch <= 0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH, value);
                     break;
                 default:
                     throw StandardException.newException(SQLState.LANG_INVALID_FROM_LIST_PROPERTY,key,value);
@@ -1260,6 +1292,9 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     fbt.setExistsTable(true,isNotExists, matchRowId);
                     fbt.setDependencyMap((JBitSet)dependencyMap.clone());
                 }
+                // set the same for the parent PR node:
+                prn.setExistsTable(true, isNotExists, matchRowId);
+                prn.setDependencyMap((JBitSet)dependencyMap.clone());
             }
         }
     }
@@ -1425,5 +1460,11 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     {
         aliases.clear();
         aliasesUsable = false;
+    }
+
+    @Override
+    public int getTableLimitForExhaustiveSearch()
+    {
+        return tableLimitForExhaustiveSearch;
     }
 }
