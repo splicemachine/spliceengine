@@ -136,15 +136,16 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
 
         //gather information from the existing conglomerate to create new one.
         emptyHeapRow = td.getEmptyExecRow();
+        long oldHeapConglom = td.getHeapConglomerateId();
         ConglomerateController compressHeapCC = tc.openConglomerate(
-                td.getHeapConglomerateId(),
+                oldHeapConglom,
                 false,
                 TransactionController.OPENMODE_FORUPDATE,
                 TransactionController.MODE_TABLE,
                 TransactionController.ISOLATION_SERIALIZABLE);
 
         // Get column ordering for new conglomerate
-        SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager)tc).findConglomerate(td.getHeapConglomerateId());
+        SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager)tc).findConglomerate(oldHeapConglom);
         int[] columnOrder = conglomerate.getColumnOrdering();
         ColumnOrdering[] columnOrdering = null;
         if (columnOrder != null) {
@@ -221,9 +222,11 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             }
         }
 
+        // Remove statistics
+        dd.deletePartitionStatistics(oldHeapConglom, tc);
+
         // Update the DataDictionary
         // Get the ConglomerateDescriptor for the heap
-        long oldHeapConglom = td.getHeapConglomerateId();
         ConglomerateDescriptor cd = td.getConglomerateDescriptor(oldHeapConglom);
 
         // Update sys.sysconglomerates with new conglomerate #
