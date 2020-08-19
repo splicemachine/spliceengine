@@ -31,7 +31,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.stream.accumulator.BadRecordsAccumulator;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.apache.spark.Accumulable;
+import org.apache.spark.util.AccumulatorV2;
 import org.apache.spark.TaskContext;
 import org.apache.spark.util.LongAccumulator;
 import org.apache.spark.util.TaskCompletionListener;
@@ -56,7 +56,7 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
     private static final String LINE_SEP = System.lineSeparator();
     private static final String BAD_FILENAME = "unspecified_";
     protected BroadcastedActivation broadcastedActivation;
-    private Accumulable<BadRecordsRecorder,String> badRecordsAccumulator;
+    private AccumulatorV2<String,BadRecordsRecorder> badRecordsAccumulator;
 
     private SpliceTransactionResourceImpl impl;
     protected Activation activation;
@@ -139,7 +139,7 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
                 taskContext.addTaskCompletionListener((TaskCompletionListener)(ctx) -> ah.close());
             }
         }
-        badRecordsAccumulator = (Accumulable<BadRecordsRecorder,String>) in.readObject();
+        badRecordsAccumulator = (AccumulatorV2<String,BadRecordsRecorder>) in.readObject();
         importFileName= (String) in.readObject();
         rowsWritten=(LongAccumulator)in.readObject();
     }
@@ -156,9 +156,9 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
                     oldRecorder.getStatusDirectory(),
                     importFileName,
                     badRecordThreshold);
-            this.badRecordsAccumulator = SpliceSpark.getContext().accumulable(badRecordsRecorder,
-                    badRecordsRecorder.getUniqueName(),
-                    new BadRecordsAccumulator());
+            this.badRecordsAccumulator = new BadRecordsAccumulator(badRecordsRecorder);
+
+            SpliceSpark.getContext().sc().register(this.badRecordsAccumulator, badRecordsRecorder.getUniqueName());
         }
         badRecordsSeen = 0;
         String baseName="";
@@ -416,9 +416,9 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
         BadRecordsRecorder badRecordsRecorder = new BadRecordsRecorder(statusDirectory,
                                                                        importFileName,
                                                                        badRecordThreshold);
-        this.badRecordsAccumulator=SpliceSpark.getContext().accumulable(badRecordsRecorder,
-                                                                        badRecordsRecorder.getUniqueName(),
-                                                                        new BadRecordsAccumulator());
+        this.badRecordsAccumulator = new BadRecordsAccumulator(badRecordsRecorder);
+
+        SpliceSpark.getContext().sc().register(this.badRecordsAccumulator, badRecordsRecorder.getUniqueName());
     }
 
     @Override
