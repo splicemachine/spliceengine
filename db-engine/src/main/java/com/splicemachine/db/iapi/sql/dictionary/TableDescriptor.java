@@ -167,7 +167,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     @Deprecated
     private boolean isPinned;
     private boolean purgeDeletedRows;
-    private long minRetainedVersions;
+    private long minRetentionPeriod;
 
     /**
      * <p>
@@ -265,7 +265,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String compression,
                            boolean isPinned,
                            boolean purgeDeletedRows,
-                           long minRetainedVersions
+                           long minRetentionPeriod
     ){
         super(dataDictionary);
 
@@ -287,7 +287,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         // NOT USED ANYMORE, for backward compatibility only
         this.isPinned = isPinned;
         this.purgeDeletedRows = purgeDeletedRows;
-        this.minRetainedVersions = minRetainedVersions;
+        this.minRetentionPeriod = minRetentionPeriod;
     }
 
     //
@@ -400,11 +400,11 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     }
 
     public long getMinRetainedVersions() {
-        return minRetainedVersions;
+        return minRetentionPeriod;
     }
 
-    public void setMinRetainedVersions(long minRetainedVersions) {
-        this.minRetainedVersions = minRetainedVersions;
+    public void setMinRetainedVersions(long minRetentionPeriod) {
+        this.minRetentionPeriod = minRetentionPeriod;
     }
 
     /**

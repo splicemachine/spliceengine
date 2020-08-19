@@ -59,26 +59,26 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
     public static final int SYSTABLES_COLUMN_COUNT = 16;
 
     /* Column #s for systables (1 based) */
-    public    static final int SYSTABLES_TABLEID               = 1;
-    public    static final int SYSTABLES_TABLENAME             = 2;
-    protected static final int SYSTABLES_TABLETYPE             = 3;
-    public    static final int SYSTABLES_SCHEMAID              = 4;
-    protected static final int SYSTABLES_LOCKGRANULARITY       = 5;
-    protected static final int SYSTABLES_VERSION               = 6;
+    public    static final int SYSTABLES_TABLEID                = 1;
+    public    static final int SYSTABLES_TABLENAME              = 2;
+    protected static final int SYSTABLES_TABLETYPE              = 3;
+    public    static final int SYSTABLES_SCHEMAID               = 4;
+    protected static final int SYSTABLES_LOCKGRANULARITY        = 5;
+    protected static final int SYSTABLES_VERSION                = 6;
     /* Sequence for understanding coding/decoding with altering tables*/
-    protected static final int SYSTABLES_COLUMN_SEQUENCE       = 7;
+    protected static final int SYSTABLES_COLUMN_SEQUENCE        = 7;
     /* External Tables Columns */
-    protected static final int SYSTABLES_DELIMITED_BY          = 8;
-    protected static final int SYSTABLES_ESCAPED_BY            = 9;
-    protected static final int SYSTABLES_LINES_BY              = 10;
-    protected static final int SYSTABLES_STORED_AS             = 11;
-    protected static final int SYSTABLES_LOCATION              = 12;
-    protected static final int SYSTABLES_COMPRESSION           = 13;
+    protected static final int SYSTABLES_DELIMITED_BY           = 8;
+    protected static final int SYSTABLES_ESCAPED_BY             = 9;
+    protected static final int SYSTABLES_LINES_BY               = 10;
+    protected static final int SYSTABLES_STORED_AS              = 11;
+    protected static final int SYSTABLES_LOCATION               = 12;
+    protected static final int SYSTABLES_COMPRESSION            = 13;
     // SYSTABLES_IS_PINNED : NOT USED ANYMORE, for backward compatibility only
     @Deprecated
-    protected static final int SYSTABLES_IS_PINNED             = 14;
-    protected static final int SYSTABLES_PURGE_DELETED_ROWS    = 15;
-    protected static final int SYSTABLES_MIN_RETAINED_VERSIONS = 16;
+    protected static final int SYSTABLES_IS_PINNED              = 14;
+    protected static final int SYSTABLES_PURGE_DELETED_ROWS     = 15;
+    protected static final int SYSTABLES_MIN_RETENTION_PERIOD   = 16;
     /* End External Tables Columns */
 
     protected static final int SYSTABLES_INDEX1_ID        = 0;
@@ -89,22 +89,22 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
     protected static final int SYSTABLES_INDEX2_TABLEID   = 1;
 
     /* Column names */
-    public static final String IS_PINNED             = "IS_PINNED";
-    public static final String COMPRESSION           = "COMPRESSION";
-    public static final String LOCATION              = "LOCATION";
-    public static final String STORED                = "STORED";
-    public static final String LINES                 = "LINES";
-    public static final String ESCAPED               = "ESCAPED";
-    public static final String DELIMITED             = "DELIMITED";
-    public static final String COLSEQUENCE           = "COLSEQUENCE";
-    public static final String VERSION               = "VERSION";
-    public static final String LOCKGRANULARITY       = "LOCKGRANULARITY";
-    public static final String SCHEMAID              = "SCHEMAID";
-    public static final String TABLETYPE             = "TABLETYPE";
-    public static final String TABLENAME             = "TABLENAME";
-    public static final String TABLEID               = "TABLEID";
-    public static final String PURGE_DELETED_ROWS    = "PURGE_DELETED_ROWS";
-    public static final String MIN_RETAINED_VERSIONS = "MIN_RETAINED_VERSIONS";
+    public static final String IS_PINNED            = "IS_PINNED";
+    public static final String COMPRESSION          = "COMPRESSION";
+    public static final String LOCATION             = "LOCATION";
+    public static final String STORED               = "STORED";
+    public static final String LINES                = "LINES";
+    public static final String ESCAPED              = "ESCAPED";
+    public static final String DELIMITED            = "DELIMITED";
+    public static final String COLSEQUENCE          = "COLSEQUENCE";
+    public static final String VERSION              = "VERSION";
+    public static final String LOCKGRANULARITY      = "LOCKGRANULARITY";
+    public static final String SCHEMAID             = "SCHEMAID";
+    public static final String TABLETYPE            = "TABLETYPE";
+    public static final String TABLENAME            = "TABLENAME";
+    public static final String TABLEID              = "TABLEID";
+    public static final String PURGE_DELETED_ROWS   = "PURGE_DELETED_ROWS";
+    public static final String MIN_RETENTION_PERIOD = "MIN_RETENTION_PERIOD";
     /*
      * The first version of any tables. Use this for System tables and
      * any time that you don't know what the version is.
@@ -177,7 +177,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         @Deprecated
         boolean isPinned = false;
         boolean purgeDeletedRows = false;
-        long minRetainedVersions = 0;
+        long minRetentionPeriod = 0;
 
         if (td != null) {
             /*
@@ -254,7 +254,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             //NOT USED ANYMORE, for backward compatibility only
             isPinned = descriptor.isPinned();
             purgeDeletedRows = descriptor.purgeDeletedRows();
-            minRetainedVersions = descriptor.getMinRetainedVersions();
+            minRetentionPeriod = descriptor.getMinRetainedVersions();
             tableVersion = descriptor.getVersion() == null ?
                     new SQLVarchar(CURRENT_TABLE_VERSION) :
                     new SQLVarchar(descriptor.getVersion());
@@ -271,7 +271,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         row = getExecutionFactory().getValueRow(SYSTABLES_COLUMN_COUNT);
 
         setRowColumns(row, tableID, tableName, tabSType, schemaID, lockGranularity, tableVersion, columnSequence,
-                delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows, minRetainedVersions);
+                delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows, minRetentionPeriod);
         return row;
     }
 
@@ -291,7 +291,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                                      String compression,
                                      boolean isPinned,
                                      boolean purgeDeletedRows,
-                                     long minRetainedVersions) {
+                                     long minRetentionPeriod) {
         /* 1st column is TABLEID (UUID - char(36)) */
         row.setColumn(SYSTABLES_TABLEID, new SQLChar(tableID));
 
@@ -321,7 +321,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         //NOT USED ANYMORE, for backward compatibility only
         row.setColumn(SYSTABLES_IS_PINNED, new SQLBoolean(isPinned));
         row.setColumn(SYSTABLES_PURGE_DELETED_ROWS, new SQLBoolean(purgeDeletedRows));
-        row.setColumn(SYSTABLES_MIN_RETAINED_VERSIONS, new SQLLongint(minRetainedVersions));
+        row.setColumn(SYSTABLES_MIN_RETENTION_PERIOD, new SQLLongint(minRetentionPeriod));
     }
 
     /**
@@ -511,7 +511,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         @Deprecated
         DataValueDescriptor isPinnedDVD = row.getColumn(SYSTABLES_IS_PINNED);
         DataValueDescriptor purgeDeletedRowsDVD = row.getColumn(SYSTABLES_PURGE_DELETED_ROWS);
-        DataValueDescriptor minRetainedVersionsDVD = row.getColumn(SYSTABLES_MIN_RETAINED_VERSIONS);
+        DataValueDescriptor minRetentionPeriodDVD = row.getColumn(SYSTABLES_MIN_RETENTION_PERIOD);
 
         // RESOLVE - Deal with lock granularity
         tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0),
@@ -524,7 +524,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                 compressionDVD != null ? compressionDVD.getString() : null,
                 isPinnedDVD.getBoolean(),
                 purgeDeletedRowsDVD.getBoolean(),
-                minRetainedVersionsDVD.getLong()
+                minRetentionPeriodDVD.getLong()
         );
         tabDesc.setUUID(tableUUID);
 
@@ -574,7 +574,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn(COMPRESSION, Types.VARCHAR, true),
                 SystemColumnImpl.getColumn(IS_PINNED, Types.BOOLEAN, false),
                 SystemColumnImpl.getColumn(PURGE_DELETED_ROWS, Types.BOOLEAN, false),
-                SystemColumnImpl.getColumn(MIN_RETAINED_VERSIONS, Types.BIGINT, false),
+                SystemColumnImpl.getColumn(MIN_RETENTION_PERIOD, Types.BIGINT, false),
         };
     }
 
@@ -626,7 +626,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                         new ColumnDescriptor(PURGE_DELETED_ROWS, 15, 15,
                                 DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, false),
                                 null, null, view, viewId, 0, 0, 0),
-                        new ColumnDescriptor(MIN_RETAINED_VERSIONS, 16, 16,
+                        new ColumnDescriptor(MIN_RETENTION_PERIOD, 16, 16,
                                 DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
                                 null, null, view, viewId, 0, 0, 0),
                         new ColumnDescriptor("SCHEMANAME", 17, 17,
