@@ -134,8 +134,7 @@ public class QuoteTrackingTokenizerTest {
             Assert.fail("expected exception to be thrown, but no exception was thrown");
         } catch(Exception e) {
             Assert.assertTrue(e instanceof SuperCsvException);
-            Assert.assertEquals("partial record found [hello,goodbye,parseThis!,boots\n" +
-                    "] while reading quoted column beginning on line 1 and ending on line 1", e.getMessage());
+            Assert.assertEquals("one-line record CSV has a record that spans over multiple lines at line 1", e.getMessage());
             return;
         }
         Assert.fail("expected exception to be thrown, but no exception was thrown");
