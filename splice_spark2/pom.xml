@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1965-SNAPSHOT</version>
+        <version>3.1.0.1971-SNAPSHOT</version>
     </parent>
     <artifactId>splice_spark2</artifactId>
     <name>External Native Spark Data Source</name>
@@ -140,7 +140,7 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.5</version>
+            <version>1.7.15</version>
         </dependency>
     </dependencies>
     <build>

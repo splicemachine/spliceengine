@@ -615,8 +615,15 @@ public class OperatorToString {
             // Need to CAST if the final type is decimal because the precision
             // or scale used by spark to hold the result may not match what
             // splice has chosen, and could cause an overflow.
+            //
+            // DB-9333
+            // Also need a final CAST for division operator because Spark may
+            // decide to use a different result type. It happens when at least
+            // one operand of the division is an aggregate function. Plus, minus,
+            // and multiplication of aggregate functions are fine.
             boolean doCast = operand instanceof BinaryArithmeticOperatorNode &&
-                             operand.getTypeId().getTypeFormatId() == DECIMAL_TYPE_ID &&
+                             (operand.getTypeId().getTypeFormatId() == DECIMAL_TYPE_ID ||
+                              ((BinaryArithmeticOperatorNode)operand).getOperatorString().equals("/")) &&
                              vars.sparkExpression;
             String expressionString =
                     format("(%s %s %s)", leftOperandString,

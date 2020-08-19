@@ -94,11 +94,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     public SpliceDefaultCompactor(final Configuration conf, final HStore store) {
         super(conf, store);
         conglomId = this.store.getTableName().getQualifierAsString();
-        tableDisplayName = ((HStore)this.store).getHRegion().getTableDescriptor().getValue(TABLE_DISPLAY_NAME_ATTR);
-        indexDisplayName = ((HStore)this.store).getHRegion().getTableDescriptor().getValue(INDEX_DISPLAY_NAME_ATTR);
+        tableDisplayName = this.store.getHRegion().getTableDescriptor().getValue(TABLE_DISPLAY_NAME_ATTR);
+        indexDisplayName = this.store.getHRegion().getTableDescriptor().getValue(INDEX_DISPLAY_NAME_ATTR);
 
         if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", ((HStore)this.store).getHRegion());
+            SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", this.store.getHRegion());
         }
     }
 
@@ -114,13 +114,14 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     @Override
     @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="static attribute hostname is set from here")
     public List<Path> compact(CompactionRequestImpl request, ThroughputController throughputController, User user) throws IOException {
+        assert request instanceof SpliceCompactionRequest;
+        // Used if we cannot compact in Spark
+        ((SpliceCompactionRequest) request).setPurgeConfig(buildPurgeConfig(request));
 
         if(!allowSpark || store.getRegionInfo().getTable().isSystemTable())
-            return super.compact(request, throughputController,user);
+            return super.compact(request, throughputController, user);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
-
-        assert request instanceof SpliceCompactionRequest;
 
         smallestReadPoint = store.getSmallestReadPoint();
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
@@ -151,7 +152,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         CompactionResult result = null;
         SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
 
-        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
+        EngineDriver driver = EngineDriver.driver();
+        if (driver == null) {
+            throw new IOException("EngineDriver not available, compaction aborted");
+        }
+        Future<CompactionResult> futureResult = driver.getOlapClient().submit(jobRequest, getCompactionQueue());
         while (result == null) {
             try {
                 result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
@@ -323,18 +328,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     boolean blocking = config.getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                             driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
-                    PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-                    if (SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
-                        purgeConfig.forcePurgeDeletes();
-                    } else if (config.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                        purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
-                    } else {
-                        purgeConfig.noPurgeDeletes();
-                    }
-                    purgeConfig.purgeUpdates(config.getOlapCompactionAutomaticallyPurgeOldUpdates());
 
                     SICompactionScanner siScanner = new SICompactionScanner(
-                            state, scanner, purgeConfig.build(), resolutionShare, bufferSize, context);
+                            state, scanner, buildPurgeConfig(request), resolutionShare, bufferSize, context);
                     siScanner.start();
                     scanner = siScanner;
                 }
@@ -842,4 +838,19 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             }
         }
     }
+
+    private PurgeConfig buildPurgeConfig(CompactionRequest request) throws IOException {
+        SConfiguration config = HConfiguration.getConfiguration();
+        PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
+        if (SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
+            purgeConfig.forcePurgeDeletes();
+        } else if (config.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+            purgeConfig.purgeDeletesDuringCompaction(request.isMajor());
+        } else {
+            purgeConfig.noPurgeDeletes();
+        }
+        purgeConfig.purgeUpdates(config.getOlapCompactionAutomaticallyPurgeOldUpdates());
+        return purgeConfig.build();
+    }
+
 }

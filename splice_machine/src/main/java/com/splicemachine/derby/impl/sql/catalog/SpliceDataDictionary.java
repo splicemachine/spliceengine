@@ -81,6 +81,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl snapshotTable = null;
     private volatile TabInfoImpl tokenTable = null;
     private volatile TabInfoImpl replicationTable = null;
+    private volatile TabInfoImpl ibmConnectionTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     protected boolean metadataAccessRestrictionEnabled;
 
@@ -152,7 +153,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // insert row into catalog and all its indices
-        ti.insertRow(row,tc);
+        int insertRetCode = ti.insertRow(row,tc);
+        if(insertRetCode != TabInfoImpl.ROWNOTDUPLICATE) {
+            throw duplicateDescriptorException(descriptor, null);
+        }
     }
 
     public void createTokenTable(TransactionController tc) throws StandardException {
@@ -224,7 +228,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         TableDescriptor td = getTableDescriptor(viewName, sd, tc);
         if (td != null) {
-            SpliceLogUtils.info(LOG, "View: " + viewName + " in SYSVW already exists!");
+            SpliceLogUtils.info(LOG, "View: " + viewName + " in " + sd.getSchemaName() + " already exists!");
             return;
         }
 
@@ -249,7 +253,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         ViewDescriptor vd=ddg.newViewDescriptor(viewId,viewName, viewDef,0,sd.getUUID());
         addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
 
-        SpliceLogUtils.info(LOG, "View: " + viewName + " in SYSVW is created!");
+        SpliceLogUtils.info(LOG, "View: " + viewName + " in " + sd.getSchemaName() + " is created!");
     }
 
     private String getSchemaViewSQL() {
@@ -335,6 +339,33 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM);
 
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
+    }
+
+    private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
+        if(ibmConnectionTable==null){
+            ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(ibmConnectionTable);
+        return ibmConnectionTable;
+    }
+
+    public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+        //Add the SYSIBMADM schema if it does not exists
+        if (getSchemaDescriptor(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
+            sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
+        }
+
+        TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
+        addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null);
+
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL", 0, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL);
+
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL_INFO", 1, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL);
+
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "APPLICATIONS", 2, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.APPLICATIONS_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "Tables and views in SYSIBMADM are created!");
     }
 
     private void updateColumnViewInSys(TransactionController tc, String tableName, int viewIndex, SchemaDescriptor schemaDescriptor, String viewDef) throws StandardException {
@@ -511,6 +542,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createReplicationTables(tc);
 
         createTableColumnViewInSysIBM(tc);
+
+        createTablesAndViewsInSysIBMADM(tc);
         
         createAliasToTableSystemView(tc);
     }

@@ -30,8 +30,9 @@ public class SubtractByKeyBroadcastJoinFunction extends AbstractBroadcastJoinFla
     public SubtractByKeyBroadcastJoinFunction() {
     }
 
-    public SubtractByKeyBroadcastJoinFunction(OperationContext operationContext) {
-        super(operationContext);
+    public SubtractByKeyBroadcastJoinFunction(OperationContext operationContext,
+                                              boolean noCacheBroadcastJoinRight) {
+        super(operationContext, noCacheBroadcastJoinRight);
     }
 
     @Override

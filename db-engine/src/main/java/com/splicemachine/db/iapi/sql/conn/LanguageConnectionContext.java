@@ -154,6 +154,12 @@ public interface LanguageConnectionContext extends Context {
     boolean getLogQueryPlan();
 
     /**
+     * Get value of tableLimitForExhaustiveSearch
+     * @return value of tableLimitForExhaustiveSearch
+     */
+    int getTableLimitForExhaustiveSearch();
+
+    /**
      * get the lock escalation threshold to use with this connection.
      */
     int getLockEscalationThreshold();
@@ -1416,8 +1422,8 @@ public interface LanguageConnectionContext extends Context {
     void logErrorCompiling(String statement, Throwable t, long nanoTimeSpent);
     void logCommit();
     void logRollback();
-    void logStartFetching(String statement);
-    void logEndFetching(String statement, long fetchedRows);
+    void logStartFetching(String uuid, String statement);
+    void logEndFetching(String uuid, String statement, long fetchedRows);
     void logNextBatch(ParameterValueSet pvs);
     void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
                            ParameterValueSet pvs);

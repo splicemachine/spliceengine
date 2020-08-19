@@ -45,7 +45,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import org.joda.time.DateTime;
 
 import java.sql.Types;
 import java.util.Dictionary;
@@ -70,6 +69,7 @@ public interface DataDictionary{
     /** The conglomerate id of the first user table */
     // NOTE: JC - this constant is also defined in (splice) EnvUtils. When adding a new sys table, this
     // number will need to be increased in BOTH places.
+    // NOTE: do not rely on this number to check whether a table is a system table (see DB-9589 for consequences of doing this).
     long FIRST_USER_TABLE_NUMBER = 1568;
 
     /**
@@ -212,6 +212,7 @@ public interface DataDictionary{
 
     /**
      * Catalog numbers for non core system catalogs.
+     * All these entries are for system tables, not views.
      */
     int SYSCONSTRAINTS_CATALOG_NUM=4;
     int SYSKEYS_CATALOG_NUM=5;
@@ -244,6 +245,7 @@ public interface DataDictionary{
     int SYSSNAPSHOT_NUM=32;
     int SYSTOKENS_NUM=33;
     int SYSREPLICATION_CATALOG_NUM=34;
+    int SYSMONGETCONNECTION_CATALOG_NUM=35;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
      */

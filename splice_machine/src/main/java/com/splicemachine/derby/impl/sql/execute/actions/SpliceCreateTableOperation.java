@@ -21,9 +21,11 @@ import java.util.Properties;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
@@ -48,6 +50,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 	private final String tableName;
 	private final String schemaName;
 	private final String withDataQueryString;
+	private final int    createBehavior;
 
 	/**
 	 * Make the ConstantAction for a CREATE TABLE statement.
@@ -59,6 +62,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 	 *                             (REMIND tableDescriptor ignored)
 	 * @param constraintActions    CreateConstraintConstantAction[] for constraints
 	 * @param properties           Optional table properties
+	 * @param createBehavior       CREATE_IF_NOT_EXISTS or CREATE_DEFAULT
 	 * @param lockGranularity      The lock granularity.
 	 * @param onCommitDeleteRows   If true, on commit delete rows else on commit preserve rows of temporary table.
 	 * @param onRollbackDeleteRows If true, on rollback, delete rows from temp tables which were logically modified.
@@ -72,6 +76,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 									  ColumnInfo[] columnInfo,
 									  ConstantAction[] constraintActions,
 									  Properties properties,
+									  int createBehavior,
 									  char lockGranularity,
 									  boolean onCommitDeleteRows,
 									  boolean onRollbackDeleteRows,
@@ -99,6 +104,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 		this.tableName = tableName;
 		this.schemaName = schemaName;
 		this.withDataQueryString = withDataQueryString;
+		this.createBehavior = createBehavior;
 	}
 
 	@Override
@@ -145,9 +151,14 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 			sd = DDLConstantAction.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
 		TableDescriptor tableDescriptor = dd.getTableDescriptor(tableName, sd,tc);
-		if(tableDescriptor!=null)
-			throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
-					"table",tableName,"schema",schemaName);
+		if (tableDescriptor != null) {
+			StandardException e = StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
+					"table", tableName, "schema", schemaName);
+			if (createBehavior == StatementType.CREATE_IF_NOT_EXISTS) {
+				e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
+			}
+			throw e;
+		}
 
         /*
          * The table didn't exist in a manner which is visible to us, so
