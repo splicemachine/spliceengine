@@ -73,6 +73,7 @@ public class CreateViewNode extends DDLStatementNode
     private ValueNode   fetchFirst;
     private boolean hasJDBClimitClause; // true if using JDBC limit/offset escape syntax
 	private boolean isRecursive;
+	private boolean isDynamic;  // true if this node is created for a CTE
 
 	/**
 	 * Initializer for a CreateViewNode
@@ -101,7 +102,8 @@ public class CreateViewNode extends DDLStatementNode
                    Object offset,
                    Object fetchFirst,
                    Object hasJDBClimitClause,
-                   Object isRecursive)
+                   Object isRecursive,
+                   Object isDynamic)
 		throws StandardException
 	{
 		initAndCheck(newObjectName);
@@ -114,6 +116,7 @@ public class CreateViewNode extends DDLStatementNode
         this.fetchFirst = (ValueNode)fetchFirst;
         this.hasJDBClimitClause = hasJDBClimitClause != null && (Boolean) hasJDBClimitClause;
         this.isRecursive = isRecursive != null && (Boolean) isRecursive;
+        this.isDynamic = isDynamic != null && (Boolean) isDynamic;
 
 		implicitCreateSchema = true;
 	}
@@ -291,6 +294,9 @@ public class CreateViewNode extends DDLStatementNode
 			//cannot define views on temporary tables
 			if (queryExpr instanceof SelectNode)
 			{
+				//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
+				if (!isDynamic && (queryExpr.referencesSessionSchema() || this.referencesSessionSchema()))
+					throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
                 // check that no provider is a temp table (whether or not it's in SESSION schema)
                 for (Provider provider : apl.values()) {
                     if (provider instanceof TableDescriptor && ! provider.isPersistent()) {
@@ -409,6 +415,9 @@ public class CreateViewNode extends DDLStatementNode
 			queryExpression.accept(syntaxCheckVisitor);
 
 			// cannot define views on temporary tables
+			//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
+			if (!isDynamic && (queryExpression.referencesSessionSchema() || this.referencesSessionSchema()))
+				throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
 			// check that no provider is a temp table (whether or not it's in SESSION schema)
 			for (Provider provider : apl.values()) {
 				if (provider instanceof TableDescriptor && ! provider.isPersistent()) {
@@ -456,7 +465,8 @@ public class CreateViewNode extends DDLStatementNode
 	{
 		//If create view is part of create statement and the view references SESSION schema tables, then it will
 		//get caught in the bind phase of the view and exception will be thrown by the view bind. 
-		return (queryExpression.referencesSessionSchema());
+		return (queryExpression.referencesSessionSchema() ||
+				(getObjectName().hasSchema() && getObjectName().schemaName.equals(SchemaDescriptor.STD_DECLARED_GLOBAL_TEMPORARY_TABLES_SCHEMA_NAME)));
 	}
 
 	/**
