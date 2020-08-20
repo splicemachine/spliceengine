@@ -23,9 +23,9 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.splicemachine.pipeline.constraint.NoOpConstraintChecker;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.ServerControl;

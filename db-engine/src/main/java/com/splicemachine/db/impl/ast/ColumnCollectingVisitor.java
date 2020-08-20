@@ -4,7 +4,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.OrderedColumn;
 import com.splicemachine.db.impl.sql.compile.VirtualColumnNode;
-import org.spark_project.guava.base.Predicate;
+import splice.com.google.common.base.Predicate;
 
 /**
  * Created by yxia on 4/18/18.

@@ -14,7 +14,7 @@
 
 package com.splicemachine.si.impl.driver;
 
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.access.api.FilesystemAdmin;
 import com.splicemachine.access.api.PartitionFactory;
