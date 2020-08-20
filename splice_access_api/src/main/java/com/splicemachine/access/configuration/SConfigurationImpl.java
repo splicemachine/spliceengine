@@ -190,6 +190,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  boolean ignoreSavePoints;
     private final  boolean upgradeForced;
     private final  int importMaxQuotedColumnLines;
+    private final  long importCsvScanLimit;
     private final  int indexBatchSize;
     private final  int indexLookupBlocks;
     private final  int kryoPoolSize;
@@ -740,6 +741,10 @@ public final class SConfigurationImpl implements SConfiguration {
         return importMaxQuotedColumnLines;
     }
     @Override
+    public long getImportCsvScanThreshold() {
+        return importCsvScanLimit;
+    }
+    @Override
     public int getIndexBatchSize() {
         return indexBatchSize;
     }
@@ -982,6 +987,7 @@ public final class SConfigurationImpl implements SConfiguration {
         ignoreSavePoints = builder.ignoreSavePoints;
         upgradeForced = builder.upgradeForced;
         importMaxQuotedColumnLines = builder.importMaxQuotedColumnLines;
+        importCsvScanLimit = builder.importCsvScanLimit;
         indexBatchSize = builder.indexBatchSize;
         indexLookupBlocks = builder.indexLookupBlocks;
         kryoPoolSize = builder.kryoPoolSize;

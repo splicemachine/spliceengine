@@ -85,7 +85,7 @@
         <Class name="com.splicemachine.constants.SpliceConstants"/>
         <Bug pattern="MS_CANNOT_BE_FINAL"/>
     </Match>
-    <!-- SpliceConstants: is is ok for unused fields to be public for now -->
+    <!-- SpliceConstants: it is ok for unused fields to be public for now -->
     <Match>
         <Class name="com.splicemachine.constants.SpliceConstants"/>
         <Bug pattern="MS_PKGPROTECT"/>

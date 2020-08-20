@@ -60,9 +60,9 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
         LocaleFinder localeFinder;
         //BasicDatabase first boots DVF in it's boot method and then sets
         //this databaseLocale in DVF.
-    	private Locale databaseLocale;
-    	//Following Collator object will be initialized using databaseLocale.
-    	private RuleBasedCollator collatorForCharacterTypes;
+        private Locale databaseLocale;
+        //Following Collator object will be initialized using databaseLocale.
+        private RuleBasedCollator collatorForCharacterTypes;
 
         DataValueFactoryImpl()
         {
@@ -72,82 +72,73 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
          ** ModuleControl methods.
          */
 
-    	/* (non-Javadoc)
-    	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot(boolean, java.util.Properties)
-    	 */
-    	public void boot(boolean create, Properties properties) throws StandardException {
+        /* (non-Javadoc)
+         * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot(boolean, java.util.Properties)
+         */
+        public void boot(boolean create, Properties properties) throws StandardException {
 
-    		DataValueDescriptor decimalImplementation = getNullDecimal(null);
+            RegisteredFormatIds.TwoByte[StoredFormatIds.SQL_DECIMAL_ID] = SQLDecimal.class.getName();
 
-    		TypeId.decimalImplementation = decimalImplementation;
-    		RegisteredFormatIds.TwoByte[StoredFormatIds.SQL_DECIMAL_ID]
-    									= decimalImplementation.getClass().getName();
+            ModuleFactory monitor = Monitor.getMonitor();
+            //The Locale on monitor has already been set by the boot code in
+            //BasicDatabase so we can simply do a get here.
+            //This Locale will be either the Locale obtained from the territory
+            //attribute supplied by the user on the JDBC url at database create
+            //time or if user didn't provide the territory attribute at database
+            //create time, then it will be set to the default JVM locale. The
+            //Locale object will be used to construct the Collator object which
+            //will be used if user has requested territory based collation.
+            databaseLocale = monitor.getLocale(this);
 
-    		// Generate a DECIMAL value represetentation of 0
-    		decimalImplementation = decimalImplementation.getNewNull();
-    		decimalImplementation.setValue(0L);
-    		NumberDataType.ZERO_DECIMAL = decimalImplementation;
+            //If we are here for database create time, verify that there is
+            //Collator support for the database's locale. If not, then we
+            //will throw an exception.
+            //Notice that this Collator support check is happening only during
+            //database creation time. This is because, during database create
+            //time, DVF has access to collation property of the database and
+            //hence it can do the Collator support check
+            //(collation property is available through JDBC url at the database
+            //create time, if user has asked for a particular collation) eg
+            //connect 'jdbc:splice:db;create=true;territory=no;collation=TERRITORY_BASED';
+            //Once the database is created, the collation property gets
+            //saved in the database and during susbsequent boots of the
+            //database, collation attribute of the database is only available
+            //once store has finished reading it. So, during subsequent
+            //database boot up time, the collation attribute of the database
+            //will be checked the first time a collation operation is done.
+            //And if the Collator support is not found at that point, user will
+            //get an exception for Collator unavailability. This first
+            //collation operation can happen if the database needs to be
+            //recovered during boot time or otherwise it will happen when the
+            //user has executed a SQL which requires collation operation.
+            if (create) {
+                //Get the collation property from the JDBC url(this will be
+                //available only during database create time). It can only have
+                //one of the 2 possible values - UCS_BASIC or TERRITORY_BASED.
+                //This property can only be specified at database create time.
+                //If the user has requested for territory based database, then
+                //verify that JVM has Collator support for the database locale.
+                String userDefinedCollation =
+                    properties.getProperty(Attribute.COLLATION);
+                if (userDefinedCollation != null) {//Invalid value handling
+                    int collationType = DataTypeDescriptor.getCollationType(userDefinedCollation);
+                    if (collationType != StringDataValue.COLLATION_TYPE_UCS_BASIC) {
+                        if (collationType >= StringDataValue.COLLATION_TYPE_TERRITORY_BASED
+                                && collationType <  StringDataValue.COLLATION_TYPE_TERRITORY_BASED_IDENTICAL) {
+                            int strength = collationType - StringDataValue.COLLATION_TYPE_TERRITORY_BASED_PRIMARY;
+                            collatorForCharacterTypes = verifyCollatorSupport(strength);
+                        } else
+                            throw StandardException.newException(SQLState.INVALID_COLLATION, userDefinedCollation);
+                    }
+                }
+            }
+        }
 
-    		ModuleFactory monitor = Monitor.getMonitor();
-    		//The Locale on monitor has already been set by the boot code in
-    		//BasicDatabase so we can simply do a get here.
-    		//This Locale will be either the Locale obtained from the territory
-    		//attribute supplied by the user on the JDBC url at database create
-    		//time or if user didn't provide the territory attribute at database
-    		//create time, then it will be set to the default JVM locale. The
-    		//Locale object will be used to construct the Collator object which
-    		//will be used if user has requested territory based collation.
-    		databaseLocale = monitor.getLocale(this);
-
-    		//If we are here for database create time, verify that there is
-    		//Collator support for the database's locale. If not, then we
-    		//will throw an exception.
-    		//Notice that this Collator support check is happening only during
-    		//database creation time. This is because, during database create
-    		//time, DVF has access to collation property of the database and
-    		//hence it can do the Collator support check
-    		//(collation property is available through JDBC url at the database
-    		//create time, if user has asked for a particular collation) eg
-    		//connect 'jdbc:splice:db;create=true;territory=no;collation=TERRITORY_BASED';
-    		//Once the database is created, the collation property gets
-    		//saved in the database and during susbsequent boots of the
-    		//database, collation attribute of the database is only available
-    		//once store has finished reading it. So, during subsequent
-    		//database boot up time, the collation attribute of the database
-    		//will be checked the first time a collation operation is done.
-    		//And if the Collator support is not found at that point, user will
-    		//get an exception for Collator unavailability. This first
-    		//collation operation can happen if the database needs to be
-    		//recovered during boot time or otherwise it will happen when the
-    		//user has executed a SQL which requires collation operation.
-	    	if (create) {
-	    		//Get the collation property from the JDBC url(this will be
-	    		//available only during database create time). It can only have
-	    		//one of the 2 possible values - UCS_BASIC or TERRITORY_BASED.
-	    		//This property can only be specified at database create time.
-	    		//If the user has requested for territory based database, then
-	    		//verify that JVM has Collator support for the database locale.
-	    		String userDefinedCollation =
-	    			properties.getProperty(Attribute.COLLATION);
-	    		if (userDefinedCollation != null) {//Invalid value handling
-					int collationType = DataTypeDescriptor.getCollationType(userDefinedCollation);
-					if (collationType != StringDataValue.COLLATION_TYPE_UCS_BASIC) {
-						if (collationType >= StringDataValue.COLLATION_TYPE_TERRITORY_BASED
-								&& collationType <  StringDataValue.COLLATION_TYPE_TERRITORY_BASED_IDENTICAL) {
-							int strength = collationType - StringDataValue.COLLATION_TYPE_TERRITORY_BASED_PRIMARY;
-							collatorForCharacterTypes = verifyCollatorSupport(strength);
-						} else
-							throw StandardException.newException(SQLState.INVALID_COLLATION, userDefinedCollation);
-					}
-	    		}
-	    	}
-    	}
-
-    	/* (non-Javadoc)
-    	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#stop()
-    	 */
-    	public void stop() {
-    	}
+        /* (non-Javadoc)
+         * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#stop()
+         */
+        public void stop() {
+        }
 
         /**
          * @see DataValueFactory#getDataValue
@@ -274,11 +265,11 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 return previous;
         }
         public final NumberDataValue getDecimalDataValue(Number value)
-			throws StandardException
+            throws StandardException
         {
-			NumberDataValue ndv = getNullDecimal((NumberDataValue) null);
-			ndv.setValue(value);
-			return ndv;
+            NumberDataValue ndv = getNullDecimal((NumberDataValue) null);
+            ndv.setValue(value);
+            return ndv;
         }
 
         public final NumberDataValue getDecimalDataValue(Number value, NumberDataValue previous)
@@ -1071,7 +1062,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
      * getXMLDataValue:
      * Get a null XML  value.  If a non-null XMLDataValue is
      * received then re-use that instance, otherwise create
-	 * a new one.
+     * a new one.
      * @param previous An XMLDataValue instance to re-use.
      * @return An XMLDataValue instance corresponding to a
      *  NULL value.  If an XMLDataValue was received, the
@@ -1081,9 +1072,9 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
      * @exception StandardException Thrown on error
      */
     public XMLDataValue getXMLDataValue(XMLDataValue previous)
-		throws StandardException
+        throws StandardException
     {
-		return getNullXML(previous);
+        return getNullXML(previous);
     }
 
     /**
@@ -1110,49 +1101,49 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
     /** @see DataValueFactory#getCharacterCollator(int) */
     public RuleBasedCollator getCharacterCollator(int collationType)
     throws StandardException {
-    	if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
-    		return (RuleBasedCollator)null;
-    	else if (collatorForCharacterTypes == null) {
-    		//This is the first access to Collator because otherwise
-    		//it will not be null. Verify that JVM has support for
-    		//the Collator for the database locale.
-			//	Calculate the collator strength. COLLATION_TYPE_TERRITORY_BASED use strength -1, i e unspecified.
-			int strength = collationType - StringDataValue.COLLATION_TYPE_TERRITORY_BASED_PRIMARY;
-    		collatorForCharacterTypes = verifyCollatorSupport(strength);
-    		return collatorForCharacterTypes;
-    	} else
-    		return collatorForCharacterTypes;
+        if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
+            return (RuleBasedCollator)null;
+        else if (collatorForCharacterTypes == null) {
+            //This is the first access to Collator because otherwise
+            //it will not be null. Verify that JVM has support for
+            //the Collator for the database locale.
+            //    Calculate the collator strength. COLLATION_TYPE_TERRITORY_BASED use strength -1, i e unspecified.
+            int strength = collationType - StringDataValue.COLLATION_TYPE_TERRITORY_BASED_PRIMARY;
+            collatorForCharacterTypes = verifyCollatorSupport(strength);
+            return collatorForCharacterTypes;
+        } else
+            return collatorForCharacterTypes;
     }
 
     /**
      * Verify that JVM has support for the Collator for the datbase's locale.
      *
-	 * @param strength Collator strength or -1 for locale default.
+     * @param strength Collator strength or -1 for locale default.
      * @return Collator for database's locale
      * @throws StandardException if JVM does not have support for Collator
      */
     private RuleBasedCollator verifyCollatorSupport(int strength)
     throws StandardException {
-    	Locale[] availLocales =  Collator.getAvailableLocales();
-    	//Verify that Collator can be instantiated for the given locale.
-    	boolean localeFound = false;
+        Locale[] availLocales =  Collator.getAvailableLocales();
+        //Verify that Collator can be instantiated for the given locale.
+        boolean localeFound = false;
         for (Locale availLocale : availLocales) {
             if (availLocale.equals(databaseLocale)) {
                 localeFound = true;
                 break;
             }
         }
-    	if (!localeFound)
-			throw StandardException.newException(
-					SQLState.COLLATOR_NOT_FOUND_FOR_LOCALE,
-					databaseLocale.toString());
+        if (!localeFound)
+            throw StandardException.newException(
+                    SQLState.COLLATOR_NOT_FOUND_FOR_LOCALE,
+                    databaseLocale.toString());
 
-    	RuleBasedCollator collator = (RuleBasedCollator)Collator.getInstance(databaseLocale);
+        RuleBasedCollator collator = (RuleBasedCollator)Collator.getInstance(databaseLocale);
 
-		if (strength != -1)
-			collator.setStrength(strength);
+        if (strength != -1)
+            collator.setStrength(strength);
 
-		return collator;
+        return collator;
     }
     /**
      * @see DataValueFactory#getNull(int, int)
@@ -1160,31 +1151,31 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
     public DataValueDescriptor getNull(int formatId, int collationType)
     throws StandardException {
 
-    	//For StoredFormatIds.SQL_DECIMAL_ID, different implementations are
-    	//required for different VMs. getNullDecimal method is not static and
-    	//hence can't be called in the static getNullDVDWithUCS_BASICcollation
-    	//method in this class. That is why StoredFormatIds.SQL_DECIMAL_ID is
-    	//getting handled here.
-    	if (formatId == StoredFormatIds.SQL_DECIMAL_ID)
-    		return getNullDecimal(null);
-		else {
-			DataValueDescriptor returnDVD =
-				DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
-			//If we are dealing with default collation, then we have got the
-			//right DVD already. Just return it.
-			if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
-				return returnDVD;
-			//If we are dealing with territory based collation and returnDVD is
-			//of type StringDataValue, then we need to return a StringDataValue
-			//with territory based collation.
+        //For StoredFormatIds.SQL_DECIMAL_ID, different implementations are
+        //required for different VMs. getNullDecimal method is not static and
+        //hence can't be called in the static getNullDVDWithUCS_BASICcollation
+        //method in this class. That is why StoredFormatIds.SQL_DECIMAL_ID is
+        //getting handled here.
+        if (formatId == StoredFormatIds.SQL_DECIMAL_ID)
+            return getNullDecimal(null);
+        else {
+            DataValueDescriptor returnDVD =
+                DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
+            //If we are dealing with default collation, then we have got the
+            //right DVD already. Just return it.
+            if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
+                return returnDVD;
+            //If we are dealing with territory based collation and returnDVD is
+            //of type StringDataValue, then we need to return a StringDataValue
+            //with territory based collation.
 
                 // TODO JL Need to collation support in Splice Machine.
 
-//			if (returnDVD instanceof StringDataValue)
-//				return ((StringDataValue)returnDVD).getValue(getCharacterCollator(collationType));
-//			else
-				return returnDVD;
-		}
+//            if (returnDVD instanceof StringDataValue)
+//                return ((StringDataValue)returnDVD).getValue(getCharacterCollator(collationType));
+//            else
+                return returnDVD;
+        }
     }
 
     /**
@@ -1283,7 +1274,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 return localeFinder;
         }
 
-    	public enum Format{
+        public enum Format{
             BOOLEAN(StoredFormatIds.SQL_BOOLEAN_ID),
             TINYINT(StoredFormatIds.SQL_TINYINT_ID),
             SMALLINT(StoredFormatIds.SQL_SMALLINT_ID),
@@ -1317,14 +1308,14 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             }
 
             public int getStoredFormatId() {
-            	return this.storedFormatId;
+                return this.storedFormatId;
             }
 
             public static Format formatFor(DataValueDescriptor dvd){
                 int typeFormatId = dvd.getTypeFormatId();
                 switch(typeFormatId){
-                	case StoredFormatIds.SQL_VARCHAR_ID:
-                    	return VARCHAR;
+                    case StoredFormatIds.SQL_VARCHAR_ID:
+                        return VARCHAR;
                     case StoredFormatIds.SQL_INTEGER_ID:
                         return INTEGER;
                     case StoredFormatIds.SQL_LONGINT_ID:
