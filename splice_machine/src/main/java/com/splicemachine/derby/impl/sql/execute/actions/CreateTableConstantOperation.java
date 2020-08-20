@@ -685,7 +685,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(pkFormatIds);
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, operationContext), true);
+                    null, timeFormat, dateFormat, timestampFormat, false, operationContext), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(execRow);
             for (ExecRow row : rows) {
