@@ -2074,7 +2074,7 @@ public interface SQLState {
 	String TOKEN_EXPIRED											= "ST002";
 
 	String HBASE_OPERATION_ERROR									= "HO001";
-
+	String OLAP_SERVER_LAUNCH_FAILURE								= "OL001";
 
 }
 

@@ -13,12 +13,15 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package com.splicemachine.si.data.hbase.coprocessor;
+package com.splicemachine.hbase;
 
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
+import com.splicemachine.access.HConfiguration;
 import com.splicemachine.coprocessor.SpliceMessage;
+import com.splicemachine.olap.OlapServerSubmitter;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.fs.Path;
@@ -44,6 +47,7 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
     private static final Logger LOG = Logger.getLogger(SpliceRSRpcServices.class);
     private RegionServerServices regionServerServices;
 
+    List<OlapServerSubmitter> serverSubmitters = new ArrayList<>();
     @Override
     public void start(CoprocessorEnvironment env) throws IOException {
         if (env instanceof RegionServerCoprocessorEnvironment) {
@@ -158,5 +162,43 @@ public class SpliceRSRpcServices extends SpliceMessage.SpliceRSRpcServices imple
         long oldestActiveTransaction = SIDriver.driver().getTxnStore().oldestActiveTransaction();
         writeResponse.setOldestActiveTransaction(oldestActiveTransaction);
         callback.run(writeResponse.build());
+    }
+
+    @Override
+    public void launchOlapServers(RpcController controller,
+                                  SpliceMessage.LaunchOlapServersRequest request,
+                                  RpcCallback<SpliceMessage.LaunchOlapServersResponse> done) {
+
+        SpliceMessage.LaunchOlapServersResponse.Builder responseBuilder =
+                SpliceMessage.LaunchOlapServersResponse.newBuilder();
+        try {
+            submitOlapServerApplication();
+            responseBuilder.setLaunched(true);
+            SpliceMessage.LaunchOlapServersResponse response = responseBuilder.build();
+            done.run(response);
+        }
+        catch (Exception e) {
+            SpliceLogUtils.error(LOG, "Failed to launch OLAP servers: ", e);
+            responseBuilder.setLaunched(false).setError(e.getLocalizedMessage());
+            SpliceMessage.LaunchOlapServersResponse response = responseBuilder.build();
+            done.run(response);
+        }
+    }
+
+    private void submitOlapServerApplication() {
+        Collection<String> queues = HConfiguration.getConfiguration().getOlapServerYarnQueues().keySet();
+        Set<String> names = new HashSet<>(queues);
+        names.add(SIConstants.OLAP_DEFAULT_QUEUE_NAME);
+        if (HConfiguration.getConfiguration().getOlapServerIsolatedCompaction()) {
+            names.add(HConfiguration.getConfiguration().getOlapServerIsolatedCompactionQueueName());
+        }
+
+        for (String queue : names) {
+            OlapServerSubmitter oss = new OlapServerSubmitter(queue, true);
+            serverSubmitters.add(oss);
+            Thread thread = new Thread(oss, "OlapServerSubmitter-" + queue);
+            thread.setDaemon(true);
+            thread.start();
+        }
     }
 }

@@ -25,7 +25,9 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.version.ManifestReader;
+import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
@@ -50,6 +52,7 @@ import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.deploy.SparkHadoopUtil;
 import org.apache.spark.util.Utils;
 import org.apache.zookeeper.CreateMode;
@@ -72,7 +75,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Created by dgomezferro on 29/08/2017.
  */
-public class OlapServerMaster implements LeaderSelectorListener {
+public class OlapServerMaster {
     private static final Logger LOG = Logger.getLogger(OlapServerMaster.class);
     private final AtomicBoolean end = new AtomicBoolean(false);
     private final int port;
@@ -90,6 +93,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
     UserGroupInformation yarnUgi;
     private AMRMClientAsync<AMRMClient.ContainerRequest> rmClient;
     private Mode mode;
+    private volatile boolean exitWhenDone = false;
 
     public OlapServerMaster(int port, String queueName, Mode mode, String appId) {
         this.port = port;
@@ -98,9 +102,8 @@ public class OlapServerMaster implements LeaderSelectorListener {
         this.appId = appId;
     }
 
-    @Override
     @SuppressFBWarnings(value="DM_EXIT", justification = "Forcing process exit")
-    public void takeLeadership(CuratorFramework curatorFramework) throws Exception {
+    public void submitSparkApplication() throws Exception {
         LOG.info("Taken leadership, starting OlapServer-"+queueName);
 
         String principal = System.getProperty("splice.spark.yarn.principal");
@@ -162,10 +165,6 @@ public class OlapServerMaster implements LeaderSelectorListener {
         ses.scheduleWithFixedDelay(new AppWatcher(timeout), 1, 1, TimeUnit.MINUTES);
     }
 
-    @Override
-    public void stateChanged(CuratorFramework curatorFramework, ConnectionState connectionState) {
-        LOG.trace("State changed: " + connectionState);
-    }
 
     public enum Mode {
         YARN,
@@ -211,7 +210,7 @@ public class OlapServerMaster implements LeaderSelectorListener {
         // Initialize clients to ResourceManager and NodeManagers
         conf = HConfiguration.unwrapDelegate();
 
-        leaderElection();
+        submitSparkApplication();
         finished.await();
     }
 
@@ -283,21 +282,6 @@ public class OlapServerMaster implements LeaderSelectorListener {
         }
     }
 
-    private void leaderElection() {
-        String ensemble = ZKConfig.getZKQuorumServersString(conf);
-        CuratorFramework client = CuratorFrameworkFactory.newClient(ensemble, new ExponentialBackoffRetry(1000, 3));
-
-        client.start();
-
-        String leaderElectionPath = HConfiguration.getConfiguration().getSpliceRootPath()
-                + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_LEADER_ELECTION_PATH
-                + "/" + queueName;
-
-        LeaderSelector leaderSelector = new LeaderSelector(client, leaderElectionPath, this);
-        LOG.info("Starting leader election for OlapServer-"+queueName);
-        leaderSelector.start();
-    }
-
 
     private void submitSparkApplication(Configuration conf) throws IOException, InterruptedException, KeeperException {
         rzk = ZKUtil.connect(conf, null);
@@ -321,24 +305,37 @@ public class OlapServerMaster implements LeaderSelectorListener {
 
         publishServer(rzk, hostname, port);
 
-        SpliceSpark.getContextUnsafe(); // kickstart Spark
+        JavaSparkContext context = SpliceSpark.getContextUnsafe(); // kickstart Spark
 
         while(!end.get()) {
             Thread.sleep(10000);
             ugi.checkTGTAndReloginFromKeytab();
             if (yarnUgi != null)
                 yarnUgi.checkTGTAndReloginFromKeytab();
+            if (exitWhenDone) {
+                int[] jobs = context.statusTracker().getActiveJobIds();
+                if (jobs.length == 0) {
+                    SpliceLogUtils.info(LOG, "No active jobs are running. Exiting ...");
+                    end.set(true);
+                    rzk.getZooKeeper().delete(queueZkPath, -1);
+                }
+            }
         }
 
         LOG.info("OlapServerMaster shutting down");
     }
 
-    private void publishServer(RecoverableZooKeeper rzk, String hostname, int port) throws InterruptedException, KeeperException {
+    private void publishServer(RecoverableZooKeeper rzk, String hostname, int port) throws InterruptedException, KeeperException, IOException {
         try {
             HostAndPort hostAndPort = HostAndPort.fromParts(hostname, port);
             queueZkPath = rzk.getZooKeeper().create(queueZkPath, Bytes.toBytes(hostAndPort.toString()),
                     ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL_SEQUENTIAL);
             rzk.getData(queueZkPath, new QueueWatcher(), null);
+
+            String root = HConfiguration.getConfiguration().getSpliceRootPath();
+            String queueRoot = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH;
+            SpliceLogUtils.info(LOG, "Add a watcher to %s", queueRoot);
+            ZkUtils.getChildren(queueRoot, new NewOlapServerWatcher(queueRoot));
         } catch (Exception e) {
             LOG.error("Couldn't register OlapServer due to unexpected exception", e);
             throw e;
@@ -387,6 +384,31 @@ public class OlapServerMaster implements LeaderSelectorListener {
         return rmClient;
     }
 
+    class NewOlapServerWatcher implements Watcher {
+        private String queueRoot;
+
+        public NewOlapServerWatcher(String queueRoot) {
+            this.queueRoot = queueRoot;
+        }
+
+        @Override
+        public void process(WatchedEvent watchedEvent) {
+            SpliceLogUtils.info(LOG, "A new Olap server was launched. Exiting...");
+            try {
+                if (watchedEvent.getType().equals(Event.EventType.NodeChildrenChanged)) {
+                    List<String> children = ZkUtils.getChildren(queueRoot, new NewOlapServerWatcher(queueRoot));
+
+                    SpliceLogUtils.info(LOG, "number of children: %d", children.size());
+                    if (children.size() >= 2) {
+                        // A new olap server was launched. This one can exit
+                        exitWhenDone = true;
+                    }
+                }
+            }catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
     class QueueWatcher implements Watcher {
         @Override
         public void process(WatchedEvent watchedEvent) {

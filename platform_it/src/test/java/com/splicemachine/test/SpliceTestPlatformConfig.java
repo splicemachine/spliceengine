@@ -20,11 +20,6 @@ import static com.google.common.collect.Lists.transform;
 
 import java.util.List;
 
-import com.amazonaws.SdkClientException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.EnvironmentVariableCredentialsProvider;
-import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.splicemachine.access.configuration.OlapConfigurations;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
@@ -37,7 +32,6 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.hbase.*;
-import com.splicemachine.si.data.hbase.coprocessor.*;
 import com.splicemachine.utils.BlockingProbeEndpoint;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -52,13 +46,14 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.si.data.hbase.coprocessor.SIObserver;
 import com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint;
-import com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices;
+import com.splicemachine.hbase.SpliceRSRpcServices;
 /**
  * HBase configuration for SpliceTestPlatform and SpliceTestClusterParticipant.
  */
@@ -362,6 +357,90 @@ class SpliceTestPlatformConfig {
         //config.set("hbase.replication.sink.service", "com.splicemachine.replication.SpliceReplication");
         config.setBoolean("replication.source.eof.autorecovery", true);
         config.setBoolean("splice.replication.enabled", true);
+
+        //
+        // Spark configuration
+        //
+        Properties properties = System.getProperties();
+        String buildDir = properties.getProperty("projectBuildDirectory");
+        String osDetectedClassifier = properties.getProperty("osDetectedClassifier");
+        String envClassifier = properties.getProperty("envClassifier");
+        String projectBaseDir = properties.getProperty("projectBaseDir");
+        String log4jUrl = properties.getProperty("log4jUrl");
+        String jacocoAgent = properties.getProperty("jacocoAgent");
+        String userName = properties.getProperty("userName");
+
+        String executorClassPath = String.format("%s:%s/classes:%s/dependency/*", buildDir, buildDir, buildDir);
+        String driverClassPath = String.format("%s/classes:%s/dependency/*", buildDir, buildDir);
+        String hbaseRoot = buildDir + "/hbase";
+        String libPath = buildDir + "/../../assembly/" + envClassifier + "/native/" + osDetectedClassifier;
+        String driverJavaOptions = String.format("-Djava.security.krb5.conf=%s/krb5.conf -enableassertions " +
+                "-Dhbase.rootdir=%s -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50", buildDir, hbaseRoot);
+        String yarnJavaOptions = String.format("-Djava.security.krb5.conf=%s/krb5.conf " +
+                "-Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=50", buildDir);
+        String executorJavaOption=String.format("-Dhbase.rootdir=%s -Dlog4j.configuration=%s " +
+                "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4020 -Djava.security.krb5.conf=%s/krb5.conf " +
+                "-enableassertions -Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=40 %s",
+                hbaseRoot, log4jUrl, buildDir, jacocoAgent);
+        String olapServerClassPath = String.format("%s:%s/dependency/javax.servlet-api-3.1.0.jar:%s/classes",
+                buildDir, buildDir, buildDir);
+        String olapServerJavaOptions = String.format("-Djava.library.path=%s/../../assembly/%s/native/%s:/usr/local/lib/ " +
+                        "-Dhbase.rootdir=%s -Dlog4j.configuration=%s -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4025 " +
+                        "-enableassertions -Djava.net.preferIPv4Stack=true -Djava.security.krb5.conf=%s/krb5.conf " +
+                        "-Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30",
+                buildDir, envClassifier, osDetectedClassifier, hbaseRoot, log4jUrl, buildDir);
+
+        String yarnJars = String.format("local:%s/dependency/*", buildDir);
+        String warehouseDir = String.format("%s/spark-warehouse", buildDir);
+
+        config.set("splice.spark.app.name", "SpliceMachine");
+        config.setBoolean("splice.spark.eventLog.enabled", true);
+        config.set("splice.spark.eventLog.dir", buildDir+"/SpliceTestYarnPlatform");
+        config.set("splice.spark.driver.host", "localhost");
+        config.set("splice.spark.sql.warehouse.dir", warehouseDir);
+        config.setInt("splice.spark.driver.cores", 1);
+        config.set("splice.spark.driver.extraClassPath", driverClassPath);
+        config.set("splice.spark.executor.extraClassPath", executorClassPath);
+        config.set("splice.spark.driver.maxResultSize", "1g");
+        config.set("splice.spark.driver.memory", "1g");
+        config.setBoolean("splice.spark.enabled", true);
+        config.setInt("splice.spark.executor.cores", 3);
+        config.set("spark.executor.extraLibraryPath",libPath);
+        config.setInt("splice.spark.executor.instances", 1);
+        config.set("splice.spark.executor.memory", "2000M");
+        config.set("splice.spark.io.compression.lz4.blockSize", "32k");
+        config.setBoolean("spark.broadcast.compress", true);
+        config.setBoolean("splice.spark.kryo.referenceTracking", false);
+        config.set("splice.spark.kryo.registrator", "com.splicemachine.derby.impl.SpliceSparkKryoRegistrator");
+        config.set("splice.spark.kryoserializer.buffer.max", "512m");
+        config.set("splice.spark.kryoserializer.buffer", "4m");
+        config.set("splice.spark.locality.wait", "60s");
+        config.setBoolean("splice.spark.logConf", true);
+        config.set("splice.spark.master", "yarn-client");
+        config.set("splice.spark.scheduler.allocation.file", projectBaseDir + "/src/main/resources/fairscheduler.xml");
+        config.set("splice.spark.scheduler.mode", "FAIR");
+        config.setBoolean("splice.spark.blacklist.enabled", false);
+        config.set("splice.spark.serializer", "com.splicemachine.serializer.SpliceKryoSerializer");
+        config.set("splice.spark.driver.extraJavaOptions", driverJavaOptions);
+        config.set("splice.spark.yarn.am.extraJavaOptions", yarnJavaOptions);
+        config.set("splice.spark.executor.extraJavaOptions", executorJavaOption);
+        if (userName != null) {
+            config.set("splice.spark.yarn.user", userName);
+        }
+        config.set("splice.olapServer.classpath", olapServerClassPath);
+        config.set("splice.olapServer.extraJavaOptions", olapServerJavaOptions);
+        config.set("splice.spark.shuffle.file.buffer", "128k");
+        config.setFloat("splice.spark.shuffle.memoryFraction", 0.7f);
+        config.setBoolean("splice.spark.shuffle.service.enabled", true);
+        config.set("splice.spark.yarn.am.waitTime", "10s");
+        config.set("spark.yarn.jars", yarnJars);
+
+        if (secure) {
+            String keyTab = String.format("%s/splice.keytab", buildDir);
+            config.set("splice.spark.yarn.principal", "hbase/example.com@EXAMPLE.COM");
+            config.set("splice.spark.yarn.keytab", keyTab);
+            config.set("splice.spark.hadoop.fs.defaultFS", "hdfs://localhost:58878");
+        }
 
         HConfiguration.reloadConfiguration(config);
         return HConfiguration.unwrapDelegate();

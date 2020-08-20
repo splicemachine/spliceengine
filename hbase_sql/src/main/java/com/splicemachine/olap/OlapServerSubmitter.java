@@ -70,11 +70,7 @@ import java.net.*;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -109,8 +105,15 @@ public class OlapServerSubmitter implements Runnable {
 
     private Configuration conf;
 
+    private boolean rollingUpgrade = false;
+
     public OlapServerSubmitter(String queueName) {
         this.queueName = queueName;
+    }
+
+    public OlapServerSubmitter(String queueName, boolean rollingUpgrade) {
+        this.queueName = queueName;
+        this.rollingUpgrade = rollingUpgrade;
     }
 
     @Override
@@ -146,18 +149,22 @@ public class OlapServerSubmitter implements Runnable {
             } else {
                 this.appStagingBaseDir = FileSystem.get(conf).getHomeDirectory();
             }
-            String yarnQueue = System.getProperty("splice.olapServer.yarn.queue");
+            String yarnQueue = conf.get("splice.olapServer.yarn.queue");
             if (yarnQueue == null) {
-                yarnQueue = System.getProperty("splice.spark.yarn.queue", YARN_DEFAULT_QUEUE_NAME);
+                yarnQueue = conf.get("splice.spark.yarn.queue", YARN_DEFAULT_QUEUE_NAME);
             }
-
+            YarnApplicationState appState = YarnApplicationState.NEW;
             for (int i = 0; i<maxAttempts; ++i) {
                 try {
                     ApplicationId appId = findApplication(yarnClient);
-                    if (appId == null) {
+                    if (appId == null || (rollingUpgrade && appState != YarnApplicationState.FINISHED)) {
+                        SpliceLogUtils.info(LOG, "Submitting a new OLAP server for rolling upgrade");
                         appId = submitApplication(yarnClient, memory, memoryOverhead, olapPort, cpuCores, sparkYarnQueue, yarnQueue);
                     }
-
+                    else {
+                        // During rolling upgrade, another submitter launched an olap server
+                        return;
+                    }
                     String appName = appId.toString();
                     AtomicBoolean stopAttempt = new AtomicBoolean(false);
 
@@ -198,7 +205,7 @@ public class OlapServerSubmitter implements Runnable {
                     keepAlive.start();
 
                     ApplicationReport appReport = yarnClient.getApplicationReport(appId);
-                    YarnApplicationState appState = appReport.getYarnApplicationState();
+                    appState = appReport.getYarnApplicationState();
                     while (appState != YarnApplicationState.FINISHED &&
                             appState != YarnApplicationState.KILLED &&
                             appState != YarnApplicationState.FAILED &&
@@ -298,8 +305,10 @@ public class OlapServerSubmitter implements Runnable {
     private ApplicationId submitApplication(YarnClient yarnClient, int memory, int memoryOverhead,
                                             int olapPort, int cpuCores, String sparkYarnQueue, String yarnQueue)
             throws KeeperException, InterruptedException, IOException, URISyntaxException, YarnException {
-        // Clear ZooKeeper path
-        clearZookeeper(ZkUtils.getRecoverableZooKeeper(), queueName);
+        if (!rollingUpgrade) {
+            // Clear ZooKeeper path
+            clearZookeeper(ZkUtils.getRecoverableZooKeeper(), queueName);
+        }
 
         // Create application via yarnClient
         YarnClientApplication app = yarnClient.createApplication();
@@ -447,7 +456,7 @@ public class OlapServerSubmitter implements Runnable {
      * @return
      */
     private String getKeytab() {
-        String keytab = System.getProperty(KEYTAB_KEY);
+        String keytab = conf.get(KEYTAB_KEY);
         if (keytab == null && UserGroupInformation.isSecurityEnabled()) {
             keytab = HConfiguration.unwrapDelegate().get(HBASE_MASTER_KEYTAB_KEY);
         }
@@ -598,29 +607,45 @@ public class OlapServerSubmitter implements Runnable {
     private String prepareCommands(String exec, String parameters, String sparkYarnQueue) throws IOException {
         StringBuilder result = new StringBuilder();
         result.append(exec);
-        for (Object sysPropertyKey : System.getProperties().keySet()) {
-            String spsPropertyName = (String) sysPropertyKey;
-            if (spsPropertyName.contains("spark.yarn.queue"))
-                continue; // we'll set the appropriate yarn queue later
-            if (spsPropertyName.startsWith("splice.spark") || spsPropertyName.startsWith("spark")) {
-                if (spsPropertyName.equals(KEYTAB_KEY)) {
-                    LOG.info(KEYTAB_KEY + " is set, substituting it for " + amKeytabFileName);
-                    result.append(' ').append("-D"+spsPropertyName+"="+amKeytabFileName);
-                    continue;
-                }
-                String sysPropertyValue = System.getProperty(spsPropertyName).replace('\n', ' ');
-                if (sysPropertyValue != null) {
-                    result.append(' ').append("-D"+spsPropertyName+"=\\\""+sysPropertyValue+"\\\"");
-                }
+        Configuration conf = HConfiguration.unwrapDelegate();
+        Map<String, String> sparkConfigMap = conf.getPropsWithPrefix("splice.spark");
+
+        for (Map.Entry<String, String> config : sparkConfigMap.entrySet()) {
+            String key = "splice.spark" + config.getKey();
+            String value = config.getValue();
+
+            if (key.contains("spark.yarn.queue"))
+                continue;// we'll set the appropriate yarn queue later
+
+            if (key.equals(KEYTAB_KEY)) {
+                LOG.info(KEYTAB_KEY + " is set, substituting it for " + amKeytabFileName);
+                result.append(' ').append("-D").append(key).append("=").append(amKeytabFileName);
+                continue;
+            }
+            if (value != null) {
+                result.append(' ').append("-D").append(key).append("=\\\"").append(value).append("\\\"");
             }
         }
+        sparkConfigMap = conf.getPropsWithPrefix("spark");
+        for (Map.Entry<String, String> config : sparkConfigMap.entrySet()) {
+            String key = "spark" + config.getKey();
+            String value = config.getValue();
+
+            if (key.contains("spark.yarn.queue"))
+                continue;// we'll set the appropriate yarn queue later
+
+            if (value != null) {
+                result.append(' ').append("-D").append(key).append("=\\\"").append(value).append("\\\"");
+            }
+        }
+
         result.append(' ').append("-Dspark.yarn.queue=\\\""+sparkYarnQueue+"\\\"");
         result.append(' ').append("-Dsplice.spark.app.name=\\\"SpliceMachine-"+queueName+"\\\"");
         // If user does not specify a kerberos keytab or principal, use HBase master's.
         if (UserGroupInformation.isSecurityEnabled()) {
             Configuration configuration = HConfiguration.unwrapDelegate();
-            String principal = System.getProperty(PRINCIPAL_KEY);
-            String keytab = System.getProperty(KEYTAB_KEY);
+            String principal = conf.get(PRINCIPAL_KEY);
+            String keytab = conf.get(KEYTAB_KEY);
             if (principal == null || keytab == null) {
                 principal = configuration.get(HBASE_MASTER_PRINCIPAL_KEY);
                 String hostname = NetworkUtils.getHostname(HConfiguration.getConfiguration());
@@ -630,7 +655,7 @@ public class OlapServerSubmitter implements Runnable {
                 result.append(' ').append("-D"+KEYTAB_KEY+"="+amKeytabFileName);
             }
         }
-        String extraOptions = System.getProperty("splice.olapServer.extraJavaOptions");
+        String extraOptions = conf.get("splice.olapServer.extraJavaOptions");
         if (extraOptions != null) {
             for (String option : extraOptions.split("\\s+")) {
                 result.append(' ').append(option);
@@ -644,13 +669,13 @@ public class OlapServerSubmitter implements Runnable {
 
     private void setupAppMasterEnv(Map<String, String> appMasterEnv, Configuration conf) {
 
-        String sparkJars = System.getProperty("splice.spark.yarn.jars");
+        String sparkJars = conf.get("splice.spark.yarn.jars");
         if (sparkJars != null) {
             addPathToEnvironment(appMasterEnv,
                     ApplicationConstants.Environment.CLASSPATH.name(), sparkJars);
         }
 
-        String classpath = System.getProperty("splice.olapServer.classpath");
+        String classpath = conf.get("splice.olapServer.classpath");
         if (classpath != null) {
             addPathToEnvironment(appMasterEnv,
                     ApplicationConstants.Environment.CLASSPATH.name(), classpath);
@@ -660,7 +685,7 @@ public class OlapServerSubmitter implements Runnable {
                 ApplicationConstants.Environment.CLASSPATH.name(),
                 ApplicationConstants.Environment.PWD.$() + File.separator + "*");
         addPathToEnvironment(appMasterEnv,
-                ApplicationConstants.Environment.CLASSPATH.name(), System.getProperty("splice.spark.executor.extraClassPath"));
+                ApplicationConstants.Environment.CLASSPATH.name(), conf.get("splice.spark.executor.extraClassPath"));
 
         addPathToEnvironment(appMasterEnv,
                 ApplicationConstants.Environment.CLASSPATH.name(), expandEnvironment(ApplicationConstants.Environment.PWD));
@@ -746,5 +771,15 @@ public class OlapServerSubmitter implements Runnable {
             qualifiedURI = localURI;
         }
         return new Path(qualifiedURI);
+    }
+
+    private String getDiagnostics(String path) {
+        try {
+            byte[] bytes = ZkUtils.getData(path);
+            return Bytes.toString(bytes);
+        } catch (Exception e) {
+            // ignore exception
+        }
+        return null;
     }
 }
