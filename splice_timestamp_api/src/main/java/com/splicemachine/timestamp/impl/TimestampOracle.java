@@ -108,7 +108,9 @@ public class TimestampOracle implements TimestampOracleStatistics{
             }
             long currentTimestampCounter;
             while ((currentTimestampCounter = _timestampCounter.get()) < newTimestamp) {
-                _timestampCounter.compareAndSet(currentTimestampCounter, newTimestamp);
+                if (_timestampCounter.compareAndSet(currentTimestampCounter, newTimestamp)) {
+                    break;
+                }
             }
         }
     }
@@ -123,7 +125,7 @@ public class TimestampOracle implements TimestampOracleStatistics{
     }
 
     private synchronized void reserveNextBlock(long nextTS) throws TimestampIOException {
-        while (nextTS > _maxReservedTimestamp) {
+        if (nextTS > _maxReservedTimestamp) {
             long blockCount = (nextTS - _maxReservedTimestamp) / blockSize + 1;
             long nextMax = _maxReservedTimestamp + blockSize * blockCount;
             timestampBlockManager.persistMaxTimestamp(nextMax);
