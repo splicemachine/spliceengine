@@ -116,6 +116,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     protected SchemaDescriptor systemSchemaDesc;
     protected SchemaDescriptor sysIBMSchemaDesc;
+    protected SchemaDescriptor sysIBMADMSchemaDesc;
     protected SchemaDescriptor declaredGlobalTemporaryTablesSchemaDesc;
     protected SchemaDescriptor systemUtilSchemaDesc;
     protected SchemaDescriptor sysFunSchemaDesc;
@@ -666,6 +667,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         systemSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSTEM_SCHEMA_UUID);
         sysIBMSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID);
+        sysIBMADMSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,SchemaDescriptor.SYSIBMADM_SCHEMA_UUID);
         systemUtilSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID);
         sysFunSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,SchemaDescriptor.SYSFUN_SCHEMA_UUID);
         sysViewSchemaDesc=newSystemSchemaDesc(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID);
@@ -5722,6 +5724,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void updateSystemSchemaAuthorization(String aid,TransactionController tc) throws StandardException{
         updateSchemaAuth(SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,aid,tc);
         updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,aid,tc);
+        updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,aid,tc);
 
         updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_CAT_SCHEMA_NAME,aid,tc);
         updateSchemaAuth(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,aid,tc);
@@ -6315,6 +6318,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         systemSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
         sysIBMSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
+        sysIBMADMSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
         systemUtilSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
     }
 
@@ -6385,9 +6389,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 ContextService.getFactory().setCurrentContextManager(cm);
                 int catalogNumber=noncoreCtr+NUM_CORE;
                 boolean isDummy=(catalogNumber==SYSDUMMY1_CATALOG_NUM);
+                SchemaDescriptor sd = systemSchemaDesc;
+                if (catalogNumber == SYSMONGETCONNECTION_CATALOG_NUM)
+                    sd = sysIBMADMSchemaDesc;
+                else if (isDummy)
+                    sd = sysIBMSchemaDesc;
                 TabInfoImpl ti=getNonCoreTIByNumber(catalogNumber);
+                String version = catalogVersions.get(catalogNumber);
                 if (ti != null) {
-                    makeCatalog(ti, isDummy ? sysIBMSchemaDesc : systemSchemaDesc, tc);
+                    makeCatalog(ti, sd, tc, version);
                 }
                 if(isDummy)
                     populateSYSDUMMY1(tc);
@@ -6496,6 +6506,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         //Add the SYSIBM Schema
         sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID,tc);
 
+        //Add the SYSIBMADM Schema
+        sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,SchemaDescriptor.SYSIBMADM_SCHEMA_UUID,tc);
+
         /* Create the non-core tables and generate the UUIDs for their
          * heaps (before creating the indexes).
          * RESOLVE - This loop will eventually drive all of the
@@ -6599,7 +6612,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         else
             ti=coreInfo[catalogNumber];
 
-        makeCatalog(ti,(catalogNumber==SYSDUMMY1_CATALOG_NUM)?getSysIBMSchemaDescriptor():getSystemSchemaDescriptor(),tc);
+        String version = catalogVersions.get(catalogNumber);
+        makeCatalog(ti,(catalogNumber==SYSDUMMY1_CATALOG_NUM)?getSysIBMSchemaDescriptor():getSystemSchemaDescriptor(),
+                tc, version);
     }
 
 
@@ -6660,19 +6675,23 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc Transaction context.
      * @throws StandardException Standard Derby error policy
      */
-    public void makeCatalog(TabInfoImpl ti,SchemaDescriptor sd,TransactionController tc) throws StandardException{
-        makeCatalog(ti,sd,tc,null);
+    public void makeCatalog(TabInfoImpl ti,SchemaDescriptor sd,TransactionController tc, String version) throws StandardException{
+        makeCatalog(ti,sd,tc,null, version);
     }
 
-    public void makeCatalog(TabInfoImpl ti,SchemaDescriptor sd,TransactionController tc,ColumnOrdering[] columnOrder) throws StandardException{
+    public void makeCatalog(TabInfoImpl ti,SchemaDescriptor sd,
+                            TransactionController tc,ColumnOrdering[] columnOrder, String version) throws StandardException{
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
 
         Properties heapProperties=new Properties();
         heapProperties.setProperty("tableDisplayName", ti.getTableName());
+        if (version != null) {
+            heapProperties.setProperty("catalogVersion", version);
+        }
         ti.setHeapConglomerate(
                 createConglomerate(
                         tc,
-                        ti.getCatalogRowFactory().makeEmptyRowForCurrentVersion(),
+                        ti.getCatalogRowFactory().makeEmptyRowForLatestVersion(),
                         heapProperties,
                         columnOrder
                 )
@@ -6731,78 +6750,75 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     private UUID getUUIDForCoreTable(String tableName,
                                      String schemaUUID,
                                      TransactionController tc)
-                throws StandardException
-    {
-            ConglomerateController    heapCC;
-            ExecRow                    row;
-            DataValueDescriptor        schemaIDOrderable;
-            DataValueDescriptor        tableNameOrderable;
-            ScanController            scanController;
-            TabInfoImpl                    ti = coreInfo[SYSTABLES_CORE_NUM];
-            SYSTABLESRowFactory     rf = (SYSTABLESRowFactory) ti.getCatalogRowFactory();
+            throws StandardException {
+        ConglomerateController heapCC;
+        ExecRow row;
+        DataValueDescriptor schemaIDOrderable;
+        DataValueDescriptor tableNameOrderable;
+        ScanController scanController;
+        TabInfoImpl ti = coreInfo[SYSTABLES_CORE_NUM];
+        SYSTABLESRowFactory rf = (SYSTABLESRowFactory) ti.getCatalogRowFactory();
 
-            // We only want the 1st column from the heap
-            row = exFactory.getValueRow(1);
+        // We only want the 1st column from the heap
+        row = exFactory.getValueRow(1);
 
-            /* Use tableNameOrderable and schemaIdOrderable in both start
-             * and stop position for scan.
-             */
-            tableNameOrderable = new SQLVarchar(tableName);
-            schemaIDOrderable = new SQLChar(schemaUUID);
+        /* Use tableNameOrderable and schemaIdOrderable in both start
+         * and stop position for scan.
+         */
+        tableNameOrderable = new SQLVarchar(tableName);
+        schemaIDOrderable = new SQLChar(schemaUUID);
 
-            /* Set up the start/stop position for the scan */
-            ExecIndexRow keyRow = exFactory.getIndexableRow(2);
-            keyRow.setColumn(1, tableNameOrderable);
-            keyRow.setColumn(2, schemaIDOrderable);
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow = exFactory.getIndexableRow(2);
+        keyRow.setColumn(1, tableNameOrderable);
+        keyRow.setColumn(2, schemaIDOrderable);
 
-            heapCC = tc.openConglomerate(
-            ti.getHeapConglomerate(), false, 0,
-            TransactionController.MODE_RECORD,
-            TransactionController.ISOLATION_REPEATABLE_READ);
+        heapCC = tc.openConglomerate(
+                ti.getHeapConglomerate(), false, 0,
+                TransactionController.MODE_RECORD,
+                TransactionController.ISOLATION_REPEATABLE_READ);
 
-            ExecRow indexTemplateRow = rf.buildEmptyIndexRow( SYSTABLESRowFactory.SYSTABLES_INDEX1_ID, heapCC.newRowLocationTemplate() );
+        ExecRow indexTemplateRow = rf.buildEmptyIndexRow(SYSTABLESRowFactory.SYSTABLES_INDEX1_ID, heapCC.newRowLocationTemplate());
 
-            /* Scan the index and go to the data pages for qualifying rows to
-             * build the column descriptor.
-             */
-            scanController = tc.openScan(
-                            ti.getIndexConglomerate(SYSTABLESRowFactory.SYSTABLES_INDEX1_ID),  // conglomerate to open
-                            false, // don't hold open across commit
-                            0,
-            TransactionController.MODE_RECORD,
-            TransactionController.ISOLATION_REPEATABLE_READ,
-                            (FormatableBitSet) null,         // all fields as objects
-                            keyRow.getRowArray(),   // start position - first row
-                            ScanController.GE,      // startSearchOperation
-                            (ScanQualifier[][]) null, //scanQualifier,
-                            keyRow.getRowArray(),   // stop position - through last row
-                            ScanController.GT);     // stopSearchOperation
+        /* Scan the index and go to the data pages for qualifying rows to
+         * build the column descriptor.
+         */
+        scanController = tc.openScan(
+                ti.getIndexConglomerate(SYSTABLESRowFactory.SYSTABLES_INDEX1_ID),  // conglomerate to open
+                false, // don't hold open across commit
+                0,
+                TransactionController.MODE_RECORD,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                (FormatableBitSet) null,         // all fields as objects
+                keyRow.getRowArray(),   // start position - first row
+                ScanController.GE,      // startSearchOperation
+                (ScanQualifier[][]) null, //scanQualifier,
+                keyRow.getRowArray(),   // stop position - through last row
+                ScanController.GT);     // stopSearchOperation
 
-            /* OK to fetch into the template row,
-             * since we won't be doing a next.
-             */
-            if (scanController.fetchNext(indexTemplateRow.getRowArray()))
-            {
-                RowLocation    baseRowLocation;
+        /* OK to fetch into the template row,
+         * since we won't be doing a next.
+         */
+        if (scanController.fetchNext(indexTemplateRow.getRowArray())) {
+            RowLocation baseRowLocation;
 
 
-                baseRowLocation = (RowLocation)    indexTemplateRow.getColumn(indexTemplateRow.nColumns());
+            baseRowLocation = (RowLocation) indexTemplateRow.getColumn(indexTemplateRow.nColumns());
 
-                /* 1st column is TABLEID (UUID - char(36)) */
-                row.setColumn(SYSTABLESRowFactory.SYSTABLES_TABLEID, new SQLChar());
-                FormatableBitSet bi = new FormatableBitSet(1);
-                bi.set(0);
-                boolean base_row_exists =
-                heapCC.fetch(
-                    baseRowLocation, row, (FormatableBitSet) null);
+            /* 1st column is TABLEID (UUID - char(36)) */
+            row.setColumn(SYSTABLESRowFactory.SYSTABLES_TABLEID, new SQLChar());
+            FormatableBitSet bi = new FormatableBitSet(1);
+            bi.set(0);
+            boolean base_row_exists =
+                    heapCC.fetch(
+                            baseRowLocation, row, (FormatableBitSet) null);
 
-                if (SanityManager.DEBUG)
-                {
-                    // it can not be possible for heap row to disappear while
-                    // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
-                    SanityManager.ASSERT(base_row_exists, "base row not found");
-                }
-    }
+            if (SanityManager.DEBUG) {
+                // it can not be possible for heap row to disappear while
+                // holding scan cursor on index at ISOLATION_REPEATABLE_READ.
+                SanityManager.ASSERT(base_row_exists, "base row not found");
+            }
+        }
 
         scanController.close();
         heapCC.close();
@@ -6864,7 +6880,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SystemColumn        currentColumn;
 
         SystemColumn[]        columns = rowFactory.buildColumnList();
-                ExecRow templateRow = rowFactory.makeEmptyRowForCurrentVersion();
+                ExecRow templateRow = rowFactory.makeEmptyRowForLatestVersion();
         int            columnCount = newColumnIDs.length;
         SchemaDescriptor    sd = getSystemSchemaDescriptor();
         TableDescriptor        td;
@@ -7075,7 +7091,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         // create an index row template
         indexableRow=irg.getIndexRowTemplate();
 
-        baseRow=rf.makeEmptyRowForCurrentVersion();
+        baseRow=rf.makeEmptyRowForLatestVersion();
 
         // Get a RowLocation template
         cc=tc.openConglomerate(heapConglomerateNumber,false,0,TransactionController.MODE_RECORD,TransactionController.ISOLATION_REPEATABLE_READ);
@@ -7111,7 +7127,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         indexProperties.setProperty("schemaDisplayName", sd.getSchemaName());
         indexProperties.setProperty("tableDisplayName", ti.getTableName());
         indexProperties.setProperty("indexDisplayName", ti.getIndexName(indexNumber));
-        
         /* Create and add the conglomerate (index) */
         conglomId=tc.createConglomerate(false,
                 "BTREE", // we're requesting an index conglomerate
@@ -7243,6 +7258,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
 
+    public String getCatalogVersion(long conglomerateNumber) throws  StandardException{
+        Optional<String> version = dataDictionaryCache.catalogVersionCacheFind(conglomerateNumber);
+        if (version != null)
+            return version.orNull();
+
+        TransactionController tc = getTransactionCompile();
+        String v = tc.getCatalogVersion(conglomerateNumber);
+        dataDictionaryCache.catalogVersionCacheAdd(conglomerateNumber, v == null ? Optional.absent() : Optional.of(v));
+        return v;
+    }
+
     /**
      * Create a conglomerate for a system table
      *
@@ -7300,10 +7326,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     private void initializeCoreInfo() throws StandardException{
         TabInfoImpl[] lcoreInfo=coreInfo=new TabInfoImpl[NUM_CORE];
         UUIDFactory luuidFactory=uuidFactory;
-        lcoreInfo[SYSTABLES_CORE_NUM]=new TabInfoImpl(new SYSTABLESRowFactory(luuidFactory,exFactory,dvf));
-        lcoreInfo[SYSCOLUMNS_CORE_NUM]=new TabInfoImpl(new SYSCOLUMNSRowFactory(luuidFactory,exFactory,dvf));
-        lcoreInfo[SYSCONGLOMERATES_CORE_NUM]=new TabInfoImpl(new SYSCONGLOMERATESRowFactory(luuidFactory,exFactory,dvf));
-        lcoreInfo[SYSSCHEMAS_CORE_NUM]=new TabInfoImpl(new SYSSCHEMASRowFactory(luuidFactory,exFactory,dvf));
+        lcoreInfo[SYSTABLES_CORE_NUM]=new TabInfoImpl(new SYSTABLESRowFactory(luuidFactory,exFactory,dvf, this));
+        lcoreInfo[SYSCOLUMNS_CORE_NUM]=new TabInfoImpl(new SYSCOLUMNSRowFactory(luuidFactory,exFactory,dvf,this));
+        lcoreInfo[SYSCONGLOMERATES_CORE_NUM]=new TabInfoImpl(new SYSCONGLOMERATESRowFactory(luuidFactory,exFactory,dvf, this));
+        lcoreInfo[SYSSCHEMAS_CORE_NUM]=new TabInfoImpl(new SYSSCHEMASRowFactory(luuidFactory,exFactory,dvf, this));
     }
 
     /**
@@ -7323,7 +7349,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return TransactionController    The TC to use.
      * @throws StandardException Thrown on error
      */
-    public TransactionController getTransactionCompile() throws StandardException{
+    public TransactionController getTransactionCompile() {
         if(bootingTC!=null){
             assert booting:"booting is expected to be true";
             return bootingTC;
@@ -7682,94 +7708,95 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
             switch(catalogNumber){
                 case SYSCONSTRAINTS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSCONSTRAINTSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSCONSTRAINTSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSKEYS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSKEYSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSKEYSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSPRIMARYKEYS_CATALOG_NUM:
-                    retval = new TabInfoImpl(new SYSPRIMARYKEYSRowFactory(luuidFactory,exFactory,dvf));
+                    retval = new TabInfoImpl(new SYSPRIMARYKEYSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSDEPENDS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSDEPENDSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSDEPENDSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSVIEWS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSVIEWSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSVIEWSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSCHECKS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSCHECKSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSCHECKSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSFOREIGNKEYS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSFOREIGNKEYSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSFOREIGNKEYSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSSTATEMENTS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSSTATEMENTSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSSTATEMENTSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSFILES_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSFILESRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSFILESRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSALIASES_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSALIASESRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSALIASESRowFactory(luuidFactory,exFactory,dvf, this));
                     break;
                 case SYSTRIGGERS_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSTRIGGERSRowFactory(this, luuidFactory,exFactory,dvf));
                     break;
                 case SYSSCHEMAPERMS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSSCHEMAPERMSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSSCHEMAPERMSRowFactory(luuidFactory,exFactory,dvf, this));
                     break;
                 case SYSTABLEPERMS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSTABLEPERMSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSTABLEPERMSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSCOLPERMS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSCOLPERMSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSCOLPERMSRowFactory(luuidFactory,exFactory,dvf, this));
                     break;
                 case SYSROUTINEPERMS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSROUTINEPERMSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSROUTINEPERMSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSROLES_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSROLESRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSROLESRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSSEQUENCES_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSSEQUENCESRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSSEQUENCESRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSPERMS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSPERMSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSPERMSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSUSERS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSUSERSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSUSERSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSBACKUP_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSBACKUPRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSBACKUPRowFactory(luuidFactory,exFactory,dvf, this));
                     break;
                 case SYSBACKUPITEMS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSBACKUPITEMSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSBACKUPITEMSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSCOLUMNSTATS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSCOLUMNSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSCOLUMNSTATISTICSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSPHYSICALSTATS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSPHYSICALSTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSPHYSICALSTATISTICSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSTABLESTATS_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSSOURCECODE_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSSOURCECODERowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSSOURCECODERowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSDUMMY1_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSDUMMY1RowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSDUMMY1RowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSSNAPSHOT_NUM:
-                    retval=new TabInfoImpl(new SYSSNAPSHOTSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSSNAPSHOTSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSTOKENS_NUM:
-                    retval=new TabInfoImpl(new SYSTOKENSRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSTOKENSRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSREPLICATION_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
-                case SYSBACKUPFILESET_CATALOG_NUM:
-                case SYSBACKUPJOBS_CATALOG_NUM:
+                case SYSMONGETCONNECTION_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf));
+                    break;
                 default:
                     retval=null;
                     break;
@@ -7859,7 +7886,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             // Just return in this case, so we don't get a null pointer
             // exception.
             if(td==null){
-                return;
+                // look up from SYSIBM schema
+                td=getTableDescriptor(ti.getTableName(),getSysIBMSchemaDescriptor(),null);
+                if ( td == null) {
+                    return;
+                }
             }
 
             ConglomerateDescriptor cd=null;
@@ -10595,9 +10626,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 cm.pushContext(ec);
                 ContextService.getFactory().setCurrentContextManager(cm);
                 TabInfoImpl ti=coreInfo[coreCtr];
+                String version = catalogVersions.get(coreCtr);
                 Properties heapProperties=new Properties();
                 heapProperties.setProperty("tableDisplayName", ti.getTableName());
-                ExecRow rowTemplate=ti.getCatalogRowFactory().makeEmptyRow();
+                heapProperties.setProperty("catalogVersion", version);
+                ExecRow rowTemplate=ti.getCatalogRowFactory().makeEmptyRowForLatestVersion();
                 long conglomerate=createConglomerate(tc,rowTemplate,heapProperties);
                 ti.setHeapConglomerate(conglomerate);
             }catch(Exception e){
