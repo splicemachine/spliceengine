@@ -64,7 +64,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import org.supercsv.prefs.CsvPreference;
 
 import java.io.IOException;
@@ -778,7 +778,12 @@ public class SpliceRegionAdmin {
         // set up csv reader
         CsvPreference preference = createCsvPreference(columnDelimiter, characterDelimiter);
         Reader reader = new StringReader(splitKey);
-        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference);
+        List<Integer> valueSizeHints = new ArrayList<>(execRow.nColumns());
+        for(DataValueDescriptor dvd : execRow.getRowArray()) {
+            valueSizeHints.add(dvd.estimateMemoryUsage());
+        }
+        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference, false,
+                EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
         tokenizer.setLine(splitKey);
         List<String> read=tokenizer.read();
         BooleanList quotedColumns=tokenizer.getQuotedColumns();

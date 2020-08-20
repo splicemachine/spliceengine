@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.utils;
 
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.db.iapi.error.PublicAPI;

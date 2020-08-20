@@ -23,7 +23,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -461,7 +461,8 @@ public class SYSMONGETCONNECTIONRowFactory extends CatalogRowFactory
      * @exception StandardException thrown on failure
      */
 
-    public ExecRow makeRow(TupleDescriptor td,
+    public ExecRow makeRow(boolean latestVersion,
+                           TupleDescriptor td,
                            TupleDescriptor parent)
             throws StandardException
     {
