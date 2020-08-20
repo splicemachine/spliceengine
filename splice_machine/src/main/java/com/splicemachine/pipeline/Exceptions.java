@@ -18,7 +18,7 @@ import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.client.am.Sqlca;
 import com.splicemachine.db.iapi.reference.SQLState;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Throwables;
+import splice.com.google.common.base.Throwables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.si.api.data.ExceptionFactory;

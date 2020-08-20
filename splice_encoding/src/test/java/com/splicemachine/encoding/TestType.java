@@ -14,7 +14,7 @@
 
 package com.splicemachine.encoding;
 
-import org.spark_project.guava.base.Charsets;
+import splice.com.google.common.base.Charsets;
 import org.junit.Assert;
 
 import java.math.BigDecimal;

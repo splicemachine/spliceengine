@@ -18,9 +18,9 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.FluentIterable;
+import splice.com.google.common.collect.Iterables;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;

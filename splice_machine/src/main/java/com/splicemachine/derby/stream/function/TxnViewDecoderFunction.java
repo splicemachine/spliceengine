@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
-import org.spark_project.guava.collect.Iterators;
+import splice.com.google.common.collect.Iterators;
 import com.google.protobuf.ByteString;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -28,6 +28,7 @@ import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.InheritingTxnView;
 import com.splicemachine.utils.ByteSlice;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.Serializable;
 import java.util.Iterator;
@@ -35,6 +36,7 @@ import java.util.Iterator;
 /**
  * Created by jyuan on 10/19/15.
  */
+@SuppressFBWarnings(value = "SE_BAD_FIELD", justification = "DB-9844")
 public class TxnViewDecoderFunction<Op extends SpliceOperation, T> extends SpliceFunction<Op, TxnMessage.Txn, TxnView> implements Serializable {
 
     private final TxnSupplier supplier;

@@ -27,7 +27,7 @@ import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.lifecycle.DatabaseLifecycleService;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.zookeeper.ZKUtil;
-import org.spark_project.guava.net.HostAndPort;
+import splice.com.google.common.net.HostAndPort;
 
 /**
  * @author Scott Fines

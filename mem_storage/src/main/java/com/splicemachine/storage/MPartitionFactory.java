@@ -15,8 +15,8 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.base.Predicate;
+import splice.com.google.common.collect.Iterables;
 import com.splicemachine.access.api.*;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
