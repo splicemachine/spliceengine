@@ -42,7 +42,7 @@ import static org.junit.Assert.assertEquals;
  * Created by yxia on 8/19/20.
  */
 @RunWith(Parameterized.class)
-public class NLJPredicatePushedToDT extends SpliceUnitTest {
+public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
     private Boolean useSpark;
 
@@ -54,7 +54,7 @@ public class NLJPredicatePushedToDT extends SpliceUnitTest {
         return params;
     }
 
-    public static final String CLASS_NAME = NLJPredicatePushedToDT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = NLJPredicatePushedToDerivedTableIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -64,7 +64,7 @@ public class NLJPredicatePushedToDT extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
-    public NLJPredicatePushedToDT(Boolean useSpark) {
+    public NLJPredicatePushedToDerivedTableIT(Boolean useSpark) {
         this.useSpark = useSpark;
     }
 
