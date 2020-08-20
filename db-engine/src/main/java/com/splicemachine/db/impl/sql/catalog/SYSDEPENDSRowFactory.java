@@ -37,11 +37,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -93,9 +89,9 @@ public class SYSDEPENDSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    public SYSDEPENDSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSDEPENDSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo(SYSDEPENDS_COLUMN_COUNT,TABLENAME_STRING, indexColumnPositions,
 				 uniqueness, uuids );
 	}
@@ -116,7 +112,7 @@ public class SYSDEPENDSRowFactory extends CatalogRowFactory
 	 *
 	 * @exception   StandardException thrown on failure
 	 */
-	public ExecRow makeRow(TupleDescriptor	td, TupleDescriptor parent)
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor	td, TupleDescriptor parent)
 					throws StandardException 
 	{
 		DataValueDescriptor		col;
@@ -128,6 +124,9 @@ public class SYSDEPENDSRowFactory extends CatalogRowFactory
 
 		if (td != null)
 		{
+			if (!(td instanceof DependencyDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
 			DependencyDescriptor dd = (DependencyDescriptor)td;
 			dependentID	= dd.getUUID().toString();
 			dependentBloodhound = dd.getDependentFinder();

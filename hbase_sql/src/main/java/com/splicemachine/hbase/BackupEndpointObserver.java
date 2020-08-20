@@ -160,7 +160,7 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
                 region.flushcache(false,false, null);
                 region.waitForFlushesAndCompactions();
 
-                canceled = BackupUtils.backupCanceled();
+                canceled = BackupUtils.backupCanceled(backupId);
                 if (!canceled) {
                     // Create a ZNode to indicate that the region is being copied
                     RegionInfo regionInfo = region.getRegionInfo();
