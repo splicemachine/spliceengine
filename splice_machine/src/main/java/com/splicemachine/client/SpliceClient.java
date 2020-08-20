@@ -5,9 +5,10 @@ import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.jdbc.ClientDriver;
 import com.splicemachine.primitives.Bytes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import javax.sql.DataSource;
 import java.beans.PropertyVetoException;
@@ -31,6 +32,7 @@ public class SpliceClient {
     }
 
     private static volatile boolean isClient = false;
+    @SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "DB-9844")
     public static boolean isRegionServer = false;
     public static volatile String connectionString;
     public static volatile byte[] token;
@@ -49,6 +51,7 @@ public class SpliceClient {
         }
     }
 
+    @SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "DB-9844")
     private static void grantHBasePrivileges() {
         try (Connection conn = DriverManager.getConnection(connectionString)) {
             try (PreparedStatement statement = conn.prepareStatement("call SYSCS_UTIL.SYSCS_HBASE_OPERATION(?,?,?)")) {
@@ -70,6 +73,7 @@ public class SpliceClient {
         return isClient;
     }
 
+    @SuppressFBWarnings(value = "OBL_UNSATISFIED_OBLIGATION", justification = "DB-9844")
     private static synchronized void initializeTokenInternal() {
         byte[] oldToken = token;
         long cancellationWait;
@@ -144,6 +148,7 @@ public class SpliceClient {
     }
 
     private static volatile ComboPooledDataSource pool;
+    @SuppressFBWarnings(value = "DC_PARTIALLY_CONSTRUCTED", justification = "DB-9844")
     public static DataSource getConnectionPool(boolean debugConnections, int maxConnections) {
         if (pool == null) {
             synchronized (SpliceClient.class) {

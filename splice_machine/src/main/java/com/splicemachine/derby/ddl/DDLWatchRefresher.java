@@ -30,7 +30,6 @@ import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.jetty.util.ConcurrentHashSet;
 
 import java.io.IOException;
 import java.util.*;
@@ -63,12 +62,12 @@ public class DDLWatchRefresher{
                              SqlExceptionFactory exceptionFactory,
                              TxnSupplier txnSupplier){
         this.txController = txnController;
-        this.seenDDLChanges=new ConcurrentHashSet<>();
-        this.changeTimeouts=new ConcurrentHashSet<>();
-        this.currentDDLChanges=new ConcurrentHashMap<>();
-        this.tentativeDDLS=new ConcurrentHashMap<>();
-        this.watchChecker=watchChecker;
-        this.exceptionFactory =exceptionFactory;
+        this.seenDDLChanges = ConcurrentHashMap.newKeySet();
+        this.changeTimeouts = ConcurrentHashMap.newKeySet();
+        this.currentDDLChanges = new ConcurrentHashMap<>();
+        this.tentativeDDLS = new ConcurrentHashMap<>();
+        this.watchChecker = watchChecker;
+        this.exceptionFactory = exceptionFactory;
         this.txnSupplier = txnSupplier;
         ddlDemarcationPoint = new AtomicReference<>();
     }

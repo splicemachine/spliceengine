@@ -31,10 +31,10 @@
 
 package com.splicemachine.db.impl.ast;
 
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.collect.Iterables;
 
 import java.util.List;
 import static java.lang.String.format;
@@ -95,7 +95,7 @@ public class JoinInfo {
                          rightSingleRegionSize);
     }
 
-    public static Function<Object, String> className = new Function<Object, String>() {
+    public static final Function<Object, String> className = new Function<Object, String>() {
         @Override
         public String apply(Object o) {
             return o == null ? "" : o.getClass().getSimpleName();

@@ -896,7 +896,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, operationContext), true);
+                    null, timeFormat, dateFormat, timestampFormat, false, operationContext), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
             for (ExecRow row : rows) {

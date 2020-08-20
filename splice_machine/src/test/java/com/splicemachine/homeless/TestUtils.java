@@ -22,7 +22,7 @@ import java.util.*;
 
 import com.splicemachine.db.iapi.types.SQLClob;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.FileUtils;

@@ -90,9 +90,9 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 		,"80000016-00d0-fd77-3ed8-000a0a0b1900"	// SYSCONGLOMERATES_INDEX3
 	};
 
-	SYSCONGLOMERATESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+	SYSCONGLOMERATESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf, dd);
 		initInfo(SYSCONGLOMERATES_COLUMN_COUNT, 
 				 TABLENAME_STRING, indexColumnPositions, 
 				 uniqueness, uuids );
@@ -105,11 +105,10 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 	 *
 	 * @exception   StandardException thrown on failure
 	 */
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
 					throws StandardException
 	{
 		ExecRow    				row;
-		DataValueDescriptor		col;
 		String					tabID =null;
 		Long					conglomNumber = null;
 		String					conglomName = null;
@@ -118,12 +117,19 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 		Boolean					supportsConstraint = null;
 		String					conglomUUIDString = null;
 		String					schemaID = null;
-		ConglomerateDescriptor  conglomerate = (ConglomerateDescriptor)td;
+		ConglomerateDescriptor  conglomerate = null;
+
+
 
 		/* Insert info into sysconglomerates */
 
 		if (td != null)
 		{
+			if (!(td instanceof ConglomerateDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + parent.getClass().getName());
+
+			conglomerate = (ConglomerateDescriptor)td;
+
 			/* Sometimes the SchemaDescriptor is non-null and sometimes it
 			 * is null.  (We can't just rely on getting the schema id from 
 			 * the ConglomerateDescriptor because it can be null when
@@ -131,6 +137,8 @@ public class SYSCONGLOMERATESRowFactory extends CatalogRowFactory
 			 */
 			if (parent != null)
 			{
+				if (!(parent instanceof SchemaDescriptor))
+					throw new RuntimeException("Unexpected TupleDescriptor " + parent.getClass().getName());
 				SchemaDescriptor sd = (SchemaDescriptor)parent;
 				schemaID = sd.getUUID().toString();	
 			}

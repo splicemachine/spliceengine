@@ -14,7 +14,7 @@
 
 package com.splicemachine.storage.util;
 
-import org.spark_project.guava.base.Predicate;
+import splice.com.google.common.base.Predicate;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 

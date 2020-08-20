@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.iapi.sql.olap;
 
-import org.spark_project.guava.util.concurrent.ListenableFuture;
+import splice.com.google.common.util.concurrent.ListenableFuture;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;

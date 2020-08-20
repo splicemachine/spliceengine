@@ -15,7 +15,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.concurrent.ThreadLocalRandom;
 import com.splicemachine.si.api.txn.KeepAliveScheduler;

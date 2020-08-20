@@ -16,8 +16,8 @@ package com.splicemachine.storage;
 
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import org.apache.hadoop.hbase.client.ClusterConnection;
-import org.spark_project.guava.cache.Cache;
-import org.spark_project.guava.cache.CacheBuilder;
+import splice.com.google.common.cache.Cache;
+import splice.com.google.common.cache.CacheBuilder;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import org.apache.hadoop.hbase.TableName;

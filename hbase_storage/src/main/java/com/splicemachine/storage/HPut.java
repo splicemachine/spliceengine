@@ -19,7 +19,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.client.Put;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.collect.Iterables;
 
 import java.io.IOException;
 import java.util.Map;

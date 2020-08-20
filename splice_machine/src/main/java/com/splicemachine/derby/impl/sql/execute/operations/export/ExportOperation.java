@@ -15,7 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.splicemachine.db.iapi.types.SQLLongint;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.impl.sql.compile.ExportNode;
 import com.splicemachine.db.iapi.error.StandardException;

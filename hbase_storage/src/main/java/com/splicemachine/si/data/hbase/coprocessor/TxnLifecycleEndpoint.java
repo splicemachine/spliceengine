@@ -44,9 +44,9 @@ import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Supplier;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.primitives.Longs;
+import splice.com.google.common.base.Supplier;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.primitives.Longs;
 
 import java.io.IOException;
 import java.util.List;

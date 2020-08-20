@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
@@ -65,6 +66,8 @@ public abstract	class CatalogRowFactory
 	protected	UUID				heapUUID;
 	protected	UUID[]				indexUUID;
 
+	protected   long                heapConglomerate;
+    protected   DataDictionary      dd;
 	protected	DataValueFactory    dvf;
 	private     final ExecutionFactory    ef;
 	private		UUIDFactory			uuidf;
@@ -78,6 +81,16 @@ public abstract	class CatalogRowFactory
 	//	CONSTRUCTORS
 	//
 	///////////////////////////////////////////////////////////////////////////
+
+	public CatalogRowFactory(UUIDFactory uuidf,
+							 ExecutionFactory ef,
+							 DataValueFactory dvf,
+							 DataDictionary dd)
+
+	{
+		this(uuidf, ef, dvf);
+		this.dd = dd;
+	}
 
     public CatalogRowFactory(UUIDFactory uuidf,
 							 ExecutionFactory ef,
@@ -275,12 +288,17 @@ public abstract	class CatalogRowFactory
 		return columnCount;
 	}
 
+	public  ExecRow makeEmptyRow(boolean latestVersion) throws StandardException
+	{
+		return	this.makeRow(latestVersion, null, null);
+	}
+
 	/** 
 	 * Return an empty row for this conglomerate. 
 	 */
 	public  ExecRow makeEmptyRow() throws StandardException
 	{
- 		return	this.makeRow(null, null);
+ 		return	this.makeRow(false, null, null);
 	}
 
 	/**
@@ -301,16 +319,20 @@ public abstract	class CatalogRowFactory
 	* @return an empty row
 	* @throws StandardException if an error happens when creating the row
 	*/
-	public ExecRow makeEmptyRowForCurrentVersion() throws StandardException {
-	    return makeEmptyRow();
+	public ExecRow makeEmptyRowForLatestVersion() throws StandardException {
+	    return makeEmptyRow(true);
 	}
 
+	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException
+	{
+		return makeRow(false, td, parent);
+	}
 	/**
 	 * most subclasses should provide this method. One or two oddball cases in
 	 * Replication and SysSTATEMENTSRowFactory don't. For those we call makeRow
 	 * with the additional arguments.
 	 */
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException
 	{
 		if (SanityManager.DEBUG) { SanityManager.THROWASSERT( "Should not get here." ); }
 		return null;
@@ -336,5 +358,17 @@ public abstract	class CatalogRowFactory
 
 	public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
 		return null;
+	}
+
+	public void setHeapConglomerate (long heapConglomerate) {
+		this.heapConglomerate = heapConglomerate;
+	}
+
+	public void setDataDictionary(DataDictionary dd) {
+		this.dd = dd;
+	}
+
+	public String getCatalogVersion() throws StandardException {
+		return heapConglomerate > 0 ? dd.getCatalogVersion(heapConglomerate) : null;
 	}
 }

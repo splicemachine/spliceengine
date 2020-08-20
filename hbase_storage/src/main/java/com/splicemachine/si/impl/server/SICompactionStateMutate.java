@@ -12,6 +12,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellComparator;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -103,14 +104,18 @@ class SICompactionStateMutate {
         LOG.warn("Skipping tombstone purge.  " + warningMessage);
     }
 
-    public void mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results) throws IOException {
+    /***
+     * @return the size of all cells in the `rawList` parameter.
+     */
+    public long mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results) throws IOException {
         handleSanityChecks(results, rawList, txns);
-
+        long totalSize = 0;
         try {
             Iterator<TxnView> it = txns.iterator();
-            for (Cell aRawList : rawList) {
+            for (Cell cell : rawList) {
+                totalSize += KeyValueUtil.length(cell);
                 TxnView txn = it.next();
-                mutate(aRawList, txn);
+                mutate(cell, txn);
             }
             Stream<Cell> stream = dataToReturn.stream();
             if (shouldPurgeDeletes())
@@ -122,6 +127,7 @@ class SICompactionStateMutate {
             if (!debugSortCheck)
                 setBypassPurgeWithWarning("CompactionStateMutate: results not sorted.");
             assert debugSortCheck : "CompactionStateMutate: results not sorted";
+            return totalSize;
         } catch (AssertionError e) {
             LOG.error(e);
             LOG.error(rawList.toString());
