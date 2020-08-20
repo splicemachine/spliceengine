@@ -18,8 +18,8 @@ import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
-import org.spark_project.guava.cache.Cache;
-import org.spark_project.guava.cache.CacheBuilder;
+import splice.com.google.common.cache.Cache;
+import splice.com.google.common.cache.CacheBuilder;
 
 import java.io.IOException;
 

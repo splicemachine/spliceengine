@@ -86,7 +86,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.serializer.KryoRegistrator;
-import org.spark_project.guava.base.Optional;
+import splice.com.google.common.base.Optional;
 
 import java.io.IOException;
 import java.math.BigDecimal;

@@ -9,6 +9,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.map.HashedMap;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -27,7 +28,7 @@ import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.io.EOFException;
 import java.io.FileNotFoundException;
@@ -172,6 +173,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
         }
     }
 
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-9844")
     private void updateReplicationProgress(Map<String, Long> replicationProgress,
                                            Set<String> oldWals,
                                            Connection connection) throws IOException {
@@ -209,6 +211,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
         }
     }
 
+    @SuppressFBWarnings(value = "WMI_WRONG_MAP_ITERATOR", justification = "DB-9844")
     private Map<String, Long> getReplicationProgress(Map<String, SortedMap<String, Long>> serverWalPositions) throws IOException {
 
         Configuration conf = HConfiguration.unwrapDelegate();
@@ -326,6 +329,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
      * Remove old Wals from each wal group
      * @param serverWalPositionsMap
      */
+    @SuppressFBWarnings(value = "DM_NUMBER_CTOR", justification = "DB-9844")
     private Set<String> removeOldWals(Map<String, SortedMap<String, Long>> serverWalPositionsMap) {
         Map<String, Long> regionGroupMap = new HashMap<>();
         SortedMap<String, Long> copy = new TreeMap<>();
@@ -369,6 +373,7 @@ public class SpliceReplicationSourceChore extends ScheduledChore {
      * @param serverSnapshot
      * @throws Exception
      */
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-9844")
     private void sendSnapshot(Connection conn,
                               Long timestamp,
                               ConcurrentHashMap<String, SortedMap<String, Long>> serverSnapshot,

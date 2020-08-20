@@ -35,8 +35,8 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Optional;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.base.Optional;
+import splice.com.google.common.collect.Maps;
 
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Externalizable;

@@ -86,16 +86,19 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
                     {CONGLOMID}
     };
 
-    public SYSCOLUMNSTATISTICSRowFactory(UUIDFactory uuidFactory, ExecutionFactory exFactory, DataValueFactory dvf) {
-        super(uuidFactory,exFactory,dvf);
+    public SYSCOLUMNSTATISTICSRowFactory(UUIDFactory uuidFactory, ExecutionFactory exFactory, DataValueFactory dvf,
+                                         DataDictionary dd) {
+        super(uuidFactory,exFactory,dvf,dd);
         initInfo(SYSCOLUMNSTATISTICS_COLUMN_COUNT,TABLENAME_STRING,indexColumnPositions,uniqueness,uuids);
     }
 
     @Override
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
-        ColumnStatisticsDescriptor cd = (ColumnStatisticsDescriptor) td;
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException {
         ExecRow row = new ValueRow(SYSCOLUMNSTATISTICS_COLUMN_COUNT);
-        if (cd != null) {
+        if (td != null) {
+            if (!(td instanceof ColumnStatisticsDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+            ColumnStatisticsDescriptor cd = (ColumnStatisticsDescriptor) td;
             row.setColumn(CONGLOMID, new SQLLongint(cd.getConglomerateId()));
             row.setColumn(PARTITIONID, new SQLVarchar(cd.getPartitionId()));
             row.setColumn(COLUMNID, new SQLInteger(cd.getColumnId()));

@@ -18,7 +18,7 @@ package com.splicemachine.access.client;
 import com.splicemachine.si.impl.server.SITestUtils;
 import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
 import com.splicemachine.si.impl.server.SITestUtils;
-import org.spark_project.guava.collect.Ordering;
+import splice.com.google.common.collect.Ordering;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;

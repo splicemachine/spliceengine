@@ -29,8 +29,9 @@ import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Maps;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -62,6 +63,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     private WriteNode tail;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "DB-9844")
     public PipelineWriteContext(SharedCallBufferFactory indexSharedCallBuffer,
                                  CachedPartitionFactory partitionFactory,
                                  TxnView txn,
@@ -194,6 +196,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")
     public byte[] getToken() {
         return token;
     }

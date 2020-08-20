@@ -95,6 +95,12 @@ public class HPartitionCreator implements PartitionCreator{
     }
 
     @Override
+    public PartitionCreator withCatalogVersion(String version) {
+        descriptorBuilder.setValue(SIConstants.CATALOG_VERSION_ATTR, version);
+        return this;
+    }
+
+    @Override
     public Partition create() throws IOException{
         assert descriptorBuilder!=null: "No table to create!";
         descriptorBuilder.setColumnFamily(userDataFamilyDescriptor);
