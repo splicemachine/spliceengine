@@ -115,9 +115,9 @@ public class SYSALIASESRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    public SYSALIASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSALIASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo(SYSALIASES_COLUMN_COUNT, "SYSALIASES", indexColumnPositions, uniqueness, uuids);
 	}
 
@@ -135,7 +135,7 @@ public class SYSALIASESRowFactory extends CatalogRowFactory
 	 *
 	 * @exception   StandardException thrown on failure
 	 */
-	public ExecRow makeRow(TupleDescriptor	td, TupleDescriptor parent)
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor	td, TupleDescriptor parent)
 					throws StandardException 
 	{
 		DataValueDescriptor		col;
