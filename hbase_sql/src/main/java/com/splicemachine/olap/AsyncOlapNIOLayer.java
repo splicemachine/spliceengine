@@ -17,9 +17,14 @@ package com.splicemachine.olap;
 import com.google.common.net.HostAndPort;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
+import com.splicemachine.hbase.RegionServerLifecycleObserver;
+import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.utils.SpliceLogUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
@@ -34,6 +39,8 @@ import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import splice.com.google.common.util.concurrent.ExecutionList;
 import splice.com.google.common.util.concurrent.ListenableFuture;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -95,6 +102,19 @@ public class AsyncOlapNIOLayer implements JobExecutor{
             HostAndPort hap = hostProvider.olapServerHost(queue);
             LOG.info("Connecting to " + hap);
 
+            if (RegionServerLifecycleObserver.isHbaseJVM) {
+                String root = HConfiguration.getConfiguration().getSpliceRootPath();
+                String queueRoot = root + HBaseConfiguration.OLAP_SERVER_PATH + HBaseConfiguration.OLAP_SERVER_QUEUE_PATH;
+                ZkUtils.getChildren(queueRoot, new Watcher() {
+                    @Override
+                    public void process(WatchedEvent watchedEvent) {
+                        SpliceLogUtils.warn(LOG, "A new Olap server was launched. Disconnecting...");
+                        if (watchedEvent.getType().equals(Event.EventType.NodeChildrenChanged)) {
+                            connected = false;
+                        }
+                    }
+                });
+            }
             InetSocketAddress socketAddr = new InetSocketAddress(hap.getHostText(), hap.getPort());
             Bootstrap bootstrap = new Bootstrap();
             NioEventLoopGroup group = new NioEventLoopGroup(5,
@@ -160,8 +180,13 @@ public class AsyncOlapNIOLayer implements JobExecutor{
 
     @Override
     public void shutdown(){
-        channelPool.close(); //disconnect everything
-        executorService.shutdown();
+        connected = false;
+        if (channelPool != null) {
+            channelPool.close(); //disconnect everything
+        }
+        if (executorService != null) {
+            executorService.shutdown();
+        }
     }
 
 

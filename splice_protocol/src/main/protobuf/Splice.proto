@@ -235,11 +235,25 @@ message GetCompactedHFilesResponse {
     repeated string filePath = 1;
 }
 
+message LaunchOlapServersRequest{
+
+}
+
+message LaunchOlapServersResponse{
+    optional bool launched = 1;
+    optional string error = 2;
+}
+
 service SpliceRSRpcServices {
     rpc getWALPositions(GetWALPositionsRequest)
         returns (GetWALPositionsResponse);
+
     rpc getRegionServerLSN(GetRegionServerLSNRequest)
         returns (GetRegionServerLSNResponse);
+
     rpc getOldestActiveTransaction(SpliceOldestActiveTransactionRequest)
         returns (SpliceOldestActiveTransactionResponse);
+
+    rpc launchOlapServers(LaunchOlapServersRequest)
+        returns (LaunchOlapServersResponse);
 }
