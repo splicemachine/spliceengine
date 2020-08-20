@@ -295,7 +295,8 @@ public class CreateViewNode extends DDLStatementNode
 			if (queryExpr instanceof SelectNode)
 			{
 				//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
-				if (!isDynamic && (queryExpr.referencesSessionSchema() || this.referencesSessionSchema()))
+				if (!isDynamic && (queryExpr.referencesSessionSchema() ||
+						(getObjectName().hasSchema() && getObjectName().schemaName.equals(SchemaDescriptor.STD_DECLARED_GLOBAL_TEMPORARY_TABLES_SCHEMA_NAME))))
 					throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
                 // check that no provider is a temp table (whether or not it's in SESSION schema)
                 for (Provider provider : apl.values()) {
@@ -416,7 +417,8 @@ public class CreateViewNode extends DDLStatementNode
 
 			// cannot define views on temporary tables
 			//If attempting to reference a SESSION schema table (temporary or permanent) in the view, throw an exception
-			if (!isDynamic && (queryExpression.referencesSessionSchema() || this.referencesSessionSchema()))
+			if (!isDynamic && (queryExpression.referencesSessionSchema() ||
+					(getObjectName().hasSchema() && getObjectName().schemaName.equals(SchemaDescriptor.STD_DECLARED_GLOBAL_TEMPORARY_TABLES_SCHEMA_NAME))))
 				throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
 			// check that no provider is a temp table (whether or not it's in SESSION schema)
 			for (Provider provider : apl.values()) {
@@ -465,8 +467,7 @@ public class CreateViewNode extends DDLStatementNode
 	{
 		//If create view is part of create statement and the view references SESSION schema tables, then it will
 		//get caught in the bind phase of the view and exception will be thrown by the view bind. 
-		return (queryExpression.referencesSessionSchema() ||
-				(getObjectName().hasSchema() && getObjectName().schemaName.equals(SchemaDescriptor.STD_DECLARED_GLOBAL_TEMPORARY_TABLES_SCHEMA_NAME)));
+		return (queryExpression.referencesSessionSchema());
 	}
 
 	/**
