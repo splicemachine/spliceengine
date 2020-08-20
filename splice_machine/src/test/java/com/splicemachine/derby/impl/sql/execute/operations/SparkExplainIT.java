@@ -833,9 +833,29 @@ public class SparkExplainIT extends SpliceUnitTest {
                 "        t1 --splice-properties useSpark=true\n" +
                 "        inner join big on 1=1";
         // expecting broadcast on the right side and BIG table is on the left side
-        String expected = "BroadcastNestedLoopJoin BuildRight, Cross                                       |\n" +
-                "                                                  :- Scan ExistingRDD[]                                                  |\n" +
-                "-> TableScan[BIG(";
-        testQueryContains(sqlText, expected, methodWatcher, true);
+        String[] expectedList2 = {"BroadcastNestedLoopJoin BuildRight, Cross", ":- Scan ExistingRDD[]", "-> TableScan[BIG("};
+        rowContainsQuery(new int[]{5, 6, 7}, sqlText, methodWatcher, expectedList2);
+    }
+
+    @Test
+    public void testCrossJoinForceBroadcastRight() throws Exception {
+        if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
+        // use the same query as testCrossJoinCartesianProduct, not broadcasting right side based on cost,
+        // but we force it by giving broadcastCrossRight=true hint
+        String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
+                "        big --splice-properties useSpark=true, joinStrategy=cross, broadcastCrossRight=true\n" +
+                "        inner join big on 1=1";
+        testQueryContains(sqlText, "BroadcastNestedLoopJoin BuildRight, Cross", methodWatcher, true);
+    }
+
+    @Test
+    public void testCrossJoinForceCartesianProduct() throws Exception {
+        if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
+        // use the same query as testCrossJoinBroadcastRight, broadcasting right side based on cost,
+        // but we force not to by giving broadcastCrossRight=false
+        String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
+                "        t1 --splice-properties useSpark=true, joinStrategy=cross, broadcastCrossRight=false\n" +
+                "        inner join big on 1=1";
+        testQueryContains(sqlText, "CartesianProduct", methodWatcher, true);
     }
 }
