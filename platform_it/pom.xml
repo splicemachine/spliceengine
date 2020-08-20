@@ -334,7 +334,7 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.binary.version}</artifactId>
-            <version>2.2.4</version>
+            <version>${scalatest.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -1002,7 +1002,8 @@
                                 <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
                                 <argument>-Dsplice.spark.locality.wait=60s</argument>
                                 <argument>-Dsplice.spark.logConf=true</argument>
-                                <argument>-Dsplice.spark.master=yarn-client</argument>
+                                <argument>-Dsplice.spark.master=yarn</argument>
+                                <argument>-Dsplice.spark.submit.deployMode=client</argument>
                                 <argument>
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
@@ -1155,6 +1156,14 @@
             <id>dbaas</id>
             <properties>
                 <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>dbaas3.0</id>
+            <properties>
+                <extraDependency>splice_sentry</extraDependency>
                 <extraDependency2>splice_ee</extraDependency2>
                 <extraDependency3>splice_ee</extraDependency3>
             </properties>
@@ -1501,7 +1510,8 @@
                                 <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
                                 <argument>-Dsplice.spark.locality.wait=60s</argument>
                                 <argument>-Dsplice.spark.logConf=true</argument>
-                                <argument>-Dsplice.spark.master=yarn-client</argument>
+                                <argument>-Dsplice.spark.master=yarn</argument>
+                                <argument>-Dsplice.spark.submit.deployMode=client</argument>
                                 <argument>
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
