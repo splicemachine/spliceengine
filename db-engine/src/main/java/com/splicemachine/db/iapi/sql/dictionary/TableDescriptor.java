@@ -56,7 +56,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.primitives.Ints;
 
 /**
  * This class represents a table descriptor. The external interface to this

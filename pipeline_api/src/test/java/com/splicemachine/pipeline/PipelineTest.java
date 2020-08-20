@@ -118,7 +118,7 @@ public class PipelineTest{
             dg = testEnv.getOperationFactory().newDataGet(txn,data.getRowKey(),null);
             try(Partition p = testEnv.getPartition(DESTINATION_TABLE,tts)){
                 DataResult dr = p.get(dg,null);
-                Assert.assertTrue("Row was still found!",dr==null || dr.size()<=0);
+                Assert.assertTrue("Row was still found!",dr==null || dr.isEmpty());
             }
         }finally{
             txn.rollback();
@@ -195,7 +195,7 @@ public class PipelineTest{
                     dg=testEnv.getOperationFactory().newDataGet(txn,d.getRowKey(),dg);
                     result=p.get(dg,result);
                     if(i%2==0){
-                        Assert.assertTrue("Row was deleted, but still found!",result==null||result.size()<=0);
+                        Assert.assertTrue("Row was deleted, but still found!",result==null||result.isEmpty());
                     }else{
                         assertCorrectPresence(txn,d,result);
                     }
@@ -275,7 +275,7 @@ public class PipelineTest{
 
     protected void assertCorrectPresence(Txn txn1,KVPair data,DataResult result){
         Assert.assertNotNull("Row was not written!");
-        Assert.assertTrue("Incorrect number of cells returned!",result.size()>0);
+        Assert.assertFalse("Incorrect number of cells returned!",result.isEmpty());
         Assert.assertNull("Returned a tombstone!",result.tombstoneOrAntiTombstone());
         DataCell dataCell=result.userData();
         Assert.assertNotNull("No User data written!");

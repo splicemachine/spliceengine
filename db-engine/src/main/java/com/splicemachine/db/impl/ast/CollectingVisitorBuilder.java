@@ -34,8 +34,8 @@ package com.splicemachine.db.impl.ast;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.base.Predicates;
+import splice.com.google.common.base.Predicate;
+import splice.com.google.common.base.Predicates;
 import java.util.List;
 
 /**

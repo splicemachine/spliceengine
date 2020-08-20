@@ -92,6 +92,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 int sparkResultStreamingBatchSize = Integer.parseInt(valString);
                 properties[SPARK_RESULT_STREAMING_BATCH_SIZE.getId()] = sparkResultStreamingBatchSize;
                 break;
+            case TABLELIMITFOREXHAUSTIVESEARCH:
+                int tableLimitForExhaustiveSearch = Integer.parseInt(valString);
+                properties[TABLELIMITFOREXHAUSTIVESEARCH.getId()] = tableLimitForExhaustiveSearch;
+                break;
             default:
                 break;
         }

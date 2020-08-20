@@ -15,10 +15,10 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.BiMap;
-import org.spark_project.guava.collect.HashBiMap;
-import org.spark_project.guava.collect.Sets;
+import splice.com.google.common.base.Predicate;
+import splice.com.google.common.collect.BiMap;
+import splice.com.google.common.collect.HashBiMap;
+import splice.com.google.common.collect.Sets;
 import com.splicemachine.collections.EmptyNavigableSet;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.metrics.MetricFactory;
@@ -173,7 +173,7 @@ public class MPartition implements Partition{
         lock.lock();
         try{
             DataResult latest=getLatest(key,family,null);
-            if(latest!=null&& latest.size()>0){
+            if(latest!=null && !latest.isEmpty()){
                 DataCell dc = latest.latestCell(family,qualifier);
                 if(dc!=null){
                     if(ByteComparisons.comparator().compare(dc.valueArray(),dc.valueOffset(),dc.valueLength(),expectedValue,0,expectedValue.length)==0){
@@ -223,7 +223,7 @@ public class MPartition implements Partition{
         try{
             DataResult r=getLatest(rowKey,family,null);
             long v = amount;
-            if(r!=null && r.size()>0){
+            if(r!=null && !r.isEmpty()){
                 final DataCell dataCell=r.latestCell(family,qualifier);
                 if(dataCell!=null)
                     v += Bytes.toLong(dataCell.value());

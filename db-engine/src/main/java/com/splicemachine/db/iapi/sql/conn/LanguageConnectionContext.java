@@ -154,6 +154,12 @@ public interface LanguageConnectionContext extends Context {
     boolean getLogQueryPlan();
 
     /**
+     * Get value of tableLimitForExhaustiveSearch
+     * @return value of tableLimitForExhaustiveSearch
+     */
+    int getTableLimitForExhaustiveSearch();
+
+    /**
      * get the lock escalation threshold to use with this connection.
      */
     int getLockEscalationThreshold();

@@ -32,7 +32,7 @@ import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Optional;
+import splice.com.google.common.base.Optional;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -40,7 +40,7 @@ import java.util.Properties;
 
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private static final Logger LOG=Logger.getLogger(SpliceTransactionResourceImpl.class);
-    public static String CONNECTION_STRING = "jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true";
+    public static final String CONNECTION_STRING = "jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true";
     protected ContextManager cm;
     protected ContextService csf;
     protected String username;

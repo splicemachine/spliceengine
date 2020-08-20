@@ -22,7 +22,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;

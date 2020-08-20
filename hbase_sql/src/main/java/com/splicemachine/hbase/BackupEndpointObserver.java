@@ -40,7 +40,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -160,7 +160,7 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
                 region.flushcache(false,false, null);
                 region.waitForFlushesAndCompactions();
 
-                canceled = BackupUtils.backupCanceled();
+                canceled = BackupUtils.backupCanceled(backupId);
                 if (!canceled) {
                     // Create a ZNode to indicate that the region is being copied
                     RegionInfo regionInfo = region.getRegionInfo();

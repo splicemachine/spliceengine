@@ -25,7 +25,7 @@ import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.apache.commons.lang.SerializationUtils;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -48,7 +48,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.spark_project.guava.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Builds an index table KVPair given a base table KVPair.
@@ -150,7 +150,7 @@ public class IndexTransformer {
     public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException {
         // do a Get() on all the indexed columns of the base table
         DataResult result =fetchBaseRow(mutation,ctx,indexedColumns);
-        if(result==null||result.size()<=0){
+        if(result==null || result.isEmpty()){
             // we can't find the old row, may have been deleted already
             return null;
         }

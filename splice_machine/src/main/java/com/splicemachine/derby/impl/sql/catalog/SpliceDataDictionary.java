@@ -81,6 +81,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl snapshotTable = null;
     private volatile TabInfoImpl tokenTable = null;
     private volatile TabInfoImpl replicationTable = null;
+    private volatile TabInfoImpl ibmConnectionTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     protected boolean metadataAccessRestrictionEnabled;
 
@@ -161,12 +162,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void createTokenTable(TransactionController tc) throws StandardException {
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
         TabInfoImpl tokenTableInfo=getTokenTable();
-        addTableIfAbsent(tc,systemSchema,tokenTableInfo,null);
+        addTableIfAbsent(tc,systemSchema,tokenTableInfo,null, null);
     }
 
     private TabInfoImpl getTokenTable() throws StandardException{
         if(tokenTable==null){
-            tokenTable=new TabInfoImpl(new SYSTOKENSRowFactory(uuidFactory,exFactory,dvf));
+            tokenTable=new TabInfoImpl(new SYSTOKENSRowFactory(uuidFactory,exFactory,dvf, this));
         }
         initSystemIndexVariables(tokenTable);
         return tokenTable;
@@ -175,12 +176,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void createSnapshotTable(TransactionController tc) throws StandardException {
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
         TabInfoImpl snapshotTableInfo=getSnapshotTable();
-        addTableIfAbsent(tc,systemSchema,snapshotTableInfo,null);
+        addTableIfAbsent(tc,systemSchema,snapshotTableInfo,null, null);
     }
 
     private TabInfoImpl getSnapshotTable() throws StandardException{
         if(snapshotTable==null){
-            snapshotTable=new TabInfoImpl(new SYSSNAPSHOTSRowFactory(uuidFactory,exFactory,dvf));
+            snapshotTable=new TabInfoImpl(new SYSSNAPSHOTSRowFactory(uuidFactory,exFactory,dvf, this));
         }
         initSystemIndexVariables(snapshotTable);
         return snapshotTable;
@@ -195,7 +196,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 new IndexColumnOrder(0),
                 new IndexColumnOrder(1)
         };
-        addTableIfAbsent(tc,systemSchema,tableStatsInfo,tableStatsOrder);
+        addTableIfAbsent(tc,systemSchema,tableStatsInfo,tableStatsOrder, null);
 
         createSysTableStatsView(tc);
 
@@ -206,7 +207,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 new IndexColumnOrder(2)
         };
         TabInfoImpl columnStatsInfo=getColumnStatisticsTable();
-        addTableIfAbsent(tc,systemSchema,columnStatsInfo,columnPkOrder);
+        addTableIfAbsent(tc,systemSchema,columnStatsInfo,columnPkOrder, null);
 
         createSysColumnStatsView(tc);
 
@@ -215,7 +216,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 new IndexColumnOrder(0)
         };
         TabInfoImpl physicalStatsInfo=getPhysicalStatisticsTable();
-        addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
+        addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder, null);
     }
 
     private void createOneSystemView(TransactionController tc,
@@ -227,7 +228,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         TableDescriptor td = getTableDescriptor(viewName, sd, tc);
         if (td != null) {
-            SpliceLogUtils.info(LOG, "View: " + viewName + " in SYSVW already exists!");
+            SpliceLogUtils.info(LOG, "View: " + viewName + " in " + sd.getSchemaName() + " already exists!");
             return;
         }
 
@@ -252,7 +253,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         ViewDescriptor vd=ddg.newViewDescriptor(viewId,viewName, viewDef,0,sd.getUUID());
         addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc,false);
 
-        SpliceLogUtils.info(LOG, "View: " + viewName + " in SYSVW is created!");
+        SpliceLogUtils.info(LOG, "View: " + viewName + " in " + sd.getSchemaName() + " is created!");
     }
 
     private String getSchemaViewSQL() {
@@ -340,6 +341,33 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
     }
 
+    private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
+        if(ibmConnectionTable==null){
+            ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(ibmConnectionTable);
+        return ibmConnectionTable;
+    }
+
+    public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+        //Add the SYSIBMADM schema if it does not exists
+        if (getSchemaDescriptor(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
+            sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
+        }
+
+        TabInfoImpl connectionTableInfo=getIBMADMConnectionTable();
+        addTableIfAbsent(tc,sysIBMADMSchemaDesc,connectionTableInfo,null, null);
+
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL", 0, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_VIEW_SQL);
+
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "SNAPAPPL_INFO", 1, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.SNAPAPPL_INFO_VIEW_SQL);
+
+        createOneSystemView(tc, SYSMONGETCONNECTION_CATALOG_NUM, "APPLICATIONS", 2, sysIBMADMSchemaDesc, SYSMONGETCONNECTIONRowFactory.APPLICATIONS_VIEW_SQL);
+
+        SpliceLogUtils.info(LOG, "Tables and views in SYSIBMADM are created!");
+    }
+
     private void updateColumnViewInSys(TransactionController tc, String tableName, int viewIndex, SchemaDescriptor schemaDescriptor, String viewDef) throws StandardException {
         tc.elevate("dictionary");
 
@@ -421,12 +449,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
 
         TabInfoImpl tableStatsInfo=getSourceCodeTable();
-        addTableIfAbsent(tc,systemSchema,tableStatsInfo,null);
+        addTableIfAbsent(tc,systemSchema,tableStatsInfo,null, null);
     }
 
     private TabInfoImpl getBackupTable() throws StandardException{
         if(backupTable==null){
-            backupTable=new TabInfoImpl(new SYSBACKUPRowFactory(uuidFactory,exFactory,dvf));
+            backupTable=new TabInfoImpl(new SYSBACKUPRowFactory(uuidFactory,exFactory,dvf,this));
         }
         initSystemIndexVariables(backupTable);
         return backupTable;
@@ -434,7 +462,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getBackupItemsTable() throws StandardException{
         if(backupItemsTable==null){
-            backupItemsTable=new TabInfoImpl(new SYSBACKUPITEMSRowFactory(uuidFactory,exFactory,dvf));
+            backupItemsTable=new TabInfoImpl(new SYSBACKUPITEMSRowFactory(uuidFactory,exFactory,dvf,this));
         }
         initSystemIndexVariables(backupItemsTable);
         return backupItemsTable;
@@ -450,7 +478,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 LOG.trace(String.format("Creating system table %s.%s",
                         systemSchemaDescriptor.getSchemaName(),backupTabInfo.getTableName()));
             }
-            makeCatalog(backupTabInfo,systemSchemaDescriptor,tc);
+            makeCatalog(backupTabInfo,systemSchemaDescriptor,tc,null);
         }else{
             if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
@@ -465,7 +493,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
                         backupItemsTabInfo.getTableName()));
             }
-            makeCatalog(backupItemsTabInfo,systemSchemaDescriptor,tc);
+            makeCatalog(backupItemsTabInfo,systemSchemaDescriptor,tc,null);
         }else{
             if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
@@ -477,12 +505,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void createReplicationTables(TransactionController tc) throws StandardException {
         SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
         TabInfoImpl replicationTableInfo=getReplicationTable();
-        addTableIfAbsent(tc,systemSchema,replicationTableInfo,null);
+        addTableIfAbsent(tc,systemSchema,replicationTableInfo,null, null);
     }
 
     private TabInfoImpl getReplicationTable() throws StandardException{
         if(replicationTable==null){
-            replicationTable=new TabInfoImpl(new SYSREPLICATIONRowFactory(uuidFactory,exFactory,dvf));
+            replicationTable=new TabInfoImpl(new SYSREPLICATIONRowFactory(uuidFactory,exFactory,dvf,this));
         }
         initSystemIndexVariables(replicationTable);
         return replicationTable;
@@ -514,6 +542,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createReplicationTables(tc);
 
         createTableColumnViewInSysIBM(tc);
+
+        createTablesAndViewsInSysIBMADM(tc);
         
         createAliasToTableSystemView(tc);
     }
@@ -672,7 +702,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     /*Table fetchers for Statistics tables*/
     private TabInfoImpl getPhysicalStatisticsTable() throws StandardException{
         if(physicalStatsTable==null){
-            physicalStatsTable=new TabInfoImpl(new SYSPHYSICALSTATISTICSRowFactory(uuidFactory,exFactory,dvf));
+            physicalStatsTable=new TabInfoImpl(new SYSPHYSICALSTATISTICSRowFactory(uuidFactory,exFactory,dvf,this));
         }
         initSystemIndexVariables(physicalStatsTable);
         return physicalStatsTable;
@@ -680,7 +710,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getColumnStatisticsTable() throws StandardException{
         if(columnStatsTable==null){
-            columnStatsTable=new TabInfoImpl(new SYSCOLUMNSTATISTICSRowFactory(uuidFactory,exFactory,dvf));
+            columnStatsTable=new TabInfoImpl(new SYSCOLUMNSTATISTICSRowFactory(uuidFactory,exFactory,dvf,this));
         }
         initSystemIndexVariables(columnStatsTable);
         return columnStatsTable;
@@ -688,7 +718,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getTableStatisticsTable() throws StandardException{
         if(tableStatsTable==null){
-            tableStatsTable=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(uuidFactory,exFactory,dvf));
+            tableStatsTable=new TabInfoImpl(new SYSTABLESTATISTICSRowFactory(uuidFactory,exFactory,dvf,this));
         }
         initSystemIndexVariables(tableStatsTable);
         return tableStatsTable;
@@ -696,7 +726,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getSourceCodeTable() throws StandardException{
         if(sourceCodeTable==null){
-            sourceCodeTable=new TabInfoImpl(new SYSSOURCECODERowFactory(uuidFactory,exFactory,dvf));
+            sourceCodeTable=new TabInfoImpl(new SYSSOURCECODERowFactory(uuidFactory,exFactory,dvf,this));
         }
         initSystemIndexVariables(sourceCodeTable);
         return sourceCodeTable;
@@ -704,7 +734,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     protected TabInfoImpl getPkTable() throws StandardException{
         if(pkTable==null){
-            pkTable=new TabInfoImpl(new SYSPRIMARYKEYSRowFactory(uuidFactory,exFactory,dvf));
+            pkTable=new TabInfoImpl(new SYSPRIMARYKEYSRowFactory(uuidFactory,exFactory,dvf,this));
         }
         initSystemIndexVariables(pkTable);
         return pkTable;
@@ -901,10 +931,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
 
     private void addTableIfAbsent(TransactionController tc,SchemaDescriptor systemSchema,TabInfoImpl sysTableToAdd,
-                                  ColumnOrdering[] columnOrder) throws StandardException{
+                                  ColumnOrdering[] columnOrder, String version) throws StandardException{
         if(getTableDescriptor(sysTableToAdd.getTableName(),systemSchema,tc)==null){
             SpliceLogUtils.trace(LOG,String.format("Creating system table %s.%s",systemSchema.getSchemaName(),sysTableToAdd.getTableName()));
-            makeCatalog(sysTableToAdd,systemSchema,tc,columnOrder);
+            makeCatalog(sysTableToAdd,systemSchema,tc,columnOrder, version);
         }else{
             SpliceLogUtils.trace(LOG,String.format("Skipping table creation since system table %s.%s already exists",systemSchema.getSchemaName(),sysTableToAdd.getTableName()));
         }
@@ -1601,5 +1631,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createOneSystemView(tc, SYSALIASES_CATALOG_NUM, "SYSALIASTOTABLEVIEW", 0, sysVWSchema, SYSALIASESRowFactory.SYSALIAS_TO_TABLE_VIEW_SQL);
 
         SpliceLogUtils.info(LOG, "System View SYSALIASTOTABLEVIEW created in SYSVW!");
+    }
+
+    public void addCatalogVersion(TransactionController tc) throws StandardException{
+        for (int i = 0; i < coreInfo.length; ++i) {
+            long conglomerateId = coreInfo[i].getHeapConglomerate();
+            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i));
+        }
+
+        for (int i = 0; i < noncoreInfo.length; ++i) {
+            long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
+            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
+
+        }
     }
 }
