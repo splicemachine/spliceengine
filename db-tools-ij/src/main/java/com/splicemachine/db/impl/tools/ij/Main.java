@@ -71,14 +71,14 @@ public class Main {
 	 * @param args allows 1 file name to be specified, from which
 	 *    input will be read; if not specified, stdin is used.
 	 */
-	public static void main(String[] args)	
-		throws IOException 
+	public static void main(String[] args)
+		throws IOException
 	{
 		mainCore(args, new Main(true));
 	}
 
 	public static void mainCore(String[] args, Main main)
-		throws IOException 
+		throws IOException
 	{
 		LocalizedInput in = null;
 		InputStream in1 = null;
@@ -161,7 +161,7 @@ public class Main {
 
 		// the old property name is deprecated...
 		String maxDisplayWidth = util.getSystemProperty("maximumDisplayWidth");
-		if (maxDisplayWidth==null) 
+		if (maxDisplayWidth==null)
 			maxDisplayWidth = util.getSystemProperty("ij.maximumDisplayWidth");
 		if (maxDisplayWidth != null && !maxDisplayWidth.isEmpty()) {
 			try {
@@ -174,7 +174,7 @@ public class Main {
 		}
 
 		/* Use the main parameter to get to
-		 * a new Main that we can use.  
+		 * a new Main that we can use.
 		 * (We can't do the work in Main(out)
 		 * until after we do all of the work above
 		 * us in this method.
@@ -192,7 +192,7 @@ public class Main {
 	}
 
 	/**
-	 * Get the right Main (according to 
+	 * Get the right Main (according to
 	 * the JDBC version.
 	 *
 	 * @return	The right main (according to the JDBC version).
@@ -203,7 +203,7 @@ public class Main {
 	}
 
 	/**
-	 * Get the right utilMain (according to 
+	 * Get the right utilMain (according to
 	 * the JDBC version.
 	 *
 	 * @return	The right utilMain (according to the JDBC version).
@@ -251,7 +251,7 @@ public class Main {
 	}
 
 	/**
-	 * This constructor is only used so that we 
+	 * This constructor is only used so that we
 	 * can get to the right Main based on the
 	 * JDBC version.  We don't do any work in
 	 * this constructor and we only use this
@@ -268,7 +268,7 @@ public class Main {
     //langUtilClass = LocalizedResource.class;
 
 		// adjust the application in accordance with db.ui.locale and db.ui.codeset
-	LocalizedResource.getInstance();	
+	LocalizedResource.getInstance();
   }
-  
+
 }

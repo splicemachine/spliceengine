@@ -151,7 +151,7 @@ public class BackupEndpointObserver extends BackupBaseRegionObserver implements 
                 HBasePlatformUtils.flush(region);
                 region.waitForFlushesAndCompactions();
 
-                canceled = BackupUtils.backupCanceled();
+                canceled = BackupUtils.backupCanceled(backupId);
                 if (!canceled) {
                     // Create a ZNode to indicate that the region is being copied
                     HRegionInfo regionInfo = region.getRegionInfo();

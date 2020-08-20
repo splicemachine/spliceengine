@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.impl.sql.execute.CurrentDatetime;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructField;
@@ -1471,9 +1472,6 @@ public class TypeId{
      */
     public DataValueDescriptor getDefault() throws StandardException {
         switch(formatId){
-            case StoredFormatIds.BIT_TYPE_ID:
-                return new SQLBit(new byte[0]);
-
             case StoredFormatIds.BOOLEAN_TYPE_ID:
                 return new SQLBoolean(false);
 
@@ -1513,19 +1511,32 @@ public class TypeId{
             case StoredFormatIds.TINYINT_TYPE_ID:
                 return new SQLTinyint((byte) 0);
 
-            case StoredFormatIds.USERDEFINED_TYPE_ID_V3:
-                return new UserType();
-
             case StoredFormatIds.VARBIT_TYPE_ID:
                 return new SQLVarbit(new byte[0]);
 
             case StoredFormatIds.VARCHAR_TYPE_ID:
                 return new SQLVarchar("");
 
+            case StoredFormatIds.DATE_TYPE_ID:
+            case StoredFormatIds.TIME_TYPE_ID:
+            case StoredFormatIds.TIMESTAMP_TYPE_ID:
+                assert false: "Date, time and timestamp can't have empty defaults. They should be generated to current instead";
+                break;
+
+            case StoredFormatIds.BIT_TYPE_ID:
+                assert false: "BIT empty default should be filled in DataTypeDescriptor.getDefault where maximumWidth is known";
+                break;
+
+            case StoredFormatIds.LIST_TYPE_ID:
+            case StoredFormatIds.REF_TYPE_ID:
+            case StoredFormatIds.XML_TYPE_ID:
+            case StoredFormatIds.ARRAY_TYPE_ID:
+            case StoredFormatIds.USERDEFINED_TYPE_ID_V3:
             default:
-                throw new UnsupportedOperationException(
-                        StandardException.newException(SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + formatId) );
+                break;
         }
+        throw new UnsupportedOperationException(
+                StandardException.newException(SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + formatId) );
     }
 
     /**
