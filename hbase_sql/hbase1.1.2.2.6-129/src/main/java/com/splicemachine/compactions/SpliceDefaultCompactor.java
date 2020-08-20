@@ -22,10 +22,7 @@ import com.splicemachine.hbase.SpliceCompactionUtils;
 import com.splicemachine.olap.DistributedCompaction;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.server.CompactionContext;
-import com.splicemachine.si.impl.server.PurgeConfig;
-import com.splicemachine.si.impl.server.PurgeConfigBuilder;
-import com.splicemachine.si.impl.server.SICompactionState;
+import com.splicemachine.si.impl.server.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
@@ -45,6 +42,7 @@ import org.apache.hadoop.hbase.regionserver.compactions.CompactionThroughputCont
 import org.apache.hadoop.hbase.regionserver.compactions.NoLimitCompactionThroughputController;
 import org.apache.hadoop.hbase.security.User;
 import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
+import org.apache.spark.TaskContext;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -53,6 +51,9 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
+
+    private boolean isSpark = false;
+
     public SpliceDefaultCompactor(final Configuration conf, final Store store) {
         super(conf, store);
     }
@@ -64,8 +65,10 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
     @Override
     @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="static attribute hostname is set from here")
     public List<Path> compact(CompactionRequest request, CompactionThroughputController throughputController, User user) throws IOException {
-        if(!allowSpark || store.getRegionInfo().isSystemTable())
+        if(!allowSpark || store.getRegionInfo().isSystemTable()) {
+            isSpark = false;
             return super.compact(request, throughputController, user);
+        }
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
 
@@ -216,7 +219,7 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                 }
 
                 writer = createTmpWriter(fd, false,favoredNodes);
-
+                isSpark = true;
                 boolean finished =
                         performCompaction(fd, scanner, writer, smallestReadPoint, cleanSeqId,
                                 new NoLimitCompactionThroughputController(), request.isMajor());
@@ -311,7 +314,15 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                     CellUtil.setSequenceId(c, 0);
                 }
                 writer.append(c);
-                int len = KeyValueUtil.length(c);
+                long len = 0;
+                // AbstractSICompactionScanner could eliminate the cells completely during compaction making the output
+                // byte size potentially zero. Therefore, we query the size of the input cells before compaction directly
+                // from it before compaction (DB-9554)
+                if (scanner instanceof AbstractSICompactionScanner) {
+                    len = ((AbstractSICompactionScanner) scanner).numberOfScannedBytes();
+                } else {
+                    len = KeyValueUtil.length(c);
+                }
                 ++progress.currentCompactedKVs;
                 progress.totalCompactedSize += len;
                 if (LOG.isDebugEnabled()) {
@@ -322,10 +333,11 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                     bytesWritten += len;
                     if (bytesWritten > closeCheckInterval) {
                         bytesWritten = 0;
-//                        if (!store.areWritesEnabled()) {
-//                            progress.cancel();
-//                            return false;
-//                        }
+                        if ((isSpark && TaskContext.get().isInterrupted()) || (!isSpark && !store.areWritesEnabled())) {
+                            SpliceLogUtils.debug(LOG, "Compaction cancelled");
+                            progress.cancel();
+                            return false;
+                        }
                     }
                 }
             }
