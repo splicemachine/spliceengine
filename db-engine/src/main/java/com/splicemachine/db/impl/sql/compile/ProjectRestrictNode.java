@@ -134,8 +134,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          */
         if(tableProperties!=null &&
                 (childResult instanceof Optimizable)){
-            ((Optimizable)childResult).setProperties(getProperties());
-            setProperties(null);
+            ((Optimizable)childResult).setProperties(super.getProperties());
+            super.setProperties(null);
         }
 
         if (childResult instanceof ResultSetNode && ((ResultSetNode) childResult).getContainsSelfReference())
@@ -714,6 +714,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          * will consider materialization as a cost based option.
          */
         return (Optimizable)considerMaterialization(outerTables);
+    }
+
+    @Override
+    public Properties getProperties() {
+        // see comment in init()
+        if (childResult instanceof Optimizable)
+            return ((Optimizable)childResult).getProperties();
+        return super.getProperties();
     }
 
     /**

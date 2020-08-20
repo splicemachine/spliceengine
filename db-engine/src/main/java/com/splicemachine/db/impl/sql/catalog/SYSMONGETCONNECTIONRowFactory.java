@@ -461,7 +461,7 @@ public class SYSMONGETCONNECTIONRowFactory extends CatalogRowFactory
      * @exception StandardException thrown on failure
      */
 
-    public ExecRow makeRow(TupleDescriptor td,
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td,
                            TupleDescriptor parent)
             throws StandardException
     {

@@ -81,6 +81,12 @@ public class PipelinePartitionCreator implements PartitionCreator{
         return this;
     }
 
+    @Override
+    public PartitionCreator withCatalogVersion(String version) {
+        baseCreator = baseCreator.withCatalogVersion(version);
+        return this;
+    }
+
     public Partition create() throws IOException{
         Partition p =baseCreator.create(); //create the base table
         long cId;
