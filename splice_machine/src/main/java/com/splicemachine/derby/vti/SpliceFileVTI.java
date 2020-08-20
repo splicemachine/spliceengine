@@ -138,7 +138,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, operationContext), true);
+                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, true, operationContext), true);
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
@@ -178,7 +178,8 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             throw new SQLException(e);
         }
         if (fileInfo != null &&fileInfo.exists()) {
-            return fileInfo.size()/ getBytesPerRow();
+            assert getBytesPerRow() != 0;
+            return fileInfo.size()/ (double)getBytesPerRow();
         }
         return VTICosting.defaultEstimatedRowCount;
     }
