@@ -66,6 +66,7 @@ public class SpliceDefaultCompactorBase extends DefaultCompactor {
     String tableDisplayName;
     String indexDisplayName;
     static String hostName;
+    protected boolean isSpark = false;
 
     static final String TABLE_DISPLAY_NAME_ATTR = SIConstants.TABLE_DISPLAY_NAME_ATTR;
     static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;

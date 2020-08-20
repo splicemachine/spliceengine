@@ -246,7 +246,6 @@ public class SpliceRegionAdmin {
         };
 
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation activation = conn.getLanguageConnection().getLastActivation();
 
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
@@ -597,7 +596,6 @@ public class SpliceRegionAdmin {
         }
 
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation activation = conn.getLanguageConnection().getLastActivation();
 
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
@@ -731,7 +729,6 @@ public class SpliceRegionAdmin {
         if (index != null) {
             IndexRowGenerator irg = index.getIndexDescriptor();
             IndexDescriptor id = irg.getIndexDescriptor();
-            boolean isUnique = id.isUnique();
             int[] positions = id.baseColumnPositions();
             int[] typeFormatIds = new int[positions.length];
             int i = 0;
@@ -783,7 +780,12 @@ public class SpliceRegionAdmin {
         // set up csv reader
         CsvPreference preference = createCsvPreference(columnDelimiter, characterDelimiter);
         Reader reader = new StringReader(splitKey);
-        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference);
+        List<Integer> valueSizeHints = new ArrayList<>(execRow.nColumns());
+        for(DataValueDescriptor dvd : execRow.getRowArray()) {
+            valueSizeHints.add(dvd.estimateMemoryUsage());
+        }
+        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference, false,
+                EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
         tokenizer.setLine(splitKey);
         List<String> read=tokenizer.read();
         BooleanList quotedColumns=tokenizer.getQuotedColumns();
