@@ -15,8 +15,8 @@
 package org.apache.hadoop.hbase.regionserver;
 
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.PeekingIterator;
+import splice.com.google.common.collect.Iterators;
+import splice.com.google.common.collect.PeekingIterator;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HRegionInfo;

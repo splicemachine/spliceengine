@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.utils.marshall.dvd;
 
-import org.spark_project.guava.io.Closeables;
+import splice.com.google.common.io.Closeables;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;

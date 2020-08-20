@@ -20,7 +20,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.PeekingIterator;
+import splice.com.google.common.collect.PeekingIterator;
 
 public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
     private static final Logger LOG = Logger.getLogger(MergeOuterJoinIterator.class);

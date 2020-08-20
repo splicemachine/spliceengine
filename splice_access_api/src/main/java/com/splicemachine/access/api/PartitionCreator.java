@@ -46,6 +46,8 @@ public interface PartitionCreator{
 
     PartitionCreator withSplitKeys(byte[][] splitKeys);
 
+    PartitionCreator withCatalogVersion(String version);
+
     Partition create() throws IOException;
 
 }

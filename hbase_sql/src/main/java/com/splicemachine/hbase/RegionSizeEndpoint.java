@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 
 import java.io.IOException;

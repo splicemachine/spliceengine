@@ -14,7 +14,7 @@
 
 package com.splicemachine.encoding;
 
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.utils.Pair;
 import org.junit.Test;
 import org.junit.runner.RunWith;

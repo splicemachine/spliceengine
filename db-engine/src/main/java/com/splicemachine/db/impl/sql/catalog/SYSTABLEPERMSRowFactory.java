@@ -93,13 +93,13 @@ public class SYSTABLEPERMSRowFactory extends PermissionsCatalogRowFactory
 		,"f81e0010-010c-bc85-060d-000000109ab8"	// index3
     };
 
-    public SYSTABLEPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSTABLEPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo(COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, indexUniqueness, uuids);
 	}
 
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException
 	{
 		UUID						oid;
         DataValueDescriptor grantee = null;
@@ -120,6 +120,9 @@ public class SYSTABLEPERMSRowFactory extends PermissionsCatalogRowFactory
         }
         else
         {
+            if (!(td instanceof TablePermsDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             TablePermsDescriptor tpd = (TablePermsDescriptor) td;
             oid = tpd.getUUID();
             if ( oid == null )
@@ -230,31 +233,33 @@ public class SYSTABLEPERMSRowFactory extends PermissionsCatalogRowFactory
         
         switch( indexNumber)
         {
-        case GRANTEE_TABLE_GRANTOR_INDEX_NUM:
-            // RESOLVE We do not support the FOR GRANT OPTION, so table permission rows are unique on the
-            // grantee and table UUID columns. The grantor column will always have the name of the owner of the
-            // table. So the index key, used for searching the index, only has grantee and table UUID columns.
-            // It does not have a grantor column.
-            //
-            // If we support FOR GRANT OPTION then there may be multiple table permissions rows for a
-            // (grantee, tableID) combination. We must either handle the multiple rows, which is necessary for
-            // checking permissions, or add a grantor column to the key, which is necessary for granting or revoking
-            // permissions.
-            row = getExecutionFactory().getIndexableRow( 2);
-            row.setColumn(1, getAuthorizationID( perm.getGrantee()));
-            String tableUUIDStr = ((TablePermsDescriptor) perm).getTableUUID().toString();
-            row.setColumn(2, new SQLChar(tableUUIDStr));
-            break;
-        case TABLEPERMSID_INDEX_NUM:
-            row = getExecutionFactory().getIndexableRow( 1);
-            String tablePermsUUIDStr = perm.getObjectID().toString();
-            row.setColumn(1, new SQLChar(tablePermsUUIDStr));
-            break;
-        case TABLEID_INDEX_NUM:
-            row = getExecutionFactory().getIndexableRow( 1);
-            tableUUIDStr = ((TablePermsDescriptor) perm).getTableUUID().toString();
-            row.setColumn(1, new SQLChar(tableUUIDStr));
-            break;
+            case GRANTEE_TABLE_GRANTOR_INDEX_NUM:
+                // RESOLVE We do not support the FOR GRANT OPTION, so table permission rows are unique on the
+                // grantee and table UUID columns. The grantor column will always have the name of the owner of the
+                // table. So the index key, used for searching the index, only has grantee and table UUID columns.
+                // It does not have a grantor column.
+                //
+                // If we support FOR GRANT OPTION then there may be multiple table permissions rows for a
+                // (grantee, tableID) combination. We must either handle the multiple rows, which is necessary for
+                // checking permissions, or add a grantor column to the key, which is necessary for granting or revoking
+                // permissions.
+                row = getExecutionFactory().getIndexableRow( 2);
+                row.setColumn(1, getAuthorizationID( perm.getGrantee()));
+                String tableUUIDStr = ((TablePermsDescriptor) perm).getTableUUID().toString();
+                row.setColumn(2, new SQLChar(tableUUIDStr));
+                break;
+            case TABLEPERMSID_INDEX_NUM:
+                row = getExecutionFactory().getIndexableRow( 1);
+                String tablePermsUUIDStr = perm.getObjectID().toString();
+                row.setColumn(1, new SQLChar(tablePermsUUIDStr));
+                break;
+            case TABLEID_INDEX_NUM:
+                row = getExecutionFactory().getIndexableRow( 1);
+                tableUUIDStr = ((TablePermsDescriptor) perm).getTableUUID().toString();
+                row.setColumn(1, new SQLChar(tableUUIDStr));
+                break;
+            default:
+                break;
         }
         return row;
     } // end of buildIndexRow

@@ -33,14 +33,9 @@ package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -106,9 +101,10 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
      * @param dvf   DataValueFactory
      */
     public SYSSEQUENCESRowFactory(UUIDFactory uuidf,
-                           ExecutionFactory ef,
-                           DataValueFactory dvf) {
-        super(uuidf, ef, dvf);
+                                  ExecutionFactory ef,
+                                  DataValueFactory dvf,
+                                  DataDictionary dd) {
+        super(uuidf, ef, dvf, dd);
         initInfo(SYSSEQUENCES_COLUMN_COUNT, TABLENAME_STRING,
                 indexColumnPositions, uniqueness, uuids);
     }
@@ -123,7 +119,7 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
      *          thrown on failure
      */
 
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
             throws StandardException {
         ExecRow row;
         String oidString = null;
@@ -139,6 +135,9 @@ public class SYSSEQUENCESRowFactory extends CatalogRowFactory
 
 
         if (td != null) {
+            if (!(td instanceof SequenceDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             SequenceDescriptor sd = (SequenceDescriptor) td;
 
             UUID oid = sd.getUUID();
