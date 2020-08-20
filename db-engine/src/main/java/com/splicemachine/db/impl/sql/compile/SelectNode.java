@@ -47,7 +47,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
-import org.spark_project.guava.base.Predicates;
+import splice.com.google.common.base.Predicates;
 
 import java.sql.Types;
 import java.util.*;
@@ -2528,13 +2528,13 @@ public class SelectNode extends ResultSetNode{
         return orderByList;
     }
 
-    public static class SelectNodeWithSubqueryPredicate implements org.spark_project.guava.base.Predicate<Visitable> {
+    public static class SelectNodeWithSubqueryPredicate implements splice.com.google.common.base.Predicate<Visitable> {
         @Override
         public boolean apply(Visitable input) {
             return (input instanceof SelectNode) && (!((SelectNode) input).getWhereSubquerys().isEmpty() || !((SelectNode) input).getSelectSubquerys().isEmpty());
         }
     }
-    public static class SelectNodeNestingLevelFunction implements org.spark_project.guava.base.Function<SelectNode, Integer> {
+    public static class SelectNodeNestingLevelFunction implements splice.com.google.common.base.Function<SelectNode, Integer> {
         @Override
         public Integer apply(SelectNode input) {
             return input.getNestingLevel();

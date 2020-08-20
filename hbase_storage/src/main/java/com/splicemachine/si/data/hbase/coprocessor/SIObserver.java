@@ -91,8 +91,8 @@ import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Iterables;
+import splice.com.google.common.collect.Maps;
 
 import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 

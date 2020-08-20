@@ -754,4 +754,22 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockCommitCell(100, 110)
         ));
     }
+
+    @Test
+    public void mutateCalculatesSizeCorrectly() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(200, 210),
+                SITestUtils.getMockCommitCell(100, 110),
+                SITestUtils.getMockTombstoneCell(200),
+                SITestUtils.getMockValueCell(100)
+        ));
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                TxnTestUtils.getMockCommittedTxn(200, 210),
+                TxnTestUtils.getMockCommittedTxn(100, 110)
+        ));
+        long actualSize = cutForcePurge.mutate(inputCells, transactions, outputCells);
+        assertThat(actualSize, equalTo(SITestUtils.getSize(inputCells)));
+    }
 }

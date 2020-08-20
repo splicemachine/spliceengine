@@ -32,7 +32,7 @@
 package com.splicemachine.db.impl.sql.compile.subquery;
 
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
-import org.spark_project.guava.base.Predicate;
+import splice.com.google.common.base.Predicate;
 
 /**
  * Created by yxia on 3/4/19.
