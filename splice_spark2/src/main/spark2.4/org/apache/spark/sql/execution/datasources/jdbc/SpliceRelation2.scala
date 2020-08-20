@@ -6,11 +6,13 @@ import org.apache.spark.sql.jdbc.JdbcDialects
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Row, SQLContext, SparkSession}
 import org.apache.spark.sql.sources._
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 /**
   * Created by jleach on 4/7/17.
   */
 
+@SuppressFBWarnings(value = Array("SE_NO_SERIALVERSIONID","SE_TRANSIENT_FIELD_NOT_RESTORED", "NP_ALWAYS_NULL"), justification = "DB-9846")
 case class SpliceRelation2(jdbcOptions: JdbcOptionsInWrite)(@transient val sqlContext: SQLContext, @transient var userSchema: Option[StructType]) extends BaseRelation
   with PrunedFilteredScan
   with InsertableRelation {
