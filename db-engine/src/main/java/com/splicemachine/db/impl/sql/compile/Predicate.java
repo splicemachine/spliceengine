@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.BitSet;
 import java.util.Hashtable;
@@ -262,6 +263,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 
     /* Comparable interface */
+    @SuppressFBWarnings(value = "EQ_COMPARETO_USE_OBJECT_EQUALS", justification = "Intentional")
     @Override
     public int compareTo(Predicate otherPred){
 		/* Not all operators are "equal". If the predicates are on the
@@ -544,7 +546,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 		 * transitive search clause.
 		 */
         //noinspection UnnecessaryBoxing
-        Integer i=new Integer(ro.getOperator());
+        Integer i=Integer.valueOf(ro.getOperator());
         //noinspection unchecked
         searchClauseHT.put(i,i);
     }
@@ -700,9 +702,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         super.acceptChildren(v);
         // Don't replace the top-level AND.
         if(andNode!=null){
-            AndNode origNode = andNode;
             if (v instanceof PredicateSimplificationVisitor) {
-                Visitable dummynode = andNode.accept(v, this);
+                andNode.accept(v, this);
             }
             else
                 andNode=(AndNode)andNode.accept(v, this);
