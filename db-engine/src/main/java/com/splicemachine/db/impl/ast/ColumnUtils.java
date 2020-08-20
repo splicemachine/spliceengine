@@ -34,7 +34,7 @@ package com.splicemachine.db.impl.ast;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.collect.Iterables;
 
 import java.util.List;
 
@@ -44,7 +44,7 @@ import java.util.List;
  */
 public class ColumnUtils {
 
-    public static class IsCorrelatedPredicate implements org.spark_project.guava.base.Predicate<ColumnReference> {
+    public static class IsCorrelatedPredicate implements splice.com.google.common.base.Predicate<ColumnReference> {
 
         public static final IsCorrelatedPredicate INSTANCE = new IsCorrelatedPredicate();
 

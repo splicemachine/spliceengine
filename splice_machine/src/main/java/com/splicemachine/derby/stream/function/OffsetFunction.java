@@ -14,12 +14,13 @@
 
 package com.splicemachine.derby.stream.function;
 
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.PeekingIterator;
+import splice.com.google.common.collect.Iterables;
+import splice.com.google.common.collect.Iterators;
+import splice.com.google.common.collect.PeekingIterator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -90,6 +91,7 @@ public class OffsetFunction<Op extends SpliceOperation,V> extends SpliceFlatMapF
             return Iterables.transform(result, new Function<Tuple2<V, Long>, V>() {
                 @Nullable
                 @Override
+                @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
                 public V apply(@Nullable Tuple2<V, Long> tuple) {
                     return tuple._1();
                 }

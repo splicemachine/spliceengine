@@ -33,12 +33,5 @@
             <version>3.6.6.Final</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <!-- org.spark_project.guava -->
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 </project>

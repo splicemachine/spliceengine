@@ -16,7 +16,7 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.spark_project.guava.collect.Iterators;
+import splice.com.google.common.collect.Iterators;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;

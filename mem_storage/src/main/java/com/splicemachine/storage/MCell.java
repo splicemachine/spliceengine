@@ -15,7 +15,7 @@
 package com.splicemachine.storage;
 
 import com.splicemachine.access.util.ByteComparisons;
-import org.spark_project.guava.primitives.Longs;
+import splice.com.google.common.primitives.Longs;
 import com.splicemachine.primitives.ByteComparator;
 import com.splicemachine.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

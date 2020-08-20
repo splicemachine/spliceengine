@@ -12,32 +12,21 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.concurrent;
+package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-import com.google.common.collect.Sets;
-import org.junit.Test;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.utils.SpliceLogUtils;
 
-import java.util.Set;
-import java.util.concurrent.locks.ReadWriteLock;
-
-import static org.junit.Assert.assertEquals;
-
-public class LongStripedSynchronizerTest {
-
-    @Test
-    public void stripedReadWriteLock() {
-        // given
-        LongStripedSynchronizer<ReadWriteLock> striped = LongStripedSynchronizer.stripedReadWriteLock(128, false);
-
-        // when
-        Set<ReadWriteLock> locks = Sets.newIdentityHashSet();
-        for (long i = 0; i < 2000; i++) {
-            ReadWriteLock e = striped.get(i);
-            locks.add(e);
-        }
-
-        // then
-        assertEquals(128, locks.size());
+public class UpgradeScriptToAddCatalogVersion extends UpgradeScriptBase {
+    public UpgradeScriptToAddCatalogVersion(SpliceDataDictionary sdd, TransactionController tc) {
+        super(sdd, tc);
     }
 
+    @Override
+    protected void upgradeSystemTables() throws StandardException {
+        SpliceLogUtils.info(LOG, "Adding catalog versions to system tables");
+        sdd.addCatalogVersion(tc);
+    }
 }
