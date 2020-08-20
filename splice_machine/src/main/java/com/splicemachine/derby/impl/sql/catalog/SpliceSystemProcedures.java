@@ -1534,6 +1534,20 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(replicationEnabled);
+
+                    Procedure beginRollingUpgrade = Procedure.newBuilder().name("BEGIN_ROLLING_UPGRADE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(beginRollingUpgrade);
+
+                    Procedure endRollingUpgrade = Procedure.newBuilder().name("END_ROLLING_UPGRADE")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(endRollingUpgrade);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

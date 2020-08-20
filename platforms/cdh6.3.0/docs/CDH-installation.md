@@ -453,7 +453,7 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>hbase.balancer.period</name><value>60000</value></property>
    <property><name>hbase.client.ipc.pool.size</name><value>10</value></property>
    <property><name>hbase.client.max.perregion.tasks</name><value>100</value></property>
-   <property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices</value></property>
+   <property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.hbase.SpliceRSRpcServices</value></property>
    <property><name>hbase.hstore.defaultengine.compactionpolicy.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactionPolicy</value></property>
    <property><name>hbase.hstore.defaultengine.compactor.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactor</value></property>
    <property><name>hbase.htable.threads.max</name><value>96</value></property>

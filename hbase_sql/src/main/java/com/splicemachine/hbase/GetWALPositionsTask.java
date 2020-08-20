@@ -18,7 +18,6 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;

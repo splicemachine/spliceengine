@@ -9491,6 +9491,10 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>operation</arg>
            </msg>
            <msg>
+               <name>OL001</name>
+               <text>Failed to lauch OLAP Servers</text>
+           </msg>
+           <msg>
                <name>EXT37</name>
                <text>Cannot grant permissions when Splice Machine is attached to Ranger.  Please use the Ranger UI.</text>
            </msg>
