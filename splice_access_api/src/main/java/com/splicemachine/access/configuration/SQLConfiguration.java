@@ -26,7 +26,7 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String SPLICE_USER = "SPLICE";
     public static final String SPLICE_JDBC_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
     public static final String CONGLOMERATE_TABLE_NAME =SIConfigurations.CONGLOMERATE_TABLE_NAME;
-    @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
+    @SuppressFBWarnings(value = {"MS_MUTABLE_ARRAY", "MS_PKGPROTECT"}, justification = "Intentional")
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = SIConfigurations.CONGLOMERATE_TABLE_NAME_BYTES;
 
     //TODO -sf- move this to HBase-specific configuration

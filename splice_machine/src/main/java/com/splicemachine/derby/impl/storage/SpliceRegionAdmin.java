@@ -246,7 +246,6 @@ public class SpliceRegionAdmin {
         };
 
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation activation = conn.getLanguageConnection().getLastActivation();
 
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
@@ -597,7 +596,6 @@ public class SpliceRegionAdmin {
         }
 
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation activation = conn.getLanguageConnection().getLastActivation();
 
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
@@ -731,7 +729,6 @@ public class SpliceRegionAdmin {
         if (index != null) {
             IndexRowGenerator irg = index.getIndexDescriptor();
             IndexDescriptor id = irg.getIndexDescriptor();
-            boolean isUnique = id.isUnique();
             int[] positions = id.baseColumnPositions();
             int[] typeFormatIds = new int[positions.length];
             int i = 0;
