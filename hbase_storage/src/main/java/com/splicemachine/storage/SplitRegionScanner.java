@@ -24,7 +24,7 @@ import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.regionserver.ScannerContext;
-import org.spark_project.guava.base.Throwables;
+import splice.com.google.common.base.Throwables;
 import com.splicemachine.access.client.HBaseClientSideRegionScanner;
 import com.splicemachine.access.client.SkeletonClientSideRegionScanner;
 import com.splicemachine.concurrent.Clock;

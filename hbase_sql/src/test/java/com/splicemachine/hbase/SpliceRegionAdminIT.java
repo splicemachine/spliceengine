@@ -30,7 +30,7 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.io.File;
 import java.sql.Connection;

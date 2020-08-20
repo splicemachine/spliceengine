@@ -36,7 +36,7 @@ import org.jboss.netty.handler.codec.frame.LengthFieldPrepender;
 import org.jboss.netty.handler.codec.protobuf.ProtobufDecoder;
 import org.jboss.netty.handler.codec.protobuf.ProtobufEncoder;
 import org.jboss.netty.util.HashedWheelTimer;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.CountDownLatches;
 import com.splicemachine.timestamp.api.Callback;
 import com.splicemachine.timestamp.api.TimestampClientStatistics;

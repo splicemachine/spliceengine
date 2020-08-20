@@ -19,8 +19,8 @@ import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.si.impl.driver.SIDriver;
-import org.spark_project.guava.util.concurrent.ListenableFuture;
-import org.spark_project.guava.util.concurrent.SettableFuture;
+import splice.com.google.common.util.concurrent.ListenableFuture;
+import splice.com.google.common.util.concurrent.SettableFuture;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;

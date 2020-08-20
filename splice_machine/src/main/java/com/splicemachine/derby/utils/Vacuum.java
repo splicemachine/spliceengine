@@ -32,7 +32,7 @@ import com.splicemachine.storage.DataScanner;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.collect.Iterables;
 
 import java.io.IOException;
 import java.sql.Connection;

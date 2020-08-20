@@ -32,7 +32,7 @@
 package com.splicemachine.db.impl.sql.compile.subquery;
 
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
-import org.spark_project.guava.base.Predicate;
+import splice.com.google.common.base.Predicate;
 
 /**
  * Returns true if the column reference is referring to a column MORE than one level up.

@@ -15,11 +15,17 @@
 
 package com.splicemachine.derby.stream.control.output;
 
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.mapreduce.RecordWriter;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.IOException;
 
 public interface ParquetWriterFactory {
     <K, V> RecordWriter<K, V> getParquetRecordWriter(String location, String compression, StructType tableSchema) throws IOException, InterruptedException;
+
+    InternalRow encodeToRow(StructType tableSchema, ValueRow valueRow, ExpressionEncoder<Row> encoder);
 }

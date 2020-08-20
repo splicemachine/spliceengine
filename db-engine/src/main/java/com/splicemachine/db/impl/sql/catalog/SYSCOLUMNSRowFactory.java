@@ -43,7 +43,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -117,9 +117,10 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    SYSCOLUMNSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    SYSCOLUMNSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
     {
-        this(uuidf, ef, dvf, TABLENAME_STRING);
+        super(uuidf,ef,dvf, dd);
+        initInfo(SYSCOLUMNS_COLUMN_COUNT,TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
 
     SYSCOLUMNSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf,
@@ -144,7 +145,7 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
      */
 
     @SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST",justification = "Intentional")
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException{
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException{
         ExecRow    				row;
 
         String					colName = null;
@@ -172,6 +173,9 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
         byte    useExtrapolation = 0;
 
         if (td != null) {
+            if (!(td instanceof ColumnDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             ColumnDescriptor  column = (ColumnDescriptor)td;
 		
 			      /* Lots of info in the column's type descriptor */

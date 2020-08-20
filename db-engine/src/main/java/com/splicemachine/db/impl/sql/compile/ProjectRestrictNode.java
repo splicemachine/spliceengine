@@ -48,8 +48,8 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
