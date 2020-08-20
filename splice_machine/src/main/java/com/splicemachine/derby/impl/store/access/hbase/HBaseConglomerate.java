@@ -96,6 +96,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
+                properties.getProperty(SIConstants.CATALOG_VERSION_ATTR),
                 pSize,
                 splitKeys);
     }

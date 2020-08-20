@@ -126,6 +126,11 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 		initInfo(SYSTABLES_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, (boolean[]) null, uuids);
 	}
 
+	SYSTABLESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
+	{
+		super(uuidf,ef,dvf, dd);
+		initInfo(SYSTABLES_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, (boolean[]) null, uuids);
+	}
 	/////////////////////////////////////////////////////////////////////////////
 	//
 	//	METHODS
@@ -140,7 +145,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 	 * @exception   StandardException thrown on failure
 	 */
 
-	public ExecRow makeRow(TupleDescriptor td,
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td,
 						   TupleDescriptor	parent)
 					throws StandardException
 	{
@@ -346,7 +351,6 @@ public class SYSTABLESRowFactory extends CatalogRowFactory
 				/* 1st column is TABLEID (UUID - char(36)) */
 				row.setColumn(1,new SQLChar());
 				break;
-
 			default:
 				throw new IllegalArgumentException("unexpected indexNumber: " + indexNumber);
 		}	// end switch
