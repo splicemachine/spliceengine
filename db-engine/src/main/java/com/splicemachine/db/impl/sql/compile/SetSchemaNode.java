@@ -168,7 +168,6 @@ public class SetSchemaNode extends MiscellaneousStatementNode
 	 */
 	int activationKind()
 	{
-		Vector parameterList = getCompilerContext().getParameterList();
 		/*
 		** We need parameters 
 		** only for those that have parameters.
