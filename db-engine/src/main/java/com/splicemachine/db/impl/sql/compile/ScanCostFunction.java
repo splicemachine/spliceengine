@@ -54,7 +54,7 @@ import java.util.*;
  *         Date: 5/15/15
  */
 public class ScanCostFunction{
-    public static Logger LOG = Logger.getLogger(ScanCostFunction.class);
+    public static final Logger LOG = Logger.getLogger(ScanCostFunction.class);
     private final Optimizable baseTable;
     private final CostEstimate scanCost;
     private final StoreCostController scc;
@@ -268,7 +268,7 @@ public class ScanCostFunction{
         scanCost.setLocalCostPerPartition(scanCost.localCost(), scanCost.partitionCount());
         scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.partitionCount());
         if (LOG.isTraceEnabled()) {
-            LOG.trace(String.format("\n" +
+            LOG.trace(String.format("%n" +
                             "============= generateOneRowCost() for table: %s =============%n" +
                             "Conglomerate:               %s, %n" +
                             "totalRowCount:              %.1f, %n" +
@@ -285,7 +285,7 @@ public class ScanCostFunction{
                             "localCost:                  %.1f, %n" +
                             "numPartition:               %d, %n" +
                             "localCostPerPartition:      %.1f %n" +
-                            "========================================================\n",
+                            "========================================================%n",
                     baseTable.getBaseTableName(),
                     baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
                     scanCost.rowCount(), scanCost.getEstimatedHeapSize(), congAverageWidth,
@@ -384,7 +384,7 @@ public class ScanCostFunction{
             scanCost.setProjectionCost(-1.0d);
         } else {
             projectionCost = totalRowCount * filterBaseTableSelectivity * localLatency * colSizeFactor*1d/1000d;
-            scanCost.setProjectionRows(Math.round(scanCost.getEstimatedRowCount()));
+            scanCost.setProjectionRows((double)scanCost.getEstimatedRowCount());
             scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }
         assert projectionCost >= 0 : "projectionCost cannot be negative -> " + projectionCost;
@@ -397,7 +397,7 @@ public class ScanCostFunction{
         scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.partitionCount());
 
         if (LOG.isTraceEnabled()) {
-            LOG.trace(String.format("\n" +
+            LOG.trace(String.format("%n" +
             "============= generateCost() for table: %s =============%n" +
             "Conglomerate:               %s, %n" +
             "baseTableSelectivity:       %.18f, %n" +
@@ -418,7 +418,7 @@ public class ScanCostFunction{
             "localCost:                  %.1f, %n" +
             "numPartition:               %d, %n" +
             "localCostPerPartition:      %.1f %n" +
-            "========================================================\n",
+            "========================================================%n",
             baseTable.getBaseTableName(),
             baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
             baseTableSelectivity,
