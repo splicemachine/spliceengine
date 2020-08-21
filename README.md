@@ -1,6 +1,6 @@
 
 <p align="left">
-  <img src="https://www.splicemachine.com/wp-content/themes/SpliceMachine/nhimages/splice-logo.png" width="250"/>
+    <img src="https://doc.splicemachine.com/images/spliceTitleLogo.png" width="200"/>
 </p>
 
 # Splice Machine SQL Engine
