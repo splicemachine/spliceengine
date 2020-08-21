@@ -751,7 +751,7 @@ public class IndexIT extends SpliceUnitTest{
 
         List<String> arr2=methodWatcher.queryList(sql2);
 
-        assertTrue("Plan #1 has small size",arr1.size()==12);
+        assertTrue("Plan #1 has small size",arr1.size()==10);
         assertTrue("Plan #1 must be longer that plan #2",arr1.size()>arr2.size());
 
         String messages=Joiner.on("").join(arr1);
@@ -778,6 +778,7 @@ public class IndexIT extends SpliceUnitTest{
     // DB-5029
     public void testCreateIndexAndUpdateDataViaIndexScan() throws Exception {
         methodWatcher.executeUpdate("create table double_INDEXES1(column1 DOUBLE)");
+        methodWatcher.executeUpdate("INSERT INTO double_INDEXES1(column1) VALUES (-1.79769E+308),(1.79769E+308),(0)");
         methodWatcher.executeUpdate("CREATE INDEX doubleIndex2 ON double_INDEXES1(column1 ASC)");
         methodWatcher.executeUpdate("update double_INDEXES1 set column1 = -1.79769E+308 where column1 = -1.79769E+308");
         rowContainsQuery(new int[]{1,2,3},"select column1 from double_INDEXES1 --splice-properties index=doubleIndex2\n order by column1",methodWatcher,
