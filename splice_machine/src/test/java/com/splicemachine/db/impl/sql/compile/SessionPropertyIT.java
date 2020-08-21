@@ -236,12 +236,10 @@ public class SessionPropertyIT extends SpliceUnitTest {
         }
         // number of tables (3) > tableLimitForExhaustiveSearch (1), use heuristic instead of enumerating,
         // intermediate result size is less satisfying
-
-        // Depending on how busy the system is, the query plan for this query may differ due
-        // to the time limit imposed on query planning.  Sometimes the time limit is exceeded,
-        // at which point the current best plan is picked.
-        // Disable this test for now, as it fails sporadically:
-        // rowContainsQuery(6, String.format(testQuery, ""), "outputRows=40", conn);
+        // DB-10054
+        // Disable the following test for now because the number of join orders enumerated under jump mode
+        // before timeout exceeded is quite nondeterministic.
+        //rowContainsQuery(5, String.format(testQuery, ""), "outputRows=80", conn);
 
         // overwrite session property by using a query hint
         // intermediate result size should be better
