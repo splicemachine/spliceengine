@@ -14,8 +14,10 @@
 
 package com.splicemachine.timestamp.api;
 
-public interface Callback {
-	void error(Exception e);
+import com.splicemachine.timestamp.impl.TimestampMessage;
 
-	void complete(long timestamp);
+public interface Callback {
+    void error(Exception e);
+
+    void complete(TimestampMessage.TimestampResponse response);
 }
