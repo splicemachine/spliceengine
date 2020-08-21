@@ -23,5 +23,5 @@ public interface TimestampSource {
     void rememberTimestamp(long timestamp);
     long retrieveTimestamp();
     void shutdown();
-    void refresh();
+    void bumpTimestamp(long timestamp);
 }
