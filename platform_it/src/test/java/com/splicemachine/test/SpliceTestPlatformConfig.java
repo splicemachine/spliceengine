@@ -264,12 +264,16 @@ class SpliceTestPlatformConfig {
         config.setInt("hbase.hconnection.threads.max", 128);
         config.setInt("hbase.hconnection.threads.core", 8);
         config.setLong("hbase.hconnection.threads.keepalivetime", 300);
-        config.setLong("hbase.regionserver.msginterval", 1000);
+        config.setLong("hbase.regionserver.msginterval", 15000);
         config.setLong("hbase.regionserver.optionalcacheflushinterval", 0); // disable automatic flush, meaningless since our timestamps are arbitrary
         config.setLong("hbase.master.event.waiting.time", 20);
         config.setLong("hbase.master.lease.thread.wakefrequency", SECONDS.toMillis(3));
 //        config.setBoolean("hbase.master.loadbalance.bytable",true);
-        config.setInt("hbase.balancer.period",5000);
+
+        // The hbase balancer uses a lot of memory and network resources.
+        // Effectively disable this on standalone to avoid OOM and network hiccups.
+        config.setInt("hbase.balancer.period",300000000); // 5000 minutes
+        config.setInt("hbase.balancer.statusPeriod",300000000); // 5000 minutes
 
         config.setLong("hbase.server.thread.wakefrequency", SECONDS.toMillis(1));
         config.setLong("hbase.client.pause", 100);
@@ -337,6 +341,11 @@ class SpliceTestPlatformConfig {
         // future of splice OLAP query execution.
         config.setLong("splice.optimizer.broadcastDatasetCostThreshold", -1);
 
+        // Fix SessionPropertyIT.TestTableLimitForExhaustiveSearchSessionProperty
+        // by setting a min query planner timeout of 5 ms.  Otherwise, with small
+        // tables, we may timeout too quickly when the system is a little busy
+        // and get an unexpected join plan.
+        config.setLong("splice.optimizer.minPlanTimeout", 5L);
 
         if (derbyPort > SQLConfiguration.DEFAULT_NETWORK_BIND_PORT) {
             // we are a member, let's ignore transactions for testing

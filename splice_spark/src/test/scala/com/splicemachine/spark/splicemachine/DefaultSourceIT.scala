@@ -16,45 +16,55 @@ package com.splicemachine.spark.splicemachine
 import java.io.File
 import java.math.BigDecimal
 import java.nio.file.{Files, Path}
-import java.sql.{Time, Timestamp}
+import java.sql.{Connection, SQLException, Time, Timestamp}
 import java.util.Date
 
+import com.splicemachine.test.LongerThanTwoMinutes
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
-import org.apache.spark.sql.jdbc.JdbcDialects
-
-import scala.collection.immutable.IndexedSeq
 import org.apache.spark.sql._
-import org.junit.runner.RunWith
+import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
+import org.apache.spark.sql.functions._
 import org.junit.Assert._
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
+import org.junit.experimental.categories.Category
+import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.apache.spark.sql.functions._
 import java.sql.Connection
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
 import com.splicemachine.test.{LongerThanFiveMinutes, LongerThanTwoMinutes}
 import org.junit.experimental.categories.Category
+import scala.collection.immutable.IndexedSeq
 
 @RunWith(classOf[JUnitRunner])
 @Category(Array(classOf[LongerThanTwoMinutes], classOf[LongerThanFiveMinutes]))
 class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
-  var sqlContext : SQLContext = _
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
 
   before {
     val rowCount = 10
     if (sqlContext == null)
       sqlContext = new SQLContext(sc)
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
+
+    try {
+        splicemachineContext.dropTable(internalTN)
     }
-    if (splicemachineContext.tableExists(schema+"."+"T")) {
-      splicemachineContext.dropTable(schema+"."+"T")
+    catch {
+      case e: SQLException =>
     }
-    if (splicemachineContext.tableExists(schema+"."+"T2")) {
-      splicemachineContext.dropTable(schema+"."+"T2")
+    try {
+        splicemachineContext.dropTable(schema + "." + "T")
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T2")
+    }
+    catch {
+      case e: SQLException =>
     }
     insertInternalRows(rowCount)
     splicemachineContext.getConnection().commit()
@@ -62,10 +72,31 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
   }
   
   after {
-    dropTable(internalTN)
-    dropTable(externalTN)
-    dropTable(s"$schema.T")
-    dropTable(s"$schema.T2")
+
+    try {
+      splicemachineContext.dropTable(internalTN)
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(externalTN)
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T")
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T2")
+    }
+    catch {
+      case e: SQLException =>
+    }
   }
 
   test("read from datasource api") {
@@ -586,3 +617,5 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
   }
 
 }
+
+object e

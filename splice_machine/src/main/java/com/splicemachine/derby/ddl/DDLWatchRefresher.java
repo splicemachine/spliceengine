@@ -19,6 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.si.api.filter.TransactionReadController;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnStore;
@@ -37,6 +38,8 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.splicemachine.ddl.DDLMessage.DDLChangeType.ENTER_RESTORE_MODE;
 
 /**
  * @author Scott Fines
@@ -214,7 +217,20 @@ public class DDLWatchRefresher{
     private void assignDDLDemarcationPoint(DDLChange ddlChange) {
         try {
             TxnView txn = new LazyTxnView(ddlChange.getTxnId(),txnSupplier,exceptionFactory);
-            assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
+            // A full Restore operation overwrites SPLICE_TXN, so the transaction used by the restore
+            // may not be found.  Avoid the assertion to avoid crashing.
+            // An example call stack can be found in https://splicemachine.atlassian.net/browse/DB-10025
+            if (ddlChange.getDdlChangeType() != ENTER_RESTORE_MODE) {
+                assert txn.allowsWrites() : "DDLChange " + ddlChange + " does not have a writable transaction";
+            }
+            else {
+                try {
+                    SpliceAdmin.INVALIDATE_GLOBAL_DICTIONARY_CACHE();
+                }
+                catch (Exception e) {
+                }
+                ddlDemarcationPoint.set(null);
+            }
             DDLFilter ddlFilter = txController.newDDLFilter(txn);
             if (ddlFilter.compareTo(ddlDemarcationPoint.get()) > 0) {
                 ddlDemarcationPoint.set(ddlFilter);
