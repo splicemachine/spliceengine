@@ -4089,13 +4089,15 @@ explainStatement() throws StandardException :
 {
     StatementNode   statementNode;
     StatementNode    explainStatement;
+    Token           getToken = null;
 }
 {
-    <EXPLAIN> statementNode = preparableSQLDataStatement()
+    <EXPLAIN> [getToken = <GET> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.NONE,
+                                   (getToken != null),
                                    getContextManager());
     }
     | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
@@ -4103,6 +4105,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.EXECUTED,
+                                   false,
                                    getContextManager());
     }
     | <SPARKEXPLAIN_LOGICAL> statementNode = preparableSQLDataStatement()
@@ -4110,6 +4113,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.LOGICAL,
+                                   false,
                                    getContextManager());
     }
     | <SPARKEXPLAIN_ANALYZED> statementNode = preparableSQLDataStatement()
@@ -4117,6 +4121,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.ANALYZED,
+                                   false,
                                    getContextManager());
     }
     | <SPARKEXPLAIN_OPTIMIZED> statementNode = preparableSQLDataStatement()
@@ -4124,6 +4129,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.OPTIMIZED,
+                                   false,
                                    getContextManager());
     }
 }
