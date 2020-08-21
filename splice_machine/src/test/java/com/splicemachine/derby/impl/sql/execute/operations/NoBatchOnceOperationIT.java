@@ -96,7 +96,6 @@ public class NoBatchOnceOperationIT extends SpliceUnitTest {
      */
     @Test
     public void notBatchOnce() throws Exception {
-        methodWatcher.execute(format("analyze schema %s", SCHEMA));
         assertFalse(isBatchOnceUpdate(format("update A --splice-properties useSpark=%s\n set A.name = 'foo' where A.name IS NULL", useSpark)));
         assertFalse(isBatchOnceUpdate(format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where B.id = 10)", useSpark)));
         assertFalse(isBatchOnceUpdate(format("update A --splice-properties useSpark=%s\n set A.name = (select B.name from B where B.id = B.id2)", useSpark)));

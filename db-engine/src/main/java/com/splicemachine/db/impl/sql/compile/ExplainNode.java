@@ -60,6 +60,7 @@ public class ExplainNode extends DMLStatementNode {
 
     StatementNode node;
     private SparkExplainKind sparkExplainKind;
+    private boolean showNoStatsObjects;
 
     private final List<SQLVarchar> noStatsTables  = new ArrayList<>();
     private final List<SQLVarchar> noStatsColumns = new ArrayList<>();
@@ -92,9 +93,11 @@ public class ExplainNode extends DMLStatementNode {
     public String statementToString() { return "Explain"; }
 
     public void init(Object statementNode,
-                     Object sparkExplainKind) {
+                     Object sparkExplainKind,
+                     Object showNoStatsObjects) {
         node = (StatementNode)statementNode;
         this.sparkExplainKind = (SparkExplainKind)sparkExplainKind;
+        this.showNoStatsObjects = (Boolean)showNoStatsObjects;
     }
 
     /**
@@ -114,7 +117,8 @@ public class ExplainNode extends DMLStatementNode {
         node.optimizeStatement();
 
         // collect tables and columns that are missing statistics only for splice explain
-        if (sparkExplainKind != SparkExplainKind.NONE)
+        // showNoStatsObjects == false for all kinds of spark explain
+        if (!showNoStatsObjects)
             return;
 
         HashSet<String> noStatsColumnSet = new HashSet<>();
