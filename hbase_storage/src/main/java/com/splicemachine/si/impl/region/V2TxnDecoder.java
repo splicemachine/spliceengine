@@ -37,7 +37,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
-import org.spark_project.guava.collect.Iterators;
+import splice.com.google.common.collect.Iterators;
 
 import java.io.IOException;
 import java.util.ArrayList;
