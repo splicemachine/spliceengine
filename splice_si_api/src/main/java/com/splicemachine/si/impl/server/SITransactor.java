@@ -324,14 +324,21 @@ public class SITransactor implements Transactor{
 
             conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
-            if (possibleConflicts == null || possibleConflicts.isEmpty()) {
-                // First write
-                addFirstOccurrenceToken = true;
-            } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
-                // Delete following first write
-                assert possibleConflicts.userData() != null;
-                addFirstOccurrenceToken = possibleConflicts.firstWriteToken().version() == possibleConflicts.userData().version();
+
+            if (!skipConflictDetection) {
+                if (possibleConflicts == null || possibleConflicts.isEmpty())
+                {
+                    // First write
+                    if (KVPair.Type.INSERT.equals(writeType) ||
+                        KVPair.Type.UPSERT.equals(writeType))
+                        addFirstOccurrenceToken = true;
+                } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
+                    // Delete following first write
+                    assert possibleConflicts.userData() != null;
+                    addFirstOccurrenceToken = possibleConflicts.firstWriteToken().version() == possibleConflicts.userData().version();
+                }
             }
+
             DataPut mutationToRun = getMutationToRun(
                     table, kvPair, family, qualifier, transaction, conflictResults, addFirstOccurrenceToken, skipWAL, toRollforward);
             finalMutationsToWrite.put(i,mutationToRun);

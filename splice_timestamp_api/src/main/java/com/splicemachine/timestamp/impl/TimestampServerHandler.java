@@ -53,40 +53,47 @@ public class TimestampServerHandler extends TimestampBaseHandler {
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
         assert oracle != null;
+        TimestampMessage.TimestampRequest request = (TimestampMessage.TimestampRequest) e.getMessage();
+        TimestampMessage.TimestampResponse.Builder responseBuilder = TimestampMessage.TimestampResponse.newBuilder()
+                .setCallerId(request.getCallerId())
+                .setTimestampRequestType(request.getTimestampRequestType());
 
-        ChannelBuffer buf = (ChannelBuffer) e.getMessage();
-        assert buf != null;
-        ensureReadableBytes(buf, TimestampServer.FIXED_MSG_RECEIVED_LENGTH);
-
-        final short callerId = buf.readShort();
-        final byte b = buf.readByte();
-        boolean refresh = ((b & 1) != 0);
-        boolean increment = ((b & 2) != 0);
-        ensureReadableBytes(buf, 0);
-
-        SpliceLogUtils.trace(LOG, "Received timestamp request from client. Caller id = %s", callerId);
-        long nextTimestamp = oracle.getNextTimestamp(refresh, increment);
-        assert nextTimestamp > 0;
-
-
+        SpliceLogUtils.trace(LOG, "Received timestamp request from client. Caller id = %s", request.getCallerId());
+        switch (request.getTimestampRequestType()) {
+            case GET_CURRENT_TIMESTAMP: {
+                long timestamp = oracle.getCurrentTimestamp();
+                assert timestamp > 0;
+                responseBuilder.setGetCurrentTimestampResponse(
+                        TimestampMessage.GetCurrentTimestampResponse.newBuilder().setTimestamp(timestamp));
+                break;
+            }
+            case GET_NEXT_TIMESTAMP: {
+                long timestamp = oracle.getNextTimestamp();
+                assert timestamp > 0;
+                responseBuilder.setGetNextTimestampResponse(
+                        TimestampMessage.GetNextTimestampResponse.newBuilder().setTimestamp(timestamp));
+                break;
+            }
+            case BUMP_TIMESTAMP:
+                oracle.bumpTimestamp(request.getBumpTimestamp().getTimestamp());
+                break;
+            default:
+                assert false;
+        }
         //
         // Respond to the client
         //
 
-        ChannelBuffer writeBuf = ChannelBuffers.buffer(TimestampServer.FIXED_MSG_SENT_LENGTH);
-        writeBuf.writeShort(callerId);
-        writeBuf.writeLong(nextTimestamp);
-        SpliceLogUtils.debug(LOG, "Responding to caller %s with timestamp %s", callerId, nextTimestamp);
-        ChannelFuture futureResponse = e.getChannel().write(writeBuf); // Could also use Channels.write
-        futureResponse.addListener(new ChannelFutureListener() {
-                                       @Override
-                                       public void operationComplete(ChannelFuture cf) throws Exception {
-                                           if (!cf.isSuccess()) {
-                                               throw new TimestampIOException(
-                                                       "Failed to respond successfully to caller id " + callerId, cf.getCause());
-                                           }
-                                       }
-                                   }
+        TimestampMessage.TimestampResponse response = responseBuilder.build();
+
+        SpliceLogUtils.debug(LOG, "Responding to caller %s with response %s", response.getCallerId(), response);
+        ChannelFuture futureResponse = e.getChannel().write(response); // Could also use Channels.write
+        futureResponse.addListener(cf -> {
+            if (!cf.isSuccess()) {
+                throw new TimestampIOException(
+                        "Failed to respond successfully to caller id " + response.getCallerId(), cf.getCause());
+            }
+        }
         );
 
         super.messageReceived(ctx, e);
