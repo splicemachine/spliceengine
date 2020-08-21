@@ -50,6 +50,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private AtomicLong remainingTime;
     private volatile boolean stop = false;
     private Thread readerThread;
+    private long size;
 
     public AbstractSICompactionScanner(SICompactionState compactionState,
                                        InternalScanner scanner,
@@ -69,6 +70,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         String name = "Compaction-resolution-throttle-"+UUID.randomUUID();
         LOG.info("Starting " + name);
         this.timer = new Timer(name, true);
+        this.size = 0;
     }
 
     @Override
@@ -87,7 +89,7 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             int toRelease = entry.cells.size();
             final boolean more = entry.more;
             List<TxnView> txns = waitFor(entry.txns);
-            compactionState.mutate(entry.cells, txns, list, purgeConfig);
+            size += compactionState.mutate(entry.cells, txns, list, purgeConfig);
             if (!more) {
                 timer.cancel();
                 context.close();
@@ -196,5 +198,9 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
             this.txns = txns;
             this.more = more;
         }
+    }
+
+    public long numberOfScannedBytes() {
+        return size;
     }
 }

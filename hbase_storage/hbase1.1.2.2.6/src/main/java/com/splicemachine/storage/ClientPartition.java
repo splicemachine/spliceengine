@@ -210,8 +210,8 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 Map<byte[], RegionLoad> regionsLoad=load.getRegionsLoad();
                 for(HRegionInfo info:entry.getValue()){
                     RegionLoad rl = regionsLoad.get(info.getRegionName());
-                    totalStoreFileSize+=rl.getStorefileSizeMB()*1024*1024;
-                    totalMemstoreSize+=rl.getMemStoreSizeMB()*1024*1024;
+                    totalStoreFileSize+=rl.getStorefileSizeMB()*1024*1024L;
+                    totalMemstoreSize+=rl.getMemStoreSizeMB()*1024*1024L;
                 }
             }
         }

@@ -15,6 +15,7 @@
 package com.splicemachine.access.configuration;
 
 import com.splicemachine.primitives.Bytes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Repository for holding configuration keys for SI.
@@ -27,6 +28,7 @@ import com.splicemachine.primitives.Bytes;
  */
 public class SIConfigurations implements ConfigurationDefault {
     public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
+    @SuppressFBWarnings(value = {"MS_PKGPROTECT"}, justification = "Intentional")
     public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
 
     public static final String completedTxnCacheSize="splice.txn.completedTxns.cacheSize";

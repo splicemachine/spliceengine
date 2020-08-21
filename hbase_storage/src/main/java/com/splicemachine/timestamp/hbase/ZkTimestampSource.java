@@ -134,10 +134,10 @@ public class ZkTimestampSource implements TimestampSource {
     }
 
     @Override
-    public void refresh() {
+    public void bumpTimestamp(long timestamp) {
         try {
             TimestampClient client = getTimestampClient();
-            client.refresh();
+            client.bumpTimestamp(timestamp);
         } catch (TimestampIOException e) {
             throw new RuntimeException(e);
         }
