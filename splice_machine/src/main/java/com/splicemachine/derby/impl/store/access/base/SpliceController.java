@@ -15,8 +15,8 @@
 package com.splicemachine.derby.impl.store.access.base;
 
 import com.carrotsearch.hppc.BitSet;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -51,7 +51,7 @@ import java.util.List;
 import java.util.Properties;
 
 public abstract class SpliceController implements ConglomerateController{
-    protected static Logger LOG=Logger.getLogger(SpliceController.class);
+    protected static final Logger LOG=Logger.getLogger(SpliceController.class);
     protected OpenSpliceConglomerate openSpliceConglomerate;
     private PartitionFactory partitionFactory;
     protected BaseSpliceTransaction trans;

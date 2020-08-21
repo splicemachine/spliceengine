@@ -53,9 +53,9 @@ import org.apache.hadoop.hbase.security.access.UserPermission;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos;
 import org.apache.hadoop.hbase.util.HBaseFsckRepair;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import org.apache.hadoop.hbase.*;
-import org.spark_project.guava.collect.Collections2;
+import splice.com.google.common.collect.Collections2;
 
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
@@ -595,6 +595,48 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         return false;
     }
 
+    @Override
+    public void setCatalogVersion(long conglomerateNumber, String version) throws IOException {
+
+        TableName tn = tableInfoFactory.getTableInfo(Long.toString(conglomerateNumber));
+        try {
+            org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
+            ((TableDescriptorBuilder.ModifyableTableDescriptor) td).setValue(SIConstants.CATALOG_VERSION_ATTR, version);
+            boolean tableEnabled = admin.isTableEnabled(tn);
+            if (tableEnabled) {
+                admin.disableTable(tn);
+            }
+            admin.modifyTable(td);
+        }
+        finally {
+            int wait = 0;
+            if (tn != null && !admin.isTableEnabled(tn)) {
+                admin.enableTable(tn);
+                while (wait < 2000 && !admin.isTableEnabled(tn)) {
+                    try {
+                        Thread.sleep(100);
+                        wait++;
+                    } catch (InterruptedException e) {
+                        throw new IOException(e);
+                    }
+                }
+            }
+            if (!admin.isTableEnabled(tn)) {
+                throw new IOException("Table " + tn.getNameAsString() + " is not enabled");
+            }
+        }
+    }
+
+    @Override
+    public String getCatalogVersion(long conglomerateNumber) throws StandardException {
+        try {
+            TableName tn = tableInfoFactory.getTableInfo(Long.toString(conglomerateNumber));
+            org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
+            return td.getValue(SIConstants.CATALOG_VERSION_ATTR);
+        }catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
     private boolean grantCreatePrivilege(String tableName, String userName) throws Throwable{
 
         if (hasCreatePrivilege(tableName, userName)){

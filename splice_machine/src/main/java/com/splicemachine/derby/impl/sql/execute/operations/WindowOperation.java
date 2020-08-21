@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.splicemachine.derby.stream.function.CloneFunction;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;

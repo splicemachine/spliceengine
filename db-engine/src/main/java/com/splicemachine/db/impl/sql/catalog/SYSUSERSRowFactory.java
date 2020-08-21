@@ -38,12 +38,7 @@ import java.util.Arrays;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.UserDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.SQLTimestamp;
@@ -92,9 +87,9 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    public SYSUSERSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSUSERSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super( uuidf, ef, dvf );
+		super( uuidf, ef, dvf,dd);
 		initInfo( SYSUSERS_COLUMN_COUNT, TABLE_NAME, indexColumnPositions, uniqueness, uuids );
 	}
 
@@ -113,7 +108,7 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
 	 * @exception   StandardException thrown on failure
 	 */
 
-	public ExecRow makeRow( TupleDescriptor td, TupleDescriptor parent )
+	public ExecRow makeRow(boolean latestVersion,  TupleDescriptor td, TupleDescriptor parent )
         throws StandardException
 	{
 		String  userName = null;
@@ -126,6 +121,9 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
         try {
             if ( td != null )	
             {
+				if (!(td instanceof UserDescriptor))
+					throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
                 UserDescriptor descriptor = (UserDescriptor) td;
                 userName = descriptor.getUserName();
                 hashingScheme = descriptor.getHashingScheme();

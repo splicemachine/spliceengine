@@ -41,7 +41,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -141,6 +142,12 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         initInfo(SYSTABLES_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, (boolean[]) null, uuids);
     }
 
+    SYSTABLESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
+    {
+        super(uuidf,ef,dvf, dd);
+        initInfo(SYSTABLES_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, (boolean[]) null, uuids);
+    }
+
     /////////////////////////////////////////////////////////////////////////////
     //
     //	METHODS
@@ -153,8 +160,9 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
      * @throws StandardException thrown on failure
      * @return Row suitable for inserting into SYSTABLES.
      */
-
-    public ExecRow makeRow(TupleDescriptor td,
+    @SuppressFBWarnings(value = "BC_UNCONFIRMED_CAST", justification = "DB-9844")
+    public ExecRow makeRow(boolean latestVersion,
+                           TupleDescriptor td,
                            TupleDescriptor parent)
             throws StandardException {
         UUID oid;
@@ -332,6 +340,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
      * @throws StandardException thrown on failure
      * @param    indexNumber    Index to build empty row for.
      */
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "DB-9844")
     ExecIndexRow buildEmptyIndexRow(int indexNumber,
                                     RowLocation rowLocation)
             throws StandardException {

@@ -28,8 +28,9 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggreg
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -133,6 +134,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		}
 
 		//	@Override
+		@SuppressFBWarnings(value = "NM_VERY_CONFUSING", justification = "DB-9844")
 		public void cleanup() {
 				if (LOG.isTraceEnabled())
 						LOG.trace("cleanup");

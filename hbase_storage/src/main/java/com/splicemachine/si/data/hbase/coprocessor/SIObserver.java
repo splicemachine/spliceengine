@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
@@ -90,8 +91,8 @@ import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Iterables;
+import splice.com.google.common.collect.Maps;
 
 import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
@@ -108,11 +109,13 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     protected TransactionalRegion region;
     protected TableAuthManager authManager = null;
     protected boolean authTokenEnabled;
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
             SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
+            optionalRegionObserver = Optional.of(this);
             RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) e;
             TableName tableName = rce.getRegion().getTableDescriptor().getTableName();
             doesTableNeedSI(tableName);
@@ -153,6 +156,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     public void stop(CoprocessorEnvironment e) throws IOException{
         try {
             SpliceLogUtils.trace(LOG,"stopping %s",SIObserver.class);
+            optionalRegionObserver = Optional.empty();
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -205,6 +209,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             } else {
                 purgeConfig.noPurgeDeletes();
             }
+            purgeConfig.transactionLowWatermark(TransactionsWatcher.getLowWatermarkTransaction());
             purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
@@ -353,7 +358,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 
     protected boolean shouldUseSI(OperationWithAttributes op){

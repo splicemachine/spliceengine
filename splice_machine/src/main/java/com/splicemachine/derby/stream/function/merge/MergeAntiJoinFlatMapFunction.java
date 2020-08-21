@@ -19,7 +19,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
 import com.splicemachine.derby.stream.iterator.merge.MergeAntiJoinIterator;
-import org.spark_project.guava.collect.PeekingIterator;
+import splice.com.google.common.collect.PeekingIterator;
 
 /**
  * Created by jleach on 6/9/15.
