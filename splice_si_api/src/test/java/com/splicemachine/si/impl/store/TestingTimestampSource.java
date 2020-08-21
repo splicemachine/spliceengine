@@ -48,7 +48,7 @@ public class TestingTimestampSource implements TimestampSource{
     }
 
     @Override
-    public void refresh() {
+    public void bumpTimestamp(long timestamp) {
 
     }
 }

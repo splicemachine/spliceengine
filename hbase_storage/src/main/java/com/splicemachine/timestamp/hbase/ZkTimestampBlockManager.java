@@ -44,7 +44,7 @@ public class ZkTimestampBlockManager implements TimestampBlockManager{
     }
 
 
-    public void reserveNextBlock(long nextMax) throws TimestampIOException{
+    public void persistMaxTimestamp(long nextMax) throws TimestampIOException{
         byte[] data = Bytes.toBytes(nextMax);
         try {
             rzk.setData(blockNode, data, -1 /* version */); // durably reserve the next block
