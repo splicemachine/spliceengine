@@ -57,7 +57,6 @@ public class CreateIndexNode extends DDLStatementNode
 {
 	boolean				unique;
 	boolean				uniqueWithDuplicateNulls;
-//	DataDictionary		dd = null;
 	Properties			properties;
 	String				indexType;
 	TableName			indexName;
@@ -296,11 +295,7 @@ public class CreateIndexNode extends DDLStatementNode
 	public ConstantAction	makeConstantAction() throws StandardException
 	{
 		SchemaDescriptor		sd = getSchemaDescriptor();
-
-//		int columnCount = columnNames.length;
 		int approxLength = 0;
-//		boolean index_has_long_column = false;
-
 
 		// bump the page size for the index,
 		// if the approximate sizes of the columns in the key are
