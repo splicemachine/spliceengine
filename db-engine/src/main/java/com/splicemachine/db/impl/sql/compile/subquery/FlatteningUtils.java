@@ -81,7 +81,7 @@ public class FlatteningUtils {
      */
     public static ValueNode findCorrelatedSubqueryPredicates(ValueNode root,
                                                              List<BinaryRelationalOperatorNode> predToSwitch,
-                                                             org.spark_project.guava.base.Predicate<BinaryRelationalOperatorNode> bronPredicate) {
+                                                             splice.com.google.common.base.Predicate<BinaryRelationalOperatorNode> bronPredicate) {
         if (root instanceof AndNode) {
             AndNode andNode = (AndNode) root;
             ValueNode left = findCorrelatedSubqueryPredicates(andNode.getLeftOperand(), predToSwitch, bronPredicate);

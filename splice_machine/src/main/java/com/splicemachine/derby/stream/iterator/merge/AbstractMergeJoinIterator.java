@@ -22,7 +22,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.PeekingIterator;
+import splice.com.google.common.collect.PeekingIterator;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -205,6 +205,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<ExecRow>, It
     }
 
 
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "DB-9844")
     public class RightsForLeftsIterator implements Iterator<ExecRow>{
         private PeekingIterator<ExecRow> rightRS;
 

@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
-import org.spark_project.guava.primitives.Longs;
+import splice.com.google.common.primitives.Longs;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.PipelineWriteContext;

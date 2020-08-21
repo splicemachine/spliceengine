@@ -40,7 +40,7 @@ import java.util.List;
 /**
  * This predicate determines if we attempt to flatten a given aggregate SubqueryNode or not.
  */
-class AggregateSubqueryPredicate implements org.spark_project.guava.base.Predicate<SubqueryNode> {
+class AggregateSubqueryPredicate implements splice.com.google.common.base.Predicate<SubqueryNode> {
 
     private static Logger LOG = Logger.getLogger(AggregateSubqueryPredicate.class);
 

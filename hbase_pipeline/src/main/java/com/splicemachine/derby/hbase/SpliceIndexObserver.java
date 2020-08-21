@@ -53,7 +53,7 @@ import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.wal.WALEdit;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -76,12 +76,13 @@ public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
     private volatile ContextFactoryLoader factoryLoader;
     private volatile PipelineLoadService<TableName> service;
     private volatile WriteContextFactory<TransactionalRegion> ctxFactory;
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(final CoprocessorEnvironment e) throws IOException{
         try {
             RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment) e);
-
+            optionalRegionObserver = Optional.of(this);
             String tableName = rce.getRegion().getTableDescriptor().getTableName().getQualifierAsString();
             TableType table = EnvUtils.getTableType(HConfiguration.getConfiguration(), rce);
             switch (table) {
@@ -155,6 +156,7 @@ public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.empty();
             if (region != null)
                 region.close();
             if(service!=null) {
@@ -274,6 +276,6 @@ public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 }

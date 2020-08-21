@@ -34,7 +34,7 @@ package com.splicemachine.db.impl.sql.compile.subquery;
 import com.splicemachine.db.impl.sql.compile.BinaryRelationalOperatorNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.RelationalOperator;
-import org.spark_project.guava.base.Predicate;
+import splice.com.google.common.base.Predicate;
 
 /**
  * A predicate that evaluates to true if a given BinaryRelationalOperatorNode has this shape:

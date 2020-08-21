@@ -19,8 +19,8 @@ import static junit.framework.Assert.assertEquals;
 import java.sql.ResultSet;
 import java.util.*;
 
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.utils.Pair;
 import org.junit.Assert;

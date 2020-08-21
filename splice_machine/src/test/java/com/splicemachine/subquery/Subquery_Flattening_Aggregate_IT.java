@@ -14,7 +14,7 @@
 
 package com.splicemachine.subquery;
 
-import org.spark_project.guava.base.Joiner;
+import splice.com.google.common.base.Joiner;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;

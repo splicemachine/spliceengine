@@ -18,7 +18,7 @@ package com.splicemachine.access.api;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
-import org.spark_project.guava.net.HostAndPort;
+import splice.com.google.common.net.HostAndPort;
 
 import java.io.IOException;
 import java.util.List;

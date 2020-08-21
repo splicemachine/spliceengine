@@ -42,9 +42,9 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Collections2;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Maps;
 
 import java.io.IOException;
 import java.util.*;
@@ -324,14 +324,21 @@ public class SITransactor implements Transactor{
 
             conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
-            if (possibleConflicts == null || possibleConflicts.isEmpty()) {
-                // First write
-                addFirstOccurrenceToken = true;
-            } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
-                // Delete following first write
-                assert possibleConflicts.userData() != null;
-                addFirstOccurrenceToken = possibleConflicts.firstWriteToken().version() == possibleConflicts.userData().version();
+
+            if (!skipConflictDetection) {
+                if (possibleConflicts == null || possibleConflicts.isEmpty())
+                {
+                    // First write
+                    if (KVPair.Type.INSERT.equals(writeType) ||
+                        KVPair.Type.UPSERT.equals(writeType))
+                        addFirstOccurrenceToken = true;
+                } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
+                    // Delete following first write
+                    assert possibleConflicts.userData() != null;
+                    addFirstOccurrenceToken = possibleConflicts.firstWriteToken().version() == possibleConflicts.userData().version();
+                }
             }
+
             DataPut mutationToRun = getMutationToRun(
                     table, kvPair, family, qualifier, transaction, conflictResults, addFirstOccurrenceToken, skipWAL, toRollforward);
             finalMutationsToWrite.put(i,mutationToRun);
