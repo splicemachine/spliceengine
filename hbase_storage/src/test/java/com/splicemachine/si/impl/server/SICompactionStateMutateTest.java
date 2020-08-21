@@ -20,21 +20,18 @@ import static org.junit.Assert.*;
 public class SICompactionStateMutateTest {
     private long watermark = 1000;
     private SICompactionStateMutate cutNoPurge = new SICompactionStateMutate(
-            new PurgeConfigBuilder().noPurge().transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().noPurge().build(), watermark);
     private SICompactionStateMutate cutForcePurge = new SICompactionStateMutate(
-            new PurgeConfigBuilder().forcePurgeDeletes().purgeUpdates(true).transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().forcePurgeDeletes().purgeUpdates(true).build(), watermark);
     private SICompactionStateMutate cutPurgeDuringFlush = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).build(), watermark);
     private SICompactionStateMutate cutPurgeDuringMajorCompaction = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringMajorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().purgeDeletesDuringMajorCompaction().purgeUpdates(true).build(), watermark);
     private SICompactionStateMutate cutPurgeDuringMinorCompaction = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringMinorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().purgeDeletesDuringMinorCompaction().purgeUpdates(true).build(), watermark);
     private List<Cell> inputCells = new ArrayList<>();
     private List<TxnView> transactions = new ArrayList<>();
     private List<Cell> outputCells = new ArrayList<>();
-
-    public SICompactionStateMutateTest() throws IOException {
-    }
 
     private List<Cell> getNewlyAddedCells(List<Cell> inputCells, List<Cell> outputCells) {
         Set<Cell> set = new HashSet<>(outputCells);

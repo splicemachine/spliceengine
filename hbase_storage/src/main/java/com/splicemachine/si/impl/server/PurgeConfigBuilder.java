@@ -14,14 +14,11 @@
 
 package com.splicemachine.si.impl.server;
 
-import java.io.IOException;
-
 public class PurgeConfigBuilder {
     private PurgeConfig.PurgeLatestTombstone purgeLatestTombstone = null;
     private Boolean respectActiveTransactions = null;
     private Boolean purgeDeletes = null;
     private Boolean purgeUpdates = null;
-    private Long transactionLowWatermark = null;
 
     public PurgeConfigBuilder purgeDeletes(boolean b) {
         assert purgeDeletes == null;
@@ -96,19 +93,12 @@ public class PurgeConfigBuilder {
         return this;
     }
 
-    public PurgeConfigBuilder transactionLowWatermark(long value) {
-        assert transactionLowWatermark == null;
-        transactionLowWatermark = value;
-        return this;
-    }
-
-    public PurgeConfig build() throws IOException {
+    public PurgeConfig build() {
         assert purgeDeletes != null;
         assert purgeUpdates != null;
         assert purgeLatestTombstone != null;
         assert respectActiveTransactions != null;
-        assert transactionLowWatermark != null;
-        return new PurgeConfig(purgeDeletes, purgeLatestTombstone, purgeUpdates, respectActiveTransactions, transactionLowWatermark);
+        return new PurgeConfig(purgeDeletes, purgeLatestTombstone, purgeUpdates, respectActiveTransactions);
     }
 }
 
