@@ -118,7 +118,9 @@ public class MemDatabase{
             builder.authenticationImpersonationEnabled = true;
             builder.authenticationImpersonationUsers = "dgf=splice;splice=*";
             builder.authenticationMapGroupAttr = "jy=splice,dgf=splice";
-    
+            // To make query plans consistent for SessionPropertyIT.
+            builder.optimizerPlanMinimumTimeout = 5L;
+
             if ("true".equals(System.getProperty("splice.debug.dumpClassFile")) ||
                 "DumpClassFile".equals(System.getProperty("derby.debug.true")))
               builder.debugDumpClassFile = true;

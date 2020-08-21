@@ -52,10 +52,12 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
 
     private static final Logger LOG = Logger.getLogger(MemstoreAwareObserver.class);
     protected AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.of(this);
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"starting [%s]",((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
         } catch (Throwable t) {
@@ -66,6 +68,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.empty();
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"stopping [%s]", ((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
         } catch (Throwable t) {
@@ -138,7 +141,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 
     @Override
