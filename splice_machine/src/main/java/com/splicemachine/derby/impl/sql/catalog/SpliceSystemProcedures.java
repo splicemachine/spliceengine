@@ -1186,6 +1186,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(purgeDeletedRows);
 
+                    Procedure minRetentionPeriod = Procedure.newBuilder().name("SET_MIN_RETENTION_PERIOD")
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .bigint("minRetentionPeriod")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(minRetentionPeriod);
+
                     Procedure snapshotSchema = Procedure.newBuilder().name("SNAPSHOT_SCHEMA")
                             .varchar("schemaName", 128)
                             .varchar("snapshotName", 128)
