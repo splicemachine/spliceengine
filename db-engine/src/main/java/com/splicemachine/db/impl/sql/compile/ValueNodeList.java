@@ -317,7 +317,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 			*/
 			if (! leftTC.compatible(valueNode.getTypeId()))
 			{
-				throw StandardException.newException(SQLState.LANG_DB2_COALESCE_DATATYPE_MISMATCH,
+				throw StandardException.newException(SQLState.LANG_DB2_MULTINARY_DATATYPE_MISMATCH,
 						leftType.getSQLTypeName(),
 						valueNode.getTypeId().getSQLTypeName()
 						);
