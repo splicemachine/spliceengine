@@ -441,9 +441,9 @@ public class SYSMONGETCONNECTIONRowFactory extends CatalogRowFactory
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    public SYSMONGETCONNECTIONRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSMONGETCONNECTIONRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
     {
-        super(uuidf,ef,dvf);
+        super(uuidf,ef,dvf, dd);
         initInfo(COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
 
