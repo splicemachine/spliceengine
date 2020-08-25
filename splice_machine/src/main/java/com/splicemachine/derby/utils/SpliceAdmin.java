@@ -2181,8 +2181,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException
     {
         Connection connection = getDefaultConn();
-        String internalSchemaName = EngineUtils.validateSchema(schemaName);
-        String internalTableName = EngineUtils.validateTable(tableName);
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
         try {
             TableDescriptor td = EngineUtils.verifyTableExists(connection, schemaName, tableName);
 
