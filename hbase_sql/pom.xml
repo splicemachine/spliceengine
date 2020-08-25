@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1971-SNAPSHOT</version>
+        <version>3.0.0.1972-SNAPSHOT</version>
     </parent>
     <properties>
         <argLine>-Xmx4g ${jacocoAgent}</argLine>
@@ -49,9 +49,9 @@
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
-	    <artifactId>scala_util</artifactId>
+            <artifactId>scala_util</artifactId>
             <version>${project.version}</version>
-	    <classifier>${envClassifier}-${spark.version}_${scala.binary.version}</classifier>
+            <classifier>${envClassifier}-${spark.version}_${scala.binary.version}</classifier>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -96,12 +96,12 @@
             <groupId>io.airlift</groupId>
             <artifactId>units</artifactId>
             <version>1.0</version>
-	    <exclusions>
-            <exclusion>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-            </exclusion>
-        </exclusions>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.airlift</groupId>
@@ -112,12 +112,12 @@
             <groupId>io.airlift</groupId>
             <artifactId>stats</artifactId>
             <version>0.144</version>
-	    <exclusions>
-		<exclusion>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-        </exclusion>
- 	    </exclusions>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.airlift</groupId>
