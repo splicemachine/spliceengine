@@ -162,7 +162,10 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     private String chooseQueue(Activation activation, String requestedQueue,
                                Map<String, String> olapServerIsolatedRoles) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        if(lcc.getDataDictionary().getAuthorizationDatabaseOwner().equals(lcc.getCurrentUserId(activation))) {
+
+        List<String> userGroups = lcc.getCurrentGroupUser(activation);
+        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
+        if(lcc.getCurrentUserId(activation).equals(dbo) || (userGroups != null && userGroups.contains(dbo))) {
             if(requestedQueue != null) {
                 return requestedQueue;
             }
