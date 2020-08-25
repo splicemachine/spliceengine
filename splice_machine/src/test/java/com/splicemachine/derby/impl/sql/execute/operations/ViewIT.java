@@ -29,6 +29,7 @@ import org.junit.runner.Description;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 
 /**
  * Tests for Views
@@ -88,6 +89,16 @@ public class ViewIT {
             Assert.assertEquals(1,count);
         }finally{
             methodWatcher.prepareStatement("drop view t1_view").execute();
+        }
+    }
+
+    @Test
+    public void testCreateViewInSessionSchema() throws Exception {
+        try {
+            methodWatcher.executeUpdate("create view session.vw1 as select * from " + baseTableWatcher);
+            Assert.fail("expect failure to create a view in SESSION schema");
+        } catch (SQLException e) {
+            Assert.assertEquals("XCL51", e.getSQLState());
         }
     }
 }
