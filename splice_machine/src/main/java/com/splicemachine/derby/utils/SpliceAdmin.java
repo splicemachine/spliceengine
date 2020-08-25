@@ -848,7 +848,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         int storefileIndexSizeMB=0;
                         int factor = 1024*1024;
                         if(regionName!=null && !regionName.isEmpty()){
-                            PartitionLoad regionLoad=ri.getLoad();//regionLoadMap.get(regionName);
+                            PartitionLoad regionLoad = null;
+                            try {
+                                regionLoad = ri.getLoad();//regionLoadMap.get(regionName);
+                            } catch(NullPointerException npe) {}
                             if(regionLoad!=null){
                                 storefileSizeMB= (int) (regionLoad.getStorefileSize()/factor);
                                 memStoreSizeMB= (int) (regionLoad.getMemStoreSize()/factor);
