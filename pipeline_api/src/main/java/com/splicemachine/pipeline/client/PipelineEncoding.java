@@ -20,7 +20,7 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.ByteSlice;
-import org.spark_project.guava.collect.Iterators;
+import splice.com.google.common.collect.Iterators;
 
 import javax.annotation.Nonnull;
 import java.util.*;

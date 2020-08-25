@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.ddl;
 
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.utils.Pair;
 import org.junit.Assert;

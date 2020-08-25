@@ -51,8 +51,8 @@ import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Lists;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -76,12 +76,13 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
 
     private volatile PipelineLoadService<TableName> service;
     private long conglomId = -1;
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     @SuppressWarnings("unchecked")
     public void start(final CoprocessorEnvironment env) throws IOException{
         RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)env);
-
+        optionalRegionObserver = Optional.of(this);
         tokenEnabled = SIDriver.driver().getConfiguration().getAuthenticationTokenEnabled();
         String tableName= rce.getRegion().getTableDescriptor().getTableName().getQualifierAsString();
         TableType table= EnvUtils.getTableType(HConfiguration.getConfiguration(),(RegionCoprocessorEnvironment)env);
@@ -150,11 +151,12 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 
     @Override
     public void stop(CoprocessorEnvironment env) throws IOException{
+        optionalRegionObserver = Optional.empty();
         if(writePipeline!=null){
             writePipeline.close();
             PipelineDriver.driver().deregisterPipeline(((RegionCoprocessorEnvironment)env).getRegion().getRegionInfo().getRegionNameAsString());

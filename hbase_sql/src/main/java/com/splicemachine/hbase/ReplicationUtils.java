@@ -1,8 +1,6 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.configuration.ConfigurationSource;
-import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -12,16 +10,15 @@ import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.timestamp.api.TimestampSource;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.shaded.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.ReplicationProtos;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hbase.thirdparty.com.google.protobuf.CodedOutputStream;
@@ -30,10 +27,7 @@ import org.apache.zookeeper.KeeperException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
@@ -41,13 +35,14 @@ import java.util.Properties;
 /**
  * Created by jyuan on 9/27/19.
  */
+@SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "intentional")
 public class ReplicationUtils {
 
     private static final Logger LOG = Logger.getLogger(ReplicationUtils.class);
 
     public static final byte[] MASTER_CLUSTER_STATUS_DOWN = com.splicemachine.primitives.Bytes.toBytes(0);
     public static final byte[] MASTER_CLUSTER_STATUS_UP = com.splicemachine.primitives.Bytes.toBytes(1);
-    public static final String DB_URL_LOCAL = "jdbc:splice://%s/splicedb;user=splice;password=admin";
+    private static final String DB_URL_LOCAL = "jdbc:splice://%s/splicedb;user=splice;password=admin";
     /**
      * Bump up timestamp if the provided timestamp value is larger than current timetamp
      * @param timestamp
@@ -57,33 +52,15 @@ public class ReplicationUtils {
      */
     public static void setTimestamp(long timestamp) throws IOException, KeeperException, InterruptedException {
         TimestampSource timestampSource = SIDriver.driver().getTimestampSource();
-        long currentTimestamp = timestampSource.currentTimestamp();
-        if (currentTimestamp < timestamp) {
-            RecoverableZooKeeper rzk = ZkUtils.getRecoverableZooKeeper();
-            HBaseSIEnvironment env = HBaseSIEnvironment.loadEnvironment(new SystemClock(), rzk);
-            ConfigurationSource configurationSource = env.configuration().getConfigSource();
-            String rootNode = configurationSource.getString(HConfiguration.SPLICE_ROOT_PATH, HConfiguration.DEFAULT_ROOT_PATH);
-            String node = rootNode + HConfiguration.MAX_RESERVED_TIMESTAMP_PATH;
-            //if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.info(LOG, "bump up timestamp to %d", timestamp);
-            //}
-            byte[] data = Bytes.toBytes(timestamp);
-            rzk.setData(node, data, -1 /* version */);
-            timestampSource.refresh();
-        }
-        else {
-            //if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.info(LOG, "current timestamp = %d >  %d",
-                    currentTimestamp, timestamp);
-            //}
-        }
+        timestampSource.bumpTimestamp(timestamp);
+        SpliceLogUtils.info(LOG, "bump up timestamp to %d", timestamp);
     }
 
     public static Configuration createConfiguration(String clusterKey) {
         Configuration conf = new Configuration();
         String[] s = clusterKey.split(":");
         String quorum = s[0];
-        int port = new Integer(s[1]);
+        int port = Integer.parseInt(s[1]);
         conf.set("hbase.zookeeper.quorum", quorum);
         conf.setInt("hbase.zookeeper.property.clientPort", port);
         if (s.length > 2) {
@@ -121,9 +98,12 @@ public class ReplicationUtils {
 
     public static long getTimestamp(Configuration conf, String clusterKey) throws IOException, InterruptedException, KeeperException, SQLException {
         try (Connection connection = connect(conf, clusterKey)) {
-            ResultSet rs = connection.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
-            rs.next();
-            return rs.getLong(1);
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet rs = statement.executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()")) {
+                    rs.next();
+                    return rs.getLong(1);
+                }
+            }
         }
     }
 
@@ -131,8 +111,7 @@ public class ReplicationUtils {
         List<String> regionServers = getRegionServers(conf);
         for (String rs : regionServers) {
             try {
-                Connection connection = connectToRegionServer(rs);
-                return connection;
+                return connectToRegionServer(rs);
             } catch (Exception e) {
                 SpliceLogUtils.warn(LOG, "not able to connect to %s. It may be down!!", rs);
             }
@@ -153,34 +132,38 @@ public class ReplicationUtils {
         String sql = String.format("call syscs_util.add_peer(%s, '%s', '%s')", peerId, peerClusterKey,
                 enabled ? "true" : "false");
         System.out.println("Run " + sql);
-        ResultSet rs = connection.createStatement().executeQuery(sql);
-        rs.next();
-        try {
-            int index = rs.findColumn("Success");
-            String msg = rs.getString(index);
-            SpliceLogUtils.info(LOG, msg);
-            System.out.println(msg);
-        }
-        catch (SQLException e) {
-            String message = String.format("Failed to add a peer: %s : ", peerClusterKey, rs.getString(1));
-            SpliceLogUtils.error(LOG, message);
-            System.out.println(message);
-            throw e;
+        try (Statement statement = connection.createStatement()) {
+            try (ResultSet rs = statement.executeQuery(sql)) {
+                rs.next();
+                try {
+                    int index = rs.findColumn("Success");
+                    String msg = rs.getString(index);
+                    SpliceLogUtils.info(LOG, msg);
+                    System.out.println(msg);
+                } catch (SQLException e) {
+                    String message = String.format("Failed to add a peer: %s : ", peerClusterKey, rs.getString(1));
+                    SpliceLogUtils.error(LOG, message);
+                    System.out.println(message);
+                    throw e;
+                }
+            }
         }
     }
 
     public static void setupReplicationMaster(Connection connection, String clusterKey) throws SQLException {
         String sql = String.format("call syscs_util.set_replication_role('MASTER')");
-        ResultSet rs = connection.createStatement().executeQuery(sql);
-        rs.next();
-        try {
-            int index = rs.findColumn("Success");
-            String msg = rs.getString(index);
-            SpliceLogUtils.info(LOG, msg);
-        }
-        catch (SQLException e) {
-            SpliceLogUtils.error(LOG, "Failed to setup master %s : ", clusterKey, rs.getString(1));
-            throw e;
+        try (Statement statement = connection.createStatement()) {
+            try (ResultSet rs = statement.executeQuery(sql)) {
+                rs.next();
+                try {
+                    int index = rs.findColumn("Success");
+                    String msg = rs.getString(index);
+                    SpliceLogUtils.info(LOG, msg);
+                } catch (SQLException e) {
+                    SpliceLogUtils.error(LOG, "Failed to setup master %s : ", clusterKey, rs.getString(1));
+                    throw e;
+                }
+            }
         }
 
         //TODO - enable database replication

@@ -23,7 +23,7 @@ import java.io.OutputStream;
 import java.nio.file.StandardOpenOption;
 
 import org.apache.log4j.Logger;
-import org.spark_project.guava.io.Closeables;
+import splice.com.google.common.io.Closeables;
 
 import com.splicemachine.access.api.DistributedFileSystem;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -47,6 +47,7 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
     private static final Logger LOG = Logger.getLogger(BadRecordsRecorder.class);
     private static final String BAD_EXTENSION = ".bad";
 
+    private String inputFilePath;
     private long badRecordTolerance;
     private long numberOfBadRecords = 0L;
     private String badRecordMasterPath;
@@ -69,6 +70,7 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
      */
     public BadRecordsRecorder(String statusDirectory, String inputFilePath, long badRecordTolerance) {
         this.statusDirectory = statusDirectory;
+        this.inputFilePath = inputFilePath;
         this.badRecordTolerance = badRecordTolerance;
         try {
             this.badRecordMasterPath = generateWritableFilePath(statusDirectory, inputFilePath, BAD_EXTENSION);
@@ -257,5 +259,17 @@ public class BadRecordsRecorder implements Externalizable, Closeable {
 
     public String getStatusDirectory() {
         return statusDirectory;
+    }
+
+    public void reset() {
+        numberOfBadRecords = 0;
+    }
+
+    public String getInputFilePath() {
+        return inputFilePath;
+    }
+
+    public long getBadRecordTolerance() {
+        return badRecordTolerance;
     }
 }

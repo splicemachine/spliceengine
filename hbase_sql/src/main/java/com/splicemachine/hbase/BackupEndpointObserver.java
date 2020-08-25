@@ -40,7 +40,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -69,10 +69,12 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
     private AtomicBoolean preparing;
     private ThreadLocal<Collection<? extends StoreFile>> storeFiles = new ThreadLocal<Collection<? extends StoreFile>>();
     private ReentrantLock bulkLoadLock = new ReentrantLock();
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.of(this);
             region = (HRegion) ((RegionCoprocessorEnvironment) e).getRegion();
             String[] name = region.getTableDescriptor().getTableName().getNameAsString().split(":");
             if (name.length == 2) {
@@ -160,7 +162,7 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
                 region.flushcache(false,false, null);
                 region.waitForFlushesAndCompactions();
 
-                canceled = BackupUtils.backupCanceled();
+                canceled = BackupUtils.backupCanceled(backupId);
                 if (!canceled) {
                     // Create a ZNode to indicate that the region is being copied
                     RegionInfo regionInfo = region.getRegionInfo();
@@ -349,6 +351,6 @@ public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorServi
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 }

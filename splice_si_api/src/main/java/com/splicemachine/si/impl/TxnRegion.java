@@ -28,7 +28,7 @@ import com.splicemachine.si.impl.filter.HRowAccumulator;
 import com.splicemachine.si.impl.filter.PackedTxnFilter;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.ByteSlice;
-import org.spark_project.guava.collect.Iterators;
+import splice.com.google.common.collect.Iterators;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;

@@ -21,6 +21,10 @@ import org.jboss.netty.channel.ChannelPipeline;
 import org.jboss.netty.channel.ChannelPipelineFactory;
 import org.jboss.netty.channel.Channels;
 import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
+import org.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder;
+import org.jboss.netty.handler.codec.frame.LengthFieldPrepender;
+import org.jboss.netty.handler.codec.protobuf.ProtobufDecoder;
+import org.jboss.netty.handler.codec.protobuf.ProtobufEncoder;
 
 public class TimestampPipelineFactoryLite implements ChannelPipelineFactory {
 
@@ -41,7 +45,10 @@ public class TimestampPipelineFactoryLite implements ChannelPipelineFactory {
         SpliceLogUtils.debug(LOG, "Creating new channel pipeline...");
         ChannelPipeline pipeline = Channels.pipeline();
         ((TimestampServerHandler) tsHandler).initializeIfNeeded();
-        pipeline.addLast("decoder", new FixedLengthFrameDecoder(TimestampServer.FIXED_MSG_RECEIVED_LENGTH));
+        pipeline.addLast("frameDecoder", new LengthFieldBasedFrameDecoder(1048576, 0, 4, 0, 4));
+        pipeline.addLast("protobufDecoder", new ProtobufDecoder(TimestampMessage.TimestampRequest.getDefaultInstance()));
+        pipeline.addLast("frameEncoder", new LengthFieldPrepender(4));
+        pipeline.addLast("protobufEncoder", new ProtobufEncoder());
         pipeline.addLast("handler", tsHandler);
         SpliceLogUtils.debug(LOG, "Done creating channel pipeline");
         return pipeline;

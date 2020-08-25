@@ -26,7 +26,7 @@ import org.junit.Ignore;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import javax.sql.rowset.serial.SerialBlob;
 import java.sql.Blob;

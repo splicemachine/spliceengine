@@ -22,6 +22,7 @@ package com.splicemachine.si.impl.region;
  */
 
 import com.google.protobuf.ByteString;
+import com.splicemachine.encoding.DecodingIterator;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -31,14 +32,20 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.TxnUtils;
+import com.splicemachine.utils.ByteSlice;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
+import splice.com.google.common.collect.Iterators;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
+@SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "intentional, static fields are read by other components.")
 public class V2TxnDecoder implements TxnDecoder{
     public static final V2TxnDecoder INSTANCE=new V2TxnDecoder();
     public static final byte[] FAMILY=SIConstants.DEFAULT_FAMILY_BYTES;
@@ -101,8 +108,8 @@ public class V2TxnDecoder implements TxnDecoder{
     public TxnMessage.TaskId decodeTaskId(Cell taskKv) {
         if(taskKv==null) return null;
         MultiFieldDecoder decoder=MultiFieldDecoder.wrap(taskKv.getValueArray(),taskKv.getValueOffset(),taskKv.getValueLength());
-        String jtId=decoder.decodeNextString();
-        int jobId=decoder.decodeNextInt();
+        decoder.decodeNextString(); // igored
+        decoder.decodeNextInt(); // ignored
         int stageId=decoder.decodeNextInt();
         int partitionId=decoder.decodeNextInt();
         int attemptNumber=decoder.decodeNextInt();
@@ -130,6 +137,10 @@ public class V2TxnDecoder implements TxnDecoder{
         return Encoding.decodeLong(data.getValueArray(),data.getValueOffset(),false);
     }
 
+    /**
+     * @param txnStore used to adjust state of a transaction changing it from ACTIVE to ROLLBACK if keepalive  period is exceeded.
+     *                 if null, adjustment will not take place.
+     */
     protected TxnMessage.Txn decodeInternal(RegionTxnStore txnStore,
                                             Cell dataKv, Cell keepAliveKv, Cell commitKv, Cell globalCommitKv,
                                             Cell stateKv, Cell destinationTables, long txnId, Cell rollbackIds, Cell taskKv){
@@ -169,7 +180,7 @@ public class V2TxnDecoder implements TxnDecoder{
             state=Txn.State.COMMITTED;
         }
 
-        if(state==Txn.State.ACTIVE){
+        if(state==Txn.State.ACTIVE && txnStore != null){
                                 /*
 								 * We need to check that the transaction hasn't been timed out (and therefore rolled back). This
 								 * happens if the keepAliveTime is older than the configured transaction timeout. Of course,
@@ -344,5 +355,37 @@ public class V2TxnDecoder implements TxnDecoder{
         long kaTime=decodeKeepAlive(keepAliveKv,false);
         return composeValue(destinationTables,level,txnId,beginTs,parentTxnId,hasAdditive,
                 isAdditive,commitTs,globalTs,state,kaTime,Collections.emptyList(), null);
+    }
+
+    public static Iterator<ByteSlice> decodeDestinationTables(ByteString array) {
+        final Iterator<ByteSlice> destinationTables;
+        if(array != null){
+            MultiFieldDecoder dcd=MultiFieldDecoder.wrap(array.toByteArray());
+            destinationTables=new DecodingIterator(dcd){
+                @Override
+                protected void advance(MultiFieldDecoder decoder){
+                    decoder.skip();
+                }
+            };
+        }else
+            destinationTables= Iterators.emptyIterator();
+
+        return new Iterator<ByteSlice>(){
+
+            final Iterator<ByteSlice> it = destinationTables;
+
+            @Override
+            public boolean hasNext(){
+                return it.hasNext();
+            }
+
+            @Override
+            public ByteSlice next(){
+                ByteSlice dSlice=it.next();
+                byte[] data=Encoding.decodeBytesUnsortd(dSlice.array(),dSlice.offset(),dSlice.length());
+                dSlice.set(data);
+                return dSlice;
+            }
+        };
     }
 }

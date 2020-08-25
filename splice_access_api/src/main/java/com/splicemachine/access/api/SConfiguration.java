@@ -277,6 +277,8 @@ public interface SConfiguration {
 
     int getImportMaxQuotedColumnLines();
 
+    long getImportCsvScanThreshold();
+
     int getIndexBatchSize();
 
     int getIndexLookupBlocks();

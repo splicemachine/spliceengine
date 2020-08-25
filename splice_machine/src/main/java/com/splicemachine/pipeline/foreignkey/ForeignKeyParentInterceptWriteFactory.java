@@ -15,7 +15,7 @@
 package com.splicemachine.pipeline.foreignkey;
 
 import com.splicemachine.ddl.DDLMessage;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;

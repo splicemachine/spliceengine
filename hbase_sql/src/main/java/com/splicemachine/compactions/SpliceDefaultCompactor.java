@@ -27,10 +27,8 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.*;
 import com.splicemachine.si.impl.server.CompactionContext;
-import com.splicemachine.si.impl.server.PurgeConfig;
-import com.splicemachine.si.impl.server.PurgeConfigBuilder;
-import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
@@ -59,6 +57,7 @@ import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
+import org.apache.spark.TaskContext;
 
 import java.io.IOException;
 import java.io.InterruptedIOException;
@@ -87,6 +86,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     private String tableDisplayName;
     private String indexDisplayName;
     private static String hostName;
+    private boolean isSpark;
 
     private static final String TABLE_DISPLAY_NAME_ATTR = SIConstants.TABLE_DISPLAY_NAME_ATTR;
     private static final String INDEX_DISPLAY_NAME_ATTR = SIConstants.INDEX_DISPLAY_NAME_ATTR;
@@ -94,11 +94,12 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     public SpliceDefaultCompactor(final Configuration conf, final HStore store) {
         super(conf, store);
         conglomId = this.store.getTableName().getQualifierAsString();
-        tableDisplayName = ((HStore)this.store).getHRegion().getTableDescriptor().getValue(TABLE_DISPLAY_NAME_ATTR);
-        indexDisplayName = ((HStore)this.store).getHRegion().getTableDescriptor().getValue(INDEX_DISPLAY_NAME_ATTR);
+        tableDisplayName = this.store.getHRegion().getTableDescriptor().getValue(TABLE_DISPLAY_NAME_ATTR);
+        indexDisplayName = this.store.getHRegion().getTableDescriptor().getValue(INDEX_DISPLAY_NAME_ATTR);
+        isSpark = false;
 
         if (LOG.isDebugEnabled()) {
-            SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", ((HStore)this.store).getHRegion());
+            SpliceLogUtils.debug(LOG, "Initializing compactor: region=%s", this.store.getHRegion());
         }
     }
 
@@ -115,14 +116,16 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="static attribute hostname is set from here")
     public List<Path> compact(CompactionRequestImpl request, ThroughputController throughputController, User user) throws IOException {
         assert request instanceof SpliceCompactionRequest;
+        SpliceCompactionRequest spliceRequest = (SpliceCompactionRequest)request;
         // Used if we cannot compact in Spark
-        ((SpliceCompactionRequest) request).setPurgeConfig(buildPurgeConfig(request));
+        spliceRequest.setPurgeConfig(buildPurgeConfig(request));
 
-        if(!allowSpark || store.getRegionInfo().getTable().isSystemTable())
+        if(!allowSpark || store.getRegionInfo().getTable().isSystemTable()) {
+            isSpark = false;
             return super.compact(request, throughputController, user);
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
+        }
 
+        SpliceLogUtils.trace(LOG, "compact(): request=%s", request);
         smallestReadPoint = store.getSmallestReadPoint();
         FileDetails fd = getFileDetails(request.getFiles(), request.isAllFiles());
         this.progress = new CompactionProgress(fd.maxKeyCount);
@@ -150,9 +153,12 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 hostName,
                 config.getOlapCompactionMaximumWait());
         CompactionResult result = null;
-        SpliceCompactionRequest scr = (SpliceCompactionRequest) request;
 
-        Future<CompactionResult> futureResult = EngineDriver.driver().getOlapClient().submit(jobRequest, getCompactionQueue());
+        EngineDriver driver = EngineDriver.driver();
+        if (driver == null) {
+            throw new IOException("EngineDriver not available, compaction aborted");
+        }
+        Future<CompactionResult> futureResult = driver.getOlapClient().submit(jobRequest, getCompactionQueue());
         while (result == null) {
             try {
                 result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
@@ -179,12 +185,11 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
 
         List<String> sPaths = result.getPaths();
 
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
+        SpliceLogUtils.trace(LOG, "Paths Returned: %s", sPaths);
 
         this.progress.complete();
 
-        scr.preStorefilesRename();
+        spliceRequest.preStorefilesRename();
 
         List<Path> paths = new ArrayList<>();
         for (String spath : sPaths) {
@@ -338,6 +343,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 }
 
                 writer = createTmpWriter(fd, dropBehind,favoredNodes);
+                isSpark = true;
                 boolean finished = performCompaction(fd, scanner,  writer, smallestReadPoint, cleanSeqId,
                         NoLimitThroughputController.INSTANCE, request.isMajor(), request.getFiles().size());
                 if (!finished) {
@@ -410,24 +416,23 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     @Override
-    protected boolean performCompaction(Compactor.FileDetails fd, InternalScanner scanner, CellSink writer, long smallestReadPoint, boolean cleanSeqId, ThroughputController throughputController, boolean major, int numofFilesToCompact) throws IOException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"performCompaction");
+    protected boolean performCompaction(Compactor.FileDetails fd, InternalScanner scanner, CellSink writer,
+                                        long smallestReadPoint, boolean cleanSeqId,
+                                        ThroughputController throughputController, boolean major,
+                                        int numofFilesToCompact) throws IOException {
+        SpliceLogUtils.trace(LOG, "performCompaction");
         long bytesWritten = 0;
-        long bytesWrittenProgress = 0;
-
-        // Since scanner.next() can return 'false' but still be delivering data,
-        // we have to use a do/while loop.
-        List<Cell> cells =new ArrayList<>();
-        long closeCheckInterval = HStore.getCloseCheckInterval();
-        long lastMillis = 0;
+        final long closeCheckInterval = HStore.getCloseCheckInterval();
+        // these variables are used to log the progress of long-running compactions
+        long bytesWrittenProgress = 0, lastMillis = 0, now = 0;
         if (LOG.isDebugEnabled()) {
             lastMillis = EnvironmentEdgeManager.currentTime();
         }
-        long now = 0;
+        // Since scanner.next() can return 'false' but still be delivering data,
+        // we have to use a do/while loop.
+        List<Cell> cells = new ArrayList<>();
         boolean hasMore;
-        ScannerContext scannerContext =
-                ScannerContext.newBuilder().setBatchLimit(compactionKVMax).build();
+        ScannerContext scannerContext = ScannerContext.newBuilder().setBatchLimit(compactionKVMax).build();
         do {
             hasMore = scanner.next(cells, scannerContext);
             if (LOG.isDebugEnabled()) {
@@ -439,7 +444,15 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     CellUtil.setSequenceId(c, 0);
                 }
                 writer.append(c);
-                int len = KeyValueUtil.length(c);
+                long len = 0;
+                // AbstractSICompactionScanner could eliminate the cells completely during compaction making the output
+                // byte size potentially zero. Therefore, we query the size of the input cells before compaction directly
+                // from it before compaction (DB-9554)
+                if (scanner instanceof AbstractSICompactionScanner) {
+                    len = ((AbstractSICompactionScanner) scanner).numberOfScannedBytes();
+                } else {
+                    len = KeyValueUtil.length(c);
+                }
                 ++progress.currentCompactedKVs;
                 progress.totalCompactedSize += len;
                 if (LOG.isDebugEnabled()) {
@@ -449,19 +462,19 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 if (closeCheckInterval > 0) {
                     bytesWritten += len;
                     if (bytesWritten > closeCheckInterval) {
-                        bytesWritten = 0;
-//                        if (!store.areWritesEnabled()) {
-//                            progress.cancel();
-//                            return false;
-//                        }
+                        bytesWritten = 0; // reset so check whether cancellation is requested in the next <closeCheckInterval>-bytes mark
+                        if ((isSpark && TaskContext.get().isInterrupted()) || (!isSpark && !store.areWritesEnabled())) {
+                            SpliceLogUtils.debug(LOG, "Compaction cancelled");
+                            progress.cancel();
+                            return false;
+                        }
                     }
                 }
             }
-            // Log the progress of long running compactions every minute if
-            // logging at DEBUG level
+            // Log the progress of long-running compactions every minute if logging at DEBUG level
             if (LOG.isDebugEnabled()) {
                 if ((now - lastMillis) >= 60 * 1000) {
-                    LOG.debug("Compaction progress: " + progress + String.format(", rate=%.2f kB/sec",
+                    LOG.debug(String.format("Compaction progress: %s, rate=%.2f kB/sec", progress,
                             (bytesWrittenProgress / 1024.0) / ((now - lastMillis) / 1000.0)));
                     lastMillis = now;
                     bytesWrittenProgress = 0;

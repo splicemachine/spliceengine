@@ -48,8 +48,8 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -134,8 +134,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          */
         if(tableProperties!=null &&
                 (childResult instanceof Optimizable)){
-            ((Optimizable)childResult).setProperties(getProperties());
-            setProperties(null);
+            ((Optimizable)childResult).setProperties(super.getProperties());
+            super.setProperties(null);
         }
 
         if (childResult instanceof ResultSetNode && ((ResultSetNode) childResult).getContainsSelfReference())
@@ -714,6 +714,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          * will consider materialization as a cost based option.
          */
         return (Optimizable)considerMaterialization(outerTables);
+    }
+
+    @Override
+    public Properties getProperties() {
+        // see comment in init()
+        if (childResult instanceof Optimizable)
+            return ((Optimizable)childResult).getProperties();
+        return super.getProperties();
     }
 
     /**

@@ -3223,6 +3223,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42ZD5</name>
+                <text>In the Properties list, the invalid value '{0}' was specified for the tableLimitForExhaustiveSearch property. Expecting a positive integer.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
                 <name>43001</name>
                 <text>The truncate function was provided a null operand.</text>
             </msg>
