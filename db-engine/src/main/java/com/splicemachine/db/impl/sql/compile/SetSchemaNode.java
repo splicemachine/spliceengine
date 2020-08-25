@@ -185,9 +185,12 @@ public class SetSchemaNode extends MiscellaneousStatementNode
 	@Override
 	public void bindStatement() throws StandardException
 	{
-		String schemaName = this.name;
-		SchemaDescriptor sd = getSchemaDescriptor(schemaName, true /*the schema must exist*/);
-		CompilerContext cc = getCompilerContext();
-		cc.addRequiredAccessSchemaPriv(sd.getUUID());
+		// name could be null when compiling a prepared SET SCHEMA statement, in that case
+		// avoid checking.
+		if(this.name != null) {
+			SchemaDescriptor sd = getSchemaDescriptor(this.name, true /*the schema must exist*/);
+			CompilerContext cc = getCompilerContext();
+			cc.addRequiredAccessSchemaPriv(sd.getUUID());
+		}
 	}
 }
