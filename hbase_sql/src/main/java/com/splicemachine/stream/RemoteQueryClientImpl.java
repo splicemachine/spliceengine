@@ -122,6 +122,8 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                     streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty);
 
             String requestedQueue = (String) activation.getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
+            // remove any stale revoked roles (DB-9749)
+            activation.getLanguageConnectionContext().refreshCurrentRoles(activation);
             List<String> roles = activation.getLanguageConnectionContext().getCurrentRoles(activation);
 
             String queue = chooseQueue(requestedQueue, roles, config.getOlapServerIsolatedRoles());
