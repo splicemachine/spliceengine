@@ -760,9 +760,12 @@
                                             <include name="hbase-env.sh"/>
                                             <include name="hbase-env.secure.sh"/>
                                         </replace>
-                                        <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/service/">
-                                            <include name="mapr-splice-hbase-config.sh"/>
-                                            <include name="splice-init-script"/>
+                                        <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/bin/">
+                                            <include name="hbase-config.sh"/>
+                                        </replace>
+                                        <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/splice/">
+                                            <include name="hbase-env.sh"/>
+                                            <include name="hbase-env.secure.sh"/>
                                         </replace>
                                         <replace token="##SPARKVERSION##" value="${spark.minor.version}" dir="mapr/src/main/resources/scripts/splice/">
                                             <include name="hbase-env.sh"/>
