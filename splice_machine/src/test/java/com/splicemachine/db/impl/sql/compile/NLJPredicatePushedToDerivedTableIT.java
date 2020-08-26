@@ -590,4 +590,44 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    @Test
+    public void testSelectWithWindowFunctionNoPushDown() throws Exception {
+        String sqlText = format("select a1 from --splice-properties joinOrder=fixed\n" +
+                "t1, (select a2, row_number() over (order by a2 desc) as rnk from t2, t4 where b2=b4) dt --splice-properties joinStrategy=nestedloop, useSpark=%s\n" +
+                "where a1=a2 and b1 in (1,2,3) and dt.rnk=1", useSpark);
+
+        /* plan should look like the following:
+        Plan
+        ----
+        Cursor(n=15,rows=30000,updateMode=READ_ONLY (1),engine=OLTP (default))
+          ->  ScrollInsensitive(n=15,totalCost=162391.001,outputRows=30000,outputHeapSize=2.766 MB,partitions=1)
+            ->  ProjectRestrict(n=14,totalCost=121860.496,outputRows=30000,outputHeapSize=2.766 MB,partitions=1)
+              ->  NestedLoopJoin(n=12,totalCost=121860.496,outputRows=30000,outputHeapSize=2.766 MB,partitions=1)
+                ->  ProjectRestrict(n=11,totalCost=121860.496,outputRows=30000,outputHeapSize=2.766 MB,partitions=1,preds=[(DT.RNK[10:2] = 1),(A1[1:1] = A2[10:1])])
+                  ->  ProjectRestrict(n=10,totalCost=54.325,outputRows=10000,outputHeapSize=358.072 KB,partitions=1)
+                    ->  WindowFunction(n=9,totalCost=6,outputRows=1000,outputHeapSize=358.072 KB,partitions=1)
+                      ->  ProjectRestrict(n=8,totalCost=54.325,outputRows=10000,outputHeapSize=358.072 KB,partitions=1)
+                        ->  MergeJoin(n=6,totalCost=54.325,outputRows=10000,outputHeapSize=358.072 KB,partitions=1,preds=[(A2[6:1] = A4[6:2])])
+                          ->  TableScan[T4(1728)](n=4,totalCost=6,scannedRows=1000,outputRows=1000,outputHeapSize=358.072 KB,partitions=1)
+                          ->  TableScan[T2(1696)](n=2,totalCost=24,scannedRows=10000,outputRows=10000,outputHeapSize=325.521 KB,partitions=1)
+                ->  ProjectRestrict(n=1,totalCost=4.006,outputRows=3,outputHeapSize=180 B,partitions=1,preds=[(B1[0:2] IN (1,2,3))])
+                  ->  TableScan[T1(1680)](n=0,totalCost=4.006,scannedRows=3,outputRows=3,outputHeapSize=180 B,partitions=1)
+
+        13 rows selected
+         */
+        rowContainsQuery(new int[]{4, 5}, "explain " + sqlText, methodWatcher,
+                new String[]{"NestedLoopJoin"},
+                new String[] {"ProjectRestrict", "preds=[(DT.RNK[10:2] = 1),(A1[1:1] = A2[10:1])]"}
+        );
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "A1 |\n" +
+                        "----\n" +
+                        " 2 |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }
