@@ -109,7 +109,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
                 mode = CleanupMode.valueOf(System.getProperty(SPLICE_SCHEMA_CLEANUP, CleanupMode.NONE.toString()).toUpperCase());
                 if (mode == CleanupMode.ASYNC) {
                     sync = new Semaphore(0);
-                    Thread thread = new Thread(() -> cleanup());
+                    Thread thread = new Thread(SpliceSchemaWatcher::cleanup);
                     thread.setDaemon(true);
                     thread.start();
                 }
