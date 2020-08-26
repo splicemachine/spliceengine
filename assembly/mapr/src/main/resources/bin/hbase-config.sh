@@ -108,7 +108,7 @@ fi
 BASE_MAPR=${MAPR_HOME:-/opt/mapr}
 if [ -z "$HBASE_MAPR_ENV_INIT" ]; then
   # This will act as insurance if we need to override options for a release
-  if [ -f "${BASE_MAPR}/conf/mapr-splice-hbase-config.sh" ]; then
+  if [ -f "${BASE_MAPR}/hbase/##HBASEVERSION##-splice/conf/mapr-splice-hbase-config.sh" ]; then
     . "${BASE_MAPR}/conf/mapr-splice-hbase-config.sh"
   elif [ -f "${HBASE_HOME}/bin/mapr-config.sh" ]; then
     . "${HBASE_HOME}/bin/mapr-config.sh"
