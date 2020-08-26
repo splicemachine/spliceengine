@@ -350,23 +350,26 @@ public class utilMain implements java.security.PrivilegedAction {
 					}
 
 					ijResult result = ijParser.ijStatement();
-					displayResult(out,result,connEnv[currCE].getConnection());
 
-					// if something went wrong, an SQLException or ijException was thrown.
-					// we can keep going to the next statement on those (see catches below).
-					// ijParseException means we try the SQL parser.
+					if(!(result instanceof ijShellConfigResult)) {
+						displayResult(out,result,connEnv[currCE].getConnection());
 
-					/* Print the elapsed time if appropriate */
-					if (elapsedTimeOn) {
-						endTime = System.currentTimeMillis();
-						out.println(langUtil.getTextMessage("IJ_ElapTime0Mil", 
-						langUtil.getNumberAsString(endTime - beginTime)));
+						// if something went wrong, an SQLException or ijException was thrown.
+						// we can keep going to the next statement on those (see catches below).
+						// ijParseException means we try the SQL parser.
+
+						/* Print the elapsed time if appropriate */
+						if (elapsedTimeOn) {
+							endTime = System.currentTimeMillis();
+							out.println(langUtil.getTextMessage("IJ_ElapTime0Mil",
+									langUtil.getNumberAsString(endTime - beginTime)));
+						}
+
+						// would like when it completes a statement
+						// to see if there is stuff after the ;
+						// and before the <EOL> that we will IGNORE
+						// (with a warning to that effect)
 					}
-
-					// would like when it completes a statement
-					// to see if there is stuff after the ;
-					// and before the <EOL> that we will IGNORE
-					// (with a warning to that effect)
 				}
 
     			} catch (ParseException e) {
@@ -841,19 +844,35 @@ public class utilMain implements java.security.PrivilegedAction {
 
 	@SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE",justification = "Intentional, we don't care if the file already exists")
 	public void startSpooling(String path) throws IOException {
-		doSpool = true;
-		logFileName = path;
-		File f = new File(logFileName);
-		f.createNewFile(); // no-op if file exists.
-		this.out.close();
-		this.out = new LocalizedOutput(new ForkOutputStream(new FileOutputStream(f)));
+		try {
+			logFileName = path;
+			File f = new File(logFileName);
+			if(!f.exists()) {
+				f.createNewFile(); // create if not exists, no-op if file exists.
+				out.println(langUtil.getTextMessage("IJ_SpoolNewFile", path));
+			} else if(f.exists() && f.canWrite() && !f.isDirectory()) {
+				out.println(langUtil.getTextMessage("IJ_SpoolFileAlreadyExistsWarning", path));
+			} else {
+				out.println(langUtil.getTextMessage("IJ_SpoolError", path));
+				return;
+			}
+			this.out.close();
+			this.out = new LocalizedOutput(new ForkOutputStream(new FileOutputStream(f)));
+			doSpool = true;
+		} catch (IOException e) {
+			out.println(langUtil.getTextMessage("IJ_SpoolError", path));
+		}
 	}
 
 	public void stopSpooling() {
-		doSpool = false;
-		this.out.flush();
-		this.out.close();
-		this.out = new LocalizedOutput(System.out);
+		if(!doSpool) {
+			out.println(langUtil.getTextMessage("IJ_SpoolNotActive"));
+		} else {
+			doSpool = false;
+			this.out.flush();
+			this.out.close();
+			this.out = new LocalizedOutput(System.out);
+		}
 	}
 
 	public void clearSpooling() throws IOException {
@@ -861,6 +880,8 @@ public class utilMain implements java.security.PrivilegedAction {
 		{
 			PrintWriter pw = new PrintWriter(logFileName, "UTF-8");
 			pw.close();
+		} else {
+			out.println(langUtil.getTextMessage("IJ_SpoolNotActive"));
 		}
 	}
 
