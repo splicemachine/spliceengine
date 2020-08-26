@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import org.apache.log4j.Logger;
 
 import java.util.Vector;
 
@@ -58,6 +59,9 @@ import java.util.Vector;
 
 public class SetSchemaNode extends MiscellaneousStatementNode
 {
+	private static Logger LOG = Logger.getLogger(SetSchemaNode.class);
+
+
 	private String 	name;
 	private int 	type;
 	
@@ -185,6 +189,7 @@ public class SetSchemaNode extends MiscellaneousStatementNode
 	@Override
 	public void bindStatement() throws StandardException
 	{
+		LOG.info(String.format("SetSchemaNode is called with name: %s, type: %s", name, type));
 		// name could be null when compiling a prepared SET SCHEMA statement, in that case
 		// avoid checking.
 		if(this.name != null) {
