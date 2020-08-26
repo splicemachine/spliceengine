@@ -19,11 +19,6 @@
 
 scriptname=$(basename "${0}")
 
-whoami | grep -q ^root$ || {
-	echo "${scriptname}: please run this script as root" 1>&2
-	exit 1
-}
-
 # bail out early if we do not have an HBase install
 maprtop="/opt/mapr"
 maprhbase="${maprtop}/hbase"
@@ -31,7 +26,7 @@ test -e ${maprhbase} || {
 	echo "${scriptname}: ${maprhbase} not found; exiting" 1>&2
 	exit 1
 }
-hbase_ver=##HBASEVERSION##
+hbase_ver=hbase1.1.8
 hbase_home="${maprhbase}/${hbase_ver}-splice"
 hbase_conf="${hbase_home}/conf"
 hbase_bin="${hbase_home}/bin"
@@ -81,21 +76,21 @@ if [ -z "${splice_hbase_role}" ] ; then
 fi
 
 case "${1}" in
-	start)
-		su - ${mapruser} -c "HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} start ${splice_hbase_role}"
-		;;
-	stop)
-		su - ${mapruser} -c "HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} stop ${splice_hbase_role}"
-		;;
-	restart)
-		su - ${mapruser} -c "HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} restart ${splice_hbase_role}"
-		;;
-	status)
-		su - ${mapruser} -c "HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} status ${splice_hbase_role}"
-		;;
-	*)
-		usage
-		exit 1
-		;;
+        start)
+                HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} start ${splice_hbase_role}
+                ;;
+        stop)
+                HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} stop ${splice_hbase_role}
+                ;;
+        restart)
+                HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} restart ${splice_hbase_role}
+                ;;
+        status)
+                HBASE_IDENT_STRING=${splice_hbase_id} ${hbase_daemon} --config ${hbase_conf} status ${splice_hbase_role}
+                ;;
+        *)
+                usage
+                exit 1
+                ;;
 esac
 exit $?

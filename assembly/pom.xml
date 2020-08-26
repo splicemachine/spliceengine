@@ -1032,12 +1032,38 @@
                                             </sources>
                                             <filemode>755</filemode>
                                         </mapping>
+                                        <mapping>
+                                            <directory>/opt/mapr/initscripts/</directory>
+                                            <configuration>true</configuration>
+                                            <username>root</username>
+                                            <groupname>root</groupname>
+                                            <sources>
+                                                <source>
+                                                    <location>mapr/src/main/resources/scripts/service/splice-init-script</location>
+                                                    <destination>splice-regionserver</destination>
+                                                </source>
+                                            </sources>
+                                            <filemode>755</filemode>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/mapr/conf/conf.d/</directory>
+                                            <configuration>true</configuration>
+                                            <username>root</username>
+                                            <groupname>root</groupname>
+                                            <sources>
+                                                <source>
+                                                    <location>mapr/src/main/resources/scripts/service/splice-init-script</location>
+                                                    <destination>warden.splice-regionserver.conf</destination>
+                                                </source>
+                                            </sources>
+                                            <filemode>755</filemode>
+                                        </mapping>
                                     </mappings>
                                     <cleanScriptlet>
                                         <script>rm -r %{buildroot}</script>
                                     </cleanScriptlet>
                                     <installScriptlet>
-                                        <script>mkdir -p %{buildroot}/etc/rc.d/init.d/</script>
+                                        <script>mkdir -p %{buildroot}/opt/mapr/initscripts/</script>
                                     </installScriptlet>
                                     <postinstallScriptlet>
                                         <script>chkconfig --add splice-regionserver</script>
@@ -1072,12 +1098,38 @@
                                             </sources>
                                             <filemode>755</filemode>
                                         </mapping>
+                                        <mapping>
+                                            <directory>/opt/mapr/initscripts/</directory>
+                                            <configuration>true</configuration>
+                                            <username>root</username>
+                                            <groupname>root</groupname>
+                                            <sources>
+                                                <source>
+                                                    <location>mapr/src/main/resources/scripts/service/splice-init-script</location>
+                                                    <destination>splice-masterserver</destination>
+                                                </source>
+                                            </sources>
+                                            <filemode>755</filemode>
+                                        </mapping>
+                                        <mapping>
+                                            <directory>/opt/mapr/conf/conf.d/</directory>
+                                            <configuration>true</configuration>
+                                            <username>root</username>
+                                            <groupname>root</groupname>
+                                            <sources>
+                                                <source>
+                                                    <location>mapr/src/main/resources/scripts/service/splice-init-script</location>
+                                                    <destination>warden.splice-masterserver.conf</destination>
+                                                </source>
+                                            </sources>
+                                            <filemode>755</filemode>
+                                        </mapping>
                                     </mappings>
                                     <cleanScriptlet>
                                         <script>rm -r %{buildroot}</script>
                                     </cleanScriptlet>
                                     <installScriptlet>
-                                        <script>mkdir -p %{buildroot}/etc/rc.d/init.d/</script>
+                                        <script>mkdir -p %{buildroot}/opt/mapr/initscripts/</script>
                                     </installScriptlet>
                                     <postinstallScriptlet>
                                         <script>chkconfig --add splice-masterserver</script>
@@ -1100,7 +1152,7 @@
                                     <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <mappings>
                                         <mapping>
-                                            <directory>/opt/mapr/conf</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/conf/</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
