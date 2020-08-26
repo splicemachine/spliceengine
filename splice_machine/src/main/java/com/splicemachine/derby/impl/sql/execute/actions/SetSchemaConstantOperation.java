@@ -76,7 +76,6 @@ public class SetSchemaConstantOperation implements ConstantAction {
             thisSchemaName = lcc.getCurrentUserId(activation);
 		}
 
-		activation.getLanguageConnectionContext().getAuthorizer().authorize(activation, 1);
         SchemaDescriptor sd = dd.getSchemaDescriptor(thisSchemaName,lcc.getTransactionExecute(), true);
 		lcc.setDefaultSchema(activation, sd);
 	}
