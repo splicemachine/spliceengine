@@ -116,7 +116,7 @@ public class DataDescriptorGenerator
                                               String compression,
                                               boolean isPinned,
                                               boolean purgeDeletedRows,
-                                              long minRetentionPeriod) {
+                                              Long minRetentionPeriod) {
         return new TableDescriptor(dataDictionary, tableName, schema, tableType, lockGranularity, columnSequence,
                         delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows,
                         minRetentionPeriod);
