@@ -1090,19 +1090,21 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return sqlConglomsInSchema;
     }
 
-    private static final String sqlGetTablesInSchema= "SELECT TABLEID FROM SYS.SYSTABLES WHERE SCHEMAID = ?";
+    private static final String sqlGetTablesInSchema= "SELECT TABLEID FROM SYSVW.SYSTABLESVIEW WHERE SCHEMAID = ?";
 
     private static List<TableDescriptor> getTablesInSchema(DataDictionary dataDictionary,
                                                            Connection connection,
                                                            String schemaId) throws SQLException, StandardException {
-        PreparedStatement statement = connection.prepareStatement(sqlGetTablesInSchema);
-        statement.setString(1, schemaId);
-        ResultSet resultSet = statement.executeQuery();
-        List<TableDescriptor> tableDescriptors = new ArrayList<>();
-        while(resultSet.next()) {
-            tableDescriptors.add(dataDictionary.getTableDescriptor(new BasicUUID(resultSet.getString(1))));
+        try(PreparedStatement statement = connection.prepareStatement(sqlGetTablesInSchema)) {
+            statement.setString(1, schemaId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<TableDescriptor> tableDescriptors = new ArrayList<>();
+                while (resultSet.next()) {
+                    tableDescriptors.add(dataDictionary.getTableDescriptor(new BasicUUID(resultSet.getString(1))));
+                }
+                return tableDescriptors;
+            }
         }
-        return tableDescriptors;
     }
 
     public static String getSqlConglomsInTable(){
