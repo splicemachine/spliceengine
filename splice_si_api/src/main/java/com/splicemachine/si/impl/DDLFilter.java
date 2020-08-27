@@ -36,8 +36,6 @@ public class DDLFilter implements Comparable<DDLFilter> {
     }
 
     public boolean isVisibleBy(final TxnView txn) throws IOException {
-        if (txn == null)
-            return false;
         Boolean visible = visibilityMap.getIfPresent(txn.getTxnId());
         if(visible!=null) return visible;
 
