@@ -64,6 +64,9 @@ public class CountAggregator extends SpliceGenericWindowFunction {
     public DataValueDescriptor getResult() throws StandardException {
         // Iterate through each chunk, compute the max/min of each chunk
         long count = 0;
+        if (chunks.isEmpty() || chunks.get(0).isEmpty())
+            return new SQLLongint(count);
+
         for (WindowChunk chunk : chunks) {
             count += chunk.getResult().getLong();
         }
