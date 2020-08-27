@@ -14,9 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.window.function;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -24,6 +21,9 @@ import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.LeadLagFunctionDefinition;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Jeff Cunningham
@@ -89,6 +89,8 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
 
     @Override
     public DataValueDescriptor getResult() throws StandardException {
+        if (chunks.isEmpty() || chunks.get(0).isEmpty())
+            return null;
         return chunks.get(0).getResult();
     }
 
@@ -216,7 +218,6 @@ public class LeadLagFunction extends SpliceGenericWindowFunction {
                     values = lagValues;
                     return lagValues;
                 }
-
                 int lastIdx = values.size() - 1;
                 for(int i = 0; i < lagAmt; i++) {
                     values.remove(lastIdx - i);
