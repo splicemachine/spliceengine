@@ -62,6 +62,9 @@ public final class ByteArray implements Externalizable {
     }
 
     public ByteArray() {
+        array = new byte[]{};
+        offset = 0;
+        length = 0;
     }
 
     public void setBytes(byte[] array) {

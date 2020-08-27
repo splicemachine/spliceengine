@@ -32,12 +32,21 @@
 package com.splicemachine.db.catalog.types;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.Formatable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.util.ByteArray;
+
+import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.IOException;
 
 /**
  *
@@ -56,7 +65,16 @@ import java.io.IOException;
  */
 public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	private boolean		isUnique;
+
+	// column-based index: stores column mapping baseColumnPositions[indexColumnPosition] = baseColumnPosition
+	// expression-based index: stores the distinct base column positions of used columns in arbitrary order
 	private int[]		baseColumnPositions;
+
+	// column-based index: empty because types are the same as base column types
+	// expression-based index: stores the result types of index expressions in original order
+	private DataTypeDescriptor[] indexColumnTypes;
+
+	// stores the ASC/DESC property of each index column
 	private boolean[]	isAscending;
 	private int			numberOfOrderedColumns;
 	private String		indexType;
@@ -69,6 +87,15 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	private boolean 	excludeNulls;
 	private boolean 	excludeDefaults;
 
+	// stores the generated classes of index expressions in byte code in original order
+    private ByteArray[] compiledExpressions;
+
+    // stores the class names of the generated classes in original order
+    private String[]    compiledExpressionClassNames;
+
+    // an array to cache instances of the generated classes
+	// this is not serialized/deserialized
+    private BaseExecutableIndexExpression[] executableExprs;
 
 
 	/**
@@ -98,20 +125,43 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 								boolean isUnique,
 								boolean isUniqueWithDuplicateNulls,
 								int[] baseColumnPositions,
+								DataTypeDescriptor[] indexColumnTypes,
 								boolean[] isAscending,
 								int numberOfOrderedColumns,
 							   boolean excludeNulls,
-							   boolean excludeDefaults
+							   boolean excludeDefaults,
+							   ByteArray[] compiledExpressions,
+							   String[] compiledExpressionClassNames
 							   )
 	{
 		this.indexType = indexType;
 		this.isUnique = isUnique;
 		this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
 		this.baseColumnPositions = baseColumnPositions;
+		this.indexColumnTypes = indexColumnTypes;
 		this.isAscending = isAscending;
 		this.numberOfOrderedColumns = numberOfOrderedColumns;
 		this.excludeNulls = excludeNulls;
 		this.excludeDefaults = excludeDefaults;
+		this.compiledExpressions = compiledExpressions;
+		this.compiledExpressionClassNames = compiledExpressionClassNames;
+		assert this.compiledExpressions.length == this.compiledExpressionClassNames.length;
+		this.executableExprs = new BaseExecutableIndexExpression[this.compiledExpressions.length];
+	}
+
+	/** Constructor for non-expression based index */
+	public IndexDescriptorImpl(String indexType,
+							   boolean isUnique,
+							   boolean isUniqueWithDuplicateNulls,
+							   int[] baseColumnPositions,
+							   boolean[] isAscending,
+							   int numberOfOrderedColumns,
+							   boolean excludeNulls,
+							   boolean excludeDefaults
+	)
+	{
+		this(indexType, isUnique, isUniqueWithDuplicateNulls, baseColumnPositions, new DataTypeDescriptor[]{},
+			 isAscending, numberOfOrderedColumns, excludeNulls, excludeDefaults, new ByteArray[]{}, new String[]{});
 	}
 
 	/** Zero-argument constructor for Formatable interface */
@@ -171,6 +221,9 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	{
 		return indexType;
 	}
+
+	/** @see IndexDescriptor#getIndexColumnTypes */
+	public DataTypeDescriptor[] getIndexColumnTypes() { return indexColumnTypes; }
 
 	/** @see IndexDescriptor#isAscending */
 	public boolean isAscending(Integer keyColumnPosition) {
@@ -269,13 +322,16 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         FormatableHashtable fh = (FormatableHashtable) in.readObject();
         isUnique = fh.getBoolean("isUnique");
-        int bcpLength = fh.getInt("keyLength");
-        baseColumnPositions = new int[bcpLength];
-        isAscending = new boolean[bcpLength];
-        for (int i = 0; i < bcpLength; i++) {
-            baseColumnPositions[i] = fh.getInt("bcp" + i);
-            isAscending[i] = fh.getBoolean("isAsc" + i);
-        }
+        int keyLength = fh.getInt("keyLength");
+		isAscending = new boolean[keyLength];
+		for (int i = 0; i < keyLength; i++) {
+			isAscending[i] = fh.getBoolean("isAsc" + i);
+		}
+		int numBaseColumns = fh.containsKey("numBaseColumns") ? fh.getInt("numBaseColumns") : keyLength;
+        baseColumnPositions = new int[numBaseColumns];
+		for (int i = 0; i < keyLength; i++) {
+			baseColumnPositions[i] = fh.getInt("bcp" + i);
+		}
         numberOfOrderedColumns = fh.getInt("orderedColumns");
         indexType = (String) fh.get("indexType");
         //isUniqueWithDuplicateNulls attribute won't be present if the index
@@ -283,6 +339,18 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         isUniqueWithDuplicateNulls = fh.containsKey("isUniqueWithDuplicateNulls") && fh.getBoolean("isUniqueWithDuplicateNulls");
 		excludeNulls = fh.containsKey("excludeNulls") && fh.getBoolean("excludeNulls");
 		excludeDefaults = fh.containsKey("excludeDefaults") && fh.getBoolean("excludeDefaults");
+
+		int numIndexExpr = fh.containsKey("numIndexExpr") ? fh.getInt("numIndexExpr") : 0;
+		compiledExpressionClassNames = new String[numIndexExpr];
+		compiledExpressions = new ByteArray[numIndexExpr];
+
+		if (numIndexExpr > 0) {
+			for (int i = 0; i < numIndexExpr; i++) {
+				compiledExpressionClassNames[i] = (String) fh.get("compliedExpressionClassName" + i);
+				compiledExpressions[i] = new ByteArray();
+				compiledExpressions[i].readExternal(in);
+			}
+		}
     }
 
 	/**
@@ -294,11 +362,13 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	{
 		FormatableHashtable fh = new FormatableHashtable();
 		fh.putBoolean("isUnique", isUnique);
-		fh.putInt("keyLength", baseColumnPositions.length);
-		for (int i = 0; i < baseColumnPositions.length; i++)
-		{
-			fh.putInt("bcp" + i, baseColumnPositions[i]);
+		fh.putInt("keyLength", isAscending.length);
+		for (int i = 0; i < isAscending.length; i++) {
 			fh.putBoolean("isAsc" + i, isAscending[i]);
+		}
+		fh.putInt("numBaseColumns", baseColumnPositions.length);
+		for (int i = 0; i < baseColumnPositions.length; i++) {
+			fh.putInt("bcp" + i, baseColumnPositions[i]);
 		}
 		fh.putInt("orderedColumns", numberOfOrderedColumns);
 		fh.put("indexType", indexType);
@@ -310,7 +380,19 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		fh.putBoolean("excludeDefaults",
 				excludeDefaults);
 
+		// if an older version doesn't have this key, default construct expression-related fields
+		fh.putInt("numIndexExpr", compiledExpressions.length);
+
+		// compiledExpressions.length == compiledExpressionClassNames.length
+		for (int i = 0; i < compiledExpressionClassNames.length; i++) {
+			fh.put("compliedExpressionClassName" + i, compiledExpressionClassNames[i]);
+		}
+
         out.writeObject(fh);
+
+        for (ByteArray compiledExpr : compiledExpressions) {
+			compiledExpr.writeExternal(out);
+		}
 	}
 
 	/* TypedFormat interface */
@@ -348,7 +430,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                     this.baseColumnPositions.length) &&
                 (id.numberOfOrderedColumns     == 
                     this.numberOfOrderedColumns)     &&
-                (id.indexType.equals(this.indexType)))
+                (id.indexType.equals(this.indexType)) &&
+				(id.compiledExpressions.equals(this.compiledExpressions)))
 			{
 				/*
 				** Everything but array elements known to be true -
@@ -398,5 +481,39 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	@Override
 	public boolean excludeDefaults() {
 		return excludeDefaults;
+	}
+
+	/** @see IndexDescriptor#getCompiledExpressions */
+	@Override
+	public ByteArray[] getCompiledExpressions() { return compiledExpressions; }
+
+	/** @see IndexDescriptor#getCompiledExpressionClassNames */
+	@Override
+	public String[] getCompiledExpressionClassNames() { return compiledExpressionClassNames; }
+
+	/** @see IndexDescriptor#isOnExpression */
+	@Override
+	public boolean isOnExpression() { return compiledExpressions.length > 0; }
+
+	/** @see IndexDescriptor#getExecutableIndexExpression */
+	@Override
+	public BaseExecutableIndexExpression getExecutableIndexExpression(int indexColumnPosition)
+			throws StandardException
+	{
+		if (indexColumnPosition >= compiledExpressions.length)
+			return null;
+
+		if (executableExprs[indexColumnPosition] != null)
+			return executableExprs[indexColumnPosition];
+
+		assert !compiledExpressionClassNames[indexColumnPosition].isEmpty()
+				: "index has expression but generated class name is unknown";
+		LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext
+				(LanguageConnectionContext.CONTEXT_ID);
+		ClassFactory classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
+		GeneratedClass gc = classFactory.loadGeneratedClass(
+				compiledExpressionClassNames[indexColumnPosition], compiledExpressions[indexColumnPosition]);
+		executableExprs[indexColumnPosition] = (BaseExecutableIndexExpression) gc.newInstance(lcc);
+		return executableExprs[indexColumnPosition];
 	}
 }

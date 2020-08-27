@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -168,6 +169,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private boolean			uniqueWithDuplicateNulls;
     private String			indexType;
     private String[]		columnNames;
+    private DataTypeDescriptor[] indexColumnTypes;
     private boolean[]		isAscending;
     private boolean			isConstraint;
     private UUID			conglomerateUUID;
@@ -186,6 +188,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private String          timestampFormat;
     private String          dateFormat;
     private String          timeFormat;
+    private ByteArray[]     compiledExpressions;
+    private String[]        compiledExpressionClassNames;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -250,6 +254,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             String			tableName,
             UUID			tableId,
             String[]		columnNames,
+            DataTypeDescriptor[] indexColumnTypes,
             boolean[]		isAscending,
             boolean			isConstraint,
             UUID			conglomerateUUID,
@@ -266,6 +271,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             String          timestampFormat,
             String          dateFormat,
             String          timeFormat,
+            ByteArray[]     compiledExpressions,
+            String[]        compiledExpressionClassNames,
             Properties		properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
@@ -274,6 +281,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.uniqueWithDuplicateNulls   = uniqueWithDuplicateNulls;
         this.indexType                  = indexType;
         this.columnNames                = columnNames;
+        this.indexColumnTypes           = indexColumnTypes;
         this.isAscending                = isAscending;
         this.isConstraint               = isConstraint;
         this.conglomerateUUID           = conglomerateUUID;
@@ -293,6 +301,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.timestampFormat            = timestampFormat;
         this.dateFormat                 = dateFormat;
         this.timeFormat                 = timeFormat;
+        this.compiledExpressions        = compiledExpressions;
+        this.compiledExpressionClassNames = compiledExpressionClassNames;
     }
 
     /**
@@ -530,8 +540,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                             new IndexRowGenerator(
                                     indexType, unique, uniqueWithDuplicateNulls,
                                     baseColumnPositions,
+                                    indexColumnTypes,
                                     isAscending,
-                                    baseColumnPositions.length,excludeNulls,excludeDefaults);
+                                    baseColumnPositions.length,excludeNulls,excludeDefaults,
+                                    compiledExpressions,
+                                    compiledExpressionClassNames);
 
                     //DERBY-655 and DERBY-1343
                     // Sharing indexes will have unique logical conglomerate UUIDs.
@@ -695,10 +708,13 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     unique,
                     uniqueWithDuplicateNulls,
                     baseColumnPositions,
+                    indexColumnTypes,
                     isAscending,
                     baseColumnPositions.length,
                     excludeNulls,
-                    excludeDefaults);
+                    excludeDefaults,
+                    compiledExpressions,
+                    compiledExpressionClassNames);
         }
         return existingGenerator;
     }

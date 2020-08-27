@@ -73,6 +73,7 @@ public interface ClassName
 
 	String BaseActivation = "com.splicemachine.db.impl.sql.execute.BaseActivation";
 	String BaseExpressionActivation = "com.splicemachine.db.impl.sql.execute.BaseExpressionActivation";
+	String BaseExecutableIndexExpression = "com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression";
 
 	String CursorActivation = "com.splicemachine.db.impl.sql.execute.CursorActivation";
 

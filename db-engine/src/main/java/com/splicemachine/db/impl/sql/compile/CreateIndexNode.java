@@ -31,16 +31,15 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Hashtable;
-import java.util.Properties;
-import java.util.Vector;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -48,6 +47,11 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.ast.CollectingVisitor;
+import splice.com.google.common.base.Predicates;
+
+import java.util.*;
 
 /**
  * A CreateIndexNode is the root of a QueryTree that represents a CREATE INDEX
@@ -64,8 +68,9 @@ public class CreateIndexNode extends DDLStatementNode
 	String				indexType;
 	TableName			indexName;
 	TableName			tableName;
-	Vector				columnNameList;
-	String[]			columnNames = null;
+	Vector<IndexExpression> expressionList;
+	DataTypeDescriptor[] indexColumnTypes;
+	String[]            involvedColumnNames = null;
 	boolean[]			isAscending;
 	int[]				boundColumnIDs;
 	boolean 			excludeNulls;
@@ -81,7 +86,9 @@ public class CreateIndexNode extends DDLStatementNode
     String              timestampFormat;
     String              dateFormat;
     String              timeFormat;
-
+    boolean             onExpression;
+    ByteArray[]         compiledExpressions;
+    String[]            compiledExpressionClassNames;
 
 	TableDescriptor		td;
 
@@ -92,7 +99,7 @@ public class CreateIndexNode extends DDLStatementNode
 	 * @param indexType	The type of index
 	 * @param indexName	The name of the index
 	 * @param tableName	The name of the table the index will be on
-	 * @param columnNameList	A list of column names, in the order they
+	 * @param expressionList	A list of index key expressions, in the order they
 	 *							appear in the index.
 	 * @param properties	The optional properties list associated with the index.
 	 *
@@ -103,7 +110,7 @@ public class CreateIndexNode extends DDLStatementNode
 					Object indexType,
 					Object indexName,
 					Object tableName,
-					Object columnNameList,
+					Object expressionList,
 					Object excludeNulls,
 					Object excludeDefaults,
                     Object preSplit,
@@ -122,10 +129,11 @@ public class CreateIndexNode extends DDLStatementNode
 	{
 		initAndCheck(indexName);
 		this.unique = (Boolean) unique;
+		this.dd = getDataDictionary();
 		this.indexType = (String) indexType;
 		this.indexName = (TableName) indexName;
 		this.tableName = (TableName) tableName;
-		this.columnNameList = (Vector) columnNameList;
+		this.expressionList = (Vector<IndexExpression>) expressionList;
 		this.properties = (Properties) properties;
 		this.excludeNulls = (Boolean) excludeNulls;
 		this.excludeDefaults = (Boolean) excludeDefaults;
@@ -140,6 +148,11 @@ public class CreateIndexNode extends DDLStatementNode
         this.dateFormat = dateFormat != null ? ((CharConstantNode)dateFormat).getString() : null;
         this.timeFormat = timeFormat != null ? ((CharConstantNode)timeFormat).getString() : null;
         this.hfilePath = hfilePath != null ? ((CharConstantNode)hfilePath).getString() : null;
+        this.onExpression = isIndexOnExpression();
+
+        int exprSize = this.onExpression ? this.expressionList.size() : 0;
+        this.compiledExpressions = new ByteArray[exprSize];
+        this.compiledExpressionClassNames = new String[exprSize];
 	}
 
 	/**
@@ -178,7 +191,7 @@ public class CreateIndexNode extends DDLStatementNode
 	public	UUID				getBoundTableID() { return td.getUUID(); }
     public	Properties			getProperties() { return properties; }
 	public  TableName			getIndexTableName() {return tableName; }
-	public  String[]			getColumnNames() { return columnNames; }
+	public  String[]			getColumnNames() { return involvedColumnNames; }
 
 	// get 1-based column ids
 	public	int[]				getKeyColumnIDs() { return boundColumnIDs; }
@@ -202,7 +215,6 @@ public class CreateIndexNode extends DDLStatementNode
 		int						columnCount;
 
 		sd = getSchemaDescriptor();
-
 		td = getTableDescriptor(tableName);
 
 		//If total number of indexes on the table so far is more than 32767, then we need to throw an exception
@@ -217,19 +229,20 @@ public class CreateIndexNode extends DDLStatementNode
 		/* Validate the column name list */
 		verifyAndGetUniqueNames();
 
-		columnCount = columnNames.length;
+		columnCount = involvedColumnNames.length;
 		boundColumnIDs = new int[ columnCount ];
+		indexColumnTypes = new DataTypeDescriptor[expressionList.size()];
 
 		// Verify that the columns exist
 		for (int i = 0; i < columnCount; i++)
 		{
 			ColumnDescriptor			columnDescriptor;
 
-			columnDescriptor = td.getColumnDescriptor(columnNames[i]);
+			columnDescriptor = td.getColumnDescriptor(involvedColumnNames[i]);
 			if (columnDescriptor == null)
 			{
 				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND_IN_TABLE,
-															columnNames[i],
+															involvedColumnNames[i],
 															tableName);
 			}
 			boundColumnIDs[ i ] = columnDescriptor.getPosition();
@@ -243,6 +256,9 @@ public class CreateIndexNode extends DDLStatementNode
 			{
 				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
 					columnDescriptor.getType().getTypeId().getSQLTypeName());
+			}
+			if (!onExpression) {
+				indexColumnTypes[i] = columnDescriptor.getType();
 			}
 		}
 
@@ -263,6 +279,55 @@ public class CreateIndexNode extends DDLStatementNode
 //  												 "schema",
 //  												 sd.getSchemaName());
 //  		}
+
+		if (onExpression) {
+			// fake a FromList to bind index expressions
+			FromList fromList = (FromList) getNodeFactory().getNode(
+					C_NodeTypes.FROM_LIST,
+					getNodeFactory().doJoinOrderOptimization(),
+					getContextManager());
+			FromTable fromTable = (FromTable) getNodeFactory().getNode(
+					C_NodeTypes.FROM_BASE_TABLE,
+					tableName,
+					null, null, null, false, null,
+					getContextManager());
+			fromList.addFromTable(fromTable);
+			fromList.bindTables(
+				dd,
+				(FromList) getNodeFactory().getNode(
+					C_NodeTypes.FROM_LIST,
+					getNodeFactory().doJoinOrderOptimization(),
+					getContextManager()
+				)
+			);
+
+			CollectingVisitor<QueryTreeNode> restrictionVisitor = new CollectingVisitor<>(
+					Predicates.or(
+							Predicates.instanceOf(SubqueryNode.class),
+							Predicates.instanceOf(AggregateNode.class),
+							Predicates.instanceOf(StringAggregateNode.class),
+							Predicates.instanceOf(WrappedAggregateFunctionNode.class),
+							Predicates.instanceOf(WindowFunctionNode.class),
+							Predicates.instanceOf(CurrentDatetimeOperatorNode.class),
+							Predicates.instanceOf(CurrentOfNode.class),
+							Predicates.instanceOf(NextSequenceNode.class),
+							Predicates.instanceOf(SpecialFunctionNode.class),
+							Predicates.instanceOf(ParameterNode.class)
+					));
+
+			for (int i = 0; i < expressionList.size(); i++) {
+				IndexExpression ie = expressionList.elementAt(i);
+				ie.expression.bindExpression(fromList, new SubqueryList(), new ArrayList<AggregateNode>() {});
+				ie.expression.accept(restrictionVisitor);
+				if (!restrictionVisitor.getCollected().isEmpty()) {
+					// TODO: correct exception
+					throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "invalid index expression");
+				}
+				indexColumnTypes[i] = ie.expression.getTypeServices();
+			}
+
+			generateExecutableIndexExpression();
+		}
 
 		/* Statement is dependent on the TableDescriptor */
 		getCompilerContext().createDependency(td);
@@ -292,7 +357,7 @@ public class CreateIndexNode extends DDLStatementNode
 	{
 		SchemaDescriptor		sd = getSchemaDescriptor();
 
-		int columnCount = columnNames.length;
+		int columnCount = involvedColumnNames.length;
 		int approxLength = 0;
 		boolean index_has_long_column = false;
 
@@ -303,7 +368,7 @@ public class CreateIndexNode extends DDLStatementNode
 		// Ideally, we would want to have atleast 2 or 3 keys fit in one page
 		// With fix for beetle 5728, indexes on long types is not allowed
 		// so we do not have to consider key columns of long types
-        for (String columnName : columnNames) {
+        for (String columnName : involvedColumnNames) {
             ColumnDescriptor columnDescriptor = td.getColumnDescriptor(columnName);
             DataTypeDescriptor dts = columnDescriptor.getType();
             approxLength += dts.getTypeId().getApproximateLengthInBytes(dts);
@@ -342,7 +407,8 @@ public class CreateIndexNode extends DDLStatementNode
                 indexName.getTableName(),
                 tableName.getTableName(),
                 td.getUUID(),
-                columnNames,
+				involvedColumnNames,
+                indexColumnTypes,
                 isAscending,
                 false,
                 null,
@@ -359,6 +425,8 @@ public class CreateIndexNode extends DDLStatementNode
                 timestampFormat,
                 dateFormat,
                 timeFormat,
+				compiledExpressions,
+				compiledExpressionClassNames,
                 properties);
 	}
 
@@ -371,32 +439,79 @@ public class CreateIndexNode extends DDLStatementNode
 	private void verifyAndGetUniqueNames()
 				throws StandardException
 	{
-		int size = columnNameList.size();
-		Hashtable	ht = new Hashtable(size + 2, (float) .999);
-		columnNames = new String[size];
+		int size = expressionList.size();
 		isAscending = new boolean[size];
 
-		for (int index = 0; index < size; index++)
-		{
-			/* Verify that this column's name is unique within the list
-			 * Having a space at the end meaning descending on the column
-			 */
-			columnNames[index] = (String) columnNameList.get(index);
-			if (columnNames[index].endsWith(" "))
-			{
-				columnNames[index] = columnNames[index].substring(0, columnNames[index].length() - 1);
-				isAscending[index] = false;
+		if (onExpression) {
+			CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+			for (int i = 0; i < size; i++) {
+				IndexExpression ie = expressionList.get(i);
+				ie.expression.accept(cnv);
+				isAscending[i] = ie.isAscending;
 			}
-			else
-				isAscending[index] = true;
-
-			Object object = ht.put(columnNames[index], columnNames[index]);
-
-			if (object != null &&
-				((String) object).equals(columnNames[index]))
-			{
-				throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_CREATE_INDEX, columnNames[index]);
+			Vector<ColumnReference> columnReferenceList = cnv.getList();
+			if (columnReferenceList.isEmpty()) {
+				// TODO: correct exception
+				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "index expression must contain at least one column reference");
 			}
+
+			HashSet<String> columnNameSet = new HashSet<>();
+			for (ColumnReference cr : columnReferenceList) {
+				columnNameSet.add(cr.getColumnName());
+			}
+			involvedColumnNames = new String[columnNameSet.size()];
+			columnNameSet.toArray(involvedColumnNames);
+		}
+		else {
+			Hashtable	ht = new Hashtable(size + 2, (float) .999);
+			involvedColumnNames = new String[size];
+
+			for (int index = 0; index < size; index++) {
+				/* Verify that this column's name is unique within the list
+				 * Having a space at the end meaning descending on the column
+				 */
+				IndexExpression ie = (IndexExpression) expressionList.get(index);
+				assert (ie.expression instanceof ColumnReference);
+				involvedColumnNames[index] = ie.expression.getColumnName();
+				isAscending[index] = ie.isAscending;
+
+				Object object = ht.put(involvedColumnNames[index], involvedColumnNames[index]);
+
+				if (object != null && ((String) object).equals(involvedColumnNames[index])) {
+					throw StandardException.newException(SQLState.LANG_DUPLICATE_COLUMN_NAME_CREATE_INDEX, involvedColumnNames[index]);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Check if this index is created on expressions
+	 * @return true if this index is created on expressions, false otherwise
+	 */
+	private boolean isIndexOnExpression() {
+		for (Object o : expressionList) {
+			IndexExpression ie = (IndexExpression) o;
+			if (!(ie.expression instanceof ColumnReference))
+				return true;
+		}
+		return false;
+	}
+
+	private void generateExecutableIndexExpression() throws StandardException{
+		if (!onExpression)
+			return;
+
+		assert compiledExpressions.length == expressionList.size();
+		assert compiledExpressionClassNames.length == expressionList.size();
+		for (int i = 0; i < expressionList.size(); i++) {
+			ExecutableIndexExpressionClassBuilder ieb = new ExecutableIndexExpressionClassBuilder(getCompilerContext());
+			MethodBuilder mb = ieb.getExecuteMethod();
+			expressionList.elementAt(i).expression.generateExpression(ieb, mb);
+			ieb.finishRunExpressionMethod(i + 1);
+
+			compiledExpressions[i] = new ByteArray();
+			GeneratedClass gc = ieb.getGeneratedClass(compiledExpressions[i]);
+			compiledExpressionClassNames[i] = gc.getName();
 		}
 	}
 }

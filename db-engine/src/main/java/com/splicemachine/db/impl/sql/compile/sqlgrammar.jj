@@ -74,6 +74,7 @@ import com.splicemachine.db.impl.sql.compile.FromSubquery;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
+import com.splicemachine.db.impl.sql.compile.IndexExpression;
 import com.splicemachine.db.impl.sql.compile.JavaToSQLValueNode;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.MethodCallNode;
@@ -11327,17 +11328,13 @@ indexColumnList(Vector columnList) throws StandardException :
 void
 indexColumnItem(Vector columnList) throws StandardException :
 {
-    String        columnName;
+    ValueNode expr;
+    Token descToken = null;
 }
 {
-    /* identifier never ends with a space; appending a space meaning desc */
-    columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) [<ASC> | <DESC> {columnName = columnName + ' ';}]
+    expr = valueExpression() [<ASC> | descToken = <DESC>]
     {
-        /*
-        ** Store the column names for the index columns in the
-        ** index column list.
-        */
-        columnList.addElement(columnName);
+        columnList.addElement(new IndexExpression(expr, (descToken == null)));
     }
 }
 

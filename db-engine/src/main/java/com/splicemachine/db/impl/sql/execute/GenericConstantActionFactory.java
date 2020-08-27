@@ -42,12 +42,10 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.compile.TableName;
-import com.splicemachine.db.impl.sql.compile.ValueNode;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Properties;
 
@@ -221,6 +219,7 @@ public abstract class GenericConstantActionFactory {
         String            tableName,
         UUID            tableId,
         String[]        columnNames,
+        DataTypeDescriptor[] indexColumnTypes,
         boolean[]        isAscending,
         boolean            isConstraint,
         UUID            conglomerateUUID,
@@ -237,6 +236,8 @@ public abstract class GenericConstantActionFactory {
         String          timestampFormat,
         String          dateFormat,
         String          timeFormat,
+        ByteArray[]     compiledExpression,
+        String[]        compiledExpressionClassName,
         Properties        properties
     );
 
