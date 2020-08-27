@@ -343,7 +343,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
         if(ibmConnectionTable==null){
-            ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf));
+            ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf, this));
         }
         initSystemIndexVariables(ibmConnectionTable);
         return ibmConnectionTable;

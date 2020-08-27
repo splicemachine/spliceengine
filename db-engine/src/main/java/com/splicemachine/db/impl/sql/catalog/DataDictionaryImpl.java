@@ -7795,7 +7795,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     retval=new TabInfoImpl(new SYSREPLICATIONRowFactory(luuidFactory,exFactory,dvf,this));
                     break;
                 case SYSMONGETCONNECTION_CATALOG_NUM:
-                    retval=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf));
+                    retval=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf, this));
                     break;
                 default:
                     retval=null;
@@ -7889,7 +7889,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // look up from SYSIBM schema
                 td=getTableDescriptor(ti.getTableName(),getSysIBMSchemaDescriptor(),null);
                 if ( td == null) {
-                    return;
+                    // look up from SYSIBMADM schema
+                    td = getTableDescriptor(ti.getTableName(), sysIBMADMSchemaDesc, null);
+                    if (td == null) {
+                        return;
+                    }
                 }
             }
 
