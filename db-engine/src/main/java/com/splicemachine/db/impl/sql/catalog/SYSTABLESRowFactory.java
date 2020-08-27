@@ -533,7 +533,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                 compressionDVD != null ? compressionDVD.getString() : null,
                 isPinnedDVD.getBoolean(),
                 purgeDeletedRowsDVD.getBoolean(),
-                minRetentionPeriodDVD.getLong()
+                minRetentionPeriodDVD != null ? minRetentionPeriodDVD.getLong() : null
         );
         tabDesc.setUUID(tableUUID);
 
@@ -583,7 +583,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn(COMPRESSION, Types.VARCHAR, true),
                 SystemColumnImpl.getColumn(IS_PINNED, Types.BOOLEAN, false),
                 SystemColumnImpl.getColumn(PURGE_DELETED_ROWS, Types.BOOLEAN, false),
-                SystemColumnImpl.getColumn(MIN_RETENTION_PERIOD, Types.BIGINT, false),
+                SystemColumnImpl.getColumn(MIN_RETENTION_PERIOD, Types.BIGINT, true),
         };
     }
 
@@ -636,7 +636,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                                 DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN, false),
                                 null, null, view, viewId, 0, 0, 0),
                         new ColumnDescriptor(MIN_RETENTION_PERIOD, 16, 16,
-                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, false),
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, true),
                                 null, null, view, viewId, 0, 0, 0),
                         new ColumnDescriptor("SCHEMANAME", 17, 17,
                                 DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
@@ -673,11 +673,12 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         return cdsl;
     }
 
-    public static String SYSTABLE_VIEW_SQL = "create view SYSTABLESVIEW as \n" +
-            "SELECT T.*, S.SCHEMANAME FROM SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S " +
+    public static final String SYSTABLE_VIEW_NAME = "SYSTABLESVIEW";
+    public static final String SYSTABLE_VIEW_SQL = "CREATE VIEW " + SYSTABLE_VIEW_NAME + " AS \n" +
+            "SELECT T.*, S.SCHEMANAME FROM SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S \n" +
             "WHERE T.SCHEMAID = S.SCHEMAID";
 
-    public static String SYSTABLES_VIEW_IN_SYSIBM = "create view systables as \n" +
+    public static final String SYSTABLES_VIEW_IN_SYSIBM = "create view systables as \n" +
             "select\n" +
             "T.tablename as NAME,\n" +
             "T.schemaname as CREATOR,\n" +
