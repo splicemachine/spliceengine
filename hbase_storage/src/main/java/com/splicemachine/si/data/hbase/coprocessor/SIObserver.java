@@ -29,7 +29,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
-import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
@@ -209,7 +208,6 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             } else {
                 purgeConfig.noPurgeDeletes();
             }
-            purgeConfig.transactionLowWatermark(TransactionsWatcher.getLowWatermarkTransaction());
             purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
