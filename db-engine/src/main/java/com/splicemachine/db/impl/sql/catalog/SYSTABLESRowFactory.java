@@ -184,7 +184,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         @Deprecated
         boolean isPinned = false;
         boolean purgeDeletedRows = false;
-        long minRetentionPeriod = 0;
+        Long minRetentionPeriod = null;
 
         if (td != null) {
             /*
@@ -298,7 +298,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                                      String compression,
                                      boolean isPinned,
                                      boolean purgeDeletedRows,
-                                     long minRetentionPeriod) {
+                                     Long minRetentionPeriod) {
         /* 1st column is TABLEID (UUID - char(36)) */
         row.setColumn(SYSTABLES_TABLEID, new SQLChar(tableID));
 
@@ -677,7 +677,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             "SELECT T.*, S.SCHEMANAME FROM SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S \n" +
             "WHERE T.SCHEMAID = S.SCHEMAID";
 
-    public static final String SYSTABLES_VIEW_IN_SYSIBM = "create view systables as \n" +
+    public static final String SYSTABLE_VIEW_NAME_IN_SYSIBM = "systables";
+    public static final String SYSTABLES_VIEW_IN_SYSIBM = "create view " + SYSTABLE_VIEW_NAME_IN_SYSIBM + " as \n" +
             "select\n" +
             "T.tablename as NAME,\n" +
             "T.schemaname as CREATOR,\n" +

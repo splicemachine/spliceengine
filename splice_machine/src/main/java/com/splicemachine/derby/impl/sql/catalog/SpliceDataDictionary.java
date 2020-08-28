@@ -1678,14 +1678,18 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.TABLENAME_STRING,
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
 
-            // finally, update the SYSTABLESVIEW
-            ViewDescriptor vd=getViewDescriptor(td);
-            dropViewDescriptor(vd, tc);
-            DataDescriptorGenerator ddg=getDataDescriptorGenerator();
-            vd=ddg.newViewDescriptor(td.getUUID(),SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL,0,sd.getUUID());
-            addDescriptor(vd,sd,DataDictionary.SYSVIEWS_CATALOG_NUM,true, tc,false);
-            SpliceLogUtils.info(LOG, String.format("%s upgraded: updated view %s with one more column: %s.",
-                    SYSTABLESRowFactory.TABLENAME_STRING, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
+            // now upgrade the views if necessary
+            TableDescriptor td1 = getTableDescriptor(SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, sysViewSchemaDesc, tc);
+            if(td1 != null) {
+                ViewDescriptor vd1 = getViewDescriptor(td1);
+                dropAllColumnDescriptors(td1.getUUID(), tc);
+                dropViewDescriptor(vd1, tc);
+                dropTableDescriptor(td1, sysViewSchemaDesc, tc);
+            }
+            createOneSystemView(tc, SYSTABLES_CATALOG_NUM, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, 0,
+                    sysViewSchemaDesc, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL);
+            SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME,
+                    SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
         }
     }
 }
