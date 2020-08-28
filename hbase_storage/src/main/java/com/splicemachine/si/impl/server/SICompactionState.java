@@ -66,7 +66,7 @@ public class SICompactionState {
      * @return the size of all cells in the `row` parameter.
      */
     public long mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, PurgeConfig purgeConfig) throws IOException {
-        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig);
+        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig, TransactionsWatcher.getLowWatermarkTransaction());
         return impl.mutate(rawList, txns, results);
     }
 
