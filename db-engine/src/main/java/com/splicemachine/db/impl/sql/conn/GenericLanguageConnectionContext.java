@@ -3305,26 +3305,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void refreshCurrentRoles(Activation a) throws StandardException {
-        List<String> roles = getCurrentSQLSessionContext(a).getRoles();
-        List<String> rolesToRemove = new ArrayList<>();
-        for (String role : roles) {
-            if (role != null) {
-                beginNestedTransaction(true);
-                try {
-                    if (!roleIsSettable(a, role)) {
-                        // invalid role, so remove it from the currentRoles list in SQLSessionContext
-                        rolesToRemove.add(role);
-                    }
-                } finally {
-                    commitNestedTransaction();
-                }
-            }
-        }
-        removeRoles(a, rolesToRemove);
-    }
-
-    @Override
     public String getCurrentUserId(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentUser();
     }
@@ -3385,9 +3365,23 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         List<String> roles=getCurrentSQLSessionContext(a).getRoles();
 
-        refreshCurrentRoles(a);
+        List<String > rolesToRemove = new ArrayList<>();
         String roleListString = null;
         for (String role : roles) {
+            if (role != null) {
+                beginNestedTransaction(true);
+
+                try {
+                    if (!roleIsSettable(a, role)) {
+                        // invalid role, so remove it from the currentRoles list in SQLSessionContext
+                        rolesToRemove.add(role);
+                        role = null;
+                    }
+                } finally {
+                    commitNestedTransaction();
+                }
+            }
+
             if (role != null) {
                 if (roleListString == null)
                     roleListString = IdUtil.normalToDelimited(role);
@@ -3395,6 +3389,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     roleListString = roleListString + ", " + IdUtil.normalToDelimited(role);
             }
         }
+        removeRoles(a, rolesToRemove);
         return roleListString;
     }
 
