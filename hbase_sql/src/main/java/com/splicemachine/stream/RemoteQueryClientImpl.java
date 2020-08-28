@@ -23,7 +23,6 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -97,14 +96,13 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
 
             String sql = activation.getPreparedStatement().getSource();
             sql = sql == null ? root.toString() : sql;
-            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-            String userId = lcc.getCurrentUserId(activation);
+            String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
             int localPort = config.getNetworkBindPort();
-            int sessionId = lcc.getInstanceNumber();
-            Integer parallelPartitionsProperty = (Integer) lcc.getSessionProperties()
+            int sessionId = activation.getLanguageConnectionContext().getInstanceNumber();
+            Integer parallelPartitionsProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
                     .getProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
             int parallelPartitions = parallelPartitionsProperty == null ? StreamableRDD.DEFAULT_PARALLEL_PARTITIONS : parallelPartitionsProperty;
-            Integer shufflePartitionsProperty = (Integer) lcc.getSessionProperties()
+            Integer shufflePartitionsProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
                     .getProperty(SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             String opUuid = root.getUuid() != null ? "," + root.getUuid().toString() : "";
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
@@ -112,8 +110,11 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
                     streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty);
 
-            String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
-            String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());
+            String requestedQueue = (String) activation.getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
+            List<String> roles = activation.getLanguageConnectionContext().getCurrentRoles(activation);
+
+            String queue = chooseQueue(requestedQueue, roles, config.getOlapServerIsolatedRoles());
+            
             olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest, queue);
             olapFuture.addListener(new Runnable() {
                 @Override
@@ -149,42 +150,21 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
     }
 
     /**
-     * If user is current data base owner:
-     *      - if `requestedQueue` is not null -> return it
-     *      - if `requestedQueue` is null -> return the default queue.
-     * If user is normal user:
-     *      - If requestedQueue is null, return the assigned queue for any of the active roles.
-     *        If none match return the default queue
-     *      - If requestedQueue is not null, make sure the requestedQueue is assigned to any of this users's roles and
-     *        return it if there's a match. If it's not return the default queue with the side effect of refreshing
-     *        the list of user roles.
+     * If requestedQueue is null, return the assigned queue for any of the active roles. If none match return the default queue
+     * If requestedQueue is not null, make sure the requestedQueue is assigned to any of this users's roles and return it if there's a match. If it's not return the default queue
      */
-    private String chooseQueue(Activation activation, String requestedQueue,
-                               Map<String, String> olapServerIsolatedRoles) throws StandardException {
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-
-        List<String> userGroups = lcc.getCurrentGroupUser(activation);
-        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
-        if(lcc.getCurrentUserId(activation).equals(dbo) || (userGroups != null && userGroups.contains(dbo))) {
-            if(requestedQueue != null) {
-                return requestedQueue;
+    private String chooseQueue(String requestedQueue, List<String> roles, Map<String, String> olapServerIsolatedRoles) {
+        if (requestedQueue != null) {
+            // make sure the requested queue is available for the user roles
+            for (String role: roles) {
+                if (requestedQueue.equals(olapServerIsolatedRoles.get(role))) {
+                    return requestedQueue;
+                }
             }
         } else {
-            // remove any stale revoked roles (DB-9749)
-            lcc.refreshCurrentRoles(activation);
-            List<String> roles = lcc.getCurrentRoles(activation);
-            if (requestedQueue != null) {
-                // make sure the requested queue is available for the user roles
-                for (String role: roles) {
-                    if (requestedQueue.equals(olapServerIsolatedRoles.get(role))) {
-                        return requestedQueue;
-                    }
-                }
-            } else {
-                for (String role : roles) {
-                    if (olapServerIsolatedRoles.get(role) != null) {
-                        return olapServerIsolatedRoles.get(role);
-                    }
+            for (String role : roles) {
+                if (olapServerIsolatedRoles.get(role) != null) {
+                    return olapServerIsolatedRoles.get(role);
                 }
             }
         }

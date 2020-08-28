@@ -1154,14 +1154,6 @@ public interface LanguageConnectionContext extends Context {
      * @return List of roleids
      */
     List<String> getCurrentRoles(Activation a);
-
-    /**
-     * Removes all revoked roles from the list of current roles of the dynamic
-     * call context associated with this activation.
-     * @param a activation of the statement wanting to refresh the roles.
-     */
-    void refreshCurrentRoles(Activation a) throws StandardException;
-
     /**
      * Get the current role authorization identifier in external delimited form
      * (not case normal form) of the dynamic call context associated with this
