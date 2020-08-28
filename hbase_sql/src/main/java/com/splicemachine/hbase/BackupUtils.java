@@ -231,7 +231,7 @@ public class BackupUtils {
                             }
                         }
                     }
-                    else if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
+                    if (!shouldRegister && BackupUtils.existsDatabaseBackup(fs, rootDir)) {
                         if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
                         }
