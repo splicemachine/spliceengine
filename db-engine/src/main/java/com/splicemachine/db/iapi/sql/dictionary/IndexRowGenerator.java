@@ -554,13 +554,13 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
         return indexType() != null && indexType().contains("PRIMARY");
     }
 
-	/** @see IndexDescriptor#getCompiledExpressions */
+	/** @see IndexDescriptor#getExprBytecode */
 	@Override
-	public ByteArray[] getCompiledExpressions() { return id.getCompiledExpressions(); }
+	public ByteArray[] getExprBytecode() { return id.getExprBytecode(); }
 
-	/** @see IndexDescriptor#getCompiledExpressionClassNames */
+	/** @see IndexDescriptor#getGeneratedClassNames */
 	@Override
-	public String[] getCompiledExpressionClassNames() { return id.getCompiledExpressionClassNames(); }
+	public String[] getGeneratedClassNames() { return id.getGeneratedClassNames(); }
 
 	/** @see IndexDescriptor#isOnExpression */
     @Override

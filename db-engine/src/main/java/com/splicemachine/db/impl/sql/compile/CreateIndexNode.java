@@ -87,8 +87,8 @@ public class CreateIndexNode extends DDLStatementNode
     String              dateFormat;
     String              timeFormat;
     boolean             onExpression;
-    ByteArray[]         compiledExpressions;
-    String[]            compiledExpressionClassNames;
+    ByteArray[]         exprBytecode;
+    String[]            generatedClassNames;
 
 	TableDescriptor		td;
 
@@ -151,8 +151,8 @@ public class CreateIndexNode extends DDLStatementNode
         this.onExpression = isIndexOnExpression();
 
         int exprSize = this.onExpression ? this.expressionList.size() : 0;
-        this.compiledExpressions = new ByteArray[exprSize];
-        this.compiledExpressionClassNames = new String[exprSize];
+        this.exprBytecode = new ByteArray[exprSize];
+        this.generatedClassNames = new String[exprSize];
 	}
 
 	/**
@@ -320,8 +320,7 @@ public class CreateIndexNode extends DDLStatementNode
 				ie.expression.bindExpression(fromList, new SubqueryList(), new ArrayList<AggregateNode>() {});
 				ie.expression.accept(restrictionVisitor);
 				if (!restrictionVisitor.getCollected().isEmpty()) {
-					// TODO: correct exception
-					throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "invalid index expression");
+					throw StandardException.newException(SQLState.LANG_INDEX_EXPRESSION_NOT_SIMPLE);
 				}
 				indexColumnTypes[i] = ie.expression.getTypeServices();
 			}
@@ -425,8 +424,8 @@ public class CreateIndexNode extends DDLStatementNode
                 timestampFormat,
                 dateFormat,
                 timeFormat,
-				compiledExpressions,
-				compiledExpressionClassNames,
+				exprBytecode,
+				generatedClassNames,
                 properties);
 	}
 
@@ -451,8 +450,7 @@ public class CreateIndexNode extends DDLStatementNode
 			}
 			Vector<ColumnReference> columnReferenceList = cnv.getList();
 			if (columnReferenceList.isEmpty()) {
-				// TODO: correct exception
-				throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "index expression must contain at least one column reference");
+				throw StandardException.newException(SQLState.LANG_INDEX_EXPRESSION_NO_COLUMN_REF);
 			}
 
 			HashSet<String> columnNameSet = new HashSet<>();
@@ -501,17 +499,17 @@ public class CreateIndexNode extends DDLStatementNode
 		if (!onExpression)
 			return;
 
-		assert compiledExpressions.length == expressionList.size();
-		assert compiledExpressionClassNames.length == expressionList.size();
+		assert exprBytecode.length == expressionList.size();
+		assert generatedClassNames.length == expressionList.size();
 		for (int i = 0; i < expressionList.size(); i++) {
 			ExecutableIndexExpressionClassBuilder ieb = new ExecutableIndexExpressionClassBuilder(getCompilerContext());
 			MethodBuilder mb = ieb.getExecuteMethod();
 			expressionList.elementAt(i).expression.generateExpression(ieb, mb);
 			ieb.finishRunExpressionMethod(i + 1);
 
-			compiledExpressions[i] = new ByteArray();
-			GeneratedClass gc = ieb.getGeneratedClass(compiledExpressions[i]);
-			compiledExpressionClassNames[i] = gc.getName();
+			exprBytecode[i] = new ByteArray();
+			GeneratedClass gc = ieb.getGeneratedClass(exprBytecode[i]);
+			generatedClassNames[i] = gc.getName();
 		}
 	}
 }

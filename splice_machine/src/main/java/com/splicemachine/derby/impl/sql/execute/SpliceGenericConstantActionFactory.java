@@ -137,14 +137,14 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        String       timestampFormat,
                                                        String       dateFormat,
                                                        String       timeFormat,
-                                                       ByteArray[]  compiledExpression,
-                                                       String[]     compiledExpressionClassName,
+                                                       ByteArray[]  exprBytecode,
+                                                       String[]     generatedClassNames,
                                                        Properties	properties){
         SpliceLogUtils.trace(LOG,"getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName,indexName,schemaName,tableName,Arrays.toString(columnNames));
         return new CreateIndexConstantOperation(forCreateTable,unique,uniqueWithDuplicateNulls,indexType, schemaName,
                 indexName,tableName,tableId,columnNames,indexColumnTypes,isAscending,isConstraint, conglomerateUUID, excludeNulls,
                 excludeDefaults,preSplit,isLogicalKey,sampling,sampleFraction,splitKeyPath,hfilePath,columnDelimiter,characterDelimiter,
-                timestampFormat, dateFormat,timeFormat,compiledExpression,compiledExpressionClassName,properties);
+                timestampFormat, dateFormat,timeFormat,exprBytecode,generatedClassNames,properties);
     }
 
     @Override

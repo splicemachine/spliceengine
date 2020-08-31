@@ -3235,6 +3235,16 @@ Guide.
             </msg>
 
             <msg>
+                <name>42ZD7</name>
+                <text>An index expression must not contain any subqueries, aggregate functions, window functions, nondeterminstic functions, sequences, or parameters.</text>
+            </msg>
+
+            <msg>
+                <name>42ZD8</name>
+                <text>An index expression must contain at least one column reference.</text>
+            </msg>
+
+            <msg>
                 <name>43001</name>
                 <text>The truncate function was provided a null operand.</text>
             </msg>

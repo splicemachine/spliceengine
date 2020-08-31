@@ -1183,6 +1183,9 @@ public interface SQLState {
 	String LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH              = "42ZD5";
 	String LANG_UNSUPPORTED_TYPE_FOR_SCALAR_MIN_MAX                    = "42ZD6";
 
+	String LANG_INDEX_EXPRESSION_NOT_SIMPLE                            = "42ZD7";
+	String LANG_INDEX_EXPRESSION_NO_COLUMN_REF                         = "42ZD8";
+
 	//following 3 matches the DB2 sql states
 	String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";
 	String LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED = "428C2";

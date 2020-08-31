@@ -277,8 +277,8 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 						cd.getIndexDescriptor().isAscending(),
                         true, cd.getUUID(), false, false, false,false,false,0,
 						null,null,null,null,null,null,null,
-						cd.getIndexDescriptor().getCompiledExpressions(),
-						cd.getIndexDescriptor().getCompiledExpressionClassNames(),
+						cd.getIndexDescriptor().getExprBytecode(),
+						cd.getIndexDescriptor().getGeneratedClassNames(),
 						prop);
 
         //create index

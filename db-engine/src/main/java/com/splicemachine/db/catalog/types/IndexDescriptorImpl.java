@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.util.ByteArray;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 
 /**
  *
@@ -88,10 +89,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	private boolean 	excludeDefaults;
 
 	// stores the generated classes of index expressions in byte code in original order
-    private ByteArray[] compiledExpressions;
+    private ByteArray[] exprBytecode;
 
     // stores the class names of the generated classes in original order
-    private String[]    compiledExpressionClassNames;
+    private String[]    generatedClassNames;
 
     // an array to cache instances of the generated classes
 	// this is not serialized/deserialized
@@ -130,8 +131,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 								int numberOfOrderedColumns,
 							   boolean excludeNulls,
 							   boolean excludeDefaults,
-							   ByteArray[] compiledExpressions,
-							   String[] compiledExpressionClassNames
+							   ByteArray[] exprBytecode,
+							   String[] generatedClassNames
 							   )
 	{
 		this.indexType = indexType;
@@ -143,10 +144,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		this.numberOfOrderedColumns = numberOfOrderedColumns;
 		this.excludeNulls = excludeNulls;
 		this.excludeDefaults = excludeDefaults;
-		this.compiledExpressions = compiledExpressions;
-		this.compiledExpressionClassNames = compiledExpressionClassNames;
-		assert this.compiledExpressions.length == this.compiledExpressionClassNames.length;
-		this.executableExprs = new BaseExecutableIndexExpression[this.compiledExpressions.length];
+		this.exprBytecode = exprBytecode;
+		this.generatedClassNames = generatedClassNames;
+		assert this.exprBytecode.length == this.generatedClassNames.length;
+		this.executableExprs = new BaseExecutableIndexExpression[this.exprBytecode.length];
 	}
 
 	/** Constructor for non-expression based index */
@@ -341,15 +342,15 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		excludeDefaults = fh.containsKey("excludeDefaults") && fh.getBoolean("excludeDefaults");
 
 		int numIndexExpr = fh.containsKey("numIndexExpr") ? fh.getInt("numIndexExpr") : 0;
-		compiledExpressionClassNames = new String[numIndexExpr];
-		compiledExpressions = new ByteArray[numIndexExpr];
+		generatedClassNames = new String[numIndexExpr];
+		exprBytecode = new ByteArray[numIndexExpr];
 		indexColumnTypes = new DataTypeDescriptor[numIndexExpr];
 
 		if (numIndexExpr > 0) {
 			for (int i = 0; i < numIndexExpr; i++) {
-				compiledExpressionClassNames[i] = (String) fh.get("compliedExpressionClassName" + i);
-				compiledExpressions[i] = new ByteArray();
-				compiledExpressions[i].readExternal(in);
+				generatedClassNames[i] = (String) fh.get("generatedClassName" + i);
+				exprBytecode[i] = new ByteArray();
+				exprBytecode[i].readExternal(in);
 				indexColumnTypes[i] = new DataTypeDescriptor();
 				indexColumnTypes[i].readExternal(in);
 			}
@@ -384,18 +385,18 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 				excludeDefaults);
 
 		// if an older version doesn't have this key, default construct expression-related fields
-		fh.putInt("numIndexExpr", compiledExpressions.length);
+		fh.putInt("numIndexExpr", exprBytecode.length);
 
-		assert compiledExpressionClassNames.length == compiledExpressions.length;
-		for (int i = 0; i < compiledExpressionClassNames.length; i++) {
-			fh.put("compliedExpressionClassName" + i, compiledExpressionClassNames[i]);
+		assert generatedClassNames.length == exprBytecode.length;
+		for (int i = 0; i < generatedClassNames.length; i++) {
+			fh.put("generatedClassName" + i, generatedClassNames[i]);
 		}
 
         out.writeObject(fh);
 
-		assert indexColumnTypes.length == compiledExpressions.length;
-		for (int i = 0; i < compiledExpressions.length; i++) {
-			compiledExpressions[i].writeExternal(out);
+		assert indexColumnTypes.length == exprBytecode.length;
+		for (int i = 0; i < exprBytecode.length; i++) {
+			exprBytecode[i].writeExternal(out);
 			indexColumnTypes[i].writeExternal(out);
 		}
 	}
@@ -436,7 +437,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                 (id.numberOfOrderedColumns     == 
                     this.numberOfOrderedColumns)     &&
                 (id.indexType.equals(this.indexType)) &&
-				(id.compiledExpressions.equals(this.compiledExpressions)))
+				(Arrays.equals(id.exprBytecode, this.exprBytecode)))
 			{
 				/*
 				** Everything but array elements known to be true -
@@ -488,36 +489,36 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		return excludeDefaults;
 	}
 
-	/** @see IndexDescriptor#getCompiledExpressions */
+	/** @see IndexDescriptor#getExprBytecode */
 	@Override
-	public ByteArray[] getCompiledExpressions() { return compiledExpressions; }
+	public ByteArray[] getExprBytecode() { return exprBytecode; }
 
-	/** @see IndexDescriptor#getCompiledExpressionClassNames */
+	/** @see IndexDescriptor#getGeneratedClassNames */
 	@Override
-	public String[] getCompiledExpressionClassNames() { return compiledExpressionClassNames; }
+	public String[] getGeneratedClassNames() { return generatedClassNames; }
 
 	/** @see IndexDescriptor#isOnExpression */
 	@Override
-	public boolean isOnExpression() { return compiledExpressions.length > 0; }
+	public boolean isOnExpression() { return exprBytecode.length > 0; }
 
 	/** @see IndexDescriptor#getExecutableIndexExpression */
 	@Override
 	public BaseExecutableIndexExpression getExecutableIndexExpression(int indexColumnPosition)
 			throws StandardException
 	{
-		if (indexColumnPosition >= compiledExpressions.length)
+		if (indexColumnPosition >= exprBytecode.length)
 			return null;
 
 		if (executableExprs[indexColumnPosition] != null)
 			return executableExprs[indexColumnPosition];
 
-		assert !compiledExpressionClassNames[indexColumnPosition].isEmpty()
+		assert !generatedClassNames[indexColumnPosition].isEmpty()
 				: "index has expression but generated class name is unknown";
 		LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext
 				(LanguageConnectionContext.CONTEXT_ID);
 		ClassFactory classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
 		GeneratedClass gc = classFactory.loadGeneratedClass(
-				compiledExpressionClassNames[indexColumnPosition], compiledExpressions[indexColumnPosition]);
+				generatedClassNames[indexColumnPosition], exprBytecode[indexColumnPosition]);
 		executableExprs[indexColumnPosition] = (BaseExecutableIndexExpression) gc.newInstance(lcc);
 		return executableExprs[indexColumnPosition];
 	}

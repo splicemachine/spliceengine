@@ -188,8 +188,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private String          timestampFormat;
     private String          dateFormat;
     private String          timeFormat;
-    private ByteArray[]     compiledExpressions;
-    private String[]        compiledExpressionClassNames;
+    private ByteArray[]     exprBytecode;
+    private String[]        generatedClassNames;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -271,8 +271,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             String          timestampFormat,
             String          dateFormat,
             String          timeFormat,
-            ByteArray[]     compiledExpressions,
-            String[]        compiledExpressionClassNames,
+            ByteArray[]     exprBytecode,
+            String[]        generatedClassNames,
             Properties		properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
@@ -301,8 +301,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.timestampFormat            = timestampFormat;
         this.dateFormat                 = dateFormat;
         this.timeFormat                 = timeFormat;
-        this.compiledExpressions        = compiledExpressions;
-        this.compiledExpressionClassNames = compiledExpressionClassNames;
+        this.exprBytecode               = exprBytecode;
+        this.generatedClassNames        = generatedClassNames;
     }
 
     /**
@@ -543,8 +543,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                                     indexColumnTypes,
                                     isAscending,
                                     baseColumnPositions.length,excludeNulls,excludeDefaults,
-                                    compiledExpressions,
-                                    compiledExpressionClassNames);
+                                    exprBytecode,
+                                    generatedClassNames);
 
                     //DERBY-655 and DERBY-1343
                     // Sharing indexes will have unique logical conglomerate UUIDs.
@@ -713,8 +713,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     baseColumnPositions.length,
                     excludeNulls,
                     excludeDefaults,
-                    compiledExpressions,
-                    compiledExpressionClassNames);
+                    exprBytecode,
+                    generatedClassNames);
         }
         return existingGenerator;
     }

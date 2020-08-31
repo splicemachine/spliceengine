@@ -294,7 +294,7 @@ public class ProtoUtil {
                 .setUnique(indexDescriptor.isUnique())
                 .setExcludeDefaults(indexDescriptor.excludeDefaults())
                 .setExcludeNulls(indexDescriptor.excludeNulls())
-                .setNumExprs(indexDescriptor.getCompiledExpressions().length);
+                .setNumExprs(indexDescriptor.getExprBytecode().length);
         if (defaultValuesBytes != null)
             builder.setDefaultValues(ByteString.copyFrom(defaultValuesBytes));
         for(int i=0;i<ascColumns.length;i++){
@@ -306,11 +306,11 @@ public class ProtoUtil {
             builder = builder.addIndexColsToMainColMap(backingArray[i]);
         }
 
-        ByteArray[] bytecodeArray = indexDescriptor.getCompiledExpressions();
+        ByteArray[] bytecodeArray = indexDescriptor.getExprBytecode();
         for (ByteArray bc : bytecodeArray) {
             builder = builder.addBytecodeExprs(ByteString.copyFrom(bc.getArray(), bc.getOffset(), bc.getLength()));
         }
-        String[] classNames = indexDescriptor.getCompiledExpressionClassNames();
+        String[] classNames = indexDescriptor.getGeneratedClassNames();
         for (String cn : classNames) {
             builder = builder.addGeneratedClassNames(cn);
         }
