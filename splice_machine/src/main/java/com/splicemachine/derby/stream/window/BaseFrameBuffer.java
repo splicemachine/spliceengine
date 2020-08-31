@@ -44,7 +44,6 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected int current;
     protected ArrayList<ExecRow> rows;
     protected PeekingIterator<ExecRow> source;
-    protected byte[] partition;
     protected int[] sortColumns;
     private boolean initialized;
 
