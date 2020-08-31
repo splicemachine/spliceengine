@@ -31,8 +31,12 @@ import java.io.IOException;
  */
 public class SpliceCompactionUtils {
 
-    public static boolean forcePurgeDeletes(Store store) throws IOException {
+    private interface TableDescriptorExtractor<T> {
+        T get(TableDescriptor td);
+        T getDefaultValue();
+    }
 
+    private static <T> T extract(Store store, TableDescriptorExtractor<T> t) throws IOException {
         boolean prepared = false;
         SpliceTransactionResourceImpl transactionResource = null;
         Txn txn = null;
@@ -52,12 +56,12 @@ public class SpliceCompactionUtils {
                     UUID tableID = cd.getTableID();
                     TableDescriptor td = dd.getTableDescriptor(tableID);
                     if (td != null)
-                        return td.purgeDeletedRows();
+                        return t.get(td);
                 }
             }
         }
         catch (NumberFormatException e) {
-            return false;
+            return t.getDefaultValue();
         }
         catch (Exception e) {
             throw new IOException(e);
@@ -69,6 +73,32 @@ public class SpliceCompactionUtils {
                 txn.commit();
         }
 
-        return false;
+        return t.getDefaultValue();
+    }
+
+    public static boolean forcePurgeDeletes(Store store) throws IOException {
+        return extract(store, new TableDescriptorExtractor<Boolean>() {
+            @Override
+            public Boolean get(TableDescriptor td) {
+                return td.purgeDeletedRows();
+            }
+            @Override
+            public Boolean getDefaultValue() {
+                return false;
+            }
+        });
+    }
+
+    public static Long minRetentionPeriod(Store store) throws IOException { ;
+        return extract(store, new TableDescriptorExtractor<Long>() {
+            @Override
+            public Long get(TableDescriptor td) {
+                return td.minRetainedPeriod();
+            }
+            @Override
+            public Long getDefaultValue() {
+                return 0L;
+            }
+        });
     }
 }
