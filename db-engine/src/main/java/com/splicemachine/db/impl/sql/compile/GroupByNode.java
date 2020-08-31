@@ -1454,9 +1454,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         for (OrderedColumn oc : groupingList) {
             oc.accept(cnv);
         }
-        for (AggregateNode an : aggregateVector) {
-            an.accept(cnv);
-        }
+        // we do not need stats on columns inside aggregate functions, no need to visit them
         List<ColumnReference> columnRefNodes = cnv.getList();
         for (ColumnReference cr : columnRefNodes) {
             if (!cr.useRealColumnStatistics())
