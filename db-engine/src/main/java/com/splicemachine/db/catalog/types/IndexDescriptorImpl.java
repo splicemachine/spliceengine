@@ -343,12 +343,15 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		int numIndexExpr = fh.containsKey("numIndexExpr") ? fh.getInt("numIndexExpr") : 0;
 		compiledExpressionClassNames = new String[numIndexExpr];
 		compiledExpressions = new ByteArray[numIndexExpr];
+		indexColumnTypes = new DataTypeDescriptor[numIndexExpr];
 
 		if (numIndexExpr > 0) {
 			for (int i = 0; i < numIndexExpr; i++) {
 				compiledExpressionClassNames[i] = (String) fh.get("compliedExpressionClassName" + i);
 				compiledExpressions[i] = new ByteArray();
 				compiledExpressions[i].readExternal(in);
+				indexColumnTypes[i] = new DataTypeDescriptor();
+				indexColumnTypes[i].readExternal(in);
 			}
 		}
     }
@@ -383,15 +386,17 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		// if an older version doesn't have this key, default construct expression-related fields
 		fh.putInt("numIndexExpr", compiledExpressions.length);
 
-		// compiledExpressions.length == compiledExpressionClassNames.length
+		assert compiledExpressionClassNames.length == compiledExpressions.length;
 		for (int i = 0; i < compiledExpressionClassNames.length; i++) {
 			fh.put("compliedExpressionClassName" + i, compiledExpressionClassNames[i]);
 		}
 
         out.writeObject(fh);
 
-        for (ByteArray compiledExpr : compiledExpressions) {
-			compiledExpr.writeExternal(out);
+		assert indexColumnTypes.length == compiledExpressions.length;
+		for (int i = 0; i < compiledExpressions.length; i++) {
+			compiledExpressions[i].writeExternal(out);
+			indexColumnTypes[i].writeExternal(out);
 		}
 	}
 
