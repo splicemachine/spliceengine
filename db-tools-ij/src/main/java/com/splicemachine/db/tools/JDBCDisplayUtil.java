@@ -50,6 +50,7 @@ import java.util.Vector;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 
 import com.splicemachine.db.impl.tools.ij.ijException;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
 	
@@ -77,7 +78,8 @@ public class JDBCDisplayUtil {
 	 * to do this, but for Explain trace we do.
 	 */
 	static private int maxWidth = 256;
-    static public boolean showSelectCount = false;
+    @SuppressFBWarnings(value = {"MS_SHOULD_BE_FINAL", "MS_CANNOT_BE_FINAL"}, justification = "intentional, this field is set by reading a properties file")
+	static public boolean showSelectCount = false;
 
     static {
         // initialize the locale support functions to default value of JVM 
@@ -390,8 +392,12 @@ public class JDBCDisplayUtil {
 
         ResultSet rs = null;
         boolean doNext = true;
+		if(resultSets == null) {
+			throw new RuntimeException("Unexpected null result sets"); // should never happen
+		}
         for (int i = 0; i< resultSets.size(); i++) {
             rs = (ResultSet)resultSets.get(i);
+
             doNext = true;
             while (doNext){
                 try {
@@ -445,7 +451,8 @@ public class JDBCDisplayUtil {
 
 		if (nr == null) return;
 
-		String b=LocalizedResource.getMessage("UT_JDBCDisplayUtil_16");
+		StringBuilder b=new StringBuilder();
+		b.append(LocalizedResource.getMessage("UT_JDBCDisplayUtil_16"));
 		String oldString="0";
 
 		for (int i=0; i < nr.size(); i++) {
@@ -455,7 +462,7 @@ public class JDBCDisplayUtil {
 			String t = Integer.toString(i);
 			if (t.length() > oldString.length()) {
 				oldString = t;
-				b=b+LocalizedResource.getMessage("UT_JDBCDisplayUtil_17");
+				b.append(LocalizedResource.getMessage("UT_JDBCDisplayUtil_17"));
 			}
 
 			LocalizedResource.OutputWriter().println(b);
@@ -464,23 +471,6 @@ public class JDBCDisplayUtil {
 			indent_DisplayResults(out, (ResultSet) nr.elementAt(i), conn,
 								  indentLevel, null, null, omitHeader);
 		}
-	}
-
-	/**
-		Fetch the next row of the result set, and if it
-		exists format and display a banner and the row.
-
-		@param out the place to write to
-		@param rs the ResultSet in use
-		@param conn the Connection against which the ResultSet was retrieved
-
-		@exception SQLException on JDBC access failure
-	 */
-	static public void DisplayNextRow(PrintWriter out, ResultSet rs, Connection conn, boolean omitHeader )
-		throws SQLException
-	{
-		indent_DisplayNextRow( out, rs, conn, 0, null, (rs == null) ? null
-							   : getColumnDisplayWidths(rs.getMetaData(), null, true), omitHeader);
 	}
 
 	static private void indent_DisplayNextRow(PrintWriter out, ResultSet rs, Connection conn, int indentLevel,
@@ -1048,48 +1038,6 @@ public class JDBCDisplayUtil {
 								  indentLevel, null, null);
 		}
 	}
-
-	static public void DisplayNextRow(PrintStream out, ResultSet rs, Connection conn )
-		throws SQLException
-	{
-		indent_DisplayNextRow( out, rs, conn, 0, null, (rs == null) ? null
-							   : getColumnDisplayWidths(rs.getMetaData(),null,false) );
-	}
-
-	static private void indent_DisplayNextRow(PrintStream out, ResultSet rs, Connection conn, int indentLevel,
-											  int[] displayColumns, int[] displayColumnWidths )
-		throws SQLException {
-
-		Vector nestedResults;
-
-		// autocommit must be off or the nested cursors
-		// are closed when the outer statement completes.
-		if (!conn.getAutoCommit())
-			nestedResults = new Vector();
-		else
-			nestedResults = null;
-
-		checkNotNull(rs, "ResultSet");
-
-		ResultSetMetaData rsmd = rs.getMetaData();
-		checkNotNull(rsmd, "ResultSetMetaData");
-
-		// Only print stuff out if there is a row to be had.
-		if (rs.next()) {
-			int rowLen = indent_DisplayBanner(out, rsmd, indentLevel, null, null);
-    		DisplayRow(out, rs, rsmd, rowLen, nestedResults, conn, indentLevel,
-					   displayColumns, displayColumnWidths);
-		}
-		else {
-			indentedPrintLine( out, indentLevel, LocalizedResource.getMessage("UT_NoCurreRow"));
-		}
-
-		ShowWarnings(out, rs);
-
-		DisplayNestedResults(out, nestedResults, conn, indentLevel );
-		nestedResults = null;
-
-	} // DisplayNextRow
 
 	static public void DisplayCurrentRow(PrintStream out, ResultSet rs, Connection conn )
 		throws SQLException
