@@ -749,7 +749,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
         String explainStr = TestUtils.FormattedResult.ResultFactory.toString(rs);
         Assert.assertTrue(explainStr.contains(expected[0]));
         Assert.assertTrue(explainStr.contains(expected[1]));
-        Assert.assertTrue(explainStr.contains(expected[2]));
+        Assert.assertFalse(explainStr.contains(expected[2]));
         Assert.assertFalse(explainStr.contains(CLASS_NAME + ".T6.A6"));
     }
 }

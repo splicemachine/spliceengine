@@ -153,9 +153,11 @@ public class ScanCostFunction{
     private void checkInListPredColumnStats(Predicate p) throws StandardException {
         if (p.getSourceInList() != null) {
             for (Object o : p.getSourceInList().leftOperandList) {
-                ColumnReference cr = (ColumnReference) o;
-                if (!scc.useRealColumnStatistics(cr.getColumnNumber()))
-                    usedNoStatsColumnIds.add(cr.getColumnNumber());
+                if (o instanceof ColumnReference) {
+                    ColumnReference cr = (ColumnReference) o;
+                    if (!scc.useRealColumnStatistics(cr.getColumnNumber()))
+                        usedNoStatsColumnIds.add(cr.getColumnNumber());
+                }
             }
         }
     }
