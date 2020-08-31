@@ -20,7 +20,9 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
@@ -278,7 +280,9 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor, DataValueDescriptor defaultValue) {
+    public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor, DataValueDescriptor defaultValue)
+            throws StandardException
+    {
         byte [] defaultValuesBytes = null;
         if (defaultValue!=null) {
             defaultValuesBytes = SerializationUtils.serialize(defaultValue);
@@ -289,7 +293,8 @@ public class ProtoUtil {
                 .setUniqueWithDuplicateNulls(indexDescriptor.isUniqueWithDuplicateNulls())
                 .setUnique(indexDescriptor.isUnique())
                 .setExcludeDefaults(indexDescriptor.excludeDefaults())
-                .setExcludeNulls(indexDescriptor.excludeNulls());
+                .setExcludeNulls(indexDescriptor.excludeNulls())
+                .setNumExprs(indexDescriptor.getCompiledExpressions().length);
         if (defaultValuesBytes != null)
             builder.setDefaultValues(ByteString.copyFrom(defaultValuesBytes));
         for(int i=0;i<ascColumns.length;i++){
@@ -299,6 +304,19 @@ public class ProtoUtil {
         int[] backingArray=indexDescriptor.baseColumnPositions();
         for(int i=0;i<backingArray.length;i++){
             builder = builder.addIndexColsToMainColMap(backingArray[i]);
+        }
+
+        ByteArray[] bytecodeArray = indexDescriptor.getCompiledExpressions();
+        for (ByteArray bc : bytecodeArray) {
+            builder = builder.addBytecodeExprs(ByteString.copyFrom(bc.getArray(), bc.getOffset(), bc.getLength()));
+        }
+        String[] classNames = indexDescriptor.getCompiledExpressionClassNames();
+        for (String cn : classNames) {
+            builder = builder.addGeneratedClassNames(cn);
+        }
+        DataTypeDescriptor[] indexColumnTypes = indexDescriptor.getIndexColumnTypes();
+        for (DataTypeDescriptor dtd : indexColumnTypes) {
+            builder = builder.addIndexColumnFormatIds(dtd.getNull().getTypeFormatId());
         }
         return builder.build();
     }

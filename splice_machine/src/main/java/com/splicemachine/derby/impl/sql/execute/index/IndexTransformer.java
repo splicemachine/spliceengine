@@ -15,20 +15,25 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.google.protobuf.ByteString;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import org.apache.commons.lang.SerializationUtils;
-import splice.com.google.common.primitives.Ints;
-import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.Encoding;
@@ -43,6 +48,9 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang.SerializationUtils;
+import splice.com.google.common.primitives.Ints;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.Arrays;
@@ -81,8 +89,8 @@ public class IndexTransformer {
     private EntryEncoder indexValueEncoder;
     private DDLMessage.Index index;
     private DDLMessage.Table table;
-    private int [] mainColToIndexPosMap;
-    private BitSet indexedCols;
+    private int [] mainColToIndexPosMap;  // 0-based
+    private BitSet indexedCols;   // 0-based
     private byte[] indexConglomBytes;
     private int[] indexFormatIds;
     private DescriptorSerializer[] serializers;
@@ -95,6 +103,8 @@ public class IndexTransformer {
     private transient DataResult baseResult = null;
     private boolean ignore;
     protected EntryDataHash entryEncoder;
+    private int numIndexExprs;
+    private BaseExecutableIndexExpression[] executableExprs;
 
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) {
         index = tentativeIndex.getIndex();
@@ -105,17 +115,25 @@ public class IndexTransformer {
         this.typeProvider = VersionedSerializers.typesForVersion(table.getTableVersion());
         List<Integer> indexColsList = index.getIndexColsToMainColMapList();
         indexedCols = DDLUtils.getIndexedCols(Ints.toArray(indexColsList));
-        List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
         mainColToIndexPosMap = DDLUtils.getMainColToIndexPosMap(Ints.toArray(index.getIndexColsToMainColMapList()), indexedCols);
         indexConglomBytes = DDLUtils.getIndexConglomBytes(index.getConglomerate());
-        indexFormatIds = new int[indexColsList.size()];
-        for (int i = 0; i < indexColsList.size(); i++) {
-            indexFormatIds[i] = allFormatIds.get(indexColsList.get(i)-1);
-        }
         if ( index.hasDefaultValues() && excludeDefaultValues) {
             defaultValue = (DataValueDescriptor) SerializationUtils.deserialize(index.getDefaultValues().toByteArray());
             defaultValuesExecRow = new ValueRow(new DataValueDescriptor[]{defaultValue.cloneValue(true)});
 
+        }
+        numIndexExprs = index.getNumExprs();
+        executableExprs = new BaseExecutableIndexExpression[numIndexExprs];
+        if (numIndexExprs > 0) {
+            List<Integer> formatIds = tentativeIndex.getIndex().getIndexColumnFormatIdsList();
+            indexFormatIds = formatIds.stream().mapToInt(i->i).toArray();
+            assert indexFormatIds.length == numIndexExprs;
+        } else {
+            List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
+            indexFormatIds = new int[indexColsList.size()];
+            for (int i = 0; i < indexColsList.size(); i++) {
+                indexFormatIds[i] = allFormatIds.get(indexColsList.get(i)-1);
+            }
         }
     }
 
@@ -251,7 +269,7 @@ public class IndexTransformer {
      * Encapsulates the logic required to create an index record for a given base table record with
      * all the required discriminating and encoding rules (column is part of a PK, value is null, etc).
      * @param mutation KVPair containing the rowKey of the base table record for which we want to
-     *                 translate to the associated index. This mutation should already have its requred
+     *                 translate to the associated index. This mutation should already have its required
      *                 {@link KVPair.Type Type} set.
      * @return A KVPair representing the index record of the given base table mutation. This KVPair is
      * suitable for performing the required modification of the index record associated with this mutation.
@@ -596,5 +614,40 @@ public class IndexTransformer {
         baseGet.setFilter(txnFilter);
         baseResult =ctx.getRegion().get(baseGet,baseResult);
         return baseResult;
+    }
+
+    public int getNumIndexExprs() { return numIndexExprs; }
+
+    public BaseExecutableIndexExpression getExecutableIndexExpression(int indexColumnPosition)
+            throws StandardException
+    {
+        assert numIndexExprs == index.getBytecodeExprsCount() &&
+                numIndexExprs == index.getGeneratedClassNamesCount();
+        if (indexColumnPosition < 0 || indexColumnPosition >= numIndexExprs)
+            return null;
+
+        assert numIndexExprs == executableExprs.length;
+        if (executableExprs[indexColumnPosition] != null)
+            return executableExprs[indexColumnPosition];
+
+        ByteString bytes = index.getBytecodeExprs(indexColumnPosition);
+        ByteArray bytecode = new ByteArray(bytes.toByteArray());
+        String className = index.getGeneratedClassNames(indexColumnPosition);
+
+        LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext
+                (LanguageConnectionContext.CONTEXT_ID);
+        ClassFactory classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
+        GeneratedClass gc = classFactory.loadGeneratedClass(className, bytecode);
+        executableExprs[indexColumnPosition] = (BaseExecutableIndexExpression) gc.newInstance(lcc);
+        return executableExprs[indexColumnPosition];
+    }
+
+    public int getMaxBaseColumnPosition() {
+        int maxPosition = 1;  // base column positions are 1-based
+        for (int bcp : index.getIndexColsToMainColMapList()) {
+            if (bcp > maxPosition)
+                maxPosition = bcp;
+        }
+        return maxPosition;
     }
 }

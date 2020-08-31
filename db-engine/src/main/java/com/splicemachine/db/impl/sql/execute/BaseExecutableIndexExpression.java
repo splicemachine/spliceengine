@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 
@@ -52,7 +51,7 @@ public abstract class BaseExecutableIndexExpression implements GeneratedByteCode
 
     // class interface
 
-    abstract public void runExpression(ExecRow baseRow, ExecIndexRow indexRow) throws StandardException;
+    abstract public void runExpression(ExecRow baseRow, ExecRow indexRow) throws StandardException;
 
     // needed methods
 

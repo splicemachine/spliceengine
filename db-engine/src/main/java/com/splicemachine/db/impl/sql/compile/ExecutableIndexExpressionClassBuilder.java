@@ -122,7 +122,7 @@ public class ExecutableIndexExpressionClassBuilder extends ExpressionClassBuilde
 				Modifier.PUBLIC,
 				"void",
 				"runExpression",
-				new String[]{ClassName.ExecRow, ClassName.ExecIndexRow});
+				new String[]{ClassName.ExecRow, ClassName.ExecRow});
 		mb.addThrownException(ClassName.StandardException);
 		return mb;
 	}
