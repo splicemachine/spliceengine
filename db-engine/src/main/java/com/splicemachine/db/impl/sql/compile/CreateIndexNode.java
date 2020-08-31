@@ -40,7 +40,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
@@ -210,11 +209,7 @@ public class CreateIndexNode extends DDLStatementNode
 
 	public void bindStatement() throws StandardException
 	{
-		CompilerContext			cc = getCompilerContext();
-		SchemaDescriptor		sd;
-		int						columnCount;
-
-		sd = getSchemaDescriptor();
+		int columnCount;
 		td = getTableDescriptor(tableName);
 
 		//If total number of indexes on the table so far is more than 32767, then we need to throw an exception
@@ -354,12 +349,8 @@ public class CreateIndexNode extends DDLStatementNode
 	 */
 	public ConstantAction	makeConstantAction() throws StandardException
 	{
-		SchemaDescriptor		sd = getSchemaDescriptor();
-
-		int columnCount = involvedColumnNames.length;
+		SchemaDescriptor sd = getSchemaDescriptor();
 		int approxLength = 0;
-		boolean index_has_long_column = false;
-
 
 		// bump the page size for the index,
 		// if the approximate sizes of the columns in the key are
