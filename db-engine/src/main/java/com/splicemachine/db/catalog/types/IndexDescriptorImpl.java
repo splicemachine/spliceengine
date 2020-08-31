@@ -88,7 +88,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	private boolean 	excludeNulls;
 	private boolean 	excludeDefaults;
 
-	// stores the generated classes of index expressions in byte code in original order
+    // stores index expression texts
+    private String[]    exprTexts;
+
+    // stores the generated classes of index expressions in byte code in original order
     private ByteArray[] exprBytecode;
 
     // stores the class names of the generated classes in original order
@@ -131,6 +134,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 								int numberOfOrderedColumns,
 							   boolean excludeNulls,
 							   boolean excludeDefaults,
+							   String[] exprTexts,
 							   ByteArray[] exprBytecode,
 							   String[] generatedClassNames
 							   )
@@ -144,6 +148,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		this.numberOfOrderedColumns = numberOfOrderedColumns;
 		this.excludeNulls = excludeNulls;
 		this.excludeDefaults = excludeDefaults;
+		this.exprTexts = exprTexts;
 		this.exprBytecode = exprBytecode;
 		this.generatedClassNames = generatedClassNames;
 		assert this.exprBytecode.length == this.generatedClassNames.length;
@@ -162,7 +167,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	)
 	{
 		this(indexType, isUnique, isUniqueWithDuplicateNulls, baseColumnPositions, new DataTypeDescriptor[]{},
-			 isAscending, numberOfOrderedColumns, excludeNulls, excludeDefaults, new ByteArray[]{}, new String[]{});
+			 isAscending, numberOfOrderedColumns, excludeNulls, excludeDefaults,
+			 new String[]{}, new ByteArray[]{}, new String[]{});
 	}
 
 	/** Zero-argument constructor for Formatable interface */
@@ -290,14 +296,22 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 
 		sb.append(" (");
 
-
-		for (int i = 0; i < baseColumnPositions.length; i++)
-		{
-			if (i > 0)
-				sb.append(", ");
-			sb.append(baseColumnPositions[i]);
-			if (! isAscending[i])
-				sb.append(" DESC");
+		if (exprTexts.length == 0) {
+			for (int i = 0; i < baseColumnPositions.length; i++) {
+				if (i > 0)
+					sb.append(", ");
+				sb.append(baseColumnPositions[i]);
+				if (!isAscending[i])
+					sb.append(" DESC");
+			}
+		} else {
+			for (int i = 0; i < exprTexts.length; i++) {
+				if (i > 0)
+					sb.append(", ");
+				sb.append(exprTexts[i]);
+				if (!isAscending[i])
+					sb.append(" DESC");
+			}
 		}
 
 		sb.append(")");
@@ -342,12 +356,14 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		excludeDefaults = fh.containsKey("excludeDefaults") && fh.getBoolean("excludeDefaults");
 
 		int numIndexExpr = fh.containsKey("numIndexExpr") ? fh.getInt("numIndexExpr") : 0;
+		exprTexts = new String[numIndexExpr];
 		generatedClassNames = new String[numIndexExpr];
 		exprBytecode = new ByteArray[numIndexExpr];
 		indexColumnTypes = new DataTypeDescriptor[numIndexExpr];
 
 		if (numIndexExpr > 0) {
 			for (int i = 0; i < numIndexExpr; i++) {
+				exprTexts[i] = (String) fh.get("exprText" + i);
 				generatedClassNames[i] = (String) fh.get("generatedClassName" + i);
 				exprBytecode[i] = new ByteArray();
 				exprBytecode[i].readExternal(in);
@@ -390,6 +406,11 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		assert generatedClassNames.length == exprBytecode.length;
 		for (int i = 0; i < generatedClassNames.length; i++) {
 			fh.put("generatedClassName" + i, generatedClassNames[i]);
+		}
+
+		assert exprTexts.length == exprBytecode.length;
+		for (int i = 0; i < exprTexts.length; i++) {
+			fh.put("exprText" + i, exprTexts[i]);
 		}
 
         out.writeObject(fh);
@@ -488,6 +509,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 	public boolean excludeDefaults() {
 		return excludeDefaults;
 	}
+
+	/** @see IndexDescriptor#getExprTexts */
+	@Override
+	public String[] getExprTexts() { return exprTexts; }
 
 	/** @see IndexDescriptor#getExprBytecode */
 	@Override

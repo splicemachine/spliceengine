@@ -188,6 +188,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private String          timestampFormat;
     private String          dateFormat;
     private String          timeFormat;
+    private String[]        exprTexts;
     private ByteArray[]     exprBytecode;
     private String[]        generatedClassNames;
 
@@ -271,6 +272,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             String          timestampFormat,
             String          dateFormat,
             String          timeFormat,
+            String[]        exprTexts,
             ByteArray[]     exprBytecode,
             String[]        generatedClassNames,
             Properties		properties) {
@@ -301,6 +303,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.timestampFormat            = timestampFormat;
         this.dateFormat                 = dateFormat;
         this.timeFormat                 = timeFormat;
+        this.exprTexts                  = exprTexts;
         this.exprBytecode               = exprBytecode;
         this.generatedClassNames        = generatedClassNames;
     }
@@ -543,6 +546,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                                     indexColumnTypes,
                                     isAscending,
                                     baseColumnPositions.length,excludeNulls,excludeDefaults,
+                                    exprTexts,
                                     exprBytecode,
                                     generatedClassNames);
 
@@ -713,6 +717,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     baseColumnPositions.length,
                     excludeNulls,
                     excludeDefaults,
+                    exprTexts,
                     exprBytecode,
                     generatedClassNames);
         }

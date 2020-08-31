@@ -137,6 +137,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        String       timestampFormat,
                                                        String       dateFormat,
                                                        String       timeFormat,
+                                                       String[]     exprTexts,
                                                        ByteArray[]  exprBytecode,
                                                        String[]     generatedClassNames,
                                                        Properties	properties){
@@ -144,7 +145,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         return new CreateIndexConstantOperation(forCreateTable,unique,uniqueWithDuplicateNulls,indexType, schemaName,
                 indexName,tableName,tableId,columnNames,indexColumnTypes,isAscending,isConstraint, conglomerateUUID, excludeNulls,
                 excludeDefaults,preSplit,isLogicalKey,sampling,sampleFraction,splitKeyPath,hfilePath,columnDelimiter,characterDelimiter,
-                timestampFormat, dateFormat,timeFormat,exprBytecode,generatedClassNames,properties);
+                timestampFormat, dateFormat,timeFormat,exprTexts,exprBytecode,generatedClassNames,properties);
     }
 
     @Override

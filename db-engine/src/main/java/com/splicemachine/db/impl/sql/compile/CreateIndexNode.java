@@ -86,6 +86,7 @@ public class CreateIndexNode extends DDLStatementNode
     String              dateFormat;
     String              timeFormat;
     boolean             onExpression;
+    String[]            exprTexts;
     ByteArray[]         exprBytecode;
     String[]            generatedClassNames;
 
@@ -150,6 +151,7 @@ public class CreateIndexNode extends DDLStatementNode
         this.onExpression = isIndexOnExpression();
 
         int exprSize = this.onExpression ? this.expressionList.size() : 0;
+        this.exprTexts = new String[exprSize];
         this.exprBytecode = new ByteArray[exprSize];
         this.generatedClassNames = new String[exprSize];
 	}
@@ -415,6 +417,7 @@ public class CreateIndexNode extends DDLStatementNode
                 timestampFormat,
                 dateFormat,
                 timeFormat,
+				exprTexts,
 				exprBytecode,
 				generatedClassNames,
                 properties);
@@ -438,6 +441,7 @@ public class CreateIndexNode extends DDLStatementNode
 				IndexExpression ie = expressionList.get(i);
 				ie.expression.accept(cnv);
 				isAscending[i] = ie.isAscending;
+				exprTexts[i] = ie.exprText;
 			}
 			Vector<ColumnReference> columnReferenceList = cnv.getList();
 			if (columnReferenceList.isEmpty()) {

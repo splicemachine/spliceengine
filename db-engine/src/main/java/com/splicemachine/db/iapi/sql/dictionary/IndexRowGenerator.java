@@ -115,8 +115,9 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 							 int numberOfOrderedColumns,
 							 boolean excludeNulls,
 							 boolean excludeDefaults,
-							 ByteArray[] compiledExpression,
-							 String[] compiledExpressionClassName)
+							 String[] exprTexts,
+							 ByteArray[] exprBytecode,
+							 String[] generatedClassNames)
 	{
 		id = new IndexDescriptorImpl(indexType,
 									isUnique,
@@ -127,8 +128,9 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 									numberOfOrderedColumns,
 									excludeNulls,
 									excludeDefaults,
-									compiledExpression,
-									compiledExpressionClassName);
+									exprTexts,
+									exprBytecode,
+									generatedClassNames);
 
 		if (SanityManager.DEBUG)
 		{
@@ -553,6 +555,10 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     public boolean isPrimaryKey() {
         return indexType() != null && indexType().contains("PRIMARY");
     }
+
+	/** @see IndexDescriptor#getExprTexts */
+	@Override
+	public String[] getExprTexts() { return id.getExprTexts(); }
 
 	/** @see IndexDescriptor#getExprBytecode */
 	@Override

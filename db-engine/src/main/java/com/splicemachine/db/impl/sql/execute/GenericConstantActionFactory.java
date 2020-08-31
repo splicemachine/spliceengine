@@ -236,6 +236,7 @@ public abstract class GenericConstantActionFactory {
         String          timestampFormat,
         String          dateFormat,
         String          timeFormat,
+        String[]        exprTexts,
         ByteArray[]     exprBytecode,
         String[]        generatedClassNames,
         Properties        properties

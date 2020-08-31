@@ -1293,7 +1293,7 @@ public class TableElementList extends QueryTreeNodeVector {
 					excludeNulls,
 					excludeDefaults,
 					false,false,false,0,null,null,null,null,null,null,null,
-					new ByteArray[]{}, new String[]{},
+					new String[]{}, new ByteArray[]{}, new String[]{},
                     checkIndexPageSizeProperty(cdn));
 		}
 	}

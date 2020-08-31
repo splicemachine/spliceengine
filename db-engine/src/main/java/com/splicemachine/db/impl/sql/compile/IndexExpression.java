@@ -33,10 +33,12 @@ package com.splicemachine.db.impl.sql.compile;
 
 public class IndexExpression
 {
+    public final String exprText;
     public final ValueNode expression;
     public final boolean isAscending;
 
-    IndexExpression(ValueNode expression, boolean isAscending) {
+    IndexExpression(String exprText, ValueNode expression, boolean isAscending) {
+        this.exprText = exprText;
         this.expression = expression;
         this.isAscending = isAscending;
     }
