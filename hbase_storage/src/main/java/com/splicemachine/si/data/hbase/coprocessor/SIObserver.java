@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
@@ -36,9 +37,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.server.FlushLifeCycleTrackerWithConfig;
-import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.si.impl.server.SimpleCompactionContext;
+import com.splicemachine.si.impl.server.*;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -176,10 +175,32 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
         }
     }
 
+    private PurgeConfig getPurgeConfig(final FlushLifeCycleTracker tracker, final SConfiguration conf) throws IOException {
+        PurgeConfig purgeConfig;
+        if(tracker instanceof FlushLifeCycleTrackerWithConfig) {
+            purgeConfig = ((FlushLifeCycleTrackerWithConfig) tracker).getConfig();
+        } else {
+            SpliceLogUtils.warn(LOG, "Splice store flusher is not set, as a result flush will ignore minimum retention period " +
+                    "and time travel queries may return inconsistent results. To set Splice flusher review documentation and revise HBase configuration: " +
+                    DefaultStoreEngine.DEFAULT_STORE_FLUSHER_CLASS_KEY);
+
+            PurgeConfigBuilder purgeConfigBuilder = new PurgeConfigBuilder();
+            if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
+                purgeConfigBuilder.purgeDeletesDuringFlush();
+            } else {
+                purgeConfigBuilder.noPurgeDeletes();
+            }
+            purgeConfigBuilder.transactionLowWatermark(TransactionsWatcher.getLowWatermarkTransaction());
+            purgeConfigBuilder.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
+            purgeConfig = purgeConfigBuilder.build();
+        }
+        assert purgeConfig != null;
+        return purgeConfig;
+    }
+
     @Override
     public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, FlushLifeCycleTracker tracker) throws IOException {
         SIDriver driver=SIDriver.driver();
-        assert tracker instanceof FlushLifeCycleTrackerWithConfig;
         // We must make sure the engine is started, otherwise we might try to resolve transactions against SPLICE_TXN which
         // hasn't been loaded yet, causing a deadlock
         if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted() && driver.getConfiguration().getResolutionOnFlushes()){
@@ -187,11 +208,9 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
-            SICompactionScanner siScanner = new SICompactionScanner(
-                    state, scanner, ((FlushLifeCycleTrackerWithConfig)tracker).getConfig(), conf.getFlushResolutionShare(),
+            SICompactionScanner siScanner = new SICompactionScanner( state, scanner, getPurgeConfig(tracker, conf), conf.getFlushResolutionShare(),
                     conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
