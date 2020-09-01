@@ -120,7 +120,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         assert request instanceof SpliceCompactionRequest;
         SpliceCompactionRequest spliceRequest = (SpliceCompactionRequest)request;
         // Used if we cannot compact in Spark
-        spliceRequest.setPurgeConfig(buildPurgeConfig(request, TransactionsWatcher.getLowWatermarkTransaction()));
+        spliceRequest.setPurgeConfig(buildPurgeConfig(request, SpliceCompactionUtils.getTxnLowWatermark(store)));
 
         if(!allowSpark || store.getRegionInfo().getTable().isSystemTable()) {
             isSpark = false;
@@ -201,7 +201,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
         return paths;
     }
 
-    private SparkCompactionFunction getCompactionFunction(boolean isMajor, InetSocketAddress[] favoredNodes) {
+    private SparkCompactionFunction getCompactionFunction(boolean isMajor, InetSocketAddress[] favoredNodes) throws IOException {
         return new SparkCompactionFunction(
                 smallestReadPoint,
                 store.getTableName().getNamespace(),
@@ -209,7 +209,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 store.getRegionInfo(),
                 store.getColumnFamilyDescriptor().getName(),
                 isMajor,
-                TransactionsWatcher.getLowWatermarkTransaction(),
+                SpliceCompactionUtils.getTxnLowWatermark(store),
                 favoredNodes);
     }
 

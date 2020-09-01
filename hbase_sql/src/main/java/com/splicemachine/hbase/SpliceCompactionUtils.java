@@ -89,7 +89,7 @@ public class SpliceCompactionUtils {
         });
     }
 
-    public static Long minRetentionPeriod(Store store) throws IOException { ;
+    private static Long minRetentionPeriod(Store store) throws IOException { ;
         return extract(store, new TableDescriptorExtractor<Long>() {
             @Override
             public Long get(TableDescriptor td) {
@@ -100,5 +100,19 @@ public class SpliceCompactionUtils {
                 return 0L;
             }
         });
+    }
+
+    public static long getTxnLowWatermark(Store store) throws IOException {
+        long lowTxnWatermark = TransactionsWatcher.getLowWatermarkTransaction();
+        Long minRetentionPeriod = SpliceCompactionUtils.minRetentionPeriod(store);
+        if(minRetentionPeriod == null || minRetentionPeriod == 0L) {
+            return lowTxnWatermark;
+        }
+        long minRetentionTs = System.currentTimeMillis() - minRetentionPeriod * 1000;
+        long minRetentionTxnId = SIDriver.driver().getTxnStore().getTxnAt(minRetentionTs);
+        if(minRetentionTxnId == -1) {
+            return lowTxnWatermark;
+        }
+        return Math.min(lowTxnWatermark, minRetentionTxnId);
     }
 }
