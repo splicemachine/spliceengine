@@ -2450,6 +2450,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Y18</name>
+                <text>Database '{0}' does not exist</text>
+                <arg>databaeName</arg>
+            </msg>
+
+            <msg>
                 <name>42Y22</name>
                 <text>Aggregate {0} cannot operate on type {1}.</text>
                 <arg>aggregateType</arg>

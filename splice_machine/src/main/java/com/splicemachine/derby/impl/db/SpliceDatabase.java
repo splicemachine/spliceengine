@@ -635,5 +635,4 @@ public class SpliceDatabase extends BasicDatabase{
         return (AuthenticationService)
                 Monitor.bootServiceModule(create, this, AuthenticationService.MODULE, props);
     }
-
 }

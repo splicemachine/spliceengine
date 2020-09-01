@@ -206,41 +206,42 @@ public interface DataDictionary{
     int SYSTABLES_CATALOG_NUM=1;
     int SYSCOLUMNS_CATALOG_NUM=2;
     int SYSSCHEMAS_CATALOG_NUM=3;
+    int SYSDATABASES_CATALOG_NUM=4;
 
     /**
      * Catalog numbers for non core system catalogs.
      * All these entries are for system tables, not views.
      */
-    int SYSCONSTRAINTS_CATALOG_NUM=4;
-    int SYSKEYS_CATALOG_NUM=5;
-    int SYSPRIMARYKEYS_CATALOG_NUM=6;
-    int SYSDEPENDS_CATALOG_NUM=7;
-    int SYSALIASES_CATALOG_NUM=8;
-    int SYSVIEWS_CATALOG_NUM=9;
-    int SYSCHECKS_CATALOG_NUM=10;
-    int SYSFOREIGNKEYS_CATALOG_NUM=11;
-    int SYSSTATEMENTS_CATALOG_NUM=12;
-    int SYSFILES_CATALOG_NUM=13;
-    int SYSTRIGGERS_CATALOG_NUM=14;
-    int SYSTABLEPERMS_CATALOG_NUM=15;
-    int SYSCOLPERMS_CATALOG_NUM=16;
-    int SYSROUTINEPERMS_CATALOG_NUM=17;
-    int SYSROLES_CATALOG_NUM=18;
-    int SYSSEQUENCES_CATALOG_NUM=19;
-    int SYSPERMS_CATALOG_NUM=20;
-    int SYSUSERS_CATALOG_NUM=21;
-    int SYSBACKUP_CATALOG_NUM=22;
-    int SYSBACKUPITEMS_CATALOG_NUM=23;
-    int SYSCOLUMNSTATS_CATALOG_NUM=24;
-    int SYSPHYSICALSTATS_CATALOG_NUM=25;
-    int SYSTABLESTATS_CATALOG_NUM=26;
-    int SYSDUMMY1_CATALOG_NUM=27;
-    int SYSSCHEMAPERMS_CATALOG_NUM=28;
-    int SYSSOURCECODE_CATALOG_NUM=29;
-    int SYSSNAPSHOT_NUM=30;
-    int SYSTOKENS_NUM=31;
-    int SYSREPLICATION_CATALOG_NUM=32;
-    int SYSMONGETCONNECTION_CATALOG_NUM=33;
+    int SYSCONSTRAINTS_CATALOG_NUM=5;
+    int SYSKEYS_CATALOG_NUM=6;
+    int SYSPRIMARYKEYS_CATALOG_NUM=7;
+    int SYSDEPENDS_CATALOG_NUM=8;
+    int SYSALIASES_CATALOG_NUM=9;
+    int SYSVIEWS_CATALOG_NUM=10;
+    int SYSCHECKS_CATALOG_NUM=11;
+    int SYSFOREIGNKEYS_CATALOG_NUM=12;
+    int SYSSTATEMENTS_CATALOG_NUM=13;
+    int SYSFILES_CATALOG_NUM=14;
+    int SYSTRIGGERS_CATALOG_NUM=15;
+    int SYSTABLEPERMS_CATALOG_NUM=16;
+    int SYSCOLPERMS_CATALOG_NUM=17;
+    int SYSROUTINEPERMS_CATALOG_NUM=18;
+    int SYSROLES_CATALOG_NUM=19;
+    int SYSSEQUENCES_CATALOG_NUM=20;
+    int SYSPERMS_CATALOG_NUM=21;
+    int SYSUSERS_CATALOG_NUM=22;
+    int SYSBACKUP_CATALOG_NUM=23;
+    int SYSBACKUPITEMS_CATALOG_NUM=24;
+    int SYSCOLUMNSTATS_CATALOG_NUM=25;
+    int SYSPHYSICALSTATS_CATALOG_NUM=26;
+    int SYSTABLESTATS_CATALOG_NUM=27;
+    int SYSDUMMY1_CATALOG_NUM=28;
+    int SYSSCHEMAPERMS_CATALOG_NUM=29;
+    int SYSSOURCECODE_CATALOG_NUM=30;
+    int SYSSNAPSHOT_NUM=31;
+    int SYSTOKENS_NUM=32;
+    int SYSREPLICATION_CATALOG_NUM=33;
+    int SYSMONGETCONNECTION_CATALOG_NUM=34;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
      */
@@ -255,7 +256,8 @@ public interface DataDictionary{
             "1", // SYSCONGLOMERATES
             "1", // SYSTABLES
             "1", // SYSCOLUMNS
-            "1", // SYSSCHEMAS
+            "1", // SYSSCHEMAS //XXX change version
+            "1", // SYSDATABASES
             "1", // SYSCONSTRAINTS
             "1", // SYSKEYS
             "1", // SYSPRIMARYKEYS
@@ -367,6 +369,12 @@ public interface DataDictionary{
     int getCollationTypeOfUserSchemas();
 
     /**
+     * Get the descriptor for the named database.
+     */
+    DatabaseDescriptor getDatabaseDescriptor(String dbName,
+                                             TransactionController tc) throws StandardException;
+
+    /**
      * Get the descriptor for the named schema.
      * Schema descriptors include authorization ids and schema ids.
      * SQL92 allows a schema to specify a default character set - we will
@@ -428,6 +436,11 @@ public interface DataDictionary{
      * @param props The persistent properties used to configure password hashing.
      */
     PasswordHasher makePasswordHasher(Dictionary props) throws StandardException;
+
+    /**
+     * Get the descriptor for the default splice database.
+     */
+    DatabaseDescriptor getSpliceDatabaseDescriptor();
 
     /**
      * Get the descriptor for the system schema. Schema descriptors include

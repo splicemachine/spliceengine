@@ -127,7 +127,8 @@ public class DataDictionaryImplTest {
         MockDataDictionaryImpl dataDictionary = new MockDataDictionaryImpl();
         DataDescriptorGenerator ddg = new DataDescriptorGenerator(dataDictionary);
         UUID schemaUuid = new BasicUUID("8000000d-00d0-fd77-3ed8-000a0a0b1900"), tableUuid = new BasicUUID("08264012-014b-c29b-a826-000003009390");
-        SchemaDescriptor sd = new SchemaDescriptor(dataDictionary, "SYS", "SPLICE", schemaUuid, true);
+        UUID dbUuid = dataDictionary.getSpliceDatabaseDescriptor().getUUID();
+        SchemaDescriptor sd = new SchemaDescriptor(dataDictionary, "SYS", "SPLICE", schemaUuid, dbUuid, true);
         TableDescriptor td = new TableDescriptor(dataDictionary, "SYSTABLESTATS", sd, 1, 'R', -1, null, null, null, null, null, null, false, false);
         td.setUUID(new BasicUUID("08264012-014b-c29b-a826-000003009390"));
         td.setVersion("4.0");
