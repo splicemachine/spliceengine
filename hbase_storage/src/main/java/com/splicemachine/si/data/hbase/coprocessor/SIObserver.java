@@ -19,16 +19,10 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
-import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
-import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
@@ -37,13 +31,12 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.filter.TransactionalFilter;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.server.PurgeConfigBuilder;
+import com.splicemachine.si.impl.server.FlushLifeCycleTrackerWithConfig;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
 import com.splicemachine.storage.*;
@@ -186,6 +179,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     @Override
     public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, FlushLifeCycleTracker tracker) throws IOException {
         SIDriver driver=SIDriver.driver();
+        assert tracker instanceof FlushLifeCycleTrackerWithConfig;
         // We must make sure the engine is started, otherwise we might try to resolve transactions against SPLICE_TXN which
         // hasn't been loaded yet, causing a deadlock
         if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted() && driver.getConfiguration().getResolutionOnFlushes()){
@@ -193,18 +187,11 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-            if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                purgeConfig.purgeDeletesDuringFlush();
-            } else {
-                purgeConfig.noPurgeDeletes();
-            }
-            purgeConfig.transactionLowWatermark(TransactionsWatcher.getLowWatermarkTransaction());
-            purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
+
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
             SICompactionScanner siScanner = new SICompactionScanner(
-                    state, scanner, purgeConfig.build(), conf.getFlushResolutionShare(),
+                    state, scanner, ((FlushLifeCycleTrackerWithConfig)tracker).getConfig(), conf.getFlushResolutionShare(),
                     conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
