@@ -534,8 +534,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (defaultSchema != null) {
                 sd = dd.getSchemaDescriptor(defaultSchema, getTransactionCompile(), true);
             } else {
-                sd = dd.getSchemaDescriptor(
-                        getSessionUserId(), getTransactionCompile(), false);
+                sd = dd.getSchemaDescriptor(getSessionUserId(), getTransactionCompile(), false);
             }
             if(sd==null){
                 sd=new SchemaDescriptor(
@@ -543,6 +542,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         getSessionUserId(),
                         getSessionUserId(),
                         null,
+                        getDatabase().getId(),
                         false);
             }
 
@@ -3275,7 +3275,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.lccStr);
-        sb.append(Integer.toString(getInstanceNumber()));
+        sb.append(getInstanceNumber());
         sb.append("), ");
 
         sb.append(LanguageConnectionContext.dbnameStr);
@@ -3557,14 +3557,17 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
 
         if(definersRights){
-            SchemaDescriptor sd=getDataDictionary().getSchemaDescriptor(
+            DataDictionary dd = getDataDictionary();
+            SchemaDescriptor sd = dd.getSchemaDescriptor(
                     definer,
                     getTransactionExecute(),
                     false);
 
-            if(sd==null){
-                sd=new SchemaDescriptor(
-                        getDataDictionary(),definer,definer,(UUID)null,false);
+            if (sd == null) {
+                sd = new SchemaDescriptor(
+                        getDataDictionary(), definer, definer, null,
+                        getDatabase().getId(),
+                        false);
             }
 
             sc.setDefaultSchema(sd);

@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
@@ -40,7 +41,6 @@ import java.util.Properties;
 
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private static final Logger LOG=Logger.getLogger(SpliceTransactionResourceImpl.class);
-    public static final String CONNECTION_STRING = "jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true";
     protected ContextManager cm;
     protected ContextService csf;
     protected String username;
@@ -51,14 +51,18 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected LanguageConnectionContext lcc;
     protected String ipAddress;
 
-    public SpliceTransactionResourceImpl() throws SQLException{
-        this(CONNECTION_STRING, new Properties());
+    public SpliceTransactionResourceImpl() throws SQLException{ // XXX Remove this one and properly pass the right DB
+        this(DatabaseDescriptor.STD_DB_NAME);
     }
 
-    public SpliceTransactionResourceImpl(String url,Properties info) throws SQLException{
-        SpliceLogUtils.debug(LOG,"instance with url %s and properties %s",url,info);
+    public SpliceTransactionResourceImpl(String dbName) throws SQLException{
+        this(dbName, new Properties());
+    }
+
+    public SpliceTransactionResourceImpl(String dbName, Properties info) throws SQLException{
+        SpliceLogUtils.debug(LOG,"instance with dbName %s and properties %s", dbName, info);
         csf=ContextService.getFactory(); // Singleton - Not Needed
-        dbname=InternalDriver.getDatabaseName(url,info); // Singleton - Not Needed
+        this.dbname=dbName;
         username=IdUtil.getUserNameFromURLProps(info); // Static
         drdaID=info.getProperty(Attribute.DRDAID_ATTR,null); // Static
         rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);

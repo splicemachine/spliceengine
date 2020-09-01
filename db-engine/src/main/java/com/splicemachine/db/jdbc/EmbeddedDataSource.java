@@ -439,7 +439,7 @@ public class EmbeddedDataSource extends ReferenceableDataSource implements
 	 * @return  a Connection to the database
 	 * @exception SQLException if a database-access error occurs.
 	 */
-	public Connection getConnection(String username, String password) 
+	public Connection getConnection(String username, String password)
 		 throws SQLException
 	{
 		return this.getConnection(username, password, true);

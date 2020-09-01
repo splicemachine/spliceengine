@@ -79,6 +79,7 @@ public class DataDictionaryCache {
     private ManagedCache<Long,Conglomerate> conglomerateCache;
     private ManagedCache<Long,ConglomerateDescriptor> conglomerateDescriptorCache;
     private ManagedCache<GenericStatement,GenericStorablePreparedStatement> statementCache;
+    private ManagedCache<String, DatabaseDescriptor> databaseCache;
     private ManagedCache<String,SchemaDescriptor> schemaCache;
     private ManagedCache<UUID, SchemaDescriptor> oidSchemaCache;
     private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
@@ -91,7 +92,7 @@ public class DataDictionaryCache {
     private DataDictionary dd;
     @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     private static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
-            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
+            "storedPreparedStatementCache", "conglomerateCache", "statementCache", "databaseCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
             "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache", "catalogVersionCache"};
 
     public static List<String> getCacheNames() {
@@ -126,6 +127,8 @@ public class DataDictionaryCache {
                 Property.LANG_CONGLOMERATE_DESCRIPTOR_CACHE_SIZE_DEFAULT);
         int statementCacheSize = getCacheSize(startParams, Property.LANG_STATEMENT_CACHE_SIZE,
                 Property.LANG_STATEMENT_CACHE_SIZE_DEFAULT);
+        int databaseCacheSize = getCacheSize(startParams, Property.LANG_DATABASE_CACHE_SIZE,
+                Property.LANG_DATABASE_CACHE_SIZE_DEFAULT);
         int schemaCacheSize = getCacheSize(startParams, Property.LANG_SCHEMA_CACHE_SIZE,
                 Property.LANG_SCHEMA_CACHE_SIZE_DEFAULT);
         int aliasDescriptorCacheSize = getCacheSize(startParams,
@@ -171,6 +174,8 @@ public class DataDictionaryCache {
                 .maximumSize(conglomerateDescriptorCacheSize).build(), conglomerateDescriptorCacheSize);
         statementCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize
                 (statementCacheSize).removalListener(dependentInvalidator).build(), statementCacheSize);
+        databaseCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
+                databaseCacheSize).build(), databaseCacheSize);
         schemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
                 schemaCacheSize).build(), schemaCacheSize);
         oidSchemaCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(
@@ -382,6 +387,27 @@ public class DataDictionaryCache {
         conglomerateCache.invalidate(conglomId);
     }
 
+    public DatabaseDescriptor databaseCacheFind(String dbName) throws StandardException {
+        if (!dd.canReadCache(null))
+            return null;
+        if (LOG.isDebugEnabled())
+            LOG.debug("databaseCacheFind " + dbName);
+        return databaseCache.getIfPresent(dbName);
+    }
+
+    public void databaseCacheAdd(String dbName, DatabaseDescriptor descriptor) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
+        if (LOG.isDebugEnabled())
+            LOG.debug("databaseCacheAdd" + dbName + " : " + descriptor);
+        databaseCache.put(dbName, descriptor);
+    }
+
+    public void databaseCacheRemove(String databaseName) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("databaseCacheRemove " + databaseName);
+        databaseCache.invalidate(databaseName);
+    }
 
     public SchemaDescriptor schemaCacheFind(String schemaName) throws StandardException {
         if (!dd.canReadCache(null))
