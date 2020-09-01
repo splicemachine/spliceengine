@@ -26,8 +26,9 @@ public class CreateTableTypeHelper {
      * generate corresponding entries that are somewhat associated with the integer val
      * e.g. mostly if the int values increase, the corresponding e.g. date value also increases.
      */
-    public CreateTableTypeHelper(int[] types, int[] ivalues)
+    public CreateTableTypeHelper(int[] types, int[] ivalues, String fileFormat)
     {
+        this.fileFormat = fileFormat;
         schema = Arrays.stream(types).mapToObj(this::getTypesName).collect(Collectors.joining(", "));
         suggestedTypes = Arrays.stream(types).mapToObj(this::getTypesNameInfered).collect(Collectors.joining(", "));
 
@@ -69,7 +70,7 @@ public class CreateTableTypeHelper {
         return new int[]{
                 Types.VARCHAR, Types.CHAR,
                 Types.DATE, Types.TIMESTAMP,
-                // Types.TIME, // supported, but will be written as TIMESTAMP
+                Types.TIME, // supported, but will be written as TIMESTAMP
                 Types.TINYINT, Types.SMALLINT, Types.INTEGER, Types.BIGINT,
                 Types.DOUBLE, Types.REAL, Types.DECIMAL, Types.BOOLEAN
         };
@@ -82,7 +83,7 @@ public class CreateTableTypeHelper {
         return new int[]{
                 Types.VARCHAR, Types.CHAR,
                 Types.DATE, Types.TIMESTAMP,
-                // Types.TIME, // supported, but will be written as TIMESTAMP
+                Types.TIME, // supported, but will be written as TIMESTAMP
                 Types.TINYINT, Types.SMALLINT, Types.INTEGER, Types.BIGINT,
                 Types.DOUBLE, Types.REAL, Types.DECIMAL, Types.BOOLEAN
         };
@@ -95,7 +96,7 @@ public class CreateTableTypeHelper {
     static public int[] getAvroTypes() {
         return new int[]{
                 Types.VARCHAR, Types.CHAR,
-                // Types.DATE, Types.TIME // not supported
+                Types.DATE, Types.TIME, // not supported
                 Types.TIMESTAMP,
                 //Types.TINYINT, Types.SMALLINT, // not supported
                 Types.INTEGER, Types.BIGINT,
@@ -103,6 +104,29 @@ public class CreateTableTypeHelper {
                 // Types.DECIMAL, // not supported
                 Types.BOOLEAN
         };
+    }
+
+    /**
+     * @return column name + type for that column type as infere schema will return
+     * note that there are some types that can be written correctly, but will be infered wrongly:\
+     * DATE (AVRO) -> String -> CHAR/VARCHAR(*)
+     * TIME (all) -> TIMESTAMP
+     * CHAR/VARCHAR (all) will only be detected as "String", so we return CHAR/VARCHAR(*)
+     */
+    private String getTypesNameInfered(int type) {
+        if( fileFormat.equals("AVRO") && type == Types.DATE )
+            return "COL_DATE CHAR/VARCHAR(x)";
+        if( type == Types.TIME )
+            return "COL_TIME TIMESTAMP";
+
+        switch (type) {
+            case Types.CHAR:
+                return "COL_CHAR CHAR/VARCHAR(x)";
+            case Types.VARCHAR:
+                return "COL_VARCHAR CHAR/VARCHAR(x)";
+            default:
+                return getTypesName(type);
+        }
     }
 
     ///
@@ -194,19 +218,9 @@ public class CreateTableTypeHelper {
         }
     }
 
-    private String getTypesNameInfered(int type) {
-        switch (type) {
-            case Types.CHAR:
-                return "COL_CHAR CHAR/VARCHAR(x)";
-            case Types.VARCHAR:
-                return "COL_VARCHAR CHAR/VARCHAR(x)";
-            default:
-                return getTypesName(type);
-        }
-    }
     private String getTime( int val ){
         if( val < 0 ) val = -val;
-        int seconds = val;
+        int seconds = val + 10*3600; // start at 10:00:00 to avoid 0:00:01 / 00:00:01 confusion
         int minutes = seconds / 60;
         int hours = minutes / 60;
         seconds %= 60;
@@ -270,4 +284,5 @@ public class CreateTableTypeHelper {
     private final String schema;
     private final String suggestedTypes;
     private final String insertValues;
+    private String fileFormat;
 }
