@@ -161,7 +161,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
         String expected = "NAME    | CREATOR |TYPE |COLCOUNT |KEYCOLUMNS | KEYUNIQUE |CODEPAGE |\n" +
                 "------------------------------------------------------------------------\n" +
                 "SYSCOLUMNS |   SYS   |  T  |   13    |     0     |     0     |  1208   |\n" +
-                " SYSTABLES |   SYS   |  T  |   15    |     0     |     0     |  1208   |";
+                " SYSTABLES |   SYS   |  T  |   16    |     0     |     0     |  1208   |";
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         Assert.assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
