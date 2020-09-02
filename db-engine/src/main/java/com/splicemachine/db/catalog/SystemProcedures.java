@@ -51,6 +51,7 @@ import com.splicemachine.db.impl.load.Import;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
+import org.apache.commons.codec.language.bm.Lang;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.StringUtils;
 
@@ -1734,21 +1735,19 @@ public class SystemProcedures{
 
     }
 
-    /**
-     */
-    public static void addDatabase(String dbName, String aid, LanguageConnectionContext lcc) throws StandardException {
+    public static void addDatabase(String dbName, String aid, UUID uuid, LanguageConnectionContext lcc) throws StandardException {
         DataDictionary dd=lcc.getDataDictionary();
         TransactionController tc=lcc.getTransactionExecute();
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-        DatabaseDescriptor dbd = dd.getDatabaseDescriptor(dbName, lcc.getTransactionExecute());
+        DatabaseDescriptor dbd = dd.getDatabaseDescriptor(dbName, lcc.getTransactionExecute(), false);
 
         // if the database already exists, do nothing, we already have a database
         // let the admin handle that
         if ((dbd != null) && (dbd.getUUID() != null)){
+            assert dbd.getUUID().equals(uuid);
             return;
         }
 
-        UUID tmpDbId = dd.getUUIDFactory().createUUID();
         /*
          ** Inform the data dictionary that we are about to write to it.
          ** There are several calls to data dictionary "get" methods here
@@ -1759,7 +1758,7 @@ public class SystemProcedures{
          ** the transaction.
          */
         dd.startWriting(lcc);
-        dbd = ddg.newDatabaseDescriptor(dbName, aid, tmpDbId);
+        dbd = ddg.newDatabaseDescriptor(dbName, aid, uuid);
         dd.addDescriptor(dbd, null, DataDictionary.SYSDATABASES_CATALOG_NUM, false, tc, false);
     }
 

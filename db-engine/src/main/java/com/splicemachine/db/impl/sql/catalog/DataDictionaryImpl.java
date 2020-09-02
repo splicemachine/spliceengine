@@ -930,7 +930,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public DatabaseDescriptor getDatabaseDescriptor(String dbName, TransactionController tc) throws StandardException
+    public DatabaseDescriptor getDatabaseDescriptor(String dbName, TransactionController tc) throws StandardException {
+        return getDatabaseDescriptor(dbName, tc, true);
+    }
+
+    @Override
+    public DatabaseDescriptor getDatabaseDescriptor(String dbName, TransactionController tc, boolean raiseError) throws StandardException
     {
         /*
          ** Check for SPLICEDB before going any further.
@@ -957,7 +962,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if (dd!=null)
             dataDictionaryCache.databaseCacheAdd(dbName, dd);
 
-        if(dd==null) {
+        if(dd==null && raiseError) {
             throw StandardException.newException(SQLState.LANG_DATABASE_DOES_NOT_EXIST, dbName);
         }else{
             return dd;

@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
@@ -106,7 +107,7 @@ public class SpliceDatabase extends BasicDatabase{
         // setup authorization
 
 
-        create=Boolean.TRUE.equals(EngineLifecycleService.isCreate.get()); //written like this to avoid autoboxing
+        create = Boolean.TRUE.equals(EngineLifecycleService.isCreate.get()); //written like this to avoid autoboxing
 
         if(create){
             SpliceLogUtils.info(LOG,"Creating the Splice Machine database");
@@ -473,6 +474,7 @@ public class SpliceDatabase extends BasicDatabase{
         SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
         af=(AccessFactory)Monitor.bootServiceModule(create,this,AccessFactory.MODULE,startParams);
         ((SpliceAccessManager) af).setDatabase(this);
+        create = create || Boolean.TRUE.equals(EmbedConnection.isCreate.get());
         if(create){
             TransactionController tc=af.getTransaction(ContextService.getFactory().getCurrentContextManager());
             ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate(Bytes.toBytes("boot"));

@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -215,7 +216,6 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
     protected static final String[] sysUtilFunctionsWithPublicAccess = {
                                                 "SYSCS_PEEK_AT_SEQUENCE",
                                                 };
-
 
     @Override
     public void startWriting(LanguageConnectionContext lcc,boolean setDDMode) throws StandardException{

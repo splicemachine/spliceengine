@@ -162,6 +162,13 @@ public interface DataDictionary{
     // general info
     String DATABASE_ID="derby.databaseID";
 
+    static String getDatabaseId(String dbName) {
+        if (dbName.equals(DatabaseDescriptor.STD_DB_NAME))
+            return DataDictionary.DATABASE_ID;
+        else
+            return DataDictionary.DATABASE_ID + "_" + dbName;
+    }
+
     // version ids
     /**
      * DataDictionaryVersion property indicates the updgrade level of the system catalogs.
@@ -367,6 +374,14 @@ public interface DataDictionary{
      * @return the collation type for user schemas
      */
     int getCollationTypeOfUserSchemas();
+
+
+    /**
+     * Get the descriptor for the named database.
+     */
+    DatabaseDescriptor getDatabaseDescriptor(String dbName,
+                                             TransactionController tc,
+                                             boolean raiseError) throws StandardException;
 
     /**
      * Get the descriptor for the named database.
