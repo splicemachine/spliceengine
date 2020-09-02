@@ -1426,7 +1426,8 @@ Guide.
 
             <msg>
                 <name>42610</name>
-                <text>All the arguments to the COALESCE/VALUE function cannot be parameters. The function needs at least one argument that is not a parameter.</text>
+                <text>All the arguments to the '{0}' function cannot be parameters. The function needs at least one argument that is not a parameter.</text>
+                <arg>functionName</arg>
             </msg>
 
             <msg>
@@ -3226,6 +3227,11 @@ Guide.
                 <name>42ZD5</name>
                 <text>In the Properties list, the invalid value '{0}' was specified for the tableLimitForExhaustiveSearch property. Expecting a positive integer.</text>
                 <arg>value</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD6</name>
+                <text>Scalar MIN and MAX functions do not accept arguments of type LOB, XML, array, cursor, row, or structured type.</text>
             </msg>
 
             <msg>

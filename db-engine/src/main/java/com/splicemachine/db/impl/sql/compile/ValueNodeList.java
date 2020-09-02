@@ -317,7 +317,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 			*/
 			if (! leftTC.compatible(valueNode.getTypeId()))
 			{
-				throw StandardException.newException(SQLState.LANG_DB2_COALESCE_DATATYPE_MISMATCH,
+				throw StandardException.newException(SQLState.LANG_DB2_MULTINARY_DATATYPE_MISMATCH,
 						leftType.getSQLTypeName(),
 						valueNode.getTypeId().getSQLTypeName()
 						);
@@ -337,10 +337,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 	public void comparable(ValueNode leftOperand) throws StandardException
 	{
 		int			 size = size();
-		TypeId	leftType;
 		ValueNode		valueNode;
-
-		leftType = leftOperand.getTypeId();
 
 		for (int index = 0; index < size; index++)
 		{
@@ -496,8 +493,6 @@ public class ValueNodeList extends QueryTreeNodeVector
 		ListValueNode lvn = null, prevLVN = null;
 		if (elementAt(0) instanceof ListValueNode) {
 			multiColumn = true;
-			if (combinedJudgeODV != null && !(combinedJudgeODV instanceof ListDataType))
-				SanityManager.THROWASSERT("Expected ListDataType when comparing IN list items for sorting.");
 			combinedJudgeODV = (ListDataType)judgeODV;
 		}
 		int numColumns = multiColumn ? ((ListValueNode) elementAt(0)).numValues() : 1;
