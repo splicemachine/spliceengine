@@ -1251,6 +1251,45 @@ public class SQLParser
     }
 
     /**
+     * Check if this MIN/MAX an aggregate function.
+     * We need this check because MIN/MAX also has an scalar version.
+     */
+    private boolean isMinMaxAggregate()
+    {
+      boolean seeComma = false;
+      boolean seeRightParen = false;
+      int leftParenCount = 0;
+
+      if (getToken(2).kind != LEFT_PAREN)
+        return false;
+
+      for (int i = 3; i < Integer.MAX_VALUE; i++) {
+        if (getToken(i).kind == LEFT_PAREN) {
+          leftParenCount++;
+        } else if (getToken(i).kind == RIGHT_PAREN) {
+          if (leftParenCount > 0) {
+            leftParenCount--;
+          } else {
+            seeRightParen = true;
+            break;
+          }
+        } else if (getToken(i).kind == COMMA) {
+          if (leftParenCount == 0) {
+            seeComma = true;
+            break;
+          }
+        } else if (getToken(i).kind == EOF) {
+          break;
+        }
+      }
+
+      if (seeRightParen && !seeComma)
+        return true;
+
+      return false;
+    }
+
+    /**
      * Determine whether the next sequence of tokens can be the beginning
      * of an aggregateNode()() rule.  aggregateNodes() start with one
      * of the built-in aggregate names, or with an identifier followed
@@ -1272,8 +1311,10 @@ public class SQLParser
         switch (getToken(1).kind)
         {
           case MAX:
-          case AVG:
           case MIN:
+            retval = isMinMaxAggregate();
+            break;
+          case AVG:
           case SUM:
             // This is a built-in aggregate
             retval = true;
@@ -1304,8 +1345,9 @@ public class SQLParser
         switch (getToken(1).kind)
         {
           case MAX:
-          case AVG:
           case MIN:
+            return isMinMaxAggregate();
+          case AVG:
           case SUM:
           case COUNT:
           case STRING_AGG:
@@ -3131,8 +3173,10 @@ TOKEN [IGNORE_CASE] :
 |    <CURTIME: "curtime">
 |    <DATABASE: "database">
 |    <DENSERANK: "dense_rank">
-|    <GET_CURRENT_CONNECTION: "getCurrentConnection">
 |    <EXPLAIN: "explain">
+|    <GET_CURRENT_CONNECTION: "getCurrentConnection">
+|    <GREATEST: "greatest">
+|    <LEAST: "least">
 |    <SPARKEXPLAIN: "sparkexplain">
 |    <SPARKEXPLAIN_LOGICAL: "sparkexplain_logical">
 |    <SPARKEXPLAIN_OPTIMIZED: "sparkexplain_optimized">
@@ -7726,8 +7770,8 @@ coalesceFunction(String coalesceOrValue) throws StandardException :
 }
 {
     <LEFT_PAREN>
-        coalesceExpression(expressionList)
-        ( <COMMA> coalesceExpression(expressionList) )*
+        argumentExpression(expressionList)
+        ( <COMMA> argumentExpression(expressionList) )*
     <RIGHT_PAREN>
     {
         return (ValueNode)nodeFactory.getNode(
@@ -7739,10 +7783,34 @@ coalesceFunction(String coalesceOrValue) throws StandardException :
 }
 
 /*
- * <A NAME="coalesceExpression">coalesceExpression</A>
+ * <A NAME="scalarMinMaxFunction">scalarMinMaxFunction</A>
+ */
+ValueNode
+scalarMinMaxFunction(String minOrMax) throws StandardException :
+{
+    ValueNodeList args = (ValueNodeList) nodeFactory.getNode(
+        C_NodeTypes.VALUE_NODE_LIST,
+        getContextManager());
+}
+{
+    <LEFT_PAREN>
+        argumentExpression(args)
+        ( <COMMA> argumentExpression(args) )+
+    <RIGHT_PAREN>
+    {
+        return (ValueNode)nodeFactory.getNode(
+                C_NodeTypes.SCALAR_MIN_MAX_FUNCTION_NODE,
+                minOrMax,
+                args,
+                getContextManager());
+    }
+}
+
+/*
+ * <A NAME="argumentExpression">argumentExpression</A>
  */
 void
-coalesceExpression(ValueNodeList expressionList) throws StandardException :
+argumentExpression(ValueNodeList expressionList) throws StandardException :
 {
     ValueNode    expression;
 }
@@ -8189,8 +8257,8 @@ valueExpressionPrimary() throws StandardException :
         return value;
     }
 |
-        // This LOOKAHEAD is required to distinguish an
-        // window/aggregate function from
+    // This LOOKAHEAD is required to distinguish an
+    // window/aggregate function from
     // miscBuiltins(). Both can start with an identifier.
 
     LOOKAHEAD( { windowOrAggregateFunctionFollows() } )
@@ -8310,6 +8378,10 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == NVL ||
                 getToken(1).kind == VALUE ||
+                getToken(1).kind == MIN ||
+                getToken(1).kind == MAX ||
+                getToken(1).kind == LEAST ||
+                getToken(1).kind == GREATEST ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
                 getToken(1).kind == RIGHT ||
@@ -8489,6 +8561,16 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                                         ReuseFactory.getInteger(UnaryOperatorNode.DIGITS_OP),
                                                         null,
                                                         getContextManager());
+    }
+|
+    ( <MIN> | <LEAST> ) value = scalarMinMaxFunction("MIN")
+    {
+        return value;
+    }
+|
+    ( <MAX> | <GREATEST> ) value = scalarMinMaxFunction("MAX")
+    {
+        return value;
     }
 |
     value = xmlFunction()
@@ -17978,6 +18060,7 @@ nonReservedKeyword()  :
     |    tok = <FORTRAN>
     |    tok = <FRACTION>
     |    tok = <GENERATED>
+    |    tok = <GREATEST>
     |    tok = <GROUPING>
     |    tok = <HFILE>
     |    tok = <IDENTITY_VAL_LOCAL>
@@ -17997,6 +18080,7 @@ nonReservedKeyword()  :
     |    tok = <LASTVALUE>
     |    tok = <LCASE>
     |    tok = <LEAD>
+    |    tok = <LEAST>
     |    tok = <LENGTH>
     |    tok = <LEVEL>
     |   tok = <LIMIT>

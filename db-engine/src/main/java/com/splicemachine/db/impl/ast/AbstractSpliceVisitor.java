@@ -652,6 +652,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(ScalarMinMaxFunctionNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(SetRoleNode node) throws StandardException {
         return defaultVisit(node);
     }

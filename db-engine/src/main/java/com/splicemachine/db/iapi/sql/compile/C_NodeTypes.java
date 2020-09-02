@@ -199,6 +199,7 @@ public interface C_NodeTypes
     int INTERSECT_OR_EXCEPT_NODE = 157;
     int REPLACE_OPERATOR_NODE = 158;
     // 159 - 183 available
+    int SCALAR_MIN_MAX_FUNCTION_NODE = 183;
     int TIMESTAMP_ADD_FN_NODE = 184;
     int TIMESTAMP_DIFF_FN_NODE = 185;
     int MODIFY_COLUMN_TYPE_NODE = 186;
