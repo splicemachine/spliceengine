@@ -358,33 +358,35 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     // tests we can create an external table in a empty directory
-    // also test if we can create a schema automatically
     @Test
-    public void testEmptyDirectoryAndSchemaCreate() throws  Exception{
-        for( String fileFormat : fileFormats) {
-            String tablePath = getExternalResourceDirectory() + "empty_directory" + fileFormat;
-            String name = "AUTO_SCHEMA_XT.AAA";
+    public void testEmptyDirectory() throws Exception {
+        for (String fileFormat : fileFormats) {
+            String name = "empty_directory" + fileFormat;
+            String tablePath = getExternalResourceDirectory() + name;
             new File(tablePath).mkdir();
 
-            try {
-                methodWatcher.executeUpdate(String.format("create external table " + name +
-                        " (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
-                        " STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
-
-                ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME = 'AUTO_SCHEMA_XT'");
-                String expected = "SCHEMANAME   |\n" +
-                        "----------------\n" +
-                        "AUTO_SCHEMA_XT |";
-                assertEquals("list of schemas does not match", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-                rs.close();
-            }
-            finally {
-                methodWatcher.execute("DROP TABLE " + name);
-                methodWatcher.execute("DROP SCHEMA AUTO_SCHEMA_XT RESTRICT");
-            }
+            methodWatcher.executeUpdate(String.format("create external table " + name +
+                    " (col1 varchar(24), col2 varchar(24), col3 varchar(24))" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
         }
     }
 
+    // DB-8357 : Create a table on a not existing schema should not implicitly create the schema.
+    @Test
+    public void testNoImplicitSchemaCreate() throws Exception {
+        for (String fileFormat : fileFormats) {
+            try {
+                String name = "implict_schema_" + fileFormat;
+                String tablePath = getExternalResourceDirectory() + name;
+                methodWatcher.executeUpdate(String.format("create external table NOT_EXISTING_SCHEMA." + name +
+                        " (col1 varchar(24)) STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
+
+                Assert.fail("Exception not thrown");
+            } catch (SQLException e) {
+                Assert.assertEquals("Wrong Exception", "42Y07", e.getSQLState());
+            }
+        }
+    }
 
     @Test
     public void testLocationCannotBeAFile() throws  Exception{

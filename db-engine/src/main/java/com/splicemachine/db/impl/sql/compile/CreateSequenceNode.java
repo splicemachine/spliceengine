@@ -115,9 +115,6 @@ public class CreateSequenceNode extends DDLStatementNode
             }
         }
         _cycle = (cycle != null ? (Boolean) cycle : Boolean.FALSE);
-
-        // automatically create the schema if it doesn't exist
-        implicitCreateSchema = true;
     }
 
     /**
