@@ -114,8 +114,6 @@ public class CreateViewNode extends DDLStatementNode
         this.fetchFirst = (ValueNode)fetchFirst;
         this.hasJDBClimitClause = hasJDBClimitClause != null && (Boolean) hasJDBClimitClause;
         this.isRecursive = isRecursive != null && (Boolean) isRecursive;
-
-		implicitCreateSchema = true;
 	}
 
 	/**

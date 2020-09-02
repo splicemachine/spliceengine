@@ -197,14 +197,11 @@ public class CreateAliasNode extends DDLStatementNode{
                 }
 
                 aliasInfo=new AggregateAliasInfo(aggForType,aggReturnType);
-                implicitCreateSchema=true;
                 break;
 
             case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
                 this.javaClassName=(String)targetObject;
                 aliasInfo=new UDTAliasInfo();
-
-                implicitCreateSchema=true;
                 break;
 
             case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
@@ -341,13 +338,11 @@ public class CreateAliasNode extends DDLStatementNode{
                         returnType,
                         compiledPyCode);
 
-                implicitCreateSchema = true;
             }
             break;
 
             case AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR:
                 String targetSchema;
-                implicitCreateSchema=true;
                 TableName t=(TableName)targetObject;
                 if(t.getSchemaName()!=null)
                     targetSchema=t.getSchemaName();

@@ -121,7 +121,6 @@ public class CreateTableNode extends DDLStatementNode
 		else
 			tableType = TableDescriptor.BASE_TABLE_TYPE;
 		this.lockGranularity = (Character) lockGranularity;
-		implicitCreateSchema = true;
 
 		if (SanityManager.DEBUG)
 		{
@@ -167,7 +166,6 @@ public class CreateTableNode extends DDLStatementNode
 		else
 			tableType = TableDescriptor.BASE_TABLE_TYPE;
 		this.lockGranularity = (Character) lockGranularity;
-		implicitCreateSchema = true;
 
 		if (SanityManager.DEBUG)
 		{
@@ -215,7 +213,6 @@ public class CreateTableNode extends DDLStatementNode
 	{
 		tableType = TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE;
 		lockGranularity = TableDescriptor.DEFAULT_LOCK_GRANULARITY;
-		implicitCreateSchema = true;
 
 		this.onCommitDeleteRows = (Boolean) onCommitDeleteRows;
 		this.onRollbackDeleteRows = (Boolean) onRollbackDeleteRows;
@@ -257,7 +254,6 @@ public class CreateTableNode extends DDLStatementNode
 	{
 		tableType = TableDescriptor.BASE_TABLE_TYPE;
 		lockGranularity = TableDescriptor.DEFAULT_LOCK_GRANULARITY;
-		implicitCreateSchema = true;
 		initAndCheck(newObjectName);
 		this.resultColumns = (ResultColumnList) resultColumns;
 		this.queryExpression = (ResultSetNode) queryExpression;

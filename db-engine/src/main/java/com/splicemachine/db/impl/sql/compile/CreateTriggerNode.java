@@ -293,8 +293,6 @@ public class CreateTriggerNode extends DDLStatementNode {
         this.originalActionTextList = (List<String>) actionTextList;
 
         assert this.actionNodeList.size() == originalActionTextList.size();
-
-        implicitCreateSchema = true;
         this.actionTextList = Lists.newArrayListWithCapacity(this.originalActionTextList.size());
         for (int i = 0; i < this.originalActionTextList.size(); ++i) {
             this.actionTextList.add(originalActionTextList.get(i) == null ? null : originalActionTextList.get(i).trim());
