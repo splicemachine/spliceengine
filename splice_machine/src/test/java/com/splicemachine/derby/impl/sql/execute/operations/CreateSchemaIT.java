@@ -122,21 +122,14 @@ public class CreateSchemaIT {
         }
     }
 
-    // DB-8357
+    // DB-8357 : Create a table on a not existing schema should not implicitly create the schema.
     @Test
-    public void testSchemaAutoCreation() throws Exception {
+    public void testNoImplicitSchemaCreate() throws Exception {
         try {
-            methodWatcher.execute("create table AUTO_SCHEMA.AAA (col1 int)");
-            ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME = 'AUTO_SCHEMA'");
-            String expected = "SCHEMANAME  |\n" +
-                    "-------------\n" +
-                    "AUTO_SCHEMA |";
-            assertEquals("list of schemas does not match", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
-        }
-        finally {
-            methodWatcher.execute("DROP TABLE AUTO_SCHEMA.AAA");
-            methodWatcher.execute("DROP SCHEMA AUTO_SCHEMA RESTRICT");
+            methodWatcher.execute("create table NOT_EXISTING_SCHEMA.AAA (col1 int)");
+            Assert.fail("Exception not thrown");
+        } catch (SQLException e) {
+            Assert.assertEquals("Wrong Exception", "42Y07", e.getSQLState());
         }
     }
 }

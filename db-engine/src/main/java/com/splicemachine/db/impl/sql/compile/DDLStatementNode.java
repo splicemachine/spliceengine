@@ -82,10 +82,12 @@ abstract class DDLStatementNode extends StatementNode
 	private boolean		initOk;
 
 	/**
-		sub-classes can set this to be true to allow implicit
-		creation of the main object's schema at execution time.
+        sub-classes can set this to be true to allow implicit
+        creation of the main object's schema at execution time.
+        note: we set this to private for now. not sure if we at
+        all want implicit create schema.
 	*/
-	boolean implicitCreateSchema;
+	private boolean implicitCreateSchema = false;
 
 
 	/////////////////////////////////////////////////////////////////////////
@@ -253,7 +255,6 @@ abstract class DDLStatementNode extends StatementNode
 		 throws StandardException
 	{
 		String schemaName = objectName.getSchemaName();
-		//boolean needError = !(implicitCreateSchema || (schemaName == null));
 		boolean needError = !implicitCreateSchema;
 		SchemaDescriptor sd = getSchemaDescriptor(schemaName, needError);
 		CompilerContext cc = getCompilerContext();

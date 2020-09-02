@@ -315,7 +315,17 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
                         TransactionController.IS_DEFAULT,
                 splitKeys);
-        SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
+
+        boolean create_schema_if_not_exist = false;
+        SchemaDescriptor sd;
+        if( create_schema_if_not_exist )
+            sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
+        else {
+            sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+            if ( sd == null ) {
+                throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+            }
+        }
 
         try {
             if (tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
