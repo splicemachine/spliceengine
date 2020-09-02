@@ -1410,7 +1410,6 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         return (ResultSet) cs.executeQueryX();
     }
 
-
     // DERBY does not have the notion of a catalog, so we return a result set with no rows.
     public java.sql.ResultSet getCatalogs() throws SQLException {
         try
