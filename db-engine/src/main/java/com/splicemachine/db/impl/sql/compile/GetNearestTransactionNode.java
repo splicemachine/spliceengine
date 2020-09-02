@@ -7,10 +7,12 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.List;
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class GetNearestTransactionNode extends UnaryOperatorNode {
     /**
      * @inheritDoc
