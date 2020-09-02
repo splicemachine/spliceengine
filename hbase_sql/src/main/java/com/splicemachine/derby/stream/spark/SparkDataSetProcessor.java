@@ -840,8 +840,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     /// check that we don't access a column that's not there with baseColumnMap
+    /// column number needs to be exactly the same, otherwise we get problems when we insert into this.
+    /// we might take this more relaxed if we would do read only, should be possible to do this with a VIEW
     private static void checkNumColumns(String location, int[] baseColumnMap, Dataset<Row> table) throws StandardException {
-        if( baseColumnMap.length > table.schema().fields().length) {
+        if( baseColumnMap.length != table.schema().fields().length) {
             throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
                     baseColumnMap.length, table.schema().fields().length,
                     location, ExternalTableUtils.getSuggestedSchema(table.schema()));
