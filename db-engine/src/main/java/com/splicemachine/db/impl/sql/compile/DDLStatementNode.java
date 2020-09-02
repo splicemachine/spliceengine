@@ -386,36 +386,39 @@ abstract class DDLStatementNode extends StatementNode
 		String sqlState = null;
 
 		switch (td.getTableType()) {
-		case TableDescriptor.VTI_TYPE:
-			sqlState = SQLState.LANG_INVALID_OPERATION_ON_SYSTEM_TABLE;
-			break;
-
-		case TableDescriptor.SYSTEM_TABLE_TYPE:
-			if (doSystemTableCheck)
-				/*
-				** Not on system tables (though there are no constraints on
-				** system tables as of the time this is writen
-				*/
+			case TableDescriptor.VTI_TYPE:
 				sqlState = SQLState.LANG_INVALID_OPERATION_ON_SYSTEM_TABLE;
-			else
-				//allow system table. The only time this happens currently is
-				//when user is requesting inplace compress on system table
-				return td;
-			break;
+				break;
+
+			case TableDescriptor.SYSTEM_TABLE_TYPE:
+				if (doSystemTableCheck)
+					/*
+					** Not on system tables (though there are no constraints on
+					** system tables as of the time this is writen
+					*/
+					sqlState = SQLState.LANG_INVALID_OPERATION_ON_SYSTEM_TABLE;
+				else
+					//allow system table. The only time this happens currently is
+					//when user is requesting inplace compress on system table
+					return td;
+				break;
 
 			case TableDescriptor.BASE_TABLE_TYPE:
 				return td;
 			case TableDescriptor.EXTERNAL_TYPE:
+					return td;
+				case TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:
 				return td;
-			case TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:
-			return td;
 
-		/*
-		** Make sure it is not a view
-		*/
-		case TableDescriptor.VIEW_TYPE:
-			sqlState = SQLState.LANG_INVALID_OPERATION_ON_VIEW;
-			break;
+			/*
+			** Make sure it is not a view
+			*/
+			case TableDescriptor.VIEW_TYPE:
+				sqlState = SQLState.LANG_INVALID_OPERATION_ON_VIEW;
+				break;
+
+			default:
+				throw new IllegalArgumentException("invalid table type " + td.getTableType() );
 		}
 
 		
