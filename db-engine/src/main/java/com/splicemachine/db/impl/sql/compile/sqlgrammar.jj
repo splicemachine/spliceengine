@@ -2853,6 +2853,7 @@ TOKEN [IGNORE_CASE] :
 |    <FULL: "full">
 |    <FUNCTION: "function">
 |    <GET: "get">
+|    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
 |    <GLOBAL: "global">
 |    <GO: "go">
 |    <GOTO: "goto">
@@ -8437,7 +8438,8 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLQUERY ||
                 getToken(1).kind == GROUPING ||
                 getToken(1).kind == TO_INSTANT ||
-                getToken(1).kind == TO_HBASE_ESCAPED ) &&
+                getToken(1).kind == TO_HBASE_ESCAPED ||
+                getToken(1).kind == GET_NEAREST_TRANSACTION ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -8596,6 +8598,11 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                     C_NodeTypes.TO_HBASE_ESCAPED_NODE,
                                     value,
                                     getContextManager());
+    }
+|
+    value = getNearestTransaction()
+    {
+        return value;
     }
 }
 
@@ -11674,6 +11681,21 @@ currentServerFunction() throws StandardException :
         return (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.CURRENT_SERVER_NODE,
                                 getContextManager());
+    }
+}
+
+ValueNode
+getNearestTransaction() throws StandardException :
+{
+    ValueNode value;
+}
+{
+    <GET_NEAREST_TRANSACTION> <LEFT_PAREN> value = primaryExpression() <RIGHT_PAREN>
+    {
+          return (ValueNode) nodeFactory.getNode(
+                                  C_NodeTypes.GET_NEAREST_TRANSACTION,
+                                  value,
+                                  getContextManager());
     }
 }
 
@@ -17802,6 +17824,7 @@ reservedKeyword() :
 |    tok = <FUNCTION>
 |    tok = <GET>
 |    tok = <GET_CURRENT_CONNECTION>
+|    tok = <GET_NEAREST_TRANSACTION>
 |    tok = <GLOBAL>
 |    tok = <GO>
 |    tok = <GOTO>

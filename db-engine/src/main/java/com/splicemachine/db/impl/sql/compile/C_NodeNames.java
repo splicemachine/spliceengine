@@ -169,7 +169,9 @@ public interface C_NodeNames
 
     String GET_CURRENT_CONNECTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GetCurrentConnectionNode";
 
-    String GRANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GrantNode";
+    String GET_NEAREST_TRANSACTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GetNearestTransactionNode";
+
+	String GRANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GrantNode";
 
     String GRANT_ROLE_NODE_NAME =
         "com.splicemachine.db.impl.sql.compile.GrantRoleNode";
