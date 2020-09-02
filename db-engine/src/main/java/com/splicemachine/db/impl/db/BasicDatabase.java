@@ -43,10 +43,7 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.daemon.Serviceable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.JarReader;
-import com.splicemachine.db.iapi.services.monitor.ModuleControl;
-import com.splicemachine.db.iapi.services.monitor.ModuleFactory;
-import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.monitor.*;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
 import com.splicemachine.db.iapi.services.property.PropertySetCallback;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -120,7 +117,8 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
     private DateFormat dateFormat;
     private DateFormat timeFormat;
     private DateFormat timestampFormat;
-    private UUID        myUUID;
+    private UUID myUUID;
+    private String name;
 
     protected boolean lastToBoot; // is this class last to boot
 
@@ -508,8 +506,11 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         ContextService.getFactory();
         TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
 
+        String dbName = startParams.getProperty(PersistentService.SERVICE_NAME);
+        String dbIdKey = DataDictionary.getDatabaseId(dbName);
+
         String  upgradeID = null;
-        UUID    databaseID = (UUID) tc.getProperty(DataDictionary.DATABASE_ID);
+        UUID    databaseID = (UUID) tc.getProperty(dbIdKey);
 
         if (databaseID == null) {
             // no property defined in the Transaction set
@@ -517,7 +518,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
             UUIDFactory    uuidFactory  = Monitor.getMonitor().getUUIDFactory();
 
-            upgradeID = startParams.getProperty(DataDictionary.DATABASE_ID);
+            upgradeID = startParams.getProperty(dbIdKey);
             if (upgradeID == null )
             {
                 // just create one
@@ -526,14 +527,14 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
                 databaseID = uuidFactory.recreateUUID(upgradeID);
             }
 
-            tc.setProperty(DataDictionary.DATABASE_ID, databaseID, true);
+            tc.setProperty(dbIdKey, databaseID, true);
         }
 
         // Remove the database identifier from the service.properties
         // file only if we upgraded it to be stored in the transactional
         // property set.
         if (upgradeID != null)
-            startParams.remove(DataDictionary.DATABASE_ID);
+            startParams.remove(dbIdKey);
 
         tc.commit();
         tc.destroy();
@@ -883,5 +884,10 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
             // reenable class loading from this jar
             util.notifyLoader(true);
         }
+    }
+
+    @Override
+    public String getName() {
+        return name;
     }
 }
