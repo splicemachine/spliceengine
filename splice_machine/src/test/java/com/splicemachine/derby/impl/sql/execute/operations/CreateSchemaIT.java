@@ -27,10 +27,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -38,13 +35,13 @@ import static org.junit.Assert.assertEquals;
  * Tests around creating schemas
  */
 public class CreateSchemaIT {
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
+    protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final Logger LOG = Logger.getLogger(CreateSchemaIT.class);
 
-    protected static SpliceSchemaWatcher sullivan1SchemaWatcher = new SpliceSchemaWatcher("SULLIVAN1");
-    protected static SpliceSchemaWatcher sullivanSchemaWatcher = new SpliceSchemaWatcher("SULLIVAN");
-    protected static SpliceSchemaWatcher cmprod = new SpliceSchemaWatcher("cmprod");
-    protected static SpliceUserWatcher cmprodUser = new SpliceUserWatcher("cmprod","bigdata4u");
+    protected static final SpliceSchemaWatcher sullivan1SchemaWatcher = new SpliceSchemaWatcher("SULLIVAN1");
+    protected static final SpliceSchemaWatcher sullivanSchemaWatcher = new SpliceSchemaWatcher("SULLIVAN");
+    protected static final SpliceSchemaWatcher cmprod = new SpliceSchemaWatcher("cmprod");
+    protected static final SpliceUserWatcher cmprodUser = new SpliceUserWatcher("cmprod","bigdata4u");
 
 
     @ClassRule
@@ -60,12 +57,13 @@ public class CreateSchemaIT {
     @Test
     public void testCreateSchemasWitSimilarName() throws Exception {
         PreparedStatement ps = methodWatcher.prepareStatement("select * from sys.sysschemas where schemaName like 'SULLIVAN%'");
-        ResultSet rs = ps.executeQuery();
-        int count = 0;
-        while (rs.next()) {
-            count++;
+        try( ResultSet rs = ps.executeQuery() ) {
+            int count = 0;
+            while (rs.next()) {
+                count++;
+            }
+            Assert.assertEquals("Incorrect row count", 2, count);
         }
-        Assert.assertEquals("Incorrect row count", 2, count);
     }
 
     @Test
@@ -109,14 +107,20 @@ public class CreateSchemaIT {
     // DB-5988
     public void testSchemaAuthorizationCreation() throws Exception {
         Connection connection = null;
+        ResultSet rs = null;
         try {
             methodWatcher.execute("call SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER('cmprod','cmprod')");
             methodWatcher.execute("create table cmprod.table1 (col1 int)");
             connection = SpliceNetConnection.getConnectionAs("cmprod", "bigdata4u");
-            ResultSet rs = connection.createStatement().executeQuery("select * from cmprod.table1");
-            rs.next();
-            rs.close();
+            try (Statement s = connection.createStatement()) {
+                rs = s.executeQuery("select * from cmprod.table1");
+                rs.next();
+                rs.close();
+                rs = null;
+            }
         } finally {
+            if( rs != null )
+                rs.close();
             if (connection != null)
                 connection.close();
         }

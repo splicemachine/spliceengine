@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.catalog.UUID;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Collections;
 
@@ -170,8 +171,10 @@ public class CreateViewNode extends DDLStatementNode
 
 	public	int				getCheckOption() { return checkOption; }
 
+	@SuppressFBWarnings("EI_EXPOSE_REP")
 	public	ProviderInfo[]	getProviderInfo() { return providerInfos; }
 
+	@SuppressFBWarnings("EI_EXPOSE_REP")
 	public	ColumnInfo[]	getColumnInfo() { return colInfos; }
 
 	// We inherit the generate() method from DDLStatementNode.

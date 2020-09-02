@@ -91,7 +91,7 @@ public class CreateSequenceNode extends DDLStatementNode
             _dataType = DataTypeDescriptor.INTEGER;
         }
 
-        _stepValue = (stepValue != null ? (Long) stepValue : new Long(1));
+        _stepValue = (stepValue != null ? (Long) stepValue : Long.valueOf(1));
 
         if (_dataType.getTypeId().equals(TypeId.SMALLINT_ID)) {
             _minValue = (minValue != null ? (Long) minValue : new Long(Short.MIN_VALUE));
@@ -139,8 +139,6 @@ public class CreateSequenceNode extends DDLStatementNode
      * and vet the variables in the CREATE SEQUENCE statement.
      */
     public void bindStatement() throws StandardException {
-        CompilerContext cc = getCompilerContext();
-
         // implicitly create the schema if it does not exist.
         // this method also compiles permissions checks
         SchemaDescriptor sd = getSchemaDescriptor();

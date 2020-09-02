@@ -45,7 +45,9 @@ import static org.junit.Assert.fail;
  */
 @SuppressFBWarnings(value={ "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", // for File.mkdir and File.delete
                             "VA_FORMAT_STRING_USES_NEWLINE", // should replace \n with %n when using String.format
-                            "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE" // possible with a MultiAutoClose class, but long
+                            "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", // possible with a MultiAutoClose class, but long
+                            // warning when using generated SQL statements instead of prepared statements
+                            "SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE"
                           },
                     justification = ".")
 public class ExternalTableIT extends SpliceUnitTest {
