@@ -168,15 +168,18 @@ use your data disks.
             <td><code>Java Heap Size of DataNode in Bytes</code></td>
             <td><code>2 GB</code></td>
         </tr>
+        <tr>
+            <td><code>Minimal Block Replication</code></td>
+            <td><code>2</code></td>
+        </tr>
     </tbody>
    </table>
 
-3. Set the value of `HDFS Client Advanced Configuration Snippet (Safety Valve) for hdfs-site.xml`:
+3. Set the value of `HDFS Service Advanced Configuration Snippet (Safety Valve) for hdfs-site.xml`:
    ````
    <property><name>dfs.client.block.write.retries</name><value>6</value></property>
    <property><name>dfs.client.block.write.locateFollowingBlock.retries</name><value>10</value></property>
    <property><name>dfs.client.block.write.replace-datanode-on-failure.policy</name><value>ALWAYS</value></property>
-   <property><name>dfs.namenode.replication.min</name><value>2</value></property>
    ````
 
 4. Click the `Save Changes` button.
