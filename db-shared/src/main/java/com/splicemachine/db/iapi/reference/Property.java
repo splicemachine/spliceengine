@@ -1458,6 +1458,8 @@ public interface Property {
 
     String SSQ_FLATTENING_FOR_UPDATE_DISABLED = "derby.database.ssqFlatteningForUpdateDisabled";
 
+    String DISABLE_NLJ_PREIDCATE_PUSH_DOWN =
+            "derby.database.disableNLJPredicatePushDown";
     /**
      * Default schema for this connection
      */
@@ -1501,4 +1503,6 @@ public interface Property {
      */
     String OLAP_SHUFFLE_PARTITIONS = "olapShufflePartitions";
     String CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS = "disableAdvancedTC";
+
+    String CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN = "disableNLJPredicatePushDown";
 }

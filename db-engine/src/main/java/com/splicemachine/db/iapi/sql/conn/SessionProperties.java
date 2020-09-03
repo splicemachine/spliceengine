@@ -51,7 +51,8 @@ public interface SessionProperties {
         DISABLE_TC_PUSHED_DOWN_INTO_VIEWS(6),
         OLAPPARALLELPARTITIONS(7),
         OLAPSHUFFLEPARTITIONS(8),
-        TABLELIMITFOREXHAUSTIVESEARCH(9);
+        TABLELIMITFOREXHAUSTIVESEARCH(9),
+        DISABLE_NLJ_PREDICATE_PUSH_DOWN(10);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -95,6 +96,7 @@ public interface SessionProperties {
             case USEOLAP:
             case SKIPSTATS:
             case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
+            case DISABLE_NLJ_PREDICATE_PUSH_DOWN:
                 try {
                     Boolean.parseBoolean(valString);
                 } catch (Exception e) {
