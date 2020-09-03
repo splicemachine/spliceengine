@@ -48,10 +48,13 @@ public class ExecutableIndexExpressionClassBuilder extends ExpressionClassBuilde
 	 * By the time this is done, it has constructed the following class:
 	 * <pre>
 	 *    public class #className extends BaseExecutableIndexExpression {
-	 *		public #className() { super(); }
+	 *	    public #className() {
+	 *	      super();
+	 *	      TO BE GENERATED...
+	 *	    }
 	 *
 	 *      public void runExpression(ExecRow, ExecIndexRow) throws StandardException {
-	 *          TO BE GENERATED...
+	 *        TO BE GENERATED...
 	 *      }
 	 *    }
 	 * </pre>
@@ -62,7 +65,6 @@ public class ExecutableIndexExpressionClassBuilder extends ExpressionClassBuilde
 		throws StandardException
 	{
 		super(ClassName.BaseExecutableIndexExpression, null, cc);
-		finishConstructor();
 		executeMethod = beginRunExpressionMethod();
 	}
 
@@ -127,7 +129,7 @@ public class ExecutableIndexExpressionClassBuilder extends ExpressionClassBuilde
 		return mb;
 	}
 
-	public void finishRunExpressionMethod(int indexColumnPosition) {
+	public void finishRunExpressionMethod(int indexColumnPosition) throws StandardException {
 		// stack status when entering this function:
 		// [size = 1]: value (top)
 		executeMethod.getParameter(1);          // [size = 2]: value - indexRow (top)
@@ -140,5 +142,8 @@ public class ExecutableIndexExpressionClassBuilder extends ExpressionClassBuilde
 		// stack should be empty now
 		executeMethod.methodReturn();
 		executeMethod.complete();
+
+		// don't finish constructor too early since expression builder may still add code to it
+		finishConstructor();
 	}
 }

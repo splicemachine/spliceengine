@@ -1386,6 +1386,7 @@ public interface SQLState {
 
 	// INTERNAL EXCEPTIONS
 	String LANG_UNABLE_TO_GENERATE                                     = "42Z50";
+	String LANG_UNABLE_TO_LOAD_GENERATE_CODE                           = "42Z51";
 	String LANG_UNAVAILABLE_ACTIVATION_NEED                            = "42Z53";
 	String LANG_PARSE_ONLY                                             = "42Z54.U";
 	String LANG_STOP_AFTER_PARSING                                     = "42Z55.U";

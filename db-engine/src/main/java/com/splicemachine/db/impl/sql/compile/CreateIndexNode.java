@@ -68,7 +68,6 @@ public class CreateIndexNode extends DDLStatementNode
 	TableName			indexName;
 	TableName			tableName;
 	Vector<IndexExpression> expressionList;
-	DataTypeDescriptor[] indexColumnTypes;
 	String[]            involvedColumnNames = null;
 	boolean[]			isAscending;
 	int[]				boundColumnIDs;
@@ -86,9 +85,10 @@ public class CreateIndexNode extends DDLStatementNode
     String              dateFormat;
     String              timeFormat;
     boolean             onExpression;
-    String[]            exprTexts;
-    ByteArray[]         exprBytecode;
-    String[]            generatedClassNames;
+	String[]            exprTexts;
+	ByteArray[]         exprBytecode;
+	String[]            generatedClassNames;
+	DataTypeDescriptor[] indexColumnTypes;
 
 	TableDescriptor		td;
 
@@ -148,12 +148,13 @@ public class CreateIndexNode extends DDLStatementNode
         this.dateFormat = dateFormat != null ? ((CharConstantNode)dateFormat).getString() : null;
         this.timeFormat = timeFormat != null ? ((CharConstantNode)timeFormat).getString() : null;
         this.hfilePath = hfilePath != null ? ((CharConstantNode)hfilePath).getString() : null;
-        this.onExpression = isIndexOnExpression();
 
+        this.onExpression = isIndexOnExpression();
         int exprSize = this.onExpression ? this.expressionList.size() : 0;
         this.exprTexts = new String[exprSize];
         this.exprBytecode = new ByteArray[exprSize];
         this.generatedClassNames = new String[exprSize];
+        this.indexColumnTypes = new DataTypeDescriptor[exprSize];
 	}
 
 	/**
@@ -228,7 +229,6 @@ public class CreateIndexNode extends DDLStatementNode
 
 		columnCount = involvedColumnNames.length;
 		boundColumnIDs = new int[ columnCount ];
-		indexColumnTypes = new DataTypeDescriptor[expressionList.size()];
 
 		// Verify that the columns exist
 		for (int i = 0; i < columnCount; i++)
@@ -253,9 +253,6 @@ public class CreateIndexNode extends DDLStatementNode
 			{
 				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
 					columnDescriptor.getType().getTypeId().getSQLTypeName());
-			}
-			if (!onExpression) {
-				indexColumnTypes[i] = columnDescriptor.getType();
 			}
 		}
 

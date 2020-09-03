@@ -588,7 +588,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             }
 
             long heapConglomerateId = td.getHeapConglomerateId();
-            Properties indexProperties = getIndexProperties(baseColumnPositions, heapConglomerateId);
+            Properties indexProperties = getIndexProperties(heapConglomerateId);
             indexRowGenerator = getIndexRowGenerator(baseColumnPositions, indexRowGenerator, shareExisting);
 
             // Create the FormatableBitSet for mapping the partial to full base row
@@ -724,9 +724,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         return existingGenerator;
     }
 
-    private ColumnOrdering[] getColumnOrderings(int[] baseColumnPositions) {
+    private ColumnOrdering[] getColumnOrderings(int numIndexColumns) {
         ColumnOrdering[] order;
-        int numColumnOrderings = baseColumnPositions.length;
+        int numColumnOrderings = numIndexColumns;
         if(!unique)
             numColumnOrderings++;
 
@@ -765,7 +765,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             return cgd.getConglomerateNumber();
     }
 
-    private Properties getIndexProperties(int[] baseColumnPositions, long heapConglomerateId) throws StandardException {
+    private Properties getIndexProperties(long heapConglomerateId) throws StandardException {
         /*
          * Describe the properties of the index to the store using Properties
          *
@@ -788,8 +788,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         // The number of uniqueness columns must include the RowLocation
         // if the user did not specify a unique index.
         indexProperties.put("nUniqueColumns",
-                Integer.toString(unique ? baseColumnPositions.length :
-                        baseColumnPositions.length + 1));
+                Integer.toString(unique ? isAscending.length :
+                        isAscending.length + 1));
 
         if (uniqueWithDuplicateNulls) {
             // Derby made the distinction between "unique" and "uniqueWithDuplicateNulls"
@@ -803,9 +803,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             unique = true;
         }
         // By convention, the row location column is the last column
-        indexProperties.put("rowLocationColumn", Integer.toString(baseColumnPositions.length));
+        indexProperties.put("rowLocationColumn", Integer.toString(isAscending.length));
 
-        indexProperties.put("nKeyFields",Integer.toString(baseColumnPositions.length + 1));
+        indexProperties.put("nKeyFields",Integer.toString(isAscending.length + 1));
         return indexProperties;
     }
 
@@ -849,7 +849,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              * sort.
              */
             conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
-                    getColumnOrderings(indexRowGenerator.baseColumnPositions()), indexRowGenerator.getColumnCollationIds(
+                    getColumnOrderings(isAscending.length), indexRowGenerator.getColumnCollationIds(
                             td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys);
 
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();

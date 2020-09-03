@@ -40,7 +40,9 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.types.NumberDataValue;
 
 public abstract class BaseExecutableIndexExpression implements GeneratedByteCode {
     private GeneratedClass gc;
@@ -57,6 +59,25 @@ public abstract class BaseExecutableIndexExpression implements GeneratedByteCode
 
     public DataValueFactory getDataValueFactory() {
         return dvf;
+    }
+
+    // this is needed by the SQL LENGTH() function and borrowed from BaseActivation
+    public NumberDataValue getDB2Length(DataValueDescriptor value,
+                                        int constantLength,
+                                        NumberDataValue reUse)
+            throws StandardException
+    {
+        if( reUse == null)
+            reUse = getDataValueFactory().getNullInteger( null);
+        if( value == null || value.isNull())
+            reUse.setToNull();
+        else {
+            if( constantLength >= 0)
+                reUse.setValue(constantLength);
+            else
+                reUse.setValue(value.getLength());
+        }
+        return reUse;
     }
 
     // GeneratedByteCode interface

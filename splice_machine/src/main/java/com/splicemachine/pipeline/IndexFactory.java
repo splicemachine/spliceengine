@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline;
 
-import java.io.IOException;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
@@ -24,6 +24,8 @@ import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
+
+import java.io.IOException;
 
 /**
  * Creates WriteHandlers that intercept writes to base tables and send transformed writes to corresponding index tables.
@@ -48,7 +50,12 @@ class IndexFactory implements LocalWriteFactory{
 
     @Override
     public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        IndexTransformer transformer = new IndexTransformer(tentativeIndex);
+        IndexTransformer transformer;
+        try {
+            transformer = new IndexTransformer(tentativeIndex);
+        } catch (StandardException e) {
+            throw new IOException(e.getCause());
+        }
         IndexWriteHandler writeHandler = new IndexWriteHandler(keepState, expectedWrites, transformer);
         if (txn == null) {
             ctx.addLast(writeHandler);

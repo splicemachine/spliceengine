@@ -385,9 +385,19 @@ public abstract class HFileGenerationFunction implements MapPartitionsFunction<R
                 DDLMessage.Table tbl = tentativeIndex.getTable();
                 DDLMessage.Index idx = tentativeIndex.getIndex();
                 Long indexConglomerate = idx.getConglomerate();
-                int n = idx.getIndexColsToMainColMapCount();
+                int n = idx.getDescColumnsCount();
                 ExecRow execRow = new ValueRow(n);
-                List<Integer> formatIds = tbl.getFormatIdsList();
+                List<Integer> formatIds;
+                if (idx.getNumExprs() <= 0) {
+                    List<Integer> indexColsList = idx.getIndexColsToMainColMapList();
+                    List<Integer> allFormatIds = tbl.getFormatIdsList();
+                    formatIds = new ArrayList<>();
+                    for (int i = 0; i < n; i++) {
+                        formatIds.add(allFormatIds.get(indexColsList.get(i)-1));
+                    }
+                } else {
+                    formatIds = idx.getIndexColumnFormatIdsList();
+                }
                 DataValueDescriptor[] dvds = execRow.getRowArray();
                 for (int i = 0; i < n; ++i) {
                     dvds[i] =  LazyDataValueFactory.getLazyNull(formatIds.get(i));

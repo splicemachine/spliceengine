@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
@@ -118,10 +119,11 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         return kvPair;
     }
 
-    private void init(ExecRow execRow) {
+    private void init(ExecRow execRow) throws StandardException {
         transformer = new IndexTransformer(tentativeIndex);
         initialized = true;
-        indexRow = new ValueRow(!isSystemTable ? projectedMapping.length : projectedMapping.length+1);
+        int numIndexColumns = tentativeIndex.getIndex().getDescColumnsCount();
+        indexRow = new ValueRow(!isSystemTable ? numIndexColumns : numIndexColumns+1);
     }
 
     @Override
@@ -148,7 +150,6 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     }
 
     public List<Integer> getIndexColsToMainColMapList() {
-        List<Integer> indexColsToMainColMapList = tentativeIndex.getIndex().getIndexColsToMainColMapList();
-        return indexColsToMainColMapList;
+        return tentativeIndex.getIndex().getIndexColsToMainColMapList();
     }
 }

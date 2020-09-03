@@ -61,10 +61,10 @@ public final class ByteArray implements Externalizable {
         this(array, 0, array.length);
     }
 
+    // Attention: Don't change the default ctor because the logic of loading an
+    // activation tests whether bytecode array == null or not. If it's null, an
+    // activation is loaded by reflection, otherwise bytecode is read.
     public ByteArray() {
-        array = new byte[]{};
-        offset = 0;
-        length = 0;
     }
 
     public void setBytes(byte[] array) {

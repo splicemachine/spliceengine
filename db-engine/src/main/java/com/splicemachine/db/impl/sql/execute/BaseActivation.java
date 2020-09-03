@@ -903,7 +903,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     /**
      * @exception StandardException on error
      */
-    protected static void nullToPrimitiveTest(DataValueDescriptor dvd, String primitiveType)
+    public static void nullToPrimitiveTest(DataValueDescriptor dvd, String primitiveType)
         throws StandardException
     {
         if (dvd==null || dvd.isNull())

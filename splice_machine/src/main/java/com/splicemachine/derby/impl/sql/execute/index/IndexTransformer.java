@@ -18,7 +18,6 @@ import com.carrotsearch.hppc.BitSet;
 import com.google.protobuf.ByteString;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -31,6 +30,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
@@ -44,6 +44,7 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.server.TransactionalRegion;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.*;
@@ -55,6 +56,7 @@ import splice.com.google.common.primitives.Ints;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import static splice.com.google.common.base.Preconditions.checkArgument;
@@ -105,11 +107,11 @@ public class IndexTransformer {
     private transient DataResult baseResult = null;
     private boolean ignore;
     protected EntryDataHash entryEncoder;
-    private int numIndexExprs;
-    private BaseExecutableIndexExpression[] executableExprs;
-    LanguageConnectionContext lcc;
+    private final int numIndexExprs;
+    private final BaseExecutableIndexExpression[] executableExprs;
+    private final LanguageConnectionContext lcc;
 
-    public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) {
+    public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
         index = tentativeIndex.getIndex();
         table = tentativeIndex.getTable();
         checkArgument(!index.getUniqueWithDuplicateNulls() || index.getUniqueWithDuplicateNulls(), "isUniqueWithDuplicateNulls only for use with unique indexes");
@@ -138,8 +140,7 @@ public class IndexTransformer {
                 indexFormatIds[i] = allFormatIds.get(indexColsList.get(i)-1);
             }
         }
-        lcc = (LanguageConnectionContext) ContextService.getContext
-                (LanguageConnectionContext.CONTEXT_ID);
+        lcc = getLcc(tentativeIndex);
     }
 
     /**
@@ -296,7 +297,15 @@ public class IndexTransformer {
         rowDecoder.set(mutation.getValue());
         BitIndex bitIndex = rowDecoder.getCurrentIndex();
 
-        ExecRow decodedRow = new ValueRow(table.getColumnOrderingCount() + bitIndex.cardinality());
+        int maxKeyBaseColumnPosition =
+                table.getColumnOrderingCount() > 0 ? Collections.max(table.getColumnOrderingList()) : 0;
+        int maxValueBaseColumnPosition = 0;
+        for (int i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1)) {
+            if (i > maxValueBaseColumnPosition)
+                maxValueBaseColumnPosition = i;
+        }
+
+        ExecRow decodedRow = new ValueRow(Math.max(maxKeyBaseColumnPosition, maxValueBaseColumnPosition) + 1);
 
         if (baseRowSerializers == null)
             baseRowSerializers = new DescriptorSerializer[decodedRow.nColumns()];
@@ -689,11 +698,22 @@ public class IndexTransformer {
     }
 
     public int getMaxBaseColumnPosition() {
-        int maxPosition = 1;  // base column positions are 1-based
-        for (int bcp : index.getIndexColsToMainColMapList()) {
-            if (bcp > maxPosition)
-                maxPosition = bcp;
+        return Collections.max(index.getIndexColsToMainColMapList());
+    }
+
+    private LanguageConnectionContext getLcc(DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = null;
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(tentativeIndex.getTxnId());
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
+            return transactionResource.getLcc();
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared)
+                transactionResource.close();
         }
-        return maxPosition;
     }
 }

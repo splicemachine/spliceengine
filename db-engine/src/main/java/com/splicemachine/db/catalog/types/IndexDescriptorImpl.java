@@ -98,7 +98,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     private String[]    generatedClassNames;
 
     // an array to cache instances of the generated classes
-	// this is not serialized/deserialized
+    // this is not serialized/deserialized
     private BaseExecutableIndexExpression[] executableExprs;
 
 
@@ -344,7 +344,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 		}
 		int numBaseColumns = fh.containsKey("numBaseColumns") ? fh.getInt("numBaseColumns") : keyLength;
         baseColumnPositions = new int[numBaseColumns];
-		for (int i = 0; i < keyLength; i++) {
+		for (int i = 0; i < numBaseColumns; i++) {
 			baseColumnPositions[i] = fh.getInt("bcp" + i);
 		}
         numberOfOrderedColumns = fh.getInt("orderedColumns");

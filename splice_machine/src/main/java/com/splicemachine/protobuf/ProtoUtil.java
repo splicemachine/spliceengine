@@ -343,6 +343,7 @@ public class ProtoUtil {
         return DDLChange.newBuilder().setTentativeIndex(TentativeIndex.newBuilder()
                 .setIndex(createIndex(indexConglomerate, indexDescriptor,defaultValues))
                 .setTable(createTable(baseConglomerate,td,lcc))
+                .setTxnId(txnId)
                 .build())
                 .setTxnId(txnId)
                 .setDdlChangeType(DDLChangeType.CREATE_INDEX)
@@ -355,6 +356,7 @@ public class ProtoUtil {
         return TentativeIndex.newBuilder()
                 .setIndex(createIndex(indexConglomerate,indexDescriptor,defaultValue))
                 .setTable(createTable(baseConglomerate,td,lcc))
+                .setTxnId(((SpliceTransactionManager)lcc.getTransactionExecute()).getActiveStateTxn().getTxnId())
                 .build();
     }
 

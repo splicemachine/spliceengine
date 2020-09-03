@@ -294,8 +294,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 			for (int i = 0; i < colCount; i++) {
 				BaseExecutableIndexExpression execExpr = getExecutableIndexExpression(i);
 				if (execExpr == null) {
-					// TODO: correct exception
-					throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "cannot find compiled expression");
+					throw StandardException.newException(SQLState.LANG_UNABLE_TO_LOAD_GENERATE_CODE, getExprTexts()[i]);
 				}
 				execExpr.runExpression(expandedRow, indexRow);
 			}
@@ -363,21 +362,27 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     public int[] getColumnCollationIds(ColumnDescriptorList columnList)
 		throws StandardException
     {
-        int[] base_cols     = id.baseColumnPositions();
-        int[] collation_ids = new int[base_cols.length + 1];
+        int[] collation_ids = new int[isAscending().length + 1];
+        DataTypeDescriptor[] indexColumnTypes = getIndexColumnTypes();
 
-		for (int i = 0; i < base_cols.length; i++)
-		{
-            collation_ids[i] =
-				columnList.elementAt(
-                    base_cols[i] - 1).getType().getCollationType();
-		}
+        if (indexColumnTypes.length <= 0) {
+            int[] base_cols = id.baseColumnPositions();
+            for (int i = 0; i < base_cols.length; i++) {
+        	    collation_ids[i] =
+        		        columnList.elementAt(
+        		        		base_cols[i] - 1).getType().getCollationType();
+            }
+        } else {
+            for (int i = 0; i < indexColumnTypes.length; i++) {
+                collation_ids[i] = indexColumnTypes[i].getCollationType();
+            }
+        }
 
-        // row location column at end is always basic collation type.
-        collation_ids[collation_ids.length - 1] = 
-            StringDataValue.COLLATION_TYPE_UCS_BASIC; 
+      	// row location column at end is always basic collation type.
+      	collation_ids[collation_ids.length - 1] =
+      	    StringDataValue.COLLATION_TYPE_UCS_BASIC;
 
-		return(collation_ids);
+        return(collation_ids);
     }
 
 		 

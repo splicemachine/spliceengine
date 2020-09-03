@@ -2944,6 +2944,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Z51</name>
+                <text>INTERNAL ERROR: Unable to load generate code for {0}.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
                 <name>42Z53</name>
                 <text>INTERNAL ERROR: Type of activation to generate for node choice {0} is unknown.</text>
                 <arg>value</arg>

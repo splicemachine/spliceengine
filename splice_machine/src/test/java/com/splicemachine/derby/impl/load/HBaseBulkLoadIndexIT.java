@@ -515,6 +515,29 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
             }
         }
     }
+
+    @Test
+    public void testBulkLoadWithIndexOnExpressions() throws Exception {
+        if (notSupported)
+            return;
+        String sql = "CREATE TABLE NATION_IDXEXPR (\n" +
+                "  N_NATIONKEY INTEGER NOT NULL,\n" +
+                "  N_NAME      VARCHAR(25),\n" +
+                "  N_REGIONKEY INTEGER NOT NULL,\n" +
+                "  N_COMMENT   VARCHAR(152),\n" +
+                "  PRIMARY KEY (N_NATIONKEY)\n" +
+                ")";
+        methodWatcher.execute(sql);
+        sql = "CREATE INDEX IDX_NATION_IDXEXPR ON NATION_IDXEXPR (LOWER(N_NAME || '.CODE'), ROUND(LN(N_REGIONKEY + N_NATIONKEY + 1), 2))";
+        methodWatcher.execute(sql);
+
+        spliceClassWatcher.prepareStatement(
+                format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)",
+                        SCHEMA_NAME, "NATION_IDXEXPR", getResource("nation.tbl"), BULKLOADDIR)
+        ).execute();
+
+        assertEquals(25L, (long) spliceClassWatcher.query("select count(*) from nation_idxexpr"));
+    }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void executeQuery(String query, String expected, boolean isResultSetOrdered) throws Exception {

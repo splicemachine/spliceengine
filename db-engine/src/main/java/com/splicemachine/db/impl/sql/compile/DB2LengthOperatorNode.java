@@ -135,7 +135,7 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
         /* Allocate an object for re-use to hold the result of the operator */
         LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
         mb.getField(field);
-        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, methodName, resultTypeName, 3);
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, null, methodName, resultTypeName, 3);
 
         /*
         ** Store the result of the method call in the field, so we can re-use
