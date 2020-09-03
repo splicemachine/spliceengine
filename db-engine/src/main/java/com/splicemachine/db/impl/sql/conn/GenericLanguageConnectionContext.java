@@ -342,6 +342,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String origStmtTxt;
 
     private String defaultSchema;
+    private boolean nljPredicatePushDownDisabled = false;
 
     private String replicationRole = "NONE";
 
@@ -410,6 +411,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             // no op, use default value 6
         }
 
+        try {
+            String nljPredPushDownString =
+                    PropertyUtil.getCachedDatabaseProperty(this, Property.DISABLE_NLJ_PREIDCATE_PUSH_DOWN);
+            if (nljPredPushDownString != null)
+                nljPredicatePushDownDisabled = Boolean.valueOf(nljPredPushDownString);
+        } catch (Exception e) {
+            // no op, use default value 6
+        }
+
         lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators=new ArrayList<>();
         triggerTables=new ArrayList<>();
@@ -433,6 +443,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
             setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCHES, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES);
             setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCH_SIZE, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
+            String disableNestedLoopJoinPredicatePushDown = connectionProperties.getProperty(Property.CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN);
+            if (disableNestedLoopJoinPredicatePushDown != null &&
+                    disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
+            }
         }
         if (type.isSessionHinted()) {
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USESPARK, type.isSpark());
@@ -3937,5 +3952,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     public String getUserName() {
         return userName;
+    }
+
+    public boolean isNLJPredicatePushDownDisabled() {
+        Boolean disablePushDown = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN);
+        if (disablePushDown != null) {
+            return disablePushDown;
+        }
+
+        return nljPredicatePushDownDisabled;
     }
 }
