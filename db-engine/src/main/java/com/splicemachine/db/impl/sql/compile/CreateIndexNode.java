@@ -51,6 +51,8 @@ import com.splicemachine.db.impl.ast.CollectingVisitor;
 import splice.com.google.common.base.Predicates;
 
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A CreateIndexNode is the root of a QueryTree that represents a CREATE INDEX
@@ -251,6 +253,7 @@ public class CreateIndexNode extends DDLStatementNode
 			if ( ! columnDescriptor.getType().getTypeId().
 												orderable(getClassFactory()))
 			{
+				// Note that this exception is not SQL state 429BX, same as DB2 but not compatible.
 				throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
 					columnDescriptor.getType().getTypeId().getSQLTypeName());
 			}
@@ -275,56 +278,103 @@ public class CreateIndexNode extends DDLStatementNode
 //  		}
 
 		if (onExpression) {
-			// fake a FromList to bind index expressions
-			FromList fromList = (FromList) getNodeFactory().getNode(
-					C_NodeTypes.FROM_LIST,
-					getNodeFactory().doJoinOrderOptimization(),
-					getContextManager());
-			FromTable fromTable = (FromTable) getNodeFactory().getNode(
-					C_NodeTypes.FROM_BASE_TABLE,
-					tableName,
-					null, null, null, false, null,
-					getContextManager());
-			fromList.addFromTable(fromTable);
-			fromList.bindTables(
-				dd,
-				(FromList) getNodeFactory().getNode(
-					C_NodeTypes.FROM_LIST,
-					getNodeFactory().doJoinOrderOptimization(),
-					getContextManager()
-				)
-			);
-
-			CollectingVisitor<QueryTreeNode> restrictionVisitor = new CollectingVisitor<>(
-					Predicates.or(
-							Predicates.instanceOf(SubqueryNode.class),
-							Predicates.instanceOf(AggregateNode.class),
-							Predicates.instanceOf(StringAggregateNode.class),
-							Predicates.instanceOf(WrappedAggregateFunctionNode.class),
-							Predicates.instanceOf(WindowFunctionNode.class),
-							Predicates.instanceOf(CurrentDatetimeOperatorNode.class),
-							Predicates.instanceOf(CurrentOfNode.class),
-							Predicates.instanceOf(NextSequenceNode.class),
-							Predicates.instanceOf(SpecialFunctionNode.class),
-							Predicates.instanceOf(ParameterNode.class)
-					));
-
-			for (int i = 0; i < expressionList.size(); i++) {
-				IndexExpression ie = expressionList.elementAt(i);
-				ie.expression.bindExpression(fromList, new SubqueryList(), new ArrayList<AggregateNode>() {});
-				ie.expression.accept(restrictionVisitor);
-				if (!restrictionVisitor.getCollected().isEmpty()) {
-					throw StandardException.newException(SQLState.LANG_INDEX_EXPRESSION_NOT_SIMPLE);
-				}
-				indexColumnTypes[i] = ie.expression.getTypeServices();
-			}
-
+			bindIndexExpressions();
 			generateExecutableIndexExpression();
 		}
 
 		/* Statement is dependent on the TableDescriptor */
 		getCompilerContext().createDependency(td);
 
+	}
+
+	private void bindIndexExpressions() throws StandardException {
+		if (!onExpression)
+			return;
+
+		// fake a FromList to bind index expressions
+		FromList fromList = (FromList) getNodeFactory().getNode(
+				C_NodeTypes.FROM_LIST,
+				getNodeFactory().doJoinOrderOptimization(),
+				getContextManager());
+		FromTable fromTable = (FromTable) getNodeFactory().getNode(
+				C_NodeTypes.FROM_BASE_TABLE,
+				tableName,
+				null, null, null, false, null,
+				getContextManager());
+		fromList.addFromTable(fromTable);
+		fromList.bindTables(
+				dd,
+				(FromList) getNodeFactory().getNode(
+						C_NodeTypes.FROM_LIST,
+						getNodeFactory().doJoinOrderOptimization(),
+						getContextManager()
+				)
+		);
+
+		// The following checks are done based on DB2 documentation on CREATE INDEX statement:
+		// https://www.ibm.com/support/knowledgecenter/en/SSEPGG_11.5.0/com.ibm.db2.luw.sql.ref.doc/doc/r0000919.html
+
+		CollectingVisitor<QueryTreeNode> restrictionVisitor = new CollectingVisitor<>(
+				Predicates.or(
+						Predicates.instanceOf(SubqueryNode.class),
+						Predicates.instanceOf(AggregateNode.class),
+						Predicates.instanceOf(StringAggregateNode.class),
+						Predicates.instanceOf(WrappedAggregateFunctionNode.class),
+						Predicates.instanceOf(WindowFunctionNode.class),
+						Predicates.instanceOf(CurrentDatetimeOperatorNode.class),  // current_time(), now(), etc.
+						Predicates.instanceOf(CurrentOfNode.class),                // current of cursor
+						Predicates.instanceOf(NextSequenceNode.class),
+						Predicates.instanceOf(SpecialFunctionNode.class),          // current session functions
+						Predicates.instanceOf(ParameterNode.class),
+						Predicates.instanceOf(LikeEscapeOperatorNode.class)        // like predicate
+				));
+
+		HashSet<String> notAllowedFunctions = Stream.of(
+				"rand", "random", "regexp_like", "instr", "locate", "stddev_pop", "stddev_samp"
+		).collect(Collectors.toCollection(HashSet::new));
+
+		CollectingVisitor<QueryTreeNode> fnVisitor = new CollectingVisitor<>(
+				Predicates.or(
+						Predicates.instanceOf(StaticMethodCallNode.class),
+						Predicates.instanceOf(TernaryOperatorNode.class)
+				));
+
+		for (int i = 0; i < expressionList.size(); i++) {
+			IndexExpression ie = expressionList.elementAt(i);
+			ie.expression.bindExpression(fromList, new SubqueryList(), new ArrayList<AggregateNode>() {});
+
+			// check invalid nodes
+			ie.expression.accept(restrictionVisitor);
+			if (!restrictionVisitor.getCollected().isEmpty()) {
+				throw StandardException.newException(SQLState.LANG_INVALID_INDEX_EXPRESSION, ie.exprText);
+			}
+			restrictionVisitor.getCollected().clear();
+
+			// check invalid functions (including UDFs)
+			ie.expression.accept(fnVisitor);
+			List<QueryTreeNode> fnList = fnVisitor.getCollected();
+			for (QueryTreeNode fnNode : fnList) {
+				if (fnNode instanceof StaticMethodCallNode) {
+					StaticMethodCallNode fn = (StaticMethodCallNode) fnNode;
+					if (!fn.isSystemFunction() || notAllowedFunctions.contains(fn.getMethodName().toLowerCase())) {
+						throw StandardException.newException(SQLState.LANG_INVALID_INDEX_EXPRESSION, ie.exprText);
+					}
+				} else if (fnNode instanceof TernaryOperatorNode) {
+					TernaryOperatorNode fn = (TernaryOperatorNode) fnNode;
+					if (notAllowedFunctions.contains(fn.methodName.toLowerCase())) {
+						throw StandardException.newException(SQLState.LANG_INVALID_INDEX_EXPRESSION, ie.exprText);
+					}
+				}
+			}
+			fnList.clear();
+
+			// check return type
+			DataTypeDescriptor dtd = ie.expression.getTypeServices();
+			if (!dtd.getTypeId().orderable(getClassFactory())) {
+				throw StandardException.newException(SQLState.LANG_INVALID_INDEX_EXPRESSION, ie.exprText);
+			}
+			indexColumnTypes[i] = dtd;
+		}
 	}
 
 	/**
@@ -434,15 +484,18 @@ public class CreateIndexNode extends DDLStatementNode
 
 		if (onExpression) {
 			CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+			Vector<ColumnReference> columnReferenceList = new Vector<>();
 			for (int i = 0; i < size; i++) {
 				IndexExpression ie = expressionList.get(i);
 				ie.expression.accept(cnv);
+				Vector<ColumnReference> crList = cnv.getList();
+				if (crList.isEmpty()) {
+					throw StandardException.newException(SQLState.LANG_INVALID_INDEX_EXPRESSION, ie.exprText);
+				}
+				columnReferenceList.addAll(crList);
+				crList.clear();
 				isAscending[i] = ie.isAscending;
 				exprTexts[i] = ie.exprText;
-			}
-			Vector<ColumnReference> columnReferenceList = cnv.getList();
-			if (columnReferenceList.isEmpty()) {
-				throw StandardException.newException(SQLState.LANG_INDEX_EXPRESSION_NO_COLUMN_REF);
 			}
 
 			HashSet<String> columnNameSet = new HashSet<>();

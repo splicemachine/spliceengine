@@ -837,8 +837,8 @@ public class IndexIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate(
                 format("CREATE INDEX %s_IDX ON %s " +
-                       "(c1 || '.test', initcap(c1), instr(c1, 'o'), lcase(c1), length(c1), locate('o', c1), " +
-                       "ltrim(c1), regexp_like(c1, 'o'), repeat(c1, 2), replace(c1, 'o', '0'), rtrim(c1), " +
+                       "(c1 || '.test', initcap(c1), lcase(c1), length(c1), " +
+                       "ltrim(c1), repeat(c1, 2), replace(c1, 'o', '0'), rtrim(c1), " +
                        "substr(c1, 2), trim(c1), ucase(c1))",
                         tableName, tableName));
 
@@ -932,7 +932,23 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
-    public void testCreateIndexAndInsertWithExpressionsOfNotAllowedFunctions() throws Exception {
+    public void testCreateIndexAndInsertWithExpressionsCaseExpression() throws Exception {
+        String tableName = "TEST_CASE_EXPR";
+        methodWatcher.executeUpdate(format("create table %s (i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values (10), (11)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (case mod(i, 2) when 0 then i else 0 end)", tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values (35)", tableName));
+        methodWatcher.executeUpdate(format("update %s set i = 18 where i = 10", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select i from %s --splice-properties index=%s_IDX\n order by i", tableName, tableName),methodWatcher,
+                "11","18","35");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfNotAllowedBuiltInFunctions() throws Exception {
         String tableName = "TEST_IDX_NOT_ALLOWED_FN";
         methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));
 
@@ -945,60 +961,70 @@ public class IndexIT extends SpliceUnitTest{
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i + random())", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (regexp_like(vc, 'o'))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (instr(vc, 'o'))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (locate('o', vc))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (to_char(current_date, 'yy') || vc)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (cast(current_time as varchar(32)) || vc)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (to_char(date(current_timestamp), 'yy') || vc)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (to_char(date(now()), 'yy') || vc)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || current_role)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || (current schema))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
@@ -1011,18 +1037,152 @@ public class IndexIT extends SpliceUnitTest{
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || group_user)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || session_user)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }
 
         try {
             methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || user)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfAggregateFunctions() throws Exception {
+        String tableName = "TEST_IDX_AGGR_FN";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (avg(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (count(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (count(*) + i)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (max(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (min(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (stddev_pop(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (stddev_samp(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (sum(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfWindowFunctions() throws Exception {
+        String tableName = "TEST_IDX_WINDOW_FN";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (dense_rank() over (partition by i order by i) + i)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (rank() over (partition by i order by i) + i)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (row_number() over (partition by i order by i) + i)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (first_value(vc) over (partition by i order by i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (last_value(vc) over (partition by i order by i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (lead(vc) over (partition by i order by i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (lag(vc) over (partition by i order by i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsSubquery() throws Exception {
+        String tableName = "TEST_IDX_UDF";
+        methodWatcher.executeUpdate(format("create table %s (i int)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (case mod(i, 2) when 0 then (select count(*) from %s) else 0 end)",
+                    tableName, tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
         }

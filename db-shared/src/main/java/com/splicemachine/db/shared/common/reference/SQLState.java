@@ -846,6 +846,7 @@ public interface SQLState {
 	String LANG_TABLE_REQUIRES_COLUMN_NAMES                            = "42909";
 	String LANG_DELETE_RULE_VIOLATION		   					       = "42915";
 	String LANG_SYNONYM_CIRCULAR   		   					           = "42916";
+	String LANG_INVALID_INDEX_EXPRESSION                               = "429BX";  // DB2 compatible code
 	String LANG_SYNTAX_ERROR                                           = "42X01";
 	String LANG_LEXICAL_ERROR                                          = "42X02";
 	String LANG_AMBIGUOUS_COLUMN_NAME                                  = "42X03";
@@ -1182,9 +1183,6 @@ public interface SQLState {
 
 	String LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH              = "42ZD5";
 	String LANG_UNSUPPORTED_TYPE_FOR_SCALAR_MIN_MAX                    = "42ZD6";
-
-	String LANG_INDEX_EXPRESSION_NOT_SIMPLE                            = "42ZD7";
-	String LANG_INDEX_EXPRESSION_NO_COLUMN_REF                         = "42ZD8";
 
 	//following 3 matches the DB2 sql states
 	String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";
