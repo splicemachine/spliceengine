@@ -13761,6 +13761,7 @@ void withClause(Vector parameterList) throws StandardException :
                                     offsetClauses[ FETCH_FIRST_CLAUSE ],
                                     Boolean.valueOf( hasJDBClimitClause ),
                                     Boolean.valueOf(isRecursive),
+                                    Boolean.valueOf(true),  // is dynamic
                                     getContextManager()));
     }
 }
@@ -13831,6 +13832,7 @@ viewDefinition(Token beginToken) throws StandardException :
                                 offsetClauses[ FETCH_FIRST_CLAUSE ],
                                 Boolean.valueOf( hasJDBClimitClause ),
                                 Boolean.valueOf(isRecursive),
+                                Boolean.valueOf(false),  // not dynamic
                                 getContextManager());
     }
 }
