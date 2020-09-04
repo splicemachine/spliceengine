@@ -65,6 +65,21 @@ import java.util.Arrays;
  *
  */
 public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
+    private static final String IS_UNIQUE_KEY          = "isUnique";
+    private static final String KEY_LENGTH_KEY         = "keyLength";
+    private static final String IS_ASC_KEY             = "isAsc";
+    private static final String NUM_BASE_COLS_KEY      = "numBaseColumns";
+    private static final String BASE_COL_POS_KEY       = "bcp";
+    private static final String ORDERED_COL_KEY        = "orderedColumns";
+    private static final String INDEX_TYPE_KEY         = "indexType";
+    private static final String IS_UNIQUE_WITH_DUP_KEY = "isUniqueWithDuplicateNulls";
+    private static final String EXCLUDE_NULLS_KEY      = "excludeNulls";
+    private static final String EXCLUDE_DEFAULTS_KEY   = "excludeDefaults";
+    private static final String NUM_INDEX_EXPR_KEY     = "numIndexExpr";
+    private static final String EXPR_TEXT_KEY          = "exprText";
+    private static final String GEN_CLASS_NAME_KEY     = "generatedClassName";
+
+
     private boolean              isUnique;
 
     // column-based index: stores column mapping baseColumnPositions[indexColumnPosition] = baseColumnPosition
@@ -335,26 +350,26 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      */
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         FormatableHashtable fh = (FormatableHashtable) in.readObject();
-        isUnique = fh.getBoolean("isUnique");
-        int keyLength = fh.getInt("keyLength");
+        isUnique = fh.getBoolean(IS_UNIQUE_KEY);
+        int keyLength = fh.getInt(KEY_LENGTH_KEY);
         isAscending = new boolean[keyLength];
         for (int i = 0; i < keyLength; i++) {
-            isAscending[i] = fh.getBoolean("isAsc" + i);
+            isAscending[i] = fh.getBoolean(IS_ASC_KEY + i);
         }
-        int numBaseColumns = fh.containsKey("numBaseColumns") ? fh.getInt("numBaseColumns") : keyLength;
+        int numBaseColumns = fh.containsKey(NUM_BASE_COLS_KEY) ? fh.getInt(NUM_BASE_COLS_KEY) : keyLength;
         baseColumnPositions = new int[numBaseColumns];
         for (int i = 0; i < numBaseColumns; i++) {
-            baseColumnPositions[i] = fh.getInt("bcp" + i);
+            baseColumnPositions[i] = fh.getInt(BASE_COL_POS_KEY + i);
         }
-        numberOfOrderedColumns = fh.getInt("orderedColumns");
-        indexType = (String) fh.get("indexType");
+        numberOfOrderedColumns = fh.getInt(ORDERED_COL_KEY);
+        indexType = (String) fh.get(INDEX_TYPE_KEY);
         //isUniqueWithDuplicateNulls attribute won't be present if the index
         //was created in older versions
-        isUniqueWithDuplicateNulls = fh.containsKey("isUniqueWithDuplicateNulls") && fh.getBoolean("isUniqueWithDuplicateNulls");
-        excludeNulls = fh.containsKey("excludeNulls") && fh.getBoolean("excludeNulls");
-        excludeDefaults = fh.containsKey("excludeDefaults") && fh.getBoolean("excludeDefaults");
+        isUniqueWithDuplicateNulls = fh.containsKey(IS_UNIQUE_WITH_DUP_KEY) && fh.getBoolean(IS_UNIQUE_WITH_DUP_KEY);
+        excludeNulls = fh.containsKey(EXCLUDE_NULLS_KEY) && fh.getBoolean(EXCLUDE_NULLS_KEY);
+        excludeDefaults = fh.containsKey(EXCLUDE_DEFAULTS_KEY) && fh.getBoolean(EXCLUDE_DEFAULTS_KEY);
 
-        int numIndexExpr = fh.containsKey("numIndexExpr") ? fh.getInt("numIndexExpr") : 0;
+        int numIndexExpr = fh.containsKey(NUM_INDEX_EXPR_KEY) ? fh.getInt(NUM_INDEX_EXPR_KEY) : 0;
         exprTexts = new String[numIndexExpr];
         generatedClassNames = new String[numIndexExpr];
         exprBytecode = new ByteArray[numIndexExpr];
@@ -362,8 +377,8 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 
         if (numIndexExpr > 0) {
             for (int i = 0; i < numIndexExpr; i++) {
-                exprTexts[i] = (String) fh.get("exprText" + i);
-                generatedClassNames[i] = (String) fh.get("generatedClassName" + i);
+                exprTexts[i] = (String) fh.get(EXPR_TEXT_KEY + i);
+                generatedClassNames[i] = (String) fh.get(GEN_CLASS_NAME_KEY + i);
                 exprBytecode[i] = new ByteArray();
                 exprBytecode[i].readExternal(in);
                 indexColumnTypes[i] = new DataTypeDescriptor();
@@ -380,36 +395,33 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     public void writeExternal(ObjectOutput out) throws IOException
     {
         FormatableHashtable fh = new FormatableHashtable();
-        fh.putBoolean("isUnique", isUnique);
-        fh.putInt("keyLength", isAscending.length);
+        fh.putBoolean(IS_UNIQUE_KEY, isUnique);
+        fh.putInt(KEY_LENGTH_KEY, isAscending.length);
         for (int i = 0; i < isAscending.length; i++) {
-            fh.putBoolean("isAsc" + i, isAscending[i]);
+            fh.putBoolean(IS_ASC_KEY + i, isAscending[i]);
         }
-        fh.putInt("numBaseColumns", baseColumnPositions.length);
+        fh.putInt(NUM_BASE_COLS_KEY, baseColumnPositions.length);
         for (int i = 0; i < baseColumnPositions.length; i++) {
-            fh.putInt("bcp" + i, baseColumnPositions[i]);
+            fh.putInt(BASE_COL_POS_KEY + i, baseColumnPositions[i]);
         }
-        fh.putInt("orderedColumns", numberOfOrderedColumns);
-        fh.put("indexType", indexType);
+        fh.putInt(ORDERED_COL_KEY, numberOfOrderedColumns);
+        fh.put(INDEX_TYPE_KEY, indexType);
         //write the new attribut older versions will simply ignore it
-        fh.putBoolean("isUniqueWithDuplicateNulls", 
-                                        isUniqueWithDuplicateNulls);
-        fh.putBoolean("excludeNulls",
-                excludeNulls);
-        fh.putBoolean("excludeDefaults",
-                excludeDefaults);
+        fh.putBoolean(IS_UNIQUE_WITH_DUP_KEY, isUniqueWithDuplicateNulls);
+        fh.putBoolean(EXCLUDE_NULLS_KEY, excludeNulls);
+        fh.putBoolean(EXCLUDE_DEFAULTS_KEY, excludeDefaults);
 
         // if an older version doesn't have this key, default construct expression-related fields
-        fh.putInt("numIndexExpr", exprBytecode.length);
+        fh.putInt(NUM_INDEX_EXPR_KEY, exprBytecode.length);
 
         assert generatedClassNames.length == exprBytecode.length;
         for (int i = 0; i < generatedClassNames.length; i++) {
-            fh.put("generatedClassName" + i, generatedClassNames[i]);
+            fh.put(GEN_CLASS_NAME_KEY + i, generatedClassNames[i]);
         }
 
         assert exprTexts.length == exprBytecode.length;
         for (int i = 0; i < exprTexts.length; i++) {
-            fh.put("exprText" + i, exprTexts[i]);
+            fh.put(EXPR_TEXT_KEY + i, exprTexts[i]);
         }
 
         out.writeObject(fh);

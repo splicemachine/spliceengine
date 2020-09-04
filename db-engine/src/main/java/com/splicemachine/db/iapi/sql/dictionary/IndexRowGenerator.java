@@ -61,7 +61,7 @@ import java.io.ObjectOutput;
  */
 public class IndexRowGenerator implements IndexDescriptor, Formatable
 {
-    private IndexDescriptor    id;
+    private IndexDescriptor  id;
     private ExecutionFactory ef;
 
     /**
@@ -191,6 +191,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 		DataTypeDescriptor[] columnTypes = getIndexColumnTypes();
 
 		if (columnTypes.length == 0) {
+			// Index is not built on expressions, use base column types.
 			int[] baseColumnPositions = id.baseColumnPositions();
 			for (int i = 0; i < baseColumnPositions.length; i++) {
 				DataTypeDescriptor dtd =
@@ -199,6 +200,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 			}
 			indexRow.setColumn(baseColumnPositions.length + 1, rowLocation);
 		} else {
+			// Index is built on expressions, use their result types.
 			for (int i = 0; i < columnTypes.length; i++) {
 				indexRow.setColumn(i + 1, columnTypes[i].getNull());
 			}
