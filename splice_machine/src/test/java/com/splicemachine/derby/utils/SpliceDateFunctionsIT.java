@@ -94,6 +94,12 @@ public class SpliceDateFunctionsIT {
                         "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-17'), -1, " +
                             "date('2013-12-17'), 'months')").execute();
                     classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-17'), null, " +
+                                    "null, 'months')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (null, 1, " +
+                                    "null, 'months')").execute();
+                    classWatcher.prepareStatement(
                             "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-15'), 1, date" +
                                     "('2014-01-16'), 'days')").execute();
                     classWatcher.prepareStatement(
@@ -103,6 +109,12 @@ public class SpliceDateFunctionsIT {
                             "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-01'), -1, " +
                                     "date('2013-12-31'), 'days')").execute();
                     classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-01'), null, " +
+                                    "null, 'days')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (null, 1, " +
+                                    "null, 'days')").execute();
+                    classWatcher.prepareStatement(
                             "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-15'), 1, date" +
                                     "('2015-01-15'), 'years')").execute();
                     classWatcher.prepareStatement(
@@ -111,6 +123,12 @@ public class SpliceDateFunctionsIT {
                     classWatcher.prepareStatement(
                             "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-17'), -1, " +
                                     "date('2013-01-17'), 'years')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (date('2014-01-17'), null, " +
+                                    "null, 'years')").execute();
+                    classWatcher.prepareStatement(
+                            "insert into " + tableWatcherA + " (col1, col2, col3, col4) values (null, 1, " +
+                                    "null, 'years')").execute();
                     classWatcher.prepareStatement(
                         "insert into " + tableWatcherB + " (col1, col2, col3) values ('01/27/2001', 'MM/dd/yyyy'," +
                             " date('2001-01-27'))").execute();
@@ -401,7 +419,9 @@ public class SpliceDateFunctionsIT {
                         "------------------------\n" +
                         "2013-12-17 |2013-12-17 |\n" +
                         "2014-01-16 |2014-01-16 |\n" +
-                        "2014-02-15 |2014-02-15 |";
+                        "2014-02-15 |2014-02-15 |\n" +
+                        "   NULL    |   NULL    |\n" +
+                        "   NULL    |   NULL    |";
         String[] sqlTexts = {
                 "SELECT ADD_MONTHS(col1, col2), col3 from " + tableWatcherA + " where col4 = 'months' order by col3",
                 "SELECT col1 + col2 MONTH, col3 from " + tableWatcherA + " where col4 = 'months' order by col3",
@@ -422,7 +442,9 @@ public class SpliceDateFunctionsIT {
                         "------------------------\n" +
                         "2013-12-31 |2013-12-31 |\n" +
                         "2014-01-16 |2014-01-16 |\n" +
-                        "2014-01-16 |2014-01-16 |";
+                        "2014-01-16 |2014-01-16 |\n" +
+                        "   NULL    |   NULL    |\n" +
+                        "   NULL    |   NULL    |";
         String[] sqlTexts = {
                 "SELECT ADD_DAYS(col1, col2), col3 from " + tableWatcherA + " where col4='days' order by col3",
                 "SELECT col1 + col2 DAY, col3 from " + tableWatcherA + " where col4='days' order by col3",
@@ -443,7 +465,9 @@ public class SpliceDateFunctionsIT {
                         "------------------------\n" +
                         "2013-01-17 |2013-01-17 |\n" +
                         "2014-01-16 |2014-01-16 |\n" +
-                        "2015-01-15 |2015-01-15 |";
+                        "2015-01-15 |2015-01-15 |\n" +
+                        "   NULL    |   NULL    |\n" +
+                        "   NULL    |   NULL    |";
         String[] sqlTexts = {
                 "SELECT ADD_YEARS(col1, col2), col3 from " + tableWatcherA + " where col4='years' order by col3",
                 "SELECT col1 + col2 YEAR, col3 from " + tableWatcherA + " where col4='years' order by col3",
