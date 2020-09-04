@@ -74,6 +74,7 @@ public class utilMain implements java.security.PrivilegedAction {
 	private LocalizedOutput out = null;
 	private Hashtable ignoreErrors;
 	private boolean doSpool = false;
+	private boolean omitHeader = false;
 	private String logFileName = null;
 	/**
 	 * True if to display the error code when
@@ -459,7 +460,7 @@ public class utilMain implements java.security.PrivilegedAction {
 			} else if (result.isStatement()) {
 				Statement s = result.getStatement();
 				try {
-				    JDBCDisplayUtil.DisplayResults(out,s,connEnv[currCE].getConnection());
+				    JDBCDisplayUtil.DisplayResults(out,s,connEnv[currCE].getConnection(), omitHeader);
 				} catch (SQLException se) {
 				    result.closeStatement();
 					throw se;
@@ -467,7 +468,7 @@ public class utilMain implements java.security.PrivilegedAction {
 				result.closeStatement();
 			} else if (result.isNextRowOfResultSet()) {
 				ResultSet r = result.getNextRowOfResultSet();
-				JDBCDisplayUtil.DisplayCurrentRow(out,r,connEnv[currCE].getConnection());
+				JDBCDisplayUtil.DisplayCurrentRow(out,r,connEnv[currCE].getConnection(), omitHeader);
 			} else if (result.isVector()) {
 				util.displayVector(out,result.getVector());
 				if (result.hasWarnings()) {
@@ -476,7 +477,7 @@ public class utilMain implements java.security.PrivilegedAction {
 				}
 			} else if (result.isMulti()) {
 			    try {
-				    util.displayMulti(out,(PreparedStatement)result.getStatement(),result.getResultSet(),connEnv[currCE].getConnection());
+				    util.displayMulti(out,(PreparedStatement)result.getStatement(),result.getResultSet(),connEnv[currCE].getConnection(), omitHeader);
 				} catch (SQLException se) {
 				    result.closeStatement();
 					throw se;
@@ -489,7 +490,7 @@ public class utilMain implements java.security.PrivilegedAction {
 			} else if (result.isResultSet()) {
 				ResultSet rs = result.getResultSet();
 				try {
-					JDBCDisplayUtil.DisplayResults(out,rs,connEnv[currCE].getConnection(), result.getColumnDisplayList(), result.getColumnWidthList());
+					JDBCDisplayUtil.DisplayResults(out,rs,connEnv[currCE].getConnection(), result.getColumnDisplayList(), result.getColumnWidthList(), omitHeader);
 				} catch (SQLException se) {
 					result.closeStatement();
 					throw se;
@@ -501,7 +502,8 @@ public class utilMain implements java.security.PrivilegedAction {
                 JDBCDisplayUtil.DisplayMultipleResults(out,resultSets,
                                      connEnv[currCE].getConnection(),
                                      result.getColumnDisplayList(),
-                                     result.getColumnWidthList());
+                                     result.getColumnWidthList(),
+						             omitHeader);
               } catch (SQLException se) {
                 result.closeStatement();
                 throw se;
@@ -887,5 +889,9 @@ public class utilMain implements java.security.PrivilegedAction {
 		} else {
 			out.println(langUtil.getTextMessage("IJ_SpoolNotActive"));
 		}
+	}
+
+	public void setOmitHeader(boolean omitHeader) {
+		this.omitHeader = omitHeader;
 	}
 }
