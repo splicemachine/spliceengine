@@ -14,9 +14,7 @@
 
 package com.splicemachine.si.api.txn.lifecycle;
 
-import com.splicemachine.si.api.txn.TxnTimeTravelResult;
 import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 
 import java.io.IOException;
@@ -50,6 +48,4 @@ public interface TxnLifecycleStore{
     TxnMessage.Txn getOldTransaction(long txnId) throws IOException;
 
     TxnMessage.TaskId getTaskId(long txnId) throws IOException;
-
-    Pair<Long, Long> getTxnAt(long ts) throws IOException;
 }

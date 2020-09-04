@@ -4279,7 +4279,7 @@ deleteBody() throws StandardException :
                                                 FromBaseTable.DELETE),
                                         null,
                                         isBulkDelete,
-                                        null,
+                                        -1L,
                                         getContextManager());
 
 
@@ -11009,21 +11009,21 @@ optionalTableClauses() throws StandardException :
     Properties       tableProperties = null;
     ResultColumnList derivedRCL = null;
     String           correlationName = null;
-    ValueNode        txnIdExpression = null;
+    Long             txnId = -1L;
 }
 {
     otc = optionalTableProperties()
     {
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
         return otc;
     }
 |
     LOOKAHEAD( { getToken(1).kind != AS || getToken(2).kind != OF })
     [ [ <AS> ]
         correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
-        [txnIdExpression = asOfClause()]
+        [txnId = asOfClause()]
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [tableProperties = propertyList(true) <CHECK_PROPERTIES>] ]
     {
@@ -11031,11 +11031,11 @@ optionalTableClauses() throws StandardException :
         otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
         return otc;
     }
 |
-    txnIdExpression = asOfClause()
+    txnId = asOfClause()
     [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
     [tableProperties = propertyList(true) <CHECK_PROPERTIES>]
     {
@@ -11043,7 +11043,7 @@ optionalTableClauses() throws StandardException :
         otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
         return otc;
     }
 }
@@ -11135,7 +11135,7 @@ FromTable tableFactor() throws StandardException :
                                             (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
                                             (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
                                             false,
-                                            (ValueNode) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
+                                            (Long) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
                                             getContextManager());
         return fromTable;
     }
@@ -12386,15 +12386,15 @@ windowDefinition(WindowList wl) throws StandardException :
     }
 }
 
-ValueNode
+Long
 asOfClause() throws StandardException :
 {
-    ValueNode txIdExpression = null;
+    Long txId = null;
 }
 {
-    <AS> <OF> txIdExpression = primaryExpression()
+    <AS> <OF> txId = exactNumber()
     {
-        return txIdExpression;
+        return txId;
     }
 }
 

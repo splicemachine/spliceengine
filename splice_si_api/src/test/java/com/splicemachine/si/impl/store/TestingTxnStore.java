@@ -27,7 +27,6 @@ import com.splicemachine.utils.ByteSlice;
 import org.spark_project.guava.collect.Lists;
 import org.spark_project.guava.primitives.Longs;
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.Lock;
@@ -311,11 +310,6 @@ public class TestingTxnStore implements TxnStore{
             }
         });
         return txns;
-    }
-
-    @Override
-    public long getTxnAt(long ts) throws IOException {
-        return 0;
     }
 
     @Override

@@ -197,7 +197,7 @@ public class FromBaseTable extends FromTable {
 
     private boolean isBulkDelete = false;
 
-    private ValueNode pastTxIdExpression = null;
+    private long pastTxId = -1;
 
     @Override
     public boolean isParallelizable(){
@@ -211,13 +211,15 @@ public class FromBaseTable extends FromTable {
      * @param rclOrUD update/delete flag or result column list
      * @param propsOrRcl properties or result column list
      * @param isBulkDelete bulk delete flag or past tx id.
-     * @param pastTxIdExpr the past transaction expression.
+     * @param pastTxId the ID of the past transaction.
      */
     @Override
-    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr){
+    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxId){
         this.isBulkDelete = (Boolean) isBulkDelete;
-        if(pastTxIdExpr != null) {
-            this.pastTxIdExpression = (ValueNode) pastTxIdExpr;
+        if(pastTxId != null) {
+            this.pastTxId = (Long) pastTxId;
+        } else {
+            this.pastTxId = -1;
         }
         init(tableName, correlationName, rclOrUD, propsOrRcl);
     }
@@ -1038,7 +1040,7 @@ public class FromBaseTable extends FromTable {
         TableDescriptor tableDescriptor=bindTableDescriptor();
 
         int tableType = tableDescriptor.getTableType();
-        if(pastTxIdExpression != null)
+        if(pastTxId >= 0)
         {
             if(tableType==TableDescriptor.VIEW_TYPE) {
                 throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "views");
@@ -1438,19 +1440,10 @@ public class FromBaseTable extends FromTable {
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
-        if(pastTxIdExpression != null)
-        {
-            // not sure if this is necessary
-            ValueNode result = pastTxIdExpression.bindExpression(fromListParam, null, null);
-            // the result of the expression should either be:
-            // a. timestamp (then we have to map it to closest tx id).
-            // b. numeric (representing the tx id itself).
-            TypeId typeId = result.getTypeId();
-            if(!typeId.isDateTimeTimeStampTypeID() && !typeId.isNumericTypeId())
-            {
-                throw StandardException.newException(SQLState.DATA_TYPE_NOT_SUPPORTED, typeId.getSQLTypeName());
-            }
-        }
+        /* No expressions to bind for a FromBaseTable.
+         * NOTE - too involved to optimize so that this method
+         * doesn't get called, so just do nothing.
+         */
     }
 
     /**
@@ -2284,20 +2277,6 @@ public class FromBaseTable extends FromTable {
                 ClassName.NoPutResultSet,28);
     }
 
-    private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
-        if(pastTxIdExpression != null) {
-            MethodBuilder pastTxExpr = acb.newUserExprFun();
-            pastTxIdExpression.generateExpression(acb, pastTxExpr);
-            pastTxExpr.methodReturn();
-            pastTxExpr.complete();
-            acb.pushMethodReference(mb, pastTxExpr);
-        }
-        else
-        {
-            mb.pushNull(ClassName.GeneratedMethod);
-        }
-    }
-
     private int getScanArguments(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException{
         // get a function to allocate scan rows of the right shape and size
         MethodBuilder resultRowAllocator= resultColumns.generateHolderMethod(acb, referencedCols, null);
@@ -2391,8 +2370,8 @@ public class FromBaseTable extends FromTable {
         // compute the default row
         numArgs += generateDefaultRow((ActivationClassBuilder)acb, mb);
 
-        // also add the past transaction id functor
-        generatePastTxFunc(acb, mb);
+        // also add the past transaction id
+        mb.push(pastTxId);
         numArgs++;
 
         return numArgs;
@@ -3448,7 +3427,11 @@ public class FromBaseTable extends FromTable {
         if(niceIndexName!=null){
             cName = "IndexScan["+niceIndexName+"]";
         }else{
-            cName = "TableScan["+getPrettyTableName()+"]";
+            cName = "TableScan["+getPrettyTableName();
+            if(pastTxId >= 0){
+                cName += " timeTravelTx(" + pastTxId + ")";
+            }
+            cName += "]";
         }
         if(isMultiProbing())
             cName = "MultiProbe"+cName;

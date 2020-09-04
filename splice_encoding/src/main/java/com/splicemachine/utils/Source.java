@@ -18,9 +18,8 @@ import java.io.Closeable;
 import java.io.IOException;
 
 /**
- * Generic iterator interface that is normally used to iterate over scan results of
- * {@link org.apache.hadoop.hbase.regionserver.RegionScanner}
- * @param <T> Type of returned results.
+ * @author Scott Fines
+ *         Date: 7/9/14
  */
 public interface Source<T> extends Closeable {
 
