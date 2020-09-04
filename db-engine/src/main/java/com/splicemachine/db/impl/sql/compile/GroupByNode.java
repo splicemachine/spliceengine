@@ -1446,8 +1446,7 @@ public class GroupByNode extends SingleChildResultSetNode{
     }
 
     public HashSet<String> getNoStatsColumns() throws StandardException {
-        if (costEstimate == null)
-            throw new RuntimeException("Should not be null");
+        assert costEstimate != null : "Trying to get columns missing statistic but there is no cost estimation.";
 
         HashSet<String> noStatsColumns = new HashSet<>();
         CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);

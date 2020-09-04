@@ -510,6 +510,11 @@ public class ColumnReference extends ValueNode {
         return columnName;
     }
 
+    public String getSchemaQualifiedColumnName() throws StandardException
+    {
+        return source.getSchemaName() + "." + source.getFullName();
+    }
+
     /**
      * Get the table number for this ColumnReference.
      *
