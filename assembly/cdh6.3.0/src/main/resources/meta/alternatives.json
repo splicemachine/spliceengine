@@ -4,5 +4,11 @@
       "source": "bin/sqlshell.sh",
       "priority": 10,
       "isDirectory": false
+    },
+    "spliceck.sh": {
+      "destination": "/usr/bin/spliceck.sh",
+      "source": "bin/spliceck.sh",
+      "priority": 10,
+      "isDirectory": false
     }
 }

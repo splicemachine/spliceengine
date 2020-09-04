@@ -81,6 +81,15 @@ for platform in ${platforms[@]} ; do
     fi
     echo "Splice Machine sqlshell.sh is ${sqlshellsh}"
 
+    splicecksh=""
+    splicecksh="$(find ${splicedir[${platform}]} -xdev -type f -name spliceck.sh | head -1)"
+    # bail if we don't find one
+    if [[ -z "${splicecksh}" ]] ; then
+      echo "did not find a Splice Machine spliceck.sh under ${splicedir[${platform}]}"
+      continue
+    fi
+    echo "Splice Machine spliceck.sh is ${splicecksh}"
+
     # ws.rs-api jar
     splicewsrsapijar=""
     splicewsrsapijar="$(find ${splicedir[${platform}]} -xdev -type f -name javax.ws.rs-api\*.jar | head -1)"
@@ -147,11 +156,13 @@ for platform in ${platforms[@]} ; do
       done
     fi
 
-    # symlink sqlshell.sh to the right place
+    # symlink sqlshell.sh and spliceck.sh to the right place
     if [[ ${platform} =~ ^hdp$ || ${platform} =~ ^mapr$ ]] ; then
-      echo "symlinking ${sqlshellsh} tp ${sqlshellshdir}"
+      echo "symlinking ${sqlshellsh} to ${sqlshellshdir}"
       ln -sf ${sqlshellsh} ${sqlshellshdir}
     fi
+    echo "symlinking ${splicecksh} to ${sqlshellshdir}"
+    ln -sf ${splicecksh} ${sqlshellshdir}
 
     # loop through our list, clean up and re-link everything.
     # XXX - can likely remove platform check conditional here
