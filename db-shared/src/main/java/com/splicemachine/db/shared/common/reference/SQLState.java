@@ -1178,8 +1178,6 @@ public interface SQLState {
 	
     String LANG_INVALID_SPARK_AND_CONTROL = "42ZD1";
 
-	String LANG_ILLEGAL_TIME_TRAVEL = "42ZD2";
-
 	String LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH              = "42ZD5";
 	String LANG_UNSUPPORTED_TYPE_FOR_SCALAR_MIN_MAX                    = "42ZD6";
 

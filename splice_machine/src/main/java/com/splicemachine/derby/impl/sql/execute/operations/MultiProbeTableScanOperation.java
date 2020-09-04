@@ -124,8 +124,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         String location,
                                         int partitionByRefItem,
                                         GeneratedMethod defaultRowFunc,
-                                        int defaultValueMapItem,
-                                        long pastTxId
+                                        int defaultValueMapItem
                                         )
             throws StandardException
     {
@@ -166,8 +165,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 location,
                 partitionByRefItem,
                 defaultRowFunc,
-                defaultValueMapItem,
-                pastTxId);
+                defaultValueMapItem);
 
         this.inlistPosition = inlistPosition;
 
@@ -222,7 +220,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             throw new IllegalStateException("Operation is not open");
 
         try {
-            TxnView txn = getTransaction();
+            TxnView txn = getCurrentTransaction();
             DataValueDescriptor[] probeValues = ((MultiProbeDerbyScanInformation)scanInformation).getProbeValues();
             List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
             DataSet<ExecRow> dataSet = dsp.getEmpty();

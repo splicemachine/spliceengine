@@ -978,9 +978,10 @@ public interface ResultSetFactory {
         @param optimizerEstimatedRowCount    Estimated total # of rows by
                                             optimizer
         @param optimizerEstimatedCost        Estimated total cost by optimizer
-        @param pastTxId                     The ID of a past transaction for time-travel queries
+
         @return the table scan operation as a result set.
-        @exception StandardException thrown when unable to create the result set
+        @exception StandardException thrown when unable to create the
+            result set
      */
     NoPutResultSet getTableScanResultSet(
                                 Activation activation,
@@ -1019,8 +1020,7 @@ public interface ResultSetFactory {
                                 String location,
                                 int partitionByRefItem,
                                 GeneratedMethod defaultRowFunc,
-                                int defaultValueMapItem,
-                                long pastTxId
+                                int defaultValueMapItem
                                 )
             throws StandardException;
 
@@ -1080,8 +1080,7 @@ public interface ResultSetFactory {
                                 String location,
                                 int partitionByRefItem,
                                 GeneratedMethod defaultRowFunc,
-                                int defaultValueMapItem,
-                                long pastTxId
+                                int defaultValueMapItem
                                 )
             throws StandardException;
     /**

@@ -221,11 +221,10 @@ public class SQLParser
     private static final int    USING_CLAUSE = 1;
 
     // Defines for optional table clauses
-    private static final int    OPTIONAL_TABLE_CLAUSES_SIZE = 4;
+    private static final int    OPTIONAL_TABLE_CLAUSES_SIZE = 3;
     private static final int    OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES = 0;
     private static final int    OPTIONAL_TABLE_CLAUSES_DERIVED_RCL = 1;
     private static final int    OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME = 2;
-    private static final int    OPTIONAL_TABLE_CLAUSES_TXN_ID = 3;
 
     // Define for UTF8 max
     private static final int    MAX_UTF8_LENGTH = 65535;
@@ -4279,7 +4278,6 @@ deleteBody() throws StandardException :
                                                 FromBaseTable.DELETE),
                                         null,
                                         isBulkDelete,
-                                        -1L,
                                         getContextManager());
 
 
@@ -10843,13 +10841,13 @@ existsExpression() throws StandardException :
 ResultSetNode
 tableExpression(ResultColumnList selectList) throws StandardException :
 {
-    SelectNode   selectNode;
-    FromList     fromList;
-    ValueNode    whereClause  = null;
-    GroupByList  groupByList  = null;
+    SelectNode    selectNode;
+    FromList    fromList;
+    ValueNode    whereClause = null;
+    GroupByList    groupByList = null;
     ValueNode    havingClause = null;
     Token        whereToken;
-    WindowList   windows      = null;
+    WindowList  windows = null;
 }
 {
     fromList = fromClause()
@@ -11005,25 +11003,21 @@ tableReferenceTypes(boolean nestedInParens) throws StandardException :
 Object[]
 optionalTableClauses() throws StandardException :
 {
-    Object[]         otc = null;
-    Properties       tableProperties = null;
-    ResultColumnList derivedRCL = null;
-    String           correlationName = null;
-    Long             txnId = -1L;
+    Object[]             otc = null;
+    Properties            tableProperties = null;
+    ResultColumnList    derivedRCL = null;
+    String                correlationName = null;
 }
 {
     otc = optionalTableProperties()
     {
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
         return otc;
     }
 |
-    LOOKAHEAD( { getToken(1).kind != AS || getToken(2).kind != OF })
     [ [ <AS> ]
         correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
-        [txnId = asOfClause()]
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [tableProperties = propertyList(true) <CHECK_PROPERTIES>] ]
     {
@@ -11031,19 +11025,6 @@ optionalTableClauses() throws StandardException :
         otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
-        return otc;
-    }
-|
-    txnId = asOfClause()
-    [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
-    [tableProperties = propertyList(true) <CHECK_PROPERTIES>]
-    {
-        otc = new Object[OPTIONAL_TABLE_CLAUSES_SIZE];
-        otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
-        otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
-        otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
         return otc;
     }
 }
@@ -11131,11 +11112,9 @@ FromTable tableFactor() throws StandardException :
         fromTable = (FromTable) nodeFactory.getNode(
                                             C_NodeTypes.FROM_BASE_TABLE,
                                             tableName,
-                                            (String) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME],
-                                            (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
-                                            (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
-                                            false,
-                                            (Long) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
+                                                (String) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME],
+                                                (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
+                                                (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
                                             getContextManager());
         return fromTable;
     }
@@ -12383,18 +12362,6 @@ windowDefinition(WindowList wl) throws StandardException :
                 getContextManager()));
 
         return wl;
-    }
-}
-
-Long
-asOfClause() throws StandardException :
-{
-    Long txId = null;
-}
-{
-    <AS> <OF> txId = exactNumber()
-    {
-        return txId;
     }
 }
 
