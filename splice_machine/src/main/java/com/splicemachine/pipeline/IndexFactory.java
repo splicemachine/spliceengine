@@ -24,6 +24,7 @@ import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 
@@ -86,6 +87,7 @@ class IndexFactory implements LocalWriteFactory{
     }
 
     @Override
+    @SuppressFBWarnings(value = "EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS", justification = "intended")
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o instanceof IndexFactory) {

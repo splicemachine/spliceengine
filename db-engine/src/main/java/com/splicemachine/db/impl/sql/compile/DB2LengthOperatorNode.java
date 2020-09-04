@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.ClassName;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 
@@ -52,7 +53,7 @@ import java.util.List;
  * This node represents a unary DB2 compatible length operator
  *
  */
-
+@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE")
 public final class DB2LengthOperatorNode extends UnaryOperatorNode
 {
     
