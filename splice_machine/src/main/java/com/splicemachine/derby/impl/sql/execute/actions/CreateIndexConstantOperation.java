@@ -164,33 +164,33 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
      * for a constraint declared in a CREATE TABLE
      * statement that requires a backing index.
      */
-    private boolean         forCreateTable;
-    private boolean			unique;
-    private boolean			uniqueWithDuplicateNulls;
-    private String			indexType;
-    private String[]		columnNames;
+    private boolean              forCreateTable;
+    private boolean              unique;
+    private boolean              uniqueWithDuplicateNulls;
+    private String               indexType;
+    private String[]             columnNames;
     private DataTypeDescriptor[] indexColumnTypes;
-    private boolean[]		isAscending;
-    private boolean			isConstraint;
-    private UUID			conglomerateUUID;
-    private Properties		properties;
-    private ExecRow         indexTemplateRow;
-    private boolean         excludeNulls;
-    private boolean         excludeDefaults;
-    private boolean         preSplit;
-    private boolean         isLogicalKey;
-    private boolean         sampling;
-    private double          sampleFraction;
-    private String          splitKeyPath;
-    private String          hfilePath;
-    private String          columnDelimiter;
-    private String          characterDelimiter;
-    private String          timestampFormat;
-    private String          dateFormat;
-    private String          timeFormat;
-    private String[]        exprTexts;
-    private ByteArray[]     exprBytecode;
-    private String[]        generatedClassNames;
+    private boolean[]            isAscending;
+    private boolean              isConstraint;
+    private UUID                 conglomerateUUID;
+    private Properties           properties;
+    private ExecRow              indexTemplateRow;
+    private boolean              excludeNulls;
+    private boolean              excludeDefaults;
+    private boolean              preSplit;
+    private boolean              isLogicalKey;
+    private boolean              sampling;
+    private double               sampleFraction;
+    private String               splitKeyPath;
+    private String               hfilePath;
+    private String               columnDelimiter;
+    private String               characterDelimiter;
+    private String               timestampFormat;
+    private String               dateFormat;
+    private String               timeFormat;
+    private String[]             exprTexts;
+    private ByteArray[]          exprBytecode;
+    private String[]             generatedClassNames;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -216,66 +216,66 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     // CONSTRUCTORS
     public CreateIndexConstantOperation(){}
     /**
-     * 	Make the ConstantAction to create an index.
+     *     Make the ConstantAction to create an index.
      *
      * @param forCreateTable                Being executed within a CREATE TABLE
-     *                                      statement
-     * @param unique		                True means it will be a unique index
+     *                                       statement
+     * @param unique                        True means it will be a unique index
      * @param uniqueWithDuplicateNulls      True means index check and disallow
-     *                                      any duplicate key if key has no
-     *                                      column with a null value.  If any
-     *                                      column in the key has a null value,
-     *                                      no checking is done and insert will
-     *                                      always succeed.
-     * @param indexType	                    type of index (BTREE, for example)
-     * @param schemaName	                schema that table (and index)
-     *                                      lives in.
-     * @param indexName	                    Name of the index
-     * @param tableName	                    Name of table the index will be on
-     * @param tableId		                UUID of table
-     * @param columnNames	                Names of the columns in the index,
-     *                                      in order
-     * @param isAscending	                Array of booleans telling asc/desc
-     *                                      on each column
-     * @param isConstraint	                TRUE if index is backing up a
-     *                                      constraint, else FALSE
-     * @param conglomerateUUID	            ID of conglomerate
-     * @param properties	                The optional properties list
-     *                                      associated with the index.
+     *                                       any duplicate key if key has no
+     *                                       column with a null value.  If any
+     *                                       column in the key has a null value,
+     *                                       no checking is done and insert will
+     *                                       always succeed.
+     * @param indexType                     type of index (BTREE, for example)
+     * @param schemaName                    schema that table (and index)
+     *                                       lives in.
+     * @param indexName                     Name of the index
+     * @param tableName                     Name of table the index will be on
+     * @param tableId                       UUID of table
+     * @param columnNames                   Names of the columns in the index,
+     *                                       in order
+     * @param isAscending                   Array of booleans telling asc/desc
+     *                                       on each column
+     * @param isConstraint                  TRUE if index is backing up a
+     *                                       constraint, else FALSE
+     * @param conglomerateUUID              ID of conglomerate
+     * @param properties                    The optional properties list
+     *                                       associated with the index.
      */
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreateIndexConstantOperation(
-            boolean         forCreateTable,
-            boolean			unique,
-            boolean			uniqueWithDuplicateNulls,
-            String			indexType,
-            String			schemaName,
-            String			indexName,
-            String			tableName,
-            UUID			tableId,
-            String[]		columnNames,
+            boolean              forCreateTable,
+            boolean              unique,
+            boolean              uniqueWithDuplicateNulls,
+            String               indexType,
+            String               schemaName,
+            String               indexName,
+            String               tableName,
+            UUID                 tableId,
+            String[]             columnNames,
             DataTypeDescriptor[] indexColumnTypes,
-            boolean[]		isAscending,
-            boolean			isConstraint,
-            UUID			conglomerateUUID,
-            boolean 		excludeNulls,
-            boolean			excludeDefaults,
-            boolean         preSplit,
-            boolean         isLogicalKey,
-            boolean         sampling,
-            double          sampleFraction,
-            String          splitKeyPath,
-            String          hfilePath,
-            String          columnDelimiter,
-            String          characterDelimiter,
-            String          timestampFormat,
-            String          dateFormat,
-            String          timeFormat,
-            String[]        exprTexts,
-            ByteArray[]     exprBytecode,
-            String[]        generatedClassNames,
-            Properties		properties) {
+            boolean[]            isAscending,
+            boolean              isConstraint,
+            UUID                 conglomerateUUID,
+            boolean              excludeNulls,
+            boolean              excludeDefaults,
+            boolean              preSplit,
+            boolean              isLogicalKey,
+            boolean              sampling,
+            double               sampleFraction,
+            String               splitKeyPath,
+            String               hfilePath,
+            String               columnDelimiter,
+            String               characterDelimiter,
+            String               timestampFormat,
+            String               dateFormat,
+            String               timeFormat,
+            String[]             exprTexts,
+            ByteArray[]          exprBytecode,
+            String[]             generatedClassNames,
+            Properties           properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
         this.forCreateTable             = forCreateTable;

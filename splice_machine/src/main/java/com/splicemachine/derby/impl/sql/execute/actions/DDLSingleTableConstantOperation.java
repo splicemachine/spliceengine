@@ -273,14 +273,14 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
                         td.getSchemaName(), 
                         cd.getConglomerateName(), td.getName(), td.getUUID(),
                         cols,
-						cd.getIndexDescriptor().getIndexColumnTypes(),
-						cd.getIndexDescriptor().isAscending(),
+                        cd.getIndexDescriptor().getIndexColumnTypes(),
+                        cd.getIndexDescriptor().isAscending(),
                         true, cd.getUUID(), false, false, false,false,false,0,
-						null,null,null,null,null,null,null,
-						cd.getIndexDescriptor().getExprTexts(),
-						cd.getIndexDescriptor().getExprBytecode(),
-						cd.getIndexDescriptor().getGeneratedClassNames(),
-						prop);
+                        null,null,null,null,null,null,null,
+                        cd.getIndexDescriptor().getExprTexts(),
+                        cd.getIndexDescriptor().getExprBytecode(),
+                        cd.getIndexDescriptor().getGeneratedClassNames(),
+                        prop);
 
         //create index
         action.executeConstantAction(activation);
