@@ -118,45 +118,8 @@ public class ExplainNode extends DMLStatementNode {
 
         // collect tables and columns that are missing statistics only for splice explain
         // showNoStatsObjects == false for all kinds of spark explain
-        if (!showNoStatsObjects)
-            return;
-
-        HashSet<String> noStatsColumnSet = new HashSet<>();
-
-        // collect no stats columns used to estimate scan cost
-        CollectNodesVisitor cnv = new CollectNodesVisitor(FromBaseTable.class);
-        node.accept(cnv);
-        List<FromBaseTable> baseTableNodes = cnv.getList();
-        for (FromBaseTable t : baseTableNodes) {
-            String tableName = t.getExposedName();
-            if (!t.useRealTableStats()) {
-                noStatsTables.add(new SQLVarchar(tableName));
-            } else if (!t.getNoStatsColumnIds().isEmpty()) {
-                TableDescriptor td = t.getTableDescriptor();
-                for (int columnId : t.getNoStatsColumnIds()) {
-                    noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
-                }
-            }
-        }
-
-        // collect no stats columns used to estimate join selectivity
-        cnv = new CollectNodesVisitor(BinaryRelationalOperatorNode.class);
-        node.accept(cnv);
-        List<BinaryRelationalOperatorNode> binaryOpNodes = cnv.getList();
-        for (BinaryRelationalOperatorNode bop : binaryOpNodes) {
-            noStatsColumnSet.addAll(bop.getNoStatsColumns());
-        }
-
-        // collect no stats columns used to estimate grouping cardinality
-        cnv = new CollectNodesVisitor(GroupByNode.class);
-        node.accept(cnv);
-        List<GroupByNode> groupByNodes = cnv.getList();
-        for (GroupByNode gbn : groupByNodes) {
-            noStatsColumnSet.addAll(gbn.getNoStatsColumns());
-        }
-
-        for (String columnName : noStatsColumnSet) {
-            noStatsColumns.add(new SQLVarchar(columnName));
+        if (showNoStatsObjects) {
+            collectNoStatsTablesAndColumns();
         }
     }
 
@@ -231,5 +194,45 @@ public class ExplainNode extends DMLStatementNode {
     public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         if ( node!= null)
             node.buildTree(tree,depth);
+    }
+
+    private void collectNoStatsTablesAndColumns() throws StandardException {
+        HashSet<String> noStatsColumnSet = new HashSet<>();
+
+        // collect no stats columns used to estimate scan cost
+        CollectNodesVisitor cnv = new CollectNodesVisitor(FromBaseTable.class);
+        node.accept(cnv);
+        List<FromBaseTable> baseTableNodes = cnv.getList();
+        for (FromBaseTable t : baseTableNodes) {
+            String tableName = t.getExposedName();
+            if (!t.useRealTableStats()) {
+                noStatsTables.add(new SQLVarchar(tableName));
+            } else if (!t.getNoStatsColumnIds().isEmpty()) {
+                TableDescriptor td = t.getTableDescriptor();
+                for (int columnId : t.getNoStatsColumnIds()) {
+                    noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
+                }
+            }
+        }
+
+        // collect no stats columns used to estimate join selectivity
+        cnv = new CollectNodesVisitor(BinaryRelationalOperatorNode.class);
+        node.accept(cnv);
+        List<BinaryRelationalOperatorNode> binaryOpNodes = cnv.getList();
+        for (BinaryRelationalOperatorNode bop : binaryOpNodes) {
+            noStatsColumnSet.addAll(bop.getNoStatsColumns());
+        }
+
+        // collect no stats columns used to estimate grouping cardinality
+        cnv = new CollectNodesVisitor(GroupByNode.class);
+        node.accept(cnv);
+        List<GroupByNode> groupByNodes = cnv.getList();
+        for (GroupByNode gbn : groupByNodes) {
+            noStatsColumnSet.addAll(gbn.getNoStatsColumns());
+        }
+
+        for (String columnName : noStatsColumnSet) {
+            noStatsColumns.add(new SQLVarchar(columnName));
+        }
     }
 }
