@@ -363,7 +363,7 @@ public abstract class EmbedConnection implements EngineConnection
 
             // Add potentially newly created database in the sysdatabase table
             if (createBoot && !shutdown && !dropDatabase) {
-                SystemProcedures.addDatabase(getDBName(), null, tr.getDatabase().getId(), tr.getLcc()); // XXX null for aid?
+                SystemProcedures.addDatabase(getDBName(), "PLACEHOLDER", tr.getDatabase().getId(), tr.getLcc()); // XXX different userid probably for aid?
 
             }
 

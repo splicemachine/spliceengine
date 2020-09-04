@@ -697,7 +697,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         UUID databaseID = (UUID) tc.getProperty(DataDictionary.DATABASE_ID);
 
         spliceDbDesc = new DatabaseDescriptor(
-                this, DatabaseDescriptor.STD_DB_NAME, authorizationDatabaseOwner,
+                this, DatabaseDescriptor.STD_DB_NAME, "PLACEHOLDER", // XXX replace placeholder
                 databaseID);
     }
 
