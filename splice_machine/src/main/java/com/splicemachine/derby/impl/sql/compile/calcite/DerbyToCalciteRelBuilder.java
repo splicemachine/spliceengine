@@ -306,4 +306,12 @@ public class DerbyToCalciteRelBuilder extends RelBuilder {
         RelNode relNode = values(names, values).build();
         return relNode;
     }
+
+    public RelNode getValuesStmtForPlan(RelNode root) {
+        Object[] values = new Object[1];
+        String[] names = new String[1];
+        values[0] = RelOptUtil.toString(root);
+        names[0] = "Plan";
+        return values(names, values).build();
+    }
 }

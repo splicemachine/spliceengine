@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.sql.compile.SqlPlanner;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.compile.ResultSetNode;
 import com.splicemachine.derby.impl.sql.compile.calcite.reloperators.SpliceImplementor;
+import com.splicemachine.derby.impl.sql.compile.calcite.reloperators.SpliceJoin;
 import com.splicemachine.derby.impl.sql.compile.calcite.reloperators.SpliceRelNode;
 import com.splicemachine.derby.impl.sql.compile.calcite.rules.SpliceConverterRule;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
@@ -164,6 +165,13 @@ public class CalciteSqlPlanner implements SqlPlanner {
 
     private QueryTreeNode implement(RelNode root) throws StandardException {
         SpliceImplementor implementor = new SpliceImplementor(sc);
+        boolean getPlan = false;
+        if (root instanceof SpliceJoin)
+            getPlan = true;
+        if (getPlan) {
+            root = relBuilder.getValuesStmtForPlan(root);
+            root = optimize(root, "Plan");
+        }
         QueryTreeNode result = implementor.visitChild(0, root);
         return result;
     }
