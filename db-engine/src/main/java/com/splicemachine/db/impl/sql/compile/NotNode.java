@@ -39,6 +39,10 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.sql.compile.CalciteConverter;
+import com.splicemachine.db.iapi.sql.compile.ConvertSelectContext;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import java.lang.reflect.Modifier;
 
@@ -132,4 +136,10 @@ public final class NotNode extends UnaryLogicalOperatorNode
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "equals", interfaceName, 2);
     }
+
+	@Override
+	public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+		RexNode child = getOperand().convertExpression(relConverter, selectContext);
+		return relConverter.getRelBuilder().call(SqlStdOperatorTable.AND, child);
+	}
 }

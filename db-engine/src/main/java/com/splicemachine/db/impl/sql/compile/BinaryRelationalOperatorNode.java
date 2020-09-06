@@ -53,6 +53,10 @@ package com.splicemachine.db.impl.sql.compile;
 
  import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
 
+ import com.splicemachine.db.iapi.sql.compile.*;
+ import org.apache.calcite.rex.RexNode;
+ import org.apache.calcite.sql.SqlOperator;
+
  /**
  * This class represents the 6 binary operators: LessThan, LessThanEquals,
  * Equals, NotEquals, GreaterThan and GreaterThanEquals.
@@ -2345,5 +2349,14 @@ public class BinaryRelationalOperatorNode
 
      public HashSet<String> getNoStatsColumns() {
         return noStatsColumns;
+     }
+
+     @Override
+     public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+         int operator = getOperator();
+         SqlOperator sqlOperator = relConverter.mapRelationalOperatorToCalciteSqlOperator(operator);
+         RexNode leftOperand = getLeftOperand().convertExpression(relConverter, selectContext);
+         RexNode rightOperand = getRightOperand().convertExpression(relConverter, selectContext);
+         return relConverter.getRelBuilder().call(sqlOperator, leftOperand, rightOperand);
      }
 }

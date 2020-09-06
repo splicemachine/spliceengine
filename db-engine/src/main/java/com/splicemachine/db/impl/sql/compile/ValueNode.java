@@ -36,18 +36,18 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.calcite.rex.RexNode;
 
 import java.sql.Types;
 import java.util.*;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * A ValueNode is an abstract class for all nodes that can represent data
@@ -1669,4 +1669,9 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     protected static final double ALLOC_COST_FACTOR = 350;
 
     public double getBaseOperationCost() throws StandardException { return 0.0; }
+
+    public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+        assert false: "TODO convert more expressions";
+        return null;
+    }
 }

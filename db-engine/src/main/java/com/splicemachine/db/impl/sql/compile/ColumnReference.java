@@ -37,6 +37,8 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CalciteConverter;
+import com.splicemachine.db.iapi.sql.compile.ConvertSelectContext;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -48,6 +50,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.Collections;
 import java.util.List;
@@ -1611,5 +1614,12 @@ public class ColumnReference extends ValueNode {
                 this.getColumnName(),
                 this.getClone(),
                 getContextManager());
+    }
+
+    @Override
+    public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+        // column number is 1-based, but calcite column pos is 0-based
+        int fieldPos = selectContext.getStartColPosMap().get(getTableNumber()) + getColumnNumber()-1;
+        return relConverter.getRelBuilder().field(1, 0, fieldPos);
     }
 }
