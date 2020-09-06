@@ -31,10 +31,13 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
+import com.splicemachine.db.iapi.sql.compile.CalciteConverter;
+import com.splicemachine.db.iapi.sql.compile.ConvertSelectContext;
 import com.splicemachine.db.iapi.types.DataTypeUtilities;
 import com.splicemachine.db.iapi.types.TypeId;
 
@@ -45,6 +48,9 @@ import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.reference.ClassName;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import java.util.List;
 
@@ -212,5 +218,34 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
         );
 
         return this;
+    }
+
+    @Override
+    public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+        String operator = getOperatorString();
+        SqlOperator sqlOperator;
+        switch (operator) {
+            case TypeCompiler.PLUS_OP:
+                sqlOperator = SqlStdOperatorTable.PLUS;
+                break;
+            case TypeCompiler.DIVIDE_OP:
+                sqlOperator = SqlStdOperatorTable.DIVIDE;
+                break;
+            case TypeCompiler.MINUS_OP:
+                sqlOperator = SqlStdOperatorTable.MINUS;
+                break;
+            case TypeCompiler.TIMES_OP:
+                sqlOperator = SqlStdOperatorTable.MULTIPLY;
+                break;
+            case TypeCompiler.MOD_OP:
+                sqlOperator = SqlStdOperatorTable.MOD;
+                break;
+            default:
+                throw StandardException.newException(SQLState.LANG_INVADLID_CONVERSION, operator);
+        }
+
+        RexNode leftOperand = getLeftOperand().convertExpression(relConverter, selectContext);
+        RexNode rightOperand = getRightOperand().convertExpression(relConverter, selectContext);
+        return relConverter.getRelBuilder().call(sqlOperator, leftOperand, rightOperand);
     }
 }

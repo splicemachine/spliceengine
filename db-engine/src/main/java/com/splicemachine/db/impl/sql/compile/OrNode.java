@@ -34,6 +34,10 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CalciteConverter;
+import com.splicemachine.db.iapi.sql.compile.ConvertSelectContext;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 import org.apache.commons.lang3.mutable.MutableInt;
 
@@ -633,5 +637,12 @@ public class OrNode extends BinaryLogicalOperatorNode {
 							rightOperand.getTypeServices()
 											)
 				);
+	}
+
+	@Override
+	public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+		RexNode leftOperand = getLeftOperand().convertExpression(relConverter, selectContext);
+		RexNode rightOperand = getRightOperand().convertExpression(relConverter, selectContext);
+		return relConverter.getRelBuilder().call(SqlStdOperatorTable.OR, leftOperand, rightOperand);
 	}
 }

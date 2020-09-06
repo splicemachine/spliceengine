@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.sql.compile.CalciteConverter;
+import com.splicemachine.db.iapi.sql.compile.ConvertSelectContext;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -38,6 +40,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import org.apache.calcite.rex.RexNode;
 
 import java.util.Collections;
 import java.util.List;
@@ -319,5 +322,11 @@ public abstract class ConstantNode extends ValueNode
     @Override
     public boolean isConstantOrParameterTreeNode() {
         return true;
+    }
+
+    @Override
+    public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+        Object constantObject = getValue().getObject();
+        return relConverter.getRelBuilder().literal(constantObject);
     }
 }

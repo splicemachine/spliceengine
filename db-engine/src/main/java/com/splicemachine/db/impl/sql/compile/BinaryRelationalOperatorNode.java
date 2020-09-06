@@ -35,8 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
@@ -44,6 +43,8 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlOperator;
 
 import java.sql.Types;
 import java.util.List;
@@ -2143,5 +2144,14 @@ public class BinaryRelationalOperatorNode
 
      public void setOuterJoinLevel(int level) {
          outerJoinLevel = level;
+     }
+
+     @Override
+     public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+         int operator = getOperator();
+         SqlOperator sqlOperator = relConverter.mapRelationalOperatorToCalciteSqlOperator(operator);
+         RexNode leftOperand = getLeftOperand().convertExpression(relConverter, selectContext);
+         RexNode rightOperand = getRightOperand().convertExpression(relConverter, selectContext);
+         return relConverter.getRelBuilder().call(sqlOperator, leftOperand, rightOperand);
      }
 }

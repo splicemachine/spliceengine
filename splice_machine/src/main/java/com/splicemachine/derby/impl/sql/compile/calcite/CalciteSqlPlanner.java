@@ -45,7 +45,7 @@ import static org.apache.calcite.tools.Programs.sequence;
 public class CalciteSqlPlanner implements SqlPlanner {
     public static Logger LOG = Logger.getLogger(CalciteSqlPlanner.class);
     private Planner planner;
-    private DerbyToCalciteRelBuilder relBuilder;
+    private CalciteConverterImpl relConverter;
     private SpliceContext sc;
 
     public CalciteSqlPlanner(SpliceContext spliceContext) {
@@ -78,7 +78,7 @@ public class CalciteSqlPlanner implements SqlPlanner {
                         typeFactory,
                         null);
 
-        relBuilder = new DerbyToCalciteRelBuilder(spliceContext, cluster, catalogReader);
+      relConverter = new CalciteConverterImpl(spliceContext, cluster, catalogReader);
     }
 
     public String parse(String sql) throws SqlParseException, ValidationException, RelConversionException {
@@ -104,7 +104,7 @@ public class CalciteSqlPlanner implements SqlPlanner {
     }
 
     private RelNode derby2Rel(ResultSetNode resultSetNode, String sql) throws StandardException {
-        RelNode root = relBuilder.convertResultSet(resultSetNode);
+        RelNode root = relConverter.convertResultSet(resultSetNode);
         if (LOG.isDebugEnabled()){
             String plan =  RelOptUtil.toString(root);
             LOG.debug(String.format("Plan for query <<\n\t%s\n>>\n%s\n",
@@ -169,7 +169,7 @@ public class CalciteSqlPlanner implements SqlPlanner {
         if (root instanceof SpliceJoin)
             getPlan = true;
         if (getPlan) {
-            root = relBuilder.getValuesStmtForPlan(root);
+            root = relConverter.getValuesStmtForPlan(root);
             root = optimize(root, "Plan");
         }
         QueryTreeNode result = implementor.visitChild(0, root);
