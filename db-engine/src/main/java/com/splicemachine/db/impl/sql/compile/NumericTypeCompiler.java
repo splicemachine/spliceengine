@@ -415,17 +415,6 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 					}
 				}
 
-				// Use high precision for decimals, so we don't overflow.
-				// But don't use max precision to leave room for 4 digits to
-				// the right of the decimal place for operations like AVG.
-				// For the old client, use the old size of 31 for consistent behavior.
-				int scaleAllowance = Math.max(0, MIN_DECIMAL_DIVIDE_SCALE - Math.max(scale, 0));
-				int maxImplicitCastPrecision = precision > OLD_MAX_DECIMAL_PRECISION_SCALE ||
-				                               supportsDecimal38()  ?
-				      MAX_DECIMAL_PRECISION_WITH_RESERVE_FOR_SCALE + scaleAllowance :
-				      OLD_MAX_DECIMAL_PRECISION_SCALE;
-				if (precision < maxImplicitCastPrecision)
-				    precision = maxImplicitCastPrecision;
 				maximumWidth = DataTypeUtilities.computeMaxWidth(precision, scale);
 
 				/*

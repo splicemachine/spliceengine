@@ -96,6 +96,10 @@ public class SessionPropertiesImpl implements SessionProperties {
                 int tableLimitForExhaustiveSearch = Integer.parseInt(valString);
                 properties[TABLELIMITFOREXHAUSTIVESEARCH.getId()] = tableLimitForExhaustiveSearch;
                 break;
+            case DISABLE_NLJ_PREDICATE_PUSH_DOWN:
+                boolean disablePushDown = Boolean.valueOf(valString);
+                properties[DISABLE_NLJ_PREDICATE_PUSH_DOWN.getId()] = disablePushDown;
+                break;
             default:
                 break;
         }

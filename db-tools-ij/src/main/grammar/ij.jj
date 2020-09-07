@@ -99,6 +99,8 @@ class ij {
     static final String PASSWORD_PROPERTY = "ij.password";
     static final String FRAMEWORK_PROPERTY = "framework";
 
+	static final String DOUBLEQUOTES = "\"\"";
+
     boolean            elapsedTime = true;
 
     Connection theConnection = null;
@@ -1316,6 +1318,49 @@ class ij {
 
     }
 
+    /*
+     * Compress 2 adjacent (single or double) quotes into a single (s or d)
+     * quote when found in the middle of a String.
+     * This function comes from com.splicemachine.db.iapi.util.StringUtil
+     */
+    private static String compressQuotes(String source,String quotes)
+    {
+        String result=source;
+        int index;
+
+        /* Find the first occurrence of adjacent quotes. */
+        index=result.indexOf(quotes);
+
+        /* Replace each occurrence with a single quote and begin the
+         * search for the next occurrence from where we left off.
+         */
+        while(index!=-1){
+            result=result.substring(0,index+1)+ result.substring(index+2);
+            index=result.indexOf(quotes,index+1);
+        }
+
+        return result;
+    }
+
+    private static String normalizeDelimitedID(String str)
+    {
+        str = compressQuotes(str, DOUBLEQUOTES);
+        return str;
+    }
+
+    private String castIdentifier(String identifier) throws SQLException
+    {
+        haveConnection();
+        DatabaseMetaData dbmd = theConnection.getMetaData();
+
+        if (dbmd.storesLowerCaseIdentifiers())
+            return identifier.toLowerCase(Locale.ENGLISH);
+        else if (dbmd.storesUpperCaseIdentifiers())
+            return identifier.toUpperCase(Locale.ENGLISH);
+
+        return identifier;
+    }
+
 }
 
 PARSER_END(ij)
@@ -1501,6 +1546,8 @@ TOKEN [IGNORE_CASE] :
 |   <SPOOL: "SPOOL">
 |   <STOP: "STOP">
 |   <CLEAR: "CLEAR">
+|   <WITHOUT: "WITHOUT">
+|   <HEADER: "HEADER">
 }
 
 TOKEN :
@@ -1766,6 +1813,17 @@ TOKEN :
                                 "\uff10" - "\uff19"
                         ]>
 }
+
+TOKEN :
+{    /* Delimited Identifiers - NOTE: this does not allow zero-length identifiers */
+    <DELIMITED_IDENTIFIER: "\""
+        (
+            ("\"\"") |
+            (~["\""])
+        ) +
+        "\"">
+}
+
 TOKEN :
 {    /* Literals */
     <INTEGER: (["0" - "9"])+ >
@@ -1849,6 +1907,7 @@ throws SQLException, IOException
 |    r=CP_DisconnectStatement()
 |   r=Prompt()
 |   r=Spool()
+|   r=ResultHeader()
 )? <EOF>
     {
         return r;
@@ -2263,7 +2322,7 @@ throws SQLException
         }
         return showTables(schema, types);
     }
-|   <CREATE> <TABLE> ( i = caIdentifier() ( <PERIOD> i2 = caIdentifier() )?
+|   <CREATE> <TABLE> ( i = caIdentifierForSysProcs() ( <PERIOD> i2 = caIdentifierForSysProcs() )?
     {
         if (i2 == null) {
             schema = null;
@@ -3421,11 +3480,40 @@ identifier() :
     t=<IDENTIFIER>
     {
         // identifiers are case insensitive, so we map them up.
-        // ij doesn't recognize any use of delimited identifiers in its syntax.
         return (t.image.toUpperCase(Locale.ENGLISH));
     }
 }
 
+String
+delimitedIdentifier() :
+{
+    String    str;
+    Token    tok;
+}
+{
+    tok=<DELIMITED_IDENTIFIER>
+    {
+        str = tok.image.substring(1, tok.image.length() -1);
+        str = normalizeDelimitedID( str );
+        return str;
+    }
+}
+
+/*
+ * System procedures expect delimited identifier with quotes.
+ * If a command calls a system procedure, we need to keep them.
+ */
+String
+delimitedIdentifierPreserveQuotes() :
+{
+    String str;
+}
+{
+    str = delimitedIdentifier()
+    {
+        return "\"" + str + "\"";
+    }
+}
 
 String
 path() :
@@ -3475,18 +3563,38 @@ caIdentifier() throws SQLException :
 {
     ( i=keyword()|t=<IDENTIFIER> )
     {
-        haveConnection();
-        DatabaseMetaData dbmd = theConnection.getMetaData();
         String identifier = i;
-
         if(t!=null)
             identifier = t.image;
-        if (dbmd.storesLowerCaseIdentifiers())
-            identifier = identifier.toLowerCase(Locale.ENGLISH);
-        else if (dbmd.storesUpperCaseIdentifiers())
-            identifier = identifier.toUpperCase(Locale.ENGLISH);
 
-        return identifier;
+        return castIdentifier(identifier);
+    }
+|
+    i=delimitedIdentifier()
+    {
+        return i;
+    }
+}
+
+String
+caIdentifierForSysProcs() throws SQLException :
+{
+    Token t = null;
+    String i = null;
+}
+{
+    ( i=keyword()|t=<IDENTIFIER> )
+    {
+        String identifier = i;
+        if(t!=null)
+            identifier = t.image;
+
+        return castIdentifier(identifier);
+    }
+|
+    i=delimitedIdentifierPreserveQuotes()
+    {
+        return i;
     }
 }
 
@@ -4121,19 +4229,36 @@ ijResult HandleSpool() throws IOException
     n=path()
     {
         utilInstance.startSpooling(n);
-        return null;
+        return new ijShellConfigResult();
     }
 |
     <STOP>
     {
         utilInstance.stopSpooling();
-        return null;
+        return new ijShellConfigResult();
     }
 |
     <CLEAR>
     {
         utilInstance.clearSpooling();
-        return null;
+        return new ijShellConfigResult();
+    }
+}
+
+ijResult ResultHeader() throws IOException
+:
+{}
+{
+    <WITH> <HEADER>
+    {
+       utilInstance.setOmitHeader(false);
+       return null;
+    }
+|
+    <WITHOUT> <HEADER>
+    {
+       utilInstance.setOmitHeader(true);
+       return null;
     }
 }
 

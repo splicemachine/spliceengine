@@ -820,7 +820,7 @@ public interface SQLState {
     String LANG_DB2_OPERATION_NOT_SUPPORTED_IN_READ_ONLY_MODE       = "51045";
 	String LANG_DB2_STRING_CONSTANT_TOO_LONG                    = "54002";
 	String LANG_DB2_NUMBER_OF_ARGS_INVALID                   = "42605";
-	String LANG_DB2_COALESCE_FUNCTION_ALL_PARAMS                   = "42610";
+	String LANG_DB2_MULTINARY_FUNCTION_ALL_PARAMS                   = "42610";
 	String LANG_DB2_LENGTH_PRECISION_SCALE_VIOLATION                   = "42611";
 	String LANG_DB2_MULTIPLE_ELEMENTS								   = "42613";
 	String LANG_DB2_INVALID_CHECK_CONSTRAINT                           = "42621";
@@ -830,7 +830,7 @@ public interface SQLState {
 	String LANG_DB2_ADD_UNIQUE_OR_PRIMARY_KEY_ON_NULL_COLS			   = "42831";
 	String LANG_ADD_PRIMARY_KEY_ON_NULL_COLS                           = "42831.S.1";
 	String LANG_DB2_REPLACEMENT_ERROR								   = "42815.S.713";
-	String LANG_DB2_COALESCE_DATATYPE_MISMATCH								   = "42815.S.171";
+	String LANG_DB2_MULTINARY_DATATYPE_MISMATCH                        = "42815.S.171";
 	String LANG_DB2_TOO_LONG_FLOATING_POINT_LITERAL			           = "42820";
 	String LANG_DB2_LIKE_SYNTAX_ERROR 						           = "42824";
 	String LANG_INVALID_FK_COL_FOR_SETNULL                             = "42834";
@@ -1182,6 +1182,7 @@ public interface SQLState {
 	String LANG_ILLEGAL_TIME_TRAVEL = "42ZD2";
 
 	String LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH              = "42ZD5";
+	String LANG_UNSUPPORTED_TYPE_FOR_SCALAR_MIN_MAX                    = "42ZD6";
 
 	//following 3 matches the DB2 sql states
 	String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";

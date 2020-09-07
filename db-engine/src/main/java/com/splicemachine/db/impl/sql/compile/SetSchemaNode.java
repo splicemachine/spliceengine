@@ -31,12 +31,17 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 import java.util.Vector;
@@ -163,7 +168,6 @@ public class SetSchemaNode extends MiscellaneousStatementNode
 	 */
 	int activationKind()
 	{
-		Vector parameterList = getCompilerContext().getParameterList();
 		/*
 		** We need parameters 
 		** only for those that have parameters.
@@ -175,6 +179,18 @@ public class SetSchemaNode extends MiscellaneousStatementNode
 		else
 		{
 			return StatementNode.NEED_NOTHING_ACTIVATION;
+		}
+	}
+
+	@Override
+	public void bindStatement() throws StandardException
+	{
+		// name could be null when compiling a prepared SET SCHEMA statement, in that case
+		// avoid checking.
+		if(this.name != null) {
+			SchemaDescriptor sd = getSchemaDescriptor(this.name, true /*the schema must exist*/);
+			CompilerContext cc = getCompilerContext();
+			cc.addRequiredAccessSchemaPriv(sd.getUUID());
 		}
 	}
 }
