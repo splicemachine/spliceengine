@@ -2,10 +2,12 @@ package com.splicemachine.derby.impl.sql.compile.calcite;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.CalciteConverter;
 import com.splicemachine.db.iapi.sql.compile.ConvertSelectContext;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.Pair;
 import org.apache.calcite.plan.RelOptCluster;
@@ -17,11 +19,15 @@ import org.apache.calcite.rel.core.Join;
 import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.calcite.rel.core.RelFactories;
 import org.apache.calcite.rel.logical.LogicalTableScan;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
+import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.tools.RelBuilder;
+import org.apache.calcite.util.Util;
 
 import java.util.*;
 
@@ -46,6 +52,11 @@ public class CalciteConverterImpl implements CalciteConverter {
     public RelBuilder getRelBuilder() {
         return relBuilder;
     }
+
+    public RelOptCluster getCluster() {
+        return cluster;
+    }
+
     public RelNode convertResultSet(ResultSetNode resultSetNode) throws StandardException {
         if (resultSetNode instanceof SelectNode)
             return convertSelect((SelectNode)resultSetNode);
@@ -227,5 +238,37 @@ public class CalciteConverterImpl implements CalciteConverter {
         values[0] = RelOptUtil.toString(root);
         names[0] = "Plan";
         return relBuilder.values(names, values).build();
+    }
+
+    public RelDataType mapToRelDataType(DataTypeDescriptor dtd) {
+        TypeDescriptor typeDescriptor = dtd.getCatalogType();
+        int jdbcTypeId = typeDescriptor.getJDBCTypeId();
+        int precision = typeDescriptor.getPrecision();
+        // precision of String type in Calcite is the length of the string type, which maps to the maximumWidth in Splice
+        if (dtd.getTypeId().isStringTypeId()) {
+            precision = typeDescriptor.getMaximumWidth();
+        }
+        int scale = typeDescriptor.getScale();
+        boolean nullable = typeDescriptor.isNullable();
+        return sqlType(jdbcTypeId, precision, scale, nullable);
+    }
+
+    private RelDataType sqlType(int dataType, int precision, int scale, boolean nullable) {
+        RelDataTypeFactory typeFactory = cluster.getTypeFactory();
+        RelDataType relDataType;
+        // Fall back to ANY if type is unknown
+        final SqlTypeName sqlTypeName =
+                Util.first(SqlTypeName.getNameForJdbcType(dataType), SqlTypeName.ANY);
+        if (precision >= 0
+                && scale >= 0
+                && sqlTypeName.allowsPrecScale(true, true)) {
+            relDataType = typeFactory.createSqlType(sqlTypeName, precision, scale);
+        } else if (precision >= 0 && sqlTypeName.allowsPrecNoScale()) {
+            relDataType = typeFactory.createSqlType(sqlTypeName, precision);
+        } else {
+            assert sqlTypeName.allowsNoPrecNoScale();
+            relDataType = typeFactory.createSqlType(sqlTypeName);
+        }
+        return typeFactory.createTypeWithNullability(relDataType, nullable);
     }
 }
