@@ -32,7 +32,7 @@
 package com.splicemachine.db.impl.db;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -96,7 +96,7 @@ import java.util.Properties;
  *
  */
 
-public class BasicDatabase implements ModuleControl, ModuleSupportable, PropertySetCallback, Database, JarReader
+public class BasicDatabase implements ModuleControl, ModuleSupportable, PropertySetCallback, InternalDatabase, JarReader
 {
     protected boolean    active;
     private AuthenticationService authenticationService;
@@ -884,10 +884,5 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
             // reenable class loading from this jar
             util.notifyLoader(true);
         }
-    }
-
-    @Override
-    public String getName() {
-        return name;
     }
 }

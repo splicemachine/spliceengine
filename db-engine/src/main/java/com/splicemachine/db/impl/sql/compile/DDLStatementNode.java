@@ -417,12 +417,15 @@ abstract class DDLStatementNode extends StatementNode
         case TableDescriptor.VIEW_TYPE:
             sqlState = SQLState.LANG_INVALID_OPERATION_ON_VIEW;
             break;
+
+            case TableDescriptor.SYNONYM_TYPE:
+            case TableDescriptor.WITH_TYPE:
+            default:
+                sqlState = SQLState.NOT_IMPLEMENTED;
+                break;
         }
 
-
-        throw StandardException.newException(sqlState,
-                statementToString(), td.getQualifiedName());
-
+        throw StandardException.newException(sqlState, statementToString(), td.getQualifiedName());
     }
 
     /**

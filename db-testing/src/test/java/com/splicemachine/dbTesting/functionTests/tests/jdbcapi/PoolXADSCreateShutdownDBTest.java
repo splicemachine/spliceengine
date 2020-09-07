@@ -212,7 +212,7 @@ public class PoolXADSCreateShutdownDBTest extends BaseJDBCTestCase {
         clearBeanProperties(ds);
         assertPositive(ds, dbName);
         clearBeanProperties(ds);
-        // what happens when you combine set*Database and 
+        // what happens when you combine set*Database and
         // matching connection attribute? (should work)
         dbName = composeDatabaseName(ADDITIONAL_DBS[2]);
         assertNoDB(ds, dbName);

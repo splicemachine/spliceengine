@@ -52,6 +52,7 @@ import java.util.Vector;
 import java.util.regex.Pattern;
 
 import com.splicemachine.db.catalog.SystemProcedures;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.jdbc.*;
@@ -157,7 +158,7 @@ class DRDAConnThread extends Thread {
 	private static HeaderPrintWriter logStream;
 	private AppRequester appRequester;	// pointer to the application requester
 										// for the session being serviced
-	private Database database; 	// pointer to the current database
+	private com.splicemachine.db.impl.drda.Database database; 	// pointer to the current database
 	private int sqlamLevel;		// SQLAM Level - determines protocol
 
 	// DRDA diagnostic level, DIAGLVL0 by default 
@@ -461,7 +462,7 @@ class DRDAConnThread extends Thread {
 	 *
 	 * @return database
 	 */
-	protected Database getDatabase()
+	protected com.splicemachine.db.impl.drda.Database getDatabase()
 	{
 		return database;
 	}
@@ -1773,7 +1774,7 @@ class DRDAConnThread extends Thread {
 	 *			CMNSYNCPT - SNA LU 6.2 SyncPoint Conversational Communications Manager
 	 *			CMNTCPIP - TCP/IP Communication Manager 
 	 *			DICTIONARY - Dictionary
-	 *			RDB - Relational Database 
+	 *			RDB - Relational Database
 	 *			RSYNCMGR - Resynchronization Manager 
 	 *			SECMGR - Security Manager
 	 *			SQLAM - SQL Application Manager
@@ -1901,7 +1902,7 @@ class DRDAConnThread extends Thread {
 	 *			CMNSYNCPT - SNA LU 6.2 SyncPoint Conversational Communications Manager
 	 *			CMNTCPIP - TCP/IP Communication Manager   
 	 *			DICTIONARY - Dictionary 
-	 *			RDB - Relational Database 
+	 *			RDB - Relational Database
 	 *			RSYNCMGR - Resynchronization Manager   
 	 *			SECMGR - Security Manager
 	 *			SQLAM - SQL Application Manager 
@@ -2107,7 +2108,7 @@ class DRDAConnThread extends Thread {
                 //          DERBY-528 as well)
 				case CodePoint.RDBNAM:
 					String dbname = parseRDBNAM();
-					Database d = session.getDatabase(dbname);
+					com.splicemachine.db.impl.drda.Database d = session.getDatabase(dbname);
 					if (d == null)
 						initializeDatabase(dbname);
 					else
@@ -3596,7 +3597,7 @@ class DRDAConnThread extends Thread {
 					else
 					{
 						//first time we have seen a database name
-						Database d = session.getDatabase(dbname);
+						com.splicemachine.db.impl.drda.Database d = session.getDatabase(dbname);
 						if (d == null)
 							initializeDatabase(dbname);
 						else
@@ -3952,7 +3953,7 @@ class DRDAConnThread extends Thread {
 		Pkgnamcsn pkgnamcsn = null;
 
 		DRDAStatement stmt = null;  
-		Database databaseToSet = null;
+		com.splicemachine.db.impl.drda.Database databaseToSet = null;
 
 		reader.markCollection();
 
@@ -8970,13 +8971,13 @@ class DRDAConnThread extends Thread {
 	 */
 	private void initializeDatabase(String dbname)
 	{
-		Database db;
+		com.splicemachine.db.impl.drda.Database db;
 		if (appRequester.isXARequester())
 		{
 			db = new XADatabase(dbname);
 		}
 		else
-			db = new Database(dbname);
+			db = new com.splicemachine.db.impl.drda.Database(dbname);
 		if (dbname != null) {
 			session.addDatabase(db);
 			session.database = db;
@@ -8996,7 +8997,7 @@ class DRDAConnThread extends Thread {
 		// using same database so we are done
 		if (database != null && database.getDatabaseName().equals(rdbnam))
 			return;
-		Database d = session.getDatabase(rdbnam);
+		com.splicemachine.db.impl.drda.Database d = session.getDatabase(rdbnam);
 		if (d == null)
 			rdbnamMismatch(codePoint);
 		else
@@ -9201,7 +9202,7 @@ class DRDAConnThread extends Thread {
     {
         String dbName = null;
         AuthenticationService authenticationService = null;
-        com.splicemachine.db.iapi.db.Database databaseObj = null;
+        InternalDatabase databaseObj = null;
         String srvrlslv = appRequester.srvrlslv;
 
         // Check if application requester is the Derby Network Client (DNC)
@@ -9263,7 +9264,7 @@ class DRDAConnThread extends Thread {
             // if monitor is never setup by any ModuleControl, getMonitor
             // returns null and no Derby database has been booted. 
             if (Monitor.getMonitor() != null)
-                databaseObj = (com.splicemachine.db.iapi.db.Database)
+                databaseObj = (InternalDatabase)
                     Monitor.findService(Property.DATABASE_MODULE, dbName);
 
             if (databaseObj == null)
@@ -9272,7 +9273,7 @@ class DRDAConnThread extends Thread {
                 database.makeDummyConnection();
 
                 // now try to find it again
-                databaseObj = (com.splicemachine.db.iapi.db.Database)
+                databaseObj = (InternalDatabase)
                     Monitor.findService(Property.DATABASE_MODULE, dbName);
             }
 

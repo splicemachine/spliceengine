@@ -31,19 +31,16 @@
 
 package com.splicemachine.db.impl.drda;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Hashtable;
-import java.util.Enumeration;
-import java.util.Properties;
-
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
 import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.iapi.reference.MessageId;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
-import com.splicemachine.db.impl.jdbc.Util;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Enumeration;
+import java.util.Hashtable;
+import java.util.Properties;
 
 /**
     Database stores information about the current database
@@ -281,6 +278,7 @@ class Database
      * of this method - main goal is to cause the database to be
      * booted via a dummy connection.
      */
+    @SuppressFBWarnings(value = "DE_MIGHT_IGNORE", justification = "intentional")
     void makeDummyConnection()
     {
         try {

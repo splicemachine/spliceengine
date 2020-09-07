@@ -28,26 +28,11 @@ package com.splicemachine.db.client.net;
 import java.sql.SQLException;
 import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.ClientXAConnection;
-import com.splicemachine.db.client.am.CachingLogicalConnection;
-import com.splicemachine.db.client.am.CallableStatement;
-import com.splicemachine.db.client.am.ClientJDBCObjectFactory;
-import com.splicemachine.db.client.am.LogicalConnection;
-import com.splicemachine.db.client.am.ParameterMetaData;
-import com.splicemachine.db.client.am.PreparedStatement;
-import com.splicemachine.db.client.am.LogicalCallableStatement;
-import com.splicemachine.db.client.am.LogicalPreparedStatement;
-import com.splicemachine.db.client.am.LogWriter;
-import com.splicemachine.db.client.am.Agent;
-import com.splicemachine.db.client.am.Section;
-import com.splicemachine.db.client.am.Statement;
-import com.splicemachine.db.client.am.SqlException;
-import com.splicemachine.db.client.am.Cursor;
+import com.splicemachine.db.client.am.*;
 import com.splicemachine.db.client.am.stmtcache.JDBCStatementCache;
 import com.splicemachine.db.client.am.stmtcache.StatementKey;
 import com.splicemachine.db.jdbc.ClientBaseDataSource;
 import com.splicemachine.db.jdbc.ClientXADataSource;
-import com.splicemachine.db.client.am.ColumnMetaData;
-import com.splicemachine.db.client.am.StatementCacheInteractor;
 
 /**
  * Implements the the ClientJDBCObjectFactory interface and returns the classes
@@ -340,8 +325,8 @@ public class ClientJDBCObjectFactoryImpl implements ClientJDBCObjectFactory{
     /**
      * returns an instance of com.splicemachine.db.client.net.NetDatabaseMetaData
      */
-    public com.splicemachine.db.client.am.DatabaseMetaData newNetDatabaseMetaData(Agent netAgent,
-            com.splicemachine.db.client.am.Connection netConnection) {
+    public ClientDatabaseMetaData newNetDatabaseMetaData(Agent netAgent,
+                                                         com.splicemachine.db.client.am.Connection netConnection) {
         return new NetDatabaseMetaData((NetAgent)netAgent,
                 (NetConnection)netConnection);
     }

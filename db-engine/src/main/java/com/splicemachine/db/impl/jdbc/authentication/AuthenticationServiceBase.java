@@ -651,6 +651,7 @@ public abstract class AuthenticationServiceBase
                     // Ignore as we checked already during service boot-up
         }
 
+        assert algorithm != null;
         algorithm.reset();
         byte[] bytePasswd = null;
         bytePasswd = toHexByte(plainTxtUserPassword);
@@ -826,6 +827,7 @@ public abstract class AuthenticationServiceBase
         // Strong Password Substitution (USRSSBPWD) cannot be supported for
         // targets which can't access or decrypt passwords on their side.
         //
+        assert messageDigest != null;
         messageDigest.reset();
 
         byte[] bytePasswd = null;

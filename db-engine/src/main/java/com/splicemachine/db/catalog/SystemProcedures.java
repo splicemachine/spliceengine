@@ -51,9 +51,9 @@ import com.splicemachine.db.impl.load.Import;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
-import org.apache.commons.codec.language.bm.Lang;
-import org.apache.log4j.Logger;
 import com.splicemachine.utils.StringUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 
 import java.security.AccessController;
 import java.security.Policy;
@@ -716,13 +716,11 @@ public class SystemProcedures{
             query=query+" all update statistics ";
         else
             query=query+" update statistics "+IdUtil.normalToDelimited(indexname);
-        Connection conn=getDefaultConn();
-
-        PreparedStatement ps=conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
-
-        conn.close();
+        try (Connection conn=getDefaultConn()) {
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
+                ps.executeUpdate();
+            }
+        }
     }
 
     /**
@@ -759,9 +757,9 @@ public class SystemProcedures{
 //        String escapedTableName = IdUtil.normalToDelimited(tablename);
 //        String query = "alter table " + escapedSchema + "." + escapedTableName;
 //        if (indexname == null)
-//        	query = query + " all drop statistics ";
+//            query = query + " all drop statistics ";
 //        else
-//        	query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
+//            query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
 //        Connection conn = getDefaultConn();
 //
 //        PreparedStatement ps = conn.prepareStatement(query);
@@ -801,13 +799,11 @@ public class SystemProcedures{
                 "alter table "+escapedSchema+"."+escapedTableName+
                         " compress"+(sequential!=0?" sequential":"");
 
-        Connection conn=getDefaultConn();
-
-        PreparedStatement ps=conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
-
-        conn.close();
+        try (Connection conn=getDefaultConn()) {
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
+                ps.executeUpdate();
+            }
+        }
     }
 
     /**
@@ -1059,18 +1055,16 @@ public class SystemProcedures{
                         +(defragmentRows!=0?" defragment":"")
                         +(truncateEnd!=0?" truncate_end":"");
 
-        Connection conn=getDefaultConn();
-
-        PreparedStatement ps=conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
-
-        conn.close();
+        try (Connection conn=getDefaultConn()) {
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
+                ps.executeUpdate();
+            }
+        }
     }
 
-	/*
-	** SQLJ Procedures.
-	*/
+    /*
+    ** SQLJ Procedures.
+    */
 
     /**
      * Install a jar file in the database.
@@ -1085,26 +1079,26 @@ public class SystemProcedures{
     public static void INSTALL_JAR(String url,String jar,int deploy)
             throws SQLException{
 
-		try {
+        try {
             LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-			String[] st = IdUtil.parseMultiPartSQLIdentifier(jar.trim());
-			String schemaName;
-			String sqlName;
+            String[] st = IdUtil.parseMultiPartSQLIdentifier(jar.trim());
+            String schemaName;
+            String sqlName;
             if (st.length == 1) {
-				schemaName = lcc.getCurrentSchemaName();
-				sqlName = st[0];
+                schemaName = lcc.getCurrentSchemaName();
+                sqlName = st[0];
             }
             else {
                 schemaName = st[0];
-				sqlName = st[1];
-			}
-			checkJarSQLName(sqlName);
+                sqlName = st[1];
+            }
+            checkJarSQLName(sqlName);
             JarUtil.install(lcc, schemaName, sqlName, url);
-		} 
-		catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
-		}
-	}
+        }
+        catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
 
     /**
      * Replace a jar file in the database.
@@ -1259,18 +1253,19 @@ public class SystemProcedures{
             String characterDelimiter,
             String columnDefinitions)
             throws SQLException{
-        Connection conn=getDefaultConn();
-        try{
-            Import.importTable(conn,schemaName,tableName,fileName,
-                    columnDelimiter,characterDelimiter,
-                    columnDefinitions,
-                    true //lobs in external file
-            );
-        }catch(SQLException se){
-            rollBackAndThrowSQLException(conn,se);
+        try (Connection conn=getDefaultConn()) {
+            try {
+                Import.importTable(conn, schemaName, tableName, fileName,
+                        columnDelimiter, characterDelimiter,
+                        columnDefinitions,
+                        true //lobs in external file
+                );
+            } catch (SQLException se) {
+                rollBackAndThrowSQLException(conn, se);
+            }
+            //import finished successfull, commit it.
+            conn.commit();
         }
-        //import finished successfull, commit it.
-        conn.commit();
     }
 
 
@@ -1298,10 +1293,11 @@ public class SystemProcedures{
             String columnDefinitions
     )
             throws SQLException, StandardException{
-        Connection conn=getDefaultConn();
-        Import.importData(conn,schemaName,tableName,
-                insertColumnList,columnIndexes,fileName,
-                columnDelimiter,characterDelimiter,columnDefinitions,false);
+        try (Connection conn=getDefaultConn()) {
+            Import.importData(conn, schemaName, tableName,
+                    insertColumnList, columnIndexes, fileName,
+                    columnDelimiter, characterDelimiter, columnDefinitions, false);
+        }
     }
 
 
@@ -1334,18 +1330,19 @@ public class SystemProcedures{
             String columnDefinitions
     )
             throws SQLException{
-        Connection conn=getDefaultConn();
-        try{
-            Import.importData(conn,schemaName,tableName,
-                    insertColumnList,columnIndexes,fileName,
-                    columnDelimiter,characterDelimiter,
-                    columnDefinitions,true);
-        }catch(SQLException se){
-            rollBackAndThrowSQLException(conn,se);
-        }
+        try (Connection conn=getDefaultConn()) {
+            try {
+                Import.importData(conn, schemaName, tableName,
+                        insertColumnList, columnIndexes, fileName,
+                        columnDelimiter, characterDelimiter,
+                        columnDefinitions, true);
+            } catch (SQLException se) {
+                rollBackAndThrowSQLException(conn, se);
+            }
 
-        //import finished successfull, commit it.
-        conn.commit();
+            //import finished successfull, commit it.
+            conn.commit();
+        }
     }
 
 
@@ -1358,6 +1355,7 @@ public class SystemProcedures{
      *
      * @throws StandardException Standard exception policy.
      **/
+    @SuppressFBWarnings(value="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING", justification = "no sql injection")
     public static void SYSCS_BULK_INSERT(
             String schemaName,
             String tableName,
@@ -1365,28 +1363,28 @@ public class SystemProcedures{
             String vtiArg
     )
             throws SQLException{
-        Connection conn=getDefaultConn();
+        try (Connection conn=getDefaultConn()) {
+            // Use default schema if schemaName is null. This isn't consistent
+            // with the other procedures, as they would fail if schema was null.
+            String entityName = IdUtil.mkQualifiedName(schemaName, tableName);
 
-        // Use default schema if schemaName is null. This isn't consistent
-        // with the other procedures, as they would fail if schema was null.
-        String entityName=IdUtil.mkQualifiedName(schemaName,tableName);
+            String binsertSql =
+                    "insert into " + entityName +
+                            " --DERBY-PROPERTIES insertMode=bulkInsert \n" +
+                            "select * from new " + IdUtil.normalToDelimited(vtiName) +
+                            "(" +
+                            // Ideally, we should have used parameter markers and setString(),
+                            // but some of the VTIs need the parameter values when compiling
+                            // the statement. Therefore, insert the strings into the SQL text.
+                            StringUtil.quoteStringLiteral(schemaName) + ", " +
+                            StringUtil.quoteStringLiteral(tableName) + ", " +
+                            StringUtil.quoteStringLiteral(vtiArg) + ")" +
+                            " as t";
 
-        String binsertSql=
-                "insert into "+entityName+
-                        " --DERBY-PROPERTIES insertMode=bulkInsert \n"+
-                        "select * from new "+IdUtil.normalToDelimited(vtiName)+
-                        "("+
-                        // Ideally, we should have used parameter markers and setString(),
-                        // but some of the VTIs need the parameter values when compiling
-                        // the statement. Therefore, insert the strings into the SQL text.
-                        StringUtil.quoteStringLiteral(schemaName)+", "+
-                        StringUtil.quoteStringLiteral(tableName)+", "+
-                        StringUtil.quoteStringLiteral(vtiArg)+")"+
-                        " as t";
-
-        PreparedStatement ps=conn.prepareStatement(binsertSql);
-        ps.executeUpdate();
-        ps.close();
+            try (PreparedStatement ps = conn.prepareStatement(binsertSql)) {
+                ps.executeUpdate();
+            }
+        }
     }
 
     /**
@@ -1502,6 +1500,7 @@ public class SystemProcedures{
      *
      * @return a random number
      */
+    @SuppressFBWarnings(value="DMI_RANDOM_USED_ONLY_ONCE", justification = "FIX: DB-10207")
     public static double RAND(int seed){
         return (new Random(seed)).nextDouble();
     }
@@ -1877,15 +1876,15 @@ public class SystemProcedures{
             LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
             DataDictionary dd=lcc.getDataDictionary();
 
-			/*
-			 ** Inform the data dictionary that we are about to write to it.
-			 ** There are several calls to data dictionary "get" methods here
-			 ** that might be done in "read" mode in the data dictionary, but
-			 ** it seemed safer to do this whole operation in "write" mode.
-			 **
-			 ** We tell the data dictionary we're done writing at the end of
-			 ** the transaction.
-			 */
+            /*
+             ** Inform the data dictionary that we are about to write to it.
+             ** There are several calls to data dictionary "get" methods here
+             ** that might be done in "read" mode in the data dictionary, but
+             ** it seemed safer to do this whole operation in "write" mode.
+             **
+             ** We tell the data dictionary we're done writing at the end of
+             ** the transaction.
+             */
             dd.startWriting(lcc);
             // Change system schemas to be owned by aid
             dd.updateSystemSchemaAuthorization(aid,tc);
@@ -2086,8 +2085,7 @@ public class SystemProcedures{
     public static void SYSCS_SET_USER_ACCESS(String userName, String connectionPermission) throws SQLException{
         try{
             if(userName==null)
-                throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME,
-                        userName);
+                throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME, (Object) null);
 
             String addListProperty;
             if(Property.FULL_ACCESS.equals(connectionPermission)){

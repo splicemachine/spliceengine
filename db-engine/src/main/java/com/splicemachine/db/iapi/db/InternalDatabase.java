@@ -61,7 +61,7 @@ import java.util.Properties;
  *
  */
 
-public interface Database extends com.splicemachine.db.database.Database, LocaleFinder
+public interface InternalDatabase extends com.splicemachine.db.database.Database, LocaleFinder
 {
     // this interface gets used on a module, so we name it:
     // Note that doers not point to this class name, but instead to
@@ -151,6 +151,4 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
     void dropJar(JarUtil util) throws StandardException;
 
     long replaceJar(final InputStream is, JarUtil util) throws StandardException;
-
-    String getName();
 }

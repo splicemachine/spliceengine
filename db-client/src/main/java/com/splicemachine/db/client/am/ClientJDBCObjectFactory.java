@@ -308,8 +308,8 @@ public interface ClientJDBCObjectFactory {
      * com.splicemachine.db.client.am.DatabaseMetaData which implements
      * java.sql.DatabaseMetaData
      */
-    DatabaseMetaData newNetDatabaseMetaData(Agent netAgent,
-            com.splicemachine.db.client.am.Connection netConnection);
+    ClientDatabaseMetaData newNetDatabaseMetaData(Agent netAgent,
+                                                  com.splicemachine.db.client.am.Connection netConnection);
     
     /**
      * This method provides an instance of Statement or Statement40 

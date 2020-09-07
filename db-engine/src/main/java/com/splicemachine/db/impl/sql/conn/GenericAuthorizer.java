@@ -149,7 +149,7 @@ public class GenericAuthorizer implements Authorizer {
             String dbo = dd.getAuthorizationDatabaseOwner();
             List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 
-            // Database Owner can access any object. Ignore 
+            // Database Owner can access any object. Ignore
             // requiredPermissionsList for Database Owner
             if( requiredPermissionsList != null    && 
                 !requiredPermissionsList.isEmpty() &&

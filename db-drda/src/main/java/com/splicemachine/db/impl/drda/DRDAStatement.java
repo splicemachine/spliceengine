@@ -629,7 +629,7 @@ class DRDAStatement
 	 * This method is used to initialize the default statement of the database
 	 * for re-use. It is different from reset() method since default statements
      * get initialized differently. e.g: stmt variable used in default statement
-	 * is created only once in Database.makeConnection. 
+	 * is created only once in Database.makeConnection.
      * The default statement will be initialized to have the same byte order 
      * etc as the server. This may be changed when a TYPEDEFNAM is received 
      * from the client in DRDAConnThread.setStmtOrDbByteOrder()

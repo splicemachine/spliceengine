@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.jdbc;
 
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -139,7 +139,7 @@ public final class TransactionResourceImpl
     private String ipAddress;
     private String defaultSchema;
     // set these up after constructor, called by EmbedConnection
-    protected Database database;
+    protected InternalDatabase database;
     protected LanguageConnectionContext lcc;
     private Properties sessionProperties;
 
@@ -234,7 +234,7 @@ public final class TransactionResourceImpl
      * The Local Connection sets up the database in its constructor and sets it
      * here.
      */
-    void setDatabase(Database db)
+    void setDatabase(InternalDatabase db)
     {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(database == null,
@@ -286,7 +286,7 @@ public final class TransactionResourceImpl
     String getUrl() {
         return  url;
     }
-    Database getDatabase() {
+    InternalDatabase getDatabase() {
         return  database;
     }
 

@@ -31,8 +31,8 @@
 
 package com.splicemachine.db.impl.jdbc;
 
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.catalog.SystemProcedures;
-import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -239,7 +239,7 @@ public abstract class EmbedConnection implements EngineConnection
             boolean shutdown = Boolean.parseBoolean(info.getProperty(Attribute.SHUTDOWN_ATTR));
 
             // see if database is already booted
-            Database database = (Database) Monitor.findService(Property.DATABASE_MODULE, tr.getDBName());
+            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, tr.getDBName());
 
             // See if user wants to create a new database.
             boolean    createBoot = createBoot(info);
@@ -462,8 +462,8 @@ public abstract class EmbedConnection implements EngineConnection
      * used in the exception message if not booted
      * @throws java.sql.SQLException thrown if database is not booted
      */
-    private void checkDatabaseBooted(Database database,
-                                     String operation, 
+    private void checkDatabaseBooted(InternalDatabase database,
+                                     String operation,
                                      String dbname) throws SQLException {
         if (database == null) {
             // Do not clear the TransactionResource context. It will
@@ -926,7 +926,7 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public int getEngineType()
     {
-        Database db = getDatabase();
+        InternalDatabase db = getDatabase();
 
         if( null == db)
             return 0;
@@ -2116,7 +2116,7 @@ public abstract class EmbedConnection implements EngineConnection
          @exception SQLException if fails to create database
     */
 
-    private Database createDatabase(String dbname, Properties info)
+    private InternalDatabase createDatabase(String dbname, Properties info)
         throws SQLException {
 
         info = filterProperties(info);
@@ -2143,7 +2143,7 @@ public abstract class EmbedConnection implements EngineConnection
         // and they shouldn't be interested in these JDBC attributes.
         info.clear();
 
-        return (Database) Monitor.findService(Property.DATABASE_MODULE, dbname);
+        return (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
     }
 
     /**
@@ -2300,7 +2300,7 @@ public abstract class EmbedConnection implements EngineConnection
             // and they shouldn't be interested in these JDBC attributes.
             info.clear();
 
-            Database database = (Database) Monitor.findService(Property.DATABASE_MODULE, dbname);
+            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
             tr.setDatabase(database);
 
         } catch (StandardException mse) {
@@ -2418,7 +2418,7 @@ public abstract class EmbedConnection implements EngineConnection
     ** their classes into the mix.
     */
 
-    protected Database getDatabase()
+    protected InternalDatabase getDatabase()
     {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(!isClosed(), "connection is closed");

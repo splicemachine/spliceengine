@@ -110,13 +110,12 @@ final class TopService {
         this.serviceLocale = serviceLocale;
     }
 
-    void setTopModule(Object instance) {
-        synchronized (this) {
-            ModuleInstance module = findModuleInstance(instance);
-            if (module != null) {
-                topModule = module;
-                notifyAll();
-            }
+    synchronized void setTopModule(Object instance) {
+        ModuleInstance module = findModuleInstance(instance);
+        if (module != null) {
+            topModule = module;
+            notifyAll();
+        }
 
             // now add an additional entry into the hashtable
             // that maps the server name as seen by the user
@@ -128,18 +127,13 @@ final class TopService {
                     monitor.getServiceName(instance));
                 addToProtocol(userKey, topModule);
             }
-
-        }
     }
 
-    Object getService() {
-
+    synchronized Object getService() {
         return topModule.getInstance();
     }
 
-    boolean isPotentialService(ProtocolKey otherKey) {
-
-
+    synchronized boolean isPotentialService(ProtocolKey otherKey) {
         String otherCanonicalName;
 
         if (serviceType == null)
@@ -159,20 +153,14 @@ final class TopService {
         if (topModule != null)
             return topModule.isTypeAndName(serviceType, key.getFactoryInterface(), otherCanonicalName);
 
-
         return otherKey.getFactoryInterface().isAssignableFrom(key.getFactoryInterface()) && serviceType.isSameService(key.getIdentifier(), otherCanonicalName);
-
     }
 
-    boolean isActiveService() {
-        synchronized (this) {
+    synchronized boolean isActiveService() {
             return (topModule != null);
         }
-    }
 
-    boolean isActiveService(ProtocolKey otherKey) {
-
-        synchronized (this) {
+    synchronized boolean isActiveService(ProtocolKey otherKey) {
             if (inShutdown)
                 return false;
 
@@ -198,8 +186,6 @@ final class TopService {
             }
 
             return !inShutdown;
-
-        }
     }
 
     /**
@@ -328,8 +314,11 @@ final class TopService {
         {
             throw Monitor.missingImplementation(key.getFactoryInterface().getName());
         }
-        ModuleInstance module = new ModuleInstance(instance, key.getIdentifier(), service,
-                topModule == null ? (Object) null : topModule.getInstance());
+        Object top;
+        synchronized (this) {
+            top = topModule == null ? null : topModule.getInstance();
+        }
+        ModuleInstance module = new ModuleInstance(instance, key.getIdentifier(), service, top);
 
         moduleInstances.add(module);
 
@@ -415,9 +404,6 @@ final class TopService {
     */
 
     private boolean addToProtocol(ProtocolKey key, ModuleInstance module) {
-
-        String identifier = module.getIdentifier();
-
         synchronized (this) {
 
             Object value = protocolTable.get(key);
