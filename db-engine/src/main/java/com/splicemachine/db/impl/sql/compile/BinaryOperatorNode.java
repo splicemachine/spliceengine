@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
@@ -40,11 +41,17 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.compile.CalciteConverter;
+import com.splicemachine.db.iapi.sql.compile.ConvertSelectContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.SqlOperator;
+import org.apache.calcite.sql.fun.SqlLibraryOperators;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -976,6 +983,26 @@ public class BinaryOperatorNode extends OperatorNode
 
     public void castRightOperandAndBindCast(DataTypeDescriptor type) throws StandardException {
         castOperandAndBindCast(1, type);
+    }
+
+    @Override
+    public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+        String operator = getOperatorString();
+        SqlOperator sqlOperator;
+        switch (operator) {
+            case "repeat":
+                sqlOperator = SqlLibraryOperators.REPEAT;
+                break;
+            default:
+                throw StandardException.newException(SQLState.LANG_INVADLID_CONVERSION, operator);
+        }
+
+        RexNode leftOperand = getLeftOperand().convertExpression(relConverter, selectContext);
+        RexNode rightOperand = getRightOperand().convertExpression(relConverter, selectContext);
+        RelDataType relDataType = relConverter.mapToRelDataType(dataTypeServices);
+        final RexBuilder rexBuilder = relConverter.getCluster().getRexBuilder();
+        return rexBuilder.makeCall(relDataType, sqlOperator, ImmutableList.copyOf(new RexNode[]{leftOperand, rightOperand}));
+      //  return relConverter.getRelBuilder().call(sqlOperator, leftOperand, rightOperand);
     }
 }
 

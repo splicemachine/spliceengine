@@ -66,6 +66,7 @@ public class SpliceTable extends AbstractQueryableTable implements TranslatableT
         for(int index=0;index<cdl.size();index++) {
             colDesc = cdl.elementAt(index);
             String columnName = colDesc.getColumnName();
+            // TODO - calcite: check if we can use CalciteConvertImpl.mapToRelDataType()
             TypeDescriptor typeDescriptor = colDesc.getType().getCatalogType();
             int jdbcTypeId = typeDescriptor.getJDBCTypeId();
             int precision = typeDescriptor.getPrecision();
