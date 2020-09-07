@@ -85,8 +85,11 @@ public class ClientCallback implements Callback {
         }
     }
 
+    @Override
     public String toString() {
-        return _response.toString();
+        return "ClientCallback{" +
+                "_response=" + _response +
+                '}';
     }
 
     public TimestampMessage.TimestampResponse getResponse() {

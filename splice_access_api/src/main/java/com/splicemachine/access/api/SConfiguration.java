@@ -215,6 +215,8 @@ public interface SConfiguration {
     int getRollforwardSecondThreads();
 
     int getTimestampClientWaitTime();
+    int getTimestampClientQueues();
+    boolean isTimestampClientBatched();
 
     int getTimestampServerBindPort();
 

@@ -183,6 +183,8 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int readResolverQueueSize;
     private final  int readResolverThreads;
     private final  int timestampClientWaitTime;
+    private final  int timestampClientQueues;
+    private final  boolean timestampClientBatched;
     private final  int timestampServerBindPort;
     private final  int transactionKeepAliveThreads;
     private final  int transactionLockStripes;
@@ -729,6 +731,14 @@ public final class SConfigurationImpl implements SConfiguration {
         return timestampClientWaitTime;
     }
     @Override
+    public int getTimestampClientQueues() {
+        return timestampClientQueues;
+    }
+    @Override
+    public boolean isTimestampClientBatched() {
+        return timestampClientBatched;
+    }
+    @Override
     public int getTimestampServerBindPort() {
         return timestampServerBindPort;
     }
@@ -953,6 +963,8 @@ public final class SConfigurationImpl implements SConfiguration {
         readResolverQueueSize = builder.readResolverQueueSize;
         readResolverThreads = builder.readResolverThreads;
         timestampClientWaitTime = builder.timestampClientWaitTime;
+        timestampClientQueues = builder.timestampClientQueues;
+        timestampClientBatched = builder.timestampClientBatched;
         timestampServerBindPort = builder.timestampServerBindPort;
         transactionKeepAliveThreads = builder.transactionKeepAliveThreads;
         transactionLockStripes = builder.transactionLockStripes;
