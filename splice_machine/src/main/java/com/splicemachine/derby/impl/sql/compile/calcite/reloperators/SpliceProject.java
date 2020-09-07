@@ -20,6 +20,7 @@ import org.apache.calcite.rel.core.Project;
 import org.apache.calcite.rel.metadata.RelMetadataQuery;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeField;
+import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
@@ -91,6 +92,9 @@ public class SpliceProject extends Project implements SpliceRelNode {
                 rc.setReferenced();
             } else if (sourceExp instanceof RexLiteral) {
                 rc.setExpression(implementor.convertExpression(sourceExp, null));
+                rc.setReferenced();
+            } else if (sourceExp instanceof RexCall) {
+                rc.setExpression(implementor.convertExpression(sourceExp, source));
                 rc.setReferenced();
             } else {
                 // TODO

@@ -1080,7 +1080,6 @@ public class BinaryOperatorNode extends OperatorNode
         RelDataType relDataType = relConverter.mapToRelDataType(dataTypeServices);
         final RexBuilder rexBuilder = relConverter.getCluster().getRexBuilder();
         return rexBuilder.makeCall(relDataType, sqlOperator, ImmutableList.copyOf(new RexNode[]{leftOperand, rightOperand}));
-      //  return relConverter.getRelBuilder().call(sqlOperator, leftOperand, rightOperand);
     }
 }
 
