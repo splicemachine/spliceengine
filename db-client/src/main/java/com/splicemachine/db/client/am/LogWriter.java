@@ -243,9 +243,9 @@ public class LogWriter {
             return "Clob";
         }
         // Not yet externalizing dbmd catalog call tracing, except for trace_all
-        else if (instance instanceof DatabaseMetaData && loggingEnabled(ClientDataSource.TRACE_ALL)) // add a trace level for dbmd ??
+        else if (instance instanceof ClientDatabaseMetaData && loggingEnabled(ClientDataSource.TRACE_ALL)) // add a trace level for dbmd ??
         {
-            return "DatabaseMetaData";
+            return "ClientDatabaseMetaData";
         }
         // we don't use instanceof javax.transaction.XAResource to avoid dependency on j2ee.jar
         else if (loggingEnabled(ClientDataSource.TRACE_XA_CALLS) &&
@@ -348,7 +348,7 @@ public class LogWriter {
         traceExit(instance, methodName, returnValue);
     }
 
-    public void traceExit(Object instance, String methodName, DatabaseMetaData returnValue) {
+    public void traceExit(Object instance, String methodName, ClientDatabaseMetaData returnValue) {
         if (traceSuspended()) {
             return;
         }

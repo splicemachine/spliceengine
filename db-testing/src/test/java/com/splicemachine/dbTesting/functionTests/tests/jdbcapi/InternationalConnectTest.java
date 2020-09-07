@@ -51,7 +51,7 @@ public class InternationalConnectTest extends BaseJDBCTestCase {
 
     /**
      * Test connecting with multibyte characters in:
-     * - Database name 
+     * - Database name
      * - User
      * - Password
      * 

@@ -43,9 +43,9 @@ public abstract class Connection
 
     public Agent agent_;
 
-    public DatabaseMetaData databaseMetaData_;
+    public ClientDatabaseMetaData databaseMetaData_;
     // DERBY-210 -  WeakHashMap is used to store references to objects to avoid
-    // memory leaks. When there are no other references to the keys in a 
+    // memory leaks. When there are no other references to the keys in a
     // WeakHashMap, they will get removed from the map and can thus get 
     // garbage-collected. They do not have to wait till the Connection object 
     // is collected.
@@ -1953,7 +1953,7 @@ public abstract class Connection
     protected abstract Agent newAgent_(LogWriter logWriter, int loginTimeout, String serverName, int portNumber, int clientSSLMode) throws SqlException;
 
 
-    protected abstract DatabaseMetaData newDatabaseMetaData_();
+    protected abstract ClientDatabaseMetaData newDatabaseMetaData_();
 
     protected abstract Statement newStatement_(int type,
                                                int concurrency,

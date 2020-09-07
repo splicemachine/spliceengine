@@ -32,7 +32,7 @@
 package com.splicemachine.db.impl.db;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -99,7 +99,7 @@ import java.util.Properties;
  *
  */
 
-public class BasicDatabase implements ModuleControl, ModuleSupportable, PropertySetCallback, Database, JarReader
+public class BasicDatabase implements ModuleControl, ModuleSupportable, PropertySetCallback, InternalDatabase, JarReader
 {
 	protected boolean	active;
 	private AuthenticationService authenticationService;
@@ -143,7 +143,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 			if (startParams.getProperty(Property.CREATE_WITH_NO_LOG) == null)
 				startParams.put(Property.CREATE_WITH_NO_LOG, "true");
 
-			String localeID = 
+			String localeID =
                 startParams.getProperty(
                     Attribute.TERRITORY);
 
@@ -155,16 +155,16 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		} else {
 			databaseLocale = monitor.getLocale(this);
 		}
-		setLocale(databaseLocale);      
+		setLocale(databaseLocale);
 
 		// boot the validation needed to do property validation, now property
 		// validation is separated from AccessFactory, therefore from store
 		bootValidation(create, startParams);
-		
+
 		// boot the type factory before store to ensure any dynamically
-		// registered types (DECIMAL) are there before logical undo recovery 
+		// registered types (DECIMAL) are there before logical undo recovery
         // might need them.
-		DataValueFactory dvf = (DataValueFactory) 
+		DataValueFactory dvf = (DataValueFactory)
             Monitor.bootServiceModule(
                 create, 
                 this,
@@ -186,18 +186,18 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 			pf.addPropertySetNotification(this);
 
 			// Boot the ClassFactory, will be per-database or per-system.
-			// reget the tc in case someone inadverdently destroyed it 
+			// reget the tc in case someone inadverdently destroyed it
 		bootClassFactory(create, allParams);
         
         dd = (DataDictionary)
             Monitor.bootServiceModule(create, this,
                     DataDictionary.MODULE, allParams);
 
-		lcf = (LanguageConnectionFactory) 
+		lcf = (LanguageConnectionFactory)
             Monitor.bootServiceModule(
                 create, this, LanguageConnectionFactory.MODULE, allParams);
 
-		lf = (LanguageFactory) 
+		lf = (LanguageFactory)
             Monitor.bootServiceModule(
                 create, this, LanguageFactory.MODULE, allParams);
 
@@ -252,7 +252,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 	*/
 
 	/*
-	 * Database interface
+     * Database interface
  	 */
 
 	/**
@@ -317,11 +317,11 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		//
 		//Initialize our language connection context. Note: This is
 		//a bit of a hack. Unfortunately, we can't initialize this
-		//when we push it. We first must push a few more contexts. 
-		lctx.initialize();		
+		//when we push it. We first must push a few more contexts.
+		lctx.initialize();
 
-		// Need to commit this to release locks gotten in initialize.  
-		// Commit it but make sure transaction not have any updates. 
+		// Need to commit this to release locks gotten in initialize.
+		// Commit it but make sure transaction not have any updates.
 		lctx.internalCommitNoSync(
 			TransactionController.RELEASE_LOCKS |
 			TransactionController.READONLY_TRANSACTION_INITIALIZATION);
@@ -357,7 +357,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		//
 		if (SanityManager.DEBUG)
 		{
-			SanityManager.ASSERT(this.authenticationService != null, 
+			SanityManager.ASSERT(this.authenticationService != null,
 				"Unexpected - There is no valid authentication service for the database!");
 		}
 		return this.authenticationService;
@@ -410,7 +410,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		}
 	}
 
-	/* Methods from com.splicemachine.db.database.Database */
+    /* Methods from com.splicemachine.db.database.Database */
 	public Locale getLocale() {
 		return databaseLocale;
 	}
@@ -507,7 +507,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 	protected	UUID	makeDatabaseID(boolean create, Properties startParams)
 		throws StandardException
 	{
-		
+
 		TransactionController tc = af.getTransaction(
 				ContextService.getFactory().getCurrentContextManager());
 
@@ -521,7 +521,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
 			UUIDFactory	uuidFactory  = Monitor.getMonitor().getUUIDFactory();
 
-			
+
 			upgradeID = startParams.getProperty(DataDictionary.DATABASE_ID);
 			if (upgradeID == null )
 			{
@@ -576,7 +576,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		//Disallow setting static creation time only configuration properties
 	    if (key.equals(EngineType.PROPERTY))
 			throw StandardException.newException(SQLState.PROPERTY_UNSUPPORTED_CHANGE, key, value);
-	
+
 		// only interested in the classpath
 		if (!key.equals(Property.DATABASE_CLASSPATH)) return false;
 
@@ -626,7 +626,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 			//
 			// Invalidate stored plans.
             getDataDictionary().invalidateAllSPSPlans();
-		
+
 			String newClasspath = (String) value;
 			if (newClasspath == null) newClasspath = "";
 			cfDB.notifyModifyClasspath(newClasspath);
@@ -642,7 +642,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 	}
 
 	/*
-	 * methods specific to this class 
+	 * methods specific to this class
 	 */
 	protected void createFinished() throws StandardException
 	{
@@ -660,9 +660,9 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
 
 	protected void bootClassFactory(boolean create,
-								  Properties startParams) 
+								  Properties startParams)
 		 throws StandardException
-	{ 
+	{
 			String classpath = getClasspath(startParams);
 
 			// parse the class path and allow 2 part names.
@@ -731,7 +731,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 		// this database is going to be used.
 		try
 		{
-			resourceAdapter = 
+			resourceAdapter =
 				Monitor.bootServiceModule(create, this,
 										 Module.ResourceAdapter,
 										 allParams);
@@ -888,7 +888,5 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 			// reenable class loading from this jar
 			util.notifyLoader(true);
 		}
-
-
-	}
+    }
 }

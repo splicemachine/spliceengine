@@ -26,7 +26,7 @@ package com.splicemachine.db.client.net;
 
 import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.am.CallableStatement;
-import com.splicemachine.db.client.am.DatabaseMetaData;
+import com.splicemachine.db.client.am.ClientDatabaseMetaData;
 import com.splicemachine.db.client.am.PreparedStatement;
 import com.splicemachine.db.client.am.Statement;
 import com.splicemachine.db.client.am.*;
@@ -1310,7 +1310,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     }
 
 
-    protected DatabaseMetaData newDatabaseMetaData_() {
+    protected ClientDatabaseMetaData newDatabaseMetaData_() {
             return ClientDriver.getFactory().newNetDatabaseMetaData(netAgent_, this);
     }
 

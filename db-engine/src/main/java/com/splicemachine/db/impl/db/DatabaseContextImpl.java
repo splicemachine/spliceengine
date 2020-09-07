@@ -31,12 +31,12 @@
 
 package com.splicemachine.db.impl.db;
 
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
@@ -48,9 +48,9 @@ import com.splicemachine.db.iapi.error.ExceptionSeverity;
 final class DatabaseContextImpl extends ContextImpl implements DatabaseContext
 {
 
-	private final Database	db;
+	private final InternalDatabase db;
 
-	DatabaseContextImpl(ContextManager cm, Database db) {
+	DatabaseContextImpl(ContextManager cm, InternalDatabase db) {
 		super(cm, DatabaseContextImpl.CONTEXT_ID);
 		this.db = db;
 	}
@@ -93,5 +93,5 @@ final class DatabaseContextImpl extends ContextImpl implements DatabaseContext
 		return db.hashCode();
 	}
 
-	public Database getDatabase() {return db;}
+	public InternalDatabase getDatabase() {return db;}
 }

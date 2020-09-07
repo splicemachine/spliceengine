@@ -149,8 +149,6 @@ public class ConsistencyChecker
 
             dd = lcc.getDataDictionary();
 
-            dvf = lcc.getDataValueFactory();
-            
             ExecutionFactory ef = lcc.getLanguageConnectionFactory().getExecutionFactory();
 
             sd = dd.getSchemaDescriptor(schemaName, tc, true);
