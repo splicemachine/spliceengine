@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.derby.impl.sql.compile.calcite.SpliceContext;
 import org.apache.calcite.avatica.util.ByteString;
@@ -19,6 +20,8 @@ import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlBinaryOperator;
+import org.apache.calcite.sql.SqlKind;
+import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -51,7 +54,7 @@ public class SpliceImplementor {
           return null;
 
       if (expression instanceof RexLiteral)
-          return literalToValueNode((RexLiteral)expression);
+          return literalToValueNode((RexLiteral) expression);
 
       if (expression instanceof RexInputRef) {
           // map to ColumnReference
@@ -61,7 +64,39 @@ public class SpliceImplementor {
           // TODO do we still need to fill the tableNumber for columnreference?
           return cr;
       }
-      assert false: "TODO: convert expressions";
+
+      if (expression instanceof RexCall) {
+          RexCall rexCall = (RexCall)expression;
+          SqlOperator op = rexCall.getOperator();
+          SqlKind kind = op.getKind();
+          // binary operators:
+          switch (kind) {
+              case OTHER_FUNCTION:
+                  ValueNode leftOperand = convertExpression(rexCall.getOperands().get(0), source);
+                  ValueNode rightOperand = convertExpression(rexCall.getOperands().get(1), source);
+                  if (op.getName().equals("REPEAT")) {
+                      ValueNode binaryOpNode = (BinaryOperatorNode) nodeFactory.getNode(C_NodeTypes.REPEAT_OPERATOR_NODE, leftOperand, rightOperand, ReuseFactory.getInteger(BinaryOperatorNode.REPEAT), contextManager);
+                      DataTypeDescriptor dtd = new DataTypeDescriptor(leftOperand.getTypeId(), rexCall.getType().getPrecision(),
+                              rexCall.getType().getScale(), rexCall.getType().isNullable(),
+                              rexCall.getType().getPrecision());
+                      binaryOpNode.setType(dtd);
+                      return binaryOpNode;
+                  }
+                  break;
+              // binary arithematic operators:
+              case PLUS:
+              case MINUS:
+              case DIVIDE:
+              case TIMES:
+              case MOD:
+                  break;
+              default:
+                  assert false : "TODO: convert expressions";
+                  break;
+            }
+        } else {
+            assert false : "TODO: convert expressions";
+        }
 
       return null;
     }
