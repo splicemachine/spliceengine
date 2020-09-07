@@ -24,16 +24,13 @@
  */
 package com.splicemachine.db.client.net;
 
-import com.splicemachine.db.client.am.ClientMessageId;
-import com.splicemachine.db.client.am.Configuration;
-import com.splicemachine.db.client.am.ProductLevel;
-import com.splicemachine.db.client.am.SqlException;
+import com.splicemachine.db.client.am.*;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 
-public class NetDatabaseMetaData extends com.splicemachine.db.client.am.DatabaseMetaData {
+public class NetDatabaseMetaData extends ClientDatabaseMetaData {
 
     public NetDatabaseMetaData(NetAgent netAgent, NetConnection netConnection) {
         // Consider setting product level during parse

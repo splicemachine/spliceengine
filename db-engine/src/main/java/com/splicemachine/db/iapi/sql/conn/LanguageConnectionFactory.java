@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.iapi.sql.conn;
 
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 
 import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
@@ -112,7 +112,7 @@ public interface LanguageConnectionFactory {
 	newLanguageConnectionContext(ContextManager cm,
 								TransactionController tc,
 								LanguageFactory lf,
-								Database db,
+								InternalDatabase db,
 								String userName,
 								List<String> groupuserlist,
 								String drdaID,

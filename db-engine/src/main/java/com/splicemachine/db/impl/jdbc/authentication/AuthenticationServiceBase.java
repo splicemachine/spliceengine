@@ -121,7 +121,7 @@ import java.util.*;
 public abstract class AuthenticationServiceBase
 	implements AuthenticationService, ModuleControl, ModuleSupportable, PropertySetCallback {
 
-	protected UserAuthenticator authenticationScheme; 
+	protected UserAuthenticator authenticationScheme;
 
 	// required to retrieve service properties
 	private AccessFactory store;
@@ -227,9 +227,9 @@ public abstract class AuthenticationServiceBase
 
 		if (SanityManager.DEBUG)
 		{
-			SanityManager.ASSERT(this.authenticationScheme != null, 
+			SanityManager.ASSERT(this.authenticationScheme != null,
 				"There is no authentication scheme for that service!");
-		
+
 			if (SanityManager.DEBUG_ON(AuthenticationTrace)) {
 
 				java.io.PrintWriter iDbgStream =
@@ -319,7 +319,7 @@ public abstract class AuthenticationServiceBase
 //							    userName + "]"+ ", database [" +
 //							    databaseName + "]");
 				// The following will print the stack trace of the
-				// authentication request to the log.  
+				// authentication request to the log.
 				//Throwable t = new Throwable();
 				//istream.println("Authentication Request Stack trace:");
 				//t.printStackTrace(istream.getPrintWriter());
@@ -651,6 +651,7 @@ public abstract class AuthenticationServiceBase
 					// Ignore as we checked already during service boot-up
 		}
 
+        assert algorithm != null;
 		algorithm.reset();
 		byte[] bytePasswd = null;
         bytePasswd = toHexByte(plainTxtUserPassword);
@@ -826,6 +827,7 @@ public abstract class AuthenticationServiceBase
         // Strong Password Substitution (USRSSBPWD) cannot be supported for
         // targets which can't access or decrypt passwords on their side.
         //
+        assert messageDigest != null;
         messageDigest.reset();
 
         byte[] bytePasswd = null;

@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.sql.conn;
 
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
@@ -145,7 +145,7 @@ public class GenericLanguageConnectionFactory
 		ContextManager cm,
 		TransactionController tc,
 		LanguageFactory lf,
-		Database db,
+		InternalDatabase db,
 		String userName,
 		List<String> groupuserlist,
 		String drdaID,

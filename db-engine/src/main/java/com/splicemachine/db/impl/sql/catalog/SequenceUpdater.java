@@ -31,7 +31,7 @@
 package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.SequencePreallocator;
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -234,7 +234,7 @@ public abstract class SequenceUpdater implements Cacheable
             LanguageConnectionContext lcc = getLCC();
             if (lcc != null)
             {
-                Database db = lcc.getDatabase();
+                InternalDatabase db = lcc.getDatabase();
                 boolean isactive = (db != null && db.isActive());
                 lcc.getContextManager().cleanupOnError(se, isactive);
             }

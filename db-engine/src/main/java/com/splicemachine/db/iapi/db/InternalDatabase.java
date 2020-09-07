@@ -61,15 +61,15 @@ import java.util.Properties;
  *
  */
 
-public interface Database extends com.splicemachine.db.database.Database, LocaleFinder
+public interface InternalDatabase extends com.splicemachine.db.database.Database, LocaleFinder
 {
 	// this interface gets used on a module, so we name it:
 	// Note that doers not point to this class name, but instead to
 	// the public API for this class. This ensures that the name
 	// written in service.properties is not a obfuscated one.
-	
+
 	/**
-	 * Sets up a connection to the Database, owned by the given user.
+     * Sets up a connection to the Database, owned by the given user.
 	 *
 	 * The JDBC version of getConnection takes a URL. The purpose
 	 * of the URL is to tell the driver where the database system is.
@@ -151,5 +151,4 @@ public interface Database extends com.splicemachine.db.database.Database, Locale
 	void dropJar(JarUtil util) throws StandardException;
 
 	long replaceJar(final InputStream is, JarUtil util) throws StandardException;
-
 }

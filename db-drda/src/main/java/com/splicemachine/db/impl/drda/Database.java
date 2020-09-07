@@ -44,9 +44,10 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.impl.jdbc.Util;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
-	Database stores information about the current database
+    Database stores information about the current database
 	It is used so that a session may have more than one database
 */
 class Database
@@ -56,7 +57,7 @@ class Database
      * it is probably wise to keep dbName and shortDbName private and have 
      * accessors for them.
      */
-	private String dbName;			// database name 
+	private String dbName;			// database name
 	private String shortDbName;       // database name without attributes
 	String attrString="";               // attribute string
 	protected int securityMechanism;	// Security mechanism
@@ -65,9 +66,9 @@ class Database
 	protected String decryptedUserId;	// Decrypted User id
 	protected String decryptedPassword;	// Decrypted password
     protected byte[] passwordSubstitute;// password substitute - SECMEC_USRSSBPWD
-	protected boolean rdbAllowUpdates = true; // Database allows updates -default is true		
+    protected boolean rdbAllowUpdates = true; // Database allows updates -default is true
 	protected int	accessCount;		// Number of times we have tried to
-										// set up access to this database (only 1 
+										// set up access to this database (only 1
 										// allowed)
     protected byte[] secTokenIn;		// Security token from app requester
     protected byte[] secTokenOut;		// Security token sent to app requester
@@ -87,15 +88,15 @@ class Database
      * Connection to the database in the embedded engine.
      */
 	private EngineConnection conn;
-	DRDAStatement defaultStatement;    // default statement used 
+	DRDAStatement defaultStatement;    // default statement used
 													   // for execute imm
 	private DRDAStatement currentStatement; // current statement we are working on
 	private Hashtable stmtTable;		// Hash table for storing statements
 
 	// constructor
 	/**
-	 * Database constructor
-	 * 
+     * Database constructor
+	 *
 	 * @param dbName	database name
 	 */
 	Database (String dbName)
@@ -108,7 +109,7 @@ class Database
 	/**
 	 * Take database name including attributes and set
 	 * attrString and shortDbName accordingly.
-	 * 
+	 *
 	 * @param dbName database name, including attributes.
 	 */
 	public void setDatabaseName(String dbName) {
@@ -127,15 +128,15 @@ class Database
 		this.dbName = dbName;
 
 	}
-	
+
 	public String getDatabaseName() {
 	    return this.dbName;
 	}
-	
+
 	public String getShortDbName() {
 	    return this.shortDbName;
 	}
-	
+
 	private void initializeDefaultStatement()
 	{
 		this.defaultStatement = new DRDAStatement(this);
@@ -168,12 +169,12 @@ class Database
 		return conn;
 	}
 	/**
-	 * Get current DRDA statement 
+	 * Get current DRDA statement
 	 *
 	 * @return DRDAStatement
 	 * @exception SQLException
 	 */
-	protected DRDAStatement getCurrentStatement() 
+	protected DRDAStatement getCurrentStatement()
 	{
 		return currentStatement;
 	}
@@ -182,7 +183,7 @@ class Database
 	 *
 	 * @return DRDAStatement
 	 */
-	protected DRDAStatement getDefaultStatement() 
+	protected DRDAStatement getDefaultStatement()
 	{
 		currentStatement = defaultStatement;
 		return defaultStatement;
@@ -195,7 +196,7 @@ class Database
 	 * @param pkgnamcsn package/ section # for statement
 	 * @return DRDAStatement
 	 */
-	protected DRDAStatement getDefaultStatement(Pkgnamcsn pkgnamcsn) 
+	protected DRDAStatement getDefaultStatement(Pkgnamcsn pkgnamcsn)
 	{
 		currentStatement = defaultStatement;
 		currentStatement.setPkgnamcsn(pkgnamcsn);
@@ -203,17 +204,17 @@ class Database
 	}
 
 	/**
-	 * Get a new DRDA statement and store it in the stmtTable if stortStmt is 
+	 * Get a new DRDA statement and store it in the stmtTable if stortStmt is
 	 * true. If possible recycle an existing statement. When the server gets a
-	 * new statement with a previously used pkgnamcsn, it means that 
-	 * client-side statement associated with this pkgnamcsn has been closed. In 
-	 * this case, server can re-use the DRDAStatement by doing the following:  
+	 * new statement with a previously used pkgnamcsn, it means that
+	 * client-side statement associated with this pkgnamcsn has been closed. In
+	 * this case, server can re-use the DRDAStatement by doing the following:
 	 * 1) Retrieve the old DRDAStatement associated with this pkgnamcsn and
 	 * close it.
 	 * 2) Reset the DRDAStatement state for re-use.
-	 * 
+	 *
 	 * @param pkgnamcsn  Package name and section
-	 * @return DRDAStatement  
+	 * @return DRDAStatement
 	 */
 	protected DRDAStatement newDRDAStatement(Pkgnamcsn pkgnamcsn)
 	throws SQLException
@@ -249,7 +250,7 @@ class Database
 	}
 
 	/**
-	 * Make a new connection using the database name and set 
+	 * Make a new connection using the database name and set
 	 * the connection in the database
 	 * @param p Properties for connection attributes to pass to connect
 	 */
@@ -287,6 +288,7 @@ class Database
      * of this method - main goal is to cause the database to be
      * booted via a dummy connection.
      */
+    @SuppressFBWarnings(value = "DE_MIGHT_IGNORE", justification = "intentional")
     void makeDummyConnection()
     {
         try {
@@ -308,9 +310,9 @@ class Database
 	{
 		if (p == null)
 			return null;
-		
+
 		Enumeration pKeys = p.propertyNames();
-		while (pKeys.hasMoreElements()) 
+		while (pKeys.hasMoreElements())
 		{
 			String key = (String) pKeys.nextElement();
 			attrString +=";" + key  + "=" + p.getProperty(key);
@@ -333,7 +335,7 @@ class Database
 		stmtTable.remove(stmt.getPkgnamcsn().getStatementKey());
 		stmt.close();
 	}
-	
+
 	/**
 	 * Make statement the current statement
 	 * @param stmt
@@ -348,24 +350,24 @@ class Database
    
 	protected void commit() throws SQLException
 	{
-		
+
 		if (conn != null)
 			conn.commit();
 	}
 
 	protected void rollback() throws SQLException
 	{
-		
+
 		if (conn != null)
 			conn.rollback();
 	}
 	/**
-	  * Database close does following cleanup tasks
-	  * 1)Rollback any pending transaction on the Connection object (except 
-	  * for a global-XA Connection obejct) before closing the Connection. 
-	  * Without the rollback, the Connection close will result into an 
+      * Database close does following cleanup tasks
+	  * 1)Rollback any pending transaction on the Connection object (except
+	  * for a global-XA Connection obejct) before closing the Connection.
+	  * Without the rollback, the Connection close will result into an
 	  * exception if there is a pending transaction on that Connection.
-	  * 2)Clean up the statement table 
+	  * 2)Clean up the statement table
 	  * @throws SQLException on conn.close() error to be handled in DRDAConnThread.
 	  */
 	protected void close() throws SQLException
@@ -374,13 +376,13 @@ class Database
 		try {
 			if (stmtTable != null)
 			{
-				for (Enumeration e = stmtTable.elements() ; e.hasMoreElements() ;) 
+				for (Enumeration e = stmtTable.elements() ; e.hasMoreElements() ;)
 				{
 					((DRDAStatement) e.nextElement()).close();
 				}
-			
+
 			}
-			if (defaultStatement != null)			
+			if (defaultStatement != null)
 				defaultStatement.close();
 			if ((conn != null) && !conn.isClosed())
 			{
@@ -389,7 +391,7 @@ class Database
 				{
 					conn.rollback();
 				}
-				conn.close();					
+				conn.close();
 			}
 		}
 		finally {
@@ -409,11 +411,11 @@ class Database
 	/**
 	 *  Set the internal isolation level to use for preparing statements.
 	 *  Subsequent prepares will use this isoalation level
-	 * @param level internal isolation level 
+	 * @param level internal isolation level
 	 *
 	 * @throws SQLException
 	 * @see EngineConnection#setPrepareIsolation
-	 * 
+	 *
 	 */
 	final void setPrepareIsolation(int level) throws SQLException
 	{
@@ -426,17 +428,17 @@ class Database
 	}
 
 	protected String buildRuntimeInfo(String indent, LocalizedResource localLangUtil)
-	{	
-	  
-		String s = indent + 
+	{
+
+		String s = indent +
 		localLangUtil.getTextMessage("DRDA_RuntimeInfoDatabase.I") +
-			dbName + "\n" +  
+			dbName + "\n" +
 		localLangUtil.getTextMessage("DRDA_RuntimeInfoUser.I")  +
 			userId +  "\n" +
 		localLangUtil.getTextMessage("DRDA_RuntimeInfoNumStatements.I") +
 			stmtTable.size() + "\n";
 		s += localLangUtil.getTextMessage("DRDA_RuntimeInfoPreparedStatementHeader.I");
-		for (Enumeration e = stmtTable.elements() ; e.hasMoreElements() ;) 
+		for (Enumeration e = stmtTable.elements() ; e.hasMoreElements() ;)
 				{
 					s += ((DRDAStatement) e.nextElement()).toDebugString(indent
 																		 +"\t") +"\n";

@@ -323,8 +323,8 @@ public abstract class DDLConstantAction implements ConstantAction
         List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 		SettableBoolean roleDepAdded = new SettableBoolean();
 
-		//If the Database Owner is creating this constraint, then no need to 
-		//collect any privilege dependencies because the Database Owner can   
+		//If the Database Owner is creating this constraint, then no need to
+		//collect any privilege dependencies because the Database Owner can
 		//access any objects without any restrictions
         if (! (currentUser.equals(dbo) || (groupuserlist != null && groupuserlist.contains(dbo))))
 		{
