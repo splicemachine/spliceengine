@@ -102,13 +102,14 @@ public abstract class DDLConstantAction implements ConstantAction
     public static SchemaDescriptor getSchemaDescriptorForCreate(
                         DataDictionary        dd,
                         Activation activation,
+                        UUID dbId,
                         String schemaName)
         throws StandardException
     {
         TransactionController tc = activation.
             getLanguageConnectionContext().getTransactionExecute();
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, false);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(dbId, schemaName, tc, false);
 
         if (sd == null || sd.getUUID() == null) {
             CreateSchemaConstantAction csca
@@ -139,7 +140,7 @@ public abstract class DDLConstantAction implements ConstantAction
             }
 
 
-            sd = dd.getSchemaDescriptor(schemaName, tc, true);
+            sd = dd.getSchemaDescriptor(dbId, schemaName, tc, true);
         }
 
         return sd;

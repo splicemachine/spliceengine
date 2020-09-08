@@ -589,7 +589,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         if (dbcp != null)
         {
             for (String[] aDbcp : dbcp) {
-                SchemaDescriptor sd = dd.getSchemaDescriptor(aDbcp[IdUtil.DBCP_SCHEMA_NAME], null, false);
+                SchemaDescriptor sd = dd.getSchemaDescriptor(getId(), aDbcp[IdUtil.DBCP_SCHEMA_NAME], null, false);
 
                 FileInfoDescriptor fid = null;
                 if (sd != null)
@@ -747,7 +747,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
     public StorageFile getJarFile(String schemaName, String sqlName)
         throws StandardException {
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, null, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(getId(), schemaName, null, true);
         FileInfoDescriptor fid = dd.getFileInfoDescriptor(sd,sqlName);
         if (fid == null)
             throw StandardException.newException(SQLState.LANG_JAR_FILE_DOES_NOT_EXIST, sqlName, schemaName);
@@ -774,7 +774,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
                     StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
                             fid.getDescriptorType(), util.getSqlName(), fid.getSchemaDescriptor().getDescriptorType(), util.getSchemaName());
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(util.getSchemaName(), null, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(getId(), util.getSchemaName(), null, true);
         try {
             util.notifyLoader(false);
             dd.invalidateAllSPSPlans(); // This will break other nodes, must do ddl

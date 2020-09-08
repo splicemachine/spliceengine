@@ -45,240 +45,240 @@ import com.splicemachine.db.iapi.util.IdUtil;
 
 public class TableName extends QueryTreeNode
 {
-	/* Both schemaName and tableName can be null, however, if 
-	** tableName is null then schemaName must also be null.
-	*/
-	String	tableName;
-	String	schemaName;
-	private boolean hasSchema;
+    /* Both schemaName and tableName can be null, however, if
+    ** tableName is null then schemaName must also be null.
+    */
+    String    tableName;
+    String    schemaName;
+    private boolean hasSchema;
 
-	/**
-	 * Initializer for when you have both the table and schema names.
-	 *
-	 * @param schemaName	The name of the schema being referenced
-	 * @param tableName		The name of the table being referenced	 
-	 */
+    /**
+     * Initializer for when you have both the table and schema names.
+     *
+     * @param schemaName    The name of the schema being referenced
+     * @param tableName        The name of the table being referenced
+     */
 
-	public void init(Object schemaName, Object tableName)
-	{
-		hasSchema = schemaName != null;
-		this.schemaName = (String) schemaName;
-		this.tableName = (String) tableName;
-	}
+    public void init(Object schemaName, Object tableName)
+    {
+        hasSchema = schemaName != null;
+        this.schemaName = (String) schemaName;
+        this.tableName = (String) tableName;
+    }
 
-	/**
-	 * Initializer for when you have both the table and schema names.
-	 *
-	 * @param schemaName	The name of the schema being referenced
-	 * @param tableName		The name of the table being referenced	 
-	 * @param tokBeginOffset begin position of token for the table name 
-	 *					identifier from parser.  pass in -1 if unknown
-	 * @param tokEndOffset	end position of token for the table name 
-	 *					identifier from parser.  pass in -1 if unknown
-	 */
-	public void init
-	(
-		Object schemaName, 
-		Object tableName, 
-		Object	tokBeginOffset,
-		Object	tokEndOffset
-	)
-	{
-		init(schemaName, tableName);
-		this.setBeginOffset((Integer) tokBeginOffset);
-		this.setEndOffset((Integer) tokEndOffset);
-	}
+    /**
+     * Initializer for when you have both the table and schema names.
+     *
+     * @param schemaName    The name of the schema being referenced
+     * @param tableName        The name of the table being referenced
+     * @param tokBeginOffset begin position of token for the table name
+     *                    identifier from parser.  pass in -1 if unknown
+     * @param tokEndOffset    end position of token for the table name
+     *                    identifier from parser.  pass in -1 if unknown
+     */
+    public void init
+    (
+        Object schemaName,
+        Object tableName,
+        Object    tokBeginOffset,
+        Object    tokEndOffset
+    )
+    {
+        init(schemaName, tableName);
+        this.setBeginOffset((Integer) tokBeginOffset);
+        this.setEndOffset((Integer) tokEndOffset);
+    }
 
-	/**
-	 * Get the table name (without the schema name).
-	 *
-	 * @return Table name as a String
-	 */
+    /**
+     * Get the table name (without the schema name).
+     *
+     * @return Table name as a String
+     */
 
-	public String getTableName()
-	{
-		return tableName;
-	}
+    public String getTableName()
+    {
+        return tableName;
+    }
 
-	/**
-	 * Return true if this instance was initialized with not null schemaName.
-	 *
-	 * @return true if this instance was initialized with not null schemaName
-	 */
-	
-	public boolean hasSchema(){
-		return hasSchema;
-	}
+    /**
+     * Return true if this instance was initialized with not null schemaName.
+     *
+     * @return true if this instance was initialized with not null schemaName
+     */
 
-	/**
-	 * Get the schema name.
-	 *
-	 * @return Schema name as a String
-	 */
+    public boolean hasSchema(){
+        return hasSchema;
+    }
 
-	public String getSchemaName()
-	{
-		return schemaName;
-	}
+    /**
+     * Get the schema name.
+     *
+     * @return Schema name as a String
+     */
 
-	/**
-	 * Set the schema name.
-	 *
-	 * @param schemaName	 Schema name as a String
-	 */
+    public String getSchemaName()
+    {
+        return schemaName;
+    }
 
-	public void setSchemaName(String schemaName)
-	{
-		this.schemaName = schemaName;
-	}
+    /**
+     * Set the schema name.
+     *
+     * @param schemaName     Schema name as a String
+     */
 
-	/**
-	 * Get the full table name (with the schema name, if explicitly
-	 * specified).
-	 *
-	 * @return Full table name as a String
-	 */
+    public void setSchemaName(String schemaName)
+    {
+        this.schemaName = schemaName;
+    }
 
-	public String getFullTableName()
-	{
-		if (schemaName != null)
-			return schemaName + "." + tableName;
-		else
-			return tableName;
-	}
+    /**
+     * Get the full table name (with the schema name, if explicitly
+     * specified).
+     *
+     * @return Full table name as a String
+     */
 
-	/**
-	* Get the full SQL name of this object, properly quoted and escaped.
-	*/
-	public  String  getFullSQLName()
-	{
-	    return IdUtil.mkQualifiedName( schemaName, tableName );
-	}
+    public String getFullTableName()
+    {
+        if (schemaName != null)
+            return schemaName + "." + tableName;
+        else
+            return tableName;
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+    * Get the full SQL name of this object, properly quoted and escaped.
+    */
+    public  String  getFullSQLName()
+    {
+        return IdUtil.mkQualifiedName( schemaName, tableName );
+    }
 
-	public String toString()
-	{
-		if (hasSchema)
-			return getFullTableName();
-		else
-			return tableName;
-	}
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	/**
-	 * 2 TableNames are equal if their both their schemaNames and tableNames are
-	 * equal, or if this node's full table name is null (which happens when a
-	 * SELECT * is expanded).  Also, only check table names if the schema
-	 * name(s) are null.
-	 *
-	 * @param otherTableName	The other TableName.
-	 *
-	 * @return boolean		Whether or not the 2 TableNames are equal.
-	 */
-	public boolean equals(TableName otherTableName)
-	{
+    public String toString()
+    {
+        if (hasSchema)
+            return getFullTableName();
+        else
+            return tableName;
+    }
+
+    /**
+     * 2 TableNames are equal if their both their schemaNames and tableNames are
+     * equal, or if this node's full table name is null (which happens when a
+     * SELECT * is expanded).  Also, only check table names if the schema
+     * name(s) are null.
+     *
+     * @param otherTableName    The other TableName.
+     *
+     * @return boolean        Whether or not the 2 TableNames are equal.
+     */
+    public boolean equals(TableName otherTableName)
+    {
         if( otherTableName == null)
             return false;
         
-		String fullTableName = getFullTableName();
-		if (fullTableName == null)
-		{
-			return true;
-		}
-		else if ((schemaName == null) || 
-				 (otherTableName.getSchemaName() == null))
-		{
-			return tableName.equals(otherTableName.getTableName());
-		}
-		else
-		{
-			return fullTableName.equals(otherTableName.getFullTableName());
-		}
-	}
+        String fullTableName = getFullTableName();
+        if (fullTableName == null)
+        {
+            return true;
+        }
+        else if ((schemaName == null) ||
+                 (otherTableName.getSchemaName() == null))
+        {
+            return tableName.equals(otherTableName.getTableName());
+        }
+        else
+        {
+            return fullTableName.equals(otherTableName.getFullTableName());
+        }
+    }
 
-	/**
-	 * 2 TableNames are equal if their both their schemaNames and tableNames are
-	 * equal, or if this node's full table name is null (which happens when a
-	 * SELECT * is expanded).  Also, only check table names if the schema
-	 * name(s) are null.
-	 *
-	 * @param otherSchemaName	The other TableName.
-	 * @param otherTableName	The other TableName.
-	 *
-	 * @return boolean		Whether or not the 2 TableNames are equal.
-	 */
-	public boolean equals(String otherSchemaName, String otherTableName)
-	{
-		String fullTableName = getFullTableName();
-		if (fullTableName == null)
-		{
-			return true;
-		}
-		else if ((schemaName == null) || 
-				 (otherSchemaName == null))
-		{
-			return tableName.equals(otherTableName);
-		}
-		else
-		{
-			return fullTableName.equals(otherSchemaName+"."+otherTableName);
-		}
-	}
+    /**
+     * 2 TableNames are equal if their both their schemaNames and tableNames are
+     * equal, or if this node's full table name is null (which happens when a
+     * SELECT * is expanded).  Also, only check table names if the schema
+     * name(s) are null.
+     *
+     * @param otherSchemaName    The other TableName.
+     * @param otherTableName    The other TableName.
+     *
+     * @return boolean        Whether or not the 2 TableNames are equal.
+     */
+    public boolean equals(String otherSchemaName, String otherTableName)
+    {
+        String fullTableName = getFullTableName();
+        if (fullTableName == null)
+        {
+            return true;
+        }
+        else if ((schemaName == null) ||
+                 (otherSchemaName == null))
+        {
+            return tableName.equals(otherTableName);
+        }
+        else
+        {
+            return fullTableName.equals(otherSchemaName+"."+otherTableName);
+        }
+    }
 
-	///////////////////////////////////////////////////////////////////////
-	//
-	//	BIND METHODS
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    //    BIND METHODS
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	/**
-	  *	Bind this TableName. This means filling in the schema name if it
-	  *	wasn't specified.
-	  *
-	  *	@param	dataDictionary	Data dictionary to bind against.
-	  *
-	  *	@exception StandardException		Thrown on error
-	  */
-	public void	bind( DataDictionary	dataDictionary )
-		                       throws StandardException
-	{
-        schemaName = getSchemaDescriptor(schemaName).getSchemaName();
-	}
+    /**
+      *    Bind this TableName. This means filling in the schema name if it
+      *    wasn't specified.
+      *
+      *    @param    dataDictionary    Data dictionary to bind against.
+      *
+      *    @exception StandardException        Thrown on error
+      */
+    public void    bind( DataDictionary    dataDictionary )
+                               throws StandardException
+    {
+        schemaName = getSchemaDescriptor(null, schemaName).getSchemaName();
+    }
 
-	///////////////////////////////////////////////////////////////////////
-	//
-	//	OBJECT INTERFACE
-	//
-	///////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////
+    //
+    //    OBJECT INTERFACE
+    //
+    ///////////////////////////////////////////////////////////////////////
 
-	/**
-	  *	Returns a hashcode for this tableName. This allows us to use TableNames
-	  *	as keys in hash lists.
-	  *
-	  *	@return	hashcode for this tablename
-	  */
-	public	int	hashCode()
-	{
-		return	getFullTableName().hashCode();
-	}
+    /**
+      *    Returns a hashcode for this tableName. This allows us to use TableNames
+      *    as keys in hash lists.
+      *
+      *    @return    hashcode for this tablename
+      */
+    public    int    hashCode()
+    {
+        return    getFullTableName().hashCode();
+    }
 
-	/**
-	  *	Compares two TableNames. Needed for hashing logic to work.
-	  *
-	  *	@param	other	other tableName
-	  */
-	public	boolean	equals( Object other )
-	{
-		if ( !( other instanceof TableName ) ) { return false; }
+    /**
+      *    Compares two TableNames. Needed for hashing logic to work.
+      *
+      *    @param    other    other tableName
+      */
+    public    boolean    equals( Object other )
+    {
+        if ( !( other instanceof TableName ) ) { return false; }
 
-		TableName		that = (TableName) other;
+        TableName        that = (TableName) other;
 
-		return	this.getFullTableName().equals( that.getFullTableName() );
-	}
+        return    this.getFullTableName().equals( that.getFullTableName() );
+    }
 
 }

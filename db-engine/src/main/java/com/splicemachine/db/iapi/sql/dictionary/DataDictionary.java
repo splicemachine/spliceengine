@@ -403,7 +403,7 @@ public interface DataDictionary{
      * @throws StandardException Thrown on error
      */
 
-    SchemaDescriptor getSchemaDescriptor(String schemaName,
+    SchemaDescriptor getSchemaDescriptor(UUID dbId, String schemaName,
                                          TransactionController tc,
                                          boolean raiseError) throws StandardException;
 
@@ -593,11 +593,12 @@ public interface DataDictionary{
     /**
      * Drop the descriptor for a schema, given the schema's name
      *
+     * @param dbId       The UUID of the db that contains the schema to drop
      * @param schemaName The name of the schema to drop
      * @param tc         Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropSchemaDescriptor(String schemaName,TransactionController tc) throws StandardException;
+    void dropSchemaDescriptor(UUID dbId, String schemaName,TransactionController tc) throws StandardException;
 
     /**
      * Indicate whether there is anything in the
@@ -910,12 +911,13 @@ public interface DataDictionary{
     /**
      * Locate the Schema Row
      *
+     * @param dbName
      * @param schemaName
      * @param tc
      * @return
      * @throws StandardException
      */
-    SchemaDescriptor locateSchemaRow(String schemaName, TransactionController tc) throws StandardException;
+    SchemaDescriptor locateSchemaRow(UUID dbId, String schemaName, TransactionController tc) throws StandardException;
 
     /**
      * Removes Column Statistics from SYSCOLUMNSTATS.
@@ -1753,7 +1755,7 @@ public interface DataDictionary{
      * Peek at the next value which will be returned by a sequence generator.
      * </p>
      */
-    Long peekAtSequence(String schemaName,String sequenceName) throws StandardException;
+    Long peekAtSequence(UUID dbId, String schemaName,String sequenceName) throws StandardException;
 
     /**
      * Returns the dependency manager for this DataDictionary. Associated with

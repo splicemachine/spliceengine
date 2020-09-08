@@ -184,7 +184,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
             if (def.getUUID() == null) {
                 // Descriptor for default schema is stale,
                 // look it up in the dictionary
-                def = dd.getSchemaDescriptor(def.getDescriptorName(), tc,
+                def = dd.getSchemaDescriptor(null, def.getDescriptorName(), tc,
                         false);
             }
 

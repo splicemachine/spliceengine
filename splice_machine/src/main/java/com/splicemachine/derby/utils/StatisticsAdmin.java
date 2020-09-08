@@ -1103,7 +1103,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                     else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
                                         statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
                                     Pair<String, String> pair = displayPair.get(conglomId);
-                                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(pair.getFirst(), tc, true);
+                                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(null, pair.getFirst(), tc, true);
                                     TableDescriptor td = dataDictionary.getTableDescriptor(pair.getSecond(), sd, tc);
                                     // instead of using the numberOfPartitions which is really the number of splits for
                                     // merged stats, directly fetch the number of regions

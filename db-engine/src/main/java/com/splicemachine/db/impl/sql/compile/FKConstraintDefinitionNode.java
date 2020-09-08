@@ -52,74 +52,74 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 
 public final class FKConstraintDefinitionNode extends ConstraintDefinitionNode
 {
-	TableName 			refTableName;
-	ResultColumnList	refRcl;
-	SchemaDescriptor	refTableSd;
-	int                 refActionDeleteRule;  // referential action on  delete
-	int                 refActionUpdateRule;  // referential action on update
-	public void init(
-						Object 			constraintName, 
-						Object 			refTableName, 
-						Object			fkRcl,
-						Object			refRcl,
-						Object          refActions)
-	{
-		super.init(
-				constraintName,
-				ReuseFactory.getInteger(DataDictionary.FOREIGNKEY_CONSTRAINT),
-				fkRcl, 
-				null,
-				null,
-				null);
-		this.refRcl = (ResultColumnList) refRcl;
-		this.refTableName = (TableName) refTableName;
+    TableName             refTableName;
+    ResultColumnList    refRcl;
+    SchemaDescriptor    refTableSd;
+    int                 refActionDeleteRule;  // referential action on  delete
+    int                 refActionUpdateRule;  // referential action on update
+    public void init(
+                        Object             constraintName,
+                        Object             refTableName,
+                        Object            fkRcl,
+                        Object            refRcl,
+                        Object          refActions)
+    {
+        super.init(
+                constraintName,
+                ReuseFactory.getInteger(DataDictionary.FOREIGNKEY_CONSTRAINT),
+                fkRcl,
+                null,
+                null,
+                null);
+        this.refRcl = (ResultColumnList) refRcl;
+        this.refTableName = (TableName) refTableName;
 
-		this.refActionDeleteRule = ((int[]) refActions)[0];
-		this.refActionUpdateRule = ((int[]) refActions)[1];
-	}
+        this.refActionDeleteRule = ((int[]) refActions)[0];
+        this.refActionUpdateRule = ((int[]) refActions)[1];
+    }
 
-	/**
-	 * Bind this constraint definition.  Figure out some
-	 * information about the table we are binding against.
-	 *
-	 * @param dd DataDictionary
-	 * 
-	 * @exception StandardException on error
-	 */
-	protected void bind(DDLStatementNode ddlNode, DataDictionary dd)	throws StandardException
-	{
-		super.bind(ddlNode, dd);
+    /**
+     * Bind this constraint definition.  Figure out some
+     * information about the table we are binding against.
+     *
+     * @param dd DataDictionary
+     *
+     * @exception StandardException on error
+     */
+    protected void bind(DDLStatementNode ddlNode, DataDictionary dd)    throws StandardException
+    {
+        super.bind(ddlNode, dd);
 
-		refTableSd = getSchemaDescriptor(refTableName.getSchemaName());
+        refTableSd = getSchemaDescriptor(null, refTableName.getSchemaName());
 
-		if (refTableSd.isSystemSchema())
-		{
-			throw StandardException.newException(SQLState.LANG_NO_FK_ON_SYSTEM_SCHEMA);
-		}
+        if (refTableSd.isSystemSchema())
+        {
+            throw StandardException.newException(SQLState.LANG_NO_FK_ON_SYSTEM_SCHEMA);
+        }
 
-		// check the referenced table, unless this is a self-referencing constraint
-		if (refTableName.equals(ddlNode.getObjectName()))
-			return;
+        // check the referenced table, unless this is a self-referencing constraint
+        if (refTableName.equals(ddlNode.getObjectName()))
+            return;
 
-		// error when the referenced table does not exist
-		TableDescriptor td = getTableDescriptor(refTableName.getTableName(), refTableSd);
-		if (td == null)
-			throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_REF_TAB, 
-												getConstraintMoniker(), 
-												refTableName.getTableName());
+        // error when the referenced table does not exist
+        TableDescriptor td = getTableDescriptor(refTableName.getTableName(), refTableSd);
+        if (td == null)
+            throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_REF_TAB,
+                                                getConstraintMoniker(),
+                                                refTableName.getTableName());
 
-		// Verify if REFERENCES_PRIV is granted to columns referenced
-		getCompilerContext().pushCurrentPrivType(getPrivType());
+        // Verify if REFERENCES_PRIV is granted to columns referenced
+        getCompilerContext().pushCurrentPrivType(getPrivType());
 
-		// Indicate that this statement has a dependency on the
-		// table which is referenced by this foreign key:
-		getCompilerContext().createDependency(td);
+        // Indicate that this statement has a dependency on the
+        // table which is referenced by this foreign key:
+        getCompilerContext().createDependency(td);
 
-		// If references clause doesn't have columnlist, get primary key info
-		if (refRcl.isEmpty() && (td.getPrimaryKey() != null))
-		{
-			// Get the primary key columns
-			int[] refCols = td.getPrimaryKey().getReferencedColumns();
+        // If references clause doesn't have columnlist, get primary key info
+        if (refRcl.isEmpty() && (td.getPrimaryKey() != null))
+        {
+            // Get the primary key columns
+            int[] refCols = td.getPrimaryKey().getReferencedColumns();
             for (int refCol : refCols) {
                 ColumnDescriptor cd = td.getColumnDescriptor(refCol);
                 // Set tableDescriptor for this column descriptor. Needed for adding required table
@@ -129,42 +129,42 @@ public final class FKConstraintDefinitionNode extends ConstraintDefinitionNode
                     getCompilerContext().addRequiredColumnPriv(cd);
             }
 
-		}
-		else
-		{
-			for (int i=0; i<refRcl.size(); i++)
-			{
-				ResultColumn rc = (ResultColumn) refRcl.elementAt(i);
-				ColumnDescriptor cd = td.getColumnDescriptor(rc.getName());
-				if (cd != null)
-				{
-					// Set tableDescriptor for this column descriptor. Needed for adding required table
-					// access permission. Column descriptors may not have this set already.
-					cd.setTableDescriptor(td);
-					if (isPrivilegeCollectionRequired())
-						getCompilerContext().addRequiredColumnPriv(cd);
-				}
-			}
-		}
-		getCompilerContext().popCurrentPrivType();
-	}
+        }
+        else
+        {
+            for (int i=0; i<refRcl.size(); i++)
+            {
+                ResultColumn rc = (ResultColumn) refRcl.elementAt(i);
+                ColumnDescriptor cd = td.getColumnDescriptor(rc.getName());
+                if (cd != null)
+                {
+                    // Set tableDescriptor for this column descriptor. Needed for adding required table
+                    // access permission. Column descriptors may not have this set already.
+                    cd.setTableDescriptor(td);
+                    if (isPrivilegeCollectionRequired())
+                        getCompilerContext().addRequiredColumnPriv(cd);
+                }
+            }
+        }
+        getCompilerContext().popCurrentPrivType();
+    }
 
-	public ConstraintInfo getReferencedConstraintInfo()
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(refTableSd != null, 
-					"You must call bind() before calling getConstraintInfo");
-		}
-		return new ConstraintInfo(refTableName.getTableName(), refTableSd,
-								  refRcl.getColumnNames(), refActionDeleteRule,
-								  refActionUpdateRule);
-	}
+    public ConstraintInfo getReferencedConstraintInfo()
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(refTableSd != null,
+                    "You must call bind() before calling getConstraintInfo");
+        }
+        return new ConstraintInfo(refTableName.getTableName(), refTableSd,
+                                  refRcl.getColumnNames(), refActionDeleteRule,
+                                  refActionUpdateRule);
+    }
 
-	public	TableName	getRefTableName() { return refTableName; }
+    public    TableName    getRefTableName() { return refTableName; }
 
-	int getPrivType()
-	{
-		return Authorizer.REFERENCES_PRIV;
-	}
+    int getPrivType()
+    {
+        return Authorizer.REFERENCES_PRIV;
+    }
 }

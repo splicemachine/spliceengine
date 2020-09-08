@@ -50,92 +50,92 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 public class CreateSchemaNode extends DDLStatementNode
 {
-	private String 	name;
-	private String	aid;
-	private int createBehavior;
-	private SchemaDescriptor sd;
-	
-	/**
-	 * Initializer for a CreateSchemaNode
-	 *
-	 * @param schemaName	The name of the new schema
-	 * @param aid		 	The authorization id
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void init(
-			Object	schemaName,
-			Object	aid,
-			Object createBehavior)
-		throws StandardException
-	{
-		/*
-		** DDLStatementNode expects tables, null out
-		** objectName explicitly to clarify that we
-		** can't hang with schema.object specifiers.
-		*/
-		initAndCheck(null);	
-	
-		this.name = (String) schemaName;
-		this.aid = (String) aid;
-		this.createBehavior = ((Integer) createBehavior).intValue();
-	}
+    private String     name;
+    private String    aid;
+    private int createBehavior;
+    private SchemaDescriptor sd;
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Initializer for a CreateSchemaNode
+     *
+     * @param schemaName    The name of the new schema
+     * @param aid             The authorization id
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void init(
+            Object    schemaName,
+            Object    aid,
+            Object createBehavior)
+        throws StandardException
+    {
+        /*
+        ** DDLStatementNode expects tables, null out
+        ** objectName explicitly to clarify that we
+        ** can't hang with schema.object specifiers.
+        */
+        initAndCheck(null);
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return super.toString() +
-				"schemaName: " + "\n" + name + "\n" +
-				"authorizationId: " + "\n" + aid + "\n";
-		}
-		else
-		{
-			return "";
-		}
-	}
+        this.name = (String) schemaName;
+        this.aid = (String) aid;
+        this.createBehavior = ((Integer) createBehavior).intValue();
+    }
 
-	/**
-	 * Bind this createSchemaNode. Main work is to create a StatementPermission
-	 * object to require CREATE_SCHEMA_PRIV at execution time.
-	 */
-	public void bindStatement() throws StandardException
-	{
-		DataDictionary dd = getDataDictionary();
-		sd = dd.getSchemaDescriptor(name, getLanguageConnectionContext().getTransactionCompile(), false);
-		CompilerContext cc = getCompilerContext();
-		if(sd != null && createBehavior == StatementType.CREATE_IF_NOT_EXISTS){
-			StandardException e = StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS,
-					statementToString(), name);
-			e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
-			throw e;
-		}
-		if (isPrivilegeCollectionRequired())
-			cc.addRequiredSchemaPriv(name, aid, Authorizer.CREATE_SCHEMA_PRIV);
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	}
-	
-	public String statementToString()
-	{
-		return "CREATE SCHEMA";
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return super.toString() +
+                "schemaName: " + "\n" + name + "\n" +
+                "authorizationId: " + "\n" + aid + "\n";
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	// We inherit the generate() method from DDLStatementNode.
+    /**
+     * Bind this createSchemaNode. Main work is to create a StatementPermission
+     * object to require CREATE_SCHEMA_PRIV at execution time.
+     */
+    public void bindStatement() throws StandardException
+    {
+        DataDictionary dd = getDataDictionary();
+        sd = dd.getSchemaDescriptor(null, name, getLanguageConnectionContext().getTransactionCompile(), false);
+        CompilerContext cc = getCompilerContext();
+        if(sd != null && createBehavior == StatementType.CREATE_IF_NOT_EXISTS){
+            StandardException e = StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS,
+                    statementToString(), name);
+            e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
+            throw e;
+        }
+        if (isPrivilegeCollectionRequired())
+            cc.addRequiredSchemaPriv(name, aid, Authorizer.CREATE_SCHEMA_PRIV);
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction()
-	{
-		return	getGenericConstantActionFactory().getCreateSchemaConstantAction(name, aid);
-	}
+    }
+
+    public String statementToString()
+    {
+        return "CREATE SCHEMA";
+    }
+
+    // We inherit the generate() method from DDLStatementNode.
+
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction()
+    {
+        return    getGenericConstantActionFactory().getCreateSchemaConstantAction(name, aid);
+    }
 }

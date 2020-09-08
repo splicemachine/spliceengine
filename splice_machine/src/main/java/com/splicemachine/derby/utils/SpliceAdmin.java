@@ -1327,7 +1327,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
-            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, /* raiseError= */true);
+            SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, tc, /* raiseError= */true);
             if (dd.getUser(ownerName) == null) {
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
@@ -1396,7 +1396,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
         dd.startWriting(lcc);
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, tc, true);
         if (sd == null)
         {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
@@ -1461,7 +1461,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         tableName = EngineUtils.validateTable(tableName);
         EngineUtils.checkSchemaVisibility(schemaName);
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, tc, true);
         if (sd == null)
         {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);

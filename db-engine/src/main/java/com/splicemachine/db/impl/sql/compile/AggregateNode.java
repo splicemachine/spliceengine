@@ -268,7 +268,7 @@ public class AggregateNode extends UnaryOperatorNode {
             AliasDescriptor ad = resolveAggregate
                     (
                             dd,
-                            getSchemaDescriptor(userAggregateName.getSchemaName(), true),
+                            getSchemaDescriptor(null, userAggregateName.getSchemaName(), true),
                             userAggregateName.getTableName()
                     );
             if (ad == null) {

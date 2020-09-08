@@ -389,7 +389,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         TransactionController userTransaction = lcc.getTransactionExecute();
 
         dd.startWriting(lcc);
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, userTransaction, true) ;
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, userTransaction, true) ;
         ConglomerateDescriptor existingIndex = dd.getConglomerateDescriptor(indexName, sd, false);
         if (existingIndex != null) {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,

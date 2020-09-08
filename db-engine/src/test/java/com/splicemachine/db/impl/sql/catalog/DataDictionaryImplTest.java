@@ -81,7 +81,7 @@ public class DataDictionaryImplTest {
         }
 
         @Override
-        public Long peekAtSequence(String schemaName, String sequenceName) throws StandardException {
+        public Long peekAtSequence(UUID dbId, String schemaName, String sequenceName) throws StandardException {
             return null;
         }
 

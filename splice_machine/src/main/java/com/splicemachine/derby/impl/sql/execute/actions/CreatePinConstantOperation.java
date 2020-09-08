@@ -106,7 +106,7 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
         TransactionController userTransaction = lcc.getTransactionExecute();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, userTransaction, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, userTransaction, true);
         TableDescriptor td = dd.getTableDescriptor(tableName, sd, userTransaction);
         if (td == null) {
             throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);

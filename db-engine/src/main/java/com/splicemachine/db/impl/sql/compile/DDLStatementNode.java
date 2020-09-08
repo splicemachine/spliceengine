@@ -255,7 +255,7 @@ abstract class DDLStatementNode extends StatementNode
         String schemaName = objectName.getSchemaName();
         //boolean needError = !(implicitCreateSchema || (schemaName == null));
         boolean needError = !implicitCreateSchema;
-        SchemaDescriptor sd = getSchemaDescriptor(schemaName, needError);
+        SchemaDescriptor sd = getSchemaDescriptor(null, schemaName, needError);
         CompilerContext cc = getCompilerContext();
 
         if (sd == null) {
@@ -368,7 +368,7 @@ abstract class DDLStatementNode extends StatementNode
     throws StandardException
     {
         String schemaName = tableName.getSchemaName();
-        SchemaDescriptor sd = getSchemaDescriptor(schemaName);
+        SchemaDescriptor sd = getSchemaDescriptor(null, schemaName);
 
         TableDescriptor td = getTableDescriptor(tableName.getTableName(), sd);
 

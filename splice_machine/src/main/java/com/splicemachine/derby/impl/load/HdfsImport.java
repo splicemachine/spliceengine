@@ -782,7 +782,7 @@ public class HdfsImport {
         DataDictionary dd = lcc.getDataDictionary();
         StringBuilder colListStr = new StringBuilder();
         try{
-            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName,lcc.getTransactionExecute(),true);
+            SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName,lcc.getTransactionExecute(),true);
             assert sd!=null: "Programmer error: schema is not found!";
             TableDescriptor td = dd.getTableDescriptor(tableName,sd,lcc.getTransactionExecute());
             assert td!=null: "Programmer error: table is not found!";
@@ -912,7 +912,7 @@ public class HdfsImport {
         String[] pkNames = null;
 
         try {
-            SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), true);
+            SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, lcc.getTransactionExecute(), true);
             TableDescriptor td = dd.getTableDescriptor(tableName, sd, lcc.getTransactionExecute());
             ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
 

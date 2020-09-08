@@ -189,7 +189,7 @@ public class ConstraintDefinitionNode extends TableElementNode
 				TableName tableName = ddlNode.getObjectName();
 				String tableSchema = tableName.getSchemaName();
 				if (tableSchema == null) {
-					tableSchema = getSchemaDescriptor((String) null).getSchemaName();
+					tableSchema = getSchemaDescriptor(null, null).getSchemaName();
 					tableName.setSchemaName(tableSchema);
 				}
 				if (!constraintSchema.equals(tableSchema)) {

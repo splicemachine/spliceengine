@@ -821,6 +821,11 @@ public interface LanguageConnectionContext extends Context {
     InternalDatabase getDatabase();
 
     /**
+     * Returns the Database id of this connection
+     */
+    UUID getDatabaseId();
+
+    /**
      * Returns true if isolation level has been set using JDBC/SQL.
      */
     boolean isIsolationLevelSetUsingSQLorJDBC();
