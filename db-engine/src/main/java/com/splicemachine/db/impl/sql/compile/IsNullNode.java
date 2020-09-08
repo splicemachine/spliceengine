@@ -37,6 +37,8 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CalciteConverter;
+import com.splicemachine.db.iapi.sql.compile.ConvertSelectContext;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -44,6 +46,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import java.sql.Types;
 import java.util.Map;
@@ -284,6 +289,16 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
         }
         return this;
     }
+
+	@Override
+	public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+		RexNode child = getOperand().convertExpression(relConverter, selectContext);
+		if (getNodeType() == C_NodeTypes.IS_NULL_NODE)
+			return relConverter.getRelBuilder().call(SqlStdOperatorTable.IS_NULL, child);
+		else
+			return relConverter.getRelBuilder().call(SqlStdOperatorTable.IS_NOT_NULL, child);
+
+	}
 
     @Override
     public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {

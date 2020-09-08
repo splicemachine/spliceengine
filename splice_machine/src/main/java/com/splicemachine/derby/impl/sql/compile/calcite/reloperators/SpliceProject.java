@@ -106,7 +106,7 @@ public class SpliceProject extends Project implements SpliceRelNode {
 
         ValueNode convertConditions = null;
         if (condition != null) {
-            convertConditions = implementor.convertCondition(condition, source);
+            convertConditions = implementor.convertExpression(condition, source);
         }
         // manufacture a ProjectRestrictNode
         ProjectRestrictNode prn = (ProjectRestrictNode) nodeFactory.getNode(

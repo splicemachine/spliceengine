@@ -26,7 +26,6 @@ import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
 import org.apache.calcite.rel.rules.ReduceExpressionsRule;
 import org.apache.calcite.rel.rules.ValuesReduceRule;
-import org.apache.calcite.rel.type.RelDataTypeSystem;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexExecutorImpl;
 import org.apache.calcite.schema.SchemaPlus;
@@ -59,7 +58,7 @@ public class CalciteSqlPlanner implements SqlPlanner {
 
         planner = Frameworks.getPlanner(config);
 
-        JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(RelDataTypeSystem.DEFAULT);
+        JavaTypeFactory typeFactory = new JavaTypeFactoryImpl(SpliceRelDataTypeSystemImpl.INSTANCE);
         final RexBuilder rexBuilder = new RexBuilder(typeFactory);
 
         RelOptPlanner planner = new VolcanoPlanner(config.getCostFactory(), spliceContext);

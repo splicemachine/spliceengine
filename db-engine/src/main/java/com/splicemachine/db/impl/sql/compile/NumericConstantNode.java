@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.types.*;
 
 import java.awt.event.ContainerEvent;
+import java.math.BigDecimal;
 import java.sql.Types;
 
 public final class NumericConstantNode extends ConstantNode
