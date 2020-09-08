@@ -53,7 +53,7 @@ public class UpdateSensitiveBlobLocatorInputStream
      * @throws SqlException If any exception occurs during stream
      *                      creation.
      */
-    public UpdateSensitiveBlobLocatorInputStream(Connection con, Blob blob)
+    public UpdateSensitiveBlobLocatorInputStream(ClientConnection con, Blob blob)
     throws SqlException {
         super(con, blob, new BlobLocatorInputStream(con, blob));
         this.blob = blob;
@@ -74,8 +74,8 @@ public class UpdateSensitiveBlobLocatorInputStream
      * @throws SqlException If any exception occurs during stream
      *                      creation.
      */
-    public UpdateSensitiveBlobLocatorInputStream(Connection con, Blob blob,
-            long position, long length) throws SqlException {
+    public UpdateSensitiveBlobLocatorInputStream(ClientConnection con, Blob blob,
+                                                 long position, long length) throws SqlException {
         super(con, blob, 
                 new BlobLocatorInputStream(con, blob, position, length), 
                 position, length);

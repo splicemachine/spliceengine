@@ -43,21 +43,21 @@ import com.splicemachine.db.iapi.error.ExceptionSeverity;
 
 
 /**
-	A context that shutdowns down the database on a databsae exception.
+    A context that shutdowns down the database on a databsae exception.
 */
 final class DatabaseContextImpl extends ContextImpl implements DatabaseContext
 {
 
-	private final InternalDatabase db;
+    private final InternalDatabase db;
 
-	DatabaseContextImpl(ContextManager cm, InternalDatabase db) {
-		super(cm, DatabaseContextImpl.CONTEXT_ID);
-		this.db = db;
-	}
+    DatabaseContextImpl(ContextManager cm, InternalDatabase db) {
+        super(cm, DatabaseContextImpl.CONTEXT_ID);
+        this.db = db;
+    }
 
-	public void cleanupOnError(Throwable t) {
-		if (!(t instanceof StandardException)) return;
-		StandardException se = (StandardException)t;
+    public void cleanupOnError(Throwable t) {
+        if (!(t instanceof StandardException)) return;
+        StandardException se = (StandardException)t;
 
         // Ensure the context is popped if the session is
         // going away.
@@ -66,32 +66,21 @@ final class DatabaseContextImpl extends ContextImpl implements DatabaseContext
 
         popMe();
         
-        if (se.getSeverity() >= ExceptionSeverity.DATABASE_SEVERITY) {
-            // DERBY-5108: Shut down the istat daemon thread before shutting
-            // down the various modules belonging to the database. An active
-            // istat daemon thread at the time of shutdown may result in
-            // containers being reopened after the container cache has been
-            // shut down. On certain platforms, this results in database
-            // files that can't be deleted until the VM exits.
-            DataDictionary dd = db.getDataDictionary();
-            // dd is null if the db is an active replica db (replication)
-        }
-
         if (se.getSeverity() == ExceptionSeverity.DATABASE_SEVERITY) {
-		    ContextService.getFactory().notifyAllActiveThreads(this);
+            ContextService.getFactory().notifyAllActiveThreads(this);
             // This may be called multiple times, but is short-circuited
             // in the monitor.
-		    Monitor.getMonitor().shutdown(db);
+            Monitor.getMonitor().shutdown(db);
         }
-	}
+    }
 
-	public boolean equals(Object other) {
+    public boolean equals(Object other) {
         return other instanceof DatabaseContext && ((DatabaseContextImpl) other).db == db;
     }
 
-	public int hashCode() {
-		return db.hashCode();
-	}
+    public int hashCode() {
+        return db.hashCode();
+    }
 
-	public InternalDatabase getDatabase() {return db;}
+    public InternalDatabase getDatabase() {return db;}
 }

@@ -56,7 +56,7 @@ public abstract class ClientDatabaseMetaData implements java.sql.DatabaseMetaDat
     //---------------------navigational members-----------------------------------
 
     protected Agent agent_;
-    protected Connection connection_;
+    protected ClientConnection connection_;
 
     //-----------------------------state------------------------------------------
 
@@ -108,7 +108,7 @@ public abstract class ClientDatabaseMetaData implements java.sql.DatabaseMetaDat
 
     //---------------------constructors/finalizer---------------------------------
 
-    protected ClientDatabaseMetaData(Agent agent, Connection connection, ProductLevel productLevel) {
+    protected ClientDatabaseMetaData(Agent agent, ClientConnection connection, ProductLevel productLevel) {
         agent_ = agent;
         connection_ = connection;
         productLevel_ = productLevel;

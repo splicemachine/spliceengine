@@ -29,6 +29,8 @@ package com.splicemachine.db.client.net;
 // This class traces communication buffers for both sends and receives.
 // The value of the hex bytes are traced along with the ascii and ebcdic translations.
 
+import com.splicemachine.db.client.am.ClientConnection;
+
 public class NetLogWriter extends com.splicemachine.db.client.am.LogWriter {
 
     // The recevie constant is used to indicate that the bytes were read to a Stream.
@@ -137,7 +139,7 @@ public class NetLogWriter extends com.splicemachine.db.client.am.LogWriter {
     //------------------------------entry points----------------------------------
 
     // Specialization of LogWriter.traceConnectsExit()
-    public void traceConnectsExit(com.splicemachine.db.client.am.Connection connection) {
+    public void traceConnectsExit(ClientConnection connection) {
         if (traceSuspended()) {
             return;
         }
@@ -158,7 +160,7 @@ public class NetLogWriter extends com.splicemachine.db.client.am.LogWriter {
         }
     }
 
-    public void traceConnectsResetExit(com.splicemachine.db.client.am.Connection connection) {
+    public void traceConnectsResetExit(ClientConnection connection) {
         if (traceSuspended()) {
             return;
         }

@@ -50,7 +50,7 @@ public class LogicalConnection implements java.sql.Connection {
      * <p>
      * Set to {@code null} when this logical connection is closed.
      */
-    Connection physicalConnection_;
+    ClientConnection physicalConnection_;
     private com.splicemachine.db.client.ClientPooledConnection pooledConnection_ = null;
     /**
      * Logical database metadata object created on demand and then cached.
@@ -60,7 +60,7 @@ public class LogicalConnection implements java.sql.Connection {
      */
     private LogicalDatabaseMetaData logicalDatabaseMetaData = null;
 
-    public LogicalConnection(Connection physicalConnection,
+    public LogicalConnection(ClientConnection physicalConnection,
                              com.splicemachine.db.client.ClientPooledConnection pooledConnection) throws SqlException {
         physicalConnection_ = physicalConnection;
         pooledConnection_ = pooledConnection;

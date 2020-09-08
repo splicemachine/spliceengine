@@ -61,7 +61,7 @@ public class CallableStatement40 extends com.splicemachine.db.client.am.Callable
      * @throws SqlException
      */
     public CallableStatement40(Agent agent,
-        Connection connection,
+        ClientConnection connection,
         String sql,
         int type, int concurrency, int holdability,
         ClientPooledConnection cpc) throws SqlException {

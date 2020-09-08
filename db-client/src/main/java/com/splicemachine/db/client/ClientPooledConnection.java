@@ -31,6 +31,8 @@ import javax.sql.ConnectionEventListener;
 import javax.sql.StatementEventListener;
 import java.util.ArrayList;
 import java.util.Iterator;
+
+import com.splicemachine.db.client.am.ClientConnection;
 import com.splicemachine.db.client.net.NetXAConnection;
 import com.splicemachine.db.jdbc.ClientBaseDataSource;
 import com.splicemachine.db.jdbc.ClientDriver;
@@ -63,7 +65,7 @@ public class ClientPooledConnection implements javax.sql.PooledConnection {
      */
     private int eventIterators;
 
-    com.splicemachine.db.client.am.Connection physicalConnection_ = null;
+    ClientConnection physicalConnection_ = null;
     com.splicemachine.db.client.net.NetConnection netPhysicalConnection_ = null;
     com.splicemachine.db.client.net.NetXAConnection netXAPhysicalConnection_ = null;
 
