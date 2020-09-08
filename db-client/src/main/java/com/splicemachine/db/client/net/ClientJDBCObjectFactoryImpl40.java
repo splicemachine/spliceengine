@@ -74,8 +74,8 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
         ClientBaseDataSource ds, LogWriter logWriter,String user,
         String password) throws SQLException
     {
-        assert ds instanceof ClientXADataSource;
-        assert logWriter instanceof NetLogWriter;
+        assert ds == null || ds instanceof ClientXADataSource;
+        assert logWriter == null || logWriter instanceof NetLogWriter;
         return new ClientXAConnection40((ClientXADataSource)ds,
             (NetLogWriter)logWriter,user,password);
     }
@@ -226,7 +226,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
             (com.splicemachine.db.client.am.LogWriter netLogWriter,
             String databaseName,java.util.Properties properties)
             throws SqlException {
-        assert netLogWriter instanceof NetLogWriter;
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
         return new NetConnection40((NetLogWriter)netLogWriter,databaseName,properties);
     }
     /**
@@ -236,7 +236,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
             (com.splicemachine.db.client.am.LogWriter netLogWriter,
             com.splicemachine.db.jdbc.ClientBaseDataSource clientDataSource,
             String user,String password) throws SqlException {
-        assert netLogWriter instanceof NetLogWriter;
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
         return new NetConnection40((NetLogWriter)netLogWriter,clientDataSource,user,password);
     }
     /**
@@ -247,7 +247,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
             int driverManagerLoginTimeout,String serverName,
             int portNumber,String databaseName,
             java.util.Properties properties) throws SqlException {
-        assert netLogWriter instanceof NetLogWriter;
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
         return new NetConnection40((NetLogWriter)netLogWriter,driverManagerLoginTimeout,
                 serverName,portNumber,databaseName,properties);
     }
@@ -260,7 +260,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
             String password,
             com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
             int rmId,boolean isXAConn) throws SqlException {
-        assert netLogWriter instanceof NetLogWriter;
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
         return new NetConnection40((NetLogWriter)netLogWriter,user,password,dataSource, rmId,isXAConn);
     }
     /**
@@ -271,7 +271,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
             String ipaddr,int portNumber,
             com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
             boolean isXAConn) throws SqlException {
-        assert netLogWriter instanceof NetLogWriter;
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
         return new NetConnection40((NetLogWriter)netLogWriter,ipaddr,portNumber,dataSource, isXAConn);
     }
     /**
@@ -296,7 +296,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
             com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
             int rmId,boolean isXAConn,ClientPooledConnection cpc) 
             throws SqlException {
-        assert netLogWriter instanceof NetLogWriter;
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
         return new NetConnection40((NetLogWriter)netLogWriter,user,password,dataSource,rmId, isXAConn,cpc);
         
     }
