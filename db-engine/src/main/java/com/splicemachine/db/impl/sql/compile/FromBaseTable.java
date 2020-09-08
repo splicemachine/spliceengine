@@ -271,7 +271,6 @@ public class FromBaseTable extends FromTable {
                     && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
                 return false;
             }
-            return currentConglomerateDescriptor.getIndexDescriptor().getExprBytecode().length <= 0;
         }
         return true;
     }
@@ -436,18 +435,20 @@ public class FromBaseTable extends FromTable {
                 boolean[] isAscending=irg.isAscending();
 
                 for(int i=0;i<baseColumnPositions.length;i++){
-                    int rowOrderDirection=isAscending[i]?RowOrdering.ASCENDING:RowOrdering.DESCENDING;
-                    int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
-                    if (pos == -1) {
-                        rowOrdering.nextOrderPosition(rowOrderDirection);
-                        pos = rowOrdering.addOrderedColumn(rowOrderDirection,getTableNumber(),baseColumnPositions[i]);
-                    }
-                    // check if the column has a constant predicate like "col=constant" defined on it,
-                    // if so, we can treat it as sorted as it has only one value
-                    if (pos >=0 &&    /* a column ordering is added or exists */
-                        hasConstantPredicate(getTableNumber(), baseColumnPositions[i], predList)) {
-                        ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
-                        co.setBoundByConstant(true);
+                    if (!irg.isOnExpression()) {
+                        int rowOrderDirection = isAscending[i] ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
+                        int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection, getTableNumber(), baseColumnPositions[i]);
+                        if (pos == -1) {
+                            rowOrdering.nextOrderPosition(rowOrderDirection);
+                            pos = rowOrdering.addOrderedColumn(rowOrderDirection, getTableNumber(), baseColumnPositions[i]);
+                        }
+                        // check if the column has a constant predicate like "col=constant" defined on it,
+                        // if so, we can treat it as sorted as it has only one value
+                        if (pos >= 0 &&    /* a column ordering is added or exists */
+                                hasConstantPredicate(getTableNumber(), baseColumnPositions[i], predList)) {
+                            ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
+                            co.setBoundByConstant(true);
+                        }
                     }
                 }
             }
@@ -516,8 +517,11 @@ public class FromBaseTable extends FromTable {
             return false;
 
         IndexRowGenerator irg=cd.getIndexDescriptor();
-        int[] baseCols=irg.baseColumnPositions();
 
+        if (irg.isOnExpression())
+            return false;
+
+        int[] baseCols=irg.baseColumnPositions();
         int rclSize=resultColumns.size();
         boolean coveringIndex=true;
         int colPos;
@@ -1846,6 +1850,7 @@ public class FromBaseTable extends FromTable {
         ** We also need to shift "cursor target table" status from this
         ** FromBaseTable to the new IndexToBaseRowNow (because that's where
         ** a cursor can fetch the current row).
+        ** Here we allocate a full index column list.
         */
         ResultColumnList newResultColumns= newResultColumns(resultColumns,
                 trulyTheBestConglomerateDescriptor,
@@ -1897,22 +1902,36 @@ public class FromBaseTable extends FromTable {
         ** result set is the compacted column list.
         */
         resultColumns=newResultColumns;
-
-        templateColumns=newResultColumns(resultColumns,trulyTheBestConglomerateDescriptor,baseConglomerateDescriptor,false);
-        /* Since we are doing a non-covered index scan, if bulkFetch is on, then
-         * the only columns that we need to get are those columns referenced in the start and stop positions
-         * and the qualifiers (and the RID) because we will need to re-get all of the other
-         * columns from the heap anyway.
-         * At this point in time, columns referenced anywhere in the column tree are
-         * marked as being referenced.  So, we clear all of the references, walk the
-         * predicate list and remark the columns referenced from there and then add
-         * the RID before compacting the columns.
-         */
-        if(bulkFetch!=UNSET){
+        if (trulyTheBestConglomerateDescriptor.getIndexDescriptor().isOnExpression()) {
+            templateColumns = resultColumns.copyListAndObjects();
+            /* newResultColumns was built with all columns set to referenced. But we only
+             * need index columns referenced in predicates since all expression-based
+             * indexes are non-covering index. This is similar to the bulkFetch logic
+             * below, but calling markReferencedColumns() will not work since there is no
+             * index column to base column mapping anymore.
+             */
             resultColumns.markAllUnreferenced();
-            storeRestrictionList.markReferencedColumns();
-            if(nonStoreRestrictionList!=null){
-                nonStoreRestrictionList.markReferencedColumns();
+            markReferencedIndexExpr(resultColumns, storeRestrictionList);
+            if (nonStoreRestrictionList != null) {
+                markReferencedIndexExpr(resultColumns, nonStoreRestrictionList);
+            }
+        } else {
+            templateColumns = newResultColumns(resultColumns,trulyTheBestConglomerateDescriptor,baseConglomerateDescriptor,false);
+            /* Since we are doing a non-covered index scan, if bulkFetch is on, then
+             * the only columns that we need to get are those columns referenced in the start and stop positions
+             * and the qualifiers (and the RID) because we will need to re-get all of the other
+             * columns from the heap anyway.
+             * At this point in time, columns referenced anywhere in the column tree are
+             * marked as being referenced.  So, we clear all of the references, walk the
+             * predicate list and remark the columns referenced from there and then add
+             * the RID before compacting the columns.
+             */
+            if (bulkFetch != UNSET) {
+                resultColumns.markAllUnreferenced();
+                storeRestrictionList.markReferencedColumns();
+                if (nonStoreRestrictionList != null) {
+                    nonStoreRestrictionList.markReferencedColumns();
+                }
             }
         }
         resultColumns.addRCForRID();
@@ -1932,6 +1951,15 @@ public class FromBaseTable extends FromTable {
         cursorTargetTable=false;
 
         return retval;
+    }
+
+    private static void markReferencedIndexExpr(ResultColumnList rcList, PredicateList preds) {
+        for (Predicate p : preds) {
+            if (p.matchIndexExpression()) {
+                int indexColumnPosition = p.getIndexPosition(); // 0-based
+                rcList.elementAt(indexColumnPosition).setReferenced();
+            }
+        }
     }
 
     /*
@@ -1957,43 +1985,61 @@ public class FromBaseTable extends FromTable {
             boolean cloneRCs)
             throws StandardException{
         IndexRowGenerator irg=idxCD.getIndexDescriptor();
-        int[] baseCols=irg.baseColumnPositions();
-        ResultColumnList newCols=
-                (ResultColumnList)getNodeFactory().getNode(
+        ResultColumnList newCols =
+                (ResultColumnList) getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN_LIST,
                         getContextManager());
 
-        for(int basePosition : baseCols){
-            ResultColumn oldCol=oldColumns.getResultColumn(basePosition);
-            ResultColumn newCol;
-
-            if(SanityManager.DEBUG){
-                SanityManager.ASSERT(oldCol!=null,
-                        "Couldn't find base column "+basePosition+
-                                "\n.  RCL is\n"+oldColumns);
+        if (irg.isOnExpression()) {
+            // When building new ResultColumn instances, we don't need to set expression
+            // or virtual column number as they are not needed. In case of a scan on an
+            // expression-based index, these are just placeholders. All we care about is
+            // that they should all be referenced for now so that we can build the
+            // template row, then we will clear reference status and set them properly.
+            DataTypeDescriptor[] indexColumnTypes = irg.getIndexColumnTypes();
+            for (DataTypeDescriptor dtd : indexColumnTypes) {
+                ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
+                        C_NodeTypes.RESULT_COLUMN,
+                        dtd,
+                        null,
+                        getContextManager());
+                rc.setReferenced();
+                newCols.addResultColumn(rc);
             }
+        } else {
+            int[] baseCols = irg.baseColumnPositions();
+            for (int basePosition : baseCols) {
+                ResultColumn oldCol = oldColumns.getResultColumn(basePosition);
+                ResultColumn newCol;
 
-            /* If we're cloning the RCs its because we are
-             * building an RCL for the index when doing
-             * a non-covering index scan.  Set the expression
-             * for the old RC to be a VCN pointing to the
-             * new RC.
-             */
-            if(cloneRCs){
-                //noinspection ConstantConditions
-                newCol=oldCol.cloneMe();
-                oldCol.setExpression(
-                        (ValueNode)getNodeFactory().getNode(
-                                C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                                this,
-                                newCol,
-                                ReuseFactory.getInteger(oldCol.getVirtualColumnId()),
-                                getContextManager()));
-            }else{
-                newCol=oldCol;
+                if (SanityManager.DEBUG) {
+                    SanityManager.ASSERT(oldCol != null,
+                            "Couldn't find base column " + basePosition +
+                                    "\n.  RCL is\n" + oldColumns);
+                }
+
+                /* If we're cloning the RCs its because we are
+                 * building an RCL for the index when doing
+                 * a non-covering index scan.  Set the expression
+                 * for the old RC to be a VCN pointing to the
+                 * new RC.
+                 */
+                if (cloneRCs) {
+                    //noinspection ConstantConditions
+                    newCol = oldCol.cloneMe();
+                    oldCol.setExpression(
+                            (ValueNode) getNodeFactory().getNode(
+                                    C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                                    this,
+                                    newCol,
+                                    ReuseFactory.getInteger(oldCol.getVirtualColumnId()),
+                                    getContextManager()));
+                } else {
+                    newCol = oldCol;
+                }
+
+                newCols.addResultColumn(newCol);
             }
-
-            newCols.addResultColumn(newCol);
         }
 
         /*
@@ -2383,8 +2429,7 @@ public class FromBaseTable extends FromTable {
                 resultRowAllocator,
                 colRefItem,
                 indexColItem,
-                getTrulyTheBestAccessPath().
-                getLockMode(),
+                getTrulyTheBestAccessPath().getLockMode(),
                 (tableDescriptor.getLockGranularity()==TableDescriptor.TABLE_LOCK_GRANULARITY),
                 getCompilerContext().getScanIsolationLevel(),
                 ap.getOptimizer().getMaxMemoryPerTable(),

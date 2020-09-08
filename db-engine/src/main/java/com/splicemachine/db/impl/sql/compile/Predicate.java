@@ -81,6 +81,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     // getPredScopedForResultSet() method of this class for more.
     private boolean scoped;
 
+    private boolean matchIndexExpression;
+
     public void setPulled(boolean pulled){
         this.pulled=pulled;
     }
@@ -101,6 +103,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         pushable=false;
         this.referencedSet=(JBitSet)referencedSet;
         scoped=false;
+        matchIndexExpression=false;
     }
 
 	/*
@@ -204,7 +207,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             if(cr==null)
                 continue;
 
-            if(relop.selfComparison(cr))
+            if(relop.selfComparison(cr, false))
                 continue;
 
             // If I made it thus far in the loop, we've found
@@ -614,7 +617,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                                    MethodBuilder mb) throws StandardException{
         RelationalOperator relop=getRelop();
         assert relop!=null;
-        relop.generateExpressionOperand(optTable,columnPosition,acb,mb);
+        relop.generateExpressionOperand(optTable,columnPosition,matchIndexExpression,acb,mb);
     }
 
     /**
@@ -1444,5 +1447,13 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     public void setOuterJoinLevel(int level) {
         outerJoinLevel = level;
+    }
+
+    public boolean matchIndexExpression() {
+        return matchIndexExpression;
+    }
+
+    public void setMatchIndexExpression(boolean matchIndexExpression) {
+        this.matchIndexExpression = matchIndexExpression;
     }
 }

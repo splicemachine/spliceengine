@@ -48,9 +48,6 @@ import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * A BinaryOperatorNode represents a built-in binary operator as defined by
@@ -92,6 +89,12 @@ public class BinaryOperatorNode extends OperatorNode
     String        rightInterfaceType;
     String        resultInterfaceType;
     int            operatorType;
+
+    // If an operand matches an index expression.
+    // -1  : no match
+    // >=0 : table number
+    protected int leftMatchIndexExpr  = -1;
+    protected int rightMatchIndexExpr = -1;
 
     // At the time of adding XML support, it was decided that
     // we should avoid creating new OperatorNodes where possible.
@@ -1057,5 +1060,13 @@ public class BinaryOperatorNode extends OperatorNode
     public boolean isRepeat () { return this.operatorType == REPEAT; }
 
     public int getOperatorType() { return operatorType; }
+
+    public void setMatchIndexExpr(int tableNumber, boolean isLeft) {
+        if (isLeft) {
+            this.leftMatchIndexExpr = tableNumber;
+        } else {
+            this.rightMatchIndexExpr = tableNumber;
+        }
+    }
 }
 
