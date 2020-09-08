@@ -3090,7 +3090,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                 /* Set all bits in the bit map */
                 for(index=0;index<size;index++){
                     if (isIndex)
-                    newReferencedCols.set(index);
+                        newReferencedCols.set(index);
                     else
                         newReferencedCols.set(this.getResultColumn(index+1).getStoragePosition()-1);
                 }
@@ -3111,9 +3111,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                     continue;
                 }
                 if (isIndex) {
-                newReferencedCols.set(index);
-                colsAdded++;
-            }
+                    newReferencedCols.set(index);
+                    colsAdded++;
+                }
                 else {
                     newReferencedCols.set(oldCol.getStoragePosition()-1);
                 }
@@ -3123,7 +3123,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         /* Return the FormatableBitSet if not all RCs are referenced or if
          * the caller always wants the FormatableBitSet returned.
          */
-            return newReferencedCols;
+        return newReferencedCols;
     }
 
     /**

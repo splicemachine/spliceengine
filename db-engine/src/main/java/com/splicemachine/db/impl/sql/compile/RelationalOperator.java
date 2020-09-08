@@ -31,14 +31,11 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
+import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
-
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
-
 import com.splicemachine.db.iapi.store.access.TransactionController;
-
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
@@ -121,8 +118,9 @@ public interface RelationalOperator
 	 *			to - null if the column is not being compared to anything.
 	 */
 	ValueNode getExpressionOperand(int tableNumber,
-									int columnPosition,
-									FromTable ft);
+								   int columnPosition,
+								   FromTable ft,
+								   boolean forIndexExpression) throws StandardException;
 
 	/**
 	 * Check whether this RelationalOperator is a comparison of the given
@@ -139,6 +137,7 @@ public interface RelationalOperator
 	 */
 	void generateExpressionOperand(Optimizable optTable,
 										int columnPosition,
+										boolean forIndexExpression,
 										ExpressionClassBuilder acb,
 										MethodBuilder mb)
 						throws StandardException;
@@ -155,7 +154,7 @@ public interface RelationalOperator
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean			selfComparison(ColumnReference cr)
+	boolean selfComparison(ColumnReference cr, boolean forIndexExpression)
 		throws StandardException;
 
 	/**
@@ -168,7 +167,7 @@ public interface RelationalOperator
 	 *
 	 * @return	true if this is a useful start key
 	 */
-	boolean	usefulStartKey(Optimizable optTable);
+	boolean	usefulStartKey(Optimizable optTable, IndexDescriptor id);
 
 	/**
 	 * Tell whether this relop is a useful stop key for the given table.
@@ -180,7 +179,7 @@ public interface RelationalOperator
 	 *
 	 * @return	true if this is a useful stop key
 	 */
-	boolean	usefulStopKey(Optimizable optTable);
+	boolean	usefulStopKey(Optimizable optTable, IndexDescriptor id);
 
 	/**
 	 * Get the start operator for a scan (at the store level) for this
@@ -260,8 +259,9 @@ public interface RelationalOperator
 	 * @exception StandardException		Thrown on error.
 	 */
 	void generateQualMethod(ExpressionClassBuilder acb,
-								MethodBuilder mb,
-								Optimizable optTable)
+							MethodBuilder mb,
+							Optimizable optTable,
+							boolean forIndexExpression)
 						throws StandardException;
 
 	/**
@@ -281,9 +281,12 @@ public interface RelationalOperator
 	 *
 	 * @param mb	The method the generated code is to go into
 	 * @param optTable	The Optimizable table the Qualifier will qualify
+	 * @param forIndexExpression If we are generating this for utilizing
+	 *                              an index expression.
 	 */
 	void generateNegate(MethodBuilder mb,
-								Optimizable optTable);
+						Optimizable optTable,
+						boolean forIndexExpression) throws StandardException;
 
 	/** Return true if this operator uses ordered null semantics */
 	boolean orderedNulls();
