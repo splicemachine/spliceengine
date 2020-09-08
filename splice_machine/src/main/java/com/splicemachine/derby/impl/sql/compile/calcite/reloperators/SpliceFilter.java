@@ -56,7 +56,7 @@ public class SpliceFilter extends Filter implements SpliceRelNode {
         prRCL.genVirtualColumnNodes(source, rcl);
 
         // convert the conditions
-        ValueNode convertConditions = implementor.convertCondition(condition, source);
+        ValueNode convertConditions = implementor.convertExpression(condition, source);
 
         // manufacture a ProjectRestrictNode
         ProjectRestrictNode prn = (ProjectRestrictNode) nodeFactory.getNode(

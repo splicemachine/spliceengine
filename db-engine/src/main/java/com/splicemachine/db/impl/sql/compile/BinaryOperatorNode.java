@@ -1071,6 +1071,7 @@ public class BinaryOperatorNode extends OperatorNode
             case "repeat":
                 sqlOperator = SqlLibraryOperators.REPEAT;
                 break;
+            // TODO calcite: xmlexists and xmlquery
             default:
                 throw StandardException.newException(SQLState.LANG_INVADLID_CONVERSION, operator);
         }

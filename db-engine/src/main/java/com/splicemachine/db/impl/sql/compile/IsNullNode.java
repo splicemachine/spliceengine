@@ -39,6 +39,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CalciteConverter;
+import com.splicemachine.db.iapi.sql.compile.ConvertSelectContext;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -48,6 +50,8 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import com.splicemachine.db.iapi.types.Orderable;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import java.sql.Types;
 
@@ -269,5 +273,14 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
         return Math.min(2L, numberOfRows);
     }
 
+	@Override
+	public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+		RexNode child = operand.convertExpression(relConverter, selectContext);
+		if (getNodeType() == C_NodeTypes.IS_NULL_NODE)
+			return relConverter.getRelBuilder().call(SqlStdOperatorTable.IS_NULL, child);
+		else
+			return relConverter.getRelBuilder().call(SqlStdOperatorTable.IS_NOT_NULL, child);
+
+	}
 
 }

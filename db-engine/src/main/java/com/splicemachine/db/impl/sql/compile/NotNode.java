@@ -134,6 +134,6 @@ public final class NotNode extends UnaryLogicalOperatorNode
 	@Override
 	public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
 		RexNode child = operand.convertExpression(relConverter, selectContext);
-		return relConverter.getRelBuilder().call(SqlStdOperatorTable.AND, child);
+		return relConverter.getRelBuilder().call(SqlStdOperatorTable.NOT, child);
 	}
 }

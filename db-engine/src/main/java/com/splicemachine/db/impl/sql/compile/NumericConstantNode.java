@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeUtilities;
 import com.splicemachine.db.iapi.types.NumberDataValue;
 
+import java.math.BigDecimal;
 import java.sql.Types;
 
 public final class NumericConstantNode extends ConstantNode
@@ -131,8 +132,11 @@ public final class NumericConstantNode extends ConstantNode
 		case C_NodeTypes.DECIMAL_CONSTANT_NODE:
 			if (valueInP)
 			{
-
-				NumberDataValue constantDecimal = getDataValueFactory().getDecimalDataValue((String) arg1);
+				NumberDataValue constantDecimal;
+				if (arg1 instanceof BigDecimal)
+					constantDecimal = getDataValueFactory().getDecimalDataValue((Number)arg1);
+				else
+					constantDecimal = getDataValueFactory().getDecimalDataValue((String) arg1);
 
 				typeid = Types.DECIMAL;
 				precision = constantDecimal.getDecimalValuePrecision();

@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile.calcite.reloperators;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
@@ -19,10 +18,8 @@ import org.apache.calcite.rex.RexCall;
 import org.apache.calcite.rex.RexInputRef;
 import org.apache.calcite.rex.RexLiteral;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.SqlBinaryOperator;
 import org.apache.calcite.sql.SqlKind;
 import org.apache.calcite.sql.SqlOperator;
-import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.BasicSqlType;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.util.NlsString;
@@ -48,7 +45,11 @@ public class SpliceImplementor {
         return addScrollInsensitiveNode(resultSet);
     }
 
-
+    /**
+     * convert expression represented using Calcite's RexNode to Derby expression(including conditions)
+     * @param expression
+     * @param source
+     */
     public ValueNode convertExpression(RexNode expression, ResultSetNode source) throws StandardException {
       if (expression == null)
           return null;
@@ -69,18 +70,21 @@ public class SpliceImplementor {
           RexCall rexCall = (RexCall)expression;
           SqlOperator op = rexCall.getOperator();
           SqlKind kind = op.getKind();
+          SqlTypeName sqlTypeName = rexCall.getType().getSqlTypeName();
+
+          ValueNode opNode;
           // binary operators:
           switch (kind) {
               case OTHER_FUNCTION:
                   ValueNode leftOperand = convertExpression(rexCall.getOperands().get(0), source);
                   ValueNode rightOperand = convertExpression(rexCall.getOperands().get(1), source);
                   if (op.getName().equals("REPEAT")) {
-                      ValueNode binaryOpNode = (BinaryOperatorNode) nodeFactory.getNode(C_NodeTypes.REPEAT_OPERATOR_NODE, leftOperand, rightOperand, ReuseFactory.getInteger(BinaryOperatorNode.REPEAT), contextManager);
-                      DataTypeDescriptor dtd = new DataTypeDescriptor(leftOperand.getTypeId(), rexCall.getType().getPrecision(),
+                      opNode = (ValueNode)nodeFactory.getNode(C_NodeTypes.REPEAT_OPERATOR_NODE, leftOperand, rightOperand, ReuseFactory.getInteger(BinaryOperatorNode.REPEAT), contextManager);
+                      DataTypeDescriptor dtd = new DataTypeDescriptor(TypeId.getBuiltInTypeId(sqlTypeName.getJdbcOrdinal()), rexCall.getType().getPrecision(),
                               rexCall.getType().getScale(), rexCall.getType().isNullable(),
                               rexCall.getType().getPrecision());
-                      binaryOpNode.setType(dtd);
-                      return binaryOpNode;
+                      opNode.setType(dtd);
+                      return opNode;
                   }
                   break;
               // binary arithematic operators:
@@ -89,7 +93,59 @@ public class SpliceImplementor {
               case DIVIDE:
               case TIMES:
               case MOD:
-                  break;
+                  leftOperand = convertExpression(rexCall.getOperands().get(0), source);
+                  rightOperand = convertExpression(rexCall.getOperands().get(1), source);
+                  opNode = (ValueNode)nodeFactory.getNode(mapSqlKindToDerbyNodeType(kind), leftOperand, rightOperand, contextManager);
+                  DataTypeDescriptor dtd = new DataTypeDescriptor(TypeId.getBuiltInTypeId(sqlTypeName.getJdbcOrdinal()), rexCall.getType().getPrecision(),
+                              rexCall.getType().getScale(), rexCall.getType().isNullable(),
+                              rexCall.getType().getPrecision());
+                  opNode.setType(dtd);
+                  return opNode;
+              // relational operators
+              case EQUALS:
+              case NOT_EQUALS:
+              case GREATER_THAN:
+              case GREATER_THAN_OR_EQUAL:
+              case LESS_THAN:
+              case LESS_THAN_OR_EQUAL:
+                  leftOperand = convertExpression(rexCall.getOperands().get(0), source);
+                  rightOperand = convertExpression(rexCall.getOperands().get(1), source);
+                  opNode = (ValueNode)nodeFactory.getNode(mapSqlKindToDerbyNodeType(kind), leftOperand, rightOperand, contextManager);
+                  dtd = new DataTypeDescriptor(TypeId.BOOLEAN_ID, rexCall.getType().isNullable());
+                  opNode.setType(dtd);
+                  return opNode;
+              // logical operators
+              case AND:
+              case OR:
+                  leftOperand = convertExpression(rexCall.getOperands().get(0), source);
+                  rightOperand = convertExpression(rexCall.getOperands().get(1), source);
+                  opNode = (ValueNode)nodeFactory.getNode(mapSqlKindToDerbyNodeType(kind), leftOperand, rightOperand, contextManager);
+                  dtd = new DataTypeDescriptor(TypeId.BOOLEAN_ID, rexCall.getType().isNullable());
+                  opNode.setType(dtd);
+                  return opNode;
+              case NOT:
+                  leftOperand = convertExpression(rexCall.getOperands().get(0), source);
+                  opNode = (ValueNode)nodeFactory.getNode(mapSqlKindToDerbyNodeType(kind), leftOperand, contextManager);
+                  dtd = new DataTypeDescriptor(TypeId.BOOLEAN_ID, rexCall.getType().isNullable());
+                  opNode.setType(dtd);
+                  return opNode;
+              // unary comparisonOperator:
+              case IS_NULL:
+              case IS_NOT_NULL:
+                  leftOperand = convertExpression(rexCall.getOperands().get(0), source);
+                  opNode = (ValueNode)nodeFactory.getNode(mapSqlKindToDerbyNodeType(kind), leftOperand, contextManager);
+                  dtd = new DataTypeDescriptor(TypeId.BOOLEAN_ID, rexCall.getType().isNullable());
+                  opNode.setType(dtd);
+                  return opNode;
+              // misc
+              case CAST:
+                  leftOperand = convertExpression(rexCall.getOperands().get(0), source);
+                  dtd = new DataTypeDescriptor(TypeId.getBuiltInTypeId(sqlTypeName.getJdbcOrdinal()), rexCall.getType().getPrecision(),
+                          rexCall.getType().getScale(), rexCall.getType().isNullable(),
+                          rexCall.getType().getPrecision());
+                  opNode = (ValueNode)nodeFactory.getNode(mapSqlKindToDerbyNodeType(kind), leftOperand, dtd, contextManager);
+                  ((CastNode)opNode).initForCalcite();
+                  return opNode;
               default:
                   assert false : "TODO: convert expressions";
                   break;
@@ -102,9 +158,9 @@ public class SpliceImplementor {
     }
 
     public ConstantNode literalToValueNode(RexLiteral expression) throws StandardException {
-        Object value1 = ((RexLiteral) expression).getValue();
+        Object value1 = expression.getValue();
         Object value;
-        switch (((RexLiteral) expression).getType().getSqlTypeName()) {
+        switch (expression.getType().getSqlTypeName()) {
             case BINARY:
                 value = byte[].class.cast(((ByteString) value1).getBytes());
                 break;
@@ -180,7 +236,7 @@ public class SpliceImplementor {
                     type.getPrecision(),
                     type.getScale(),
                     type.isNullable(),
-                    100 /*todo */
+                    type.getPrecision()/*todo */
                 /*,
         type.getCollation().getCollationName(),
         int collationDerivation */);
@@ -188,93 +244,6 @@ public class SpliceImplementor {
 
         rc.setType(dtd);
         rc.setName(name);
-    }
-
-    /**
-     * convert condtion represented using Calcite's RexNode to Derby Conditions
-     * @param rexNode
-     * @param source
-     */
-    public ValueNode convertCondition(RexNode rexNode, ResultSetNode source) throws StandardException {
-        if (rexNode instanceof RexLiteral) {
-            return convertExpression(rexNode, null);
-        }
-
-        if (rexNode instanceof RexCall) {
-            if (((RexCall) rexNode).getOperator() == SqlStdOperatorTable.AND) {
-                ValueNode leftCond = convertCondition(((RexCall) rexNode).getOperands().get(0), source);
-                ValueNode rightCond = convertCondition(((RexCall) rexNode).getOperands().get(1), source);
-                ValueNode andNode = (AndNode)nodeFactory.getNode(C_NodeTypes.AND_NODE, leftCond, rightCond, contextManager);
-                return andNode;
-            } else if (((RexCall) rexNode).getOperator() == SqlStdOperatorTable.OR) {
-                ValueNode leftCond = convertCondition(((RexCall) rexNode).getOperands().get(0), source);
-                ValueNode rightCond = convertCondition(((RexCall) rexNode).getOperands().get(1), source);
-                ValueNode orNode = (OrNode)nodeFactory.getNode(C_NodeTypes.OR_NODE, leftCond, rightCond, contextManager);
-                return orNode;
-            } else if (((RexCall) rexNode).getOperator() instanceof SqlBinaryOperator) {
-                return convertBinaryOperator((RexCall)rexNode, source);
-            }
-        }
-
-        // expressions
-        ValueNode expressionNode = convertExpression(rexNode, source);
-
-        return expressionNode;
-    }
-
-    private ValueNode convertBinaryOperator(RexCall rexCall, ResultSetNode source) throws StandardException {
-        ValueNode leftOperand = convertCondition(rexCall.getOperands().get(0), source);
-        ValueNode rightOperand = convertCondition(rexCall.getOperands().get(1), source);
-        ValueNode opNode;
-        boolean nullableResult;
-        switch (rexCall.getOperator().getKind()) {
-            /* relational operator */
-            case EQUALS:
-                opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
-                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
-                break;
-            case NOT_EQUALS:
-                opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
-                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
-                break;
-            case GREATER_THAN:
-                opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
-                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
-                break;
-            case GREATER_THAN_OR_EQUAL:
-                opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
-                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
-                break;
-            case LESS_THAN:
-                opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
-                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
-                break;
-            case LESS_THAN_OR_EQUAL:
-                opNode = (BinaryRelationalOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
-                setBinaryRelationalOperatorNullabilityAndType(opNode, leftOperand, rightOperand);
-                break;
-            /* arithematic operator */
-            case PLUS:
-                opNode = (BinaryArithmeticOperatorNode)nodeFactory.getNode(C_NodeTypes.BINARY_PLUS_OPERATOR_NODE, leftOperand, rightOperand, contextManager);
-                // simplify the type setting to go with left for now
-                nullableResult = leftOperand.getTypeServices().isNullable() ||
-                        rightOperand.getTypeServices().isNullable();
-                opNode.setType(leftOperand.getTypeServices());
-                opNode.setNullability(nullableResult);
-                break;
-            default:
-                throw StandardException.newException(SQLState.LANG_INVADLID_CONVERSION, rexCall.getOperator().getKind());
-        }
-
-        return opNode;
-    }
-
-    private void setBinaryRelationalOperatorNullabilityAndType(ValueNode opNode,
-                                                               ValueNode leftOperand,
-                                                               ValueNode rightOperand) throws StandardException {
-        boolean nullableResult = leftOperand.getTypeServices().isNullable() ||
-                rightOperand.getTypeServices().isNullable();
-        opNode.setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
     }
 
     private ResultSetNode addScrollInsensitiveNode(ResultSetNode resultSet) throws StandardException {
@@ -308,5 +277,48 @@ public class SpliceImplementor {
         }
 
         return resultSet;
+    }
+
+    private int mapSqlKindToDerbyNodeType(SqlKind kind) {
+        switch (kind) {
+            case EQUALS:
+                return C_NodeTypes.BINARY_EQUALS_OPERATOR_NODE;
+            case NOT_EQUALS:
+                return C_NodeTypes.BINARY_NOT_EQUALS_OPERATOR_NODE;
+            case GREATER_THAN:
+                return C_NodeTypes.BINARY_GREATER_THAN_OPERATOR_NODE;
+            case GREATER_THAN_OR_EQUAL:
+                return C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE;
+            case LESS_THAN:
+                return C_NodeTypes.BINARY_LESS_THAN_OPERATOR_NODE;
+            case LESS_THAN_OR_EQUAL:
+                return C_NodeTypes.BINARY_GREATER_EQUALS_OPERATOR_NODE;
+            /* arithematic operator */
+            case PLUS:
+                return C_NodeTypes.BINARY_PLUS_OPERATOR_NODE;
+            case MINUS:
+                return C_NodeTypes.BINARY_MINUS_OPERATOR_NODE;
+            case TIMES:
+                return C_NodeTypes.BINARY_TIMES_OPERATOR_NODE;
+            case DIVIDE:
+                return C_NodeTypes.BINARY_DIVIDE_OPERATOR_NODE;
+            case MOD:
+                return C_NodeTypes.MOD_OPERATOR_NODE;
+            case AND:
+                return C_NodeTypes.AND_NODE;
+            case OR:
+                return C_NodeTypes.OR_NODE;
+            case NOT:
+                return C_NodeTypes.NOT_NODE;
+            case IS_NULL:
+                return C_NodeTypes.IS_NULL_NODE;
+            case IS_NOT_NULL:
+                return C_NodeTypes.IS_NOT_NULL_NODE;
+            case CAST:
+                return C_NodeTypes.CAST_NODE;
+            default:
+                assert false: "unsupported conversion";
+                return -1;
+        }
     }
 }

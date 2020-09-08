@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
@@ -48,6 +49,8 @@ import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.reference.ClassName;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
@@ -246,6 +249,8 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
 
         RexNode leftOperand = getLeftOperand().convertExpression(relConverter, selectContext);
         RexNode rightOperand = getRightOperand().convertExpression(relConverter, selectContext);
-        return relConverter.getRelBuilder().call(sqlOperator, leftOperand, rightOperand);
+        RelDataType relDataType = relConverter.mapToRelDataType(dataTypeServices);
+        final RexBuilder rexBuilder = relConverter.getCluster().getRexBuilder();
+        return rexBuilder.makeCall(relDataType, sqlOperator, ImmutableList.copyOf(new RexNode[]{leftOperand, rightOperand}));
     }
 }

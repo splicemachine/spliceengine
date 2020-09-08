@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.Limits;
@@ -40,14 +41,16 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rex.RexBuilder;
+import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -1135,6 +1138,19 @@ public class CastNode extends ValueNode
     @Override
     public boolean isConstantOrParameterTreeNode() {
         return castOperand.isConstantOrParameterTreeNode();
+    }
+
+    @Override
+    public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+        RexNode leftOperand = castOperand.convertExpression(relConverter, selectContext);
+        RelDataType relDataType = relConverter.mapToRelDataType(dataTypeServices);
+
+        final RexBuilder rexBuilder = relConverter.getCluster().getRexBuilder();
+        return rexBuilder.makeCall(relDataType, SqlStdOperatorTable.CAST, ImmutableList.copyOf(new RexNode[]{leftOperand}));
+    }
+
+    public void initForCalcite() throws StandardException {
+       sourceCTI = castOperand.getTypeId();
     }
 }
 
