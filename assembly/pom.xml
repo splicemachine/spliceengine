@@ -248,12 +248,15 @@
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
                                             <fileset dir="common/src/main/resources/bin" includes="sqlshell.sh"/>
                                         </copy>
-                                        <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
-                                            <include name="sqlshell.sh"/>
-                                        </replace>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
                                             <fileset dir="common/src/main/resources/bin" includes="spliceck.sh"/>
                                         </copy>
+                                        <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
+                                            <include name="sqlshell.sh"/>
+                                        </replace>
+                                        <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
+                                            <include name="spliceck.sh"/>
+                                        </replace>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
                                             <fileset dir="target/classes/scripts" includes="**/*" excludes="**/flatten.sh,**/restart.sh" />
                                             <fileset dir="common/src/main/resources/scripts" includes="**/*"/>
@@ -555,6 +558,9 @@
                                         <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
                                             <include name="sqlshell.sh"/>
                                         </replace>
+                                        <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
+                                            <include name="spliceck.sh"/>
+                                        </replace>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/scripts">
                                             <fileset dir="target/classes/scripts" includes="**/*" excludes="**/flatten.sh,**/restart.sh" />
                                             <fileset dir="common/src/main/resources/scripts" includes="**/*"/>
@@ -671,7 +677,7 @@
                                         </mapping>
                                     </mappings>
                                     <postinstallScriptlet>
-                                      <script>sed -i 's/##SPLICELIBDIR##/\/var\/lib\/splicemachine/g' /var/lib/splicemachine/sqlshell.sh</script>
+                                      <script>sed -i 's/##SPLICELIBDIR##/\/var\/lib\/splicemachine/g' /var/lib/splicemachine/spliceck.sh /var/lib/splicemachine/sqlshell.sh</script>
                                     </postinstallScriptlet>
                                 </configuration>
                             </execution>
@@ -1527,6 +1533,9 @@
                                         </copy>
                                         <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
                                             <include name="sqlshell.sh"/>
+                                        </replace>
+                                        <replace token="##SPLICELIBDIR##" value="${splice.lib.dir}" dir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/bin">
+                                            <include name="spliceck.sh"/>
                                         </replace>
                                         <copy todir="target/SPLICEMACHINE-${project.version}.${envClassifier}.${parcel.patch}/conf">
                                             <fileset dir="target/classes/conf" includes="**/*"/>
