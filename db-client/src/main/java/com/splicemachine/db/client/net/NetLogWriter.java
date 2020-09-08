@@ -30,6 +30,7 @@ package com.splicemachine.db.client.net;
 // The value of the hex bytes are traced along with the ascii and ebcdic translations.
 
 import com.splicemachine.db.client.am.ClientConnection;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class NetLogWriter extends com.splicemachine.db.client.am.LogWriter {
 
@@ -126,6 +127,7 @@ public class NetLogWriter extends com.splicemachine.db.client.am.LogWriter {
     //-----------------------------constructors/finalizer-------------------------
 
     // One NetLogWriter object is created per data source, iff tracing is enabled.
+    @SuppressFBWarnings(value = "LI_LAZY_INIT_STATIC", justification = "intentional")
     public NetLogWriter(java.io.PrintWriter printWriter, int traceLevel) {
         super(printWriter, traceLevel);
 
