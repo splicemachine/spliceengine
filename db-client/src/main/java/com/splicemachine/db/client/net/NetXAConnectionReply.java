@@ -49,8 +49,6 @@ public class NetXAConnectionReply extends NetResultSetReply {
 
         NetXACallInfo callInfo =
                 netAgent_.netConnection_.xares_.callInfoArray_[netAgent_.netConnection_.currXACallInfoOffset_];
-        callInfo.xaInProgress_ = false;
-        callInfo.xaWasSuspended = false;
         connection.completeLocalCommit();
     }
 
@@ -111,7 +109,6 @@ public class NetXAConnectionReply extends NetResultSetReply {
         endOfSameIdChainData();
 
         NetXACallInfo callInfo = conn.xares_.callInfoArray_[conn.currXACallInfoOffset_];
-        callInfo.xaInProgress_ = false;
         conn.completeLocalCommit();
     }
 
@@ -121,8 +118,6 @@ public class NetXAConnectionReply extends NetResultSetReply {
         endOfSameIdChainData();
 
         NetXACallInfo callInfo = conn.xares_.callInfoArray_[conn.currXACallInfoOffset_];
-        callInfo.xaInProgress_ = false;
-        callInfo.xaWasSuspended = false;
         conn.completeLocalRollback();
 
         return javax.transaction.xa.XAResource.XA_OK;

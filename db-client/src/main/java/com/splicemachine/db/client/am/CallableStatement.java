@@ -27,6 +27,8 @@ package com.splicemachine.db.client.am;
 
 import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.InputStream;
 import java.io.Reader;
 import java.sql.*;
@@ -35,6 +37,7 @@ import java.sql.Clob;
 import java.sql.RowId;
 import java.util.Calendar;
 
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE", justification = "intentional")
 public class CallableStatement extends PreparedStatement
         implements java.sql.PreparedStatement,
         java.sql.CallableStatement,
@@ -678,15 +681,13 @@ public class CallableStatement extends PreparedStatement
                 super.checkForClosedStatement();
                 checkGetterPreconditions(parameterIndex);
                 setWasNull(parameterIndex);
-                java.sql.Array result = wasNullX() ? null : singletonRowData_.getArray(parameterIndex);
-                if (true) {
-                    throw new SqlException(agent_.logWriter_, 
-                        new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
-                }
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceExit(this, "getArray", result);
-                }
-                return result;
+                throw new SqlException(agent_.logWriter_,
+                    new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
+                //java.sql.Array result = wasNullX() ? null : singletonRowData_.getArray(parameterIndex);
+                //if (agent_.loggingEnabled()) {
+                //    agent_.logWriter_.traceExit(this, "getArray", result);
+                //}
+                //return result;
             }
         }
         catch ( SqlException se )
@@ -705,15 +706,13 @@ public class CallableStatement extends PreparedStatement
                 super.checkForClosedStatement();
                 checkGetterPreconditions(parameterIndex);
                 setWasNull(parameterIndex);
-                java.sql.Ref result = wasNullX() ? null : singletonRowData_.getRef(parameterIndex);
-                if (true) {
-                    throw new SqlException(agent_.logWriter_, 
-                        new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
-                }
-                if (agent_.loggingEnabled()) {
-                    agent_.logWriter_.traceExit(this, "getRef", result);
-                }
-                return result;
+                throw new SqlException(agent_.logWriter_,
+                    new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
+                //java.sql.Ref result = wasNullX() ? null : singletonRowData_.getRef(parameterIndex);
+                //if (agent_.loggingEnabled()) {
+                //    agent_.logWriter_.traceExit(this, "getRef", result);
+                //}
+                //return result;
             }
         }
         catch ( SqlException se )
@@ -1202,9 +1201,9 @@ public class CallableStatement extends PreparedStatement
                 //
                 if ( parameterMetaData_.types_[ i ] == Types.SMALLINT )
                 {
-                    if ( (returnArg != null) && (returnArg instanceof Integer) )
+                    if ((returnArg instanceof Integer))
                     {
-                        returnArg = new Short( ((Integer) returnArg).shortValue() );
+                        returnArg = ((Integer) returnArg).shortValue();
                     }
                 }
                 
@@ -1232,8 +1231,8 @@ public class CallableStatement extends PreparedStatement
     private void checkForValidOutParameter(int parameterIndex) throws SqlException {
         if (parameterMetaData_ == null || parameterMetaData_.sqlxParmmode_[parameterIndex - 1] < java.sql.ParameterMetaData.parameterModeInOut) {
             throw new SqlException(agent_.logWriter_, 
-                new ClientMessageId(SQLState.PARAM_NOT_OUT_OR_INOUT), 
-                new Integer(parameterIndex));
+                new ClientMessageId(SQLState.PARAM_NOT_OUT_OR_INOUT),
+                    parameterIndex);
         }
     }
 
