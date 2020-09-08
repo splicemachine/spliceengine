@@ -35,7 +35,7 @@ import java.util.Collections;
 import com.splicemachine.db.client.net.NetXAResource;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 
-public abstract class Connection
+public abstract class ClientConnection
     implements java.sql.Connection, ConnectionCallbackInterface
 {
     //---------------------navigational members-----------------------------------
@@ -185,20 +185,20 @@ public abstract class Connection
     //---------------------constructors/finalizer---------------------------------
 
     // For jdbc 2 connections
-    protected Connection(com.splicemachine.db.client.am.LogWriter logWriter,
-                         String user,
-                         String password,
-                         com.splicemachine.db.jdbc.ClientBaseDataSource dataSource)
+    protected ClientConnection(com.splicemachine.db.client.am.LogWriter logWriter,
+                               String user,
+                               String password,
+                               com.splicemachine.db.jdbc.ClientBaseDataSource dataSource)
                                                            throws SqlException {
         this.user_ = user;
         initConnection(logWriter, dataSource);
     }
 
-    protected Connection(com.splicemachine.db.client.am.LogWriter logWriter,
-                         String user,
-                         String password,
-                         boolean isXAConn,
-                         com.splicemachine.db.jdbc.ClientBaseDataSource dataSource)
+    protected ClientConnection(com.splicemachine.db.client.am.LogWriter logWriter,
+                               String user,
+                               String password,
+                               boolean isXAConn,
+                               com.splicemachine.db.jdbc.ClientBaseDataSource dataSource)
                                                            throws SqlException {
         this.user_ = user;
         isXAConnection_ = isXAConn;
@@ -256,9 +256,9 @@ public abstract class Connection
     }
 
     // For jdbc 2 connections
-    protected Connection(com.splicemachine.db.client.am.LogWriter logWriter,
-                         boolean isXAConn,
-                         com.splicemachine.db.jdbc.ClientBaseDataSource dataSource)
+    protected ClientConnection(com.splicemachine.db.client.am.LogWriter logWriter,
+                               boolean isXAConn,
+                               com.splicemachine.db.jdbc.ClientBaseDataSource dataSource)
                                                             throws SqlException {
         if (logWriter != null) {
             logWriter.traceConnectEntry(dataSource);
@@ -309,12 +309,12 @@ public abstract class Connection
     }
 
     // For jdbc 1 connections
-    protected Connection(LogWriter logWriter,
-                         int driverManagerLoginTimeout,
-                         String serverName,
-                         int portNumber,
-                         String databaseName,
-                         java.util.Properties properties) throws SqlException {
+    protected ClientConnection(LogWriter logWriter,
+                               int driverManagerLoginTimeout,
+                               String serverName,
+                               int portNumber,
+                               String databaseName,
+                               java.util.Properties properties) throws SqlException {
         if (logWriter != null) {
             logWriter.traceConnectEntry(serverName, portNumber, databaseName, properties);
         }
@@ -1000,7 +1000,7 @@ public abstract class Connection
         default:
             throw new SqlException(agent_.logWriter_,
                 new ClientMessageId (SQLState.UNIMPLEMENTED_ISOLATION_LEVEL),
-                new Integer(level));
+                    level);
         }
         if (setTransactionIsolationStmt == null  ||
                 !(setTransactionIsolationStmt.openOnClient_ &&
@@ -1180,13 +1180,12 @@ public abstract class Connection
                agent_.logWriter_.traceEntry(this,
                   "getCurrentSchemaName() executes query");
             }
-            java.sql.Statement s = createStatement();
-            java.sql.ResultSet rs = s.executeQuery("VALUES CURRENT SCHEMA");
-            rs.next();
-            String schema = rs.getString(1);
-            rs.close();
-            s.close();
-            return schema;
+            try (java.sql.Statement s = createStatement()) {
+                try (java.sql.ResultSet rs = s.executeQuery("VALUES CURRENT SCHEMA")) {
+                    rs.next();
+                    return rs.getString(1);
+                }
+            }
         }
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(supportsSessionDataCaching(),
@@ -1441,7 +1440,7 @@ public abstract class Connection
             if (map == null) {
                 throw new SqlException(agent_.logWriter_,
                         new ClientMessageId (SQLState.INVALID_API_PARAMETER),
-                        map, "map", "setTypeMap");
+                        null, "map", "setTypeMap");
             }
 
             if (!(map.isEmpty())) {

@@ -27,15 +27,8 @@ package com.splicemachine.db.client.net;
 
 import javax.transaction.xa.Xid;
 
-import com.splicemachine.db.client.am.Connection;
-import com.splicemachine.db.client.am.ConnectionCallbackInterface;
-import com.splicemachine.db.client.am.StatementCallbackInterface;
-import com.splicemachine.db.client.am.ResultSetCallbackInterface;
-import com.splicemachine.db.client.am.DisconnectException;
-import com.splicemachine.db.client.am.SqlException;
-import com.splicemachine.db.client.am.ClientMessageId;
-import com.splicemachine.db.client.am.Sqlca;
-import com.splicemachine.db.client.am.UnitOfWorkListener;
+import com.splicemachine.db.client.am.*;
+import com.splicemachine.db.client.am.ClientConnection;
 
 import com.splicemachine.db.shared.common.error.ExceptionSeverity;
 import com.splicemachine.db.shared.common.error.ExceptionUtil;
@@ -53,7 +46,7 @@ public class NetConnectionReply extends Reply
     }
 
     // NET only entry point
-    void readExchangeServerAttributes(Connection connection) throws SqlException {
+    void readExchangeServerAttributes(ClientConnection connection) throws SqlException {
         startSameIdChainParse();
         parseEXCSATreply((NetConnection) connection);
         endOfSameIdChainData();
@@ -94,7 +87,7 @@ public class NetConnectionReply extends Reply
         }
     }
 
-    void readDummyExchangeServerAttributes(Connection connection) throws SqlException {
+    void readDummyExchangeServerAttributes(ClientConnection connection) throws SqlException {
         startSameIdChainParse();
         parseDummyEXCSATreply((NetConnection) connection);
         endOfSameIdChainData();
@@ -102,7 +95,7 @@ public class NetConnectionReply extends Reply
     }
 
     // NET only entry point
-    void readAccessSecurity(Connection connection,
+    void readAccessSecurity(ClientConnection connection,
                             int securityMechanism) throws SqlException {
         startSameIdChainParse();
         parseACCSECreply((NetConnection) connection, securityMechanism);
@@ -111,7 +104,7 @@ public class NetConnectionReply extends Reply
     }
 
     // NET only entry point
-    void readSecurityCheck(Connection connection) throws SqlException {
+    void readSecurityCheck(ClientConnection connection) throws SqlException {
         startSameIdChainParse();
         parseSECCHKreply((NetConnection) connection);
         endOfSameIdChainData();
@@ -119,7 +112,7 @@ public class NetConnectionReply extends Reply
     }
 
     // NET only entry point
-    void readAccessDatabase(Connection connection) throws SqlException {
+    void readAccessDatabase(ClientConnection connection) throws SqlException {
         startSameIdChainParse();
         parseACCRDBreply((NetConnection) connection);
         endOfSameIdChainData();
@@ -3377,7 +3370,7 @@ public class NetConnectionReply extends Reply
      *
      * @throws com.splicemachine.db.client.am.DisconnectException
      */
-    protected void parseInitialPBSD(Connection connection)
+    protected void parseInitialPBSD(ClientConnection connection)
             throws DisconnectException {
         if (peekCodePoint() != CodePoint.PBSD) {
             return;

@@ -118,7 +118,6 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
     private DateFormat timeFormat;
     private DateFormat timestampFormat;
     private UUID myUUID;
-    private String name;
 
     protected boolean lastToBoot; // is this class last to boot
 

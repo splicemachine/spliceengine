@@ -45,7 +45,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
  * that does not fit in a VARCHAR (FOR BIT DATA), are split into
  * several calls each operating on a fragment of the LOB.
  *
- * @see Connection#locatorProcedureCall for an example of how to use
+ * @see ClientConnection#locatorProcedureCall for an example of how to use
  * this class.
  */
 class CallableLocatorProcedures 
@@ -77,7 +77,7 @@ class CallableLocatorProcedures
     /**
      * The connection to be used when calling the stored procedures.
      */
-    private final Connection connection; 
+    private final ClientConnection connection;
 
     /**
      * Max size of byte[] and String parameters to procedures
@@ -93,7 +93,7 @@ class CallableLocatorProcedures
      *
      * @param conn the connection to be used to prepare calls.
      */
-    CallableLocatorProcedures(Connection conn) 
+    CallableLocatorProcedures(ClientConnection conn)
     {
         this.connection = conn;
     }

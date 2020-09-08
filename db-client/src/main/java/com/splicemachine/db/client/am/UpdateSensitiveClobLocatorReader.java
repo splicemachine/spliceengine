@@ -43,7 +43,7 @@ public class UpdateSensitiveClobLocatorReader extends Reader {
     
     //The connection object from which
     //this Clob is obtained.
-    private Connection con = null;
+    private ClientConnection con = null;
     
     //Stores the Clob instance
     //this class refers to.
@@ -71,7 +71,7 @@ public class UpdateSensitiveClobLocatorReader extends Reader {
      * @param clob the <code>Clob</code> object associated with
      *            this stream.
      */
-    protected UpdateSensitiveClobLocatorReader(Connection con, Clob clob) 
+    protected UpdateSensitiveClobLocatorReader(ClientConnection con, Clob clob)
     throws SqlException {
         //check if the locator associated with the
         //underlying Clob is valid.
@@ -107,8 +107,8 @@ public class UpdateSensitiveClobLocatorReader extends Reader {
      *            retrieved.
      *
      */
-    protected UpdateSensitiveClobLocatorReader(Connection con, Clob clob, 
-            long pos, long len) throws SqlException {
+    protected UpdateSensitiveClobLocatorReader(ClientConnection con, Clob clob,
+                                               long pos, long len) throws SqlException {
         //check if the locator associated with the
         //underlying Clob is valid.
         clob.checkForLocatorValidity();

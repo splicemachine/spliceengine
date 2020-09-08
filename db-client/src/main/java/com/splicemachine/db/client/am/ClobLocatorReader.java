@@ -44,7 +44,7 @@ public class ClobLocatorReader extends java.io.Reader {
     /**
      * Connection used to read Clob from server.
      */
-    private final Connection connection;
+    private final ClientConnection connection;
     
     /**
      * The Clob to be accessed.
@@ -79,7 +79,7 @@ public class ClobLocatorReader extends java.io.Reader {
      * @param clob <code>Clob</code> object that contains locator for
      *        the <code>Clob</code> value on the server.
      */
-    public ClobLocatorReader(Connection connection, Clob clob)
+    public ClobLocatorReader(ClientConnection connection, Clob clob)
     throws SqlException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(clob.isLocator());
@@ -109,8 +109,8 @@ public class ClobLocatorReader extends java.io.Reader {
      *            retrieved.
      * @param len The length in characters of the partial value to be retrieved.
      */
-    public ClobLocatorReader(Connection connection, Clob clob, 
-            long pos, long len) throws SqlException {
+    public ClobLocatorReader(ClientConnection connection, Clob clob,
+                             long pos, long len) throws SqlException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(clob.isLocator());
         }

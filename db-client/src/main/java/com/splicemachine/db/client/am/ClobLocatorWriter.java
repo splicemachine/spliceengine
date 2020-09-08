@@ -39,7 +39,7 @@ public class ClobLocatorWriter extends java.io.Writer {
     /**
      * Connection used to read Clob from server.
      */
-    private final Connection connection;
+    private final ClientConnection connection;
     
     /**
      * The Clob to be accessed.
@@ -71,7 +71,7 @@ public class ClobLocatorWriter extends java.io.Writer {
      *        to start writing; the first position is 1
      * @throws com.splicemachine.db.client.am.SqlException
      */
-    public ClobLocatorWriter(Connection connection, Clob clob, long pos)
+    public ClobLocatorWriter(ClientConnection connection, Clob clob, long pos)
     throws SqlException {
         if (pos-1 > clob.sqlLength()) {
             throw new IndexOutOfBoundsException();

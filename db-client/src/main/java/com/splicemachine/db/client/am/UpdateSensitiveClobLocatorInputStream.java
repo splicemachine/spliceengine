@@ -54,7 +54,7 @@ public class UpdateSensitiveClobLocatorInputStream
      * @throws SqlException If any exception occurs during stream
      *                      creation.
      */
-    public UpdateSensitiveClobLocatorInputStream(Connection con, Clob clob)
+    public UpdateSensitiveClobLocatorInputStream(ClientConnection con, Clob clob)
     throws SqlException {
         super(con, clob, new BufferedInputStream
                 (new ClobLocatorInputStream(con, clob)));

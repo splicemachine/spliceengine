@@ -34,7 +34,7 @@ public abstract class Agent {
     private int batchedExceptionLabelIndex_;
     private boolean[] batchedExceptionGenerated_;
 
-    Connection connection_; // made friendly for lobs only, refactor !!
+    ClientConnection connection_; // made friendly for lobs only, refactor !!
     public SectionManager sectionManager_ = null; // temporarily public, make friendly at least !!
 
     public LogWriter logWriter_ = null;
@@ -63,7 +63,7 @@ public abstract class Agent {
         }
     }
 
-    protected Agent(Connection connection, LogWriter logWriter) {
+    protected Agent(ClientConnection connection, LogWriter logWriter) {
         connection_ = connection;
         logWriter_ = logWriter;
         crossConverters_ = new CrossConverters(this);
@@ -79,7 +79,7 @@ public abstract class Agent {
         deferredException_ = null;
     }
 
-    public void resetAgent(Connection connection, LogWriter logWriter, int loginTimeout, String server, int port) throws SqlException {
+    public void resetAgent(ClientConnection connection, LogWriter logWriter, int loginTimeout, String server, int port) throws SqlException {
         resetAgent(logWriter);
         resetAgent_(logWriter, loginTimeout, server, port);
     }
