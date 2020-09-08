@@ -53,7 +53,6 @@ public class NetXACallInfo {
     // may not be needed!!!~~~
     int xaFunction_;                  // queued XA function being performed
     int xaRetVal_;                    // xaretval from server
-    boolean convReleased_;            // release coversation, reuse successfull = true
     NetXAConnection actualConn_; // the actual connection object, not necessarily
     // the user's connection object
     /* only the first connection object is actually used. The other connection
@@ -73,7 +72,6 @@ public class NetXACallInfo {
         xid_ = null;
         xaFlags_ = XAResource.TMNOFLAGS;
         xaTimeoutMillis_ = -1;
-        convReleased_ = false;
         actualConn_ = null;
         readOnlyTransaction_ = true;
         xaRetVal_ = 0;
