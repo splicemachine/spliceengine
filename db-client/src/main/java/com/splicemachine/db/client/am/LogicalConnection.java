@@ -25,6 +25,8 @@
 
 package com.splicemachine.db.client.am;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.sql.*;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -44,6 +46,7 @@ import java.util.concurrent.Executor;
  * nulled out, only the {@code PooledConnection} instance will maintain a
  * handle to the physical connection.
  */
+@SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "Tofix: DB-10210")
 public class LogicalConnection implements java.sql.Connection {
     /**
      * Underlying physical connection for this logical connection.

@@ -73,9 +73,6 @@ public class NetConnection extends ClientConnection {
     private final ClientPooledConnection pooledConnection_;
     private final boolean closeStatementsOnClose;
 
-    // For XA Transaction
-    protected int pendingEndXACallinfoOffset_ = -1;
-
     //-----------------------------state------------------------------------------
 
     // these variables store the manager levels for the connection.
@@ -1844,7 +1841,7 @@ public class NetConnection extends ClientConnection {
             (String collection,
              com.splicemachine.db.client.am.Agent agent,
              String databaseName) {
-        return new com.splicemachine.db.client.am.SectionManager(collection, agent, databaseName);
+        return new com.splicemachine.db.client.am.SectionManager(agent);
     }
 
     public boolean willAutoCommitGenerateFlow() {
