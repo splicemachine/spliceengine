@@ -57,7 +57,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-public class NetConnection extends com.splicemachine.db.client.am.Connection {
+public class NetConnection extends ClientConnection {
     
     // Use this to get internationalized strings...
     protected static final MessageUtil msgutil = SqlException.getMessageUtil();

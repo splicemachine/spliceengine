@@ -59,7 +59,7 @@ public class CachingLogicalConnection
      *
      * @throws SqlException if creating the logical connection fails
      */
-    public CachingLogicalConnection(Connection physicalConnection,
+    public CachingLogicalConnection(ClientConnection physicalConnection,
                                     ClientPooledConnection pooledConnection,
                                     JDBCStatementCache stmtCache)
             throws SqlException {

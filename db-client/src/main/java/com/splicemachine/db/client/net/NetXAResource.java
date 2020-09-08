@@ -55,7 +55,7 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 
 import com.splicemachine.db.client.ClientXid;
-import com.splicemachine.db.client.am.Connection;
+import com.splicemachine.db.client.am.ClientConnection;
 import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.client.am.ClientMessageId;
 import com.splicemachine.db.shared.common.reference.SQLState;
@@ -265,7 +265,7 @@ public class NetXAResource implements XAResource {
             // to be thrown.
             throwXAException(rc, false);
         }else {
-        	conn_.setXAState(Connection.XA_T0_NOT_ASSOCIATED);
+        	conn_.setXAState(ClientConnection.XA_T0_NOT_ASSOCIATED);
         } 
     }
 
@@ -646,7 +646,7 @@ public class NetXAResource implements XAResource {
             // Setting this is currently required to avoid client from sending
             // commit for autocommit.
             if (rc == XAResource.XA_OK) {
-                conn_.setXAState(Connection.XA_T1_ASSOCIATED);
+                conn_.setXAState(ClientConnection.XA_T1_ASSOCIATED);
             }
 
         } catch (SqlException sqle) {
@@ -800,7 +800,7 @@ public class NetXAResource implements XAResource {
            case javax.transaction.xa.XAException.XA_RBPROTO:
            case javax.transaction.xa.XAException.XA_RBTIMEOUT:
            case javax.transaction.xa.XAException.XA_RBTRANSIENT:
-           	conn_.setXAState(Connection.XA_T0_NOT_ASSOCIATED);
+           	conn_.setXAState(ClientConnection.XA_T0_NOT_ASSOCIATED);
            break;
             // No change for other XAExceptions
             // javax.transaction.xa.XAException.XA_NOMIGRATE

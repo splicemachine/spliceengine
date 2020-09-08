@@ -92,7 +92,7 @@ public class CallableStatement extends PreparedStatement
      * @throws SqlException
      */
     public CallableStatement(Agent agent,
-                             Connection connection,
+                             ClientConnection connection,
                              String sql,
                              int type, int concurrency, int holdability,
                              ClientPooledConnection cpc) throws SqlException {
@@ -102,7 +102,7 @@ public class CallableStatement extends PreparedStatement
     }
 
     public void resetCallableStatement(Agent agent,
-                                       Connection connection,
+                                       ClientConnection connection,
                                        String sql,
                                        int type, int concurrency, int holdability) throws SqlException {
         super.resetPreparedStatement(agent, connection, sql, type, concurrency, holdability, java.sql.Statement.NO_GENERATED_KEYS, 
@@ -111,7 +111,7 @@ public class CallableStatement extends PreparedStatement
     }
 
     public void resetCallableStatement(Agent agent,
-                                       Connection connection,
+                                       ClientConnection connection,
                                        String sql,
                                        Section section) throws SqlException {
         super.resetPreparedStatement(agent, connection, sql, section);
@@ -120,7 +120,7 @@ public class CallableStatement extends PreparedStatement
 
 
     public void resetCallableStatement(Agent agent,
-                                       Connection connection,
+                                       ClientConnection connection,
                                        String sql,
                                        Section section,
                                        ColumnMetaData parameterMetaData,

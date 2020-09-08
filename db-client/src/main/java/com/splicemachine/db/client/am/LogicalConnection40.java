@@ -51,7 +51,7 @@ import java.util.Map;
 public class LogicalConnection40
     extends LogicalConnection {
 
-    public LogicalConnection40(Connection physicalConnection,
+    public LogicalConnection40(ClientConnection physicalConnection,
                                ClientPooledConnection pooledConnection) 
         throws SqlException {
         super(physicalConnection, pooledConnection);

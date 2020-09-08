@@ -46,7 +46,7 @@ import javax.naming.StringRefAddr;
 import com.splicemachine.db.client.am.Configuration;
 import com.splicemachine.db.client.am.LogWriter;
 import com.splicemachine.db.client.am.SqlException;
-import com.splicemachine.db.client.am.Connection;
+import com.splicemachine.db.client.am.ClientConnection;
 import com.splicemachine.db.client.am.ClientMessageId;
 import com.splicemachine.db.client.net.NetConfiguration;
 import com.splicemachine.db.client.net.NetLogWriter;
@@ -643,7 +643,7 @@ public abstract class ClientBaseDataSource implements Serializable, Referenceabl
 
     // Compute a DNC log writer after a connection is created.
     // Declared public for use by am.Connection.  Not a public external.
-    public static LogWriter computeDncLogWriter(Connection connection, PrintWriter logWriter, String traceDirectory, String traceFile, boolean traceFileAppend, String logWriterInUseSuffix, int traceFileSuffixIndex, int traceLevel) throws SqlException {
+    public static LogWriter computeDncLogWriter(ClientConnection connection, PrintWriter logWriter, String traceDirectory, String traceFile, boolean traceFileAppend, String logWriterInUseSuffix, int traceFileSuffixIndex, int traceLevel) throws SqlException {
         // Otherwise, the trace file will still be created even TRACE_NONE.
         if (traceLevel == TRACE_NONE) {
             return null;

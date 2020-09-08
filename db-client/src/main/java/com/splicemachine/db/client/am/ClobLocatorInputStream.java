@@ -50,7 +50,7 @@ public class ClobLocatorInputStream extends java.io.InputStream {
     /**
      * Connection used to read Clob from server.
      */
-    private final Connection connection;
+    private final ClientConnection connection;
     
     /**
      * The Clob to be accessed.
@@ -72,7 +72,7 @@ public class ClobLocatorInputStream extends java.io.InputStream {
      * @param clob <code>Clob</code> object that contains locator for
      *        the <code>Clob</code> value on the server.
      */
-    public ClobLocatorInputStream(Connection connection, Clob clob)
+    public ClobLocatorInputStream(ClientConnection connection, Clob clob)
     throws SqlException{
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(clob.isLocator());
@@ -94,7 +94,7 @@ public class ClobLocatorInputStream extends java.io.InputStream {
      * @param pos the position inside the <code>Clob<code> from which
      *            the reading must begin.
      */
-    public ClobLocatorInputStream(Connection connection, Clob clob, long pos)
+    public ClobLocatorInputStream(ClientConnection connection, Clob clob, long pos)
     throws SqlException{
         this(connection, clob);
         this.currentPos = pos;

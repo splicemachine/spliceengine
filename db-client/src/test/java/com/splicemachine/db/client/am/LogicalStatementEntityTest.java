@@ -287,7 +287,7 @@ public class LogicalStatementEntityTest
         StatementCacheInteractor cacheInteractor =
                 new StatementCacheInteractor(
                         cache,
-                        ((com.splicemachine.db.client.am.Connection) getConnection()));
+                        ((ClientConnection) getConnection()));
         LogicalStatementEntity entity;
         if (isCallable) {
             entity = (LogicalStatementEntity) cacheInteractor.prepareCall(sql);
