@@ -164,7 +164,7 @@ public class ClientPooledConnection implements javax.sql.PooledConnection {
         //}
 
         try {
-            assert logWriter instanceof NetLogWriter;
+            assert logWriter_ == null || logWriter_ instanceof NetLogWriter;
             netXAPhysicalConnection_ = getNetXAConnection(ds,
                     (NetLogWriter) logWriter_,
                     user,
