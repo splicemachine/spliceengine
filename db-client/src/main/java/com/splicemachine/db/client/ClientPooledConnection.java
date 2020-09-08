@@ -121,7 +121,7 @@ public class ClientPooledConnection implements javax.sql.PooledConnection {
             
             netPhysicalConnection_ = (com.splicemachine.db.client.net.NetConnection)
             ClientDriver.getFactory().newNetConnection(
-                    (NetLogWriter) logWriter_,
+                    logWriter_,
                     user,
                     password,
                     ds,
@@ -156,15 +156,15 @@ public class ClientPooledConnection implements javax.sql.PooledConnection {
         logWriter_ = logWriter;
         rmId_ = rmId;
 
-        if (ds.maxStatementsToPool() <= 0) {
-            this.statementCache = null;
-        } else {
-            // NOTE: Disable statement pooling for XA for now.
-            this.statementCache = null;
-            //        new JDBCStatementCache(ds.maxStatementsToPool());
-        }
+        this.statementCache = null;
+
+        // NOTE: Disable statement pooling for XA for now.
+        //if (ds.maxStatementsToPool() > 0) {
+        //  this.statementCache = new JDBCStatementCache(ds.maxStatementsToPool());
+        //}
 
         try {
+            assert logWriter instanceof NetLogWriter;
             netXAPhysicalConnection_ = getNetXAConnection(ds,
                     (NetLogWriter) logWriter_,
                     user,

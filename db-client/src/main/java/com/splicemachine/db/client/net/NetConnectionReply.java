@@ -289,8 +289,9 @@ public class NetConnectionReply extends Reply
             // incorrect but consider it a conversation protocol error
             // 0x03 - OBJDSS sent when not allowed.
             //parseSECTKN (true);
-            boolean done = false;
-            byte[] bytes = parseSECTKN(false);
+            //boolean done = false;
+            //byte[] bytes = parseSECTKN(false);
+            parseSECTKN(false);
         }
     }
 
@@ -2930,7 +2931,7 @@ public class NetConnectionReply extends Reply
             }
             agent_.accumulateChainBreakingReadExceptionAndThrow(new DisconnectException(agent_,
                 new ClientMessageId(SQLState.DRDA_NO_AVAIL_CODEPAGE_CONVERSION),
-                new Integer(cpValue), value));
+                    cpValue, value));
             return;
         }
         // the problem isn't with one of the ccsid values so...
@@ -3140,9 +3141,9 @@ public class NetConnectionReply extends Reply
         if (readFastUnsignedByte() == CodePoint.NULLDATA) {
             return 0;
         }
-        int sqldsFcod = readFastInt(); // FUNCTION_CODE
-        int sqldsCost = readFastInt(); // COST_ESTIMATE
-        int sqldsLrow = readFastInt(); // LAST_ROW
+        readFastInt(); // FUNCTION_CODE
+        readFastInt(); // COST_ESTIMATE
+        readFastInt(); // LAST_ROW
 
         skipFastBytes(16);
 
@@ -3166,9 +3167,9 @@ public class NetConnectionReply extends Reply
     // SQLCNAUTHID; PROTOCOL TYPE VCS; ENVLID 0x32; Length Override 255
     private void parseSQLCNGRP() throws DisconnectException {
         skipBytes(18);
-        String sqlcnRDB = parseFastVCS();    // RDBNAM
-        String sqlcnClass = parseFastVCS();  // CLASS_NAME
-        String sqlcnAuthid = parseFastVCS(); // AUTHID
+        parseFastVCS();    // RDBNAM
+        parseFastVCS();  // CLASS_NAME
+        parseFastVCS(); // AUTHID
     }
 
     // SQL Diagnostics Condition Group Description
@@ -3201,8 +3202,8 @@ public class NetConnectionReply extends Reply
     private int parseSQLDCGRP(Sqlca[] rowsetSqlca, int lastRow) throws DisconnectException {
         int sqldcCode = readFastInt(); // SQLCODE
         String sqldcState = readFastString(5, Typdef.UTF8ENCODING); // SQLSTATE
-        int sqldcReason = readFastInt();  // REASON_CODE
-        int sqldcLinen = readFastInt(); // LINE_NUMBER
+        readFastInt();  // REASON_CODE
+        readFastInt(); // LINE_NUMBER
         int sqldcRown = (int) readFastLong(); // ROW_NUMBER
 
         // save +20237 in the 0th entry of the rowsetSqlca's.
@@ -3234,10 +3235,10 @@ public class NetConnectionReply extends Reply
         }
 
         skipFastBytes(47);
-        String sqldcRdb = parseFastVCS(); // RDBNAM
+        parseFastVCS(); // RDBNAM
         // skip the tokens for now, since we already have the complete message.
         parseSQLDCTOKS(); // MESSAGE_TOKENS
-        String sqldcMsg = parseFastNVCMorNVCS(); // MESSAGE_TEXT
+        parseFastNVCMorNVCS(); // MESSAGE_TEXT
 
         // skip the following for now.
         skipFastNVCMorNVCS();  // COLUMN_NAME
@@ -3288,7 +3289,7 @@ public class NetConnectionReply extends Reply
         skipFastNVCMorNVCS();  // OBJECT_SCHEMA
         skipFastNVCMorNVCS();  // SPECIFIC_NAME
         skipFastNVCMorNVCS();  // TABLE_NAME
-        String sqldcxCrdb = parseFastVCS();        // CONSTRAINT_RDBNAM
+        parseFastVCS();        // CONSTRAINT_RDBNAM
         skipFastNVCMorNVCS();  // CONSTRAINT_SCHEMA
         skipFastNVCMorNVCS();  // CONSTRAINT_NAME
         parseFastVCS();        // ROUTINE_RDBNAM

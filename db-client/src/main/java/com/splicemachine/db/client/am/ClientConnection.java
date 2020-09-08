@@ -34,7 +34,9 @@ import java.sql.SQLException;
 import java.util.Collections;
 import com.splicemachine.db.client.net.NetXAResource;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = {"IS2_INCONSISTENT_SYNC", "UG_SYNC_SET_UNSYNC_GET"}, justification = "Tofix: DB-10210")
 public abstract class ClientConnection
     implements java.sql.Connection, ConnectionCallbackInterface
 {
