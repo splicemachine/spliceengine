@@ -349,7 +349,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         if( dataSetHashMap.containsKey(location) ) {
 //            SpliceLogUtils.info(LOG, "reusing DataFrame of location %s", location);
             try { String name = ""; java.io.FileOutputStream fos = new java.io.FileOutputStream("/tmp/log.txt", true);
-                fos.write("reusing DataFrame of location " + location); fos.close(); } catch( Exception e) {}
+                fos.write(("reusing DataFrame of location " + location).getBytes()); fos.close(); } catch( Exception e) {}
             return dataSetHashMap.get(location);
 
         }
@@ -361,7 +361,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     {
 //        SpliceLogUtils.info(LOG, "adding new DataFrame to Cache for location %s", location);
         try { String name = ""; java.io.FileOutputStream fos = new java.io.FileOutputStream("/tmp/log.txt", true);
-            fos.write("adding new DataFrame to Cache for location " + location); fos.close(); } catch( Exception e) {}
+            fos.write(("adding new DataFrame to Cache for location " + location).getBytes()); fos.close(); } catch( Exception e) {}
         location = normalizePath(location);
         dataSetHashMap.put(location, df);
     }
@@ -382,7 +382,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                             .read()
                             .schema(tableSchema)
                             .parquet(location);
-
                     addDataSetToCache(location, table);
                 }
             } catch (Exception e) {

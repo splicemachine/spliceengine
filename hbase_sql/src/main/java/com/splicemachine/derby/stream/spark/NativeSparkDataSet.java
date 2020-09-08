@@ -1257,6 +1257,116 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
 
+    Column getAggColumn(String aggName, String sourceColName, Column sourceColumn,
+                        boolean isDistinct, DataType targetDataType, HashSet<String> inputColumns)
+    {
+        //boolean isDistinct = aggregates[i].isDistinct;
+        Column column = null;
+        switch (aggName) {
+            case "SUM":
+                column = isDistinct ?
+                        sumDistinct(sourceColumn) :
+                        sum(sourceColumn);
+                column = column.cast(targetDataType);
+                break;
+            case "MAX":
+                column = max(sourceColumn);
+                break;
+            case "MIN":
+                column = min(sourceColumn);
+                break;
+            case "AVG":
+                // Splice already bumps the scale up by 4 for AVG,
+                // Spark does the same as well in class Average.
+                // The redundant scale adjustment causes overflows,
+                // which manifest as nulls in Spark.  If we attempt to
+                // remove the redundant scale adjustment by applying a CAST,
+                // we get truncated digits (e.g. 4 trailing zeroes in the
+                // rightmost positions to the right of the decimal place).
+                // To make results from the control path match results from
+                // the Spark path we evaluate avg as sum/count.
+
+                if (isDistinct) {
+                    Column dividend = sumDistinct(sourceColumn);
+                    Column divisor  = countDistinct(sourceColumn);
+                    column = dividend.divide(divisor).cast(targetDataType);
+                }
+                else {
+                    Column dividend = sum(sourceColumn);
+                    Column divisor  = org.apache.spark.sql.functions.count(sourceColumn);
+                    column = dividend.divide(divisor).cast(targetDataType);
+                }
+                break;
+            case "COUNT":
+                column = isDistinct ?
+                        countDistinct(sourceColumn) :
+                        org.apache.spark.sql.functions.count(sourceColumn);
+                column = column.cast(targetDataType);
+                break;
+            case "COUNT(*)":
+                // There is no COUNT(DISTINCT *) in the grammar.
+                if (isDistinct)
+                    return null;
+
+                column = org.apache.spark.sql.functions.count(new Column("*"));
+                column = column.cast(targetDataType);
+                break;
+            case "SpliceStddevPop":
+                column = stddev_pop(sourceColName);
+                column = column.cast(targetDataType);
+                // Distinct not currently supported.  See SPLICE-1820.
+                if (isDistinct)
+                    return null;
+                break;
+            case "SpliceStddevSamp":
+                column = stddev_samp(sourceColName);
+                column = column.cast(targetDataType);
+                // Distinct not currently supported.  See SPLICE-1820.
+                if (isDistinct)
+                    return null;
+
+                // stddev_samp may return NaN when the count is 1, so
+                // return null directly when the count is 1 or less.
+                // See SPARK-13860.
+                column = when(column.isNaN(),null).otherwise(column);
+                break;
+            default:
+                return null;
+        }
+        if (!aggName.equals("COUNT(*)"))
+            inputColumns.add(sourceColName);
+        return column;
+    }
+
+    Column getColumns(OperationContext operationContext, SpliceGenericAggregator[] aggregates,
+                      HashSet<String> inputColumns,
+                      Column [] aggregateColumns2ToN) throws StandardException {
+        Column aggregateColumn1 = null;
+//        Column [] aggregateColumns2ToN = new Column [arrayLength];
+//        HashSet<String> inputColumns = new HashSet<>();
+
+        Column column = null;
+        for (int i = 0; i < aggregates.length; i++) {
+            String sourceColName =
+                    ValueRow.getNamedColumn(aggregates[i].getInputColumnId() - 1);
+            String targetColName =
+                    ValueRow.getNamedColumn(aggregates[i].getResultColumnId() - 1);
+            DataType targetDataType = operationContext.getOperation().getExecRowDefinition().
+                    getColumn(aggregates[i].getResultColumnId()).getStructField(targetColName).dataType();
+            String[] arrOfStr = aggregates[i].getAggregatorInfo().getAggregateName().split("[.]");
+            String aggName = arrOfStr[arrOfStr.length - 1];
+            Column sourceColumn = col(sourceColName);
+
+            column = getAggColumn(aggName, sourceColName, sourceColumn, aggregates[i].isDistinct(),
+                    targetDataType, inputColumns);
+            column = column.as(targetColName);
+            if (i == 0)
+                aggregateColumn1 = column;
+            else
+                aggregateColumns2ToN[i - 1] = column;
+        }
+        return aggregateColumn1;
+    }
     /**
      * This function takes the current source NativeSparkDataSet ("this")
      * and builds a new NativeSparkDataSet with aggregate functions applied.
@@ -1307,110 +1417,14 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                     rgd = dataset.groupBy(groupingColumn1, groupingColumns2ToN);
             }
             ExecRow rowDef = operationContext.getOperation().getExecRowDefinition();
-            Column aggregateColumn1 = null;
             int arrayLength = isRollup ? aggregates.length + groupByColumns.length - 1 :
                               aggregates.length - 1;
             if (arrayLength < 0)
                 arrayLength = 0;
             Column [] aggregateColumns2ToN = new Column [arrayLength];
             HashSet<String> inputColumns = new HashSet<>();
-            Column column = null;
-            for (int i = 0; i < aggregates.length; i++) {
 
-                String sourceColName =
-                    ValueRow.getNamedColumn(aggregates[i].getInputColumnId() - 1);
-                String targetColName =
-                    ValueRow.getNamedColumn(aggregates[i].getResultColumnId() - 1);
-                DataType targetDataType = operationContext.getOperation().getExecRowDefinition().
-                           getColumn(aggregates[i].getResultColumnId()).getStructField(targetColName).dataType();
-                String [] arrOfStr = aggregates[i].getAggregatorInfo().getAggregateName().split("[.]");
-                String aggName = arrOfStr[arrOfStr.length-1];
-                Column sourceColumn = col(sourceColName);
-
-                switch (aggName) {
-                    case "SUM":
-                        column = aggregates[i].isDistinct() ?
-                                  sumDistinct(sourceColumn) :
-                                  sum(sourceColumn);
-                        column = column.cast(targetDataType);
-                        inputColumns.add(sourceColName);
-                        break;
-                    case "MAX":
-                        column = max(sourceColumn);
-                        inputColumns.add(sourceColName);
-                        break;
-                    case "MIN":
-                        column = min(sourceColumn);
-                        inputColumns.add(sourceColName);
-                        break;
-                    case "AVG":
-                        inputColumns.add(sourceColName);
-                        // Splice already bumps the scale up by 4 for AVG,
-                        // Spark does the same as well in class Average.
-                        // The redundant scale adjustment causes overflows,
-                        // which manifest as nulls in Spark.  If we attempt to
-                        // remove the redundant scale adjustment by applying a CAST,
-                        // we get truncated digits (e.g. 4 trailing zeroes in the
-                        // rightmost positions to the right of the decimal place).
-                        // To make results from the control path match results from
-                        // the Spark path we evaluate avg as sum/count.
-
-                        if (aggregates[i].isDistinct()) {
-                            Column dividend = sumDistinct(sourceColumn);
-                            Column divisor  = countDistinct(sourceColumn);
-                            column = dividend.divide(divisor).cast(targetDataType);
-                        }
-                        else {
-                            Column dividend = sum(sourceColumn);
-                            Column divisor  = org.apache.spark.sql.functions.count(sourceColumn);
-                            column = dividend.divide(divisor).cast(targetDataType);
-                        }
-                        break;
-                    case "COUNT":
-                        column = aggregates[i].isDistinct() ?
-                                  countDistinct(sourceColumn) :
-                                  org.apache.spark.sql.functions.count(sourceColumn);
-                        column = column.cast(targetDataType);
-                        inputColumns.add(sourceColName);
-                        break;
-                    case "COUNT(*)":
-                        // There is no COUNT(DISTINCT *) in the grammar.
-                        if (aggregates[i].isDistinct())
-                            return null;
-
-                        column = org.apache.spark.sql.functions.count(new Column("*"));
-                        column = column.cast(targetDataType);
-                        break;
-                    case "SpliceStddevPop":
-                        column = stddev_pop(sourceColName);
-                        column = column.cast(targetDataType);
-                        // Distinct not currently supported.  See SPLICE-1820.
-                        if (aggregates[i].isDistinct())
-                            return null;
-                        inputColumns.add(sourceColName);
-                        break;
-                    case "SpliceStddevSamp":
-                        column = stddev_samp(sourceColName);
-                        column = column.cast(targetDataType);
-                        // Distinct not currently supported.  See SPLICE-1820.
-                        if (aggregates[i].isDistinct())
-                            return null;
-
-                        // stddev_samp may return NaN when the count is 1, so
-                        // return null directly when the count is 1 or less.
-                        // See SPARK-13860.
-                        column = when(column.isNaN(),null).otherwise(column);
-                        inputColumns.add(sourceColName);
-                        break;
-                    default:
-                        return null;
-                }
-                column = column.as(targetColName);
-                if (i == 0)
-                    aggregateColumn1 = column;
-                else
-                    aggregateColumns2ToN[i-1] = column;
-            }
+            Column aggregateColumn1 = getColumns(operationContext, aggregates, inputColumns, aggregateColumns2ToN);
 
             Dataset<Row> newDS;
             List<String> toDrop = new ArrayList<>();
@@ -1428,7 +1442,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             else {
                 if (isRollup) {
                     for (int i = 0; i < groupByColumns.length; i++) {
-                        column = grouping(col(ValueRow.getNamedColumn(groupByColumns[i])));
+                        Column column = grouping(col(ValueRow.getNamedColumn(groupByColumns[i])));
                         column = column.as(ValueRow.getNamedColumn(groupByColumns.length+i+1));
                         if (aggregates.length == 0 && i == 0)
                             aggregateColumn1 = column;
@@ -1441,45 +1455,58 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 else
                     return null;
             }
+            newDS = addMissingColumns(rowDef, newDS);
+            newDS = getCorrectOrder(rowDef, newDS);
 
-            // Add in any missing columns as nulls, since copying of column
-            // values from the spark row in ValueRow.fromSparkRow() is done by
-            // column position, not column name, the Dataset schema must
-            // match the ExecRow definition in case the parent operation
-            // does not use native spark execution.
-            List<String> names = new ArrayList<>();
-            List<Column> cols = new ArrayList<>();
-            for (int i=0; i < rowDef.nColumns(); i++) {
-                String fieldName =  ValueRow.getNamedColumn(i);
-
-                try {
-                    int fieldIndex = newDS.schema().fieldIndex(fieldName);
-                }
-                catch (IllegalArgumentException e) {
-                    DataType dataType =
-                        rowDef.getColumn(i+1).getStructField(fieldName).dataType();
-                    Column newCol = lit(null).cast(dataType);
-                    names.add(fieldName);
-                    cols.add(newCol);
-                }
-            }
-            if(!names.isEmpty()) {
-                newDS = NativeSparkUtils.withColumns(names, cols, newDS);
-            }
-
-            // Now add another select expression so that the named columns are
-            // in the correct column positions.
-            String [] expressions = new String[rowDef.nColumns()];
-            for (int i=0; i < rowDef.nColumns(); i++) {
-                expressions[i] = ValueRow.getNamedColumn(i);
-            }
-            newDS = newDS.selectExpr(expressions);
             return new NativeSparkDataSet(newDS, this.context, false);
 
         } catch (Exception e){
             throw new RuntimeException(e);
         }finally {
             context.popScope();
+        }
+    }
+
+    private Dataset<Row> getCorrectOrder(ExecRow rowDef, Dataset<Row> newDS) {
+        // Now add another select expression so that the named columns are
+        // in the correct column positions.
+        String [] expressions = new String[rowDef.nColumns()];
+        for (int i=0; i < rowDef.nColumns(); i++) {
+            expressions[i] = ValueRow.getNamedColumn(i);
+        }
+        newDS = newDS.selectExpr(expressions);
+        return newDS;
+    }
+
+    private Dataset<Row> addMissingColumns(ExecRow rowDef, Dataset<Row> newDS) throws StandardException {
+        // Add in any missing columns as nulls, since copying of column
+        // values from the spark row in ValueRow.fromSparkRow() is done by
+        // column position, not column name, the Dataset schema must
+        // match the ExecRow definition in case the parent operation
+        // does not use native spark execution.
+        List<String> names = new ArrayList<>();
+        List<Column> cols = new ArrayList<>();
+        getMissingColumns(rowDef, newDS, names, cols);
+        if(!names.isEmpty()) {
+            newDS = NativeSparkUtils.withColumns(names, cols, newDS);
+        }
+        return newDS;
+    }
+
+    private void getMissingColumns(ExecRow rowDef, Dataset<Row> newDS, List<String> names, List<Column> cols) throws StandardException {
+        for (int i=0; i < rowDef.nColumns(); i++) {
+            String fieldName =  ValueRow.getNamedColumn(i);
+
+            try {
+                int fieldIndex = newDS.schema().fieldIndex(fieldName);
+            }
+            catch (IllegalArgumentException e) {
+                DataType dataType =
+                    rowDef.getColumn(i+1).getStructField(fieldName).dataType();
+                Column newCol = lit(null).cast(dataType);
+                names.add(fieldName);
+                cols.add(newCol);
+            }
         }
     }
 
