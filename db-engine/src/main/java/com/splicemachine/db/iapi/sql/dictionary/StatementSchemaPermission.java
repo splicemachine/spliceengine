@@ -277,7 +277,7 @@ public class StatementSchemaPermission extends StatementPermission
 
         String priv = null;
 
-        switch( privType)
+        switch(privType)
         {
             case Authorizer.SELECT_PRIV:
             case Authorizer.MIN_SELECT_PRIV:
@@ -303,9 +303,12 @@ public class StatementSchemaPermission extends StatementPermission
                 break;
             case Authorizer.ACCESS_PRIV:
                 priv = perms.getAccessPriv();
+                break;
+            default:
+                break;
         }
 
-        return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ?  AUTHORIZED : UNAUTHORIZED;
+        return "Y".equals(priv) || (!forGrant) && "y".equals(priv) ?  AUTHORIZED : UNAUTHORIZED;
     } // end of hasPermissionOnTable
 
     /**

@@ -104,9 +104,8 @@ public class LockTableNode extends MiscellaneousStatementNode
 
     public void bindStatement() throws StandardException
     {
-        CompilerContext            cc = getCompilerContext();
-        ConglomerateDescriptor    cd;
-        DataDictionary            dd = getDataDictionary();
+        CompilerContext         cc = getCompilerContext();
+        ConglomerateDescriptor  cd;
         SchemaDescriptor        sd;
 
         String schemaName = tableName.getSchemaName();

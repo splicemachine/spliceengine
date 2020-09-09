@@ -507,7 +507,6 @@ abstract class DMLModStatementNode extends DMLStatementNode
         Parser                        p;
         ValueNode                    clauseTree;
         LanguageConnectionContext    lcc = getLanguageConnectionContext();
-        CompilerContext             compilerContext = getCompilerContext();
 
         /* Get a Statement to pass to the parser */
 
@@ -726,10 +725,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
         fakeFromList.addFromTable(table);
 
         // Now we can do the bind.
-        expression = expression.bindExpression(
-                                        fakeFromList,
-                                        (SubqueryList) null,
-                                        (Vector) null);
+        expression.bindExpression(fakeFromList, null, null);
     }
 
     /**
@@ -1152,7 +1148,6 @@ abstract class DMLModStatementNode extends DMLStatementNode
         Parser                        p;
         ValueNode                    checkTree;
         LanguageConnectionContext    lcc = getLanguageConnectionContext();
-        CompilerContext             compilerContext = getCompilerContext();
 
         /* Get a Statement to pass to the parser */
 

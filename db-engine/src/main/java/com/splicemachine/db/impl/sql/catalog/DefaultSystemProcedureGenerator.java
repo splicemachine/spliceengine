@@ -258,17 +258,16 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
             HashSet newlyCreatedRoutines) throws StandardException {
 
         if (schemaName == null) {
-            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "SCHEMA", (schemaName));
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "SCHEMA", (String) null);
         }
 
-        List procedureList = findProceduresForSchema(schemaName, tc);
+        List<Procedure> procedureList = findProceduresForSchema(schemaName, tc);
         if (procedureList == null) {
             throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, "SCHEMA", (schemaName));
         }
-        for (Object n : procedureList) {
-            if (n instanceof Procedure) {
-                Procedure procedure = (Procedure) n;
-                createOrUpdateProcedure(schemaName, procedure.getName(), tc, newlyCreatedRoutines);
+        for (Procedure p : procedureList) {
+            if (p != null) {
+                createOrUpdateProcedure(schemaName, p.getName(), tc, newlyCreatedRoutines);
             }
         }
     }
@@ -281,7 +280,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      * @return            the system stored procedure if found, otherwise, null is returned
      * @throws StandardException
      */
-    protected List findProceduresForSchema(String schemaName, TransactionController tc) throws StandardException {
+    protected List<Procedure> findProceduresForSchema(String schemaName, TransactionController tc) throws StandardException {
 
         if (schemaName == null || tc == null) {
             return null;
@@ -289,11 +288,8 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 
         SchemaDescriptor sd = dictionary.getSchemaDescriptor(null, schemaName, tc, true);  // Throws an exception if the schema does not exist.
         UUID schemaId = sd.getUUID();
-        Map/*<UUID, List<Procedure>>*/ procedureMap = getProcedures(dictionary, tc);
-        if (procedureMap == null) {
-            return null;
-        }
-        return ((List) procedureMap.get(schemaId));
+        Map<UUID, List<Procedure>> procedureMap = getProcedures(dictionary, tc);
+        return procedureMap.get(schemaId);
     }
 
     /**
@@ -310,11 +306,8 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         if (schemaId == null || procName == null || tc == null) {
             return null;
         }
-        Map/*<UUID, List<Procedure>>*/ procedureMap = getProcedures(dictionary, tc);
-        if (procedureMap == null) {
-            return null;
-        }
-        List procedureList = (List) procedureMap.get(schemaId);
+        Map<UUID, List<Procedure>> procedureMap = getProcedures(dictionary, tc);
+        List procedureList = procedureMap.get(schemaId);
         if (procedureList == null) {
             return null;
         }
@@ -330,8 +323,8 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         return null;
     }
 
-    protected Map/*<UUID,List<Procedure>>*/ getProcedures(DataDictionary dictionary,TransactionController tc) throws StandardException {
-        Map/*<UUID,Procedure>*/ procedures = new HashMap/*<UUID,Procedure>*/();
+    protected Map<UUID,List<Procedure>> getProcedures(DataDictionary dictionary,TransactionController tc) throws StandardException {
+        Map<UUID, List<Procedure>> procedures = new HashMap<>();
 
         // SYSIBM schema
         UUID sysIbmUUID = dictionary.getSysIBMSchemaDescriptor().getUUID();
@@ -363,7 +356,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         // No op at Derby layer. See Splice override.
     }
     
-    private static final List<Procedure> sysCsProcedures =new ArrayList<>(Arrays.asList(new Procedure[]{
+    private static final List<Procedure> sysCsProcedures = new ArrayList<>(Arrays.asList(
             Procedure.newBuilder().name("SYSCS_SET_DATABASE_PROPERTY").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
@@ -454,11 +447,11 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .ownerClass(SYSTEM_PROCEDURES)
                     .build()
             ,
-                /*
-                 * PLEASE NOTE:
-                 * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
-                 * with tools to debug and repair databases and data dictionaries.
-                 */
+            /*
+             * PLEASE NOTE:
+             * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
+             * with tools to debug and repair databases and data dictionaries.
+             */
 //                Procedure.newBuilder().name("SYSCS_CREATE_SYSTEM_PROCEDURE")
 //                .numOutputParams(0).numResultSets(0).modifiesSql()
 //                .returnType(null).isDeterministic(false)
@@ -467,11 +460,11 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 //                .catalog("procName")
 //                .build()
 //                ,
-                /*
-                 * PLEASE NOTE:
-                 * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
-                 * with tools to debug and repair databases and data dictionaries.
-                 */
+            /*
+             * PLEASE NOTE:
+             * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
+             * with tools to debug and repair databases and data dictionaries.
+             */
 //                Procedure.newBuilder().name("SYSCS_DROP_SYSTEM_PROCEDURE")
 //                .numOutputParams(0).numResultSets(0).modifiesSql()
 //                .returnType(null).isDeterministic(false)
@@ -492,31 +485,29 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
                     .varchar("directory",32672)
-                    .build()
-    }));
+                    .build()));
 
-    private static final List/*<Procedure>*/ sqlJProcedures = Arrays.asList(new Procedure[]{
+    private static final List<Procedure> sqlJProcedures = Arrays.asList(
             Procedure.newBuilder().name("INSTALL_JAR").numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .varchar("URL",256)
-                .catalog("JAR")
-                .integer("DEPLOY").build()
+                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("URL",256)
+                    .catalog("JAR")
+                    .integer("DEPLOY").build()
             ,
             Procedure.newBuilder().name("REPLACE_JAR").numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .varchar("URL",256)
-                .catalog("JAR").build()
+                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("URL",256)
+                    .catalog("JAR").build()
             ,
             Procedure.newBuilder().name("REMOVE_JAR").numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("JAR")
-                .integer("UNDEPLOY").build()
-    });
+                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("JAR")
+                    .integer("UNDEPLOY").build());
 
-    private static final List/*<Procedure>*/ sysIbmProcedures = Arrays.asList(new Procedure[]{
+    private static final List<Procedure> sysIbmProcedures = Arrays.asList(
             Procedure.newBuilder().name("SQLCAMESSAGE").numOutputParams(2).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
@@ -649,127 +640,125 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .ownerClass(SYSTEM_PROCEDURES).build()
             ,
             Procedure.newBuilder().name("SQLFUNCTIONS").numOutputParams(0).numResultSets(1)
-                .readsSqlData().returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("CATALOGNAME")
-                .catalog("SCHEMANAME")
-                .catalog("FUNCNAME")
-                .varchar("OPTIONS",4000).build()
+                    .readsSqlData().returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("CATALOGNAME")
+                    .catalog("SCHEMANAME")
+                    .catalog("FUNCNAME")
+                    .varchar("OPTIONS",4000).build()
             ,
             Procedure.newBuilder().name("SQLFUNCTIONPARAMS").numOutputParams(0).numResultSets(1)
-                .readsSqlData().returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("CATALOGNAME")
-                .catalog("SCHEMANAME")
-                .catalog("FUNCNAME")
-                .catalog("PARAMNAME")
-                .varchar("OPTIONS",4000).build()
+                    .readsSqlData().returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("CATALOGNAME")
+                    .catalog("SCHEMANAME")
+                    .catalog("FUNCNAME")
+                    .catalog("PARAMNAME")
+                    .varchar("OPTIONS",4000).build()
             ,
             Procedure.newBuilder().name("CLOBCREATELOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(TypeDescriptor.INTEGER).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE).build()
+                    .containsSql().returnType(TypeDescriptor.INTEGER).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE).build()
             ,
             Procedure.newBuilder().name("CLOBRELEASELOCATOR").numResultSets(0).numOutputParams(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR").build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR").build()
             ,
             Procedure.newBuilder().name("CLOBGETPROSITIONFROMSTRING").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .varchar("SEARCHSTR",Limits.DB2_VARCHAR_MAXWIDTH)
-                .bigint("POS").build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .varchar("SEARCHSTR",Limits.DB2_VARCHAR_MAXWIDTH)
+                    .bigint("POS").build()
             ,
             Procedure.newBuilder().name("CLOBGETPOSITIONFROMLOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .integer("SEARCHLOCATOR")
-                .integer("POS").build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .integer("SEARCHLOCATOR")
+                    .integer("POS").build()
             ,
             Procedure.newBuilder().name("CLOBGETLENGTH").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR").build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR").build()
             ,
             Procedure.newBuilder().name("CLOBGETSUBSTRING").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.MAX_CLOB_RETURN_LEN))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .integer("LEN").build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.MAX_CLOB_RETURN_LEN))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .integer("LEN").build()
             ,
             Procedure.newBuilder().name("CLOBSETSTRING").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .integer("LEN")
-                .varchar("REPLACESTR",Limits.DB2_VARCHAR_MAXWIDTH).build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .integer("LEN")
+                    .varchar("REPLACESTR",Limits.DB2_VARCHAR_MAXWIDTH).build()
             ,
             Procedure.newBuilder().name("CLOBTRUNCATE").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("LEN").build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("LEN").build()
             ,
             Procedure.newBuilder().name("BLOBCREATELOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(TypeDescriptor.INTEGER).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .build()
+                    .containsSql().returnType(TypeDescriptor.INTEGER).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBRELEASELOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBGETPOSITIONFROMBYTES").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-            .ownerClass(LOB_STORED_PROCEDURE).isDeterministic(false)
-                .integer("LOCATOR")
-                .arg("SEARCHBYTES",DataTypeDescriptor.getCatalogType(Types.VARBINARY))
-                .bigint("POS")
-                .build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .ownerClass(LOB_STORED_PROCEDURE).isDeterministic(false)
+                    .integer("LOCATOR")
+                    .arg("SEARCHBYTES",DataTypeDescriptor.getCatalogType(Types.VARBINARY))
+                    .bigint("POS")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBGETPOSITIONFROMLOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .integer("SEARCHLOCATOR")
-                .bigint("POS")
-                .build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .integer("SEARCHLOCATOR")
+                    .bigint("POS")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBGETLENGTH").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBGETBYTES").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.VARBINARY,Limits.MAX_BLOB_RETURN_LEN))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .integer("LEN")
-                .build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.VARBINARY,Limits.MAX_BLOB_RETURN_LEN))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .integer("LEN")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBSETBYTES").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .integer("LEN")
-                .arg("REPLACEBYTES",DataTypeDescriptor.getCatalogType(Types.VARBINARY))
-                .build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .integer("LEN")
+                    .arg("REPLACEBYTES",DataTypeDescriptor.getCatalogType(Types.VARBINARY))
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBTRUNCATE").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .build()
-
-    });
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .build());
 }
