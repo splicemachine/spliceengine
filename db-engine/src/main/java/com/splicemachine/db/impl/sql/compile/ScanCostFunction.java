@@ -54,7 +54,7 @@ import java.util.*;
  *         Date: 5/15/15
  */
 public class ScanCostFunction{
-    public static Logger LOG = Logger.getLogger(ScanCostFunction.class);
+    public static final Logger LOG = Logger.getLogger(ScanCostFunction.class);
     private final Optimizable baseTable;
     private final CostEstimate scanCost;
     private final StoreCostController scc;
@@ -66,6 +66,7 @@ public class ScanCostFunction{
     private final int baseColumnCount;
     private final boolean forUpdate; // Will be used shortly
     private boolean basePredicatePossible = true;
+    private final HashSet<Integer> usedNoStatsColumnIds;
 
     /**
      *
@@ -100,7 +101,8 @@ public class ScanCostFunction{
                             DataValueDescriptor[] rowTemplate,
                             int[] keyColumns,
                             boolean forUpdate,
-                            ResultColumnList resultColumns){
+                            ResultColumnList resultColumns,
+                            HashSet<Integer> usedNoStatsColumnIds){
         this.scanColumns = scanColumns;
         this.lookupColumns = lookupColumns;
         this.baseTable=baseTable;
@@ -114,6 +116,7 @@ public class ScanCostFunction{
         totalColumns.or(scanColumns);
         if (lookupColumns != null)
             totalColumns.or(lookupColumns);
+        this.usedNoStatsColumnIds = usedNoStatsColumnIds;
     }
 
     /**
@@ -147,6 +150,27 @@ public class ScanCostFunction{
         return holders;
     }
 
+    private void collectNoStatsColumnsFromInListPred(Predicate p) throws StandardException {
+        if (p.getSourceInList() != null) {
+            for (Object o : p.getSourceInList().leftOperandList) {
+                if (o instanceof ColumnReference) {
+                    ColumnReference cr = (ColumnReference) o;
+                    if (!scc.useRealColumnStatistics(cr.getColumnNumber()))
+                        usedNoStatsColumnIds.add(cr.getColumnNumber());
+                }
+            }
+        }
+    }
+
+    private void collectNoStatsColumnsFromUnaryAndBinaryPred(Predicate p) {
+        if (p.getRelop() != null) {
+            ColumnReference cr = p.getRelop().getColumnOperand(baseTable);
+            if (cr != null && !scc.useRealColumnStatistics(cr.getColumnNumber())) {
+                usedNoStatsColumnIds.add(cr.getColumnNumber());
+            }
+        }
+    }
+
     /**
      *
      * Add Predicate and keep track of the selectivity
@@ -157,19 +181,29 @@ public class ScanCostFunction{
     public void addPredicate(Predicate p, double defaultSelectivityFactor) throws StandardException{
         if (p.isMultiProbeQualifier(keyColumns)) {// MultiProbeQualifier against keys (BASE)
             addSelectivity(new InListSelectivity(scc, p, QualifierPhase.BASE, defaultSelectivityFactor));
-        } else if (p.isInQualifier(scanColumns)) // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
-            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
-        else if (p.isInQualifier(lookupColumns)) // In Qualifier against looked up columns (FILTER_PROJECTION)
-            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
+            collectNoStatsColumnsFromInListPred(p);
+        } else if (p.isInQualifier(scanColumns)) { // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
+            addSelectivity(new InListSelectivity(scc, p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
+            collectNoStatsColumnsFromInListPred(p);
+        }
+        else if (p.isInQualifier(lookupColumns)) { // In Qualifier against looked up columns (FILTER_PROJECTION)
+            addSelectivity(new InListSelectivity(scc, p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
+            collectNoStatsColumnsFromInListPred(p);
+        }
         else if ( (p.isStartKey() || p.isStopKey()) && basePredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
             performQualifierSelectivity(p, QualifierPhase.BASE, defaultSelectivityFactor);
             if (!p.isStartKey() || !p.isStopKey()) // Only allows = to further restrict BASE scan numbers
                 basePredicatePossible = false;
+            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
-        else if (p.isQualifier()) // Qualifier in Base Table (FILTER_BASE)
+        else if (p.isQualifier()) { // Qualifier in Base Table (FILTER_BASE)
             performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, defaultSelectivityFactor);
-        else if (PredicateList.isQualifier(p,baseTable,false)) // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
+            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
+        }
+        else if (PredicateList.isQualifier(p,baseTable,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
             performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor);
+            collectNoStatsColumnsFromUnaryAndBinaryPred(p);
+        }
         else // Project Restrict Selectivity Filter
             addSelectivity(new PredicateSelectivity(p,baseTable,QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor));
     }
@@ -236,7 +270,7 @@ public class ScanCostFunction{
         scanCost.setLocalCostPerPartition(scanCost.localCost(), scanCost.partitionCount());
         scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.partitionCount());
         if (LOG.isTraceEnabled()) {
-            LOG.trace(String.format("\n" +
+            LOG.trace(String.format("%n" +
                             "============= generateOneRowCost() for table: %s =============%n" +
                             "Conglomerate:               %s, %n" +
                             "totalRowCount:              %.1f, %n" +
@@ -253,7 +287,7 @@ public class ScanCostFunction{
                             "localCost:                  %.1f, %n" +
                             "numPartition:               %d, %n" +
                             "localCostPerPartition:      %.1f %n" +
-                            "========================================================\n",
+                            "========================================================%n",
                     baseTable.getBaseTableName(),
                     baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
                     scanCost.rowCount(), scanCost.getEstimatedHeapSize(), congAverageWidth,
@@ -352,7 +386,7 @@ public class ScanCostFunction{
             scanCost.setProjectionCost(-1.0d);
         } else {
             projectionCost = totalRowCount * filterBaseTableSelectivity * localLatency * colSizeFactor*1d/1000d;
-            scanCost.setProjectionRows(Math.round(scanCost.getEstimatedRowCount()));
+            scanCost.setProjectionRows((double)scanCost.getEstimatedRowCount());
             scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }
         assert projectionCost >= 0 : "projectionCost cannot be negative -> " + projectionCost;
@@ -365,7 +399,7 @@ public class ScanCostFunction{
         scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.partitionCount());
 
         if (LOG.isTraceEnabled()) {
-            LOG.trace(String.format("\n" +
+            LOG.trace(String.format("%n" +
             "============= generateCost() for table: %s =============%n" +
             "Conglomerate:               %s, %n" +
             "baseTableSelectivity:       %.18f, %n" +
@@ -386,7 +420,7 @@ public class ScanCostFunction{
             "localCost:                  %.1f, %n" +
             "numPartition:               %d, %n" +
             "localCostPerPartition:      %.1f %n" +
-            "========================================================\n",
+            "========================================================%n",
             baseTable.getBaseTableName(),
             baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
             baseTableSelectivity,

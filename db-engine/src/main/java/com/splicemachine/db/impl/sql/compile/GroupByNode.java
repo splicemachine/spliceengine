@@ -1445,4 +1445,21 @@ public class GroupByNode extends SingleChildResultSetNode{
         return sb.toString();
     }
 
+    public HashSet<String> getNoStatsColumns() throws StandardException {
+        assert costEstimate != null : "Trying to get columns missing statistic but there is no cost estimation.";
+
+        HashSet<String> noStatsColumns = new HashSet<>();
+        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+        for (OrderedColumn oc : groupingList) {
+            oc.accept(cnv);
+        }
+        // we do not need stats on columns inside aggregate functions, no need to visit them
+        List<ColumnReference> columnRefNodes = cnv.getList();
+        for (ColumnReference cr : columnRefNodes) {
+            if (!cr.useRealColumnStatistics())
+                noStatsColumns.add(cr.getSource().getSchemaName() + "." + cr.getSource().getFullName());
+        }
+        return noStatsColumns;
+    }
+
 }
