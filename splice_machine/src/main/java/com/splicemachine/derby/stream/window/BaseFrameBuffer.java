@@ -45,7 +45,6 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
     protected int current;
     protected ArrayList<ExecRow> rows;
     protected PeekingIterator<ExecRow> source;
-    protected byte[] partition;
     protected int[] sortColumns;
     private boolean initialized;
 
@@ -107,7 +106,14 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
             int aggregatorColumnId = aggregator.getFunctionColumnId();
             int resultColumnId = aggregator.getResultColumnId();
             SpliceGenericWindowFunction function = (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
-            row.setColumn(resultColumnId, function.getResult().cloneValue(false));
+            /* for window frame like ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING, when we get to the last rows,
+               there are no corresponding rows after them, so function.getResult() could return null
+             */
+            DataValueDescriptor resultVal = function.getResult();
+            if (resultVal != null) {
+                resultVal = resultVal.cloneValue(false);
+                row.setColumn(resultColumnId, resultVal);
+            }
         }
         this.resultBuffer.bufferResult(row);
         return row;

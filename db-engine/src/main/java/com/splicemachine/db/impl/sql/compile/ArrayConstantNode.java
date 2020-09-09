@@ -99,7 +99,7 @@ public class ArrayConstantNode extends ValueNode {
         //check if all the arguments are parameters. If yes, then throw an exception
         // Need to add exception TODO JL
         if (argumentsList.containsAllParameterNodes())
-            throw StandardException.newException(SQLState.LANG_DB2_COALESCE_FUNCTION_ALL_PARAMS);
+            throw StandardException.newException(SQLState.LANG_DB2_MULTINARY_FUNCTION_ALL_PARAMS, "ArrayConstantNode");
 
         int argumentsListSize = argumentsList.size();
         //find the first non-param argument. The generated method will generate code to call coalesce on this argument

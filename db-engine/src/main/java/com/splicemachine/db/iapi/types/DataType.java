@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.joda.time.DateTime;
 
 import java.io.InputStream;
@@ -62,6 +63,7 @@ import java.util.Calendar;
  * values with.
  *
  */
+@SuppressFBWarnings(value="HE_EQUALS_USE_HASHCODE", justification="DB-9277")
 public abstract class DataType extends NullValueData
     implements DataValueDescriptor, Comparable
 {
@@ -1106,6 +1108,47 @@ public abstract class DataType extends NullValueData
 		returnValue.setToNull();
 		return returnValue;
 
+	}
+
+	private DataValueDescriptor minOrMax(DataValueDescriptor[] argumentsList,
+										 DataValueDescriptor returnValue, boolean isMin)
+			throws StandardException
+	{
+		// arguments list should have at least 2 arguments
+		if (SanityManager.DEBUG)
+		{
+			SanityManager.ASSERT(argumentsList != null,
+					"argumentsList expected to be non-null");
+			SanityManager.ASSERT(argumentsList.length > 1,
+					"argumentsList.length expected to be > 1");
+		}
+
+		returnValue.setValue(this);
+		for (DataValueDescriptor dvd : argumentsList) {
+			if (dvd.isNull()) {
+				returnValue.setToNull();
+				break;
+			} else if (isMin && dvd.compare(returnValue) < 0) {
+				returnValue.setValue(dvd);
+			} else if (!isMin && dvd.compare(returnValue) > 0) {
+				returnValue.setValue(dvd);
+			}
+		}
+		return returnValue;
+	}
+
+	@Override
+	public DataValueDescriptor min(DataValueDescriptor[] argumentsList, DataValueDescriptor returnValue)
+			throws StandardException
+	{
+		return minOrMax(argumentsList, returnValue, true);
+	}
+
+	@Override
+	public DataValueDescriptor max(DataValueDescriptor[] argumentsList, DataValueDescriptor returnValue)
+			throws StandardException
+	{
+		return minOrMax(argumentsList, returnValue, false);
 	}
 
 	@Override
