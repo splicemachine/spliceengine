@@ -11,6 +11,24 @@
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
  *
+ * Some parts of this source code are based on Apache Derby, and the following notices apply to
+ * Apache Derby:
+ *
+ * Apache Derby is a subproject of the Apache DB project, and is licensed under
+ * the Apache License, Version 2.0 (the "License"); you may not use these files
+ * except in compliance with the License. You may obtain a copy of the License at:
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed
+ * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+ * CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ *
+ * Splice Machine, Inc. has modified the Apache Derby code in this file.
+ *
+ * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
+ * and are licensed to you under the GNU Affero General Public License.
  */
 
 package com.splicemachine.db.impl.sql.compile;
@@ -34,15 +52,18 @@ import java.util.List;
  * <p/>
  * EXAMPLE:
  * <p/>
- * EXPORT_KAFKA('topicName') select a, b, sqrt(c) from table1 where a > 100;
+ * BINARY_EXPORT('/dir', true, 'parquet') select a, b, sqrt(c) from table1 where a > 100;
  */
-public class KafkaExportNode extends DMLStatementNode {
+public class BinaryExportNode extends DMLStatementNode {
 
-    private static final int EXPECTED_ARGUMENT_COUNT = 1;
+    private static final int EXPECTED_ARGUMENT_COUNT = 3;
     public static final int DEFAULT_INT_VALUE = Integer.MIN_VALUE;
 
     private StatementNode node;
-    private String topicName;
+    /* HDFS, local, etc */
+    private String exportPath;
+    private String compression;
+    private String format;
 
     @Override
     int activationKind() {
@@ -51,18 +72,20 @@ public class KafkaExportNode extends DMLStatementNode {
 
     @Override
     public String statementToString() {
-        return "KafkaExport";
+        return "BinaryExport";
     }
 
     @Override
     public void init(Object statementNode, Object argumentsVector) throws StandardException {
         if (!(argumentsVector instanceof List) || ((List) argumentsVector).size() != EXPECTED_ARGUMENT_COUNT) {
-            throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "EXPORT_KAFKA");
+            throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "BINARY_EXPORT");
         }
         List argsList = (List) argumentsVector;
         this.node = (StatementNode) statementNode;
 
-        this.topicName = ExportNode.stringValue(argsList.get(0));
+        this.exportPath = ExportNode.stringValue(argsList.get(0));
+        this.compression = ExportNode.stringValue(argsList.get(1));
+        this.format = ExportNode.stringValue(argsList.get(2));
     }
 
     @Override
@@ -83,12 +106,14 @@ public class KafkaExportNode extends DMLStatementNode {
         acb.pushThisAsActivation(mb);
         int resultSetNumber = getCompilerContext().getNextResultSetNumber();
         mb.push(resultSetNumber);
-        mb.push(topicName);
+        mb.push(exportPath);
+        mb.push(compression);
+        mb.push(format);
 
         /* Save result description of source node for use in export formatting. */
         mb.push(acb.addItem(node.makeResultDescription()));
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getKafkaExportResultSet", ClassName.NoPutResultSet, 5);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, null, "getBinaryExportResultSet", ClassName.NoPutResultSet, 7);
     }
 
     @Override
@@ -158,4 +183,5 @@ public class KafkaExportNode extends DMLStatementNode {
     public StatementNode getChildStmt() {
         return node;
     }
+
 }

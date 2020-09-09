@@ -1750,6 +1750,11 @@ abstract class DMLModStatementNode extends DMLStatementNode
     public TableDescriptor getTargetTableDescriptor() { return targetTableDescriptor; }
 
     public TableName getTargetTableName() { return targetTableName; }
+
+	@Override
+	public boolean allowCalictePlanning() {
+		return false;
+	}
 }
 
 

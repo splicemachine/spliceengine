@@ -836,5 +836,9 @@ public class CursorNode extends DMLStatementNode{
         return sb.toString();
     }
 
+    @Override
+    public boolean allowCalictePlanning() {
+        return true;
+    }
 
 }

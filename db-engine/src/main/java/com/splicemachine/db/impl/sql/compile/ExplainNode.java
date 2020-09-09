@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
+
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
@@ -44,8 +45,8 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -273,5 +274,15 @@ public class ExplainNode extends DMLStatementNode {
 
     public int getExplainedStatementEnd() {
         return explainedStatementEnd;
+    }
+
+    @Override
+    public boolean allowCalictePlanning() {
+        return true;
+    }
+
+    @Override
+    public StatementNode getChildStmt() {
+        return getPlanRoot();
     }
 }
