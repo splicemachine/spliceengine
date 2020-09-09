@@ -55,6 +55,7 @@ import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -68,6 +69,7 @@ import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
+@SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "DB-10223")
 public class GenericStatement implements Statement{
     protected static AtomicInteger jsonIncrement;
     protected int actualJsonIncrement = -1;
@@ -102,18 +104,18 @@ public class GenericStatement implements Statement{
     }
 
     public PreparedStatement prepare(LanguageConnectionContext lcc) throws StandardException{
-		/*
-		** Note: don't reset state since this might be
-		** a recompilation of an already prepared statement.
-		*/
+        /*
+        ** Note: don't reset state since this might be
+        ** a recompilation of an already prepared statement.
+        */
         return prepare(lcc,false);
     }
 
     public PreparedStatement prepare(LanguageConnectionContext lcc,boolean forMetaData) throws StandardException{
-		/*
-		** Note: don't reset state since this might be
-		** a recompilation of an already prepared statement.
-		*/
+        /*
+        ** Note: don't reset state since this might be
+        ** a recompilation of an already prepared statement.
+        */
 
         final int depth=lcc.getStatementDepth();
         String prevErrorId=null;
@@ -301,9 +303,9 @@ public class GenericStatement implements Statement{
             lcc.setOptimizerTraceOutput(getSource()+"\n");
 
         timestamps[0]=getCurrentTimeMillis(lcc);
-		/* beginTimestamp only meaningful if beginTime is meaningful.
-		 * beginTime is meaningful if STATISTICS TIMING is ON.
-		 */
+        /* beginTimestamp only meaningful if beginTime is meaningful.
+         * beginTime is meaningful if STATISTICS TIMING is ON.
+         */
         if(timestamps[0]!=0){
             beginTimestamp=new Timestamp(timestamps[0]);
         }
@@ -313,23 +315,23 @@ public class GenericStatement implements Statement{
          */
         prepareIsolationLevel=lcc.getPrepareIsolationLevel();
 
-		/* a note on statement caching:
-		 *
-		 * A GenericPreparedStatement (GPS) is only added it to the cache if the
-		 * parameter cacheMe is set to TRUE when the GPS is created.
-		 *
-		 * Earlier only CacheStatement (CS) looked in the statement cache for a
-		 * prepared statement when prepare was called. Now the functionality
-		 * of CS has been folded into GenericStatement (GS). So we search the
-		 * cache for an existing PreparedStatement only when cacheMe is TRUE.
-		 * i.e if the user calls prepare with cacheMe set to TRUE:
-		 * then we
-		 *         a) look for the prepared statement in the cache.
-		 *         b) add the prepared statement to the cache.
-		 *
-		 * In cases where the statement cache has been disabled (by setting the
-		 * relevant Derby property) then the value of cacheMe is irrelevant.
-		 */
+        /* a note on statement caching:
+         *
+         * A GenericPreparedStatement (GPS) is only added it to the cache if the
+         * parameter cacheMe is set to TRUE when the GPS is created.
+         *
+         * Earlier only CacheStatement (CS) looked in the statement cache for a
+         * prepared statement when prepare was called. Now the functionality
+         * of CS has been folded into GenericStatement (GS). So we search the
+         * cache for an existing PreparedStatement only when cacheMe is TRUE.
+         * i.e if the user calls prepare with cacheMe set to TRUE:
+         * then we
+         *         a) look for the prepared statement in the cache.
+         *         b) add the prepared statement to the cache.
+         *
+         * In cases where the statement cache has been disabled (by setting the
+         * relevant Derby property) then the value of cacheMe is irrelevant.
+         */
         boolean foundInCache=false;
         sessionPropertyValues = lcc.getCurrentSessionPropertyDelimited();
         if (lcc.getIgnoreCommentOptEnabled()) {
@@ -410,26 +412,26 @@ public class GenericStatement implements Statement{
         }
 
         try{
-			/*
-			** For stored prepared statements, we want all
-			** errors, etc in the context of the underlying
-			** EXECUTE STATEMENT statement, so don't push/pop
-			** another statement context unless we don't have
-			** one.  We won't have one if it is an internal
-			** SPS (e.g. jdbcmetadata).
-			*/
+            /*
+            ** For stored prepared statements, we want all
+            ** errors, etc in the context of the underlying
+            ** EXECUTE STATEMENT statement, so don't push/pop
+            ** another statement context unless we don't have
+            ** one.  We won't have one if it is an internal
+            ** SPS (e.g. jdbcmetadata).
+            */
             if(!preparedStmt.isStorable() || lcc.getStatementDepth()==0){
                 // since this is for compilation only, set atomic
                 // param to true and timeout param to 0
                 statementContext=lcc.pushStatementContext(true,isForReadOnly,getSource(), null,false,0L);
             }
 
-			/*
-			** RESOLVE: we may ultimately wish to pass in
-			** whether we are a jdbc metadata query or not to
-			** get the CompilerContext to make the createDependency()
-			** call a noop.
-			*/
+            /*
+            ** RESOLVE: we may ultimately wish to pass in
+            ** whether we are a jdbc metadata query or not to
+            ** get the CompilerContext to make the createDependency()
+            ** call a noop.
+            */
             CompilerContext cc=lcc.pushCompilerContext(compilationSchema);
 
             if(prepareIsolationLevel!=ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL){

@@ -50,79 +50,75 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.io.StorageFile;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 public class JarUtil
 {
-	//
-	//State passed in by the caller
+    //
+    //State passed in by the caller
     private LanguageConnectionContext lcc;
-	private String schemaName;
-	private String sqlName;
+    private String schemaName;
+    private String sqlName;
 
-	//Derived state
-	
-	private FileResource fr;
-	private DataDictionary dd;
-	private DataDescriptorGenerator ddg;
-	
-	//
-	//State derived from the caller's context
-	private JarUtil(LanguageConnectionContext lcc,
+    //Derived state
+
+    private FileResource fr;
+    private DataDictionary dd;
+    private DataDescriptorGenerator ddg;
+
+    //
+    //State derived from the caller's context
+    private JarUtil(LanguageConnectionContext lcc,
             String schemaName, String sqlName)
-		 throws StandardException {
-		this.schemaName = schemaName;
-		this.sqlName = sqlName;
+         throws StandardException {
+        this.schemaName = schemaName;
+        this.sqlName = sqlName;
         this.lcc = lcc;
-		fr = lcc.getTransactionExecute().getFileHandler();
-		dd = lcc.getDataDictionary();
-		ddg = dd.getDataDescriptorGenerator();
-	}
+        fr = lcc.getTransactionExecute().getFileHandler();
+        dd = lcc.getDataDictionary();
+        ddg = dd.getDataDescriptorGenerator();
+    }
 
-	/**
-	  install a jar file to the current connection's database.
+    /**
+      install a jar file to the current connection's database.
 
-	  @param schemaName the name for the schema that holds the jar file.
-	  @param sqlName the sql name for the jar file.
-	  @param externalPath the path for the jar file to add.
-	  @return The generationId for the jar file we add.
+      @param schemaName the name for the schema that holds the jar file.
+      @param sqlName the sql name for the jar file.
+      @param externalPath the path for the jar file to add.
+      @return The generationId for the jar file we add.
 
-	  @exception StandardException Opps
-	  */
-	public static long
-	install(LanguageConnectionContext lcc,
-            String schemaName, String sqlName, String externalPath)
-		 throws StandardException {
-		JarUtil jutil = new JarUtil(lcc, schemaName, sqlName);
-		InputStream is = null;
-		try {
-			is = openJarURL(externalPath);
-			return jutil.add(is);
-		} catch (java.io.IOException | URISyntaxException fnfe) {
-			throw StandardException.newException(SQLState.SQLJ_INVALID_JAR, fnfe, externalPath);
-		}
-		finally {
-			try {if (is != null) is.close();}
-			catch (IOException ignored) {}
-		}
-	}
+      @exception StandardException Opps
+      */
+    @SuppressFBWarnings(value="DE_MIGHT_IGNORE", justification="Ignore throw in finally")
+    public static long install(LanguageConnectionContext lcc, String schemaName, String sqlName, String externalPath)
+         throws StandardException {
+        JarUtil jutil = new JarUtil(lcc, schemaName, sqlName);
+        try {
+            try (InputStream is = openJarURL(externalPath)){
+                return jutil.add(is);
+            }
+        } catch (java.io.IOException | URISyntaxException fnfe) {
+            throw StandardException.newException(SQLState.SQLJ_INVALID_JAR, fnfe, externalPath);
+        }
+    }
 
-	/**
-	  Add a jar file to the current connection's database.
+    /**
+      Add a jar file to the current connection's database.
 
-	  <P> The reason for adding the jar file in this private instance
-	  method is that it allows us to share set up logic with drop and
-	  replace.
-	  @param is A stream for reading the content of the file to add.
-	  @exception StandardException Opps
-	  */
-	private long add(final InputStream is) throws StandardException {
-		return lcc.getDatabase().addJar(is,this);
-	}
+      <P> The reason for adding the jar file in this private instance
+      method is that it allows us to share set up logic with drop and
+      replace.
+      @param is A stream for reading the content of the file to add.
+      @exception StandardException Opps
+      */
+    private long add(final InputStream is) throws StandardException {
+        return lcc.getDatabase().addJar(is,this);
+    }
 
-	/**
+    /**
      * Drop a jar file from the current connection's database.
      * 
      * @param schemaName
@@ -133,90 +129,82 @@ public class JarUtil
      * @exception StandardException
      *                Opps
      */
-	public static void
-	drop(LanguageConnectionContext lcc, String schemaName, String sqlName)
-		 throws StandardException
-	{
-		JarUtil jutil = new JarUtil(lcc, schemaName,sqlName);
-		jutil.drop();
-	}
+    public static void
+    drop(LanguageConnectionContext lcc, String schemaName, String sqlName)
+         throws StandardException
+    {
+        JarUtil jutil = new JarUtil(lcc, schemaName,sqlName);
+        jutil.drop();
+    }
 
-	/**
-	  Drop a jar file from the current connection's database.
+    /**
+      Drop a jar file from the current connection's database.
 
-	  <P> The reason for dropping  the jar file in this private instance
-	  method is that it allows us to share set up logic with add and
-	  replace.
+      <P> The reason for dropping  the jar file in this private instance
+      method is that it allows us to share set up logic with add and
+      replace.
 
-	  @exception StandardException Opps
-	  */
-	private void drop() throws StandardException {
-		lcc.getDatabase().dropJar(this);
-	}
+      @exception StandardException Opps
+      */
+    private void drop() throws StandardException {
+        lcc.getDatabase().dropJar(this);
+    }
 
-	/**
-	  Replace a jar file from the current connection's database with the content of an
-	  external file. 
+    /**
+      Replace a jar file from the current connection's database with the content of an
+      external file.
 
 
-	  @param schemaName the name for the schema that holds the jar file.
-	  @param sqlName the sql name for the jar file.
-	  @param externalPath the path for the jar file to add.
-	  @return The new generationId for the jar file we replace.
+      @param schemaName the name for the schema that holds the jar file.
+      @param sqlName the sql name for the jar file.
+      @param externalPath the path for the jar file to add.
+      @return The new generationId for the jar file we replace.
 
-	  @exception StandardException Opps
-	  */
-	public static long
-	replace(LanguageConnectionContext lcc, String schemaName, String sqlName,
-			String externalPath)
-		 throws StandardException
-	{
-		JarUtil jutil = new JarUtil(lcc, schemaName,sqlName);
-		InputStream is = null;
-		
+      @exception StandardException Opps
+      */
+    public static long replace(LanguageConnectionContext lcc, String schemaName, String sqlName, String externalPath)
+         throws StandardException
+    {
+        JarUtil jutil = new JarUtil(lcc, schemaName,sqlName);
 
-		try {
-			is = openJarURL(externalPath);
+        try {
+            try (InputStream is = openJarURL(externalPath)) {
+                return jutil.replace(is);
+            }
+        } catch (java.io.IOException | URISyntaxException fnfe) {
+            throw StandardException.newException(SQLState.SQLJ_INVALID_JAR, fnfe, externalPath);
+        }
+    }
 
-			return jutil.replace(is);
-		} catch (java.io.IOException | URISyntaxException fnfe) {
-			throw StandardException.newException(SQLState.SQLJ_INVALID_JAR, fnfe, externalPath);
-		}
-		finally {
-			try {if (is != null) is.close();}
-			catch (IOException ignored) {}
-		}
-	}
+    /**
+      Replace a jar file in the current connection's database with the
+      content of an external file.
 
-	/**
-	  Replace a jar file in the current connection's database with the
-	  content of an external file.
+      <P> The reason for adding the jar file in this private instance
+      method is that it allows us to share set up logic with add and
+      drop.
+      @param is An input stream for reading the new content of the jar file.
+      @exception StandardException Opps
+      */
+    private long replace(InputStream is) throws StandardException {
+        return lcc.getDatabase().replaceJar(is,this);
+    }
 
-	  <P> The reason for adding the jar file in this private instance
-	  method is that it allows us to share set up logic with add and
-	  drop.
-	  @param is An input stream for reading the new content of the jar file.
-	  @exception StandardException Opps
-	  */
-	private long replace(InputStream is) throws StandardException {
-		return lcc.getDatabase().replaceJar(is,this);
-	}
+    /**
+      Get the FileInfoDescriptor for the Jar file or null if it does not exist.
+      @exception StandardException Ooops
+      */
+    public FileInfoDescriptor getInfo()
+         throws StandardException
+    {
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, null, true);
+        return dd.getFileInfoDescriptor(sd,sqlName);
+    }
 
-	/**
-	  Get the FileInfoDescriptor for the Jar file or null if it does not exist.
-	  @exception StandardException Ooops
-	  */
-	public FileInfoDescriptor getInfo()
-		 throws StandardException
-	{
-		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, null, true);
-		return dd.getFileInfoDescriptor(sd,sqlName);
-	}
-
-	public void notifyLoader(boolean reload) throws StandardException {
-		ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
-		cf.notifyModifyJar(reload);
-	}
+    public void notifyLoader(boolean reload) throws StandardException {
+        ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
+        cf.notifyModifyJar(reload);
+    }
 
     /**
      * Open an input stream to read a URL or a file.
@@ -356,23 +344,23 @@ public class JarUtil
                 new File(newFile.getPath()), null);
     }
 
-	public LanguageConnectionContext getLanguageConnectionContext() {
-		return lcc;
-	}
+    public LanguageConnectionContext getLanguageConnectionContext() {
+        return lcc;
+    }
 
-	public String getSqlName() {
-		return sqlName;
-	}
-	public String getSchemaName() {
-		return schemaName;
-	}
+    public String getSqlName() {
+        return sqlName;
+    }
+    public String getSchemaName() {
+        return schemaName;
+    }
 
-	public DataDescriptorGenerator getDataDescriptorGenerator() {
-		return ddg;
-	}
+    public DataDescriptorGenerator getDataDescriptorGenerator() {
+        return ddg;
+    }
 
-	public FileResource getFileResource() {
-		return fr;
-	}
+    public FileResource getFileResource() {
+        return fr;
+    }
 
 }

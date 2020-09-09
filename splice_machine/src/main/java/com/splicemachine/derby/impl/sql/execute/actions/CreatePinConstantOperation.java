@@ -53,18 +53,18 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
 
     // CONSTRUCTORS
     /**
-     * 	Make the ConstantAction to create an index.
+     *     Make the ConstantAction to create an index.
      *
-     * @param schemaName	                schema that table (and index)
+     * @param schemaName                    schema that table (and index)
      *                                      lives in.
-     * @param tableName	                    Name of table the index will be on
+     * @param tableName                        Name of table the index will be on
      *                                      associated with the index.
      */
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreatePinConstantOperation(
-            String			schemaName,
-            String			tableName) {
+            String            schemaName,
+            String            tableName) {
         SpliceLogUtils.trace(LOG, "CreatePinConstantOperation for schema table pattern %s.%s",schemaName,tableName);
         this.schemaName = schemaName;
         this.tableName = tableName;
@@ -76,14 +76,14 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
      *
      * @return
      */
-    public	String	toString() {
+    public    String    toString() {
         if (tableName == null)
             return "PIN SCHEMA " + schemaName;
         return String.format("PIN TABLE %s.%s",schemaName,tableName);
     }
 
     /**
-     *	This is the guts of the Execution-time logic for
+     *    This is the guts of the Execution-time logic for
      *  creating an index.
      *
      *  <P>
@@ -95,16 +95,15 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
      *
      *  @see ConglomerateDescriptor
      *  @see SchemaDescriptor
-     *	@see ConstantAction#executeConstantAction
+     *  @see ConstantAction#executeConstantAction
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException Thrown on failure
      */
     public void executeConstantAction( Activation activation ) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantActivation with activation %s", activation);
 
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
-        DependencyManager dm = dd.getDependencyManager();
         TransactionController userTransaction = lcc.getTransactionExecute();
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, userTransaction, true);
         TableDescriptor td = dd.getTableDescriptor(tableName, sd, userTransaction);
