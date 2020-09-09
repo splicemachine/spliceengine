@@ -1177,8 +1177,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build());
 
                     Procedure purgeDeletedRows = Procedure.newBuilder().name("SET_PURGE_DELETED_ROWS")
-                            .varchar("schemaName", 128)
-                            .varchar("tableName", 128)
+                            .catalog("schemaName")
+                            .catalog("tableName")
                             .varchar("enable", 5)
                             .numOutputParams(0)
                             .numResultSets(0)
