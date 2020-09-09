@@ -26,6 +26,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
+import org.apache.log4j.Logger;
 import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 
@@ -43,6 +44,8 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
     private String topicName;
     private String bootstrapServers;
 
+    private static final Logger LOG = Logger.getLogger(KafkaReadFunction.class);
+    
     public KafkaReadFunction() {
     }
 
@@ -58,7 +61,7 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
 
     @Override
     public Iterator<ExecRow> call(Integer partition) throws Exception {
-        //log("KRF.call p"+partition );
+        LOG.info("KRF.call p"+partition );
         Properties props = new Properties();
 
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -96,7 +99,7 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
                     }
                 } while( noRecords.test(records) && attempt++ < maxAttempts );
 
-                //log("KRF.call p"+partition+" records "+records.count() );
+                LOG.info("KRF.call p"+partition+" records "+records.count() );
                 
                 return records;
             }
