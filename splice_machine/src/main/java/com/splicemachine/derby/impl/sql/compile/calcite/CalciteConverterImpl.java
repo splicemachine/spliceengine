@@ -215,21 +215,37 @@ public class CalciteConverterImpl implements CalciteConverter {
 
     public RelNode convertRowResultSet(RowResultSetNode rowResultSetNode) throws StandardException {
         ResultColumnList rcl = rowResultSetNode.getResultColumns();
+        boolean allConstant = true;
+
         Object[] values = new Object[rcl.size()];
         String[] names = new String[rcl.size()];
         for (int i=0; i<rcl.size(); i++) {
             ResultColumn rc = rcl.elementAt(i);
             ValueNode valueNode = rc.getExpression();
 
-            // TODO: how to handle expresion
-            assert valueNode instanceof ConstantNode: "does not support non-constant expression yet";
+            if (!(valueNode instanceof ConstantNode)) {
+                allConstant = false;
+                break;
+            }
             Object constantObject = ((ConstantNode) valueNode).getValue().getObject();
             values[i] = constantObject;
             names[i] = rc.getName();
         }
 
-        RelNode relNode = relBuilder.values(names, values).build();
-        return relNode;
+        if (allConstant) {
+            return relBuilder.values(names, values).build();
+        } else {
+            // build LogicalProject + values (0)
+            final ImmutableList.Builder<RexNode> fields = ImmutableList.builder();
+            for (int i=0; i<rcl.size(); i++) {
+                ResultColumn rc = rcl.elementAt(i);
+                fields.add(convertExpression(rc.getExpression(), null));
+            }
+
+            return relBuilder.values(new String[]{"dummy"}, new Integer[]{0})
+                    .project(fields.build())
+                    .build();
+        }
     }
 
     public RelNode getValuesStmtForPlan(RelNode root) {
