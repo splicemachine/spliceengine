@@ -97,35 +97,30 @@ public class DataDescriptorGenerator
      * If the schema parameter is NULL, it creates a schema descriptor
      * using the current default schema.
      *
-     * @param tableName    The name of the table to get the descriptor for
-     * @param schema    The descriptor for the schema the table lives in.
-     *            If null, use the current (default) schema.
-     * @param tableType    The type of the table: base table or view.
-     * @param lockGranularity    The lock granularity.
-     *
-     * @return    The descriptor for the table.
+     * @param tableName       The name of the table to get the descriptor for
+     * @param schema          The descriptor for the schema the table lives in. If null, use the current (default) schema.
+     * @param tableType       The type of the table: base table or view.
+     * @param lockGranularity The lock granularity.
+     * @return The descriptor for the table.
      */
-    public TableDescriptor    newTableDescriptor
-    (
-        String                 tableName,
-        SchemaDescriptor    schema,
-        int                    tableType,
-        char                lockGranularity,
-        int                 columnSequence,
-        String                 delimited,
-        String                 escaped,
-        String                 lines,
-        String                 storedAs,
-        String                 location,
-        String                 compression,
-        boolean             isPinned,
-        boolean             purgeDeletedRows
-    )
-    {
-        return new TableDescriptor
-            (dataDictionary, tableName, schema, tableType, lockGranularity,columnSequence,
-                    delimited,escaped,lines,storedAs,location, compression, isPinned, purgeDeletedRows);
-    }
+    public TableDescriptor newTableDescriptor(String tableName,
+                                              SchemaDescriptor schema,
+                                              int tableType,
+                                              char lockGranularity,
+                                              int columnSequence,
+                                              String delimited,
+                                              String escaped,
+                                              String lines,
+                                              String storedAs,
+                                              String location,
+                                              String compression,
+                                              boolean isPinned,
+                                              boolean purgeDeletedRows,
+                                              Long minRetentionPeriod) {
+        return new TableDescriptor(dataDictionary, tableName, schema, tableType, lockGranularity, columnSequence,
+                        delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows,
+                        minRetentionPeriod);
+    }{}
 
     /**
      * Create a descriptor for the temporary table within the given schema.
