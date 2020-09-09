@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+
 import java.util.BitSet;
 
 /**
@@ -268,4 +269,8 @@ public interface StoreCostController extends RowCountable{
     DataValueDescriptor maxValue(int columnNumber) ;
 
     double getSelectivityExcludingValueIfSkewed(int columnNumber, DataValueDescriptor value);
+
+    boolean useRealTableStatistics();
+
+    boolean useRealColumnStatistics(int columnId);
 }
