@@ -1782,7 +1782,7 @@ public class BinaryRelationalOperatorNode
     public ValueNode getScopedOperand(int whichSide,
                                       JBitSet parentRSNsTables,ResultSetNode childRSN,
                                       int[] whichRC) throws StandardException{
-        ResultColumn rc=null;
+        ResultColumn rc;
         ColumnReference cr=
                 whichSide==LEFT
                         ?(ColumnReference)leftOperand
@@ -1823,7 +1823,7 @@ public class BinaryRelationalOperatorNode
          * version of that operand.
          */
         if(!parentRSNsTables.contains(crTables))
-            return (ColumnReference)cr.getClone();
+            return cr.getClone();
 
         /* Find the target ResultColumn in the received result set.  At
          * this point we know that we do in fact need to scope the column
@@ -1881,16 +1881,29 @@ public class BinaryRelationalOperatorNode
             int[] sourceColPos= {-1};
             ResultSetNode sourceRSN=cr.getSourceResultSet(sourceColPos);
 
-            if(SanityManager.DEBUG){
+            if (sourceRSN == null) {
+                // if the column is mapped to an expression instead of a ColumnReference, we cannot map further
+                // down, but we shouldn't error
+                if (cr.getSource() != null) {
+                    ResultColumn rcInOperand = cr.getSource();
+                    // go through the child RSN and find the matching result column
+                    for (int i=0; i<childRSN.getResultColumns().size(); i++)
+                        if (rcInOperand == childRSN.getResultColumns().elementAt(i)) {
+                            return rcInOperand.getExpression();
+                        }
+                }
+
+                if (SanityManager.DEBUG) {
                 /* We assumed that if we made it here "cr" was pointing
                  * to a base table somewhere down the tree.  If that's
                  * true then sourceRSN won't be null.  Make sure our
                  * assumption was correct.
                  */
-                SanityManager.ASSERT(sourceRSN!=null,
-                        "Failed to find source result set when trying to "+
-                                "scope column reference '"+cr.getTableName()+
-                                "."+cr.getColumnName());
+                    SanityManager.ASSERT(false,
+                            "Failed to find source result set when trying to " +
+                                    "scope column reference '" + cr.getTableName() +
+                                    "." + cr.getColumnName());
+                }
             }
 
             // Now search for the corresponding ResultColumn in childRSN.

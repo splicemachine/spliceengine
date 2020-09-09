@@ -1458,6 +1458,8 @@ public interface Property {
 
     String SSQ_FLATTENING_FOR_UPDATE_DISABLED = "derby.database.ssqFlatteningForUpdateDisabled";
 
+    String DISABLE_NLJ_PREIDCATE_PUSH_DOWN =
+            "derby.database.disableNLJPredicatePushDown";
     /**
      * Default schema for this connection
      */
@@ -1505,5 +1507,9 @@ public interface Property {
     String SPARK_RESULT_STREAMING_BATCHES = "sparkResultStreamingBatches";
 
     String SPARK_RESULT_STREAMING_BATCH_SIZE = "sparkResultStreamingBatchSize";
+
+    String CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN = "disableNLJPredicatePushDown";
+
+    String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
 }
 
