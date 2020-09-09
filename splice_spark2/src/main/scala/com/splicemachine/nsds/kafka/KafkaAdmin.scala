@@ -33,7 +33,7 @@ class KafkaAdmin(kafkaServers: String) extends Serializable {
     admin.createTopics(
       topicNames.map(new NewTopic(_,numParitions,repFactor)).asJava
     ).all.get
-    Thread.sleep(1000)
+//    Thread.sleep(1000)
   }
 
   def listTopics(): collection.mutable.Set[String] = admin.listTopics.names.get.asScala
