@@ -253,6 +253,8 @@ public interface C_NodeNames
 
 	String ROW_RESULT_SET_NODE_NAME = "com.splicemachine.db.impl.sql.compile.RowResultSetNode";
 
+	String SCALAR_MIN_MAX_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ScalarMinMaxFunctionNode";
+
 	String SQL_BOOLEAN_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SQLBooleanConstantNode";
 
 	String SQL_TO_JAVA_VALUE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SQLToJavaValueNode";

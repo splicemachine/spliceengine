@@ -342,6 +342,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String origStmtTxt;
 
     private String defaultSchema;
+    private boolean nljPredicatePushDownDisabled = false;
 
     private String replicationRole = "NONE";
 
@@ -410,6 +411,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             // no op, use default value 6
         }
 
+        try {
+            String nljPredPushDownString =
+                    PropertyUtil.getCachedDatabaseProperty(this, Property.DISABLE_NLJ_PREIDCATE_PUSH_DOWN);
+            if (nljPredPushDownString != null)
+                nljPredicatePushDownDisabled = Boolean.valueOf(nljPredPushDownString);
+        } catch (Exception e) {
+            // no op, use default value 6
+        }
+
         lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators=new ArrayList<>();
         triggerTables=new ArrayList<>();
@@ -433,6 +443,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
             setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCHES, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES);
             setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCH_SIZE, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
+            String disableNestedLoopJoinPredicatePushDown = connectionProperties.getProperty(Property.CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN);
+            if (disableNestedLoopJoinPredicatePushDown != null &&
+                    disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
+            }
         }
         if (type.isSessionHinted()) {
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isSpark());
@@ -3305,6 +3320,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public void refreshCurrentRoles(Activation a) throws StandardException {
+        List<String> roles = getCurrentSQLSessionContext(a).getRoles();
+        List<String> rolesToRemove = new ArrayList<>();
+        for (String role : roles) {
+            if (role != null) {
+                beginNestedTransaction(true);
+                try {
+                    if (!roleIsSettable(a, role)) {
+                        // invalid role, so remove it from the currentRoles list in SQLSessionContext
+                        rolesToRemove.add(role);
+                    }
+                } finally {
+                    commitNestedTransaction();
+                }
+            }
+        }
+        removeRoles(a, rolesToRemove);
+    }
+
+    @Override
     public String getCurrentUserId(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentUser();
     }
@@ -3365,23 +3400,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         List<String> roles=getCurrentSQLSessionContext(a).getRoles();
 
-        List<String > rolesToRemove = new ArrayList<>();
+        refreshCurrentRoles(a);
         String roleListString = null;
         for (String role : roles) {
-            if (role != null) {
-                beginNestedTransaction(true);
-
-                try {
-                    if (!roleIsSettable(a, role)) {
-                        // invalid role, so remove it from the currentRoles list in SQLSessionContext
-                        rolesToRemove.add(role);
-                        role = null;
-                    }
-                } finally {
-                    commitNestedTransaction();
-                }
-            }
-
             if (role != null) {
                 if (roleListString == null)
                     roleListString = IdUtil.normalToDelimited(role);
@@ -3389,7 +3410,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     roleListString = roleListString + ", " + IdUtil.normalToDelimited(role);
             }
         }
-        removeRoles(a, rolesToRemove);
         return roleListString;
     }
 
@@ -3932,5 +3952,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getReplicationRole() {
         return replicationRole;
+    }
+
+    public boolean isNLJPredicatePushDownDisabled() {
+        Boolean disablePushDown = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN);
+        if (disablePushDown != null) {
+            return disablePushDown;
+        }
+
+        return nljPredicatePushDownDisabled;
     }
 }
