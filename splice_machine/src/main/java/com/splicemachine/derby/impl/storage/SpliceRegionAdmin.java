@@ -18,7 +18,6 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -74,14 +73,8 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.sql.ResultSet;
 import java.sql.Types;
-<<<<<<< HEAD
-import java.util.*;
-import java.util.concurrent.TimeUnit;
-=======
 import java.util.ArrayList;
-import java.util.GregorianCalendar;
 import java.util.List;
->>>>>>> 66c676e435... DB-9760 Make temporary tables local to their sessions
 
 /**
  * Created by jyuan on 8/14/17.
