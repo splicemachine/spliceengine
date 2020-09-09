@@ -60,6 +60,7 @@ import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.CursorNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -77,6 +78,7 @@ import java.util.List;
  * <p/>
  * Stored prepared statements extend this implementation
  */
+@SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "DB-10223")
 public class GenericPreparedStatement implements ExecPreparedStatement {
 
     ///////////////////////////////////////////////
