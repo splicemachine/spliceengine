@@ -933,7 +933,7 @@ public class IndexIT extends SpliceUnitTest{
 
     @Test
     public void testCreateIndexAndInsertWithExpressionsCaseExpression() throws Exception {
-        String tableName = "TEST_CASE_EXPR";
+        String tableName = "TEST_IDX_CASE_EXPR";
         methodWatcher.executeUpdate(format("create table %s (i int)", tableName));
         methodWatcher.executeUpdate(format("insert into %s values (10), (11)", tableName));
 
@@ -944,6 +944,22 @@ public class IndexIT extends SpliceUnitTest{
         /* currently no valid plan, enable later
         rowContainsQuery(new int[]{1,2,3},format("select i from %s --splice-properties index=%s_IDX\n order by i", tableName, tableName),methodWatcher,
                 "11","18","35");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsNullInput() throws Exception {
+        String tableName = "TEST_IDX_NULL_INPUT";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values (NULL, 10), ('abc', NULL)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (upper(c), nullif(i, 0)) EXCLUDE NULL KEYS", tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values (NULL, NULL)", tableName));
+        methodWatcher.executeUpdate(format("update %s set c = 'def' where i = 10", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select i from %s --splice-properties index=%s_IDX\n order by i nulls last", tableName, tableName),methodWatcher,
+                "10","NULL","NULL");
          */
     }
 

@@ -349,13 +349,8 @@ public class IndexTransformer {
                                 keyDecoder.array(), offset, length);
                     }
                 } else {
-                    if (baseRowSerializers[sourceKeyColumnPos] == null) {
-                        baseRowSerializers[sourceKeyColumnPos] =
-                                VersionedSerializers.forVersion(table.getTableVersion(), true).getSerializer(formatId);
-                    }
-                    DataValueDescriptor dvd = DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
-                    baseRowSerializers[sourceKeyColumnPos].decodeDirect(dvd, keyDecoder.array(), offset, length, false);
-                    decodedRow.setColumn(sourceKeyColumnPos + 1, dvd);
+                    decodedRow.setColumn(sourceKeyColumnPos + 1,
+                            DecodeBaseRowColumn(keyDecoder, offset, length, sourceKeyColumnPos, formatId));
                 }
             }
         }
@@ -412,14 +407,37 @@ public class IndexTransformer {
                     }
                 }
             } else {
-                if (baseRowSerializers[i] == null) {
-                    baseRowSerializers[i] =
-                            VersionedSerializers.forVersion(table.getTableVersion(), true).getSerializer(formatId);
-                }
-                DataValueDescriptor dvd = DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
-                baseRowSerializers[i].decodeDirect(dvd, rowFieldDecoder.array(), offset, length, false);
-                decodedRow.setColumn(i + 1, dvd);
+                decodedRow.setColumn(i + 1, DecodeBaseRowColumn(rowFieldDecoder, offset, length, i, formatId));
             }
+        }
+
+        /*
+         * Handle NULL index columns from the source tables non-primary key columns.
+         * NULL columns are not set in bitIndex.
+         */
+        for (int srcColIndex = 0; srcColIndex < mainColToIndexPosMap.length; srcColIndex++) {
+            /* position of the source column within the index encoding */
+            int indexColumnPosition = mainColToIndexPosMap[srcColIndex];
+            if (!isSourceColumnPrimaryKey(srcColIndex) && indexColumnPosition >= 0 && !bitIndex.isSet(srcColIndex)) {
+                if (numIndexExprs > 0) {
+                    // In case of an expression-based index, indexColumnPosition >= 0 only means base column at
+                    // srcColIndex is referenced in one of the index expressions. Actual value (1, 2, or 5) of
+                    // indexColumnPosition is meaningless and should not be used in any place.
+                    int formatId = table.getFormatIds(srcColIndex);
+                    DataValueDescriptor dvd = DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
+                    decodedRow.setColumn(srcColIndex + 1, dvd);
+                    // No need to set ignore for excludeNulls here, will be handled by writeDirectIndex later.
+                } else {
+                    if (excludeNulls && indexColumnPosition == 0)
+                        ignore = true;
+                    keyAccumulator.add(indexColumnPosition, new byte[]{}, 0, 0);
+                }
+                hasNullKeyFields = true;
+            }
+        }
+
+        if (ignore) {
+            return null;
         }
 
         if (numIndexExprs > 0) {
@@ -430,26 +448,11 @@ public class IndexTransformer {
             }
             indexRow.setKey(mutation.getRowKey());
             KVPair kv = writeDirectIndex(indexRow);
+            if (kv == null) {
+                return null;
+            }
             kv.setType(mutation.getType());
             return kv;
-        }
-
-        /*
-         * Handle NULL index columns from the source tables non-primary key columns.
-         */
-        for (int srcColIndex = 0; srcColIndex < mainColToIndexPosMap.length; srcColIndex++) {
-            /* position of the source column within the index encoding */
-            int indexColumnPosition = mainColToIndexPosMap[srcColIndex];
-            if (!isSourceColumnPrimaryKey(srcColIndex) && indexColumnPosition >= 0 && !bitIndex.isSet(srcColIndex)) {
-                if (excludeNulls && indexColumnPosition == 0)
-                    ignore = true;
-                hasNullKeyFields = true;
-                keyAccumulator.add(indexColumnPosition, new byte[]{}, 0, 0);
-            }
-        }
-
-        if (ignore) {
-            return null;
         }
 
         //add the row key to the end of the index key
@@ -715,5 +718,18 @@ public class IndexTransformer {
             if (prepared)
                 transactionResource.close();
         }
+    }
+
+    private DataValueDescriptor DecodeBaseRowColumn(MultiFieldDecoder decoder, int offset, int length,
+                                                    int srcColIndex, int formatId)
+            throws StandardException
+    {
+        if (baseRowSerializers[srcColIndex] == null) {
+            baseRowSerializers[srcColIndex] =
+                    VersionedSerializers.forVersion(table.getTableVersion(), true).getSerializer(formatId);
+        }
+        DataValueDescriptor dvd = DataValueFactoryImpl.getNullDVDWithUCS_BASICcollation(formatId);
+        baseRowSerializers[srcColIndex].decodeDirect(dvd, decoder.array(), offset, length, false);
+        return dvd;
     }
 }
