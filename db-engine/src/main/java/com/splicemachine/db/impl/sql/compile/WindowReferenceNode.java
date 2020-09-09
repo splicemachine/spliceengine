@@ -31,9 +31,9 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
+
+import java.util.List;
 
 /**
  * Represents a reference to an explicitly defined window
@@ -93,4 +93,12 @@ public final class WindowReferenceNode extends WindowNode
             super.toString();
     }
 
+    @Override
+    public OverClause getOverClause() {
+        return null;
+    }
+
+    @Override
+    public void setOverClause(OverClause overClause) {
+    }
 }
