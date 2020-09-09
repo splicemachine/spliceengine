@@ -31,11 +31,11 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This class represents an OLAP window definition.
@@ -259,4 +259,13 @@ public final class WindowDefinitionNode extends WindowNode
         return result;
     }
 
+    @Override
+    public OverClause getOverClause() {
+        return overClause;
+    }
+
+    @Override
+    public void setOverClause(OverClause overClause) {
+        this.overClause = overClause;
+    }
 }
