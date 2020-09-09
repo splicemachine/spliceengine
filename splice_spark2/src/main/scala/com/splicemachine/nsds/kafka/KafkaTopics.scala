@@ -19,11 +19,18 @@ import com.splicemachine.primitives.Bytes
 import java.security.SecureRandom
 
 @SerialVersionUID(20200518241L)
-class KafkaTopics(kafkaServers: String, defaultNumPartitions: Int = 1) extends Serializable {
+class KafkaTopics(kafkaServers: String, defaultNumPartitions: Int = 1, defaultRepFactor: Short = 1) extends Serializable {
   val admin = new KafkaAdmin(kafkaServers)
   val unneeded = collection.mutable.HashSet[String]()
 
-  def create(numPartitions: Int = defaultNumPartitions, repFactor: Short = 1): String = {
+  val unused = collection.mutable.Queue.fill(5)(createTopic())
+  
+  def create(): String = {
+    unused.enqueue(createTopic())
+    unused.dequeue
+  }
+
+  def createTopic(numPartitions: Int = defaultNumPartitions, repFactor: Short = defaultRepFactor): String = {
     val name = new Array[Byte](32)
     new SecureRandom().nextBytes(name)
     val topicName = Bytes.toHex(name)+"-"+System.nanoTime()
