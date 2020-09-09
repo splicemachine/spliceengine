@@ -37,4 +37,10 @@ else
   exit 1
 fi
 
-java com.splicemachine.ck.command.RootCommand $* 2> >(grep -v "^SLF4J" >&2)
+# https://stackoverflow.com/a/8723305/337194
+C=''
+for i in "$@"; do
+    i="${i//\\/\\\\}"
+    C="$C ${i}"
+done
+java com.splicemachine.ck.command.RootCommand ${C} 2> >(grep -v "^SLF4J" >&2)

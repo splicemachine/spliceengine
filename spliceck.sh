@@ -16,7 +16,13 @@ else
      platform=$2
      shift 2
   fi
-  mvn -q -Pcore,${platform} -f ./splice_ck/pom.xml exec:java -Dexec.args="$*"
+  # https://stackoverflow.com/a/8723305/337194
+  C=''
+  for i in "$@"; do 
+      i="${i//\\/\\\\}"
+      C="$C '${i//\'/\\\"}'"
+  done
+  mvn -q -Pcore,${platform} -f ./splice_ck/pom.xml exec:java -Dexec.args="${C}"
 fi
 
 
