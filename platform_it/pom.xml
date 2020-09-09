@@ -981,7 +981,7 @@
                                 <argument>-Dsplice.spark.driver.maxResultSize=1g</argument>
                                 <argument>-Dsplice.spark.driver.memory=1g</argument>
                                 <argument>-Dsplice.spark.enabled=true</argument>
-                                <argument>-Dsplice.spark.executor.cores=3</argument>
+                                <argument>-Dsplice.spark.executor.cores=24</argument>
                                 <argument>${spark.defaultfs}</argument>
                                 <argument>
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}:${project.build.directory}/classes:${project.build.directory}/dependency/*
@@ -1490,7 +1490,7 @@
                                 <argument>-Dsplice.spark.enabled=true</argument>
                                 <!--<argument>-Dsplice.spark.eventLog.dir=hdfs:///user/spark/applicationHistory</argument>-->
                                 <!--<argument>-Dsplice.spark.eventLog.enabled=true</argument>-->
-                                <argument>-Dsplice.spark.executor.cores=3</argument>
+                                <argument>-Dsplice.spark.executor.cores=24</argument>
                                 <argument>
                                     -Dsplice.spark.executor.extraClassPath=${project.build.directory}/classes:${project.build.directory}/dependency/*
                                 </argument>
