@@ -11339,9 +11339,9 @@ indexColumnItem(Vector columnList, Token beginToken) throws StandardException :
     expr = valueExpression() [ascToken = <ASC> | descToken = <DESC>]
     {
         endToken = getToken(0);
-        int endOffset = endToken.beginOffset;
+        int endOffset = endToken.endOffset;
         if (ascToken != null || descToken != null) {
-            endOffset--;
+            endOffset = endToken.beginOffset - 1;
         }
 
         columnList.addElement(
