@@ -221,6 +221,11 @@ public class SpliceUnitTest {
                     }
                 }
             }
+            for (int level : levels){
+                if (level > i) {
+                    Assert.fail("Try to compare at level " + level + " but result set has only " + i + " levels.");
+                }
+            }
         }
     }
 
