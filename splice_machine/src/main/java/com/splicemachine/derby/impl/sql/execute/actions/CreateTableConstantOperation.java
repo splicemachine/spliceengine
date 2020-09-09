@@ -350,7 +350,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     location,
                     compression,
                     false,
-                    false
+                    false,
+                    null
                     );
         } else {
             td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);

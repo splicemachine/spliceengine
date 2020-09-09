@@ -167,6 +167,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     @Deprecated
     private boolean isPinned;
     private boolean purgeDeletedRows;
+    private Long minRetentionPeriod;
 
     /**
      * <p>
@@ -231,14 +232,13 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @param onCommitDeleteRows   If true, on commit delete rows else on commit preserve rows of temporary table.
      * @param onRollbackDeleteRows If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
      */
-
     public TableDescriptor(DataDictionary dataDictionary,
                            String tableName,
                            SchemaDescriptor schema,
                            int tableType,
                            boolean onCommitDeleteRows,
                            boolean onRollbackDeleteRows, int numberOfColumns){
-        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false,false);
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false,false, null);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -249,11 +249,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @param dataDictionary  The data dictionary that this descriptor lives in
      * @param tableName       The name of the table
      * @param schema          The schema descriptor for this table.
-     * @param tableType       An integer identifier for the type of the table
-     *                        (base table, view, etc.)
+     * @param tableType       An integer identifier for the type of the table (base table, view, etc.)
      * @param lockGranularity The lock granularity.
      */
-
     public TableDescriptor(DataDictionary dataDictionary,
                            String tableName,
                            SchemaDescriptor schema,
@@ -266,7 +264,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String location,
                            String compression,
                            boolean isPinned,
-                           boolean purgeDeletedRows
+                           boolean purgeDeletedRows,
+                           Long minRetentionPeriod
     ){
         super(dataDictionary);
 
@@ -288,6 +287,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         // NOT USED ANYMORE, for backward compatibility only
         this.isPinned = isPinned;
         this.purgeDeletedRows = purgeDeletedRows;
+        this.minRetentionPeriod = minRetentionPeriod;
     }
 
     //
@@ -397,6 +397,14 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
     public void setPurgeDeletedRows(boolean purgeDeletedRows) {
         this.purgeDeletedRows = purgeDeletedRows;
+    }
+
+    public Long getMinRetainedVersions() {
+        return minRetentionPeriod;
+    }
+
+    public void setMinRetainedVersions(Long minRetentionPeriod) {
+        this.minRetentionPeriod = minRetentionPeriod;
     }
 
     /**

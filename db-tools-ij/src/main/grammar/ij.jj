@@ -1516,6 +1516,8 @@ TOKEN [IGNORE_CASE] :
 |   <SPOOL: "SPOOL">
 |   <STOP: "STOP">
 |   <CLEAR: "CLEAR">
+|   <WITHOUT: "WITHOUT">
+|   <HEADER: "HEADER">
 }
 
 TOKEN :
@@ -1875,6 +1877,7 @@ throws SQLException, IOException
 |	r=CP_DisconnectStatement()
 |   r=Prompt()
 |   r=Spool()
+|   r=ResultHeader()
 )? <EOF>
 	{
 		return r;
@@ -4207,6 +4210,23 @@ ijResult HandleSpool() throws IOException
     {
         utilInstance.clearSpooling();
         return new ijShellConfigResult();
+    }
+}
+
+ijResult ResultHeader() throws IOException
+:
+{}
+{
+    <WITH> <HEADER>
+    {
+       utilInstance.setOmitHeader(false);
+       return null;
+    }
+|
+    <WITHOUT> <HEADER>
+    {
+       utilInstance.setOmitHeader(true);
+       return null;
     }
 }
 
