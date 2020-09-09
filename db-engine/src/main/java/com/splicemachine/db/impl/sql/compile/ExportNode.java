@@ -198,4 +198,14 @@ public class ExportNode extends DMLStatementNode {
         return StandardException.newException(SQLState.EXPORT_PARAMETER_VALUE_IS_WRONG, object.toString());
     }
 
+    @Override
+    public boolean allowCalictePlanning() {
+        return true;
+    }
+
+    @Override
+    public StatementNode getChildStmt() {
+        return node;
+    }
+
 }

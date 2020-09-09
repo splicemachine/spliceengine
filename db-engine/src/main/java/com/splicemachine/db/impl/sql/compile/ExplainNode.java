@@ -33,17 +33,16 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 
 import java.util.Collection;
 
@@ -170,5 +169,15 @@ public class ExplainNode extends DMLStatementNode {
     public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         if ( node!= null)
             node.buildTree(tree,depth);
+    }
+
+    @Override
+    public boolean allowCalictePlanning() {
+        return true;
+    }
+
+    @Override
+    public StatementNode getChildStmt() {
+        return getPlanRoot();
     }
 }

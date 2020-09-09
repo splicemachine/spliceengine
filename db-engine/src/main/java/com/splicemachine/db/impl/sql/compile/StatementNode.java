@@ -369,4 +369,11 @@ public abstract class StatementNode extends QueryTreeNode{
         }
     }
 
+    public boolean allowCalictePlanning() {
+        return false;
+    }
+
+    public StatementNode getChildStmt() {
+        throw new UnsupportedOperationException("getChildStmt");
+    }
 }

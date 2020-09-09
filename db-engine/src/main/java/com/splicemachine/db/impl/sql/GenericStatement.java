@@ -804,7 +804,7 @@ public class GenericStatement implements Statement{
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
             }
 
-            if (cc.getUseCalciteOptimizer() && !rewriteStmt.toLowerCase().startsWith("call")) {
+            if (cc.getUseCalciteOptimizer() && qt.allowCalictePlanning()) {
                 if (planner == null) {
                     Context spliceContext = lcc.getSqlPlannerFactory().newContext(lcc, cc);
                     planner = lcc.getSqlPlannerFactory().getSqlPlanner(spliceContext);
@@ -813,18 +813,17 @@ public class GenericStatement implements Statement{
                 StatementNode stmtNode = qt;
                 QueryTreeNode parent = qt;
                 while (stmtNode instanceof StatementNode){
-                    if (stmtNode instanceof ExplainNode) {
-                        parent = stmtNode;
-                        stmtNode = ((ExplainNode) stmtNode).getPlanRoot();
-                    } else if (stmtNode instanceof CursorNode) {
+                    if (stmtNode instanceof CursorNode) {
                         parent = stmtNode;
                         resultSetNode = ((DMLStatementNode)stmtNode).getResultSetNode();
                         break;
                     }
+                    parent = stmtNode;
+                    stmtNode = stmtNode.getChildStmt();
                 }
 
-                QueryTreeNode convertedTree = planner.optimize(resultSetNode, rewriteStmt);
                 assert parent instanceof CursorNode: "expect CursorNode";
+                QueryTreeNode convertedTree = planner.optimize(resultSetNode, rewriteStmt);
                 parent.init(convertedTree);
             } else
                 qt.optimizeStatement();

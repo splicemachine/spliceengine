@@ -1425,6 +1425,9 @@ public class FromBaseTable extends FromTable {
                 throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND,tableName.toString());
         }
 
+        if (sd != null)
+            tableName.setSchemaName(sd.getSchemaName());
+
         return tableDescriptor;
     }
 
