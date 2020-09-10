@@ -78,8 +78,7 @@ public class NewInvocationNode extends MethodCallNode
      */
     public void init(
                     Object javaClassName,
-                    Object params,
-                    Object delimitedIdentifier)
+                    Object params)
         throws StandardException
     {
         super.init("<init>");
@@ -123,8 +122,7 @@ public class NewInvocationNode extends MethodCallNode
     public void init(
                     Object vtiTableFuncName,
                     Object tableDescriptor,
-                    Object params,
-                    Object delimitedIdentifier)
+                    Object params)
         throws StandardException
     {
         super.init("<init>");
