@@ -1021,7 +1021,7 @@ class ij {
             haveConnection();
 
             rs = theConnection.createStatement().executeQuery
-                ("SELECT DATABASENAME FROM SYS.SYSDATABASES");
+                ("SELECT DATABASENAME FROM SYSVW.SYSDATABASESVIEW");
 
             int[] displayColumns = new int[] {
                 rs.findColumn("DATABASENAME")
