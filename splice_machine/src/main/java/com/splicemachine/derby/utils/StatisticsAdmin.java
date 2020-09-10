@@ -51,16 +51,19 @@ import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.FluentIterable;
+import splice.com.google.common.collect.Lists;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
@@ -68,6 +71,7 @@ import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static com.splicemachine.derby.utils.EngineUtils.getSchemaDescriptor;
 import static com.splicemachine.derby.utils.EngineUtils.verifyTableExists;
@@ -258,7 +262,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         new GenericColumnDescriptor("partitionSize", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
         new GenericColumnDescriptor("partitionCount", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
         new GenericColumnDescriptor("statsType", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-        new GenericColumnDescriptor("sampleFraction", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE))
+        new GenericColumnDescriptor("sampleFraction", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
+        new GenericColumnDescriptor("skippedColumnIds", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
     };
 
     private static final ResultColumnDescriptor[] COLUMN_STATS_OUTPUT_COLUMNS = new GenericColumnDescriptor[]{
@@ -473,7 +478,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             statsRow = StatisticsAdmin.generateRowFromStats(conglomerateId, "-All-", rowCount, rowCount*meanRowWidth, meanRowWidth, numPartitions, statsType, 0.0d);
             dd.addTableStatistics(statsRow, tc);
-            ExecRow resultRow = generateOutputRow(schema, table, statsRow);
+            ExecRow resultRow = generateOutputRow(schema, table, statsRow, new HashSet<>());
 
             IteratorNoPutResultSet resultsToWrap = wrapResults(
                     conn,
@@ -615,7 +620,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
         ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(heapConglomerateId));
         ssb.tableVersion(table.getVersion());
-        ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn);
+        ScanSetBuilder scanSetBuilder = createTableScanner(ssb,conn,table,txn,mergeStats);
         String scope = getScopeName(table);
         // no sample stats support on mem platform
         if (dsp.getType() != DataSetProcessor.Type.SPARK) {
@@ -652,7 +657,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
     private static ScanSetBuilder createTableScanner(ScanSetBuilder builder,
                                                      EmbedConnection conn,
                                                      TableDescriptor table,
-                                                     TxnView txn) throws StandardException{
+                                                     TxnView txn, boolean mergeStats) throws StandardException{
 
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(conn, table);
         ExecRow row = new ValueRow(colsToCollect.size());
@@ -717,7 +722,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .tableVersion(table.getVersion())
                 .fieldLengths(fieldLengths)
                 .columnPositionMap(columnPositionMap)
-                .oneSplitPerRegion(true)
+                .oneSplitPerRegion(!mergeStats)
                 .storedAs(table.getStoredAs())
                 .location(table.getLocation())
                 .compression(table.getCompression())
@@ -960,8 +965,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return row;
     }
 
-    public static ExecRow generateOutputRow(String schemaName, String tableName, ExecRow partitionRow) throws StandardException {
-        ExecRow row = new ValueRow(8);
+    public static ExecRow generateOutputRow(String schemaName, String tableName, ExecRow partitionRow, HashSet<Integer> skippedColIds) throws StandardException {
+        ExecRow row = new ValueRow(9);
         row.setColumn(1,new SQLVarchar(schemaName));
         row.setColumn(2,new SQLVarchar(tableName));
         row.setColumn(3,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITIONID));
@@ -970,6 +975,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         row.setColumn(6,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS));
         row.setColumn(7,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE));
         row.setColumn(8,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION));
+
+        int cutOffLimit = 5;
+        String skippedColIdsStr = skippedColIds.stream().limit(cutOffLimit).map(Object::toString).collect(Collectors.joining(", "));
+        if (skippedColIds.size() > cutOffLimit)
+            skippedColIdsStr += " ...";
+        row.setColumn(9,new SQLVarchar(skippedColIdsStr));
         return row;
     }
 
@@ -1027,8 +1038,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             private long numberOfPartitions = 0;
                             private int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
                             private double sampleFraction = 0.0d;
+                            private final HashSet<Integer> skippedColIds = new HashSet<>();
 
                             @Override
+                            @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "SpotBugs is confused, we rethrow the exception")
                             public boolean hasNext() {
                                 try {
                                     if (!fetched) {
@@ -1041,8 +1054,20 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 ObjectInputStream ois = new ObjectInputStream(bais);
                                                 // compose the entry for a given column
                                                 ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", columnId, (ColumnStatisticsImpl) ois.readObject());
-                                                dataDictionary.addColumnStatistics(statsRow, tc);
-                                                bais.close();
+                                                try {
+                                                    dataDictionary.addColumnStatistics(statsRow, tc);
+                                                } catch (StandardException e) {
+                                                    // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
+                                                    if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                                        SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
+                                                                conglomId, columnId);
+                                                        skippedColIds.add(columnId);
+                                                    } else {
+                                                        throw e;
+                                                    }
+                                                } finally {
+                                                    bais.close();
+                                                }
                                             } else {
                                                 // process tablestats row
                                                 conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
@@ -1050,6 +1075,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 rowCount = partitionRowCount;
                                                 totalSize = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITION_SIZE).getLong();
                                                 avgRowWidth = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.MEANROWWIDTH).getInt();
+                                                // while collecting merged stats, we may use more splits for one region/partition, so the numberOfPartitions here is really the number of splits, not ncessarily the number of regions
                                                 numberOfPartitions = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS).getLong();
                                                 statsType = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE).getInt();
                                                 sampleFraction = nextRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION).getDouble();
@@ -1076,10 +1102,18 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                         statsType = SYSTABLESTATISTICSRowFactory.REGULAR_MERGED_STATS;
                                     else if (statsType == SYSTABLESTATISTICSRowFactory.SAMPLE_NONMERGED_STATS)
                                         statsType = SYSTABLESTATISTICSRowFactory.SAMPLE_MERGED_STATS;
-                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numberOfPartitions, statsType, sampleFraction);
-                                    dataDictionary.addTableStatistics(statsRow, tc);
                                     Pair<String, String> pair = displayPair.get(conglomId);
-                                    return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow);
+                                    SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(pair.getFirst(), tc, true);
+                                    TableDescriptor td = dataDictionary.getTableDescriptor(pair.getSecond(), sd, tc);
+                                    // instead of using the numberOfPartitions which is really the number of splits for
+                                    // merged stats, directly fetch the number of regions
+                                    long numOfRegions = numberOfPartitions;
+                                    if (!td.isExternal())
+                                        numOfRegions = getNumOfPartitions(td);
+                                    statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numOfRegions, statsType, sampleFraction);
+                                    dataDictionary.addTableStatistics(statsRow, tc);
+
+                                    return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow, skippedColIds);
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
                                 }
@@ -1100,13 +1134,27 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                         final Iterator iterator = new Iterator<ExecRow>() {
                             private ExecRow nextRow;
                             private boolean fetched = false;
+                            private final HashSet<Integer> skippedColIds = new HashSet<>();
                             @Override
                             public boolean hasNext() {
                                 try {
                                     if (!fetched) {
                                         nextRow = input.getNextRowCore();
                                         while (nextRow != null && nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
-                                            dataDictionary.addColumnStatistics(nextRow, tc);
+                                            try {
+                                                dataDictionary.addColumnStatistics(nextRow, tc);
+                                            } catch (StandardException e) {
+                                                // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
+                                                if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                                    int columnId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID).getInt();
+                                                    SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
+                                                            nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getInt(),
+                                                            columnId);
+                                                    skippedColIds.add(columnId);
+                                                } else {
+                                                    throw e;
+                                                }
+                                            }
                                             nextRow = input.getNextRowCore();
                                         }
                                         fetched = true;
@@ -1123,7 +1171,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                     fetched = false;
                                     dataDictionary.addTableStatistics(nextRow, tc);
                                     Pair<String,String> pair = displayPair.get(nextRow.getColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID).getLong());
-                                    return generateOutputRow(pair.getFirst(),pair.getSecond(),nextRow);
+                                    return generateOutputRow(pair.getFirst(),pair.getSecond(),nextRow,skippedColIds);
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
                                 }
@@ -1135,6 +1183,16 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     }
                 }
             });
+        }
+    }
+
+    private static long getNumOfPartitions(TableDescriptor td) throws StandardException {
+        String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
+        byte[] table = Bytes.toBytes(tableId);
+        try (Partition root = SIDriver.driver().getTableFactory().getTable(table)) {
+            return root != null ? root.subPartitions(true).size() : 1;
+        } catch (Exception ioe) {
+            throw StandardException.plainWrapException(ioe);
         }
     }
 

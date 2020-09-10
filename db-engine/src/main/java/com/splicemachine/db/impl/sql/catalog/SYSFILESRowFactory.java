@@ -34,13 +34,7 @@ package com.splicemachine.db.impl.sql.catalog;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLVarchar;
@@ -98,8 +92,8 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    public SYSFILESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
-		super(uuidf,ef,dvf);
+    public SYSFILESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd) {
+		super(uuidf,ef,dvf,dd);
 		initInfo(SYSFILES_COLUMN_COUNT, TABLENAME_STRING, 
 				 indexColumnPositions, uniqueness, uuids );
 	}
@@ -118,7 +112,7 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 	 * @exception   StandardException thrown on failure
 	 */
 
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
 					throws StandardException {
 		String					id_S = null;
 		String					schemaId_S = null;
@@ -128,6 +122,9 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 		ExecRow        			row;
 
 		if (td != null) {
+			if (!(td instanceof FileInfoDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
 			FileInfoDescriptor descriptor = (FileInfoDescriptor)td;
 			id_S = descriptor.getUUID().toString();
 			schemaId_S = descriptor.getSchemaDescriptor().getUUID().toString();

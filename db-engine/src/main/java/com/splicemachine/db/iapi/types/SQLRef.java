@@ -45,27 +45,29 @@ import java.sql.PreparedStatement;
 import java.sql.RowId;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SQLRef extends DataType implements RefDataValue {
 	protected RowLocation	value;
 
-    private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLRef.class);
+	private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLRef.class);
 
-    public int estimateMemoryUsage()
-    {
-        int sz = BASE_MEMORY_USAGE;
-        if( null != value)
-            sz += value.estimateMemoryUsage();
-        return sz;
-    } // end of estimateMemoryUsage
+	public int estimateMemoryUsage()
+	{
+		int sz = BASE_MEMORY_USAGE;
+		if( null != value)
+			sz += value.estimateMemoryUsage();
+		return sz;
+	} // end of estimateMemoryUsage
 
 	/*
-	** DataValueDescriptor interface
-	** (mostly implemented in DataType)
-	*/
+	 ** DataValueDescriptor interface
+	 ** (mostly implemented in DataType)
+	 */
 
 	public String getString()
 	{
@@ -109,13 +111,13 @@ public class SQLRef extends DataType implements RefDataValue {
 
 
 	/**
-		Return my format identifier.
+	 Return my format identifier.
 
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
+	 @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+	 */
 	public int getTypeFormatId() {
 		return StoredFormatIds.SQL_REF_ID;
-	}  
+	}
 
 	private boolean evaluateNull()
 	{
@@ -124,10 +126,10 @@ public class SQLRef extends DataType implements RefDataValue {
 
 	public void writeExternal(ObjectOutput out) throws IOException {
 
-        out.writeBoolean(value != null);
-        if (value != null) {
-            out.writeObject(value);
-        }
+		out.writeBoolean(value != null);
+		if (value != null) {
+			out.writeObject(value);
+		}
 	}
 
 	/**
@@ -141,10 +143,10 @@ public class SQLRef extends DataType implements RefDataValue {
 	 */
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
 	{
-        boolean nonNull = in.readBoolean();
-        if (nonNull) {
-            setValue((RowLocation) in.readObject());
-        }
+		boolean nonNull = in.readBoolean();
+		if (nonNull) {
+			setValue((RowLocation) in.readObject());
+		}
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException
 	{
@@ -162,41 +164,41 @@ public class SQLRef extends DataType implements RefDataValue {
 	}
 
 	/*
-	** Orderable interface
-	*/
+	 ** Orderable interface
+	 */
 
 	/** @exception StandardException	Thrown on error */
 	public boolean compare(int op,
 						   DataValueDescriptor other,
 						   boolean orderedNulls,
 						   boolean unknownRV)
-					throws StandardException
+			throws StandardException
 	{
 		return value.compare(op,
-							((SQLRef) other).value,
-							orderedNulls,
-							unknownRV);
+				((SQLRef) other).value,
+				orderedNulls,
+				unknownRV);
 	}
 
 	/** @exception StandardException	Thrown on error */
 	public int compare(DataValueDescriptor other) throws StandardException
 	{
-        if (other instanceof SQLRef) {
-            return value.compare(((SQLRef) other).value);
-        } else if (other instanceof StringDataValue) {
-            return value.toString().compareToIgnoreCase(other.getString());
-        }
-        else {
-            throw StandardException.newException("cannot compare SQLRef with " + other.getClass());
-        }
+		if (other instanceof SQLRef) {
+			return value.compare(((SQLRef) other).value);
+		} else if (other instanceof StringDataValue) {
+			return value.toString().compareToIgnoreCase(other.getString());
+		}
+		else {
+			throw StandardException.newException("cannot compare SQLRef with " + other.getClass());
+		}
 	}
 
 	/*
 	 * DataValueDescriptor interface
 	 */
 
-    /** @see DataValueDescriptor#cloneValue */
-    public DataValueDescriptor cloneValue(boolean forceMaterialization)
+	/** @see DataValueDescriptor#cloneValue */
+	public DataValueDescriptor cloneValue(boolean forceMaterialization)
 	{
 		/* In order to avoid a throws clause nightmare, we only call
 		 * the constructors which do not have a throws clause.
@@ -207,7 +209,7 @@ public class SQLRef extends DataType implements RefDataValue {
 		if (value == null)
 			return new SQLRef();
 		else
-           return new SQLRef((RowLocation) value.cloneValue(false));
+			return new SQLRef((RowLocation) value.cloneValue(false));
 	}
 
 	/**
@@ -218,8 +220,8 @@ public class SQLRef extends DataType implements RefDataValue {
 		return new SQLRef();
 	}
 
-	/** 
-	 * @see DataValueDescriptor#setValueFromResultSet 
+	/**
+	 * @see DataValueDescriptor#setValueFromResultSet
 	 *
 	 */
 	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
@@ -227,21 +229,21 @@ public class SQLRef extends DataType implements RefDataValue {
 	{
 		if (SanityManager.DEBUG)
 			SanityManager.THROWASSERT(
-				"setValueFromResultSet() is not supposed to be called for SQLRef.");
+					"setValueFromResultSet() is not supposed to be called for SQLRef.");
 	}
 	public void setInto(PreparedStatement ps, int position)  {
 		if (SanityManager.DEBUG)
 			SanityManager.THROWASSERT(
-				"setValueInto(PreparedStatement) is not supposed to be called for SQLRef.");
+					"setValueInto(PreparedStatement) is not supposed to be called for SQLRef.");
 	}
 
 	/*
-	** Class interface
-	*/
+	 ** Class interface
+	 */
 
 	/*
-	** Constructors
-	*/
+	 ** Constructors
+	 */
 
 	public SQLRef()
 	{
@@ -252,20 +254,20 @@ public class SQLRef extends DataType implements RefDataValue {
 		setValue(rowLocation);
 	}
 
-    @Override
+	@Override
 	public void setValue(RowLocation rowLocation)
 	{
 		value = rowLocation;
 		isNull = evaluateNull();
 	}
 
-    public void setValue(RowId rowId) {
+	public void setValue(RowId rowId) {
 		value = (SQLRowId)rowId;
 		isNull = evaluateNull();
-    }
+	}
 	/*
-	** String display of value
-	*/
+	 ** String display of value
+	 */
 
 	public String toString()
 	{
@@ -281,14 +283,14 @@ public class SQLRef extends DataType implements RefDataValue {
 	@Override
 	public void read(Row row, int ordinal) throws StandardException {
 		if (row.isNullAt(ordinal))
-            setToNull();
-        else {
-            if (value == null) {
-                value = new SQLRowId();
-            }
-            value.read(row, ordinal);
-            isNull = evaluateNull();
-        }
+			setToNull();
+		else {
+			if (value == null) {
+				value = new SQLRowId();
+			}
+			value.read(row, ordinal);
+			isNull = evaluateNull();
+		}
 	}
 
 

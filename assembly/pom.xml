@@ -21,7 +21,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1957-SNAPSHOT</version>
+        <version>3.1.0.1974-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -30,12 +30,36 @@
             <artifactId>hbase_sql</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
             <artifactId>splice_spark</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>splice_spark2</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.kafka</groupId>
+                    <artifactId>kafka_${scala.binary.version}</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>${project.groupId}</groupId>
@@ -69,7 +93,7 @@
             concurrentlinkedhashmap-lru,
             kryo-serializers,
             lucene-core,
-	        scala_util,
+            scala_util,
             hbase_pipeline,
             hbase_storage,
             hbase_sql,
@@ -82,6 +106,7 @@
             splice_encryption,
             akka-remote_${scala.binary.version},
             splice_spark,
+            splice_spark2,
             super-csv,
             c3p0,
             mchange-commons-java,
@@ -344,7 +369,8 @@
                                         javax.servlet-api,
                                         javax.ws.rs-api,
                                         jython-standalone,
-                                        splice_spark
+                                        splice_spark,
+                                        splice_spark2
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
@@ -1177,6 +1203,7 @@
                                                     <include>com.splicemachine:db-shared</include>
                                                     <include>com.splicemachine:db-tools-ij</include>
                                                     <include>com.splicemachine:splice_spark</include>
+                                                    <include>com.splicemachine:splice_spark2</include>
                                                     <include>tomcat:jasper-runtime</include>
                                                     <include>tomcat:tomcat-parent</include>
                                                     <include>org.apache.commons:commons-lang</include>
@@ -1581,6 +1608,7 @@
                                 <directory>common/src/main/resources/bin</directory>
                                 <includes>
                                   <include>sqlshell.sh</include>
+                                  <include>winsqlshell.cmd</include>
                                 </includes>
                             </resource>
                           </resources>

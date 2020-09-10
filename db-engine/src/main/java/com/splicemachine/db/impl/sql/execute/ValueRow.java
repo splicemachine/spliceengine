@@ -387,8 +387,10 @@ public class ValueRow implements ExecRow, Externalizable {
 	public void writeExternal(ObjectOutput out) throws IOException {
 		out.writeInt(hash);
 		out.writeInt(ncols);
-		for (DataValueDescriptor desc: column) {
-			out.writeObject(desc);
+		if (ncols > 0) {
+			for (DataValueDescriptor desc : column) {
+				out.writeObject(desc);
+			}
 		}
 	}
 

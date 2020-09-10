@@ -22,6 +22,7 @@ import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
+import com.splicemachine.si.data.hbase.coprocessor.DummyScanner;
 import com.splicemachine.utils.BlockingProbe;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.Coprocessor;
@@ -51,10 +52,12 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
 
     private static final Logger LOG = Logger.getLogger(MemstoreAwareObserver.class);
     protected AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.of(this);
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"starting [%s]",((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
         } catch (Throwable t) {
@@ -65,6 +68,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.empty();
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"stopping [%s]", ((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
         } catch (Throwable t) {
@@ -88,7 +92,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
             scr.setMemstoreAware(memstoreAware);
             HRegion region = (HRegion) c.getEnvironment().getRegion();
             scr.setRegion(region);
-            return scanner;
+            return scanner == null ? DummyScanner.INSTANCE : scanner;
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -137,7 +141,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 
     @Override
@@ -179,8 +183,12 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                 while (true) {
                     MemstoreAware currentState = memstoreAware.get();
                     if (currentState.splitMerge || currentState.currentCompactionCount>0 || currentState.flush) {
-                        SpliceLogUtils.warn(LOG, "splitting, merging, or active compaction on scan on %s : %s", c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString(), currentState);
-                        throw new IOException("splitting, merging, or active compaction on scan on " + c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString());
+                        String message = "Splitting, merging, or active compaction on scan on " +
+                                c.getEnvironment().getRegion().getRegionInfo().getRegionNameAsString() +
+                                " served by " + c.getEnvironment().getServerName() +
+                                " with state" + currentState;
+                        SpliceLogUtils.warn(LOG, message);
+                        throw new IOException(message);
                     }
 
                     if (memstoreAware.compareAndSet(currentState, MemstoreAware.incrementScannerCount(currentState)))
@@ -194,6 +202,9 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                     InternalScan iscan = new InternalScan(scan);
                     iscan.checkOnlyMemStore();
                     HRegion region = (HRegion) c.getEnvironment().getRegion();
+                    // We substitute the pre-created scanner, must close it to avoid a memory leak
+                    if (s != null)
+                        s.close();
                     return new MemStoreFlushAwareScanner(region, store, ((HStore)store).getScanInfo(), iscan, targetCols, getReadpoint(region), memstoreAware, memstoreAware.get());
                 } else { // Partition Miss
                     while (true) {
@@ -201,7 +212,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                         if(memstoreAware.compareAndSet(latest, MemstoreAware.decrementScannerCount(latest)))
                             break;
                     }
-                    SpliceLogUtils.warn(LOG, "scan missed do to split after task creation " +
+                    String message = String.format("Scan missed due to split after task creation " +
                                     "scan [%s,%s], partition[%s,%s], region=[%s,%s]," +
                                     "server=[%s,%s]",
                             displayByteArray(scan.getStartRow()),
@@ -211,10 +222,10 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                             displayByteArray(c.getEnvironment().getRegionInfo().getStartKey()),
                             displayByteArray(c.getEnvironment().getRegionInfo().getEndKey()),
                             Bytes.toString(serverName),
-                            ((RegionServerServices)c.getEnvironment().getOnlineRegions()).getServerName().getHostAndPort()
-                    );
+                            ((RegionServerServices)c.getEnvironment().getOnlineRegions()).getServerName().getHostAndPort());
+                    SpliceLogUtils.warn(LOG, message);
 
-                    throw new DoNotRetryIOException();
+                    throw new DoNotRetryIOException(message);
                 }
             }else return s;
         } catch (Throwable t) {

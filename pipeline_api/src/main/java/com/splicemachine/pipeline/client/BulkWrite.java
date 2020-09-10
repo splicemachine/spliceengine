@@ -99,7 +99,7 @@ public class BulkWrite {
     public String toString() {
         return "BulkWrite{" +
                 ", encodedStringName='" + encodedStringName + '\'' +
-                ", rows="+mutations.size()+
+                ", rows="+mutations+
                 '}';
     }
 

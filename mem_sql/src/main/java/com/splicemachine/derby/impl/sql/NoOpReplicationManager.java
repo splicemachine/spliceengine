@@ -33,7 +33,7 @@ public class NoOpReplicationManager implements ReplicationManager {
     private NoOpReplicationManager(){ }
 
     @Override
-    public void addPeer(short peerId, String peerClusterKey, boolean isSerial) throws StandardException {
+    public void addPeer(short peerId, String peerClusterKey) throws StandardException {
 
     }
 
@@ -78,7 +78,12 @@ public class NoOpReplicationManager implements ReplicationManager {
     }
 
     @Override
-    public void monitorReplication(String masterClusterKey, String slaveClusterKey) throws StandardException {
+    public void monitorReplication(String primaryClusterKey, String replicaClusterKey) throws StandardException {
 
+    }
+
+    @Override
+    public String dumpUnreplicatedWals() throws StandardException {
+        return null;
     }
 }

@@ -23,7 +23,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
-import org.spark_project.guava.base.Throwables;
+import splice.com.google.common.base.Throwables;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -165,6 +165,14 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
                     .withRows(rows(
                             row(1),
                             row(1)))
+                    .create();
+
+            new TableCreator(conn)
+                    .withCreate("create table c(a int, b varchar(10), c bigint, primary key (c))")
+                    .withInsert("insert into c values(?, ?, ?)")
+                    .withRows(rows(row(1, "2", 3)))
+                    .withIndex("create index idx1 on c (c, b)")
+                    .withIndex("create index idx2 on c (b)")
                     .create();
         }
         catch (Exception e) {
@@ -493,6 +501,20 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testBulkDeleteWithIndexLookup() throws Exception {
+        if (notSupported)
+            return;
+        methodWatcher.execute(String.format("delete from c --splice-properties index=idx2,bulkDeleteDirectory=%s", BULKLOADDIR));
+        String[] indexes = new String[] {"null", "idx1", "idx2"};
+        for (int i = 0; i < indexes.length; ++i) {
+            try(ResultSet rs = methodWatcher.executeQuery(String.format("select count(*) from c --splice-properties index = %s", indexes[i]))) {
+                rs.next();
+                int count = rs.getInt(1);
+                Assert.assertEquals(0, count);
+            }
+        }
+    }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void executeQuery(String query, String expected, boolean isResultSetOrdered) throws Exception {

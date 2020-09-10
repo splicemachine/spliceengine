@@ -176,4 +176,7 @@ public interface AccessPath {
 	 * @param missingHashKeyOK {@code true} if the join strategy was is hashable with no hash key, {@code false} otherwise.
 	 */
 	void setMissingHashKeyOK(boolean missingHashKeyOK);
+
+	boolean getSpecialMaxScan();
+	void setSpecialMaxScan(boolean value);
 }

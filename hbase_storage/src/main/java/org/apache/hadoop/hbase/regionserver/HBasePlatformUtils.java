@@ -25,13 +25,6 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.RegionLocator;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles;
-import org.apache.hadoop.yarn.exceptions.YarnException;
-import org.apache.hadoop.yarn.server.api.ResourceTracker;
-import org.apache.hadoop.yarn.server.api.protocolrecords.*;
-import org.apache.hadoop.yarn.server.nodemanager.NodeManager;
-import org.apache.hadoop.yarn.server.nodemanager.security.NMContainerTokenSecretManager;
-import org.apache.hadoop.yarn.server.nodemanager.security.NMTokenSecretManagerInNM;
-import org.apache.hadoop.yarn.server.resourcemanager.ResourceTrackerService;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -56,79 +49,5 @@ public class HBasePlatformUtils{
         RegionLocator locator = conn.getRegionLocator(tableName);
         Table table = conn.getTable(tableName);
         loader.doBulkLoad(path, admin, table, locator);
-    }
-
-    public static ResourceTracker getResourceTracker(ResourceTrackerService rt) {
-        return new ResourceTracker() {
-
-            @Override
-            public NodeHeartbeatResponse nodeHeartbeat(
-                    NodeHeartbeatRequest request) throws YarnException,
-                    IOException {
-                NodeHeartbeatResponse response;
-                try {
-                    response = rt.nodeHeartbeat(request);
-                } catch (YarnException e) {
-                    LOG.info("Exception in heartbeat from node " +
-                            request.getNodeStatus().getNodeId(), e);
-                    throw e;
-                }
-                return response;
-            }
-
-            @Override
-            public RegisterNodeManagerResponse registerNodeManager(
-                    RegisterNodeManagerRequest request)
-                    throws YarnException, IOException {
-                RegisterNodeManagerResponse response;
-                try {
-                    response = rt.registerNodeManager(request);
-
-                } catch (NullPointerException npe) {
-                    try {
-                        Thread.sleep(200);
-                    } catch (InterruptedException ie) {
-                        throw new IOException(ie);
-                    }
-                    return registerNodeManager(request);
-                } catch (YarnException e) {
-                    LOG.info("Exception in node registration from "
-                            + request.getNodeId().toString(), e);
-                    throw e;
-                }
-                return response;
-            }
-
-            @Override
-            public UnRegisterNodeManagerResponse unRegisterNodeManager(
-                    UnRegisterNodeManagerRequest request) throws YarnException, IOException {
-                UnRegisterNodeManagerResponse response;
-                try {
-                    response = rt.unRegisterNodeManager(request);
-                } catch (YarnException e) {
-                    LOG.info("Exception in node registration from "
-                            + request.getNodeId().toString(), e);
-                    throw e;
-                }
-                return response;
-            }
-        };
-    }
-
-    public static void waitForNMToRegister(NodeManager nm) throws Exception{
-        NMTokenSecretManagerInNM nmTokenSecretManagerNM =
-                nm.getNMContext().getNMTokenSecretManager();
-        NMContainerTokenSecretManager containerTokenSecretManager = nm.getNMContext().getContainerTokenSecretManager();
-        int attempt = 60;
-        while(attempt-- > 0) {
-            try {
-                if (nmTokenSecretManagerNM.getCurrentKey() != null && containerTokenSecretManager.getCurrentKey() != null) {
-                    break;
-                }
-            } catch (Exception e) {
-
-            }
-            Thread.sleep(2000);
-        }
     }
 }

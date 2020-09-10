@@ -32,7 +32,7 @@
 package com.splicemachine.db.impl.ast;
 
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
@@ -42,9 +42,9 @@ import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Strings;
+import splice.com.google.common.collect.Iterators;
+import splice.com.google.common.collect.Lists;
 import java.util.*;
 
 
@@ -53,15 +53,10 @@ import java.util.*;
  *         Date: 30/09/2013
  */
 public class PlanPrinter extends AbstractSpliceVisitor {
-    public static Logger LOG = Logger.getLogger(PlanPrinter.class);
+    public static final Logger LOG = Logger.getLogger(PlanPrinter.class);
     public static final String spaces = "  ";
     private boolean explain = false;
-    public static ThreadLocal<Map<String,Collection<QueryTreeNode>>> planMap = new ThreadLocal<Map<String,Collection<QueryTreeNode>>>(){
-        @Override
-        protected Map<String,Collection<QueryTreeNode>> initialValue(){
-            return new HashMap<>();
-        }
-    };
+    public static final ThreadLocal<Map<String,Collection<QueryTreeNode>>> planMap = ThreadLocal.withInitial(HashMap::new);
 
     // Only visit root node
     @Override
@@ -98,7 +93,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 StringBuilder sb = new StringBuilder();
                 while (nodes.hasNext())
                     sb.append(nodes.next()).append("\n");
-                LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>%s\n",
+                LOG.info(String.format("Plan nodes for query <<%n\t%s%n>>%s%n",
                         query,sb.toString()));
             }
         }
@@ -185,6 +180,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         info.put("children", Lists.reverse(Lists.transform(children, new Function<ResultSetNode, Map<String,Object>>() {
             @Override
             public Map<String,Object> apply(ResultSetNode child) {
+                assert child != null;
                 try {
                     return nodeInfo(child, level + 1);
                 } catch (StandardException e) {
@@ -197,6 +193,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             @Override
             public Map apply(SubqueryNode subq) {
                 try {
+                    assert subq != null;
                     HashMap<String, Object> subInfo = new HashMap<>();
                     subInfo.put("node", nodeInfo(subq.getResultSet(), 1));
                     subInfo.put("expression?", subq.getSubqueryType() == SubqueryNode.EXPRESSION_SUBQUERY);
@@ -224,7 +221,8 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
         }
         if (rsn instanceof IndexToBaseRowNode){
-            IndexToBaseRowNode idx = (IndexToBaseRowNode) rsn;
+            // TODO should we print that?
+            //IndexToBaseRowNode idx = (IndexToBaseRowNode) rsn;
             //info.put("name", idx.getName());
         }
         if (rsn instanceof ProjectRestrictNode){
@@ -315,7 +313,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
     private static String subqueryToString(Map subInfo,Map<String, Object> subqInfoNode){
-        return String.format("\nSubquery n=%s: expression?=%s, invariant?=%s, correlated?=%s\n",
+        return String.format("%nSubquery n=%s: expression?=%s, invariant?=%s, correlated?=%s%n",
                 subqInfoNode.get("n"),subInfo.get("expression?"),
                 subInfo.get("invariant?"),subInfo.get("correlated?"));
     }
@@ -372,19 +370,17 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes, final DataSetProcessorType type) throws StandardException {
         return Iterators.transform(orderedNodes.iterator(), new Function<QueryTreeNode, String>() {
-            int i = 0;
+            boolean header = true;
 
             @Override
             public String apply(QueryTreeNode queryTreeNode) {
                 try {
-                    if ((queryTreeNode instanceof UnionNode) && ((UnionNode) queryTreeNode).getIsRecursive()) {
-                        ((UnionNode) queryTreeNode).setStepNumInExplain(orderedNodes.size() - i);
-                    }
-                    return queryTreeNode.printExplainInformation(orderedNodes.size(), i, type, true);
+                    assert queryTreeNode != null;
+                    return queryTreeNode.printExplainInformation(header, type, true);
                 } catch (StandardException se) {
                     throw new RuntimeException(se);
                 } finally {
-                    i++;
+                    header = false;
                 }
             }
         });

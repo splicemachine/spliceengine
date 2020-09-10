@@ -42,14 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class HBaseSubregionSplitter implements SubregionSplitter{
     private static final Logger LOG = Logger.getLogger(HBaseSubregionSplitter.class);
     @Override
-    public List<InputSplit> getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits, long tableSize) {
-        int splitsPerPartition;
-        if (splits.size() > 3) {
-            // First and last partitions could be very small, don't take them into account
-            splitsPerPartition = requestedSplits / (splits.size() - 2);
-        } else {
-            splitsPerPartition = requestedSplits;
-        }
+    public List<InputSplit>
+    getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits, long tableSize) {
         try {
             // Results has to be synchronized because we are adding to it from multiple threads concurrently
             final List<InputSplit> results = Collections.synchronizedList(new ArrayList<>());
@@ -57,14 +51,10 @@ public class HBaseSubregionSplitter implements SubregionSplitter{
             SpliceMessage.SpliceSplitServiceRequest.Builder builder = SpliceMessage.SpliceSplitServiceRequest.newBuilder()
                     .setBeginKey(ZeroCopyLiteralByteString.wrap(scanStartRow))
                     .setEndKey(ZeroCopyLiteralByteString.wrap(scanStopRow));
-            long bytesPerSplit = 0;
-            if (splitsPerPartition > 0) {
-                builder.setRequestedSplits(splitsPerPartition);
-                if (tableSize > 0) {
-                    bytesPerSplit = (tableSize + (tableSize % requestedSplits)) / requestedSplits;
-                    builder.setBytesPerSplit(bytesPerSplit);
-                }
-
+            builder.setRequestedSplits(0);
+            if (tableSize > 0 && requestedSplits > 0) {
+                long bytesPerSplit = (tableSize + requestedSplits - 1) / requestedSplits; // rounding up
+                builder.setBytesPerSplit(bytesPerSplit);
             }
             SpliceMessage.SpliceSplitServiceRequest message = builder.build();
 

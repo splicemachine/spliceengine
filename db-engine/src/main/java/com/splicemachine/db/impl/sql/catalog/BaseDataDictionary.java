@@ -37,7 +37,9 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value="MS_PKGPROTECT")
 public abstract class BaseDataDictionary implements DataDictionary, ModuleControl, ModuleSupportable,java.security.PrivilegedAction {
 	protected static final String		CFG_SYSTABLES_ID = "SystablesIdentifier";
 	protected static final String		CFG_SYSTABLES_INDEX1_ID = "SystablesIndex1Identifier";
@@ -52,11 +54,11 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final String		CFG_SYSSCHEMAS_ID = "SysschemasIdentifier";
 	protected static final String		CFG_SYSSCHEMAS_INDEX1_ID = "SysschemasIndex1Identifier";
 	protected static final String		CFG_SYSSCHEMAS_INDEX2_ID = "SysschemasIndex2Identifier";
-	protected	static final int		SYSCONGLOMERATES_CORE_NUM = 0;
-	protected	static final int		SYSTABLES_CORE_NUM = 1;
-	protected static final int		SYSCOLUMNS_CORE_NUM = 2;
-	protected	static final int		SYSSCHEMAS_CORE_NUM = 3;
-	protected static final int        NUM_CORE = 4;
+	protected static final int		    SYSCONGLOMERATES_CORE_NUM = 0;
+	protected static final int		    SYSTABLES_CORE_NUM = 1;
+	protected static final int		    SYSCOLUMNS_CORE_NUM = 2;
+	protected static final int		    SYSSCHEMAS_CORE_NUM = 3;
+	protected static final int          NUM_CORE = 4;
 	/**
 	* SYSFUN functions. Table of functions that automatically appear
 	* in the SYSFUN schema. These functions are resolved to directly
@@ -88,7 +90,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
     *[5..N] = arguments (optional, if not present zero arguments is assumed)
 	*
 	*/
-	protected static final String[][] SYSFUN_FUNCTIONS = {
+	static final String[][] SYSFUN_FUNCTIONS = {
         {"ACOS", "DOUBLE", "java.lang.StrictMath", "acos(double)", "true", "DOUBLE"},
 			{"ASIN", "DOUBLE", "java.lang.StrictMath", "asin(double)",  "true", "DOUBLE"},
 			{"ATAN", "DOUBLE", "java.lang.StrictMath", "atan(double)",  "true", "DOUBLE"},
@@ -133,38 +135,37 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	// This array of non-core table names *MUST* be in the same order
 	// as the non-core table numbers in DataDictionary.
 	protected static final String[] nonCoreNames = {
-									"SYSCONSTRAINTS",
-									"SYSKEYS",
-									"SYSPRIMARYKEYS",
-									"SYSDEPENDS",
-									"SYSALIASES",
-									"SYSVIEWS",
-									"SYSCHECKS",
-									"SYSFOREIGNKEYS",
-									"SYSSTATEMENTS",
-									"SYSFILES",
-									"SYSTRIGGERS",
-                                    "SYSTABLEPERMS",
-                                    "SYSSCHEMAPERMS",
-                                    "SYSCOLPERMS",
-                                    "SYSROUTINEPERMS",
-									"SYSROLES",
-                                    "SYSSEQUENCES",
-                                    "SYSPERMS",
-                                    "SYSUSERS",
-                                    "SYSBACKUP",
-                                    "SYSBACKUPFILESET",
-                                    "SYSBACKUPITEMS",
-                                    "SYSBACKUPJOBS",
-                                    "SYSCOLUMNSTATS",
-                                    "SYSPHYSICALSTATS",
-                                    "SYSTABLESTATS",
-                                    "SYSSOURCECODE",
-									"SYSSNAPSHOTS",
-									"SYSTOKENS",
-                                    "SYSDUMMY1",
-									"SYSREPLICATION"
-    };
+			"SYSCONSTRAINTS",
+			"SYSKEYS",
+			"SYSPRIMARYKEYS",
+			"SYSDEPENDS",
+			"SYSALIASES",
+			"SYSVIEWS",
+			"SYSCHECKS",
+			"SYSFOREIGNKEYS",
+			"SYSSTATEMENTS",
+			"SYSFILES",
+			"SYSTRIGGERS",
+			"SYSTABLEPERMS",
+			"SYSSCHEMAPERMS",
+			"SYSCOLPERMS",
+			"SYSROUTINEPERMS",
+			"SYSROLES",
+			"SYSSEQUENCES",
+			"SYSPERMS",
+			"SYSUSERS",
+			"SYSBACKUP",
+			"SYSBACKUPITEMS",
+			"SYSCOLUMNSTATS",
+			"SYSPHYSICALSTATS",
+			"SYSTABLESTATS",
+			"SYSSOURCECODE",
+			"SYSSNAPSHOTS",
+			"SYSTOKENS",
+			"SYSDUMMY1",
+			"SYSREPLICATION",
+			"MON_GET_CONNECTION"
+	};
 
 	protected	static final int		NUM_NONCORE = nonCoreNames.length;
 	
@@ -186,6 +187,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
         SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,
         SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,
+        SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME,
         SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME,
         SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME
@@ -194,7 +196,7 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	/**
 	 * List of procedures in SYSCS_UTIL schema with PUBLIC access
 	 */
-	protected static final String[] sysUtilProceduresWithPublicAccess = { 
+	static final String[] sysUtilProceduresWithPublicAccess = {
 												"SYSCS_INPLACE_COMPRESS_TABLE",
 												"SYSCS_COMPRESS_TABLE",
 												"SYSCS_MODIFY_PASSWORD",

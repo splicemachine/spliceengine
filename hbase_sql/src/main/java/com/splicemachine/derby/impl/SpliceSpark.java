@@ -17,17 +17,21 @@ package com.splicemachine.derby.impl;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.NoSuchElementException;
 
+import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.AdapterPipelineEnvironment;
+import com.splicemachine.hbase.*;
 import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.si.data.hbase.coprocessor.AdapterSIEnvironment;
 import com.splicemachine.si.impl.driver.SIEnvironment;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
@@ -45,9 +49,6 @@ import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.derby.hbase.HBasePipelineEnvironment;
 import com.splicemachine.derby.lifecycle.DistributedDerbyStartup;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
-import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.hbase.RegionServerLifecycleObserver;
-import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.pipeline.ContextFactoryDriverService;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
@@ -62,6 +63,7 @@ public class SpliceSpark {
 
     static JavaSparkContext ctx;
     static SparkSession session;
+    static ThreadLocal<SparkSession> sessions = new ThreadLocal<>();
     static boolean initialized = false;
     static boolean spliceStaticComponentsSetup = false;
 
@@ -70,6 +72,10 @@ public class SpliceSpark {
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
 
+    public static void resetSession() {
+        sessions.remove();
+    }
+
     // Sets both ctx and session
     public static synchronized SparkSession getSession() {
         String threadName = Thread.currentThread().getName();
@@ -77,19 +83,26 @@ public class SpliceSpark {
              // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
             throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
         }
-        return getSessionUnsafe();
+        SparkSession result = sessions.get();
+        if (result == null)
+            result = getSessionUnsafe().newSession();
+        return result;
     }
 
     /** This method is unsafe, it should only be used on tests are as a convenience when trying to
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */
     public static synchronized SparkSession getSessionUnsafe() {
+        SparkSession sessionToUse = sessions.get();
+        boolean isOlapWorker = Thread.currentThread().getName().startsWith("olap-worker-");
+        boolean needsReinitialization = !isOlapWorker &&
+                (sessionToUse == null || sessionToUse.sparkContext().isStopped()) &&
+                (session != null && !session.sparkContext().isStopped());
         if (!initialized) {
-            session = initializeSparkSession();
+            sessionToUse = session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
             initialized = true;
-        } else if (session.sparkContext().isStopped() && !SpliceClient.isClient()) {
-            // Try to reinitialize the SparkContext, unless this is SpliceClient, in that case let the user handle the SparkContext
+        } else if (!needsReinitialization && session.sparkContext().isStopped()) {
             LOG.warn("SparkContext is stopped, reinitializing...");
             try {
                 if (UserGroupInformation.isSecurityEnabled() && UserGroupInformation.isLoginKeytabBased()) {
@@ -98,15 +111,27 @@ public class SpliceSpark {
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
-            System.exit(0);
-            session = initializeSparkSession();
+            if (isOlapWorker) {
+                LOG.error("Olap server's connected to Spark is stopped, shutting down OLAP worker task.");
+                System.exit(0);
+            }
+            sessionToUse = session = initializeSparkSession();
             ctx =  new JavaSparkContext(session.sparkContext());
         }
-        return session;
+        else {
+            if (sessionToUse == null || needsReinitialization) {
+                if (session != null)
+                    sessionToUse = session.newSession();
+                else
+                    sessionToUse = initializeSparkSession();
+            }
+        }
+        sessions.set(sessionToUse);
+        return sessionToUse;
     }
 
     public static synchronized JavaSparkContext getContext() {
-        SparkSession s = getSession();
+        getSession();
         return ctx;
     }
 
@@ -114,7 +139,7 @@ public class SpliceSpark {
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */
     public static synchronized JavaSparkContext getContextUnsafe() {
-        SparkSession s = getSessionUnsafe();
+        getSessionUnsafe();
         return ctx;
     }
 
@@ -144,13 +169,20 @@ public class SpliceSpark {
                 SConfiguration config=driver.getConfiguration();
 
                 LOG.info("Splice Client in SpliceSpark "+SpliceClient.isClient());
-                
+                String replicationPath = ReplicationUtils.getReplicationPath();
+                byte[] status = ZkUtils.getData(replicationPath);
+                if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_PRIMARY) == 0) {
+                    driver.lifecycleManager().setReplicationRole("PRIMARY");
+                }
+                else if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_REPLICA) == 0) {
+                    driver.lifecycleManager().setReplicationRole("REPLICA");
+                }
                 //boot derby components
                 new EngineLifecycleService(new DistributedDerbyStartup(){
                     @Override public void distributedStart() throws IOException{ }
                     @Override public void markBootFinished() throws IOException{ }
                     @Override public boolean connectAsFirstTime(){ return false; }
-                },config,false).start();
+                },config,false, false).start();
 
                 EngineDriver engineDriver = EngineDriver.driver();
                 assert engineDriver!=null: "Not booted yet!";
@@ -172,7 +204,6 @@ public class SpliceSpark {
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
-
                 spliceStaticComponentsSetup = true;
             }
         } catch (RuntimeException e) {
@@ -244,9 +275,6 @@ public class SpliceSpark {
                 conf.set("spark.yarn.keytab", HConfiguration.unwrapDelegate().get("hbase.regionserver.keytab.file"));
             }
         }
-        String user = System.getProperty("splice.spark.yarn.principal");
-        String keytab = System.getProperty("splice.spark.yarn.keytab");
-
         // set all spark props that start with "splice.".  overrides are set below.
         for (Object sysPropertyKey : System.getProperties().keySet()) {
             String spsPropertyName = (String) sysPropertyKey;
@@ -352,6 +380,7 @@ public class SpliceSpark {
     
     public synchronized static void setContext(JavaSparkContext sparkContext) {
         session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
+        sessions.set(session);
         ctx = sparkContext;
         initialized = true;
     }

@@ -17,9 +17,11 @@ package com.splicemachine.si.impl.region;
 import com.carrotsearch.hppc.LongArrayList;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
+import com.splicemachine.si.api.txn.TxnTimeTravelResult;
 import com.splicemachine.si.api.txn.lifecycle.TxnPartition;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.coprocessor.TxnMessage;
@@ -27,17 +29,20 @@ import com.splicemachine.si.impl.HCannotCommitException;
 import com.splicemachine.si.impl.HReadOnlyModificationException;
 import com.splicemachine.si.impl.HTransactionTimeout;
 import com.splicemachine.si.impl.TxnUtils;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -102,6 +107,12 @@ public class RegionTxnStore implements TxnPartition{
             return null; //no transaction
         TxnMessage.TaskId taskId=newTransactionDecoder.decodeTaskId(this,txnId,result);
         return taskId;
+    }
+
+    /// @return Pair<closest tx id, closest tx's ts>
+    @Override
+    public Pair<Long, Long> getTxAt(long ts) throws IOException {
+        return new TxnTimeTraveler(new HBaseTxnFinder(region)).getTxAt(ts);
     }
 
     @Override
@@ -507,7 +518,7 @@ public class RegionTxnStore implements TxnPartition{
         }
     }
 
-    private class UncommittedAfterSource implements Source<TxnMessage.Txn> {
+    private static class UncommittedAfterSource implements Source<TxnMessage.Txn> {
         private final Source<TxnMessage.Txn> allTxns;
         private final long afterTs;
 

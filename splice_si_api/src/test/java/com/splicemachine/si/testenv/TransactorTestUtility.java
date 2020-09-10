@@ -264,7 +264,7 @@ public class TransactorTestUtility {
     private static String readRawTuple(String name,DataResult rawTuple,
                                        boolean singleRowRead,
                                        boolean dumpKeyValues) throws IOException {
-        if (rawTuple != null && rawTuple.size()>0) {
+        if (rawTuple != null && !rawTuple.isEmpty()) {
             String suffix = dumpKeyValues ? "[ " + resultToKeyValueString(rawTuple) + " ]" : "";
             return resultToStringDirect(name,rawTuple) + suffix;
         }

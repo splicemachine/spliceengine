@@ -47,8 +47,20 @@ wait_for () {
 	echo
 }
 
+function is_port_open
+{
+  host1=$1
+  port2=$2
+  # note there's two versions of nc: GNU and OpenBSD
+  # OpenBSD supports -z (only check port), but GNU not.
+  # GNU would work with 'exit', OpenBSD needs 'exit\n'
+  # this one works in both and on mac
+  echo 'exit\n' | nc ${host1} ${port2} > /dev/null 2> /dev/null
+}
+
+
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-DEFAULT_PROFILE="hdp3.1.0"  # default hbase platform profile
+DEFAULT_PROFILE="cdh6.3.0"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
 IN_MEM_PROFILE="mem"
 RUN_DIR="${BASE_DIR}/platform_it"
@@ -152,9 +164,9 @@ if [[ "${BUILD}" == "1" ]]; then
   echo "Building first..."
   pushd "${BASE_DIR}" > /dev/null
   if [[ "${CLEAN}" == "1" ]]; then
-    (${MVN} clean install -Pcore,${PROFILE} -DskipTests )
+    (${MVN} clean install -Pcore,${PROFILE} -DskipTests ) || exit
   else
-    (${MVN} install -Pcore,${PROFILE} -DskipTests )
+    (${MVN} install -Pcore,${PROFILE} -DskipTests ) || exit
   fi
   popd > /dev/null
   echo "Running Splice $PROFILE master and ${MEMBERS} regionservers with CHAOS = $CHAOS in:"
@@ -170,6 +182,9 @@ if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then
   MEM_LOG="${RUN_DIR}/spliceMem.log"
   echo "Starting MEM. Log file is ${MEM_LOG}"
   (MAVEN_OPTS="${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=4000" ${MVN} -Pmem exec:java > ${MEM_LOG} 2>&1) &    ## IN MEMORY
+  echo -n "wait until ready . "
+  until is_port_open localhost 1527; do echo -n ". " ; sleep 2; done
+  echo "MEM Started!"
   exit 0;
 fi
 
@@ -188,7 +203,7 @@ COUNT=65
 ZOO_UP=""
 until [ ${COUNT} -eq 0 ] || [ "${ZOO_UP}" == "imok" ]; do
     sleep 1
-    ZOO_UP="$(echo 'ruok' | nc localhost 2181)"
+    ZOO_UP="$(echo 'ruok' | nc localhost 2181 2> /dev/null)"
     let COUNT-=1
 done
 
@@ -211,9 +226,11 @@ if [[ "${DISTRIBUTED}" == "1" ]]; then
     wait_for ${HDFS_LOG} "HDFS cluster started"
 fi 
   
+pushd ../standalone/ > /dev/null
 YARN_LOG="${RUN_DIR}/yarn.log"
 echo "Starting YARN. Log file is ${YARN_LOG}"
-(${MVN} exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+(${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn > ${YARN_LOG} 2>&1) &  ## YARN
+popd > /dev/null
 
 KAFKALOG="${RUN_DIR}"/kafka.log
 # Start Kafka in background.
@@ -231,7 +248,7 @@ else
 fi
 
 echo -n "  Waiting. "
-while ! echo exit | nc localhost 1527; do echo -n ". " ; sleep 2; done
+until is_port_open localhost 1527; do echo -n ". " ; sleep 2; done
 echo
 
 if [[ ${MEMBERS} -gt 0 ]]; then
@@ -241,7 +258,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     ## (region server, splice on 1528, 1529, ...)
     (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
     echo -n "  Waiting. "
-    while ! echo exit | nc localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
+    until is_port_open localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
     echo
   done
 fi

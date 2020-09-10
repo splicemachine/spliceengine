@@ -19,20 +19,21 @@ import com.splicemachine.compactions.SpliceDefaultCompactor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.hbase.ReadOnlyHTableDescriptor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.stream.SparkCompactionContext;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.EmptyListIterator;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.TableDescriptor;
+import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequestImpl;
@@ -52,6 +53,7 @@ import java.util.List;
 /**
  * Created by jyuan on 4/12/19.
  */
+@SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="DB-9371")
 public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<Integer,Iterator>>,String> implements Externalizable {
 
     private static final Logger LOG = Logger.getLogger(SparkCompactionFunction.class);
@@ -61,6 +63,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     private byte[] tableName;
     private byte[] storeColumn;
     private boolean isMajor;
+    private long transactionLowWatermark;
     private SparkCompactionContext context;
     private InetSocketAddress[] favoredNodes;
     private RegionInfo regionInfo;
@@ -68,12 +71,14 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     public SparkCompactionFunction(){}
 
     public SparkCompactionFunction(long smallestReadPoint, byte[] namespace, byte[] tableName, RegionInfo regionInfo,
-                                   byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
+                                   byte[] storeColumn, boolean isMajor, long transactionLowWatermark,
+                                   InetSocketAddress[] favoredNodes) {
         this.smallestReadPoint = smallestReadPoint;
         this.namespace = namespace;
         this.tableName = tableName;
         this.storeColumn = storeColumn;
         this.isMajor = isMajor;
+        this.transactionLowWatermark = transactionLowWatermark;
         this.favoredNodes = favoredNodes;
         this.regionInfo = regionInfo;
     }
@@ -91,8 +96,8 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         FileSystem fs = FSUtils.getCurrentFileSystem(conf);
         Path rootDir = FSUtils.getRootDir(conf);
 
-        HTableDescriptor htd = table.getTableDescriptor();
-        HRegion region = HRegion.openHRegion(conf, fs, rootDir, regionInfo, new ReadOnlyHTableDescriptor(htd), null, null, null);
+        TableDescriptor readOnlyTable = TableDescriptorBuilder.newBuilder(table.getDescriptor()).setReadOnly(true).build();
+        HRegion region = HRegion.openHRegion(conf, fs, rootDir, regionInfo, readOnlyTable, null, null, null);
         HStore store = region.getStore(storeColumn);
 
         assert it.hasNext();
@@ -121,13 +126,13 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
         CompactionRequestImpl compactionRequest = new CompactionRequestImpl(readersToClose);
         compactionRequest.setIsMajor(isMajor, isMajor);
-        List<Path> paths = sdc.sparkCompact(compactionRequest, context, favoredNodes);
+        List<Path> paths = sdc.sparkCompact(compactionRequest, transactionLowWatermark, context, favoredNodes);
 
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);
             sb.append(String.format("Result %d paths: ", paths.size()));
             for (Path path: paths) {
-                sb.append(String.format("\nPath: %s", path));
+                sb.append(String.format("%nPath: %s", path));
             }
             SpliceLogUtils.trace(LOG, sb.toString());
         }
@@ -147,6 +152,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         out.writeInt(storeColumn.length);
         out.write(storeColumn);
         out.writeBoolean(isMajor);
+        out.writeLong(transactionLowWatermark);
         out.writeObject(context);
         out.writeInt(favoredNodes==null?0:favoredNodes.length);
         if (favoredNodes != null) {
@@ -170,6 +176,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
         isMajor = in.readBoolean();
+        transactionLowWatermark = in.readLong();
         context = (SparkCompactionContext) in.readObject();
         favoredNodes = new InetSocketAddress[in.readInt()];
         for (int i = 0; i< favoredNodes.length; i++) {

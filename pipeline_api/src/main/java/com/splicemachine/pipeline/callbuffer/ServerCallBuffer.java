@@ -20,13 +20,14 @@ import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWrites;
 import com.splicemachine.pipeline.client.MergingWriteStats;
 import com.splicemachine.pipeline.config.WriteConfiguration;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -87,7 +88,8 @@ class ServerCallBuffer implements CallBuffer<Pair<byte[], PartitionBuffer>> {
      */
     @Override
     public void add(Pair<byte[], PartitionBuffer> element) throws Exception {
-        SpliceLogUtils.trace(LOG, "add %s", element);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "add {%s, %s}", Bytes.toString(element.getFirst()), element);
         buffers.put(element.getFirst(), element.getSecond());
         lastElement = element;
     }

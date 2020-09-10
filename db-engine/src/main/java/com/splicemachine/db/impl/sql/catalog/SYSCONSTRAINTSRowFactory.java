@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 
@@ -90,8 +91,8 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    public SYSCONSTRAINTSRowFactory(UUIDFactory uuidf,ExecutionFactory ef,DataValueFactory dvf){
-        super(uuidf,ef,dvf);
+    public SYSCONSTRAINTSRowFactory(UUIDFactory uuidf,ExecutionFactory ef,DataValueFactory dvf, DataDictionary dd){
+        super(uuidf,ef,dvf,dd);
         initInfo(SYSCONSTRAINTS_COLUMN_COUNT,TABLENAME_STRING,
                 indexColumnPositions,uniqueness,uuids);
     }
@@ -108,7 +109,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * @throws StandardException thrown on failure
      * @return Row suitable for inserting into SYSCONTRAINTS.
      */
-    public ExecRow makeRow(TupleDescriptor td,TupleDescriptor parent)
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td,TupleDescriptor parent)
             throws StandardException{
         DataValueDescriptor col;
         ExecRow row;
@@ -123,6 +124,9 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         int referenceCount=0;
 
         if(td!=null){
+            if (!(td instanceof ConstraintDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             ConstraintDescriptor constraint=(ConstraintDescriptor)td;
             /*
 			** We only allocate a new UUID if the descriptor doesn't already have one.
@@ -213,6 +217,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * @param dd                    dataDictionary
      * @throws StandardException thrown on failure
      */
+    @SuppressFBWarnings(value="SF_SWITCH_FALLTHROUGH")
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
@@ -245,19 +250,13 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         int referenceCount;
         String constraintUUIDString;
         String schemaUUIDString;
-        SubConstraintDescriptor scd;
+        SubConstraintDescriptor scd = null;
 
-        if(SanityManager.DEBUG){
-            if(!(parentTupleDescriptor instanceof SubConstraintDescriptor)){
-                SanityManager.THROWASSERT(
-                        "parentTupleDescriptor expected to be instanceof "+
-                                "SubConstraintDescriptor, not "+
-                                parentTupleDescriptor.getClass().getName());
-            }
+        if (parentTupleDescriptor != null) {
+            if (!(parentTupleDescriptor instanceof SubConstraintDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + parentTupleDescriptor.getClass().getName());
+            scd = (SubConstraintDescriptor) parentTupleDescriptor;
         }
-
-        scd=(SubConstraintDescriptor)parentTupleDescriptor;
-
         ddg=dd.getDataDescriptorGenerator();
 
 		/* 1st column is CONSTRAINTID (UUID - char(36)) */
@@ -483,6 +482,8 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                                 parentTupleDescriptor).getReferencedColumnsDescriptor(),
                         schema,
                         constraintEnabled);
+                break;
+            default:
                 break;
         }
         return constraintDesc;

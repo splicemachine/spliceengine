@@ -14,27 +14,6 @@
 
 package com.splicemachine.si.testsetup;
 
-import java.io.IOException;
-import java.util.Random;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.MiniHBaseCluster;
-import org.apache.hadoop.hbase.NamespaceDescriptor;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.io.compress.Compression;
-import org.apache.hadoop.hbase.regionserver.BloomType;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.ConsoleAppender;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-import org.apache.log4j.SimpleLayout;
-
-import com.splicemachine.access.HBaseConfigurationSource;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
@@ -64,6 +43,21 @@ import com.splicemachine.storage.DataFilterFactory;
 import com.splicemachine.storage.HFilterFactory;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.timestamp.api.TimestampSource;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.io.compress.Compression;
+import org.apache.hadoop.hbase.regionserver.BloomType;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.Logger;
+import org.apache.log4j.SimpleLayout;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Random;
 
 /**
  * @author Scott Fines
@@ -107,7 +101,7 @@ public class HBaseSITestEnv implements SITestEnv{
     @Override
     public void initialize() throws IOException{
         try(HBaseAdmin hBaseAdmin=testUtility.getHBaseAdmin()){
-            HTableDescriptor table = generateDefaultSIGovernedTable("1440");
+            TableDescriptor table = generateDefaultSIGovernedTable("1440");
             if (hBaseAdmin.tableExists(table.getTableName())) {
                 hBaseAdmin.disableTable(table.getTableName());
                 hBaseAdmin.deleteTable(table.getTableName());
@@ -163,19 +157,27 @@ public class HBaseSITestEnv implements SITestEnv{
     /* ****************************************************************************************************************/
     /*private helper methods*/
 
-    private static HTableDescriptor generateTransactionTable() throws IOException{
-        HTableDescriptor desc = new HTableDescriptor(TableName.valueOf("splice",HConfiguration.TRANSACTION_TABLE));
-        desc.addCoprocessor(TxnLifecycleEndpoint.class.getName());
+    private static TableDescriptor generateTransactionTable() throws IOException{
+        TableName tableName = TableName.valueOf("splice",HConfiguration.TRANSACTION_TABLE);
+        TableDescriptorBuilder tableBuilder = TableDescriptorBuilder.newBuilder(tableName);
+        tableBuilder.setCoprocessor(TxnLifecycleEndpoint.class.getName());
 
-        HColumnDescriptor columnDescriptor = new HColumnDescriptor(SIConstants.DEFAULT_FAMILY_BYTES);
-        columnDescriptor.setMaxVersions(5);
-        columnDescriptor.setCompressionType(Compression.Algorithm.NONE);
-        columnDescriptor.setInMemory(true);
-        columnDescriptor.setBlockCacheEnabled(true);
-        columnDescriptor.setBloomFilterType(BloomType.ROWCOL);
-        desc.addFamily(columnDescriptor);
-        desc.addFamily(new HColumnDescriptor(Bytes.toBytes(SIConstants.SI_PERMISSION_FAMILY)));
-        return desc;
+        ColumnFamilyDescriptor[] columnBuilders = {
+                ColumnFamilyDescriptorBuilder
+                        .newBuilder(SIConstants.DEFAULT_FAMILY_BYTES)
+                        .setMaxVersions(5)
+                        .setCompressionType(Compression.Algorithm.NONE)
+                        .setInMemory(true)
+                        .setBlockCacheEnabled(true)
+                        .setBloomFilterType(BloomType.ROWCOL)
+                        .build(),
+                ColumnFamilyDescriptorBuilder
+                        .newBuilder(Bytes.toBytes(SIConstants.SI_PERMISSION_FAMILY))
+                        .build()
+        };
+
+        tableBuilder.setColumnFamilies(Arrays.asList(columnBuilders));
+        return tableBuilder.build();
     }
 
 
@@ -189,12 +191,13 @@ public class HBaseSITestEnv implements SITestEnv{
         return snapshot;
     }
 
-    private HTableDescriptor generateDefaultSIGovernedTable(String tableName) throws IOException{
-        HTableDescriptor desc =
-            new HTableDescriptor(TableName.valueOf(HConfiguration.getConfiguration().getNamespace(),tableName));
-        desc.addFamily(createDataFamily());
-        desc.addCoprocessor(SIObserver.class.getName());
-        return desc;
+    private TableDescriptor generateDefaultSIGovernedTable(String tableName) throws IOException{
+        TableName name = TableName.valueOf(HConfiguration.getConfiguration().getNamespace(),tableName);
+        return TableDescriptorBuilder
+                .newBuilder(name)
+                .setColumnFamily(createDataFamily())
+                .setCoprocessor(SIObserver.class.getName())
+                .build();
     }
 
 

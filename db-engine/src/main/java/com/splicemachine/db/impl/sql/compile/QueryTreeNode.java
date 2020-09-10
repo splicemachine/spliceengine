@@ -68,8 +68,8 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import org.apache.commons.lang3.SystemUtils;
-import org.spark_project.guava.base.Predicates;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Predicates;
+import splice.com.google.common.base.Strings;
 
 import java.sql.Types;
 import java.util.*;
@@ -1735,23 +1735,23 @@ public abstract class QueryTreeNode implements Node, Visitable{
         tree.add(this);
     }
 
-    public String printExplainInformation(int size, int i, DataSetProcessorType type, boolean fromPlanPrinter) throws StandardException {
+    public String printExplainInformation(boolean printHeader, DataSetProcessorType type, boolean fromPlanPrinter) throws StandardException {
 
-        String s = printExplainInformation(size - i, fromPlanPrinter);
-        if (i > 0)
+        String s = printExplainInformation(fromPlanPrinter);
+        if (!printHeader)
             return s;
         else {
-            String engine = String.format(",engine=%s (%s))", type.isSpark()?"Spark":"control", type.level());
+            String engine = String.format(",engine=%s (%s))", type.isSpark()?"OLAP":"OLTP", type.level());
             s = s.substring(0, s.length()-1) + engine;
         }
         return s;
     }
 
-    public String printExplainInformation(int order, boolean fromPlanPrinter) throws StandardException {
-        return printExplainInformation(",", order);
+    public String printExplainInformation(boolean fromPlanPrinter) throws StandardException {
+        return printExplainInformation(",");
     }
 
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         throw new RuntimeException("Not implemented in: " + this.getClass());
     }
 
@@ -1760,7 +1760,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     public String printExplainInformationForActivation() throws StandardException {
-        return WordUtils.wrap(printExplainInformation(", ", -1), 40, null, false);
+        return WordUtils.wrap(printExplainInformation(", "), 40, null, false);
     }
 
     public String toHTMLString() {

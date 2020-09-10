@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import java.sql.Timestamp;
+import java.util.List;
 
 /**
  * This is an implementation of the DataDescriptorGenerator interface
@@ -54,386 +55,381 @@ import java.sql.Timestamp;
 
 public class DataDescriptorGenerator 
 {
-	private 	UUIDFactory uuidf;
+    private     UUIDFactory uuidf;
 
-    protected	final DataDictionary	dataDictionary; // the data dictionary that this generator operates on
+    protected    final DataDictionary    dataDictionary; // the data dictionary that this generator operates on
 
-	/**
-	  *	Make a generator. Specify the data dictionary that it operates on.
-	  *
-	  *	@param	dataDictionary	the data dictionary that this generator makes objects for
-	  */
-	public	DataDescriptorGenerator( DataDictionary dataDictionary )
-	{
-		this.dataDictionary = dataDictionary;
-	}
+    /**
+      *    Make a generator. Specify the data dictionary that it operates on.
+      *
+      *    @param    dataDictionary    the data dictionary that this generator makes objects for
+      */
+    public    DataDescriptorGenerator( DataDictionary dataDictionary )
+    {
+        this.dataDictionary = dataDictionary;
+    }
 
-	/**
-	 * Create a descriptor for the named schema with a null UUID. 
-	 *
-	 * @param schemaName	The name of the schema we're interested in.
-	 *			If the name is NULL, get the descriptor for the
-	 *			current schema.
-	 * @param aid	The authorization ID associated with the schema.
-	 *		The owner of the schema.
-	 *
-	 * @param oid	The object ID 
-	 *
-	 * @return	The descriptor for the schema.
-	 * @exception StandardException		Thrown on failure
-	 */
-	public SchemaDescriptor	newSchemaDescriptor(String schemaName, 
-		String aid, UUID oid)
-		throws StandardException
-	{
-		return new SchemaDescriptor(
+    /**
+     * Create a descriptor for the named schema with a null UUID.
+     *
+     * @param schemaName    The name of the schema we're interested in.
+     *            If the name is NULL, get the descriptor for the
+     *            current schema.
+     * @param aid    The authorization ID associated with the schema.
+     *        The owner of the schema.
+     *
+     * @param oid    The object ID
+     *
+     * @return    The descriptor for the schema.
+     * @exception StandardException        Thrown on failure
+     */
+    public SchemaDescriptor    newSchemaDescriptor(String schemaName,
+        String aid, UUID oid)
+        throws StandardException
+    {
+        return new SchemaDescriptor(
             dataDictionary, schemaName, aid, oid, 
             dataDictionary.isSystemSchemaName(schemaName));
-	}
+    }
 
-	/**
-	 * Create a descriptor for the named table within the given schema.
-	 * If the schema parameter is NULL, it creates a schema descriptor
-	 * using the current default schema.
-	 *
-	 * @param tableName	The name of the table to get the descriptor for
-	 * @param schema	The descriptor for the schema the table lives in.
-	 *			If null, use the current (default) schema.
-	 * @param tableType	The type of the table: base table or view.
-	 * @param lockGranularity	The lock granularity.
-	 *
-	 * @return	The descriptor for the table.
-	 */
-	public TableDescriptor	newTableDescriptor
-	(
-		String 				tableName,
-		SchemaDescriptor	schema,
-		int					tableType,
-		char				lockGranularity,
-        int                 columnSequence,
-		String 				delimited,
-		String 				escaped,
-		String 				lines,
-		String 				storedAs,
-		String 				location,
-		String 				compression,
-		boolean 			isPinned,
-		boolean             purgeDeletedRows
-    )
-	{
-		return new TableDescriptor
-			(dataDictionary, tableName, schema, tableType, lockGranularity,columnSequence,
-					delimited,escaped,lines,storedAs,location, compression, isPinned, purgeDeletedRows);
-	}
+    /**
+     * Create a descriptor for the named table within the given schema.
+     * If the schema parameter is NULL, it creates a schema descriptor
+     * using the current default schema.
+     *
+     * @param tableName       The name of the table to get the descriptor for
+     * @param schema          The descriptor for the schema the table lives in. If null, use the current (default) schema.
+     * @param tableType       The type of the table: base table or view.
+     * @param lockGranularity The lock granularity.
+     * @return The descriptor for the table.
+     */
+    public TableDescriptor newTableDescriptor(String tableName,
+                                              SchemaDescriptor schema,
+                                              int tableType,
+                                              char lockGranularity,
+                                              int columnSequence,
+                                              String delimited,
+                                              String escaped,
+                                              String lines,
+                                              String storedAs,
+                                              String location,
+                                              String compression,
+                                              boolean isPinned,
+                                              boolean purgeDeletedRows,
+                                              Long minRetentionPeriod) {
+        return new TableDescriptor(dataDictionary, tableName, schema, tableType, lockGranularity, columnSequence,
+                        delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows,
+                        minRetentionPeriod);
+    }{}
 
-	/**
-	 * Create a descriptor for the temporary table within the given schema.
-	 *
-	 * @param tableName	The name of the temporary table to get the descriptor for
-	 * @param schema	The descriptor for the schema the table lives in.
-	 * @param tableType	The type of the table: temporary table
-	 * @param onCommitDeleteRows	If true, on commit delete rows else on commit preserve rows of temporary table.
-	 * @param onRollbackDeleteRows	If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
-	 *
-	 * @return	The descriptor for the table.
-	 */
-	public TableDescriptor	newTableDescriptor
-	(
-		String 				tableName,
-		SchemaDescriptor	schema,
-		int					tableType,
-		boolean				onCommitDeleteRows,
-		boolean				onRollbackDeleteRows,
+    /**
+     * Create a descriptor for the temporary table within the given schema.
+     *
+     * @param tableName    The name of the temporary table to get the descriptor for
+     * @param schema    The descriptor for the schema the table lives in.
+     * @param tableType    The type of the table: temporary table
+     * @param onCommitDeleteRows    If true, on commit delete rows else on commit preserve rows of temporary table.
+     * @param onRollbackDeleteRows    If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
+     *
+     * @return    The descriptor for the table.
+     */
+    public TableDescriptor    newTableDescriptor
+    (
+        String                 tableName,
+        SchemaDescriptor    schema,
+        int                    tableType,
+        boolean                onCommitDeleteRows,
+        boolean                onRollbackDeleteRows,
         int                 columnSequence
     )
-	{
-		return new TableDescriptor
-			(dataDictionary, tableName, schema, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnSequence);
-	}
+    {
+        return new TableDescriptor
+            (dataDictionary, tableName, schema, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnSequence);
+    }
 
-	/**
-	 * Create a viewDescriptor for the view with the given UUID.
-	 *
-	 * @param viewID	the UUID for the view.
-	 * @param viewName	the name of the view
-	 * @param viewText	the text of the view's query.
-	 * @param checkOption	int for check option type 
-	 * @param compSchemaId	the UUID of the schema this was compiled in
-	 *
-	 * @return	A descriptor for the view
-	 */
-	public ViewDescriptor newViewDescriptor(UUID viewID,
-				String viewName, String viewText, int checkOption,
-				UUID compSchemaId)
-	{
-		return new ViewDescriptor(dataDictionary, viewID, viewName, 
-				viewText, checkOption, compSchemaId);
-	}
-
-
-	/**
-	 * @see DataDescriptorGenerator#newUniqueConstraintDescriptor
-	 */
-	public ReferencedKeyConstraintDescriptor	newUniqueConstraintDescriptor(
-						TableDescriptor table,
-						String constraintName,
-						boolean deferrable,
-						boolean initiallyDeferred,
-						int[] referencedColumns,
-						UUID		constraintId,
-						UUID		indexId,
-						SchemaDescriptor schemaDesc,
-						boolean isEnabled,
-						int referenceCount
-						)
-	{
-		return new ReferencedKeyConstraintDescriptor(DataDictionary.UNIQUE_CONSTRAINT,
-			dataDictionary, table, constraintName,
-				deferrable, initiallyDeferred, 
-				referencedColumns, constraintId, 
-				indexId, schemaDesc, isEnabled, referenceCount);
-	}
-
-	/**
-	 * @see DataDescriptorGenerator#newPrimaryKeyConstraintDescriptor
-	 */
-	public ReferencedKeyConstraintDescriptor	newPrimaryKeyConstraintDescriptor(
-						TableDescriptor table,
-						String constraintName,
-						boolean deferrable,
-						boolean initiallyDeferred,
-						int[] referencedColumns,
-						UUID		constraintId,
-						UUID indexId,
-						SchemaDescriptor schemaDesc,
-						boolean isEnabled,
-						int referenceCount
-						)
-	{
-		return new ReferencedKeyConstraintDescriptor(DataDictionary.PRIMARYKEY_CONSTRAINT,
-			dataDictionary, table, constraintName,
-				deferrable, initiallyDeferred, 
-				referencedColumns, constraintId, 
-				indexId, schemaDesc, isEnabled, referenceCount);
-	}
-
-	/**
-	 * @see DataDescriptorGenerator#newForeignKeyConstraintDescriptor
-	 */
-	public ForeignKeyConstraintDescriptor	newForeignKeyConstraintDescriptor(
-						TableDescriptor table,
-						String constraintName,
-						boolean deferrable,
-						boolean initiallyDeferred,
-						int[] fkColumns,
-						UUID	constraintId,
-						UUID indexId,
-						SchemaDescriptor schemaDesc,
-						ReferencedKeyConstraintDescriptor	referencedConstraintDescriptor,
-						boolean isEnabled,
-						int raDeleteRule,
-						int raUpdateRule
-						)
-	{
-		return new ForeignKeyConstraintDescriptor(dataDictionary, table, constraintName,
-				deferrable, initiallyDeferred, 
-				fkColumns, constraintId, 
-				indexId, schemaDesc, 
-				referencedConstraintDescriptor, isEnabled, raDeleteRule, raUpdateRule);
-	}
+    /**
+     * Create a viewDescriptor for the view with the given UUID.
+     *
+     * @param viewID    the UUID for the view.
+     * @param viewName    the name of the view
+     * @param viewText    the text of the view's query.
+     * @param checkOption    int for check option type
+     * @param compSchemaId    the UUID of the schema this was compiled in
+     *
+     * @return    A descriptor for the view
+     */
+    public ViewDescriptor newViewDescriptor(UUID viewID,
+                String viewName, String viewText, int checkOption,
+                UUID compSchemaId)
+    {
+        return new ViewDescriptor(dataDictionary, viewID, viewName,
+                viewText, checkOption, compSchemaId);
+    }
 
 
-	/**
-	 * @see DataDescriptorGenerator#newForeignKeyConstraintDescriptor
-	 */
-	public ForeignKeyConstraintDescriptor	newForeignKeyConstraintDescriptor(
-						TableDescriptor table,
-						String constraintName,
-						boolean deferrable,
-						boolean initiallyDeferred,
-						int[] fkColumns,
-						UUID	constraintId,
-						UUID indexId,
-						SchemaDescriptor schemaDesc,
-						UUID	referencedConstraintId,
-						boolean isEnabled,
-						int raDeleteRule,
-						int raUpdateRule
-						)
-	{
-		return new ForeignKeyConstraintDescriptor(dataDictionary, table, constraintName,
-				deferrable, initiallyDeferred, 
-				fkColumns, constraintId, 
-				indexId, schemaDesc, 
-				referencedConstraintId, isEnabled, raDeleteRule, raUpdateRule);
-	}
+    /**
+     * @see DataDescriptorGenerator#newUniqueConstraintDescriptor
+     */
+    public ReferencedKeyConstraintDescriptor    newUniqueConstraintDescriptor(
+                        TableDescriptor table,
+                        String constraintName,
+                        boolean deferrable,
+                        boolean initiallyDeferred,
+                        int[] referencedColumns,
+                        UUID        constraintId,
+                        UUID        indexId,
+                        SchemaDescriptor schemaDesc,
+                        boolean isEnabled,
+                        int referenceCount
+                        )
+    {
+        return new ReferencedKeyConstraintDescriptor(DataDictionary.UNIQUE_CONSTRAINT,
+            dataDictionary, table, constraintName,
+                deferrable, initiallyDeferred,
+                referencedColumns, constraintId,
+                indexId, schemaDesc, isEnabled, referenceCount);
+    }
 
-	/**
-	 * @see DataDescriptorGenerator#newCheckConstraintDescriptor
-	 */
-	public CheckConstraintDescriptor	newCheckConstraintDescriptor(
-						TableDescriptor table,
-						String constraintName,
-						boolean deferrable,
-						boolean initiallyDeferred,
-						UUID		constraintId,
-						String constraintText,
-						ReferencedColumns referencedColumns,
-						SchemaDescriptor schemaDesc,
-						boolean isEnabled
-						)
-	{
-		return new CheckConstraintDescriptor(dataDictionary, table, constraintName,
-				deferrable, initiallyDeferred, 
-				constraintId, 
-				constraintText, referencedColumns, schemaDesc, isEnabled);
-	}
+    /**
+     * @see DataDescriptorGenerator#newPrimaryKeyConstraintDescriptor
+     */
+    public ReferencedKeyConstraintDescriptor    newPrimaryKeyConstraintDescriptor(
+                        TableDescriptor table,
+                        String constraintName,
+                        boolean deferrable,
+                        boolean initiallyDeferred,
+                        int[] referencedColumns,
+                        UUID        constraintId,
+                        UUID indexId,
+                        SchemaDescriptor schemaDesc,
+                        boolean isEnabled,
+                        int referenceCount
+                        )
+    {
+        return new ReferencedKeyConstraintDescriptor(DataDictionary.PRIMARYKEY_CONSTRAINT,
+            dataDictionary, table, constraintName,
+                deferrable, initiallyDeferred,
+                referencedColumns, constraintId,
+                indexId, schemaDesc, isEnabled, referenceCount);
+    }
 
-	public CheckConstraintDescriptor	newCheckConstraintDescriptor(
-						TableDescriptor table,
-						String constraintName,
-						boolean deferrable,
-						boolean initiallyDeferred,
-						UUID		constraintId,
-						String constraintText,
-						int[] refCols,
-						SchemaDescriptor schemaDesc,
-						boolean isEnabled
-						)
-	{
-		ReferencedColumns referencedColumns = new ReferencedColumnsDescriptorImpl(refCols);
-		return new CheckConstraintDescriptor(dataDictionary, table, constraintName,
-				deferrable, initiallyDeferred, 
-				constraintId, 
-				constraintText, referencedColumns, schemaDesc, isEnabled);
-	}
+    /**
+     * @see DataDescriptorGenerator#newForeignKeyConstraintDescriptor
+     */
+    public ForeignKeyConstraintDescriptor    newForeignKeyConstraintDescriptor(
+                        TableDescriptor table,
+                        String constraintName,
+                        boolean deferrable,
+                        boolean initiallyDeferred,
+                        int[] fkColumns,
+                        UUID    constraintId,
+                        UUID indexId,
+                        SchemaDescriptor schemaDesc,
+                        ReferencedKeyConstraintDescriptor    referencedConstraintDescriptor,
+                        boolean isEnabled,
+                        int raDeleteRule,
+                        int raUpdateRule
+                        )
+    {
+        return new ForeignKeyConstraintDescriptor(dataDictionary, table, constraintName,
+                deferrable, initiallyDeferred,
+                fkColumns, constraintId,
+                indexId, schemaDesc,
+                referencedConstraintDescriptor, isEnabled, raDeleteRule, raUpdateRule);
+    }
 
-	/**
-	 * Create a conglomerate descriptor for the given conglomerate id.
-	 *
-	 * @param conglomerateId	The identifier for the conglomerate
-	 *				we're interested in
-	 * @param name			The name of the conglomerate, if any
-	 * @param indexable		TRUE means the conglomerate is indexable,
-	 *				FALSE means it isn't
-	 * @param indexRowGenerator	The IndexRowGenerator for the conglomerate,
-	 *							null if it's a heap
-	 * @param isConstraint	TRUE means the conglomerate is an index backing 
-	 *						up a constraint, FALSE means it isn't
-	 *
-	 * @param uuid	UUID  for this conglomerate
-	 * @param tableID	UUID for the table that this conglomerate belongs to
-	 * @param schemaID	UUID for the schema that conglomerate belongs to
-	 *
-	 * @return	A ConglomerateDescriptor describing the 
-	 *		conglomerate. 
-	 */
-	public ConglomerateDescriptor	newConglomerateDescriptor(
-						long conglomerateId,
-						String name,
-						boolean indexable,
-						IndexRowGenerator indexRowGenerator,
-						boolean isConstraint,
-						UUID uuid,
-						UUID tableID,
-						UUID schemaID
-						)
-	{
-		return (ConglomerateDescriptor)
-				new ConglomerateDescriptor(dataDictionary, conglomerateId,
-												name,
-												indexable,
-												indexRowGenerator,
-												isConstraint,
-												uuid,
-											    tableID,
-												schemaID);
-	}
 
-	/**
-	 * Create a new trigger descriptor.
-	 *
-	 * @param sd	the schema descriptor for this trigger
-	 * @param uuid	the trigger id
-	 * @param name	the trigger name
-	 * @param eventMask	TriggerDescriptor.TRIGGER_EVENT_XXXX
-	 * @param isBefore	is this a before (as opposed to after) trigger 
-	 * @param isRow		is this a row trigger or statement trigger
-	 * @param isEnabled	is this trigger enabled or disabled
-	 * @param td		the table upon which this trigger is defined
-	 * @param whenSPSId	the sps id for the when clause (may be null)
-	 * @param actionSPSId	the spsid for the trigger action (may be null)
-	 * @param creationTimestamp	when was this trigger created?
-	 * @param referencedCols	what columns does this trigger reference (may be null)
-	 * @param referencedColsInTriggerAction	what columns does the trigger 
-	 *						action reference through old/new transition variables
-	 *						(may be null)
-	 * @param triggerDefinition The original user text of the trigger action
-	 * @param referencingOld whether or not OLD appears in REFERENCING clause
-	 * @param referencingNew whether or not NEW appears in REFERENCING clause
-	 * @param oldReferencingName old referencing table name, if any, that appears in REFERCING clause
-	 * @param newReferencingName new referencing table name, if any, that appears in REFERCING clause
-	 * @param whenClauseText the SQL text of the WHEN clause (may be null)
-	 *
-	 * @exception StandardException on error
-	 */
-	public TriggerDescriptor newTriggerDescriptor
-	(
-		SchemaDescriptor	sd,
-		UUID				uuid,
-		String				name,
-		TriggerEventDML     eventMask,
-		boolean				isBefore,
-		boolean 			isRow,
-		boolean 			isEnabled,
-		TableDescriptor		td,
-		UUID				whenSPSId,
-		UUID				actionSPSId,
-		Timestamp			creationTimestamp,
-		int[]				referencedCols,
-		int[]				referencedColsInTriggerAction,
-		String				triggerDefinition,
-		boolean				referencingOld,
-		boolean				referencingNew,
-		String				oldReferencingName,
-		String				newReferencingName,
-                String                          whenClauseText
-	) throws StandardException
-	{
-		return new TriggerDescriptorV2(
-					dataDictionary,
-					sd,
-					uuid,
-					name,
-					eventMask,
-					isBefore,
-					isRow,
-					isEnabled,
-					td,
-					whenSPSId,
-					actionSPSId,
-					creationTimestamp,
-					referencedCols,
-					referencedColsInTriggerAction,
-					triggerDefinition,
-					referencingOld,
-					referencingNew,
-					oldReferencingName,
-					newReferencingName,
-                                        whenClauseText
-					);
-	}
-		
-	/*
-	  get a UUIDFactory. This uses the Monitor to get one the
-	  first time and holds onto it for later.
-	  */
-	protected UUIDFactory getUUIDFactory()
-	{
-		if (uuidf == null)
-			uuidf = Monitor.getMonitor().getUUIDFactory();
-		return uuidf;
-	}
+    /**
+     * @see DataDescriptorGenerator#newForeignKeyConstraintDescriptor
+     */
+    public ForeignKeyConstraintDescriptor    newForeignKeyConstraintDescriptor(
+                        TableDescriptor table,
+                        String constraintName,
+                        boolean deferrable,
+                        boolean initiallyDeferred,
+                        int[] fkColumns,
+                        UUID    constraintId,
+                        UUID indexId,
+                        SchemaDescriptor schemaDesc,
+                        UUID    referencedConstraintId,
+                        boolean isEnabled,
+                        int raDeleteRule,
+                        int raUpdateRule
+                        )
+    {
+        return new ForeignKeyConstraintDescriptor(dataDictionary, table, constraintName,
+                deferrable, initiallyDeferred,
+                fkColumns, constraintId,
+                indexId, schemaDesc,
+                referencedConstraintId, isEnabled, raDeleteRule, raUpdateRule);
+    }
+
+    /**
+     * @see DataDescriptorGenerator#newCheckConstraintDescriptor
+     */
+    public CheckConstraintDescriptor    newCheckConstraintDescriptor(
+                        TableDescriptor table,
+                        String constraintName,
+                        boolean deferrable,
+                        boolean initiallyDeferred,
+                        UUID        constraintId,
+                        String constraintText,
+                        ReferencedColumns referencedColumns,
+                        SchemaDescriptor schemaDesc,
+                        boolean isEnabled
+                        )
+    {
+        return new CheckConstraintDescriptor(dataDictionary, table, constraintName,
+                deferrable, initiallyDeferred,
+                constraintId,
+                constraintText, referencedColumns, schemaDesc, isEnabled);
+    }
+
+    public CheckConstraintDescriptor    newCheckConstraintDescriptor(
+                        TableDescriptor table,
+                        String constraintName,
+                        boolean deferrable,
+                        boolean initiallyDeferred,
+                        UUID        constraintId,
+                        String constraintText,
+                        int[] refCols,
+                        SchemaDescriptor schemaDesc,
+                        boolean isEnabled
+                        )
+    {
+        ReferencedColumns referencedColumns = new ReferencedColumnsDescriptorImpl(refCols);
+        return new CheckConstraintDescriptor(dataDictionary, table, constraintName,
+                deferrable, initiallyDeferred,
+                constraintId,
+                constraintText, referencedColumns, schemaDesc, isEnabled);
+    }
+
+    /**
+     * Create a conglomerate descriptor for the given conglomerate id.
+     *
+     * @param conglomerateId    The identifier for the conglomerate
+     *                we're interested in
+     * @param name            The name of the conglomerate, if any
+     * @param indexable        TRUE means the conglomerate is indexable,
+     *                FALSE means it isn't
+     * @param indexRowGenerator    The IndexRowGenerator for the conglomerate,
+     *                            null if it's a heap
+     * @param isConstraint    TRUE means the conglomerate is an index backing
+     *                        up a constraint, FALSE means it isn't
+     *
+     * @param uuid    UUID  for this conglomerate
+     * @param tableID    UUID for the table that this conglomerate belongs to
+     * @param schemaID    UUID for the schema that conglomerate belongs to
+     *
+     * @return    A ConglomerateDescriptor describing the
+     *        conglomerate.
+     */
+    public ConglomerateDescriptor    newConglomerateDescriptor(
+                        long conglomerateId,
+                        String name,
+                        boolean indexable,
+                        IndexRowGenerator indexRowGenerator,
+                        boolean isConstraint,
+                        UUID uuid,
+                        UUID tableID,
+                        UUID schemaID
+                        )
+    {
+        return (ConglomerateDescriptor)
+                new ConglomerateDescriptor(dataDictionary, conglomerateId,
+                                                name,
+                                                indexable,
+                                                indexRowGenerator,
+                                                isConstraint,
+                                                uuid,
+                                                tableID,
+                                                schemaID);
+    }
+
+    /**
+     * Create a new trigger descriptor.
+     *
+     * @param sd    the schema descriptor for this trigger
+     * @param uuid    the trigger id
+     * @param name    the trigger name
+     * @param eventMask    TriggerDescriptor.TRIGGER_EVENT_XXXX
+     * @param isBefore    is this a before (as opposed to after) trigger
+     * @param isRow        is this a row trigger or statement trigger
+     * @param isEnabled    is this trigger enabled or disabled
+     * @param td        the table upon which this trigger is defined
+     * @param whenSPSId    the sps id for the when clause (may be null)
+     * @param actionSPSId    the spsid for the trigger action (may be null)
+     * @param creationTimestamp    when was this trigger created?
+     * @param referencedCols    what columns does this trigger reference (may be null)
+     * @param referencedColsInTriggerAction    what columns does the trigger
+     *                        action reference through old/new transition variables
+     *                        (may be null)
+     * @param triggerDefinitionList The original user texts of the trigger actions
+     * @param referencingOld whether or not OLD appears in REFERENCING clause
+     * @param referencingNew whether or not NEW appears in REFERENCING clause
+     * @param oldReferencingName old referencing table name, if any, that appears in REFERCING clause
+     * @param newReferencingName new referencing table name, if any, that appears in REFERCING clause
+     * @param whenClauseText the SQL text of the WHEN clause (may be null)
+     *
+     * @exception StandardException on error
+     */
+    public TriggerDescriptor newTriggerDescriptor
+    (
+        SchemaDescriptor    sd,
+        UUID                uuid,
+        String              name,
+        TriggerEventDML     eventMask,
+        boolean             isBefore,
+        boolean             isRow,
+        boolean             isEnabled,
+        TableDescriptor     td,
+        UUID                whenSPSId,
+        List<UUID>          actionSPSIdList,
+        Timestamp           creationTimestamp,
+        int[]               referencedCols,
+        int[]               referencedColsInTriggerAction,
+        List<String>        triggerDefinitionList,
+        boolean             referencingOld,
+        boolean             referencingNew,
+        String              oldReferencingName,
+        String              newReferencingName,
+        String              whenClauseText
+    ) throws StandardException
+    {
+		return new TriggerDescriptorV3(
+                    dataDictionary,
+                    sd,
+                    uuid,
+                    name,
+                    eventMask,
+                    isBefore,
+                    isRow,
+                    isEnabled,
+                    td,
+                    whenSPSId,
+                    actionSPSIdList,
+                    creationTimestamp,
+                    referencedCols,
+                    referencedColsInTriggerAction,
+                    triggerDefinitionList,
+                    referencingOld,
+                    referencingNew,
+                    oldReferencingName,
+                    newReferencingName,
+                    whenClauseText
+                    );
+    }
+
+    /*
+      get a UUIDFactory. This uses the Monitor to get one the
+      first time and holds onto it for later.
+      */
+    protected UUIDFactory getUUIDFactory()
+    {
+        if (uuidf == null)
+            uuidf = Monitor.getMonitor().getUUIDFactory();
+        return uuidf;
+    }
 
     /**
      * Create  a new {@code FileInfoDescriptor} using the supplied arguments.
@@ -460,17 +456,17 @@ public class DataDescriptorGenerator
                 dataDictionary, id, sd, sqlName, generationId);
     }
 
-	public UserDescriptor newUserDescriptor
+    public UserDescriptor newUserDescriptor
         (
          String userName,
          String hashingScheme,
          char[] password,
          Timestamp lastModified
          )
-	{
-		return new UserDescriptor( dataDictionary, userName, hashingScheme, password, lastModified );
-	}
-	 	
+    {
+        return new UserDescriptor( dataDictionary, userName, hashingScheme, password, lastModified );
+    }
+
     public TablePermsDescriptor  newTablePermsDescriptor( TableDescriptor td,
                                                          String selectPerm,
                                                          String deletePerm,
@@ -479,7 +475,7 @@ public class DataDescriptorGenerator
                                                          String referencesPerm,
                                                          String triggerPerm,
                                                          String grantor)
-	throws StandardException
+    throws StandardException
     {
         if( "N".equals( selectPerm) && "N".equals( deletePerm) && "N".equals( insertPerm)
             && "N".equals( updatePerm) && "N".equals( referencesPerm) && "N".equals( triggerPerm))
@@ -497,49 +493,49 @@ public class DataDescriptorGenerator
                                          triggerPerm);
     }
 
-	/**
-	 *  Manufacture a new SchemaPermsDescriptor.
-	 * @param sd
-	 * @param selectPerm
-	 * @param deletePerm
-	 * @param insertPerm
-	 * @param updatePerm
-	 * @param referencesPerm
-	 * @param triggerPerm
-	 * @param grantor
-	 * @return
-	 * @throws StandardException
-	 */
-	public SchemaPermsDescriptor newSchemaPermsDescriptor( SchemaDescriptor sd,
-														 String selectPerm,
-														 String deletePerm,
-														 String insertPerm,
-														 String updatePerm,
-														 String referencesPerm,
-														 String triggerPerm,
-														 String modifyPerm,
-														 String accessPerm,
-														 String grantor)
-			throws StandardException
-	{
-		if( "N".equals( selectPerm) && "N".equals( deletePerm) && "N".equals( insertPerm)
-				&& "N".equals( updatePerm) && "N".equals( referencesPerm) && "N".equals( triggerPerm)
-				&& "N".equals(modifyPerm) && "N".equals(accessPerm))
-			return null;
+    /**
+     *  Manufacture a new SchemaPermsDescriptor.
+     * @param sd
+     * @param selectPerm
+     * @param deletePerm
+     * @param insertPerm
+     * @param updatePerm
+     * @param referencesPerm
+     * @param triggerPerm
+     * @param grantor
+     * @return
+     * @throws StandardException
+     */
+    public SchemaPermsDescriptor newSchemaPermsDescriptor( SchemaDescriptor sd,
+                                                         String selectPerm,
+                                                         String deletePerm,
+                                                         String insertPerm,
+                                                         String updatePerm,
+                                                         String referencesPerm,
+                                                         String triggerPerm,
+                                                         String modifyPerm,
+                                                         String accessPerm,
+                                                         String grantor)
+            throws StandardException
+    {
+        if( "N".equals( selectPerm) && "N".equals( deletePerm) && "N".equals( insertPerm)
+                && "N".equals( updatePerm) && "N".equals( referencesPerm) && "N".equals( triggerPerm)
+                && "N".equals(modifyPerm) && "N".equals(accessPerm))
+            return null;
 
-		return new SchemaPermsDescriptor( dataDictionary,
-				(String) null,
-				grantor,
-				sd.getUUID(),
-				selectPerm,
-				deletePerm,
-				insertPerm,
-				updatePerm,
-				referencesPerm,
-				triggerPerm,
-				modifyPerm,
-				accessPerm);
-	}
+        return new SchemaPermsDescriptor( dataDictionary,
+                (String) null,
+                grantor,
+                sd.getUUID(),
+                selectPerm,
+                deletePerm,
+                insertPerm,
+                updatePerm,
+                referencesPerm,
+                triggerPerm,
+                modifyPerm,
+                accessPerm);
+    }
 
     /**
      * Manufacture a new ColPermsDescriptor.
@@ -576,7 +572,7 @@ public class DataDescriptorGenerator
      * @param grantor
      */
     public RoutinePermsDescriptor newRoutinePermsDescriptor( AliasDescriptor ad, String grantor)
-	throws StandardException
+    throws StandardException
     {
         return new RoutinePermsDescriptor( dataDictionary,
                                            (String) null,
@@ -588,36 +584,36 @@ public class DataDescriptorGenerator
     /**
      * Create a new role grant descriptor
      *
-	 * @param uuid unique identifier for this role grant descriptor in
-	 *        time and space
+     * @param uuid unique identifier for this role grant descriptor in
+     *        time and space
      * @param roleName the name of the role for which a new descriptor
      *                 is created
      * @param grantee authorization identifier of grantee
      * @param grantor authorization identifier of grantor
-	 * @param withadminoption if true, WITH ADMIN OPTION is set for
-	 *        this descriptor
+     * @param withadminoption if true, WITH ADMIN OPTION is set for
+     *        this descriptor
      * @param isDef if true, this descriptor represents a role
      *              definition, otherwise it represents a grant.
-	 * @param isDefaultRole if true, the role is a default role of the
-	 *                      user granted the role
+     * @param isDefaultRole if true, the role is a default role of the
+     *                      user granted the role
      */
     public RoleGrantDescriptor newRoleGrantDescriptor(UUID uuid,
-													  String roleName,
-													  String grantee,
-													  String grantor,
-													  boolean withadminoption,
-													  boolean isDef,
-													  boolean isDefaultRole)
+                                                      String roleName,
+                                                      String grantee,
+                                                      String grantor,
+                                                      boolean withadminoption,
+                                                      boolean isDef,
+                                                      boolean isDefaultRole)
         throws StandardException
     {
         return new RoleGrantDescriptor(dataDictionary,
-									   uuid,
-									   roleName,
-									   grantee,
-									   grantor,
-									   withadminoption,
-									   isDef,
-				                       isDefaultRole);
+                                       uuid,
+                                       roleName,
+                                       grantee,
+                                       grantor,
+                                       withadminoption,
+                                       isDef,
+                                       isDefaultRole);
     }
 
     /**

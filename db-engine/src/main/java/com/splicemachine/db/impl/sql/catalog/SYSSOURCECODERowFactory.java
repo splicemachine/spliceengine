@@ -34,11 +34,7 @@ package com.splicemachine.db.impl.sql.catalog;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SourceCodeDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -77,13 +73,13 @@ public class SYSSOURCECODERowFactory extends CatalogRowFactory {
         "f3779fc7-7e3d-4138-8bc5-fc10c3834252"  // index1
     };
 
-    public SYSSOURCECODERowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
-        super(uuidf, ef, dvf);
+    public SYSSOURCECODERowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd) {
+        super(uuidf, ef, dvf, dd);
         initInfo(SOURCECODE_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
 
     @Override
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException {
 
         String schemaName = null;
         String objectName = null;
@@ -94,6 +90,9 @@ public class SYSSOURCECODERowFactory extends CatalogRowFactory {
         Blob sourceCode = null;
 
         if (td != null) {
+            if (!(td instanceof SourceCodeDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             SourceCodeDescriptor d = (SourceCodeDescriptor)td;
             schemaName = d.getSchemaName();
             objectName = d.getObjectName();

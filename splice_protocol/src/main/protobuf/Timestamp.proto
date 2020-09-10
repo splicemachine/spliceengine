@@ -1,0 +1,48 @@
+option java_package = "com.splicemachine.timestamp.impl";
+option java_outer_classname = "TimestampMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message GetCurrentTimestamp {
+}
+
+message GetCurrentTimestampResponse {
+    required int64 timestamp = 1;
+}
+
+message GetNextTimestamp {
+}
+
+message GetNextTimestampResponse {
+    required int64 timestamp = 1;
+}
+
+message BumpTimestamp {
+    required int64 timestamp = 1;
+}
+
+message BumpTimestampResponse {
+}
+
+enum TimestampRequestType {
+    GET_CURRENT_TIMESTAMP = 0;
+    GET_NEXT_TIMESTAMP = 1;
+    BUMP_TIMESTAMP = 2;
+}
+
+message TimestampRequest {
+    required int32 callerId = 1;
+    required TimestampRequestType timestampRequestType = 2;
+    optional GetCurrentTimestamp getCurrentTimestamp = 3;
+    optional GetNextTimestamp getNextTimestamp = 4;
+    optional BumpTimestamp bumpTimestamp = 5;
+}
+
+message TimestampResponse {
+    required int32 callerId = 1;
+    required TimestampRequestType timestampRequestType = 2;
+    optional GetCurrentTimestampResponse getCurrentTimestampResponse = 3;
+    optional GetNextTimestampResponse getNextTimestampResponse = 4;
+    optional BumpTimestampResponse bumpTimestampResponse = 5;
+}

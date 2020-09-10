@@ -16,22 +16,17 @@ package com.splicemachine.timestamp.impl;
 
 import com.splicemachine.timestamp.api.Callback;
 
+import java.sql.Timestamp;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class ClientCallback implements Callback {
 
-    private final short _callerId;
-    private volatile long _newTimestamp = -1l;
+    private volatile TimestampMessage.TimestampResponse _response = null;
     private Exception _e = null;
     private CountDownLatch _latch = new CountDownLatch(1);
-    		
-    public ClientCallback(short callerId) {
-    	_callerId = callerId;
-    }
-    
-    public short getCallerId() {
-    	return _callerId;
+
+    ClientCallback() {
     }
     
     public Exception getException() {
@@ -68,23 +63,33 @@ public class ClientCallback implements Callback {
         return false;
     }
 
-    public long getNewTimestamp() {
-    	return _newTimestamp;
-    }
-
     public synchronized void error(Exception e) {
         _e = e;
         countDown();
     }
 
-    public synchronized void complete(long timestamp) {
-        _newTimestamp = timestamp;
+    public synchronized void complete(TimestampMessage.TimestampResponse response) {
+        _response = response;
         countDown();
-    }   
+    }
+
+    public boolean responseIsInvalid() {
+        switch (_response.getTimestampRequestType()) {
+            case GET_NEXT_TIMESTAMP:
+                return _response.getGetNextTimestampResponse().getTimestamp() < 0;
+            case GET_CURRENT_TIMESTAMP:
+                return _response.getGetNextTimestampResponse().getTimestamp() < 0;
+            case BUMP_TIMESTAMP:
+            default:
+                return false;
+        }
+    }
 
     public String toString() {
-    	return "Callback (callerId = " + _callerId +
-    		(_newTimestamp > -1 ? ", ts = " + _newTimestamp : ", ts blank") + ")";
+        return _response.toString();
     }
-    
-}    
+
+    public TimestampMessage.TimestampResponse getResponse() {
+        return _response;
+    }
+}

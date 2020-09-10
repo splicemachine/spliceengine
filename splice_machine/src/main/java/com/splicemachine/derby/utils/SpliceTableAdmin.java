@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -39,6 +40,7 @@ import com.splicemachine.ddl.DDLMessage.TentativeIndex;
 import com.splicemachine.ddl.DDLMessage.DDLChange;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
 import com.splicemachine.derby.impl.storage.CheckTableResult;
+import com.splicemachine.derby.impl.storage.CheckTableUtils;
 import com.splicemachine.derby.impl.storage.DistributedCheckTableJob;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -47,6 +49,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.PartitionLoad;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -56,10 +59,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.net.URI;
 import java.sql.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -71,6 +71,7 @@ import java.util.concurrent.TimeoutException;
 public class SpliceTableAdmin {
 
     private static final Logger LOG = Logger.getLogger(SpliceTableAdmin.class);
+    private static int MB = 1024*1024;
 
     public enum Level{
         FAST (1),
@@ -139,9 +140,8 @@ public class SpliceTableAdmin {
 
             out = fs.create(new Path(outputFile));
             // check each table in the schema
-            ResultSet rs = getTables(schema);
-            while (rs.next()) {
-                String table = rs.getString(1);
+            List<String> tables = getTables(schema);
+            for (String table : tables) {
                 Map<String, List<String>> result = checkTable(schema, table, null, level, fix);
                 if (result != null) {
                     for (Map.Entry<String, List<String>> entry : result.entrySet()) {
@@ -278,6 +278,9 @@ public class SpliceTableAdmin {
 
         for (ConglomerateDescriptor searchCD : cdList) {
             if (searchCD.isIndex() && !searchCD.isPrimaryKey()) {
+                if (index == null && !isEligibleConstraint(cdList, searchCD)) {
+                    continue;
+                }
                 if (index == null || searchCD.getObjectName().compareToIgnoreCase(index) == 0) {
                     DDLChange ddlChange = ProtoUtil.createTentativeIndexChange(txn.getTxnId(),
                             activation.getLanguageConnectionContext(),
@@ -290,12 +293,35 @@ public class SpliceTableAdmin {
 
         Map<String, List<String>> errors = null;
         if (tentativeIndexList.size() > 0) {
-            errors = checkIndexes(schema, table, cdList, tentativeIndexList, level, fix);
+            errors = checkIndexes(td, schema, table, cdList, tentativeIndexList, level, fix);
         }
         return errors;
     }
 
+    /**
+     * If a constraint is reusing an index, exclude it from index list. No need to check the index more than once
+     * @param cdList
+     * @param cd
+     * @return
+     */
+    private static boolean isEligibleConstraint(ConglomerateDescriptorList cdList, ConglomerateDescriptor cd) {
+        // return false if it is not an index or constraint
+        if (!cd.isIndex() && !cd.isConstraint())
+            return false;
 
+        for (ConglomerateDescriptor conglomerateDescriptor : cdList) {
+            if (cd == conglomerateDescriptor)
+                continue;
+
+            // return false if the constraint is reusing an index
+            if (!conglomerateDescriptor.isConstraint() &&
+                    conglomerateDescriptor.isIndex() &&
+                    conglomerateDescriptor.getConglomerateNumber() == cd.getConglomerateNumber()) {
+                return false;
+            }
+        }
+        return true;
+    }
     private static void printErrorMessages(FSDataOutputStream out, Map<String, List<String>> errors) throws IOException {
 
         for(Map.Entry<String, List<String>> entry : errors.entrySet()) {
@@ -309,17 +335,18 @@ public class SpliceTableAdmin {
         }
     }
 
-    private static Map<String, List<String>> checkIndexes(String schema,
+    private static Map<String, List<String>> checkIndexes(TableDescriptor td,
+                                                          String schema,
                                                           String table,
                                                           ConglomerateDescriptorList cdList,
                                                           List<TentativeIndex> tentativeIndexList,
                                                           int level,
-                                                          boolean fix) throws IOException, SQLException, StandardException {
+                                                          boolean fix) throws Exception {
         if (level == Level.FAST.levelCode ) {
             return checkIndexesFast(schema, table, cdList, tentativeIndexList);
         }
         else if (level == Level.DETAIL.levelCode){
-            return checkIndexesInDetail(schema, table, tentativeIndexList, fix);
+            return checkIndexesInDetail(td, schema, table, tentativeIndexList, fix);
         }
         else {
             throw StandardException.newException(SQLState.INVALID_CONSISTENCY_LEVEL);
@@ -364,24 +391,38 @@ public class SpliceTableAdmin {
         String sql = String.format(
                 "select count(*) from %s.%s --splice-properties index=%s", schema, table, index==null?"null":index);
         Connection connection = SpliceAdmin.getDefaultConn();
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ResultSet rs = ps.executeQuery();
-        long count = 0;
-        if (rs.next()){
-            count = rs.getLong(1);
+        try(PreparedStatement ps = connection.prepareStatement(sql);
+                ResultSet rs = ps.executeQuery()) {
+            long count = 0;
+            if (rs.next()) {
+                count = rs.getLong(1);
+            }
+            return count;
         }
-        return count;
     }
 
-    private static Map<String, List<String>> checkIndexesInDetail(String schema, String table,
+    private static Map<String, List<String>> checkIndexesInDetail(TableDescriptor td, String schema, String table,
                                                                   List<TentativeIndex> tentativeIndexList,
-                                                                  boolean fix) throws IOException, SQLException, StandardException {
+                                                                  boolean fix) throws Exception {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
         tc.elevate("check_table");
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         Activation activation = lcc.getLastActivation();
+        Boolean useSpark = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
+        String conglomId = Long.toString(tentativeIndexList.get(0).getTable().getConglomerate());
+        Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(conglomId, true);
 
+        boolean distributed = false;
+        if (useSpark == null) {
+            for (PartitionLoad load : partitionLoadCollection) {
+                if (load.getMemStoreSize() > 1 * MB || load.getStorefileSize() > 1 * MB)
+                    distributed = true;
+            }
+        } else {
+            distributed = useSpark;
+        }
+        boolean isSystemTable = schema.equalsIgnoreCase("SYS");
         SIDriver driver = SIDriver.driver();
         String hostname = NetworkUtils.getHostname(driver.getConfiguration());
         SConfiguration config = SIDriver.driver().getConfiguration();
@@ -391,40 +432,53 @@ public class SpliceTableAdmin {
         String session = hostname + ":" + localPort + "," + sessionId;
         String jobGroup = userId + " <" + session + "," + txn.getTxnId() + ">";
 
-        OlapClient olapClient = EngineDriver.driver().getOlapClient();
-        ActivationHolder ah = new ActivationHolder(activation, null);
-        DistributedCheckTableJob checkTableJob = new DistributedCheckTableJob(ah, txn, schema, table,
-                tentativeIndexList, fix, jobGroup);
-        Future<CheckTableResult> futureResult = olapClient.submit(checkTableJob );
-        CheckTableResult result = null;
-        while (result == null) {
-            try {
-                result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-                //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
-                Thread.currentThread().interrupt();
-                throw new IOException(e);
-            } catch (ExecutionException e) {
-                throw Exceptions.rawIOException(e.getCause());
-            } catch (TimeoutException e) {
-                        /*
-                         * A TimeoutException just means that tickTime expired. That's okay, we just stick our
-                         * head up and make sure that the client is still operating
-                         */
+        Map<String, List<String>> errors = null;
+        if (distributed) {
+            OlapClient olapClient = EngineDriver.driver().getOlapClient();
+            ActivationHolder ah = new ActivationHolder(activation, null);
+            DistributedCheckTableJob checkTableJob = new DistributedCheckTableJob(ah, txn, schema, table,
+                    tentativeIndexList, fix, jobGroup, isSystemTable);
+            Future<CheckTableResult> futureResult = olapClient.submit(checkTableJob);
+            CheckTableResult result = null;
+            while (result == null) {
+                try {
+                    result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                    Thread.currentThread().interrupt();
+                    throw new IOException(e);
+                } catch (ExecutionException e) {
+                    throw Exceptions.rawIOException(e.getCause());
+                } catch (TimeoutException e) {
+                    /*
+                     * A TimeoutException just means that tickTime expired. That's okay, we just stick our
+                     * head up and make sure that the client is still operating
+                     */
+                }
             }
+            errors = result.getResults();
         }
-        Map<String, List<String>> errors = result.getResults();
+        else  {
+            errors = CheckTableUtils.checkTable(schema, table, td, tentativeIndexList, Long.parseLong(conglomId),
+                    false, fix, isSystemTable, txn, activation, jobGroup);
+        }
         return errors;
     }
 
-    private static ResultSet getTables(String schemaName) throws SQLException {
+    private static List<String> getTables(String schemaName) throws SQLException {
         String sql = "select tablename from sys.systables t, sys.sysschemas s where s.schemaname=?" +
                 " and s.schemaid=t.schemaid";
         Connection connection = SpliceAdmin.getDefaultConn();
-        PreparedStatement ps = connection.prepareStatement(sql);
-        ps.setString(1, schemaName);
-        ResultSet rs = ps.executeQuery();
-        return rs;
+        List<String> tables = Lists.newArrayList();
+        try(PreparedStatement ps = connection.prepareStatement(sql)) {
+            ps.setString(1, schemaName);
+            try(ResultSet rs = ps.executeQuery()) {
+                while(rs.next()) {
+                    tables.add(rs.getString(1));
+                }
+            }
+            return tables;
+        }
     }
 
     private static ResultSet processResults(Map<String, List<String>> errors,

@@ -65,6 +65,11 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
+    public <V> DataSet<V> getEmpty(String name, OperationContext context){
+        return delegate.getEmpty(name, context);
+    }
+
+    @Override
     public <V> DataSet<V> singleRowDataSet(V value){
         return delegate.singleRowDataSet(value);
     }
@@ -196,8 +201,10 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
 
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet,
-                                        KeyHashDecoder decoder, ExecRow key, TxnView txn,  boolean fix) {
-        return delegate.getTableChecker(schemaName, tableName, tableDataSet, decoder, key, txn, fix);
+                                        KeyHashDecoder decoder, ExecRow key, TxnView txn,  boolean fix,
+                                        int[] baseColumnMap, boolean isSystemChecker) {
+        return delegate.getTableChecker(schemaName, tableName, tableDataSet, decoder, key, txn, fix, baseColumnMap,
+                isSystemChecker);
     }
 
     // Operations specific to native spark explains
@@ -217,5 +224,9 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     @Override public void incrementOpDepth() { }
     @Override public void decrementOpDepth() { }
     @Override public void resetOpDepth() { }
-}
 
+    @Override
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+        return delegate.readKafkaTopic(topicName, context);
+    }
+}

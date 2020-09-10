@@ -36,11 +36,13 @@ import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Class that represents a call to the FIRST_VALUE() and LAST_VALUE() window functions.
  */
+@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification = "DB-9844")
 public final class FirstLastValueFunctionNode extends WindowFunctionNode {
 
     /**

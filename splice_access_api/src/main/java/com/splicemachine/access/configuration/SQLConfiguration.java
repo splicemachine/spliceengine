@@ -15,7 +15,7 @@
 package com.splicemachine.access.configuration;
 
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.splicemachine.primitives.Bytes;
 
 /**
  * @author Scott Fines
@@ -25,9 +25,10 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String SPLICE_DB = "splicedb";
     public static final String SPLICE_USER = "SPLICE";
     public static final String SPLICE_JDBC_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
-    public static final String CONGLOMERATE_TABLE_NAME =SIConfigurations.CONGLOMERATE_TABLE_NAME;
-    @SuppressFBWarnings(value = "MS_MUTABLE_ARRAY",justification = "Intentional")
-    public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = SIConfigurations.CONGLOMERATE_TABLE_NAME_BYTES;
+    public static final String CONGLOMERATE_TABLE_NAME = SIConfigurations.CONGLOMERATE_TABLE_NAME;
+    public static byte[] getConglomerateTableNameBytes() {
+        return Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
+    }
 
     //TODO -sf- move this to HBase-specific configuration
     public static final String PARTITIONSERVER_PORT="hbase.regionserver.port";
@@ -62,6 +63,9 @@ public class SQLConfiguration implements ConfigurationDefault {
 
     public static final String IMPORT_MAX_QUOTED_COLUMN_LINES="splice.import.maxQuotedColumnLines";
     private static final int DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES = 50000;
+
+    public static final String IMPORT_CSV_SCAN_THRESHOLD="splice.import.csvScanThreshold";
+    private static final long DEFAULT_IMPORT_CSV_SCAN_THRESHOLD = 100000;
 
     public static final String CONTROL_SIDE_COST_THRESHOLD = "splice.dataset.control.costThreshold";
     private static final double DEFAULT_CONTROL_SIDE_COST_THRESHOLD = 1000000D;
@@ -191,8 +195,6 @@ public class SQLConfiguration implements ConfigurationDefault {
     private static final int DEFAULT_INDEX_BATCH_SIZE=4000;
 
 
-    public static volatile boolean upgradeForced = false;
-
     /**
      * The number of concurrent bulk fetches a single index operation can initiate
      * at a time. If fewer than that number of fetches are currently in progress, the
@@ -270,6 +272,7 @@ public class SQLConfiguration implements ConfigurationDefault {
         builder.indexBatchSize = configurationSource.getInt(INDEX_BATCH_SIZE, DEFAULT_INDEX_BATCH_SIZE);
         builder.indexLookupBlocks = configurationSource.getInt(INDEX_LOOKUP_BLOCKS, DEFAULT_INDEX_LOOKUP_BLOCKS);
         builder.importMaxQuotedColumnLines = configurationSource.getInt(IMPORT_MAX_QUOTED_COLUMN_LINES, DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES);
+        builder.importCsvScanLimit = configurationSource.getLong(IMPORT_CSV_SCAN_THRESHOLD, DEFAULT_IMPORT_CSV_SCAN_THRESHOLD);
         builder.partitionserverJmxPort = configurationSource.getInt(PARTITIONSERVER_JMX_PORT, DEFAULT_PARTITIONSERVER_JMX_PORT);
         builder.partitionserverJmxUser = configurationSource.getString(PARTITIONSERVER_JMX_USER, DEFAULT_PARTITIONSERVER_JMX_USER);
         builder.partitionserverJmxPassword = configurationSource.getString(PARTITIONSERVER_JMX_PASSWORD, DEFAULT_PARTITIONSERVER_JMX_PASSWORD);

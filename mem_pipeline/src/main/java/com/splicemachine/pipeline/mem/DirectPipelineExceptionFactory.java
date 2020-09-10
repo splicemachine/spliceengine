@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline.mem;
 
-import org.spark_project.guava.base.Throwables;
+import splice.com.google.common.base.Throwables;
 import com.splicemachine.access.api.CallTimeoutException;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;

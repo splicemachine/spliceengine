@@ -29,9 +29,9 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.MutationStatus;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Predicate;
+import splice.com.google.common.collect.Collections2;
+import splice.com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
@@ -146,6 +146,7 @@ public class PartitionWriteHandler implements WriteHandler {
                  * it's because we were unable to write ANY records to the WAL, so we can safely assume that
                  * all the puts failed and can be safely retried.
                  */
+                LOG.error("Unexpected exception", wce);
                 WriteResult result=WriteResult.failed(wce.getClass().getSimpleName()+":"+wce.getMessage());
                 for(KVPair mutation : filteredMutations){
                     ctx.result(mutation,result);
@@ -176,7 +177,9 @@ public class PartitionWriteHandler implements WriteHandler {
         int failed = 0;
         Iterator<MutationStatus> statusIter = status.iterator();
         Iterator<KVPair> mutationIter = toProcess.iterator();
+        int count = 0;
         while(statusIter.hasNext()){
+            count++;
             if(!mutationIter.hasNext())
                 throw new IllegalStateException("MutationStatus result is not the same size as the mutations collection!");
             MutationStatus stat = statusIter.next();
@@ -200,7 +203,7 @@ public class PartitionWriteHandler implements WriteHandler {
             }
         }
 
-        region.updateWriteRequests(toProcess.size() - failed);
+        region.updateWriteRequests(count - failed);
     }
 
 

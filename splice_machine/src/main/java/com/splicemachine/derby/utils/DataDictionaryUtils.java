@@ -15,7 +15,7 @@
 package com.splicemachine.derby.utils;
 
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.Exceptions;
@@ -24,6 +24,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -136,6 +137,7 @@ public class DataDictionaryUtils {
         return newColumnOrdering;
     }
 
+    @SuppressFBWarnings(value = {"NP_ALWAYS_NULL_EXCEPTION","NP_NULL_ON_SOME_PATH"}, justification = "DB-9844")
     public static int[] getFormatIds(TxnView txn, UUID tableId) throws SQLException, StandardException {
 
         boolean prepared = false;

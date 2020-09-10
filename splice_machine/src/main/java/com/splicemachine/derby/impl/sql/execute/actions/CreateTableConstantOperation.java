@@ -20,7 +20,7 @@ import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
@@ -310,10 +310,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             throw StandardException.plainWrapException(e);
         }
         /* create the conglomerate to hold the table's rows
-		 * RESOLVE - If we ever have a conglomerate creator
-		 * that lets us specify the conglomerate number then
-		 * we will need to handle it here.
-		 */
+         * RESOLVE - If we ever have a conglomerate creator
+         * that lets us specify the conglomerate number then
+         * we will need to handle it here.
+         */
         long conglomId = tc.createConglomerate(storedAs!=null,
                 "heap", // we're requesting a heap conglomerate
                 template.getRowArray(), // row template
@@ -350,7 +350,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     location,
                     compression,
                     false,
-                    false
+                    false,
+                    null
                     );
         } else {
             td = ddg.newTableDescriptor(tableName, sd, tableType, onCommitDeleteRows, onRollbackDeleteRows,columnInfo.length);
@@ -359,10 +360,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
 
         String createAsVersion2String = null;
-        if (lcc != null) {
-            createAsVersion2String =
-            PropertyUtil.getCachedDatabaseProperty(lcc, Property.CREATE_TABLES_AS_VERSION_2);
-        }
+        createAsVersion2String = PropertyUtil.getCachedDatabaseProperty(lcc, Property.CREATE_TABLES_AS_VERSION_2);
         boolean createAsVersion2 = createAsVersion2String != null && Boolean.valueOf(createAsVersion2String);
 
         dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, createAsVersion2);
@@ -370,14 +368,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
 
-				/*
-				 * NOTE: We must write the columns out to the system
-				 * tables before any of the conglomerates, including
-				 * the heap, since we read the columns before the
-				 * conglomerates when building a TableDescriptor.
-				 * This will hopefully reduce the probability of
-				 * a deadlock involving those system tables.
-				 */
+        /*
+         * NOTE: We must write the columns out to the system
+         * tables before any of the conglomerates, including
+         * the heap, since we read the columns before the
+         * conglomerates when building a TableDescriptor.
+         * This will hopefully reduce the probability of
+         * a deadlock involving those system tables.
+         */
 
         // for each column, stuff system.column
         int index = 1;
@@ -385,10 +383,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
         for (int ix = 0; ix < columnInfo.length; ix++) {
             UUID defaultUUID = columnInfo[ix].newDefaultUUID;
-						/*
-						 * Generate a UUID for the default, if one exists
-						 * and there is no default id yet.
-						 */
+            /*
+             * Generate a UUID for the default, if one exists
+             * and there is no default id yet.
+             */
             if (columnInfo[ix].defaultInfo != null && defaultUUID == null) {
                 defaultUUID = dd.getUUIDFactory().createUUID();
             }
@@ -532,14 +530,20 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 // test constraint only if the external file exits
                 DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
                 FileInfo fileInfo = fileSystem.getInfo(location);
-                if(!fileInfo.exists() || (fileInfo.isDirectory() && ExternalTableUtils.isEmptyDirectory(location))) {
-                    // need the create the external file if the location provided is empty
+                if( !fileInfo.exists() || fileInfo.isEmptyDirectory() ) {
+                    // need to create the external file if the location provided is empty
                     String pathToParent = location.substring(0, location.lastIndexOf("/"));
                     ImportUtils.validateWritable(pathToParent, false);
-                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited, escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
+                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited,
+                            escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
 
-                } else if(fileInfo.exists() && fileInfo.isDirectory() && fileInfo.fileCount() > 0 && storedAs.compareToIgnoreCase("t") != 0) {
-                    Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
+                }
+                else if( !fileInfo.isDirectory() ) {
+                    throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
+                }
+                else if( storedAs.compareToIgnoreCase("t") != 0 ) {
+                    Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
+                            submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
                     GetSchemaExternalResult result = null;
                     SConfiguration config = EngineDriver.driver().getConfiguration();
                     while (result == null) {
@@ -559,10 +563,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         }
                     }
                     StructType externalSchema = result.getSchema();
-
                     checkSchema(externalSchema, activation);
-                } else if(!fileInfo.isDirectory()) {
-                    throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
                 }
 
             }
@@ -581,8 +582,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
         //Make sure we have the same amount of attributes in the definition compared to the external file
         if (externalSchema.fields().length != template.length()) {
-            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE, template.length(), externalSchema.fields().length, location);
+            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
+                    template.length(), externalSchema.fields().length,
+                    location, ExternalTableUtils.getSuggestedSchema(externalSchema));
         }
+
 
         int nPartitionColumns = 0;
         for (ColumnInfo column:columnInfo) {
@@ -591,17 +595,23 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         }
 
         ExecRow nonPartitionColumns = new ValueRow(template.nColumns()-nPartitionColumns);
-        DataValueDescriptor[] dvds1 = nonPartitionColumns.getRowArray();
+        DataValueDescriptor[] dvds_nonpart = nonPartitionColumns.getRowArray();
+        String[] name_nonpart = new String[template.nColumns()-nPartitionColumns];
+
         ExecRow partitionColumns = new ValueRow(nPartitionColumns);
-        DataValueDescriptor[] dvds2 = partitionColumns.getRowArray();
+        DataValueDescriptor[] dvds_part = partitionColumns.getRowArray();
+        String[] name_part = new String[nPartitionColumns];
 
         int index1 = 0;
         for(int i = 0; i < columnInfo.length; ++i) {
             if (columnInfo[i].partitionPosition >=0) {
-                dvds2[columnInfo[i].partitionPosition] = dvds[i];
+                dvds_part[columnInfo[i].partitionPosition] = dvds[i];
+                name_part[columnInfo[i].partitionPosition] = columnInfo[i].name;
             }
             else {
-                dvds1[index1++] = dvds[i];
+                dvds_nonpart[index1] = dvds[i];
+                name_nonpart[index1] = columnInfo[i].name;
+                index1++;
             }
         }
 
@@ -612,8 +622,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             StructField definedField = nonPartitionColumns.schema().fields()[i];
             if (!definedField.dataType().equals(externalField.dataType())) {
                 if (!supportAvroDateToString(storedAs,externalField,definedField)) {
-                    throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, definedField.name(),definedField.dataType().toString(),
-                            externalField.name(), externalField.dataType().toString(),location);
+                    throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES,
+                            name_nonpart[i], ExternalTableUtils.getSqlTypeName(definedField.dataType()),
+                            externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType() ),
+                            location, ExternalTableUtils.getSuggestedSchema(externalSchema));
                 }
             }
         }
@@ -624,8 +636,10 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             StructField definedField = partitionColumns.schema().fields()[i];
             if (!definedField.dataType().equals(externalField.dataType())) {
                 if (!supportAvroDateToString(storedAs,externalField,definedField)) {
-                    Object[] objects = new Object[]{definedField.name(),definedField.dataType().toString(),
-                            externalField.name(), externalField.dataType().toString(),location};
+                    Object[] objects = new Object[]{
+                            name_part[i], ExternalTableUtils.getSqlTypeName(definedField.dataType()),
+                            externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType()),
+                            location, ExternalTableUtils.getSuggestedSchema(externalSchema) };
                     SQLWarning warning = StandardException.newWarning(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, objects);
                     activation.addWarning(warning);
                 }
@@ -672,7 +686,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(pkFormatIds);
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, operationContext), true);
+                    null, timeFormat, dateFormat, timestampFormat, false, operationContext), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(execRow);
             for (ExecRow row : rows) {

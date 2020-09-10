@@ -14,10 +14,10 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Iterables;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 import java.util.List;
@@ -278,6 +279,7 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 		return true;
 	}
 
+	@SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "DB-9844")
     private static class ColumnDescriptorNameFunction implements Function<ColumnDescriptor, String> {
 
         private TableDescriptor tableDescriptor;

@@ -56,7 +56,7 @@ public class SpliceSequence extends AbstractSequence{
             currValue.returnLatestVersion();
             currValue.setTimeRange(0l,Long.MAX_VALUE);
             DataResult result=sysColumnTable.get(currValue,null);
-            if(result==null || result.size()<=0)
+            if(result==null || result.isEmpty())
                 return startingValue;
             DataCell dataCell=result.latestCell(SIConstants.DEFAULT_FAMILY_BYTES,autoIncrementValueQualifier);
             return Encoding.decodeLong(dataCell.valueArray(),dataCell.valueOffset(),false);

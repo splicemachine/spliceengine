@@ -14,14 +14,24 @@
 
 package com.splicemachine.lifecycle;
 
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import javax.management.MBeanServer;
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
@@ -83,10 +93,10 @@ public class DatabaseLifecycleManager{
         );
     }
 
-    public void start(){
+    public void start(byte[] role){
         if(!state.compareAndSet(State.NOT_STARTED,State.BOOTING_ENGINE)) return; //someone else is doing stuff
 
-        lifecycleExecutor.execute(new Startup());
+        lifecycleExecutor.execute(new Startup(role));
     }
 
     public void shutdown(){
@@ -215,10 +225,16 @@ public class DatabaseLifecycleManager{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private class Startup implements Runnable{
+
+        byte[] role;
+        public Startup(byte[] role) {
+            this.role = role;
+        }
         @Override
         public void run(){
             if(!bootServices(State.BOOTING_GENERAL_SERVICES,engineServices)) return; //bail, we encountered an error
             if(!bootServices(State.BOOTING_SERVER,generalServices)) return; //bail, we encountered an error
+            setReplicationRole(role);
             bootServices(State.RUNNING,networkServices);
 
         }
@@ -254,6 +270,32 @@ public class DatabaseLifecycleManager{
                 }
             }
             return true;
+        }
+
+        public void setReplicationRole(byte[] role) {
+            if (role == null || Bytes.compareTo(role, Bytes.toBytes(0L)) == 0)
+                return;
+            if (Bytes.compareTo(role, HBaseConfiguration.REPLICATION_NONE) != 0) {
+                if (Bytes.compareTo(role, HBaseConfiguration.REPLICATION_PRIMARY) == 0) {
+                    setReplicationRoleLocal(SIConstants.REPLICATION_ROLE_PRIMARY);
+                } else if (Bytes.compareTo(role, HBaseConfiguration.REPLICATION_REPLICA) == 0) {
+                    setReplicationRoleLocal(SIConstants.REPLICATION_ROLE_REPLICA);
+                } else {
+                    throw new RuntimeException(
+                            StandardException.newException(SQLState.INVALID_PARAMETER, "REPLICAITON_ROLE",
+                                    new String(role, Charset.defaultCharset())));
+                }
+            }
+        }
+
+        private void setReplicationRoleLocal(String role) {
+            SIDriver.driver().lifecycleManager().setReplicationRole(role);
+            Collection<Context> allContexts=
+                    ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
+            for(Context context : allContexts){
+                ((LanguageConnectionContext)context).setReplicationRole(role);
+            }
+            SpliceLogUtils.info(LOG, "Set replication role to %s", role);
         }
     }
 

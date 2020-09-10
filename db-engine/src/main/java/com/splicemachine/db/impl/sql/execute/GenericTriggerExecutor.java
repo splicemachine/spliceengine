@@ -48,6 +48,10 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 /**
  * A trigger executor is an object that executes a trigger.  It is subclassed by row and statement executors.
  */
@@ -59,16 +63,16 @@ public abstract class GenericTriggerExecutor {
     protected LanguageConnectionContext lcc;
 
     private boolean whenClauseRetrieved;
-    private boolean actionRetrieved;
+    private List<Boolean> actionRetrievedList;
     private SPSDescriptor whenClause;
-    private SPSDescriptor action;
+    private List<SPSDescriptor> actionList;
 
     // Cached prepared statement and activation for WHEN clause and
     // trigger action.
-    private ExecPreparedStatement   whenPS;
-    private Activation              spsWhenActivation;
-    private ExecPreparedStatement   actionPS;
-    private Activation              spsActionActivation;
+    private ExecPreparedStatement       whenPS;
+    private Activation                  spsWhenActivation;
+    private List<ExecPreparedStatement> actionPSList;
+    private List<Activation>            spsActionActivationList;
 
     /**
      * Constructor
@@ -86,6 +90,11 @@ public abstract class GenericTriggerExecutor {
         this.triggerd = triggerd;
         this.activation = activation;
         this.lcc = lcc;
+        int actionSize = triggerd.getTriggerDefinitionSize();
+        this.actionRetrievedList = new ArrayList<>(Collections.nCopies(actionSize, false));
+        this.actionList = new ArrayList<>(Collections.nCopies(actionSize, null));
+        this.actionPSList = new ArrayList<>(Collections.nCopies(actionSize, null));
+        this.spsActionActivationList = new ArrayList<>(Collections.nCopies(actionSize, null));
     }
 
     /**
@@ -108,12 +117,12 @@ public abstract class GenericTriggerExecutor {
         return whenClause;
     }
 
-    private SPSDescriptor getAction() throws StandardException {
-        if (!actionRetrieved) {
-            actionRetrieved = true;
-            action = triggerd.getActionSPS(lcc);
+    private SPSDescriptor getAction(int index) throws StandardException {
+        if (!actionRetrievedList.get(index)) {
+            actionRetrievedList.set(index, true);
+            actionList.set(index, triggerd.getActionSPS(lcc, index));
         }
-        return action;
+        return actionList.get(index);
     }
 
     /**
@@ -122,24 +131,25 @@ public abstract class GenericTriggerExecutor {
      * get a new activation holder and let er rip.
      *
      * @param sps the SPS to execute
-     * @param isWhen {@code true} if the SPS is for the WHEN clause,
-     *               {@code false} otherwise
+     * @param index {@code -1} if the SPS is for the WHEN clause,
+     *               {@code >= 0} for one of the ACTIONS
      * @return {@code true} if the SPS is for a WHEN clause and it evaluated
      *         to {@code TRUE}, {@code false} otherwise
      * @exception StandardException on error
      */
-    protected boolean executeSPS(SPSDescriptor sps, boolean isWhen) throws StandardException {
+    protected boolean executeSPS(SPSDescriptor sps, int index) throws StandardException {
         boolean recompile = false;
         boolean whenClauseWasTrue = false;
+        boolean isWhen = index == -1;
 
         // The prepared statement and the activation may already be available
         // if the trigger has been fired before in the same statement. (Only
         // happens with row triggers that are triggered by a statement that
         // touched multiple rows.) The WHEN clause and the trigger action have
         // their own prepared statement and activation. Fetch the correct set.
-        ExecPreparedStatement ps = isWhen ? whenPS : actionPS;
+        ExecPreparedStatement ps = isWhen ? whenPS : actionPSList.get(index);
         Activation spsActivation = isWhen
-                ? spsWhenActivation : spsActionActivation;
+                ? spsWhenActivation : spsActionActivationList.get(index);
 
         while (true) {
             /*
@@ -149,9 +159,9 @@ public abstract class GenericTriggerExecutor {
             */
             if (ps == null || spsActivation == null || recompile) {
 
-                compile(sps, ps, isWhen);
-                spsActivation = isWhen ? spsWhenActivation : spsActionActivation;
-                ps = isWhen ? whenPS : actionPS;
+                compile(sps, ps, index);
+                spsActivation = isWhen ? spsWhenActivation : spsActionActivationList.get(index);
+                ps = isWhen ? whenPS : actionPSList.get(index);
             }
 
             // save the active statement context for exception handling purpose
@@ -273,18 +283,21 @@ public abstract class GenericTriggerExecutor {
         if (getWhenClause() != null) {
             if (spsWhenActivation == null)
                 spsWhenActivation = activation;
-            compile(getWhenClause(), whenPS, true);
+            compile(getWhenClause(), whenPS, -1);
         }
-        if (getAction() != null) {
-            if (spsActionActivation == null)
-                spsActionActivation = activation;
-            compile(getAction(), actionPS, false);
+        for (int i = 0; i < actionList.size(); ++i) {
+            if (getAction(i) != null) {
+                if (spsActionActivationList.get(i) == null)
+                    spsActionActivationList.set(i, activation);
+                compile(getAction(i), actionPSList.get(i), i);
+            }
         }
     }
 
     private void compile(SPSDescriptor sps,
                          ExecPreparedStatement ps,
-                         boolean isWhen) throws StandardException {
+                         int index) throws StandardException {
+        boolean isWhen = index == -1;
 
         // The SPS activation will set its parent activation from
         // the statement context. Reset it to the original parent
@@ -319,8 +332,8 @@ public abstract class GenericTriggerExecutor {
             whenPS = ps;
             spsWhenActivation = spsActivation;
         } else {
-            actionPS = ps;
-            spsActionActivation = spsActivation;
+            actionPSList.set(index, ps);
+            spsActionActivationList.set(index, spsActivation);
         }
     }
 
@@ -328,11 +341,13 @@ public abstract class GenericTriggerExecutor {
      * Cleanup after executing an sps.
      */
     protected void clearSPS() throws StandardException {
-        if (spsActionActivation != null) {
-            spsActionActivation.close();
+        for (int i = 0; i < spsActionActivationList.size(); ++i) {
+            if (spsActionActivationList.get(i) != null) {
+                spsActionActivationList.get(i).close();
+            }
+            actionPSList.set(i, null);
+            spsActionActivationList.set(i, null);
         }
-        actionPS = null;
-        spsActionActivation = null;
 
         if (spsWhenActivation != null) {
             spsWhenActivation.close();
@@ -357,8 +372,10 @@ public abstract class GenericTriggerExecutor {
     final void executeWhenClauseAndAction() throws StandardException {
         SPSDescriptor whenClauseDescriptor = getWhenClause();
         if (whenClauseDescriptor == null ||
-                executeSPS(whenClauseDescriptor, true)) {
-            executeSPS(getAction(), false);
+                executeSPS(whenClauseDescriptor, -1)) {
+            for (int i = 0; i < actionList.size(); ++i) {
+                executeSPS(getAction(i), i);
+            }
         }
     }
 } 

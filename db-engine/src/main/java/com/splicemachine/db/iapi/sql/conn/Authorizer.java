@@ -132,9 +132,9 @@ public interface Authorizer
 	  operation.
 
 	  @param activation holds the list of tables, columns, and routines used.
-	  @param operation the enumeration code for the requsted operation.
+	  @param operation the enumeration code for the requested operation.
 
-	  @exception StandardException Thrown if the operation is not allowed
+	  @exception StandardException Thrown if the operation is not allowed.
 	*/
 	void authorize(Activation activation, int operation)
 				throws StandardException;

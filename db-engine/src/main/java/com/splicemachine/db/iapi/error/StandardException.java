@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
 	StandardException is the root of all exceptions that are handled
@@ -156,6 +157,7 @@ public class StandardException extends Exception
 	 * Returns the arguments for this exception,
 	 * if there are any.
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "")
 	public final Object[] getArguments()
 	{
 		return arguments;
@@ -242,6 +244,8 @@ public class StandardException extends Exception
 				case '8':
 					lseverity = ExceptionSeverity.SESSION_SEVERITY;
 					break;
+				default:
+					break; // lseverity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
 				}
 				break;	
 			case '2':
@@ -256,8 +260,10 @@ public class StandardException extends Exception
 				case '2':
 					lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
 					break;
+				default:
+					break; // lseverity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
 				}
-				break;	
+				break;
 			}
 			break;
 
@@ -282,6 +288,8 @@ public class StandardException extends Exception
 			case 'U':
 				lseverity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
 				break;
+			default:
+				break; // lseverity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
 			}
 			break;
 		}
@@ -334,6 +342,12 @@ public class StandardException extends Exception
 		return new StandardException(messageID, a1);
 	}
 
+	public static StandardException newException(String messageID,
+						     Throwable t,
+						     Object[] a1) {
+		return new StandardException(messageID, t, a1);
+	}
+
 	public static StandardException newException(String messageID, Throwable t, Object a1) {
 		Object[] oa = {a1};
 		return new StandardException(messageID, t, oa);
@@ -356,7 +370,8 @@ public class StandardException extends Exception
      * @see StandardException#newException(String, Object, Throwable)
      * @see StandardException#newException(String, Object, Object, Throwable)
      */
-    public static class BadMessageArgumentException extends Throwable {}
+    @SuppressFBWarnings(value = "NM_CLASS_NOT_EXCEPTION", justification = "intentional, look at the documentation fo the class")
+	public static class BadMessageArgumentException extends Throwable {}
 
     /**
      * Dummy overload which should never be called. Only used to

@@ -200,11 +200,11 @@ public final class SQLSmallint
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 		isNull = in.readBoolean();
-		setValue(in.readShort());
+		value = in.readShort();
 	}
 	public void readExternal(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
-		setValue(in.readShort());
+		value = in.readShort();
 	}
 
 	/**

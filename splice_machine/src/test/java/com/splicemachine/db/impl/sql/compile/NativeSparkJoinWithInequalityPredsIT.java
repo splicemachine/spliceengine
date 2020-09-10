@@ -17,19 +17,21 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
-import java.math.BigDecimal;
-import java.sql.*;
-import java.util.Arrays;
+import java.sql.Connection;
 import java.util.Collection;
-import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -38,15 +40,19 @@ import static com.splicemachine.test_tools.Rows.rows;
  * Test native spark mergesort join with inequality join conditions.
  */
 @RunWith(Parameterized.class)
+@Category(LongerThanTwoMinutes.class)
 public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
 
     private String joinStrategy;
     private String useSpark;
+    private static final String[] joins = {", ", "where not exists (select 1 from "};
+    private static final String[] whereOrOnClause = {"where", "where"};
+    private static final String[] closingParenthesis = {"", ")"};
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(1);
-        params.add(new Object[]{"SORTMERGE","true"});
+        params.add(new Object[]{"BROADCAST","true"});
         return params;
     }
 
@@ -141,23 +147,11 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
                 "----\n" +
                 "%s |";
 
-        String[] joins = {", ", "left outer join ", "where exists (select 1 from ", "where not exists (select 1 from "};
-        String[] whereOrOnClause = {"where", "on ", "where", "where"};
-        String[] closingParenthesis = {"", "", ")", ")"};
-        String [][] expectedCounts = {{"14","14","22","14","14"," 9","24","21","21"},
-                                      {"16","16","23","16","16","12","27","22","21"},
-                                      {" 5"," 5"," 6"," 5"," 5"," 4"," 4"," 6"," 7"},
-                                      {" 2"," 2"," 1"," 2"," 2"," 3"," 3"," 1"," 0"}};
+        String [][] expectedCounts = {{"14","24"},
+                                      {" 2"," 3"}};
 
         String [] joinConditions = {"%s tab1.j = tab2.j and tab1.t > tab2.t ",
-                                    "%s tab1.j = tab2.j and (tab1.t > tab2.t or tab1.t > tab2.t - 1 and tab1.t > tab2.t + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.t > tab2.t + 1 and tab1.t > tab2.t or tab1.t > tab2.t - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.t > tab2.t + 1 and tab1.t > tab2.t - 1 or tab1.t > tab2.t) ",
-                                    "%s (tab1.t > tab2.t + 1 and tab1.t > tab2.t - 1 or tab1.t > tab2.t) and tab1.j = tab2.j ",
-                                    "%s tab1.j = tab2.j and ((tab1.t > tab2.t or tab1.t > tab2.t - 1) and tab1.t > tab2.t + 1) ",
-                                    "%s tab1.j = tab2.j and ((tab1.t > tab2.t or tab1.t > tab2.t * 0.9) and tab1.t > tab2.t / 1.1) ",
-                                    "%s tab1.j = tab2.j and (tab1.t > tab2.t or tab1.t is null) ",
-                                    "%s tab1.j = tab2.j and (tab1.t > tab2.t or tab2.t is null) "
+                                    "%s tab1.j = tab2.j and ((tab1.t > tab2.t or tab1.t > tab2.t * 0.9) and tab1.t > tab2.t / 1.1) "
         };
         for (int i = 0; i < joins.length; i++)
           for (int j = 0; j < joinConditions.length; j++) {
@@ -172,14 +166,7 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
           }
 
        String []  joinConditions2 = {"%s tab1.j = tab2.j and tab1.s > tab2.s ",
-                                    "%s tab1.j = tab2.j and (tab1.s > tab2.s or tab1.s > tab2.s - 1 and tab1.s > tab2.s + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.s > tab2.s + 1 and tab1.s > tab2.s or tab1.s > tab2.s - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.s > tab2.s + 1 and tab1.s > tab2.s - 1 or tab1.s > tab2.s) ",
-                                    "%s (tab1.s > tab2.s + 1 and tab1.s > tab2.s - 1 or tab1.s > tab2.s) and tab1.j = tab2.j ",
-                                    "%s tab1.j = tab2.j and ((tab1.s > tab2.s or tab1.s > tab2.s - 1) and tab1.s > tab2.s + 1) ",
-                                    "%s tab1.j = tab2.j and ((tab1.s > tab2.s or tab1.s > tab2.s * 0.9) and tab1.s > tab2.s / 1.1) ",
-                                    "%s tab1.j = tab2.j and (tab1.s > tab2.s or tab1.s is null) ",
-                                    "%s tab1.j = tab2.j and (tab1.s > tab2.s or tab2.s is null) "
+                                    "%s tab1.j = tab2.j and ((tab1.s > tab2.s or tab1.s > tab2.s * 0.9) and tab1.s > tab2.s / 1.1) "
         };
         for (int i = 0; i < joins.length; i++)
           for (int j = 0; j < joinConditions2.length; j++) {
@@ -194,14 +181,7 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
           }
 
        String []  joinConditions3 = {"%s tab1.j = tab2.j and tab1.i > tab2.i ",
-                                    "%s tab1.j = tab2.j and (tab1.i > tab2.i or tab1.i > tab2.i - 1 and tab1.i > tab2.i + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.i > tab2.i + 1 and tab1.i > tab2.i or tab1.i > tab2.i - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.i > tab2.i + 1 and tab1.i > tab2.i - 1 or tab1.i > tab2.i) ",
-                                    "%s (tab1.i > tab2.i + 1 and tab1.i > tab2.i - 1 or tab1.i > tab2.i) and tab1.j = tab2.j ",
-                                    "%s tab1.j = tab2.j and ((tab1.i > tab2.i or tab1.i > tab2.i - 1) and tab1.i > tab2.i + 1) ",
-                                    "%s tab1.j = tab2.j and ((tab1.i > tab2.i or tab1.i > tab2.i * 0.9) and tab1.i > tab2.i / 1.1) ",
-                                    "%s tab1.j = tab2.j and (tab1.i > tab2.i or tab1.i is null) ",
-                                    "%s tab1.j = tab2.j and (tab1.i > tab2.i or tab2.i is null) "
+                                    "%s tab1.j = tab2.j and ((tab1.i > tab2.i or tab1.i > tab2.i * 0.9) and tab1.i > tab2.i / 1.1) "
         };
         for (int i = 0; i < joins.length; i++)
           for (int j = 0; j < joinConditions3.length; j++) {
@@ -216,14 +196,7 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
           }
 
        String []  joinConditions4 = {"%s tab1.j = tab2.j and tab1.l > tab2.l ",
-                                    "%s tab1.j = tab2.j and (tab1.l > tab2.l or tab1.l > tab2.l - 1 and tab1.l > tab2.l + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.l > tab2.l + 1 and tab1.l > tab2.l or tab1.l > tab2.l - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.l > tab2.l + 1 and tab1.l > tab2.l - 1 or tab1.l > tab2.l) ",
-                                    "%s (tab1.l > tab2.l + 1 and tab1.l > tab2.l - 1 or tab1.l > tab2.l) and tab1.j = tab2.j ",
-                                    "%s tab1.j = tab2.j and ((tab1.l > tab2.l or tab1.l > tab2.l - 1) and tab1.l > tab2.l + 1) ",
-                                    "%s tab1.j = tab2.j and ((tab1.l > tab2.l or tab1.l > tab2.l * 0.9) and tab1.l > tab2.l / 1.1) ",
-                                    "%s tab1.j = tab2.j and (tab1.l > tab2.l or tab1.l is null) ",
-                                    "%s tab1.j = tab2.j and (tab1.l > tab2.l or tab2.l is null) "
+                                    "%s tab1.j = tab2.j and ((tab1.l > tab2.l or tab1.l > tab2.l * 0.9) and tab1.l > tab2.l / 1.1) "
         };
         for (int i = 0; i < joins.length; i++)
           for (int j = 0; j < joinConditions4.length; j++) {
@@ -238,14 +211,7 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
           }
 
        String []  joinConditions5 = {"%s tab1.j = tab2.j and tab1.d > tab2.d ",
-                                    "%s tab1.j = tab2.j and (tab1.d > tab2.d or tab1.d > tab2.d - 1 and tab1.d > tab2.d + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.d > tab2.d + 1 and tab1.d > tab2.d or tab1.d > tab2.d - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.d > tab2.d + 1 and tab1.d > tab2.d - 1 or tab1.d > tab2.d) ",
-                                    "%s (tab1.d > tab2.d + 1 and tab1.d > tab2.d - 1 or tab1.d > tab2.d) and tab1.j = tab2.j ",
-                                    "%s tab1.j = tab2.j and ((tab1.d > tab2.d or tab1.d > tab2.d - 1) and tab1.d > tab2.d + 1) ",
-                                    "%s tab1.j = tab2.j and ((tab1.d > tab2.d or tab1.d > tab2.d * 0.9) and tab1.d > tab2.d / 1.1) ",
-                                    "%s tab1.j = tab2.j and (tab1.d > tab2.d or tab1.d is null) ",
-                                    "%s tab1.j = tab2.j and (tab1.d > tab2.d or tab2.d is null) "
+                                    "%s tab1.j = tab2.j and ((tab1.d > tab2.d or tab1.d > tab2.d * 0.9) and tab1.d > tab2.d / 1.1) "
         };
         for (int i = 0; i < joins.length; i++)
           for (int j = 0; j < joinConditions5.length; j++) {
@@ -260,14 +226,7 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
           }
 
        String []  joinConditions6 = {"%s tab1.j = tab2.j and tab1.d > tab2.l ",
-                                    "%s tab1.j = tab2.j and (tab1.d > tab2.l or tab1.l > tab2.d - 1 and tab1.l > tab2.d + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.l > tab2.d + 1 and tab1.d > tab2.l or tab1.d > tab2.l - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.d > tab2.l + 1 and tab1.l > tab2.d - 1 or tab1.l > tab2.d) ",
-                                    "%s (tab1.d > tab2.l + 1 and tab1.d > tab2.l - 1 or tab1.d > tab2.l) and tab1.j = tab2.j ",
-                                    "%s tab1.j = tab2.j and ((tab1.l > tab2.d or tab1.l > tab2.d - 1) and tab1.l > tab2.d + 1) ",
-                                    "%s tab1.j = tab2.j and ((tab1.d > tab2.l or tab1.d > tab2.l * 0.9) and tab1.l > tab2.d / 1.1) ",
-                                    "%s tab1.j = tab2.j and (tab1.d > tab2.l or tab1.d is null) ",
-                                    "%s tab1.j = tab2.j and (tab1.d > tab2.l or tab2.d is null) "
+                                    "%s tab1.j = tab2.j and ((tab1.d > tab2.l or tab1.d > tab2.l * 0.9) and tab1.l > tab2.d / 1.1) "
         };
         for (int i = 0; i < joins.length; i++)
           for (int j = 0; j < joinConditions6.length; j++) {
@@ -293,19 +252,10 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
                 "----\n" +
                 "%s |";
 
-        String[] joins = {", ", "left outer join ", "where exists (select 1 from ", "where not exists (select 1 from "};
-        String[] whereOrOnClause = {"where", "on ", "where", "where"};
-        String[] closingParenthesis = {"", "", ")", ")"};
-        String [][] expectedCounts = {{" 6"," 6"," 7"," 6"," 6"," 6"},
-                                      {" 8"," 8"," 8"," 8"," 8"," 8"},
-                                      {" 3"," 3"," 4"," 3"," 3"," 3"},
-                                      {" 2"," 2"," 1"," 2"," 2"," 2"}};
+        String [][] expectedCounts = {{" 6"," 6"},
+                                      {" 2"," 2"}};
 
         String [] joinConditions = {"%s tab1.j = tab2.j and tab1.f1 > tab2.f1 ",
-                                    "%s tab1.j = tab2.j and (tab1.f1 > tab2.f1 or tab1.f1 > tab2.f1 - 1 and tab1.f1 > tab2.f1 + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.f1 > tab2.f1 + 1 and tab1.f1 > tab2.f1 or tab1.f1 > tab2.f1 - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.f1 > tab2.f1 + 1 and tab1.f1 > tab2.f1 - 1 or tab1.f1 > tab2.f1) ",
-                                    "%s (tab1.f1 > tab2.f1 + 1 and tab1.f1 > tab2.f1 - 1 or tab1.f1 > tab2.f1) and tab1.j = tab2.j ",
                                     "%s tab1.j = tab2.j and ((tab1.f1 > tab2.f1 or tab1.f1 > tab2.f1 - 1) and tab1.f1 > tab2.f1 + 1) "};
 
         for (int i = 0; i < joins.length; i++)
@@ -321,15 +271,9 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
           }
 
         String [] joinConditions2 = {"%s tab1.j = tab2.j and tab1.f2 > tab2.f2 ",
-                                    "%s tab1.j = tab2.j and (tab1.f2 > tab2.f2 or tab1.f2 > tab2.f2 - 1 and tab1.f2 > tab2.f2 + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.f2 > tab2.f2 + 1 and tab1.f2 > tab2.f2 or tab1.f2 > tab2.f2 - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.f2 > tab2.f2 + 1 and tab1.f2 > tab2.f2 - 1 or tab1.f2 > tab2.f2) ",
-                                    "%s (tab1.f2 > tab2.f2 + 1 and tab1.f2 > tab2.f2 - 1 or tab1.f2 > tab2.f2) and tab1.j = tab2.j ",
                                     "%s tab1.j = tab2.j and ((tab1.f2 > tab2.f2 or tab1.f2 > tab2.f2 - 1) and tab1.f2 > tab2.f2 + 1) "};
-        String [][] expectedCounts2 = {{" 6"," 6"," 9"," 6"," 6"," 6"},
-                                      {" 8"," 8","10"," 8"," 8"," 8"},
-                                      {" 3"," 3"," 4"," 3"," 3"," 3"},
-                                      {" 2"," 2"," 1"," 2"," 2"," 2"}};
+        String [][] expectedCounts2 = {{" 6"," 6"},
+                                      {" 2"," 2"}};
 
         for (int i = 0; i < joins.length; i++)
           for (int j = 0; j < joinConditions2.length; j++) {
@@ -344,16 +288,10 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
           }
 
         String [] joinConditions3 = {"%s tab1.j = tab2.j and tab1.f3 > tab2.f3 ",
-                                    "%s tab1.j = tab2.j and (tab1.f3 > tab2.f3 or tab1.f3 > tab2.f3 - 1 and tab1.f3 > tab2.f3 + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.f3 > tab2.f3 + 1 and tab1.f3 > tab2.f3 or tab1.f3 > tab2.f3 - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.f3 > tab2.f3 + 1 and tab1.f3 > tab2.f3 - 1 or tab1.f3 > tab2.f3) ",
-                                    "%s (tab1.f3 > tab2.f3 + 1 and tab1.f3 > tab2.f3 - 1 or tab1.f3 > tab2.f3) and tab1.j = tab2.j ",
                                     "%s tab1.j = tab2.j and ((tab1.f3 > tab2.f3 or tab1.f3 > tab2.f3 - 1) and tab1.f3 > tab2.f3 + 1) "};
 
-        String [][] expectedCounts3 = {{" 0"," 0","16"," 0"," 0"," 0"},
-                                      {" 5"," 5","17"," 5"," 5"," 5"},
-                                      {" 0"," 0"," 4"," 0"," 0"," 0"},
-                                      {" 5"," 5"," 1"," 5"," 5"," 5"}};
+        String [][] expectedCounts3 = {{" 0"," 0"},
+                                      {" 5"," 5"}};
 
         for (int i = 0; i < joins.length; i++)
           for (int j = 0; j < joinConditions3.length; j++) {
@@ -368,16 +306,10 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
           }
 
         String [] joinConditions4 = {"%s tab1.j = tab2.j and tab1.f4 > tab2.f4 ",
-                                    "%s tab1.j = tab2.j and (tab1.f4 > tab2.f4 or tab1.f4 > tab2.f4 - 1 and tab1.f4 > tab2.f4 + 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.f4 > tab2.f4 + 1 and tab1.f4 > tab2.f4 or tab1.f4 > tab2.f4 - 1) ",
-                                    "%s tab1.j = tab2.j and (tab1.f4 > tab2.f4 + 1 and tab1.f4 > tab2.f4 - 1 or tab1.f4 > tab2.f4) ",
-                                    "%s (tab1.f4 > tab2.f4 + 1 and tab1.f4 > tab2.f4 - 1 or tab1.f4 > tab2.f4) and tab1.j = tab2.j ",
                                     "%s tab1.j = tab2.j and ((tab1.f4 > tab2.f4 or tab1.f4 > tab2.f4 - 1) and tab1.f4 > tab2.f4 + 1) "};
 
-        String [][] expectedCounts4 = {{" 6"," 6"," 9"," 6"," 6"," 6"},
-                                      {" 8"," 8","10"," 8"," 8"," 8"},
-                                      {" 3"," 3"," 4"," 3"," 3"," 3"},
-                                      {" 2"," 2"," 1"," 2"," 2"," 2"}};
+        String [][] expectedCounts4 = {{" 6"," 6"},
+                                      {" 2"," 2"}};
 
         for (int i = 0; i < joins.length; i++)
           for (int j = 0; j < joinConditions4.length; j++) {
@@ -403,19 +335,10 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
         "----\n" +
         "%s |";
 
-        String[] joins = {", ", "left outer join ", "where exists (select 1 from ", "where not exists (select 1 from "};
-        String[] whereOrOnClause = {"where", "on ", "where", "where"};
-        String[] closingParenthesis = {"", "", ")", ")"};
-        String[][] expectedCounts = {{" 6", " 6", "10", " 6", " 6", " 3"},
-                                    {" 8", " 8", "11", " 8", " 8", " 6"},
-                                    {" 3", " 3", " 4", " 3", " 3", " 2"},
-                                    {" 2", " 2", " 1", " 2", " 2", " 3"}};
+        String[][] expectedCounts = {{" 6"," 3"},
+                                    {" 2"," 3"}};
 
         String[] joinConditions = {"%s tab1.j = tab2.j and tab1.d > tab2.d ",
-        "%s tab1.j = tab2.j and (tab1.d > tab2.d or tab1.d > tab2.d - 1 and tab1.d > tab2.d + 1) ",
-        "%s tab1.j = tab2.j and (tab1.d > tab2.d + 1 and tab1.d > tab2.d or tab1.d > tab2.d - 1) ",
-        "%s tab1.j = tab2.j and (tab1.d > tab2.d + 1 and tab1.d > tab2.d - 1 or tab1.d > tab2.d) ",
-        "%s (tab1.d > tab2.d + 1 and tab1.d > tab2.d - 1 or tab1.d > tab2.d) and tab1.j = tab2.j ",
         "%s tab1.j = tab2.j and ((tab1.d > tab2.d or tab1.d > tab2.d - 1) and tab1.d > tab2.d + 1) "};
 
         for (int i = 0; i < joins.length; i++)
@@ -430,16 +353,10 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
                 testQueryUnsorted(sqlText, expected, methodWatcher);
             }
 
-        String[][] expectedCounts2 = {{" 6", " 6", "10", " 6", " 6", " 3"},
-                                    {" 8", " 8", "11", " 8", " 8", " 6"},
-                                    {" 3", " 3", " 4", " 3", " 3", " 2"},
-                                    {" 2", " 2", " 1", " 2", " 2", " 3"}};
+        String[][] expectedCounts2 = {{" 6"," 3"},
+                                    {" 2", " 3"}};
 
         String[] joinConditions2 = {"%s tab1.j = tab2.j and tab1.ts > tab2.ts ",
-        "%s tab1.j = tab2.j and (tab1.ts > tab2.ts or tab1.ts > tab2.ts - 1 and tab1.ts > tab2.ts + 1) ",
-        "%s tab1.j = tab2.j and (tab1.ts > tab2.ts + 1 and tab1.ts > tab2.ts or tab1.ts > tab2.ts - 1) ",
-        "%s tab1.j = tab2.j and (tab1.ts > tab2.ts + 1 and tab1.ts > tab2.ts - 1 or tab1.ts > tab2.ts) ",
-        "%s (tab1.ts > tab2.ts + 1 and tab1.ts > tab2.ts - 1 or tab1.ts > tab2.ts) and tab1.j = tab2.j ",
         "%s tab1.j = tab2.j and ((tab1.ts > tab2.ts or tab1.ts > tab2.ts - 1) and tab1.ts > tab2.ts + 1) "};
 
         for (int i = 0; i < joins.length; i++)
@@ -454,27 +371,22 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
                 testQueryUnsorted(sqlText, expected, methodWatcher);
             }
 
-        String[][] expectedCounts3 = {{" 6", " 6", "12", "10", " 4", " 0", " 3"},
-                                    {" 8", " 8", "13", "11", " 5", " 5", " 5"},
-                                    {" 3", " 3", " 4", " 4", " 4", " 0", " 3"},
-                                    {" 2", " 2", " 1", " 1", " 1", " 5", " 2"}};
+        String[][] expectedCounts3 = {{" 6"," 3"},
+                                    {" 2"," 2"}};
 
         String[] joinConditions3 = {"%s tab1.j = tab2.j and tab1.t > tab2.t ",
-        "%s tab1.j = tab2.j and (tab1.t > tab2.t or tab1.t > tab2.t and tab1.t >= tab2.t) ",
-        "%s tab1.j = tab2.j and (tab1.t >= tab2.t and tab1.t > tab2.t or tab1.t < tab2.t) ",
-        "%s tab1.j = tab2.j and (tab1.t > tab2.t and tab1.t >= tab2.t or tab1.t >= tab2.t) ",
-        "%s (tab1.t > tab2.t and tab1.t < tab2.t or tab1.t = tab2.t) and tab1.j = tab2.j ",
-        "%s tab1.j = tab2.j and ((tab1.t = tab2.t or tab1.t is null) and tab1.t > tab2.t) ",
         "%s tab1.j = tab2.j and ((tab1.t = tab2.t or tab1.t is null) and tab1.t > TO_TIME('11:44', 'HH:mm')) ",
         };
 
+        /* for the scenario i=3, j=1, the not exists subquery is not flattened, so broadcast join is not applicable,
+        use nestedloop join instead which is the only applicable join strategy */
         for (int i = 0; i < joins.length; i++)
             for (int j = 0; j < joinConditions3.length; j++) {
                 sqlText = format("/* i=%d, j=%d */ select count(*) from ts_datetime tab1 %s ts_datetime tab2 " +
                 "--splice-properties useSpark=%s, joinStrategy=%s\n" +
                 "%s " +
                 "%s"
-                , i, j, joins[i], useSpark, joinStrategy, joinConditions3[j], closingParenthesis[i]);
+                , i, j, joins[i], useSpark, (j==1?"nestedloop" : joinStrategy), joinConditions3[j], closingParenthesis[i]);
                 sqlText = format(sqlText, whereOrOnClause[i]);
                 expected = format(expectedTemplate, expectedCounts3[i][j]);
                 testQueryUnsorted(sqlText, expected, methodWatcher);
@@ -492,19 +404,10 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
         "----\n" +
         "%s |";
 
-        String[] joins = {", ", "left outer join ", "where exists (select 1 from ", "where not exists (select 1 from "};
-        String[] whereOrOnClause = {"where", "on ", "where", "where"};
-        String[] closingParenthesis = {"", "", ")", ")"};
-        String[][] expectedCounts = {{" 6", " 6", "10", " 6", " 6", " 3"},
-                                    {" 8", " 8", "11", " 8", " 8", " 6"},
-                                    {" 3", " 3", " 4", " 3", " 3", " 2"},
-                                    {" 2", " 2", " 1", " 2", " 2", " 3"}};
+        String[][] expectedCounts = {{" 6"," 3"},
+                                    {" 2"," 3"}};
 
         String[] joinConditions = {"%s tab1.j = tab2.j and tab1.b > tab2.b ",
-        "%s tab1.j = tab2.j and (tab1.b > tab2.b or tab1.b > tab2.b - 1 and tab1.b > tab2.b + 1) ",
-        "%s tab1.j = tab2.j and (tab1.b > tab2.b + 1 and tab1.b > tab2.b or tab1.b > tab2.b - 1) ",
-        "%s tab1.j = tab2.j and (tab1.b > tab2.b + 1 and tab1.b > tab2.b - 1 or tab1.b > tab2.b) ",
-        "%s (tab1.b > tab2.b + 1 and tab1.b > tab2.b - 1 or tab1.b > tab2.b) and tab1.j = tab2.j ",
         "%s tab1.j = tab2.j and ((tab1.b > tab2.b or tab1.b > tab2.b - 1) and tab1.b > tab2.b + 1) "};
 
         for (int i = 0; i < joins.length; i++)
@@ -519,16 +422,10 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
                 testQueryUnsorted(sqlText, expected, methodWatcher);
             }
 
-        String[][] expectedCounts2 = {{" 6", " 6", "10", " 6", " 6", " 3"},
-                                    {" 8", " 8", "11", " 8", " 8", " 6"},
-                                    {" 3", " 3", " 4", " 3", " 3", " 2"},
-                                    {" 2", " 2", " 1", " 2", " 2", " 3"}};
+        String[][] expectedCounts2 = {{" 6"," 3"},
+                                    {" 2"," 3"}};
 
         String[] joinConditions2 = {"%s tab1.j = tab2.j and tab1.c > tab2.c ",
-        "%s tab1.j = tab2.j and (tab1.c > tab2.c or tab1.c > tab2.c - 1 and tab1.c > tab2.c + 1) ",
-        "%s tab1.j = tab2.j and (tab1.c > tab2.c + 1 and tab1.c > tab2.c or tab1.c > tab2.c - 1) ",
-        "%s tab1.j = tab2.j and (tab1.c > tab2.c + 1 and tab1.c > tab2.c - 1 or tab1.c > tab2.c) ",
-        "%s (tab1.c > tab2.c + 1 and tab1.c > tab2.c - 1 or tab1.c > tab2.c) and tab1.j = tab2.j ",
         "%s tab1.j = tab2.j and ((tab1.c > tab2.c or tab1.c > tab2.c - 1) and tab1.c > tab2.c + 1) "};
 
         for (int i = 0; i < joins.length; i++)
@@ -543,16 +440,10 @@ public class NativeSparkJoinWithInequalityPredsIT  extends SpliceUnitTest {
                 testQueryUnsorted(sqlText, expected, methodWatcher);
             }
 
-        String[][] expectedCounts3 = {{"10", "10", "10", "10", "10", " 3"},
-                                    {"11", "11", "11", "11", "11", " 6"},
-                                    {" 4", " 4", " 4", " 4", " 4", " 2"},
-                                    {" 1", " 1", " 1", " 1", " 1", " 3"}};
+        String[][] expectedCounts3 = {{"10"," 3"},
+                                    {" 1"," 3"}};
 
         String[] joinConditions3 = {"%s tab1.j = tab2.j and tab1.b > tab2.c ",
-        "%s tab1.j = tab2.j and (tab1.b > tab2.c or tab1.b > tab2.c - 1 and tab1.b > tab2.c + 1) ",
-        "%s tab1.j = tab2.j and (tab1.b > tab2.c + 1 and tab1.b > tab2.c or tab1.b > tab2.c - 1) ",
-        "%s tab1.j = tab2.j and (tab1.b > tab2.c + 1 and tab1.b > tab2.c - 1 or tab1.b > tab2.c) ",
-        "%s (tab1.b > tab2.c + 1 and tab1.b > tab2.c - 1 or tab1.b > tab2.c) and tab1.j = tab2.j ",
         "%s tab1.j = tab2.j and ((tab1.b > tab2.c or tab1.b > tab2.c - 1) and tab1.b > tab2.c + 1) "};
 
         for (int i = 0; i < joins.length; i++)

@@ -31,6 +31,7 @@ import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.SplitRegionScanner;
 
+import com.splicemachine.test.LongerThanTwoMinutes;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.ServerName;
@@ -41,6 +42,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
 import org.apache.log4j.Logger;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -49,6 +51,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
+@Category(LongerThanTwoMinutes.class)
 public class SplitRegionScannerIT  extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(SplitRegionScannerIT.class);
     private static final String SCHEMA = SplitRegionScannerIT.class.getSimpleName();

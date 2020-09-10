@@ -19,7 +19,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.Pair;
 import java.io.IOException;
 import com.carrotsearch.hppc.BitSet;
-import org.spark_project.guava.base.Supplier;
+import splice.com.google.common.base.Supplier;
 
 /**
  * @author Scott Fines

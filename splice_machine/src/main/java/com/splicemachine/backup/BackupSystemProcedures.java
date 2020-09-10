@@ -30,7 +30,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.procedures.ProcedureUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -45,7 +45,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.utils.SpliceLogUtils;
-
+import com.splicemachine.backup.BackupMessage.BackupJobStatus;
 /**
  *
  * Created by jyuan on 2/12/15.
@@ -186,8 +186,6 @@ public class BackupSystemProcedures {
     public static void SYSCS_BACKUP_DATABASE(String directory, String type, ResultSet[] resultSets)
             throws StandardException, SQLException {
         type = type.trim();
-        Connection conn = SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
         try {
             // Check directory
             if (directory == null || directory.isEmpty()) {
@@ -331,8 +329,6 @@ public class BackupSystemProcedures {
             throws StandardException, SQLException {
 
         type = type.trim();
-        Connection conn = SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 
         try {
             // Check directory
@@ -426,7 +422,7 @@ public class BackupSystemProcedures {
         try{
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             List<Long> backupIds = Lists.newArrayList();
-            backupIds.add(new Long(backupId));
+            backupIds.add(Long.valueOf(backupId));
             backupManager.removeBackup(backupIds);
             resultSets[0] = ProcedureUtils.generateResult("Success", "Delete backup "+backupId);
         } catch (Throwable t) {
@@ -501,8 +497,8 @@ public class BackupSystemProcedures {
             for (BackupJobStatus backupJobStatus : backupJobStatuses) {
                 template.getColumn(1).setValue(backupJobStatus.getBackupId());
                 template.getColumn(2).setValue(backupJobStatus.getScope().toString());
-                template.getColumn(3).setValue(backupJobStatus.isIncremental()?"Incremental":"Full");
-                template.getColumn(4).setValue(backupJobStatus.getObjects().get(0));
+                template.getColumn(3).setValue(backupJobStatus.getIsIncremental()?"Incremental":"Full");
+                template.getColumn(4).setValue(backupJobStatus.getObjectsList().get(0));
                 template.getColumn(5).setValue(new Timestamp(backupJobStatus.getLastActiveTimestamp()));
 
                 rows.add(template.getClone());

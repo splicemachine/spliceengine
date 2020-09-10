@@ -25,10 +25,11 @@ import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -85,8 +86,7 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
             for (byte[] split : splits)
                 writeResponse.addCutPoint(com.google.protobuf.ByteString.copyFrom(split));
         } catch (java.io.IOException e) {
-            // FIXME: 4/12/19
-            //org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, e);
+            org.apache.hadoop.hbase.shaded.protobuf.ResponseConverter.setControllerException(controller, e);
         }
         callback.run(writeResponse.build());
     }
@@ -100,8 +100,7 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
             writeResponse.setEncodedName(region.getRegionInfo().getRegionNameAsString());
             writeResponse.setSizeInBytes(region.getMemStoreHeapSize()+getStoreFileSize());
         } catch (Exception e) {
-            // FIXME: 4/12/19
-            //org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, new IOException(e));
+            org.apache.hadoop.hbase.shaded.protobuf.ResponseConverter.setControllerException(controller, new IOException(e));
         }
         callback.run(writeResponse.build());
     }
@@ -128,5 +127,32 @@ public class RegionSizeEndpoint extends SpliceMessage.SpliceDerbyCoprocessorServ
         } finally {
             HRegionUtil.unlockStore(store);
         }
+    }
+
+    @Override
+    public void getCompactedHFiles(RpcController controller,
+                                   SpliceMessage.GetCompactedHFilesRequest request,
+                                   RpcCallback<SpliceMessage.GetCompactedHFilesResponse> callback) {
+        if (LOG.isDebugEnabled()) {
+            SpliceLogUtils.debug(LOG, "getCompactedHFiles");
+        }
+        SpliceMessage.GetCompactedHFilesResponse.Builder writeResponse = SpliceMessage.GetCompactedHFilesResponse.newBuilder();
+
+        HStore store = region.getStore(SIConstants.DEFAULT_FAMILY_BYTES);
+        try {
+            HRegionUtil.lockStore(store);
+            Collection<? extends StoreFile> compactedFiles = store.getCompactedFiles();
+            if (LOG.isDebugEnabled()) {
+                String regionName = region.getRegionInfo().getRegionNameAsString();
+                SpliceLogUtils.debug(LOG, "region store files " + regionName + ": " + store.getStorefiles());
+                SpliceLogUtils.debug(LOG, "compacted files " + regionName + ": " + compactedFiles);
+            }
+            for (StoreFile file: compactedFiles) {
+                writeResponse.addFilePath(file.getPath().toString());
+            }
+        } finally {
+            HRegionUtil.unlockStore(store);
+        }
+        callback.run(writeResponse.build());
     }
 }

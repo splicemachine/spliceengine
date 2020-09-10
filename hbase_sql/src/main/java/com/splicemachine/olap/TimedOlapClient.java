@@ -20,7 +20,7 @@ import com.splicemachine.derby.iapi.sql.olap.OlapResult;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ListenableFuture;
+import splice.com.google.common.util.concurrent.ListenableFuture;
 
 import javax.annotation.Nonnull;
 import java.io.IOException;

@@ -23,6 +23,7 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.JobID;
 import org.apache.hadoop.mapreduce.task.JobContextImpl;
+import org.apache.log4j.Logger;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,6 +40,7 @@ import static org.junit.Assert.assertTrue;
  *         Date: 4/30/19
  */
 public class RegionSplitsIT extends SpliceUnitTest {
+    private static final Logger LOG = Logger.getLogger(RegionSplitsIT.class);
     private static final String SCHEMA_NAME = RegionSplitsIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
     private static final String TABLE1_NAME = "TAB1";
@@ -107,7 +109,7 @@ public class RegionSplitsIT extends SpliceUnitTest {
         SMInputFormat smInputFormat = new SMInputFormat();
         final Configuration conf=new Configuration(HConfiguration.unwrapDelegate());
         conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR, FakeOutputFormat.class,FakeOutputFormat.class);
-        conf.setInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 4);
+        conf.setInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 8);
         // Get splits for the SYSCOLUMNS table.
         String tableName = format("%s.%s", SCHEMA_NAME, TABLE1_NAME);
         conf.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableName);
@@ -125,13 +127,9 @@ public class RegionSplitsIT extends SpliceUnitTest {
         JobContext ctx = new JobContextImpl(conf,new JobID("test",1));
         List<InputSplit> splits = smInputFormat.getSplits(ctx);
 
-        // The current formula for splits ignores the first and last partitions, so
-        // Requesting 4 splits from 4 partitions gives 4/(4-2) splits per partition.
-        // 2 splits/partition * 4 partitions = 8 splits.
-        // Each region split request is just an approximation.  We may have up to one
-        // extra split per region, or in this case, 12 splits.
-        assertTrue(format("Expected between 8 and 12 splits, got %d.", splits.size()),
-                splits.size() >= 8 && splits.size() <= 12);
+        LOG.info("Got "+splits.size() + " splits");
+        assertTrue(format("Expected between 6 and 10 splits, got %d.", splits.size()),
+                splits.size() >= 6 && splits.size() <= 10);
 
     }
 

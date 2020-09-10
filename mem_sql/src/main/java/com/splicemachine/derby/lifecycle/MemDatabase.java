@@ -84,11 +84,11 @@ public class MemDatabase{
             public boolean connectAsFirstTime(){
                 return true;
             }
-        },config,false);
+        },config,false, false);
         DatabaseLifecycleManager manager=DatabaseLifecycleManager.manager();
         manager.registerEngineService(els);
         manager.registerNetworkService(new NetworkLifecycleService(config));
-        manager.start();
+        manager.start(null);
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable(){
             @Override
             public void run(){
@@ -118,7 +118,9 @@ public class MemDatabase{
             builder.authenticationImpersonationEnabled = true;
             builder.authenticationImpersonationUsers = "dgf=splice;splice=*";
             builder.authenticationMapGroupAttr = "jy=splice,dgf=splice";
-    
+            // To make query plans consistent for SessionPropertyIT.
+            builder.optimizerPlanMinimumTimeout = 5L;
+
             if ("true".equals(System.getProperty("splice.debug.dumpClassFile")) ||
                 "DumpClassFile".equals(System.getProperty("derby.debug.true")))
               builder.debugDumpClassFile = true;

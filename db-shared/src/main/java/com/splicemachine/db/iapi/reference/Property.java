@@ -1458,6 +1458,8 @@ public interface Property {
 
     String SSQ_FLATTENING_FOR_UPDATE_DISABLED = "derby.database.ssqFlatteningForUpdateDisabled";
 
+    String DISABLE_NLJ_PREIDCATE_PUSH_DOWN =
+            "derby.database.disableNLJPredicatePushDown";
     /**
      * Default schema for this connection
      */
@@ -1467,6 +1469,7 @@ public interface Property {
      * True force Spark execution for this session; false forces Control execution for this connection
      */
     String CONNECTION_USE_SPARK = "useSpark";
+    String CONNECTION_USE_OLAP = "useOLAP";
 
     /**
      * True ignores statistics for this connection
@@ -1487,4 +1490,26 @@ public interface Property {
      * Create a read only connection at some fixed point in the past determined by this transaction id
      */
     String CONNECTION_SNAPSHOT = "snapshot";
+
+    /**
+     * How many partitions to fetch in parallel from Spark. It can increase memory consumption on RegionServer if fetching
+     * too much data
+     */
+    String OLAP_PARALLEL_PARTITIONS = "olapParallelPartitions";
+
+    /**
+     * Shuffle size to use for Spark shuffles. When dealing with big intermediate result sets it has to be larger, when
+     * dealing with smaller datasets too many partitions cause a lot of overhead
+     */
+    String OLAP_SHUFFLE_PARTITIONS = "olapShufflePartitions";
+    String CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS = "disableAdvancedTC";
+
+    String SPARK_RESULT_STREAMING_BATCHES = "sparkResultStreamingBatches";
+
+    String SPARK_RESULT_STREAMING_BATCH_SIZE = "sparkResultStreamingBatchSize";
+
+    String CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN = "disableNLJPredicatePushDown";
+
+    String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
 }
+

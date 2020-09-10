@@ -30,13 +30,14 @@ import com.splicemachine.si.impl.txn.LazyTxnView;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.jetty.util.ConcurrentHashSet;
 
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+
+import static com.splicemachine.ddl.DDLMessage.DDLChangeType.ENTER_RESTORE_MODE;
 
 /**
  * @author Scott Fines
@@ -61,12 +62,12 @@ public class DDLWatchRefresher{
                              SqlExceptionFactory exceptionFactory,
                              TxnSupplier txnSupplier){
         this.txController = txnController;
-        this.seenDDLChanges=new ConcurrentHashSet<>();
-        this.changeTimeouts=new ConcurrentHashSet<>();
-        this.currentDDLChanges=new ConcurrentHashMap<>();
-        this.tentativeDDLS=new ConcurrentHashMap<>();
-        this.watchChecker=watchChecker;
-        this.exceptionFactory =exceptionFactory;
+        this.seenDDLChanges = ConcurrentHashMap.newKeySet();
+        this.changeTimeouts = ConcurrentHashMap.newKeySet();
+        this.currentDDLChanges = new ConcurrentHashMap<>();
+        this.tentativeDDLS = new ConcurrentHashMap<>();
+        this.watchChecker = watchChecker;
+        this.exceptionFactory = exceptionFactory;
         this.txnSupplier = txnSupplier;
         ddlDemarcationPoint = new AtomicReference<>();
     }
@@ -214,7 +215,12 @@ public class DDLWatchRefresher{
     private void assignDDLDemarcationPoint(DDLChange ddlChange) {
         try {
             TxnView txn = new LazyTxnView(ddlChange.getTxnId(),txnSupplier,exceptionFactory);
-            assert txn.allowsWrites(): "DDLChange "+ddlChange+" does not have a writable transaction";
+            // A full Restore operation overwrites SPLICE_TXN, so the transaction used by the restore
+            // may not be found.  Avoid the assertion to avoid crashing.
+            // An example call stack can be found in https://splicemachine.atlassian.net/browse/DB-10025
+            if (ddlChange.getDdlChangeType() != ENTER_RESTORE_MODE) {
+                assert txn.allowsWrites() : "DDLChange " + ddlChange + " does not have a writable transaction";
+            }
             DDLFilter ddlFilter = txController.newDDLFilter(txn);
             if (ddlFilter.compareTo(ddlDemarcationPoint.get()) > 0) {
                 ddlDemarcationPoint.set(ddlFilter);

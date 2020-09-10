@@ -19,31 +19,13 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1957-SNAPSHOT</version>
+        <version>3.1.0.1974-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>pipeline_api</artifactId>
             <version>${project.version}</version>
-        </dependency>
-
-        <dependency>
-            <!-- org.spark_project.guava -->
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-databinda</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.apache.orc</groupId>
-                    <artifactId>orc-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -269,7 +251,7 @@
                     <dependenciesToScan>
                         <dependency>com.splicemachine:splice_si_api</dependency>
                     </dependenciesToScan>
-                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent</excludedGroups>
+                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent, ${excluded.longerthan}</excludedGroups>
                     <excludes>
                         <!-- Temporarily excluded until the k2_refactor pullover, then we'll need to
                         un-exclude it and fix the two failing tests-->

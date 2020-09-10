@@ -19,14 +19,16 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.subquery.SubqueryITUtil;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -43,6 +45,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  * Created by yxia on 12/2/19.
  */
 @RunWith(Parameterized.class)
+@Category(LongerThanTwoMinutes.class)
 public class FullOuterJoinIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(FullOuterJoinIT.class);
     public static final String CLASS_NAME = FullOuterJoinIT.class.getSimpleName().toUpperCase();

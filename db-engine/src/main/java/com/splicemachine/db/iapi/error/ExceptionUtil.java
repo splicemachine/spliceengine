@@ -202,4 +202,21 @@ public class ExceptionUtil
         }
         return out.toString();
     }
+
+    /**
+     * Throw a checked exception without declaring one.
+     * Use {@code throw throwAsRuntime(exception);} in contexts where javac needs to know about execution abruption,
+     * f.e. in methods returning a value.
+     * @param t a checked exception, f.e. IOException, to be thrown as an unchecked one.
+     * @return a bogus value to be thrown in the calling method when needed.
+     */
+    public static RuntimeException throwAsRuntime(Throwable t) {
+        ExceptionUtil.<RuntimeException> doThrow(t);
+        return new RuntimeException();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends Throwable> void doThrow(Throwable t) throws T {
+        throw (T) t;
+    }
 }

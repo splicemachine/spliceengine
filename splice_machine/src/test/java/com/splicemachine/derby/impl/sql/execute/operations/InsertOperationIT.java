@@ -20,7 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.commons.io.FileUtils;
 import org.junit.*;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Maps;
 
 import java.io.File;
 import java.io.FileInputStream;

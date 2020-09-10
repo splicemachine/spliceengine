@@ -32,10 +32,14 @@
 package com.splicemachine.db.iapi.reference;
 
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This is a refactoring wrapper around the "real" SQLState.java, which
  * has been relocated to com.splicemachine.db.shared.common.reference
 */
+
+@SuppressFBWarnings(value="NM_SAME_SIMPLE_NAME_AS_INTERFACE")
 public interface SQLState extends 
     com.splicemachine.db.shared.common.reference.SQLState
 {

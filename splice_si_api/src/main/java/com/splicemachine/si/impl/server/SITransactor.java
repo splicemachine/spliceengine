@@ -42,9 +42,9 @@ import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Collections2;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Maps;
 
 import java.io.IOException;
 import java.util.*;
@@ -177,8 +177,10 @@ public class SITransactor implements Transactor{
                                              ConstraintChecker constraintChecker,
                                              boolean skipConflictDetection,
                                              boolean skipWAL, boolean rollforward) throws IOException{
-        MutationStatus[] finalStatus=new MutationStatus[mutations.size()];
-        Pair<KVPair, Lock>[] lockPairs=new Pair[mutations.size()];
+        int size = mutations.size();
+        MutationStatus[] finalStatus=new MutationStatus[size];
+        Pair<KVPair, Lock>[] lockPairs=new Pair[size];
+
         SimpleTxnFilter constraintState=null;
         TxnSupplier supplier = null;
         if(constraintChecker!=null) {
@@ -194,7 +196,7 @@ public class SITransactor implements Transactor{
                     SIConfigurations.DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE;
             supplier = new ActiveTxnCacheSupplier(txnSupplier, initialSize, maxSize);
         }
-        @SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[mutations.size()];
+        @SuppressWarnings("unchecked") final LongHashSet[] conflictingChildren=new LongHashSet[size];
 
 
         ConflictRollForward conflictRollForward = new ConflictRollForward(opFactory, supplier);
@@ -217,6 +219,9 @@ public class SITransactor implements Transactor{
             for(IntObjectCursor<DataPut> write : writes){
                 toWrite[i]=write.value;
                 i++;
+            }
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Writing " + Arrays.toString(toWrite));
             }
             Iterator<MutationStatus> status=table.writeBatch(toWrite);
 
@@ -291,7 +296,7 @@ public class SITransactor implements Transactor{
                  */
                 //todo -sf remove the Row key copy here
                 possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
-                if(possibleConflicts!=null){
+                if(possibleConflicts!=null && !possibleConflicts.isEmpty()){
                     //we need to check for write conflicts
                     try {
                         conflictResults = ensureNoWriteConflict(transaction, writeType, possibleConflicts, rollForwardQueue, supplier);
@@ -319,14 +324,21 @@ public class SITransactor implements Transactor{
 
             conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
-            if (possibleConflicts == null) {
-                // First write
-                addFirstOccurrenceToken = true;
-            } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
-                // Delete following first write
-                assert possibleConflicts.userData() != null;
-                addFirstOccurrenceToken = possibleConflicts.firstWriteToken().version() == possibleConflicts.userData().version();
+
+            if (!skipConflictDetection) {
+                if (possibleConflicts == null || possibleConflicts.isEmpty())
+                {
+                    // First write
+                    if (KVPair.Type.INSERT.equals(writeType) ||
+                        KVPair.Type.UPSERT.equals(writeType))
+                        addFirstOccurrenceToken = true;
+                } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
+                    // Delete following first write
+                    assert possibleConflicts.userData() != null;
+                    addFirstOccurrenceToken = possibleConflicts.firstWriteToken().version() == possibleConflicts.userData().version();
+                }
             }
+
             DataPut mutationToRun = getMutationToRun(
                     table, kvPair, family, qualifier, transaction, conflictResults, addFirstOccurrenceToken, skipWAL, toRollforward);
             finalMutationsToWrite.put(i,mutationToRun);
@@ -351,7 +363,7 @@ public class SITransactor implements Transactor{
          */
         if(constraintChecker==null) return false;
 
-        if(row==null || row.size()<=0) return false;
+        if(row==null || row.isEmpty()) return false;
         //must reset the filter here to avoid contaminating multiple rows with tombstones and stuff
         constraintStateFilter.reset();
 

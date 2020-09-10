@@ -14,16 +14,16 @@
 
 package com.splicemachine.storage;
 
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import com.splicemachine.si.data.HExceptionFactory;
 import com.splicemachine.si.impl.HNotServingRegion;
 import com.splicemachine.si.impl.HRegionTooBusy;
 import com.splicemachine.si.impl.HWrongRegion;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.ImmutableList;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Iterators;
+import splice.com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.Iterables;
+import splice.com.google.common.collect.Iterators;
 import com.google.protobuf.Service;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.kvpair.KVPair;
@@ -157,6 +157,9 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 }
             }
             List<HRegionLocation> tableLocations = ((ClusterConnection) connection).locateRegions(tableName, !refresh, false);
+            if (outdated(tableLocations)) {
+                tableLocations = ((ClusterConnection) connection).locateRegions(tableName, false, false);
+            }
             partitions = new ArrayList<>(tableLocations.size());
             for (HRegionLocation location : tableLocations){
                 if (location.getServerName() == null) {     // ensure no offline regions
@@ -170,6 +173,21 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    // The connection tried to locate a region busing its start key. If the cache is being used(by default) and contains
+    // stale entries, the returned region locations contains duplicate entries. The duplicate entry is a region that has
+    // be split.
+    private boolean outdated(List<HRegionLocation> tableLocations) {
+        Set<String> regionLocations = new HashSet<>();
+        for (HRegionLocation regionLocation : tableLocations) {
+            String encodedName = regionLocation.getRegion().getEncodedName();
+            if (regionLocations.contains(encodedName))
+                return true;
+            else
+                regionLocations.add(encodedName);
+        }
+        return false;
     }
 
     @Override
@@ -200,9 +218,8 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 info.add(location.getRegion());
             }
         }
-        int totalStoreFileSizeMB = 0;
-        int totalMemstoreSieMB = 0;
-        int storeFileIndexSizeMB = 0;
+        long totalStoreFileSize = 0;
+        long totalMemstoreSize = 0;
         try (Admin admin = connection.getAdmin()) {
             ClusterMetrics metrics = admin.getClusterMetrics();
             for (Map.Entry<ServerName, List<RegionInfo>> entry : serverToRegionMap.entrySet()) {
@@ -212,14 +229,13 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
                 for (RegionInfo regionInfo : entry.getValue()) {
                     RegionMetrics regionMetrics = regionsMetrics.get(regionInfo.getRegionName());
                     if (regionMetrics != null) {
-                        totalStoreFileSizeMB += (int) regionMetrics.getStoreFileSize().get(Size.Unit.MEGABYTE);
-                        totalMemstoreSieMB += (int) regionMetrics.getMemStoreSize().get(Size.Unit.MEGABYTE);
-                        storeFileIndexSizeMB += (int) regionMetrics.getStoreFileIndexSize().get(Size.Unit.MEGABYTE);
+                        totalStoreFileSize += regionMetrics.getStoreFileSize().get(Size.Unit.BYTE);
+                        totalMemstoreSize += regionMetrics.getMemStoreSize().get(Size.Unit.BYTE);
                     }
                 }
             }
         }
-        return new HPartitionLoad(getName(), totalStoreFileSizeMB, totalMemstoreSieMB, storeFileIndexSizeMB);
+        return new HPartitionLoad(getName(), totalStoreFileSize, totalMemstoreSize);
     }
 
     /**
@@ -293,6 +309,14 @@ public class ClientPartition extends SkeletonHBaseClientPartition{
 
     public <T extends Service,V> Map<byte[],V> coprocessorExec(Class<T> serviceClass,Batch.Call<T,V> call) throws Throwable{
         return table.coprocessorService(serviceClass,getStartKey(),getEndKey(),call);
+    }
+
+    public <T extends Service,V> Map<byte[],V> coprocessorExec(
+            Class<T> serviceClass,
+            byte[] startKey,
+            byte[] endKey,
+            Batch.Call<T,V> call) throws Throwable{
+        return table.coprocessorService(serviceClass, startKey, endKey, call);
     }
 
     public Table unwrapDelegate(){

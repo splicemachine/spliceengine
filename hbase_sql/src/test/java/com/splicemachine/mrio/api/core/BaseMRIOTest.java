@@ -19,7 +19,6 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
-import com.splicemachine.db.client.am.Connection;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -29,34 +28,31 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
-import org.junit.Ignore;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.mrio.MRConstants;
 
-@Ignore("Breaks stuff")
 public class BaseMRIOTest extends SpliceUnitTest{
 	private static final Logger LOG = Logger.getLogger(BaseMRIOTest.class);
 	protected static Configuration config;
 	protected static SMSQLUtil sqlUtil;
 	protected static org.apache.hadoop.hbase.client.Connection connection;
-	
+
 	static {
 		config = HConfiguration.unwrapDelegate();
 		config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
 		config.set(HConstants.HBASE_DIR,getHbaseRootDirectory());
-        config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
-    	config.set(MRConstants.SPLICE_JDBC_STR, SpliceNetConnection.getDefaultLocalURL());
-        System.setProperty(HConstants.HBASE_DIR, getHbaseRootDirectory());
-    	System.setProperty("hive.metastore.warehouse.dir", getHiveWarehouseDirectory());
-    	System.setProperty("mapred.job.tracker", "local");
-    	System.setProperty("mapreduce.framework.name", "local-chicken");
-    	System.setProperty("hive.exec.mode.local.auto","true");
-    	System.setProperty("javax.jdo.option.ConnectionURL", "jdbc:derby:;databaseName=target/metastore_db;create=true");
+		config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
+		config.set(MRConstants.SPLICE_JDBC_STR, SpliceNetConnection.getDefaultLocalURL());
+		System.setProperty(HConstants.HBASE_DIR, getHbaseRootDirectory());
+		System.setProperty("hive.metastore.warehouse.dir", getHiveWarehouseDirectory());
+		System.setProperty("mapred.job.tracker", "local");
+		System.setProperty("mapreduce.framework.name", "local-chicken");
+		System.setProperty("hive.exec.mode.local.auto","true");
+		System.setProperty("javax.jdo.option.ConnectionURL", "jdbc:derby:;databaseName=target/metastore_db;create=true");
 		sqlUtil = SMSQLUtil.getInstance(SpliceNetConnection.getDefaultLocalURL());
 		try {
 			connection = ConnectionFactory.createConnection(config);
@@ -66,13 +62,13 @@ public class BaseMRIOTest extends SpliceUnitTest{
 	}
 
 	protected static void flushTable(String tableName) throws SQLException, IOException, InterruptedException {
-		TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
+		TableName spliceTableName = TableName.valueOf("splice", sqlUtil.getConglomID(tableName));
 		try (Admin admin = connection.getAdmin()) {
-			admin.flush(conglomId);
+			admin.flush(spliceTableName);
 		}
 	}
 
-	
+
 	protected static void compactTable(String tableName) throws SQLException, IOException, InterruptedException {
 		TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
 		try (Admin admin = connection.getAdmin()) {
@@ -81,35 +77,49 @@ public class BaseMRIOTest extends SpliceUnitTest{
 	}
 
 	protected static void splitTable(String tableName) throws SQLException, IOException, InterruptedException {
-		TableName conglomId = TableName.valueOf(sqlUtil.getConglomID(tableName));
+		TableName spliceTableName = TableName.valueOf("splice", sqlUtil.getConglomID(tableName));
 		try (Admin admin = connection.getAdmin()) {
-			admin.split(conglomId);
+			admin.split(spliceTableName);
+			while (admin.getRegions(spliceTableName).size() < 2) {
+				Thread.sleep(1000); // wait for split to complete
+				try {
+					admin.split(spliceTableName); // just in case
+				} catch (Exception e) {
+				}
+			}
 		}
 	}
 
-    protected static HRegionLocation getRegionLocation(String conglomId, Admin hBaseAdmin) throws IOException, SQLException {
-        TableName tableName = TableName.valueOf("splice",conglomId);
-        List<HRegionInfo> tableRegions = hBaseAdmin.getTableRegions(tableName);
-        if (tableRegions == null || tableRegions.isEmpty()) {
-            return null;
-        }
-        byte[] encodedRegionNameBytes = tableRegions.get(0).getRegionName();
-        return MetaTableAccessor.getRegionLocation(hBaseAdmin.getConnection(), encodedRegionNameBytes);
-    }
+	protected static HRegionLocation getRegionLocation(String conglomId, Admin hBaseAdmin) throws IOException, SQLException {
+		TableName tableName = TableName.valueOf("splice",conglomId);
+		List<HRegionInfo> tableRegions = hBaseAdmin.getTableRegions(tableName);
+		if (tableRegions == null || tableRegions.isEmpty()) {
+			return null;
+		}
+		byte[] encodedRegionNameBytes = tableRegions.get(0).getRegionName();
+		return MetaTableAccessor.getRegionLocation(hBaseAdmin.getConnection(), encodedRegionNameBytes);
+	}
 
-    protected static Collection<ServerName> getAllServers(Admin hBaseAdmin) throws IOException, SQLException {
-        return hBaseAdmin.getClusterStatus().getServers();
-    }
+	protected static int getRegionCount(String tableName) throws SQLException, IOException, InterruptedException {
+		TableName spliceTableName = TableName.valueOf("splice", sqlUtil.getConglomID(tableName));
+		try (Admin admin = connection.getAdmin()) {
+			return admin.getRegions(spliceTableName).size();
+		}
+	}
 
-    protected static ServerName getNotIn(Collection<ServerName> allServers, ServerName regionServer) {
-        ServerName firstNonMatch = null;
-        for (ServerName sn : allServers) {
-            if (! sn.equals(regionServer)) {
-                firstNonMatch = sn;
-                break;
-            }
-        }
-        return firstNonMatch;
-    }
+	protected static Collection<ServerName> getAllServers(Admin hBaseAdmin) throws IOException, SQLException {
+		return hBaseAdmin.getClusterStatus().getServers();
+	}
+
+	protected static ServerName getNotIn(Collection<ServerName> allServers, ServerName regionServer) {
+		ServerName firstNonMatch = null;
+		for (ServerName sn : allServers) {
+			if (! sn.equals(regionServer)) {
+				firstNonMatch = sn;
+				break;
+			}
+		}
+		return firstNonMatch;
+	}
 
 }

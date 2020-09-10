@@ -21,10 +21,11 @@ import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.TransactionMissing;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.region.V2TxnDecoder;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.primitives.Longs;
+import splice.com.google.common.collect.Iterators;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.primitives.Longs;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.annotations.ThreadSafe;
@@ -43,7 +44,6 @@ import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -269,6 +269,17 @@ public class CoprocessorTxnStore implements TxnStore {
     }
 
     @Override
+    public long getTxnAt(long ts) throws IOException {
+        final TxnMessage.TxnAtRequest request=TxnMessage.TxnAtRequest.newBuilder().setTs(ts).build();
+        try (TxnNetworkLayer table = tableFactory.accessTxnNetwork()) {
+            TxnMessage.TxnAtResponse result = table.getTxnAt(request);
+            return result.getTxnId();
+        } catch(Throwable throwable) {
+            throw new IOException(throwable);
+        }
+    }
+
+    @Override
     public TxnView getTransaction(long txnId) throws IOException{
         return getTransaction(txnId,false);
     }
@@ -404,7 +415,7 @@ public class CoprocessorTxnStore implements TxnStore {
                         queryId, queryId,
                         Txn.State.COMMITTED, Iterators.emptyIterator(), System.currentTimeMillis(), null);
             }
-            else if (SIDriver.driver().lifecycleManager().getReplicationRole().compareToIgnoreCase(SIConstants.REPLICATION_ROLE_SLAVE) == 0) {
+            else if (SIDriver.driver().lifecycleManager().getReplicationRole().compareToIgnoreCase(SIConstants.REPLICATION_ROLE_REPLICA) == 0) {
                 // return active mock transaction
                 return new InheritingTxnView(Txn.ROOT_TRANSACTION, queryId, queryId,
                         Txn.IsolationLevel.SNAPSHOT_ISOLATION,
@@ -431,49 +442,17 @@ public class CoprocessorTxnStore implements TxnStore {
 
         Txn.State state=Txn.State.fromInt(message.getState());
 
-        final Iterator<ByteSlice> destinationTables;
-        if(info.hasDestinationTables()){
-            ByteString bs=info.getDestinationTables();
-            MultiFieldDecoder decoder=MultiFieldDecoder.wrap(bs.toByteArray());
-            destinationTables=new DecodingIterator(decoder){
-                @Override
-                protected void advance(MultiFieldDecoder decoder){
-                    decoder.skip();
-                }
-            };
-        }else
-            destinationTables=Iterators.emptyIterator();
-
         TaskId taskId = null;
         if (info.hasTaskId()) {
             TxnMessage.TaskId ti = info.getTaskId();
             taskId = new TaskId(ti.getStageId(), ti.getPartitionId(), ti.getTaskAttemptNumber());
         }
 
+        Iterator<ByteSlice> destinationTablesIterator = V2TxnDecoder.decodeDestinationTables(info.getDestinationTables());
+
         long kaTime=-1l;
         if(message.hasLastKeepAliveTime())
             kaTime=message.getLastKeepAliveTime();
-
-        Iterator<ByteSlice> destTablesIterator=new Iterator<ByteSlice>(){
-
-            @Override
-            public boolean hasNext(){
-                return destinationTables.hasNext();
-            }
-
-            @Override
-            public ByteSlice next(){
-                ByteSlice dSlice=destinationTables.next();
-                byte[] data=Encoding.decodeBytesUnsortd(dSlice.array(),dSlice.offset(),dSlice.length());
-                dSlice.set(data);
-                return dSlice;
-            }
-
-            @Override
-            public void remove(){
-                throw new UnsupportedOperationException();
-            }
-        };
 
         TxnView parentTxn=parentTxnId<0?Txn.ROOT_TRANSACTION:cache.getTransaction(parentTxnId);
         return new InheritingTxnView(parentTxn,txnId,beginTs,
@@ -481,7 +460,7 @@ public class CoprocessorTxnStore implements TxnStore {
                 hasAdditive,additive,
                 true,true,
                 commitTs,globalCommitTs,
-                state,destTablesIterator,kaTime,taskId);
+                state, destinationTablesIterator,kaTime,taskId);
     }
 
     private byte[] encode(Txn txn){

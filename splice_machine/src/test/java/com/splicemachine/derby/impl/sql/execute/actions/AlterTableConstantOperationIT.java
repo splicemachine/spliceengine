@@ -14,10 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -26,15 +22,20 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
 
+import com.splicemachine.primitives.Bytes;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import scala.Predef;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 
 public class AlterTableConstantOperationIT extends SpliceUnitTest {
     public static final String SCHEMA = AlterTableConstantOperationIT.class.getSimpleName().toUpperCase();
@@ -626,7 +627,85 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             count++;
         }
         Assert.assertEquals("incorrect count found",count,1);
+    }
 
+    private void addColumnNotNullWithDefault(String tableName, String column) throws Exception {
+        methodWatcher.executeUpdate(String.format("alter table %s.%s add column %s not null with default", SCHEMA, tableName, column));
+    }
+
+    private void testAlterAddColumnWithEmptyDefault(boolean insertBeforeAlter, String tableName) throws Exception {
+        methodWatcher.executeUpdate(String.format("create table %s.%s (col int not null)", SCHEMA, tableName));
+        if (insertBeforeAlter) {
+            methodWatcher.executeUpdate(String.format("insert into %s.%s (col) values 0", SCHEMA, tableName));
+        }
+        addColumnNotNullWithDefault(tableName, "a boolean");
+        addColumnNotNullWithDefault(tableName, "b char(5)");
+        addColumnNotNullWithDefault(tableName, "c decimal(15,2)");
+        addColumnNotNullWithDefault(tableName, "d double");
+        addColumnNotNullWithDefault(tableName, "e int");
+        addColumnNotNullWithDefault(tableName, "f bigint");
+        addColumnNotNullWithDefault(tableName, "g long varchar");
+        addColumnNotNullWithDefault(tableName, "h real");
+        addColumnNotNullWithDefault(tableName, "i smallint");
+        addColumnNotNullWithDefault(tableName, "j tinyint");
+        addColumnNotNullWithDefault(tableName, "k varchar(5)");
+        addColumnNotNullWithDefault(tableName, "l float");
+        addColumnNotNullWithDefault(tableName, "m numeric");
+        addColumnNotNullWithDefault(tableName, "n date");
+        addColumnNotNullWithDefault(tableName, "n_fixed date not null");
+        addColumnNotNullWithDefault(tableName, "o time");
+        addColumnNotNullWithDefault(tableName, "o_fixed time not null");
+        addColumnNotNullWithDefault(tableName, "p timestamp");
+        addColumnNotNullWithDefault(tableName, "p_fixed timestamp not null");
+        addColumnNotNullWithDefault(tableName, "q char(5) for bit data");
+        addColumnNotNullWithDefault(tableName, "r long varchar for bit data");
+        addColumnNotNullWithDefault(tableName, "s blob");
+        addColumnNotNullWithDefault(tableName, "t clob");
+        addColumnNotNullWithDefault(tableName, "u varchar(5) for bit data");
+
+        if (!insertBeforeAlter) {
+            methodWatcher.executeUpdate(String.format(
+                    "insert into %s.%s (col, n_fixed, o_fixed, p_fixed) values (42, current date, current time, current timestamp)", SCHEMA, tableName));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(String.format("select a,b,c,d,e,f,g,h,i,j,k,l,m from %s.%s", SCHEMA, tableName))) {
+            String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            String expected = "A   | B |  C  | D  | E | F | G | H  | I | J | K | L  | M |\n" +
+                    "------------------------------------------------------------\n" +
+                    "false |   |0.00 |0.0 | 0 | 0 |   |0.0 | 0 | 0 |   |0.0 | 0 |";
+            Assert.assertEquals(expected, s);
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(String.format("select n, n_fixed, o, o_fixed, p, p_fixed from %s.%s", SCHEMA, tableName))) {
+            Assert.assertTrue(rs.next());
+            if (insertBeforeAlter) {
+                assertThat(rs.getDate(2).getTime() - rs.getDate(1).getTime(), lessThan(1000L * 3600 * 24)); // 1 day
+                assertThat(rs.getTime(4).getTime() - rs.getTime(3).getTime(), lessThan(1000L * 5)); // 5 seconds
+                assertThat(rs.getTimestamp(6).getTime() - rs.getTimestamp(5).getTime(), lessThan(1000L * 5)); // 5 seconds
+            } else {
+                Assert.assertEquals(rs.getDate(1), rs.getDate(2));
+                Assert.assertEquals(rs.getTime(3), rs.getTime(4));
+                Assert.assertEquals(rs.getTimestamp(5), rs.getTimestamp(6));
+            }
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(String.format("select q,r,s,t,u from %s.%s", SCHEMA, tableName))) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("0000000000", rs.getString(1));
+            Assert.assertEquals(-1, rs.getBinaryStream(2).read());
+            Assert.assertEquals(0, rs.getBlob(3).length());
+            Assert.assertEquals(0, rs.getClob(4).length());
+            Assert.assertEquals(-1, rs.getBinaryStream(5).read());
+        }
+    }
+
+    @Test
+    public void testAlterAddColumnInEmptyTableWithEmptyDefault() throws Exception {
+        String tableName = "test_alter_add_column_in_empty_table_with_empty_default";
+        testAlterAddColumnWithEmptyDefault(false, tableName);
+    }
+
+    @Test
+    public void testAlterAddColumnInFilledTableWithEmptyDefault() throws Exception {
+        String tableName = "test_alter_add_column_in_filled_table_with_empty_default";
+        testAlterAddColumnWithEmptyDefault(true, tableName);
     }
 
     private void assertSqlFails(String sql, String expectedException, String tableName) {

@@ -5,17 +5,17 @@ option java_generate_equals_and_hash = true;
 option optimize_for = SPEED;
 
 message SpliceSchedulerRequest {
-	optional bytes taskStart = 1;
-	optional bytes taskEnd = 2;
-	optional string className = 3;
-	optional bytes classBytes = 4;
+    optional bytes taskStart = 1;
+    optional bytes taskEnd = 2;
+    optional string className = 3;
+    optional bytes classBytes = 4;
     optional bool allowSplits = 5;
 }
 
 message TaskFutureResponse {
-	required string taskNode = 1;
-	required bytes taskId = 2;
-	optional double estimatedCost = 3;
+    required string taskNode = 1;
+    required bytes taskId = 2;
+    optional double estimatedCost = 3;
     required bytes startRow = 4;
 }
 
@@ -24,16 +24,16 @@ message SchedulerResponse{
 }
 
 message ConstraintContext {
-	optional string tableName = 1;
-	optional string constraintName = 2;
+    optional string tableName = 1;
+    optional string constraintName = 2;
 }
 
 message AllocateFilterMessage {
-	optional bytes addressMatch = 1;
+    optional bytes addressMatch = 1;
 }
 
 message SuccessFilterMessage {
-	repeated bytes failedTasks = 1;
+    repeated bytes failedTasks = 1;
 }
 
 message SkippingScanFilterMessage {
@@ -82,16 +82,16 @@ message BulkWriteResponse {
      * build a Response regardless of whether or not an error is thrown, which
      * causes the original BulkWrite error to be lost in the Protobuf messaging error.
      */
-	optional bytes bytes = 1;
+    optional bytes bytes = 1;
 }
 
 message BulkWriteRequest {
-	required bytes bytes = 1;
+    required bytes bytes = 1;
 }
 
 message DropIndexRequest {
-	optional uint64 indexConglomId = 1;
-	optional uint64 baseConglomId = 2;
+    optional uint64 indexConglomId = 1;
+    optional uint64 baseConglomId = 2;
     required int64 txnId = 3;
 }
 
@@ -100,8 +100,8 @@ message DropIndexResponse {
 }
 
 service SpliceIndexService {
-	rpc bulkWrite(BulkWriteRequest)
-	  returns (BulkWriteResponse);
+    rpc bulkWrite(BulkWriteRequest)
+      returns (BulkWriteResponse);
 }
 
 service MultiRowService {
@@ -123,20 +123,22 @@ message KV {
 }
 
 service SpliceIndexManagementService {
-	rpc dropIndex(DropIndexRequest) 
-	  returns (DropIndexResponse);	
+    rpc dropIndex(DropIndexRequest)
+      returns (DropIndexResponse);
 }
 
 service SpliceSchedulerService {
-	rpc submit(SpliceSchedulerRequest)
-	  returns (SchedulerResponse);
+    rpc submit(SpliceSchedulerRequest)
+      returns (SchedulerResponse);
 }
 
 service SpliceDerbyCoprocessorService {
-	rpc computeSplits(SpliceSplitServiceRequest)
-		returns (SpliceSplitServiceResponse);
-	rpc computeRegionSize(SpliceRegionSizeRequest)
-		returns (SpliceRegionSizeResponse);
+    rpc computeSplits(SpliceSplitServiceRequest)
+        returns (SpliceSplitServiceResponse);
+    rpc computeRegionSize(SpliceRegionSizeRequest)
+        returns (SpliceRegionSizeResponse);
+    rpc getCompactedHFiles(GetCompactedHFilesRequest)
+        returns (GetCompactedHFilesResponse);
 }
 
 message SpliceSplitServiceRequest {
@@ -158,21 +160,6 @@ message SpliceRegionSizeRequest {
 message SpliceRegionSizeResponse {
     required string encodedName = 1;
     required int64 sizeInBytes = 2;
-}
-
-service BackupCoprocessorService {
-  rpc prepareBackup(PrepareBackupRequest)
-  returns (PrepareBackupResponse);
-}
-
-message PrepareBackupRequest {
-    optional bytes startKey=1;
-    optional bytes endKey=2;
-    optional int64 backupId=3;
-}
-
-message PrepareBackupResponse {
-  optional bool readyForBackup = 1;
 }
 
 message BlockingProbeRequest {
@@ -238,6 +225,14 @@ message SpliceOldestActiveTransactionResponse {
 
 message TestResponse {
     optional uint64 count = 1;
+}
+
+message GetCompactedHFilesRequest {
+    required string regionEncodedName = 1;
+}
+
+message GetCompactedHFilesResponse {
+    repeated string filePath = 1;
 }
 
 service SpliceRSRpcServices {

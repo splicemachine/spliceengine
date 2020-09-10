@@ -18,7 +18,6 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -65,7 +64,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import org.supercsv.prefs.CsvPreference;
 
 import java.io.IOException;
@@ -74,7 +73,6 @@ import java.io.StringReader;
 import java.sql.ResultSet;
 import java.sql.Types;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Created by jyuan on 8/14/17.
@@ -198,7 +196,7 @@ public class SpliceRegionAdmin {
         }
 
         // get row format for primary key or index
-        ExecRow execRow = getExecRow(td, index);
+        ExecRow execRow = getKeyExecRow(td, index);
         if (execRow == null) {
             throw StandardException.newException(SQLState.NO_PRIMARY_KEY,
                     td.getSchemaDescriptor().getSchemaName(), td.getName());
@@ -246,7 +244,6 @@ public class SpliceRegionAdmin {
         };
 
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation activation = conn.getLanguageConnection().getLastActivation();
 
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
@@ -502,7 +499,7 @@ public class SpliceRegionAdmin {
         }
 
         // get row format for primary key or index
-        ExecRow execRow = getExecRow(td, index);
+        ExecRow execRow = getKeyExecRow(td, index);
         if (execRow == null) {
             throw StandardException.newException(SQLState.NO_PRIMARY_KEY,
                     td.getSchemaDescriptor().getSchemaName(), td.getName());
@@ -597,7 +594,6 @@ public class SpliceRegionAdmin {
         }
 
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.getLanguageConnection();
         Activation activation = conn.getLanguageConnection().getLastActivation();
 
         TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
@@ -606,7 +602,7 @@ public class SpliceRegionAdmin {
         TxnView txnView = rawTxn.getActiveStateTxn();
 
         // Decode startKey from byte[] to ExecRow
-        ExecRow execRow = getExecRow(td, index);
+        ExecRow execRow = getKeyExecRow(td, index);
         if (execRow != null) {
             DataHash dataHash = getEncoder(td, index, execRow);
             KeyHashDecoder decoder =  dataHash.getDecoder();
@@ -666,7 +662,7 @@ public class SpliceRegionAdmin {
         return null;
     }
 
-    private static DataHash getEncoder(TableDescriptor td, ConglomerateDescriptor index, ExecRow execRow) throws Exception {
+    public static DataHash getEncoder(TableDescriptor td, ConglomerateDescriptor index, ExecRow execRow) throws Exception {
 
         String version = td.getVersion();
         DescriptorSerializer[] serializers= VersionedSerializers
@@ -725,13 +721,12 @@ public class SpliceRegionAdmin {
      * @return ExecRow for primary key or index
      * @throws Exception
      */
-    private static ExecRow getExecRow(TableDescriptor td, ConglomerateDescriptor index) throws Exception {
+    public static ExecRow getKeyExecRow(TableDescriptor td, ConglomerateDescriptor index) throws Exception {
 
         ExecRow execRow = null;
         if (index != null) {
             IndexRowGenerator irg = index.getIndexDescriptor();
             IndexDescriptor id = irg.getIndexDescriptor();
-            boolean isUnique = id.isUnique();
             int[] positions = id.baseColumnPositions();
             int[] typeFormatIds = new int[positions.length];
             int i = 0;
@@ -783,7 +778,12 @@ public class SpliceRegionAdmin {
         // set up csv reader
         CsvPreference preference = createCsvPreference(columnDelimiter, characterDelimiter);
         Reader reader = new StringReader(splitKey);
-        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference);
+        List<Integer> valueSizeHints = new ArrayList<>(execRow.nColumns());
+        for(DataValueDescriptor dvd : execRow.getRowArray()) {
+            valueSizeHints.add(dvd.estimateMemoryUsage());
+        }
+        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference, false,
+                EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
         tokenizer.setLine(splitKey);
         List<String> read=tokenizer.read();
         BooleanList quotedColumns=tokenizer.getQuotedColumns();

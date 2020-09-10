@@ -130,6 +130,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * join with its left table indicated in the dependencyMap */
     protected int outerJoinLevel;
     PredicateList postJoinPredicates;
+
+    protected boolean hasJoinPredicatePushedDownFromOuter = false;
     /**
      * Initializer for a table in a FROM list.
      *
@@ -402,7 +404,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                         dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
                     }
                     break;
+                case "broadcastCrossRight": {
+                    // no op since parseBoolean never throw
+                    break;
+                }
                 case "useSpark":
+                case "useOLAP":
                     dataSetProcessorType = dataSetProcessorType.combine(
                             Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))?
                                     DataSetProcessorType.QUERY_HINTED_SPARK:
@@ -1268,6 +1275,21 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         this.matchRowId = matchRowId;
     }
 
+    /**
+     * Return whether the current table should be joined as the right of an inclusion join or exclusion join or regular inner join
+     * @return 1: exclusion join
+     *         -1: inclusion join
+     *         0: regular inner join
+     */
+    public byte getSemiJoinType() {
+        if (isNotExists)
+            return 1;
+        else if (!matchRowId && existsTable)
+            return -1;
+        else
+            return 0;
+    }
+
     @Override
     public boolean getFromSSQ() {
         return fromSSQ;
@@ -1424,5 +1446,15 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     public void setPostJoinPredicates(PredicateList pList) {
         postJoinPredicates = pList;
+    }
+
+    @Override
+    public boolean hasJoinPredicatePushedDownFromOuter() {
+        return hasJoinPredicatePushedDownFromOuter;
+    }
+
+    @Override
+    public void setHasJoinPredicatePushedDownFromOuter(boolean value) {
+        hasJoinPredicatePushedDownFromOuter = value;
     }
 }

@@ -39,4 +39,9 @@ public class SetCurrentLocatedRowFunction<Op extends SpliceOperation> extends Sp
         StreamLogUtils.logOperationRecord(locatedRow, operationContext);
         return locatedRow;
     }
+
+    @Override
+    public boolean hasNativeSparkImplementation() {
+        return true;
+    }
 }

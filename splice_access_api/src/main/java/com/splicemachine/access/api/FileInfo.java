@@ -26,10 +26,17 @@ public interface FileInfo{
 
     boolean isDirectory();
 
+    /** returns true if isDirectory() and (directory is empty or only contains one file _SUCCESS) */
+    boolean isEmptyDirectory();
+
     /**
      * @return the number of files in the directory, or 1 if this is a file.
+     * Note: this is SLOW on big directory trees when using remote filesystems like S3,
+     * since requiring a full recursive listdir
+     * If just need to check for empty directory, use {@link #isEmptyDirectory()}
      */
     long fileCount();
+
 
     /**
      * Returns the overall space consumed for the file.
@@ -38,9 +45,15 @@ public interface FileInfo{
      * current size * replication factor. For a local system,
      * it would return the same value as {@link #size()},
      * the actual current size of the file.
+     * Note: this is SLOW on big directory trees when using remote filesystems like S3,
+     * since requiring a full recursive listdir
      */
     long spaceConsumed();
 
+    /**
+     *  Note: this is SLOW on big directory trees when using remote filesystems like S3,
+     * since requiring a full recursive listdir
+     */
     long size();
 
     boolean isReadable();

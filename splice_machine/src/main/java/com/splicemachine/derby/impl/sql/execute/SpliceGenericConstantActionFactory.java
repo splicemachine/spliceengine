@@ -80,6 +80,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        ColumnInfo[] columnInfos,
                                                        ConstantAction[] constantActions,
                                                        Properties properties,
+                                                       int createBehavior,
                                                        char lockGranularity,
                                                        boolean onCommitDeleteRows,
                                                        boolean onRollbackDeleteRows,
@@ -103,7 +104,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
             schemaName, tableName, Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
-            constantActions,properties,lockGranularity,
+            constantActions,properties,createBehavior,lockGranularity,
             onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString, isExternal,
                 delimited,escaped,lines,storedAs,location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
                 columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat);
@@ -455,22 +456,28 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
 
     @Override
     public ConstantAction getCreateTriggerConstantAction(
-            String triggerSchemaName,String triggerName,TriggerEventDML eventMask,
-            boolean isBefore,boolean isRow,boolean isEnabled,
-            TableDescriptor triggerTable,UUID whenSPSId,String whenText,
-            UUID actionSPSId,String actionText,UUID spsCompSchemaId,
-            Timestamp creationTimestamp,int[] referencedCols,
+            String triggerSchemaName,
+            String triggerName,
+            TriggerEventDML eventMask,
+            boolean isBefore,
+            boolean isRow,
+            boolean isEnabled,
+            TableDescriptor triggerTable,
+            String whenText,
+            List<String> actionTextList,
+            UUID spsCompSchemaId,
+            int[] referencedCols,
             int[] referencedColsInTriggerAction,
             String originalWhenText,
-            String originalActionText,
+            List<String> originalActionTextList,
             boolean referencingOld,boolean referencingNew,
             String oldReferencingName,String newReferencingName){
         SpliceLogUtils.trace(LOG,"getCreateTriggerConstantAction for trigger {%s.%s}",triggerSchemaName,triggerName);
         return new CreateTriggerConstantOperation(triggerSchemaName,triggerName,
-                eventMask,isBefore,isRow,isEnabled,triggerTable,whenSPSId,
-                whenText,actionSPSId,actionText,spsCompSchemaId,creationTimestamp,
+                eventMask,isBefore,isRow,isEnabled,triggerTable,
+                whenText,actionTextList,spsCompSchemaId,
                 referencedCols,referencedColsInTriggerAction,
-                originalWhenText, originalActionText,
+                originalWhenText, originalActionTextList,
                 referencingOld,referencingNew,oldReferencingName,newReferencingName);
     }
 

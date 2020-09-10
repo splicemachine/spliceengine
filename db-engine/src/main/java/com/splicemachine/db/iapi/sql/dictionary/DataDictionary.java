@@ -45,12 +45,9 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import org.joda.time.DateTime;
 
 import java.sql.Types;
-import java.util.Dictionary;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The DataDictionary interface is used with the data dictionary to get
@@ -63,13 +60,13 @@ import java.util.Map;
  *
  * @version 0.1
  */
-
 public interface DataDictionary{
     String MODULE="com.splicemachine.db.iapi.sql.dictionary.DataDictionary";
 
     /** The conglomerate id of the first user table */
     // NOTE: JC - this constant is also defined in (splice) EnvUtils. When adding a new sys table, this
     // number will need to be increased in BOTH places.
+    // NOTE: do not rely on this number to check whether a table is a system table (see DB-9589 for consequences of doing this).
     long FIRST_USER_TABLE_NUMBER = 1568;
 
     /**
@@ -204,7 +201,7 @@ public interface DataDictionary{
     */
     /* NOTE - SYSCONGLOMERATES must be first, since that table must exist before
      * any other conglomerates can be created/added to the system.
-	 */
+     */
     int SYSCONGLOMERATES_CATALOG_NUM=0;
     int SYSTABLES_CATALOG_NUM=1;
     int SYSCOLUMNS_CATALOG_NUM=2;
@@ -212,6 +209,7 @@ public interface DataDictionary{
 
     /**
      * Catalog numbers for non core system catalogs.
+     * All these entries are for system tables, not views.
      */
     int SYSCONSTRAINTS_CATALOG_NUM=4;
     int SYSKEYS_CATALOG_NUM=5;
@@ -232,27 +230,63 @@ public interface DataDictionary{
     int SYSPERMS_CATALOG_NUM=20;
     int SYSUSERS_CATALOG_NUM=21;
     int SYSBACKUP_CATALOG_NUM=22;
-    int SYSBACKUPFILESET_CATALOG_NUM=23;
-    int SYSBACKUPITEMS_CATALOG_NUM=24;
-    int SYSBACKUPJOBS_CATALOG_NUM=25;
-    int SYSCOLUMNSTATS_CATALOG_NUM=26;
-    int SYSPHYSICALSTATS_CATALOG_NUM=27;
-    int SYSTABLESTATS_CATALOG_NUM=28;
-    int SYSDUMMY1_CATALOG_NUM=29;
-    int SYSSCHEMAPERMS_CATALOG_NUM=30;
-    int SYSSOURCECODE_CATALOG_NUM=31;
-    int SYSSNAPSHOT_NUM=32;
-    int SYSTOKENS_NUM=33;
-    int SYSREPLICATION_CATALOG_NUM=34;
+    int SYSBACKUPITEMS_CATALOG_NUM=23;
+    int SYSCOLUMNSTATS_CATALOG_NUM=24;
+    int SYSPHYSICALSTATS_CATALOG_NUM=25;
+    int SYSTABLESTATS_CATALOG_NUM=26;
+    int SYSDUMMY1_CATALOG_NUM=27;
+    int SYSSCHEMAPERMS_CATALOG_NUM=28;
+    int SYSSOURCECODE_CATALOG_NUM=29;
+    int SYSSNAPSHOT_NUM=30;
+    int SYSTOKENS_NUM=31;
+    int SYSREPLICATION_CATALOG_NUM=32;
+    int SYSMONGETCONNECTION_CATALOG_NUM=33;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
-	 */
+     */
     int NOTNULL_CONSTRAINT=1;
     int PRIMARYKEY_CONSTRAINT=2;
     int UNIQUE_CONSTRAINT=3;
     int CHECK_CONSTRAINT=4;
     int DROP_CONSTRAINT=5;
     int FOREIGNKEY_CONSTRAINT=6;
+
+    List<String> catalogVersions = Collections.unmodifiableList(Arrays.asList(
+            "1", // SYSCONGLOMERATES
+            "1", // SYSTABLES
+            "1", // SYSCOLUMNS
+            "1", // SYSSCHEMAS
+            "1", // SYSCONSTRAINTS
+            "1", // SYSKEYS
+            "1", // SYSPRIMARYKEYS
+            "1", // SYSDEPENDS
+            "1", // SYSALIASES
+            "1", // SYSVIEWS
+            "1", // SYSCHECKS
+            "1", // SYSFOREIGNKEYS
+            "1", // SYSSTATEMENTS
+            "1", // SYSFILES
+            "1", // SYSTRIGGERS
+            "1", // SYSTABLEPERMS
+            "1", // SYSCOLPERMS
+            "1", // SYSROUTINEPERMS
+            "1", // SYSROLES
+            "1", // SYSSEQUENCES
+            "1", // SYSPERMS
+            "1", // SYSUSERS
+            "1", // SYSBACKUP
+            "1", // SYSBACKUPITEMS
+            "1", // SYSCOLUMNSTATS
+            "1", // SYSPHYSICALSTATS
+            "1", // SYSTABLESTATS
+            "1", // SYSDUMMY1
+            "1", // SYSSCHEMAPERMS
+            "1", // SYSSOURCECODE
+            "1", // SYSSNAPSHOT
+            "1", // SYSTOKENS
+            "1", // SYSREPLICATION
+            "1"  // SYSMONGETCONNECTION_CATALOG_NUM
+    ));
 
     /**
      * Modes returned from startReading()
@@ -616,14 +650,14 @@ public interface DataDictionary{
      * Drop all table descriptors for a schema.
      *
      * @param schema    A descriptor for the schema to drop the tables
-     *			from.
+     *            from.
      *
      * @exception StandardException        Thrown on failure
      */
-	/*
-	void dropAllTableDescriptors(SchemaDescriptor schema)
-						throws StandardException;
-	*/
+    /*
+    void dropAllTableDescriptors(SchemaDescriptor schema)
+                        throws StandardException;
+    */
 
     /**
      * Get a ColumnDescriptor given its Default ID.
@@ -1165,18 +1199,14 @@ public interface DataDictionary{
     TriggerDescriptor getTriggerDescriptor(String name,SchemaDescriptor sd) throws StandardException;
 
     int[] examineTriggerNodeAndCols(
-			Visitable actionStmt,
-			String oldReferencingName,
-			String newReferencingName,
-			String triggerDefinition,
-			int[] referencedCols,
-			int[] referencedColsInTriggerAction,
-			int actionOffset,
-			TableDescriptor triggerTableDescriptor,
-			TriggerEventDML triggerEventMask,
-                        boolean createTriggerTime,
-                        List<int[]> replacements
-			) throws StandardException;
+            Visitable actionStmt,
+            String oldReferencingName,
+            String newReferencingName,
+            int[] referencedCols,
+            int[] referencedColsInTriggerAction,
+            TableDescriptor triggerTableDescriptor,
+            TriggerEventDML triggerEventMask,
+            boolean createTriggerTime) throws StandardException;
 
     /**
      * This method does the job of transforming the trigger action plan text
@@ -2200,4 +2230,6 @@ public interface DataDictionary{
     boolean databaseReplicationEnabled() throws StandardException;
 
     boolean schemaReplicationEnabled(String schemaName) throws StandardException;
+
+    String getCatalogVersion(long conglomerateNumber) throws StandardException;
 }

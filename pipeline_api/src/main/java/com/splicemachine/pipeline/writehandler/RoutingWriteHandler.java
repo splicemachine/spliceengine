@@ -16,6 +16,7 @@ package com.splicemachine.pipeline.writehandler;
 
 import java.io.IOException;
 import com.carrotsearch.hppc.ObjectObjectHashMap;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.kvpair.KVPair;
@@ -75,10 +76,8 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             doFlush(ctx);
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
-            Object[] buffer = routedToBaseMutationMap.values;
-            int size = routedToBaseMutationMap.size();
-            for (int i = 0; i < size; i++) {
-                fail((KVPair)buffer[i],ctx,e);
+            for (ObjectCursor<KVPair> pair : routedToBaseMutationMap.values()) {
+                fail(pair.value,ctx,e);
             }
         }
     }
@@ -91,10 +90,8 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             doClose(ctx);
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
-            Object[] buffer = routedToBaseMutationMap.values;
-            int size = routedToBaseMutationMap.size();
-            for (int i = 0; i < size; i++) {
-                fail((KVPair)buffer[i],ctx,e);
+            for (ObjectCursor<KVPair> pair : routedToBaseMutationMap.values()) {
+                fail(pair.value,ctx,e);
             }
         }
     }
@@ -120,7 +117,9 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             ctx.failed(mutation,WriteResult.notServingRegion());
         else if(t instanceof WrongPartitionException)
             ctx.failed(mutation,WriteResult.wrongRegion());
-        else
-            ctx.failed(mutation, WriteResult.failed(t.getClass().getSimpleName()+":"+t.getMessage()));
+        else {
+            LOG.error("Unexpected exception", t);
+            ctx.failed(mutation, WriteResult.failed(t.getClass().getSimpleName() + ":" + t.getMessage()));
+        }
     }
 }

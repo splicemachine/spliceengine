@@ -16,6 +16,7 @@ package com.splicemachine.access.configuration;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Map;
 
@@ -26,6 +27,8 @@ import java.util.Map;
  * builder so that it's set in the configuration constructor:
  * {@link SConfigurationImpl#SConfigurationImpl(ConfigurationBuilder, ConfigurationSource)}
  */
+@SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", justification = "intentional," +
+        "setting fields is split across different subsystem configurations such as SQLConfiguration and AuthenticateConfiguration")
 public class ConfigurationBuilder {
     // SIConfigurations
     public int activeTransactionMaxCacheSize;
@@ -126,6 +129,7 @@ public class ConfigurationBuilder {
     public String replicationMonitorPath;
     public int replicationMonitorInterval;
     public String replicationHealthcheckScript;
+    public String kafkaBootstrapServers;
 
     // SQLConfiguration
     public boolean debugDumpBindTree;
@@ -135,6 +139,7 @@ public class ConfigurationBuilder {
     public boolean ignoreSavePoints;
     public boolean upgradeForced;
     public int importMaxQuotedColumnLines;
+    public long importCsvScanLimit;
     public int indexBatchSize;
     public int indexLookupBlocks;
     public int kryoPoolSize;
@@ -144,12 +149,14 @@ public class ConfigurationBuilder {
     public int olapServerBindPort;
     public String olapServerStagingDir;
     public boolean olapServerExternal;
+    public int olapServerMaxRetries;
     public int olapServerThreads;
     public int olapServerTickLimit;
     public int olapServerSubmitAttempts;
     public int olapServerMemory;
     public int olapServerMemoryOverhead;
     public int olapServerVirtualCores;
+    public long olapServerKeepAliveTimeout;
     public int partitionserverJmxPort;
     public String partitionserverJmxUser;
     public String partitionserverJmxPassword;
@@ -172,7 +179,7 @@ public class ConfigurationBuilder {
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
     public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
-    public int splitsPerTableMin;
+    public int splitsPerRegionMin;
 
     // PipelineConfiguration
     public int coreWriterThreads;
@@ -192,14 +199,15 @@ public class ConfigurationBuilder {
     public String sparkIoCompressionCodec;
     public int sparkResultStreamingBatchSize;
     public int sparkResultStreamingBatches;
-    public int compactionReservedSlots;
-    public int reservedSlotsTimeout;
+    public int sparkSlowResultStreamingBatchSize;
+    public int sparkSlowResultStreamingBatches;
     public int olapCompactionMaximumWait;
     public int olapCompactionMaximumConcurrent;
     public double olapCompactionResolutionShare;
     public double flushResolutionShare;
     public int olapCompactionResolutionBufferSize;
     public boolean olapCompactionBlocking;
+    public int localCompactionResolutionBufferSize;
     public boolean resolutionOnFlushes;
     public int olapClientRetries;
     public double bulkImportSampleFraction;
@@ -214,6 +222,8 @@ public class ConfigurationBuilder {
     public boolean olapServerIsolatedCompaction;
     public String olapServerIsolatedCompactionQueueName;
     public boolean olapCompactionAutomaticallyPurgeDeletedRows;
+    public boolean olapCompactionAutomaticallyPurgeOldUpdates;
+    public String olapServerMode;
 
 
     /**

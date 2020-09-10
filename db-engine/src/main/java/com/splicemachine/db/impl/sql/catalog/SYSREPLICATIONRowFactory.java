@@ -86,17 +86,20 @@ public class SYSREPLICATIONRowFactory extends CatalogRowFactory {
                     {SCOPE, SCHEMA_NAME, TABLE_NAME}
             };
 
-    public SYSREPLICATIONRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
-        super(uuidf, ef, dvf);
+    public SYSREPLICATIONRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd) {
+        super(uuidf, ef, dvf, dd);
         initInfo(REPLICATION_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
 
     @Override
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException {
         String scope = null;
         String schemaName = null;
         String tableName = null;
         if (td != null) {
+            if (!(td instanceof ReplicationDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             ReplicationDescriptor d = (ReplicationDescriptor)td;
             scope = d.getScope();
             schemaName = d.getSchemaName();

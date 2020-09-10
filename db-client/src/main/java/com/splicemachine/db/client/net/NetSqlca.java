@@ -25,6 +25,7 @@
 
 package com.splicemachine.db.client.net;
 
+import com.splicemachine.db.client.am.ClientConnection;
 import com.splicemachine.db.client.am.Sqlca;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.client.am.ClientMessageId;
@@ -35,7 +36,7 @@ public class NetSqlca extends Sqlca {
     // these are the same variables that are in the Sqlca except ccsids
     // are a little different
 
-    NetSqlca(com.splicemachine.db.client.am.Connection connection,
+    NetSqlca(ClientConnection connection,
              int sqlCode,
              String sqlState,
              byte[] sqlErrpBytes) {
@@ -45,10 +46,10 @@ public class NetSqlca extends Sqlca {
         sqlErrpBytes_ = sqlErrpBytes;
     }
 
-    NetSqlca(com.splicemachine.db.client.am.Connection connection,
-            int sqlCode,
-            byte[] sqlState,
-            byte[] sqlErrpBytes) throws SqlException {
+    NetSqlca(ClientConnection connection,
+             int sqlCode,
+             byte[] sqlState,
+             byte[] sqlErrpBytes) throws SqlException {
        super(connection);
        sqlCode_ = sqlCode;
        try
@@ -70,9 +71,8 @@ public class NetSqlca extends Sqlca {
         sqlWarnBytes_ = sqlWarnBytes;
     }
 
-    protected void setSqlerrmcBytes(byte[] sqlErrmcBytes, int sqlErrmcCcsid) {
+    protected void setSqlerrmcBytes(byte[] sqlErrmcBytes, int ignored) {
         sqlErrmcBytes_ = sqlErrmcBytes;
-        sqlErrmcCcsid_ = sqlErrmcCcsid;
     }
 
     public long getRowCount(Typdef typdef) throws com.splicemachine.db.client.am.DisconnectException {

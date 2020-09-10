@@ -28,12 +28,15 @@ import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
 import org.jboss.netty.bootstrap.ClientBootstrap;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
 import org.jboss.netty.channel.*;
 import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
-import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import org.jboss.netty.channel.socket.nio.NioWorkerPool;
+import org.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder;
+import org.jboss.netty.handler.codec.frame.LengthFieldPrepender;
+import org.jboss.netty.handler.codec.protobuf.ProtobufDecoder;
+import org.jboss.netty.handler.codec.protobuf.ProtobufEncoder;
+import org.jboss.netty.util.HashedWheelTimer;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.CountDownLatches;
 import com.splicemachine.timestamp.api.Callback;
 import com.splicemachine.timestamp.api.TimestampClientStatistics;
@@ -56,6 +59,9 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
 
 
     private static final Logger LOG = Logger.getLogger(TimestampClient.class);
+
+    private static final int NETTY_BOSS_THREAD_COUNT = 1;
+    private static final int NETTY_WORKER_THREAD_COUNT = 4;
 
     private static final short CLIENT_COUNTER_INIT = 100; // actual value doesn't matter
 
@@ -108,7 +114,8 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         ExecutorService workerExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-worker-%d").setDaemon(true).build());
         ExecutorService bossExecutor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("timestampClient-boss-%d").setDaemon(true).build());
 
-        factory = new NioClientSocketChannelFactory(bossExecutor, workerExecutor);
+        HashedWheelTimer hwt = new HashedWheelTimer(new ThreadFactoryBuilder().setNameFormat("timestampClient-hashedWheelTimer-%d").setDaemon(true).build());
+        factory = new NioClientSocketChannelFactory(bossExecutor, NETTY_BOSS_THREAD_COUNT, new NioWorkerPool(workerExecutor, NETTY_WORKER_THREAD_COUNT), hwt);
 
         bootstrap = new ClientBootstrap(factory);
 
@@ -118,7 +125,10 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         // bootstrap.getPipeline().addLast("executor", new ExecutionHandler(
         // 	   new OrderedMemoryAwareThreadPoolExecutor(10 /* threads */, 1024*1024, 4*1024*1024)));
 
-        bootstrap.getPipeline().addLast("decoder", new FixedLengthFrameDecoder(FIXED_MSG_RECEIVED_LENGTH));
+        bootstrap.getPipeline().addLast("frameDecoder", new LengthFieldBasedFrameDecoder(1048576, 0, 4, 0, 4));
+        bootstrap.getPipeline().addLast("protobufDecoder", new ProtobufDecoder(TimestampMessage.TimestampResponse.getDefaultInstance()));
+        bootstrap.getPipeline().addLast("frameEncoder", new LengthFieldPrepender(4));
+        bootstrap.getPipeline().addLast("protobufEncoder", new ProtobufEncoder());
         bootstrap.getPipeline().addLast("handler", this);
 
         bootstrap.setOption("tcpNoDelay", true);
@@ -186,7 +196,6 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
                     } catch (InterruptedException e) {
                         throw new TimestampIOException("Interrupted", e);
                     }
-                    continue;
             }
         }
 
@@ -201,17 +210,15 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
 
             ChannelFuture futureConnect = bootstrap.connect(new InetSocketAddress(timestampHostProvider.getHost(), getPort()));
             final CountDownLatch latchConnect = new CountDownLatch(1);
-            futureConnect.addListener(new ChannelFutureListener() {
-                                          public void operationComplete(ChannelFuture cf) throws Exception {
-                                              if (cf.isSuccess()) {
-                                                  channel = cf.getChannel();
-                                                  latchConnect.countDown();
-                                              } else {
-                                                  latchConnect.countDown();
-                                                  doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
-                                              }
-                                          }
-                                      }
+            futureConnect.addListener(cf -> {
+                if (cf.isSuccess()) {
+                    channel = cf.getChannel();
+                    latchConnect.countDown();
+                } else {
+                    latchConnect.countDown();
+                    throwClientError(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
+                }
+            }
             );
 
             CountDownLatches.uncheckedAwait(latchConnect);
@@ -228,19 +235,26 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
 
     }
 
-    public long refresh() throws TimestampIOException {
-        return getNextTimestamp(true, false);
+    public void bumpTimestamp(long timestamp) throws TimestampIOException {
+        TimestampMessage.TimestampRequest.Builder requestBuilder = TimestampMessage.TimestampRequest.newBuilder()
+                .setTimestampRequestType(TimestampMessage.TimestampRequestType.BUMP_TIMESTAMP)
+                .setBumpTimestamp(TimestampMessage.BumpTimestamp.newBuilder().setTimestamp(timestamp));
+        issueRequest(requestBuilder);
     }
 
     public long getNextTimestamp() throws TimestampIOException {
-
-        return getNextTimestamp(false, true);
+        TimestampMessage.TimestampRequest.Builder requestBuilder = TimestampMessage.TimestampRequest.newBuilder()
+                .setTimestampRequestType(TimestampMessage.TimestampRequestType.GET_NEXT_TIMESTAMP);
+        return issueRequest(requestBuilder).getGetNextTimestampResponse().getTimestamp();
     }
 
     public long getCurrentTimestamp() throws TimestampIOException {
-        return getNextTimestamp(false, false);
+        TimestampMessage.TimestampRequest.Builder requestBuilder = TimestampMessage.TimestampRequest.newBuilder()
+                .setTimestampRequestType(TimestampMessage.TimestampRequestType.GET_CURRENT_TIMESTAMP);
+        return issueRequest(requestBuilder).getGetCurrentTimestampResponse().getTimestamp();
     }
-    public long getNextTimestamp(boolean refresh, boolean increment) throws TimestampIOException {
+
+    private TimestampMessage.TimestampResponse issueRequest(TimestampMessage.TimestampRequest.Builder requestBuilder) throws TimestampIOException {
 
         // Measure duration of full client request for JMX
         long requestStartTime = System.currentTimeMillis();
@@ -248,7 +262,8 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         connectIfNeeded();
 
         short clientCallId = (short) clientCallCounter.getAndIncrement();
-        final ClientCallback callback = new ClientCallback(clientCallId);
+        requestBuilder.setCallerId(clientCallId);
+        final ClientCallback callback = new ClientCallback();
         SpliceLogUtils.debug(LOG, "Starting new client call with id %s", clientCallId);
 
         // Add this caller (id and callback) to the map of current clients.
@@ -261,31 +276,21 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         }
 
         try {
-            ChannelBuffer buffer = ChannelBuffers.buffer(4);
-            buffer.writeShort(clientCallId);
-            byte b = refresh?(byte)1:0;
-            b =(byte) (b | ((increment?1:0)<<1));
-            buffer.writeByte(b);
             SpliceLogUtils.trace(LOG, "Writing request message to server for client: %s", callback);
             if(channel == null) {
                 throw new TimestampIOException("Unable to connect to TimestampServer");
             }
-            ChannelFuture futureWrite = channel.write(buffer);
-            futureWrite.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    if (!future.isSuccess()) {
-                        clientCallbacks.remove(clientCallId);
-                        doClientErrorThrow(LOG, "Error writing message from timestamp client to server", future.getCause());
-                    } else {
-                        SpliceLogUtils.trace(LOG, "Request sent. Waiting for response for client: %s", callback);
-                    }
+            ChannelFuture futureWrite = channel.write(requestBuilder.build());
+            futureWrite.addListener(future -> {
+                if (!future.isSuccess()) {
+                    throwClientErrorAndClean(clientCallId, "Error writing message from timestamp client to server", future.getCause());
+                } else {
+                    SpliceLogUtils.trace(LOG, "Request sent. Waiting for response for client: %s", callback);
                 }
             });
         } catch (Exception e) { // Correct to catch all Exceptions in this case so we can remove client call
-            clientCallbacks.remove(clientCallId);
             callback.error(e);
-            doClientErrorThrow(LOG, "Exception writing message to timestamp server for client: %s", e, callback);
+            throwClientErrorAndClean(clientCallId, "Exception writing message to timestamp server for client: %s", e, callback);
         }
 
         // If we get here, request was successfully sent without exception.
@@ -297,22 +302,17 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
             if (!success) {
                 // We timed out, close the channel so that the next request recreates the connection
                 channel.close();
-                clientCallbacks.remove(clientCallId);
-                
-                doClientErrorThrow(LOG, "Client timed out after %s ms waiting for new timestamp: %s", null, timeoutMillis, callback);
+                throwClientErrorAndClean(clientCallId, "Client timed out after %s ms waiting for new timestamp: %s", null, timeoutMillis, callback);
             }
         } catch (InterruptedException e) {
-            clientCallbacks.remove(clientCallId);
-            doClientErrorThrow(LOG, "Interrupted waiting for timestamp client: %s", e, callback);
+            throwClientErrorAndClean(clientCallId, "Interrupted waiting for timestamp client: %s", e, callback);
         }
 
         // If we get here, it should mean the client received the response with the timestamp,
         // which we can fetch now from the callback and send it back to the caller.
 
-        long timestamp = callback.getNewTimestamp();
-        if (timestamp < 0) {
-            clientCallbacks.remove(clientCallId); // defensive call, this should have already been removed
-            doClientErrorThrow(LOG, "Invalid timestamp found for client: %s", null, callback);
+        if (callback.responseIsInvalid()) {
+            throwClientErrorAndClean(clientCallId, "Invalid timestamp found for client: %s", null, callback);
         }
 
         SpliceLogUtils.debug(LOG, "Client call complete: %s", callback);
@@ -321,32 +321,25 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         numRequests.incrementAndGet();
         totalRequestDuration.addAndGet(System.currentTimeMillis() - requestStartTime);
 
-        return timestamp;
+        return callback.getResponse();
     }
 
     @Override
     public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-        ChannelBuffer buf = (ChannelBuffer) e.getMessage();
-        assert (buf != null);
-        ensureReadableBytes(buf, FIXED_MSG_RECEIVED_LENGTH);
+        TimestampMessage.TimestampResponse response = (TimestampMessage.TimestampResponse) e.getMessage();
+        short clientCallerId = (short) response.getCallerId();
 
-        short clientCallerId = buf.readShort();
-        ensureReadableBytes(buf, 8);
-
-        long timestamp = buf.readLong();
-        assert (timestamp > 0);
-        ensureReadableBytes(buf, 0);
-
-        SpliceLogUtils.debug(LOG, "Response from server: clientCallerId = %s, timestamp = %s", clientCallerId, timestamp);
+        SpliceLogUtils.debug(LOG, "Response from server: clientCallerId = %s, response = %s", clientCallerId, response);
         Callback cb = clientCallbacks.remove(clientCallerId);
         if (cb == null) {
-            doClientErrorThrow(LOG, "Client callback with id %s not found, so unable to deliver timestamp %s", null, clientCallerId, timestamp);
+            throwClientError(LOG, "Client callback with id %s not found, so unable to deliver response %s", null, clientCallerId, response);
         }
 
         // This releases the latch the original client thread is waiting for
         // (to provide the synchronous behavior for that caller) and also
         // provides the timestamp.
-        cb.complete(timestamp);
+        assert cb != null;
+        cb.complete(response);
 
         super.messageReceived(ctx, e);
     }
@@ -407,10 +400,15 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampCl
         }
     }
 
-    public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object... args) throws TimestampIOException {
+    public static void throwClientError(Logger LOG, String message, Throwable t, Object... args) throws TimestampIOException {
         if (message == null) message = "";
         message = String.format(message, args);
         TimestampIOException t1 = t != null ? new TimestampIOException(message, t) : new TimestampIOException(message);
-        SpliceLogUtils.logAndThrow(logger, message, t1);
+        SpliceLogUtils.logAndThrow(LOG, message, t1);
+    }
+
+    private void throwClientErrorAndClean(short callerId, String message, Throwable t, Object... args) throws TimestampIOException {
+        clientCallbacks.remove(callerId);
+        throwClientError(LOG, message, t, args);
     }
 }

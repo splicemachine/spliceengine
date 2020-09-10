@@ -67,12 +67,14 @@ public class HRegionUtil {
     public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end,
                                                 int requestedSplits, long bytesPerSplit) throws IOException {
         assert Bytes.startComparator.compare(start, end) <= 0 || start.length == 0 || end.length == 0;
+        // TODO Sample memstore writes to generate cutpoints on the memstore
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "getCutpoints store: %s requestedSplits: %d bytesPerSplit: %d", store.getStorefiles(), requestedSplits, bytesPerSplit);
         Collection<? extends StoreFile> storeFiles;
         storeFiles = store.getStorefiles();
         HFile.Reader fileReader = null;
         List<byte[]> cutPoints = new ArrayList<byte[]>();
+        List<byte[]> finalCutPoints = new ArrayList<byte[]>();
         int carry = 0;
 
         byte[] regionStart = store.getRegionInfo().getStartKey();
@@ -89,78 +91,93 @@ public class HRegionUtil {
             }
         }
 
-        long numSplits = 0;
-        int splitBlockSize = HConfiguration.getConfiguration().getSplitBlockSize();
-        if (bytesPerSplit > 0) {
-            long totalStoreFileInBytes = 0;
-            for (StoreFile file : storeFiles) {
-                if (file != null) {
-                    totalStoreFileInBytes += ((HStoreFile) file).getFileInfo().getFileStatus().getLen();
-                }
+        int minSplits = 0;
+        if (bytesPerSplit == 0) {
+            bytesPerSplit = HConfiguration.getConfiguration().getSplitBlockSize();
+            // if the user hasn't explicitly set the number of splits, force a minimum
+            minSplits = HConfiguration.getConfiguration().getSplitsPerRegionMin();
+        }
+
+        long totalStoreFileInBytes = 0;
+        for (StoreFile file : storeFiles) {
+            if (file != null) {
+                totalStoreFileInBytes += getFileSize(file);
             }
-            // We use the MemStore size to estimate the right number of splits because we take it into account when
-            // computing bytesPerSplit in AbstractSMInputFormat, even though we don't scan the memstore for split points
-            // We hope the data in the MemStore follows a similar distribution to that in the HFiles
-            numSplits = (totalStoreFileInBytes + store.getMemStoreSize().getDataSize()) / bytesPerSplit;
-            if (numSplits <= 1)
-                numSplits = 1;
+        }
+        // We use the MemStore size to estimate the right number of splits because we take it into account when
+        // computing bytesPerSplit in AbstractSMInputFormat, even though we don't scan the memstore for split points
+        // We hope the data in the MemStore follows a similar distribution to that in the HFiles
+        long numSplits;
+        numSplits = (totalStoreFileInBytes + store.getMemStoreSize().getDataSize()) / bytesPerSplit;
+
+        long finalNumSplits = numSplits = Math.max(numSplits, minSplits);
+
+        // We'll generate more splits if we have multiple store files and reassemble them later to get more accurate splits
+        numSplits *= storeFiles.size();
+
+        if (finalNumSplits > 1 && numSplits > 0) {
             // Here we don't take into account the MemStore size because we are only scanning the HFiles
             long bytesPerSplitEvenDistribution = totalStoreFileInBytes / numSplits;
+            int splitBlockSize;
             if (bytesPerSplitEvenDistribution > Integer.MAX_VALUE) {
                 splitBlockSize = Integer.MAX_VALUE;
             } else {
                 splitBlockSize = (int) bytesPerSplitEvenDistribution;
             }
-        }
-        else if (requestedSplits > 0) {
-            long totalStoreFileInBytes = 0;
+
+            Pair<byte[], byte[]> range = new Pair<>(start, end);
             for (StoreFile file : storeFiles) {
                 if (file != null) {
-                    totalStoreFileInBytes += ((HStoreFile)file).getFileInfo().getFileStatus().getLen();
+                    long storeFileInBytes = getFileSize(file);
+                    if (LOG.isTraceEnabled())
+                        SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d", file.getPath(), storeFileInBytes);
+                    fileReader = ((HStoreFile)file).getReader().getHFileReader();
+                    carry = SpliceHFileUtil.addStoreFileCutpoints(cutPoints, fileReader, storeFileInBytes, carry, range, splitBlockSize);
                 }
             }
-            long bytesPerSplitThisRegion = totalStoreFileInBytes / requestedSplits;
-            if (bytesPerSplitThisRegion > Integer.MAX_VALUE) {
-                splitBlockSize = Integer.MAX_VALUE;
+
+            if (storeFiles.size() > 1) {  // have to sort, hopefully will not happen a lot if major compaction is working properly...
+                Collections.sort(cutPoints, new Comparator<byte[]>() {
+                    @Override
+                    public int compare(byte[] left, byte[] right) {
+                        return org.apache.hadoop.hbase.util.Bytes.compareTo(left, right);
+                    }
+                });
+                // If we had more than one HFiles we generated more cutpoints than needed, take
+                // only the amount we wanted. We need (#splits - 1) cutpoints
+                int step = (int) (cutPoints.size() / (finalNumSplits - 1));
+                if (step <= 1) { // we want all generated cutpoints
+                    finalCutPoints = cutPoints;
+                } else {
+                    for (int i = step - 1; i < cutPoints.size(); i += step) {
+                        finalCutPoints.add(cutPoints.get(i));
+                    }
+                }
             } else {
-                splitBlockSize = (int) bytesPerSplitThisRegion;
+                finalCutPoints = cutPoints;
             }
-        }
-
-        Pair<byte[], byte[]> range = new Pair<>(start, end);
-        for (StoreFile file : storeFiles) {
-            if (file != null) {
-                long storeFileInBytes = ((HStoreFile) file).getFileInfo().getFileStatus().getLen();
-                if (LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG, "getCutpoints with file=%s with size=%d", file.getPath(), storeFileInBytes);
-                fileReader = ((HStoreFile)file).getReader().getHFileReader();
-                carry = SpliceHFileUtil.addStoreFileCutpoints(cutPoints, fileReader, storeFileInBytes, carry, range, splitBlockSize);
-            }
-        }
-
-        if (storeFiles.size() > 1) {  // have to sort, hopefully will not happen a lot if major compaction is working properly...
-            Collections.sort(cutPoints, new Comparator<byte[]>() {
-                @Override
-                public int compare(byte[] left, byte[] right) {
-                    return org.apache.hadoop.hbase.util.Bytes.compareTo(left, right);
-                }
-            });
         }
 
         // add region start key at beginning
-        cutPoints.add(0, store.getRegionInfo().getStartKey());
+        finalCutPoints.add(0, store.getRegionInfo().getStartKey());
         // add region end key at end
-        cutPoints.add(store.getRegionInfo().getEndKey());
+        finalCutPoints.add(store.getRegionInfo().getEndKey());
         if (LOG.isDebugEnabled()) {
             RegionInfo regionInfo = store.getRegionInfo();
             String startKey = "\"" + CellUtils.toHex(regionInfo.getStartKey()) + "\"";
             String endKey = "\"" + CellUtils.toHex(regionInfo.getEndKey()) + "\"";
             LOG.debug("Cutpoints for " + regionInfo.getRegionNameAsString() + " [" + startKey + "," + endKey + "]: ");
-            for (byte[] cutpoint : cutPoints) {
+            for (byte[] cutpoint : finalCutPoints) {
                 LOG.debug("\t" + CellUtils.toHex(cutpoint));
             }
         }
-        return cutPoints;
+        return finalCutPoints;
+    }
+
+    // If it's a reference file, we are only reading half the HFile
+    private static long getFileSize(StoreFile file) throws IOException {
+        long size = ((HStoreFile)file).getFileInfo().getFileStatus().getLen();
+        return ((HStoreFile)file).getFileInfo().isReference() ? size / 2 : size;
     }
 
     public static BitSet keyExists(boolean hasConstraintChecker, Store store, Pair<KVPair, Lock>[] dataAndLocks) throws IOException {
@@ -270,5 +287,10 @@ public class HRegionUtil {
 
     public static RegionScanner getScanner(HRegion region, Scan scan, List<KeyValueScanner> keyValueScanners) throws IOException {
         return region.getScanner(scan, keyValueScanners);
+    }
+
+    public static void replaceStoreFiles(HStore store, Collection<HStoreFile> compactedFiles, Collection<HStoreFile> result)
+            throws IOException {
+        store.replaceStoreFiles(compactedFiles, result);
     }
 }

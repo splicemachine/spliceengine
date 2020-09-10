@@ -38,7 +38,7 @@ import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
-import org.spark_project.guava.collect.ImmutableMap;
+import splice.com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
 import java.util.List;

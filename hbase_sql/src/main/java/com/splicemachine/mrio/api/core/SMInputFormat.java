@@ -49,7 +49,6 @@ public class SMInputFormat extends AbstractSMInputFormat<RowLocation, ExecRow> {
         String tableName = conf.get(MRConstants.SPLICE_INPUT_TABLE_NAME);
         String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
         String tableScannerAsString = conf.get(MRConstants.SPLICE_SCAN_INFO);
-        splits = conf.getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
         spark = tableScannerAsString!=null;
         conf.setBoolean("splice.spark", spark);
         String jdbcString = conf.get(MRConstants.SPLICE_JDBC_STR);

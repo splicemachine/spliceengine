@@ -15,8 +15,8 @@
 package com.splicemachine.derby.stream.function.broadcast;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.FluentIterable;
+import splice.com.google.common.base.Predicate;
+import splice.com.google.common.collect.FluentIterable;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 
@@ -30,8 +30,9 @@ public class SubtractByKeyBroadcastJoinFunction extends AbstractBroadcastJoinFla
     public SubtractByKeyBroadcastJoinFunction() {
     }
 
-    public SubtractByKeyBroadcastJoinFunction(OperationContext operationContext) {
-        super(operationContext);
+    public SubtractByKeyBroadcastJoinFunction(OperationContext operationContext,
+                                              boolean noCacheBroadcastJoinRight) {
+        super(operationContext, noCacheBroadcastJoinRight);
     }
 
     @Override

@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.tools.ij;
 
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import com.splicemachine.db.iapi.tools.i18n.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.BufferedInputStream;
 import java.io.FileInputStream;
@@ -61,6 +62,7 @@ import java.util.Locale;
 
 	@see com.splicemachine.db.tools.JDBCDisplayUtil
  */
+@SuppressFBWarnings(value = "NM_CLASS_NAMING_CONVENTION",justification = "DB-9772")
 public final class util implements java.security.PrivilegedAction {
 	
 	private static boolean IS_AT_LEAST_JDBC2;
@@ -168,7 +170,6 @@ public final class util implements java.security.PrivilegedAction {
 		else
 		{
 			String pName = util.getSystemProperty("ij.defaultResourcePackage").trim();
-			if (pName == null) return null;
 			if ((pName).endsWith("/"))
 				resourceName = pName+resourceName;
 			else
@@ -553,7 +554,7 @@ public final class util implements java.security.PrivilegedAction {
 	/**
 		Display a vector of strings to the out stream.
 	 */
-	public static void DisplayVector(LocalizedOutput out, Vector v) {
+	public static void displayVector(LocalizedOutput out, Vector v) {
 		int l = v.size();
 		for (int i=0;i<l;i++)
 			out.println(v.elementAt(i));
@@ -585,8 +586,8 @@ AppUI.out.println("SIZE="+l);
 		@exception SQLException thrown on db error
 		@exception ijException thrown on ij error
 	 */
-	public static void DisplayMulti(LocalizedOutput out, PreparedStatement ps,
-		ResultSet rs, Connection conn) throws SQLException, ijException {
+	public static void displayMulti(LocalizedOutput out, PreparedStatement ps,
+									ResultSet rs, Connection conn, boolean omitHeader) throws SQLException, ijException {
 
 		boolean autoCommited = false; // mark if autocommit in place
 		boolean exec = false; // mark the first time through
@@ -676,7 +677,7 @@ AppUI.out.println("SIZE="+l);
 			 */
 
 			ps.execute();
-			JDBCDisplayUtil.DisplayResults(out,ps,conn);
+			JDBCDisplayUtil.DisplayResults(out,ps,conn, omitHeader);
 
 			/*
 				5. clear the parameters

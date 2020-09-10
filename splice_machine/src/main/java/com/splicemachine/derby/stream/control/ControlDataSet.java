@@ -67,12 +67,12 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.Sets;
-import org.spark_project.guava.io.Closeables;
-import org.spark_project.guava.util.concurrent.Futures;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.base.Predicate;
+import splice.com.google.common.collect.Iterators;
+import splice.com.google.common.collect.Sets;
+import splice.com.google.common.io.Closeables;
+import splice.com.google.common.util.concurrent.Futures;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -410,6 +410,11 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
+    public KafkaDataSetWriterBuilder writeToKafka() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void saveAsTextFile(String path) {
         OutputStream fileOut = null;
         try {
@@ -552,6 +557,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      * @return
      */
     @Override
+    @SuppressFBWarnings(value="REC_CATCH_EXCEPTION", justification="DB-9846")
     public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression, OperationContext context) {
 
         try {
@@ -586,7 +592,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                     ValueRow vr = (ValueRow) iterator.next();
                     context.recordWrite();
 
-                    rw.write(null, encoder.toRow(vr));
+                    rw.write(null, ParquetWriterService.getFactory().encodeToRow(tableSchema, vr, encoder));
                 }
             } finally {
                 rw.close(null);

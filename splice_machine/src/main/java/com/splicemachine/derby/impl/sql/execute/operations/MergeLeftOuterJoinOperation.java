@@ -54,7 +54,7 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
                                        GeneratedMethod emptyRowFun,
                                        boolean wasRightOuterJoin,
                                        boolean oneRowRightSide,
-                                       boolean notExistsRightSide,
+                                       byte semiJoinType,
                                        boolean rightFromSSQ,
                                        double optimizerEstimatedRowCount,
                                        double optimizerEstimatedCost,
@@ -62,7 +62,7 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
                                        String sparkExpressionTreeAsString) throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
                  rightHashKeyToBaseTableMapItem, rightHashKeySortOrderItem,
-                 activation, restriction, resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ,
+                 activation, restriction, resultSetNumber, oneRowRightSide, semiJoinType, rightFromSSQ,
                  optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides,
                  sparkExpressionTreeAsString);
         SpliceLogUtils.trace(LOG, "instantiate");

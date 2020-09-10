@@ -54,7 +54,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         hbase_env = services["configurations"]["hbase-env"]["properties"]
         if "content" in hbase_env:
           content = hbase_env["content"]
-          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/3.1.0.0-78/hadoop/lib/ranger-hdfs-plugin-impl/*"
+          HBASE_CLASSPATH_PREFIX = "export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/3.1.0.0-78/hadoop/lib/ranger-hdfs-plugin-impl/*:/usr/hdp/3.1.0.0-78/hbase/lib/atlas-hbase-plugin-impl/kafka*"
           HBASE_MASTER_OPTS = "export HBASE_MASTER_OPTS=\"${HBASE_MASTER_OPTS} -D"+ " -D".join(self.getMasterDashDProperties()) + "\""
           HBASE_REGIONSERVER_OPTS = "export HBASE_REGIONSERVER_OPTS=\"${HBASE_REGIONSERVER_OPTS} -D"+ " -D".join(self.getRegionServerDashDProperties()) + "\""
           HBASE_CONF_DIR = "export HBASE_CONF_DIR=${HBASE_CONF_DIR}:/etc/splicemachine/conf/"
@@ -292,7 +292,7 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "splice.spark.driver.userClassPathFirst=true",
         "splice.spark.executor.extraJavaOptions=-Dhdp.version=3.1.0.0-78",
         "splice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native",
-        "splice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*",
+        "splice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*:/usr/hdp/3.1.0.0-78/hbase/lib/atlas-hbase-plugin-impl/kafka*",
         "splice.spark.yarn.jars=/usr/hdp/3.1.0.0-78/spark2/jars/*"
       ]
     return dashDProperties

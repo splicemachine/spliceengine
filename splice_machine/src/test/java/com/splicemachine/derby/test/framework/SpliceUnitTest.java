@@ -17,10 +17,9 @@ package com.splicemachine.derby.test.framework;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.runner.Description;
-import org.spark_project.guava.base.Joiner;
+import splice.com.google.common.base.Joiner;
 
 import java.io.*;
 import java.net.URL;
@@ -43,10 +42,7 @@ public class SpliceUnitTest {
     private static Pattern scannedRowsP = Pattern.compile("scannedRows=[0-9]+\\.?[0-9]*");
 
     /// set the following boolean to true to prevent deletion of temporary files (e.g. for debugging)
-    public boolean debug_no_delete = false;
-    /// the temporary directory (created on demand)
-    /// will reside under e.g. GITROOT/platform_it/target/external when running cdh6.3.0
-    private Path tempDir = null;
+    static private final boolean debug_no_delete = false;
 
 	public String getSchemaName() {
 		Class<?> enclosingClass = getClass().getEnclosingClass();
@@ -181,7 +177,7 @@ public class SpliceUnitTest {
     }
     
     public static String getHiveWarehouseDirectory() {
-		return getBaseDirectory()+"/user/hive/warehouse";
+		return getHBaseDirectory()+"/user/hive/warehouse";
 	}
 
     public static class MyWatcher extends SpliceTableWatcher {
@@ -225,11 +221,38 @@ public class SpliceUnitTest {
                     }
                 }
             }
+            for (int level : levels){
+                if (level > i) {
+                    Assert.fail("Try to compare at level " + level + " but result set has only " + i + " levels.");
+                }
+            }
         }
     }
 
     public static void rowContainsQuery(int[] levels, String query,SpliceWatcher methodWatcher,String[]... contains) throws Exception {
         try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i=0;
+            int k=0;
+            while(resultSet.next()){
+                i++;
+                for(int level : levels){
+                    if(level==i){
+                        String resultString = resultSet.getString(1);
+                        for (String phrase: contains[k]) {
+                            Assert.assertTrue("failed query at level (" + level + "): \n" + query + "\nExpected: " + phrase + "\nWas: "
+                                    + resultString, resultString.contains(phrase));
+                        }
+                        k++;
+                    }
+                }
+            }
+            if (k < contains.length)
+                fail("fail to match the given strings");
+        }
+    }
+
+    public static void rowContainsQuery(int[] levels, String query, TestConnection conn, String[]... contains) throws Exception {
+        try(ResultSet resultSet = conn.query(query)){
             int i=0;
             int k=0;
             while(resultSet.next()){
@@ -636,7 +659,7 @@ public class SpliceUnitTest {
     }
 
     public static File createBadLogDirectory(String schemaName) {
-        File badImportLogDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/BAD/"+schemaName);
+        File badImportLogDirectory = new File(getHBaseDirectory() + "/target/BAD/" + schemaName);
         if (badImportLogDirectory.exists()) {
             recursiveDelete(badImportLogDirectory);
         }
@@ -646,13 +669,22 @@ public class SpliceUnitTest {
     }
 
     public static File createBulkLoadDirectory(String schemaName) {
-        File bulkLoadDirectory = new File(SpliceUnitTest.getBaseDirectory() + "/target/HFILE/" + schemaName);
+        File bulkLoadDirectory = new File(getHBaseDirectory() + "/target/HFILE/" + schemaName);
         if (bulkLoadDirectory.exists()) {
             recursiveDelete(bulkLoadDirectory);
         }
         assertTrue("Couldn't create " + bulkLoadDirectory, bulkLoadDirectory.mkdirs());
         assertTrue("Failed to create " + bulkLoadDirectory, bulkLoadDirectory.exists());
         return bulkLoadDirectory;
+    }
+
+    public static File createBackupDirectory() {
+        File backupDirectory = new File(getHBaseDirectory() + "/target/backup/");
+        if (!backupDirectory.exists()) {
+            assertTrue("Couldn't create " + backupDirectory, backupDirectory.mkdirs());
+            assertTrue("Failed to create " + backupDirectory, backupDirectory.exists());
+        }
+        return backupDirectory;
     }
 
     public static void recursiveDelete(File file) {
@@ -672,7 +704,7 @@ public class SpliceUnitTest {
     }
 
     public static File createImportFileDirectory(String schemaName) {
-        File importFileDirectory = new File(SpliceUnitTest.getBaseDirectory()+"/target/import_data/"+schemaName);
+        File importFileDirectory = new File(getHBaseDirectory() + "/target/import_data/" + schemaName);
         if (importFileDirectory.exists()) {
             //noinspection ConstantConditions
             for (File file : importFileDirectory.listFiles()) {
@@ -934,44 +966,32 @@ public class SpliceUnitTest {
         }
     }
 
-    /// this will be called after each test, deleting possible temp directories.
-    @After
-    public void deleteTempDirectory() throws Exception
+    public static File createTempDirectory(String subpath) throws java.io.IOException
+    {
+        File path = new File(getHBaseDirectory(), "/target/tmp/" + subpath);
+        FileUtils.deleteDirectory(path); // clean directory
+        path.mkdirs();
+        return path;
+    }
+
+    public static void deleteTempDirectory(File tempDir) throws Exception
     {
         if( tempDir == null )
             return;
         else if( debug_no_delete )
             System.out.println( "Not deleting test temporary directory " + tempDir );
         else {
-            FileUtils.deleteDirectory(tempDir.toFile());
+            FileUtils.deleteDirectory(tempDir);
         }
-    }
-
-    /// this will return the temp directory, that is created on demand once for each test
-    public String getExternalResourceDirectory() throws Exception
-    {
-        if( tempDir == null) {
-            File basepath = new File(getHBaseDirectory(), "/target/external/");
-            basepath.mkdirs();
-            tempDir = Files.createTempDirectory( basepath.toPath(), "SpliceUnitTest_temp_");
-        }
-        // add '/' to avoid leaking directories if someone misses the '/'
-        return tempDir.toString() + "/";
-    }
-
-    /// creates a temporary file in the temporary directory, so will be deleted after test
-    public File createTempOutputFile( String prefix, String suffix ) throws Exception
-    {
-        return File.createTempFile(prefix, suffix, new File(getExternalResourceDirectory()) );
     }
 
     /// copy subfolder of resource directory (i.e. GITROOT/splice_machine/src/test/test-data/)
     /// to temporary directory @sa getTempOutputDirectory
     /// @return destination directory as string
-    public String getTempCopyOfResourceDirectory( String subfolder ) throws Exception
+    public String getTempCopyOfResourceDirectory( File tmpDir, String subfolder ) throws Exception
     {
-        File src = new File(SpliceUnitTest.getResourceDirectory() + subfolder);
-        File dest = new File( getExternalResourceDirectory() + subfolder );
+        File src = new File( SpliceUnitTest.getResourceDirectory(), subfolder);
+        File dest = new File( tmpDir, subfolder );
         FileUtils.copyDirectory( src, dest );
         return dest.toString();
     }
@@ -995,5 +1015,30 @@ public class SpliceUnitTest {
             }
         }
         return count;
+    }
+
+    /// execute sql query 'sqlText' and expect an exception of certain state being thrown
+    public static void SqlExpectException( SpliceWatcher methodWatcher, String sqlText, String expectedState )
+    {
+        try {
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            rs.close();
+            Assert.fail("Exception not thrown for " + sqlText);
+
+        } catch (SQLException e) {
+            System.out.println( e );
+            Assert.assertEquals("Wrong Exception for " + sqlText, expectedState, e.getSQLState());
+        }
+    }
+
+    /// execute sql query 'sqlText' and expect a certain formatted result
+    public static void SqlExpectToString( SpliceWatcher methodWatcher, String sqlText, String expected, boolean sort ) throws Exception
+    {
+        try( ResultSet rs = methodWatcher.executeQuery(sqlText) ) {
+            String val = sort
+                    ? TestUtils.FormattedResult.ResultFactory.toString(rs)
+                    : TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertEquals(expected, val);
+        }
     }
 }

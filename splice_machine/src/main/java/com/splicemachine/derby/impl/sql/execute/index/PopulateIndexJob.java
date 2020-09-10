@@ -18,13 +18,18 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.iapi.sql.olap.SuccessfulOlapResult;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
+import com.splicemachine.derby.stream.function.SplicePredicateFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.DataSetWriter;
+import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.si.api.txn.TxnView;
+
+import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 
 /**
@@ -65,14 +70,27 @@ public class PopulateIndexJob implements Callable<Void> {
 
         DataSet<ExecRow> dataSet = scanSetBuilder.buildDataSet(prefix);
         OperationContext operationContext = scanSetBuilder.getOperationContext();
-        PairDataSet dsToWrite = dataSet
-                .map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index")
-                .index(new KVPairFunction(), false, true, scope + ": Populate Index");
+        DataSet<KVPair> keyValueSet = dataSet
+                .map(new IndexTransformFunction(tentativeIndex), null, false, true, scope + ": Prepare Index");
+        if (tentativeIndex.getIndex().getExcludeDefaults() || tentativeIndex.getIndex().getExcludeNulls()) {
+            keyValueSet = keyValueSet.filter(new NullFilter<>());
+        }
+        PairDataSet dsToWrite = keyValueSet.index(new KVPairFunction(), false, true, scope + ": Populate Index");
         DataSetWriter writer = dsToWrite.directWriteData()
                 .operationContext(operationContext)
                 .destConglomerate(tentativeIndex.getIndex().getConglomerate())
                 .txn(childTxn)
                 .build();
         return writer.write();
+    }
+
+    public static class NullFilter <Op extends SpliceOperation> extends SplicePredicateFunction<Op,KVPair> {
+
+        public NullFilter(){}
+
+        @Override
+        public boolean apply(@Nullable KVPair pair) {
+            return pair != null;
+        }
     }
 }

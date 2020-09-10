@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
@@ -50,6 +51,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import splice.com.google.common.collect.Lists;
 
 /**
  * A CreateTriggerNode is the root of a QueryTree that represents a CREATE TRIGGER statement.
@@ -67,11 +69,9 @@ public class CreateTriggerNode extends DDLStatementNode {
     private ValueNode whenClause;
     private String whenText;
     private String originalWhenText;
-    private StatementNode actionNode;
-    private String actionText;
-    private String originalActionText; // text w/o trim of spaces
-    private int actionOffset;
-    private int whenOffset;
+    private StatementListNode actionNodeList;
+    private List<String> actionTextList;
+    private List<String> originalActionTextList; // text w/o trim of spaces
 
     private SchemaDescriptor triggerSchemaDescriptor;
     private SchemaDescriptor compSchemaDescriptor;
@@ -227,21 +227,20 @@ public class CreateTriggerNode extends DDLStatementNode {
      * were replaced by VTI calls. Each element in the list contains four
      * integers describing positions where modifications have happened. The
      * first two integers are begin and end positions of a transition table
-     * or transition variable in {@link #originalActionText the original SQL
-     * text}. The last two integers are begin and end positions of the
-     * corresponding replacement in {@link #actionText the transformed SQL
-     * text}.
+     * or transition variable in {@link #originalActionTextList the list of
+     * original SQL texts}. The last two integers are begin and end positions
+     * of the corresponding replacement in {@link #actionTextList the transformed
+     * SQL texts}.
      * </p>
      *
      * <p>
      * Begin positions are inclusive and end positions are exclusive.
      * </p>
      */
-    private final ArrayList<int[]>
-            actionTransformations = new ArrayList<int[]>();
+    private final ArrayList<ArrayList<int[]>> actionTransformationsList = new ArrayList<>();
 
     /**
-     * Structure that has the same shape as {@code actionTransformations},
+     * Structure that has the same shape as an item of {@code actionTransformations},
      * except that it describes the transformations in the WHEN clause.
      */
     private final ArrayList<int[]>
@@ -261,10 +260,8 @@ public class CreateTriggerNode extends DDLStatementNode {
      * @param refClause        the referencing clause
      * @param whenClause       the WHEN clause tree
      * @param whenText         the text of the WHEN clause
-     * @param whenOffset       offset of start of WHEN clause
-     * @param actionNode       the trigger action tree
-     * @param actionText       the text of the trigger action
-     * @param actionOffset     offset of start of action clause
+     * @param actionNodeList   the trigger action tree
+     * @param actionTextList   the text of the trigger action
      */
     @Override
     public void init(
@@ -278,10 +275,8 @@ public class CreateTriggerNode extends DDLStatementNode {
             Object refClause,
             Object whenClause,
             Object whenText,
-            Object whenOffset,
-            Object actionNode,
-            Object actionText,
-            Object actionOffset) throws StandardException {
+            Object actionNodeList,
+            Object actionTextList) throws StandardException {
         initAndCheck(triggerName);
         this.triggerName = (TableName) triggerName;
         this.tableName = (TableName) tableName;
@@ -294,13 +289,18 @@ public class CreateTriggerNode extends DDLStatementNode {
         this.whenClause = (ValueNode) whenClause;
         this.originalWhenText = (String)whenText;
         this.whenText = (whenText == null) ? null : ((String) whenText).trim();
-        this.actionNode = (StatementNode) actionNode;
-        this.originalActionText = (String) actionText;
-        this.actionText = (actionText == null) ? null : ((String) actionText).trim();
-        this.actionOffset = (Integer) actionOffset;
-        this.whenOffset   = (Integer) whenOffset;
+        this.actionNodeList = (StatementListNode) actionNodeList;
+        this.originalActionTextList = (List<String>) actionTextList;
+
+        assert this.actionNodeList.size() == originalActionTextList.size();
 
         implicitCreateSchema = true;
+        this.actionTextList = Lists.newArrayListWithCapacity(this.originalActionTextList.size());
+        for (int i = 0; i < this.originalActionTextList.size(); ++i) {
+            this.actionTextList.add(originalActionTextList.get(i) == null ? null : originalActionTextList.get(i).trim());
+            this.actionTransformationsList.add(new ArrayList<>());
+        }
+
     }
 
     @Override
@@ -327,9 +327,11 @@ public class CreateTriggerNode extends DDLStatementNode {
                 printLabel(depth, "whenClause: ");
                 whenClause.treePrint(depth + 1);
             }
-            if (actionNode != null) {
+            if (actionNodeList.size() > 0) {
                 printLabel(depth, "actionNode: ");
-                actionNode.treePrint(depth + 1);
+                for (StatementNode actionNode: actionNodeList) {
+                    actionNode.treePrint(depth + 1);
+                }
             }
         }
     }
@@ -393,18 +395,6 @@ public class CreateTriggerNode extends DDLStatementNode {
         */
         boolean needInternalSQL = bindReferencesClause(dd);
 
-        // Get all the names of SQL objects referenced by the triggered
-        // SQL statement and the WHEN clause. Since some of the TableName
-        // nodes may be eliminated from the node tree during the bind phase,
-        // we collect the nodes before the nodes have been bound. The
-        // names will be used later when we normalize the trigger text
-        // that will be stored in the system tables.
-        SortedSet<TableName> actionNames =
-                actionNode.getOffsetOrderedNodes(TableName.class);
-        SortedSet<TableName> whenNames = (whenClause != null)
-                ? whenClause.getOffsetOrderedNodes(TableName.class)
-                : null;
-
         lcc.pushTriggerTable(triggerTableDescriptor);
         try {
             /*
@@ -424,7 +414,9 @@ public class CreateTriggerNode extends DDLStatementNode {
             if (isBefore)
                 compilerContext.setReliability(CompilerContext.MODIFIES_SQL_DATA_PROCEDURE_ILLEGAL);
 
-            actionNode.bindStatement();
+            for (StatementNode actionNode: actionNodeList) {
+                actionNode.bindStatement();
+            }
 
             if (whenClause != null)
             {
@@ -435,12 +427,7 @@ public class CreateTriggerNode extends DDLStatementNode {
             lcc.popTriggerTable(triggerTableDescriptor);
         }
 
-        // Qualify identifiers before storing them (DERBY-5901/DERBY-6370).
-        // DERBY-6370 isn't required for WHEN clause support and was not
-        // fully ported.  Complete porting if we want to support dblook.
-        // qualifyNames(actionNames, whenNames);
-
-        /* 
+        /*
         ** Statement is dependent on the TableDescriptor 
         */
         compilerContext.createDependency(triggerTableDescriptor);
@@ -469,8 +456,10 @@ public class CreateTriggerNode extends DDLStatementNode {
         }
 
         //If attempting to reference a SESSION schema table (temporary or permanent) in the trigger action, throw an exception
-        if (actionNode.referencesSessionSchema())
-            throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
+        for (StatementNode actionNode: actionNodeList) {
+            if (actionNode.referencesSessionSchema())
+                throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
+        }
 
     }
 
@@ -484,7 +473,15 @@ public class CreateTriggerNode extends DDLStatementNode {
     public boolean referencesSessionSchema() throws StandardException {
         //If create trigger is part of create statement and the trigger is defined on or it references SESSION schema tables,
         //it will get caught in the bind phase of trigger and exception will be thrown by the trigger bind.
-        return (isSessionSchema(triggerTableDescriptor.getSchemaName()) || actionNode.referencesSessionSchema());
+        if (isSessionSchema(triggerTableDescriptor.getSchemaName())) {
+            return true;
+        }
+        for (StatementNode actionNode: actionNodeList) {
+            if (actionNode.referencesSessionSchema()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -512,8 +509,6 @@ public class CreateTriggerNode extends DDLStatementNode {
      *   SQL statement
      * @param originalText the original text of the WHEN clause or the
      *   triggered SQL statement
-     * @param offset the offset of the WHEN clause or the triggered SQL
-     *   statement within the CREATE TRIGGER statement
      * @param replacements list that will be populated with int arrays that
      *   describe how the original text was transformed. The int arrays
      *   contain the begin (inclusive) and end (exclusive) positions of the
@@ -705,7 +700,7 @@ public class CreateTriggerNode extends DDLStatementNode {
             forbidActionsOnGenCols();
         }
 
-        String transformedActionText;
+        List<String> transformedActionTextList = Lists.newArrayListWithCapacity(actionTextList.size());
         String transformedWhenText = null;
         int start = 0;
         if (triggerCols != null && triggerCols.size() != 0) {
@@ -755,56 +750,55 @@ public class CreateTriggerNode extends DDLStatementNode {
 
             int[] cols;
 
-            cols = getDataDictionary().examineTriggerNodeAndCols(actionNode,
+            cols = getDataDictionary().examineTriggerNodeAndCols(actionNodeList,
                             oldTableName,
                             newTableName,
-                            originalActionText,
                             referencedColInts,
                             referencedColsInTriggerAction,
-                            actionNode.getBeginOffset(),
                             triggerTableDescriptor,
                             triggerEventMask,
-                            true,
-                            actionTransformations);
+                            true);
 
             if (whenClause != null)
             {
-                    cols = getDataDictionary().examineTriggerNodeAndCols(whenClause,
-                            oldTableName,
-                                    newTableName,
-                                    originalActionText,
-                                    referencedColInts,
-                                    referencedColsInTriggerAction,
-                                    actionNode.getBeginOffset(),
-                                    triggerTableDescriptor,
-                                    triggerEventMask,
-                                    true,
-                                    actionTransformations);
+                cols = getDataDictionary().examineTriggerNodeAndCols(
+                        whenClause,
+                        oldTableName,
+                        newTableName,
+                        referencedColInts,
+                        referencedColsInTriggerAction,
+                        triggerTableDescriptor,
+                        triggerEventMask,
+                        true);
             }
 
 
             //Now that we have verified that are no invalid column references
             //for trigger columns, let's go ahead and transform the OLD/NEW
             //transient table references in the trigger action sql.
-            transformedActionText = getDataDictionary().getTriggerActionString(actionNode,
-                    oldTableName,
-                    newTableName,
-                    originalActionText,
-                    referencedColInts,
-                    referencedColsInTriggerAction,
-                    actionOffset,
-                    triggerTableDescriptor,
-                    triggerEventMask,
-                    true,
-                    actionTransformations, cols
-            );
+            for (int i = 0; i < originalActionTextList.size(); ++i) {
+                transformedActionTextList.add(getDataDictionary().getTriggerActionString(
+                        actionNodeList.get(i),
+                        oldTableName,
+                        newTableName,
+                        originalActionTextList.get(i),
+                        referencedColInts,
+                        referencedColsInTriggerAction,
+                        actionNodeList.get(i).getBeginOffset(),
+                        triggerTableDescriptor,
+                        triggerEventMask,
+                        true,
+                        actionTransformationsList.get(i),
+                        cols
+                ));
+            }
             // If there is a WHEN clause, we need to transform its text too.
             if (whenClause != null) {
                 transformedWhenText =
                     getDataDictionary().getTriggerActionString(
                             whenClause, oldTableName, newTableName,
                             originalWhenText, referencedColInts,
-                            referencedColsInTriggerAction, whenOffset,
+                            referencedColsInTriggerAction, whenClause.getBeginOffset(),
                             triggerTableDescriptor, triggerEventMask, true,
                             whenClauseTransformations, cols);
             }
@@ -826,9 +820,11 @@ public class CreateTriggerNode extends DDLStatementNode {
 //                referencedColsInTriggerAction[i-1] = i;
 //            }
 
-            transformedActionText = transformStatementTriggerText(
-                    actionNode, originalActionText,
-                    oldTableName, newTableName, triggerEventMask, actionTransformations);
+            for (int i = 0; i < originalActionTextList.size(); ++i) {
+                transformedActionTextList.add(transformStatementTriggerText(
+                        actionNodeList.get(i), originalActionTextList.get(i),
+                        oldTableName, newTableName, triggerEventMask, actionTransformationsList.get(i)));
+            }
             if (whenClause != null) {
                 transformedWhenText = transformStatementTriggerText(
                         whenClause, originalWhenText,
@@ -845,10 +841,12 @@ public class CreateTriggerNode extends DDLStatementNode {
         ** is what we are going to stick in the system tables.
         */
         boolean regenNode = false;
-        if (!transformedActionText.equals(actionText)) {
-            regenNode = true;
-            actionText = transformedActionText;
-            actionNode = parseStatement(actionText, true);
+        for (int i = 0; i < originalActionTextList.size(); ++i) {
+            if (!transformedActionTextList.get(i).equals(actionTextList.get(i))) {
+                regenNode = true;
+                actionTextList.set(i, transformedActionTextList.get(i));
+                actionNodeList.set(i, parseStatement(actionTextList.get(i), true));
+            }
         }
 
         if (whenClause != null && !transformedWhenText.equals(whenText)) {
@@ -858,146 +856,6 @@ public class CreateTriggerNode extends DDLStatementNode {
         }
 
         return regenNode;
-    }
-
-    /**
-     * Make sure all references to SQL schema objects (such as tables and
-     * functions) in the SQL fragments that will be stored in the SPS and
-     * in the trigger descriptor, are fully qualified with a schema name.
-     *
-     * @param actionNames all the TableName nodes found in the triggered
-     *                    SQL statement
-     * @param whenNames   all the Table Name nodes found in the WHEN clause
-     */
-    private void qualifyNames(SortedSet<TableName> actionNames,
-                              SortedSet<TableName> whenNames)
-            throws StandardException {
-
-        StringBuilder original = new StringBuilder();
-        StringBuilder transformed = new StringBuilder();
-
-        // Qualify the names in the action text.
-        qualifyNames(actionNode, actionNames, originalActionText, actionText,
-                     actionTransformations, original, transformed);
-        originalActionText = original.toString();
-        actionText = transformed.toString();
-
-        // Do the same for the WHEN clause, if there is one.
-        if (whenClause != null) {
-            original.setLength(0);
-            transformed.setLength(0);
-            qualifyNames(whenClause, whenNames, originalWhenText, whenText,
-                         whenClauseTransformations, original, transformed);
-            originalWhenText = original.toString();
-            whenText = transformed.toString();
-        }
-    }
-
-    /**
-     * Qualify all names SQL object names in original and transformed SQL
-     * text for an action or a WHEN clause.
-     *
-     * @param node the query tree node for the transformed version of the
-     *   SQL text, in a bound state
-     * @param tableNames all the TableName nodes in the transformed text,
-     *   in the order in which they appear in the SQL text
-     * @param originalText the original SQL text
-     * @param transformedText the transformed SQL text (with VTI calls for
-     *   transition tables or transition variables)
-     * @param replacements a data structure that describes how {@code
-     *   originalText} was transformed into {@code transformedText}
-     * @param newOriginal where to store the normalized version of the
-     *   original text
-     * @param newTransformed where to store the normalized version of the
-     *   transformed text
-     */
-    private void qualifyNames(
-            QueryTreeNode node,
-            SortedSet<TableName> tableNames,
-            String originalText,
-            String transformedText,
-            List<int[]> replacements,
-            StringBuilder newOriginal,
-            StringBuilder newTransformed) throws StandardException {
-
-        int originalPos = 0;
-        int transformedPos = 0;
-
-        for (TableName name : tableNames) {
-
-            String qualifiedName = name.getFullSQLName();
-
-            int beginOffset = name.getBeginOffset() - node.getBeginOffset();
-            int tokenLength = name.getEndOffset() + 1 - name.getBeginOffset();
-
-            // For the transformed text, use the positions from the node.
-            newTransformed.append(transformedText, transformedPos, beginOffset);
-            newTransformed.append(qualifiedName);
-            transformedPos = beginOffset + tokenLength;
-
-            // For the original text, we need to adjust the positions to
-            // compensate for the changes in the transformed text.
-            Integer origBeginOffset =
-                    getOriginalPosition(replacements, beginOffset);
-            if (origBeginOffset != null) {
-                newOriginal.append(originalText, originalPos, origBeginOffset);
-                newOriginal.append(qualifiedName);
-                originalPos = origBeginOffset + tokenLength;
-            }
-        }
-
-        newTransformed.append(
-                transformedText, transformedPos, transformedText.length());
-        newOriginal.append(originalText, originalPos, originalText.length());
-    }
-
-    /**
-     * Translate a position from the transformed trigger text
-     * ({@link #actionText} or {@link #whenText}) to the corresponding
-     * position in the original trigger text ({@link #originalActionText}
-     * or {@link #originalWhenText}).
-     *
-     * @param replacements a data structure that describes the relationship
-     *   between positions in the original and the transformed text
-     * @param transformedPosition the position to translate
-     * @return the position in the original text, or {@code null} if there
-     *   is no corresponding position in the original text (for example if
-     *   it points to a token that was added to the transformed text and
-     *   does not exist in the original text)
-     */
-    private static Integer getOriginalPosition(
-            List<int[]> replacements, int transformedPosition) {
-
-        // Find the last change before the position we want to translate.
-        for (int i = replacements.size() - 1; i >= 0; i--) {
-            int[] offsets = replacements.get(i);
-
-            // offset[0] is the begin offset of the replaced text
-            // offset[1] is the end offset of the replaced text
-            // offset[2] is the begin offset of the replacement text
-            // offset[3] is the end offset of the replacement text
-
-            // Skip those changes that come after the position we
-            // want to translate.
-            if (transformedPosition >= offsets[2]) {
-                if (transformedPosition < offsets[3]) {
-                    // The position points inside a changed portion of the
-                    // SQL text, so there's no corresponding position in the
-                    // original text. Return null.
-                    return null;
-                } else {
-                    // The position points after the end of the changed text,
-                    // which means it's in a portion that's common to the
-                    // original and the transformed text. Translate between
-                    // the two.
-                    return offsets[1] + (transformedPosition - offsets[3]);
-                }
-            }
-        }
-
-        // The position is before any of the transformations, so the position
-        // is the same in the original and the transformed text.
-        return transformedPosition;
     }
 
     /*
@@ -1052,7 +910,9 @@ public class CreateTriggerNode extends DDLStatementNode {
 
         CollectNodesVisitor visitor = new CollectNodesVisitor(ColumnReference.class);
 
-        actionNode.accept(visitor);
+        for (StatementNode actionNode: actionNodeList) {
+            actionNode.accept(visitor);
+        }
 
         Vector<ColumnReference> columnRefs = visitor.getList();
 
@@ -1175,16 +1035,13 @@ public class CreateTriggerNode extends DDLStatementNode {
                 isRow,
                 isEnabled,
                 triggerTableDescriptor,
-                (UUID) null,            // when SPSID
                 whenText,
-                (UUID) null,            // action SPSid
-                actionText,
+                actionTextList,
                 (actionCompSchemaId == null) ? compSchemaDescriptor.getUUID() : actionCompSchemaId,
-                (Timestamp) null,    // creation time
                 referencedColInts,
                 referencedColsInTriggerAction,
                 originalWhenText,
-                originalActionText,
+                originalActionTextList,
                 oldTableInReferencingClause,
                 newTableInReferencingClause,
                 oldReferencingName,
@@ -1219,7 +1076,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                     "\nisEnabled: " + isEnabled +
                     "\nwhenText: " + whenText +
                     "\nrefClause: " + refString +
-                    "\nactionText: " + actionText +
+                    "\nactionText: " + actionTextList +
                     "\n";
         } else {
             return "";

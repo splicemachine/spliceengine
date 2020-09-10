@@ -17,13 +17,15 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -38,6 +40,7 @@ import static org.junit.Assert.assertEquals;
  * Created by yxia on 12/15/17.
  */
 @RunWith(Parameterized.class)
+@Category(LongerThanTwoMinutes.class)
 public class OuterJoinOrderByEliminationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = OuterJoinOrderByEliminationIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);

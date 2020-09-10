@@ -32,14 +32,14 @@ import com.splicemachine.si.data.hbase.ZkUpgrade;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
 import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionServerObserver;
-import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.log4j.Logger;
 
@@ -61,6 +61,7 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
     /**
      * Logs the start of the observer and runs the SpliceDriver if needed...
      */
+    @SuppressFBWarnings(value="ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD", justification="intentional")
     @Override
     public void start(CoprocessorEnvironment e) throws IOException{
         try {
@@ -73,8 +74,9 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
     }
 
     @Override
-    public void preStopRegionServer(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException{
+    public void stop(CoprocessorEnvironment e) throws IOException{
         try {
+            SpliceLogUtils.warn(LOG, "Stopping RegionServerLifecycleObserver");
             lifecycleManager.shutdown();
             HBaseRegionLoads.INSTANCE.stopWatching();
             TransactionsWatcher.INSTANCE.stopWatching();
@@ -82,9 +84,9 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
             throw CoprocessorUtils.getIOException(t);
         }
     }
-
     /* ****************************************************************************************************************/
     /*private helper methods*/
+    @SuppressFBWarnings(value="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", justification="intentional")
     private DatabaseLifecycleManager startEngine(CoprocessorEnvironment e) throws IOException{
         RegionServerServices regionServerServices =(RegionServerServices)((RegionServerCoprocessorEnvironment) e).getOnlineRegions();
 
@@ -121,8 +123,12 @@ public class RegionServerLifecycleObserver implements RegionServerCoprocessor, R
             //register the network boot service
             manager.registerNetworkService(new NetworkLifecycleService(config));
 
-            manager.start();
-            SIDriver.driver().getExecutorService().submit(new SetReplicationRoleTask());
+            String replicationPath = ReplicationUtils.getReplicationPath();
+
+            byte[] status = ZkUtils.getRecoverableZooKeeper().exists(replicationPath, false) != null
+                    ? ZkUtils.getData(replicationPath) : null;
+            manager.start(status);
+
             return manager;
         }catch(Exception e1){
             LOG.error("Unexpected exception registering boot service", e1);

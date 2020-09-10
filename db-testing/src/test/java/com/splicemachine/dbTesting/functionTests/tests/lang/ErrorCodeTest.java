@@ -132,7 +132,7 @@ public final class ErrorCodeTest extends BaseJDBCTestCase {
         		{"08004","User '{0}' cannot shut down database '{1}'. Only the database owner can perform this operation.","40000"},
         		{"08004","User '{0}' cannot (re)encrypt database '{1}'. Only the database owner can perform this operation.","40000"},
         		{"08004","User '{0}' cannot hard upgrade database '{1}'. Only the database owner can perform this operation.","40000"},
-        		{"08004","Connection refused to database '{0}' because it is in replication slave mode.","40000"},
+        		{"08004","Connection refused to database '{0}' because it is in replication replica mode.","40000"},
         		{"08004","User '{0}' cannot issue a replication operation on database '{1}'. Only the database owner can perform this operation.","40000"},
         		{"08004","Missing permission for user '{0}' to shutdown system [{1}].","40000"},
         		{"08004","Cannot check system permission to create database '{0}' [{1}].","40000"},
@@ -268,12 +268,12 @@ public final class ErrorCodeTest extends BaseJDBCTestCase {
                 {"XXXXX","Normal database session close.","40000"},
                 {"XRE04","Could not establish a connection to the peer of the replicated database '{0}' on address '{1}:{2}'.","40000"},
                 {"XRE04","Connection lost for replicated database '{0}'.","40000"},
-                {"XRE05","The log files on the master and slave are not in synch for replicated database '{0}'. The master log instant is {1}:{2}, whereas the slave log instant is {3}:{4}. This is FATAL for replication - replication will be stopped.","40000"},
-                {"XRE09","Cannot start replication slave mode for database '{0}'. The database has already been booted.","40000"},
+                {"XRE05","The log files on the primary and replica are not in synch for replicated database '{0}'. The primary log instant is {1}:{2}, whereas the replica log instant is {3}:{4}. This is FATAL for replication - replication will be stopped.","40000"},
+                {"XRE09","Cannot start replication replica mode for database '{0}'. The database has already been booted.","40000"},
                 {"XRE11","Could not perform operation '{0}' because the database '{1}' has not been booted.","40000"},
                 {"XRE21","Error occurred while performing failover for database '{0}', Failover attempt was aborted.","40000"},
                 {"XRE22","Replication master has already been booted for database '{0}'","40000"},
-                {"XRE41","Replication operation 'failover' or 'stopSlave' refused on the slave database because the connection with the master is working. Issue the 'failover' or 'stopMaster' operation on the master database instead.","40000"},
+                {"XRE41","Replication operation 'failover' or 'stopReplica' refused on the replica database because the connection with the primary is working. Issue the 'failover' or 'stopPrimary' operation on the primary database instead.","40000"},
                 {"XRE42","Replicated database '{0}' shutdown.","40000"}};
 
         JDBC.assertUnorderedResultSet(rs, expectedRows);

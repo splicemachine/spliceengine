@@ -167,7 +167,7 @@ public class StatementFinder {
 
 		@param s the input stream for reading statements from.
 	 */
-	public void ReInit(LocalizedInput s) {
+	public void reInit(LocalizedInput s) {
 	    try {
 			source.close();
 		} catch (IOException ioe) {

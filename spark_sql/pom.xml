@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1957-SNAPSHOT</version>
+        <version>3.1.0.1974-SNAPSHOT</version>
     </parent>
     <artifactId>spark_sql</artifactId>
     <name>Spark SQL API Access</name>
@@ -76,13 +76,12 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.binary.version}</artifactId>
-            <version>2.2.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.scalamock</groupId>
             <artifactId>scalamock-scalatest-support_${scala.binary.version}</artifactId>
-            <version>3.1.4</version>
+            <version>${scalamock.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -153,7 +152,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-			<argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../platform_it/target/hbase</argLine>
+                    <argLine>-Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ -Dhbase.rootdir=${project.build.directory}/../../platform_it/target/hbase</argLine>
+                    <excludedGroups>${excluded.longerthan}</excludedGroups>
                 </configuration>
             </plugin>
             <!-- http://stackoverflow.com/questions/270445 -->

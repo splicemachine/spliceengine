@@ -20,6 +20,7 @@ import java.util.*;
 
 import com.splicemachine.derby.stream.function.QuoteTrackingTokenizer;
 import com.splicemachine.derby.stream.utils.BooleanList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
 
 /**
@@ -27,6 +28,8 @@ import org.supercsv.prefs.CsvPreference;
  *
  * @author dwinters
  */
+@SuppressFBWarnings(value = "IT_NO_SUCH_ELEMENT", justification = "this is by design, the caller is responsible for " +
+		"calling hasNext first to check whether a new element is there.")
 public class SpliceCsvReader implements Iterator<List<String>> {
 
 	private QuoteTrackingTokenizer tokenizer;
@@ -46,7 +49,11 @@ public class SpliceCsvReader implements Iterator<List<String>> {
 	 *             if reader or preferences are null
 	 */
 	public SpliceCsvReader(Reader reader, CsvPreference preferences) {
-		this.tokenizer = new QuoteTrackingTokenizer(reader,preferences);
+		this.tokenizer = new QuoteTrackingTokenizer(reader,preferences, false);
+	}
+
+	public SpliceCsvReader(Reader reader, CsvPreference preferences, long scanThreshold, List<Integer> valueSizesHint) {
+		this.tokenizer = new QuoteTrackingTokenizer(reader,preferences,false, scanThreshold, valueSizesHint);
 	}
 
     @Override

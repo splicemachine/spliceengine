@@ -54,7 +54,6 @@ import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.hbase.JMXThreadPool;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
@@ -74,8 +73,8 @@ import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.net.HostAndPort;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.net.HostAndPort;
 
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
@@ -89,7 +88,9 @@ import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
+import static com.splicemachine.db.iapi.sql.StatementType.*;
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
 
 /**
@@ -441,7 +442,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         operate(new BaseAdminProcedures.JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<ManagedCacheMBean> managedCaches = JMXUtils.getManagedCache(connections, DataDictionaryCache.cacheNames);
+                List<ManagedCacheMBean> managedCaches = JMXUtils.getManagedCache(connections, DataDictionaryCache.getCacheNames());
                 ExecRow template = buildExecRow(MANAGED_CACHE_COLUMNS);
                 List<ExecRow> rows = Lists.newArrayListWithExpectedSize(managedCaches.size());
                 int i=0;
@@ -451,7 +452,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     DataValueDescriptor[] dvds = template.getRowArray();
                     try{
                         dvds[0].setValue(connections.get(j).getFirst());
-                        dvds[1].setValue(DataDictionaryCache.cacheNames[i%DataDictionaryCache.cacheNames.length]);
+                        dvds[1].setValue(DataDictionaryCache.getCacheNames().get(i%DataDictionaryCache.getCacheNames().size()));
                         dvds[2].setValue(ex.getSize());
                         dvds[3].setValue(ex.getMissCount());
                         dvds[4].setValue(ex.getMissRate());
@@ -462,7 +463,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     }
                     rows.add(template.getClone());
                     i++;
-                    j = i >= DataDictionaryCache.cacheNames.length?1:0;
+                    j = i >= DataDictionaryCache.getCacheNames().size()?1:0;
                 }
 
                 EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
@@ -616,12 +617,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 int idx=0;
                 dvds[idx++].setValue(ps.getHostname());
                 Set<PartitionLoad> partitionLoads=psLoad.getPartitionLoads();
-                long storeFileCount = 0L;
+                long storeFileSize = 0L;
                 for(PartitionLoad pLoad:partitionLoads){
-                    storeFileCount+=pLoad.getStorefileSizeMB();
+                    storeFileSize+=pLoad.getStorefileSize();
                 }
                 dvds[idx++].setValue(partitionLoads.size());
-                dvds[idx++].setValue(storeFileCount);
+                dvds[idx++].setValue(storeFileSize);
                 dvds[idx++].setValue(psLoad.totalWriteRequests());
                 dvds[idx++].setValue(psLoad.totalReadRequests());
                 dvds[idx++].setValue(psLoad.totalRequests());
@@ -638,7 +639,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         int idx=0;
         columnInfo[idx++]=new GenericColumnDescriptor("host",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR));
         columnInfo[idx++]=new GenericColumnDescriptor("regionCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
-        columnInfo[idx++]=new GenericColumnDescriptor("storeFileCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+        columnInfo[idx++]=new GenericColumnDescriptor("storeFileSize",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
         columnInfo[idx++]=new GenericColumnDescriptor("writeRequestCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
         columnInfo[idx++]=new GenericColumnDescriptor("readRequestCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
         columnInfo[idx++]=new GenericColumnDescriptor("totalRequestCount",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
@@ -693,9 +694,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
      */
     public static void SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(String schemaName,String tableName) throws SQLException {
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        assert lcc != null;
         DataDictionary dd = lcc.getDataDictionary();
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
         for (long conglomID : getConglomNumbers(getDefaultConn(), schemaName, tableName)) {
             try {
                 ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomID);
@@ -727,6 +731,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_FLUSH_TABLE(String schemaName,String tableName) throws SQLException{
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
         for(long conglomID : getConglomNumbers(getDefaultConn(),schemaName,tableName)){
             try(Partition partition=tableFactory.getTable(Long.toString(conglomID))){
                 partition.flush();
@@ -840,12 +846,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         int storefileSizeMB=0;
                         int memStoreSizeMB=0;
                         int storefileIndexSizeMB=0;
+                        int factor = 1024*1024;
                         if(regionName!=null && !regionName.isEmpty()){
                             PartitionLoad regionLoad=ri.getLoad();//regionLoadMap.get(regionName);
                             if(regionLoad!=null){
-                                storefileSizeMB=regionLoad.getStorefileSizeMB();
-                                memStoreSizeMB=regionLoad.getMemStoreSizeMB();
-                                storefileIndexSizeMB=regionLoad.getStorefileIndexSizeMB();
+                                storefileSizeMB= (int) (regionLoad.getStorefileSize()/factor);
+                                memStoreSizeMB= (int) (regionLoad.getMemStoreSize()/factor);
+                                storefileIndexSizeMB= (int) (regionLoad.getStorefileIndexSize()/factor);
                             }
                         }
                         DataValueDescriptor[] cols=template.getRowArray();
@@ -1083,6 +1090,23 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return sqlConglomsInSchema;
     }
 
+    private static final String sqlGetTablesInSchema= "SELECT TABLEID FROM SYSVW.SYSTABLESVIEW WHERE SCHEMAID = ?";
+
+    private static List<TableDescriptor> getTablesInSchema(DataDictionary dataDictionary,
+                                                           Connection connection,
+                                                           String schemaId) throws SQLException, StandardException {
+        try(PreparedStatement statement = connection.prepareStatement(sqlGetTablesInSchema)) {
+            statement.setString(1, schemaId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<TableDescriptor> tableDescriptors = new ArrayList<>();
+                while (resultSet.next()) {
+                    tableDescriptors.add(dataDictionary.getTableDescriptor(new BasicUUID(resultSet.getString(1))));
+                }
+                return tableDescriptors;
+            }
+        }
+    }
+
     public static String getSqlConglomsInTable(){
         return sqlConglomsInTable;
     }
@@ -1114,9 +1138,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         PreparedStatement s=null;
         try{
             s=conn.prepareStatement(query);
-            s.setString(1,schemaName.toUpperCase());
+            s.setString(1,schemaName);
             if(!isTableNameEmpty){
-                s.setString(2,tableName.toUpperCase());
+                s.setString(2,tableName);
             }
             rs=s.executeQuery();
             while(rs.next()){
@@ -1311,7 +1335,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_UPDATE_SCHEMA_OWNER(String schemaName, String ownerName) throws SQLException {
         if (schemaName == null || schemaName.isEmpty()) throw new SQLException("Invalid null or empty value for 'schemaName'");
         if (ownerName == null || ownerName.isEmpty()) throw new SQLException("Invalid null or empty value for 'ownerName'");
-        schemaName = schemaName.toUpperCase();
+        schemaName = EngineUtils.validateSchema(schemaName);
         ownerName = ownerName.toUpperCase();
         try {
             checkCurrentUserIsDatabaseOwnerAccess();
@@ -1370,6 +1394,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SYSCS_SAVE_SOURCECODE(String schemaName, String objectName, String objectType, String objectForm, String definerName, Blob sourceCode) throws SQLException {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
+        schemaName = EngineUtils.validateSchema(schemaName);
         try {
             tc.elevate("sourceCode");
             DataDictionary dd = lcc.getDataDictionary();
@@ -1382,6 +1407,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SET_PURGE_DELETED_ROWS (String schemaName, String tableName, String enable) throws Exception{
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
@@ -1409,6 +1436,53 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     /**
+     * Sets the minimum retention period for a table, or a set of tables in a schema.
+     *
+     * @param schemaName Name of the schema.
+     * @param tableName Name of the table, if NULL, then `retentionPeriod` will be set for all tables in `schema`.
+     * @param retentionPeriod Retention period (in seconds).
+     * @throws StandardException If table or schema does not exist.
+     * @throws SQLException is table name or schema name is not valid.
+     */
+    public static void SET_MIN_RETENTION_PERIOD(String schemaName, String tableName, long retentionPeriod) throws StandardException, SQLException {
+        // if schemaName was null => get the current schema.
+        schemaName = EngineUtils.validateSchema(schemaName);
+        // if tableName is null => set min. retention period for all tables in schemaName.
+        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
+        if(retentionPeriod < 0) {
+            throw StandardException.newException(SQLState.LANG_INVALID_VALUE_RANGE, retentionPeriod, "non-negative number");
+        }
+
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        if (sd == null) {
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+        }
+        List<TableDescriptor> affectedTables = new ArrayList<>();
+        if (tableName != null) {
+            TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+            if (td == null) {
+                throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
+            }
+            affectedTables.add(td);
+        } else { // set for all tables in schema
+            affectedTables.addAll(getTablesInSchema(dd, getDefaultConn(), sd.getUUID().toString()));
+        }
+        dd.startWriting(lcc);
+        for(TableDescriptor td : affectedTables) {
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) td.getUUID());
+            DependencyManager dm = dd.getDependencyManager();
+            dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            td.setMinRetainedVersions(retentionPeriod);
+            dd.dropTableDescriptor(td, sd, tc);
+            dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+        }
+    }
+
+    /**
      * Take a snapshot of a schema
      * @param schemaName
      * @param snapshotName
@@ -1421,6 +1495,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
 
+        schemaName = EngineUtils.validateSchema(schemaName);
         EngineUtils.checkSchemaVisibility(schemaName);
 
         dd.startWriting(lcc);
@@ -1446,6 +1521,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
 
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
         EngineUtils.checkSchemaVisibility(schemaName);
 
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
@@ -1758,35 +1835,29 @@ public class SpliceAdmin extends BaseAdminProcedures{
         List<Pair<UUID, RunningOperation>> operations = EngineDriver.driver().getOperationManager().runningOperations(userId);
 
         SConfiguration config=EngineDriver.driver().getConfiguration();
-        String hostname = NetworkUtils.getHostname(config);
-        int port = config.getNetworkBindPort();
-        String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
-        String submittedTime;
-        String engineName;
+        String host_port = NetworkUtils.getHostname(config) + ":" + config.getNetworkBindPort();
+        final String timeStampFormat = "yyyy-MM-dd HH:mm:ss";
 
         List<ExecRow> rows = new ArrayList<>(operations.size());
-        for (Pair<UUID, RunningOperation> pair : operations) {
+        for (Pair<UUID, RunningOperation> pair : operations)
+        {
+            UUID uuid = pair.getFirst();
+            RunningOperation ro = pair.getSecond();
             ExecRow row = new ValueRow(9);
-            Activation activation = pair.getSecond().getOperation().getActivation();
+            Activation activation = ro.getOperation().getActivation();
             assert activation.getPreparedStatement() != null:"Prepared Statement is null";
-            row.setColumn(1, new SQLVarchar(pair.getFirst().toString()));
-            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation)));
-            row.setColumn(3, new SQLVarchar(hostname + ":" + port));
-            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber()));
+            row.setColumn(1, new SQLVarchar(uuid.toString())); // UUID
+            row.setColumn(2, new SQLVarchar(activation.getLanguageConnectionContext().getCurrentUserId(activation))); // USER
+            row.setColumn(3, new SQLVarchar(host_port) ); // HOSTNAME
+            row.setColumn(4, new SQLInteger(activation.getLanguageConnectionContext().getInstanceNumber())); // SESSION
             ExecPreparedStatement ps = activation.getPreparedStatement();
-            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource()));
-            submittedTime = new SimpleDateFormat(timeStampFormat).format(pair.getSecond().getSubmittedTime());
-            row.setColumn(6, new SQLVarchar(submittedTime));
-            String scopeName = pair.getSecond().getOperation().getScopeName();
-            if (scopeName.compareTo("Call Procedure") == 0) {
-                engineName = "SYSTEM";
-            }
-            else {
-                engineName = (pair.getSecond().getEngine() == DataSetProcessor.Type.SPARK) ? "SPARK" : "CONTROL";
-            }
-            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(pair.getSecond().getSubmittedTime(),new Date())));
-            row.setColumn(8, new SQLVarchar(engineName));
-            row.setColumn(9, new SQLVarchar(scopeName));
+            row.setColumn(5, new SQLVarchar(ps == null ? null : ps.getSource())); // SQL
+            String submittedTime = new SimpleDateFormat(timeStampFormat).format(ro.getSubmittedTime());
+            row.setColumn(6, new SQLVarchar(submittedTime)); // SUBMITTED
+
+            row.setColumn(7, new SQLVarchar(getElapsedTimeStr(ro.getSubmittedTime(),new Date()))); // ELAPSED
+            row.setColumn(8, new SQLVarchar(ro.getEngineName())); // ENGINE
+            row.setColumn(9, new SQLVarchar(ro.getOperation().getScopeName())); // JOBTYPE
             rows.add(row);
         }
 
@@ -2153,276 +2224,223 @@ public class SpliceAdmin extends BaseAdminProcedures{
     {
         Connection connection = getDefaultConn();
         try {
-            EngineUtils.verifyTableExists(connection, schemaName, tableName);
+            schemaName = EngineUtils.validateSchema(schemaName);
+            tableName = EngineUtils.validateTable(tableName);
+            TableDescriptor td = EngineUtils.verifyTableExists(connection, schemaName, tableName);
 
-            String getTableId = "SELECT T.TABLEID, T.TABLETYPE, T.COMPRESSION, T.DELIMITED, " +
-                    "T.ESCAPED, T.LINES, T.STORED, T.LOCATION" +
-                    " FROM SYSVW.SYSTABLESVIEW T " +
-                    "WHERE T.TABLETYPE IN ('T','E','S','V') " +
-                    "AND T.TABLENAME LIKE '" + tableName + "' AND T.SCHEMANAME = '" + schemaName + "'";
+            String tableTypeString = "";
+            StringBuilder extTblString = new StringBuilder();
 
-            String tableId = "" ;
-            boolean firstCol = true;
+            ColumnDescriptorList cdl = td.getColumnDescriptorList();
+            //Process external table definition
+            if (td.isExternal()) {
+                tableTypeString = "EXTERNAL ";
 
-            //External Table
-            String isExternal = "";
-            StringBuilder extTblString = new StringBuilder("");
+                List<ColumnDescriptor> partitionColumns = cdl.stream()
+                        .filter(columnDescriptor -> columnDescriptor.getPartitionPosition() > -1)
+                        .sorted(Comparator.comparing(ColumnDescriptor::getPartitionPosition))
+                        .collect(Collectors.toList());
 
-            try (Statement stmt = connection.createStatement()) {
-                try (ResultSet tableIdRs = stmt.executeQuery(getTableId)) {
-                    if (tableIdRs.next()) {
-                        tableId = tableIdRs.getString(1);
-                        String tableType = tableIdRs.getString(2);
-                        //Process external table definition
-                        if ("E".equals(tableType)) {
-                            PreparedStatement getPartitionedColsStmt = connection.prepareStatement("SELECT C.COLUMNNAME " +
-                                    "FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
-                                    "AND C.PARTITIONPOSITION > -1 ORDER BY C.PARTITIONPOSITION");
-                            String tmpStr;
-                            isExternal = "EXTERNAL ";
-                            tmpStr = tableIdRs.getString(3);
-                            if (tmpStr != null && !tmpStr.equals("none"))
-                                extTblString.append("\nCOMPRESSED WITH " + tmpStr);
+                String tmpStr;
+                tmpStr = td.getCompression();
+                if (tmpStr != null && !tmpStr.equals("none"))
+                    extTblString.append("\nCOMPRESSED WITH " + tmpStr);
 
-                            // Partitioned Columns
-                            getPartitionedColsStmt.setString(1, tableId);
-                            try (ResultSet pcRS = getPartitionedColsStmt.executeQuery()) {
-                                while (pcRS.next()) {
-                                    extTblString.append(firstCol ? "\nPARTITIONED BY (" + pcRS.getString(1) : "," + pcRS.getString(1));
-                                    firstCol = false;
-                                }
-                            }
-                            getPartitionedColsStmt.close();
-                            if (!firstCol)
-                                extTblString.append(")");
+                // Partitioned Columns
+                boolean firstCol = true;
+                for (ColumnDescriptor col: partitionColumns) {
+                    extTblString.append(firstCol ? "\nPARTITIONED BY (\"" + col.getColumnName()+"\"" : ",\"" + col.getColumnName()+"\"");
+                    firstCol = false;
+                }
 
-                            // Row Format
-                            if (tableIdRs.getString(4) != null || tableIdRs.getString(6) != null) {
-                                extTblString.append("\nROW FORMAT DELIMITED");
-                                if ((tmpStr = tableIdRs.getString(4)) != null)
-                                    extTblString.append(" FIELDS TERMINATED BY ''" + tmpStr + "''");
-                                if ((tmpStr = tableIdRs.getString(5)) != null)
-                                    extTblString.append(" ESCAPED BY ''" + tmpStr + "''");
-                                if ((tmpStr = tableIdRs.getString(6)) != null)
-                                    extTblString.append(" LINES TERMINATED BY ''" + tmpStr + "''");
-                            }
-                            // Storage type
-                            if ((tmpStr = tableIdRs.getString(7)) != null) {
-                                extTblString.append("\nSTORED AS ");
-                                switch (tmpStr) {
-                                    case "T":
-                                        extTblString.append("TEXTFILE");
-                                        break;
-                                    case "P":
-                                        extTblString.append("PARQUET");
-                                        break;
-                                    case "A":
-                                        extTblString.append("AVRO");
-                                        break;
-                                    case "O":
-                                        extTblString.append("ORC");
-                                        break;
-                                    default:
-                                        throw new SQLException("Invalid stored format");
-                                }
-                            }
-                            // Location
-                            if ((tmpStr = tableIdRs.getString(8)) != null) {
-                                extTblString.append("\nLOCATION ''" + tmpStr + "''");
-                            }
-                        }//End External Table
-                        else if ("V".equals(tableType)) {
-                            //Target table is a View
-                            throw ErrorState.LANG_INVALID_OPERATION_ON_VIEW.newException("SHOW CREATE TABLE", "\"" + schemaName + "\".\"" + tableName + "\"");
-                        } else if ("S".equals(tableType)) {
-                            //Target table is a system table
-                            throw ErrorState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA.newException("SHOW CREATE TABLE", schemaName);
-                        }
-                        // Get column list, and write DDL for each column.
-                        StringBuilder colStringBuilder = new StringBuilder("");
-                        String createColString = "";
+                if (!firstCol)
+                    extTblString.append(")");
 
-                        PreparedStatement getColumnInfoStmt = connection.prepareStatement("SELECT C.COLUMNNAME, C.REFERENCEID, " +
-                                "C.COLUMNNUMBER FROM SYSVW.SYSCOLUMNSVIEW C WHERE C.REFERENCEID = ? " +
-                                "ORDER BY C.COLUMNNUMBER");
-                        getColumnInfoStmt.setString(1, tableId);
-                        ResultSet columnRS = getColumnInfoStmt.executeQuery();
-
-                        firstCol = true;
-                        while (columnRS.next()) {
-                            String colName = columnRS.getString(1);
-                            createColString = createColumn(connection, colName, columnRS.getString(2), columnRS.getInt(3));
-                            colStringBuilder.append(firstCol ? createColString : "," + createColString).append("\n");
-                            firstCol = false;
-                        }
-                        columnRS.close();
-                        getColumnInfoStmt.close();
-
-                        colStringBuilder.append(createConstraint((EmbedConnection) connection, schemaName, tableName));
-                        String DDL = "CREATE " + isExternal + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
-                        StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
-                        sb.append(DDL);
-                        String extStr = extTblString.toString();
-                        if (extStr.length() > 0)
-                            sb.append(extStr);
-                        sb.append(";') FOO (DDL)");
-                        resultSet[0] = executeStatement(sb);
+                // Row Format
+                if (td.getDelimited() != null || td.getLines() != null) {
+                    extTblString.append("\nROW FORMAT DELIMITED");
+                    if ((tmpStr = td.getDelimited()) != null)
+                        extTblString.append(" FIELDS TERMINATED BY ''" + tmpStr + "''");
+                    if ((tmpStr = td.getEscaped()) != null)
+                        extTblString.append(" ESCAPED BY ''" + tmpStr + "''");
+                    if ((tmpStr = td.getLines()) != null)
+                        extTblString.append(" LINES TERMINATED BY ''" + tmpStr + "''");
+                }
+                // Storage type
+                if ((tmpStr = td.getStoredAs()) != null) {
+                    extTblString.append("\nSTORED AS ");
+                    switch (tmpStr) {
+                        case "T":
+                            extTblString.append("TEXTFILE");
+                            break;
+                        case "P":
+                            extTblString.append("PARQUET");
+                            break;
+                        case "A":
+                            extTblString.append("AVRO");
+                            break;
+                        case "O":
+                            extTblString.append("ORC");
+                            break;
+                        default:
+                            throw new SQLException("Invalid stored format");
                     }
                 }
+                // Location
+                if ((tmpStr = td.getLocation()) != null) {
+                    extTblString.append("\nLOCATION ''" + tmpStr + "''");
+                }
+            }//End External Table
+            else if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
+                //Target table is a View
+                throw ErrorState.LANG_INVALID_OPERATION_ON_VIEW.newException("SHOW CREATE TABLE", "\"" + schemaName + "\".\"" + tableName + "\"");
+            } else if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
+                //Target table is a system table
+                throw ErrorState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA.newException("SHOW CREATE TABLE", schemaName);
+            } else if (td.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
+                tableTypeString = "GLOBAL TEMPORARY ";
             }
-        } catch (SQLException | StandardException e) {
+
+            // Get column list, and write DDL for each column.
+            StringBuilder colStringBuilder = new StringBuilder("");
+            String createColString = "";
+
+            boolean firstCol = true;
+            cdl.sort(Comparator.comparing(columnDescriptor -> columnDescriptor.getPosition()));
+            for (ColumnDescriptor col: cdl) {
+                createColString = createColumn(col);
+                colStringBuilder.append(firstCol ? createColString : "," + createColString).append("\n");
+                firstCol = false;
+            }
+
+            colStringBuilder.append(createConstraint(td, schemaName, tableName));
+            String DDL = "CREATE " + tableTypeString + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
+            StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
+            sb.append(DDL);
+            String extStr = extTblString.toString();
+            if (extStr.length() > 0)
+                sb.append(extStr);
+            sb.append(";') FOO (DDL)");
+            resultSet[0] = executeStatement(sb);
+
+        } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
 
-    private static String createColumn(Connection theConnection, String colName, String tableId, int colNum) throws SQLException
+    private static String createColumn(ColumnDescriptor columnDescriptor) throws SQLException
     {
-        PreparedStatement getColumnTypeStmt =null;
-        PreparedStatement getAutoIncStmt = null;
         StringBuffer colDef = new StringBuffer();
 
-        try {
-            getColumnTypeStmt = theConnection.prepareStatement("SELECT COLUMNDATATYPE, COLUMNDEFAULT FROM SYSVW.SYSCOLUMNSVIEW " +
-                    "WHERE REFERENCEID = ? AND COLUMNNAME = ?");
+        colDef.append("\"" + columnDescriptor.getColumnName() + "\"");
+        colDef.append(" ");
+        String colType = (new UserType(columnDescriptor.getType().getCatalogType())).toString();
+        colDef.append(colType);
 
-            getColumnTypeStmt.setString(1, tableId);
-            getColumnTypeStmt.setString(2, colName);
-
-            try (ResultSet rs = getColumnTypeStmt.executeQuery()) {
-                if (rs.next()) {
-                    colDef.append("\"" + colName + "\"");
-                    colDef.append(" ");
-                    String colType = rs.getString(1);
-                    colDef.append(colType);
-                    getAutoIncStmt = theConnection.prepareStatement("SELECT AUTOINCREMENTSTART, " +
-                            "AUTOINCREMENTINC, COLUMNNAME, REFERENCEID, COLUMNDEFAULT FROM SYSVW.SYSCOLUMNSVIEW " +
-                            "WHERE COLUMNNAME = ? AND REFERENCEID = ?");
-                    if (!reinstateAutoIncrement(getAutoIncStmt, colName, tableId, colDef) &&
-                            rs.getString(2) != null) {
-                        String defaultText = rs.getString(2);
-
-                        if (defaultText.startsWith("GENERATED ALWAYS AS")) {
-                            colDef.append(" ");
-                        } else {
-                            colDef.append(" DEFAULT ");
-                            if (colType.indexOf("CHAR") > -1
-                                    || colType.indexOf("VARCHAR") > -1
-                                    || colType.indexOf("LONG VARCHAR") > -1
-                                    || colType.indexOf("CLOB") > -1
-                                    || colType.indexOf("DATE") > -1
-                                    || colType.indexOf("TIME") > -1
-                                    || colType.indexOf("TIMESTAMP") > -1
-                            ) {
-                                if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
-                                    defaultText = "'" + defaultText + "'";
-                            }
-                        }
-                        colDef.append(defaultText);
-                    }
-                }
-            } finally {
-                if (getAutoIncStmt != null)
-                    getAutoIncStmt.close();
-            }
-        } finally {
-            if (getColumnTypeStmt != null)
-                getColumnTypeStmt.close();
-
+        Object defaultSerializable;
+        if(columnDescriptor.getDefaultInfo() != null) {
+            defaultSerializable = columnDescriptor.getDefaultInfo();
+        }else{
+            defaultSerializable = columnDescriptor.getDefaultValue();
         }
+        String defaultText = defaultSerializable == null? null:defaultSerializable.toString();
+
+        if (!reinstateAutoIncrement(columnDescriptor, colDef) &&
+                            defaultText != null) {
+            if (defaultText.startsWith("GENERATED ALWAYS AS")) {
+                colDef.append(" ");
+            } else {
+                colDef.append(" DEFAULT ");
+                if (colType.indexOf("CHAR") > -1
+                        || colType.indexOf("VARCHAR") > -1
+                        || colType.indexOf("LONG VARCHAR") > -1
+                        || colType.indexOf("CLOB") > -1
+                        || colType.indexOf("DATE") > -1
+                        || colType.indexOf("TIME") > -1
+                        || colType.indexOf("TIMESTAMP") > -1
+                        ) {
+                    if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
+                        defaultText = "'" + defaultText + "'";
+                }
+            }
+            colDef.append(defaultText);
+        }
+
         return colDef.toString();
     }
 
     @SuppressFBWarnings(value="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", justification="Intentional")
-    private static String createConstraint(EmbedConnection theConnection, String schemaName, String tableName) throws SQLException
-    {
-        EmbedDatabaseMetaData dmd = (EmbedDatabaseMetaData)theConnection.getMetaData();
+    private static String createConstraint(TableDescriptor td, String schemaName, String tableName) throws SQLException, StandardException {
+        Map<Integer, ColumnDescriptor> columnDescriptorMap = td.getColumnDescriptorList()
+                .stream()
+                .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
+        ConstraintDescriptorList constraintDescriptorList = td.getDataDictionary().getConstraintDescriptors(td);
 
-        //Check
         StringBuffer chkStr = new StringBuffer();
-        try(ResultSet rs=dmd.getCheckConstraints(schemaName, tableName)) {
-            while (rs.next()) {
-                chkStr.append(", CONSTRAINT " + rs.getString(1) + " CHECK " + rs.getString(2).replace("'", "''"));
-            }
-        }
-        //End Check
-
-        //Unique
         StringBuffer uniqueStr = new StringBuffer();
-        try(ResultSet rs=dmd.getUniqueConstraints(schemaName, tableName)) {
-            String uniqueName = null;
-            List<String> cols = null;
-            boolean uniqueFirst = true;
-            while (rs.next()) {
-                if (uniqueName == null || !rs.getString(1).equals(uniqueName)) {
-                    if (uniqueName != null)
-                        uniqueStr.append(", CONSTRAINT " + uniqueName + " UNIQUE " + buildColumnsFromList(cols));
-                    uniqueName = rs.getString(1);
-                    cols = new LinkedList<>();
-                    uniqueFirst = false;
-                }
-                cols.add(rs.getString(2));
-            }
-            if (!uniqueFirst)
-                uniqueStr.append(", CONSTRAINT " + uniqueName + " UNIQUE " + buildColumnsFromList(cols));
-        }
-        //End Unique
-
-        //Primary Key
         StringBuffer priKeys = new StringBuffer();
-        boolean pkFirstCol = true;
-        CallableStatement cs = theConnection.prepareCall("CALL SYSIBM.SQLPRIMARYKEYS(?,?,?,?)");
-        cs.setString(1,"");
-        cs.setString(2,schemaName);
-        cs.setString(3,tableName);
-        cs.setString(4,"");
-
-        ResultSet rs = cs.executeQuery();
-        while (rs.next()) {
-            priKeys.append(pkFirstCol ? ", CONSTRAINT " + rs.getString("PK_NAME")+ " PRIMARY KEY(" + rs.getString("COLUMN_NAME") : "," + rs.getString("COLUMN_NAME"));
-            pkFirstCol = false;
-        }
-        if (!pkFirstCol)
-            priKeys.append(")");
-        //End Primary Key
-
-        //Foreign Key
-        cs = theConnection.prepareCall("CALL SYSIBM.SQLFOREIGNKEYS(?,?,?,?,?,?,?)");
-        cs.setString(1,"");
-        cs.setString(2,null);
-        cs.setString(3,"");
-        cs.setString(4,"");
-        cs.setString(5,schemaName);
-        cs.setString(6,tableName);
-        cs.setString(7,"IMPORTEDKEY=1");
-        rs = cs.executeQuery();
-
-        boolean fkFirst = true;
-        String fkName = null;
-        String refTblName = null;
-        List<String> pkCols = null;
-        List<String> fkCols = null;
-        int updateType = -1, deleteType = -1;
         StringBuffer fkKeys = new StringBuffer();
-        while (rs.next()) {
-            if (fkName == null || !rs.getString("FK_NAME").equals(fkName)){
-                if (fkName != null) {
-                    fkKeys.append("," + buildForeignKeyConstraint(fkName,refTblName,pkCols,fkCols,updateType,deleteType));
-                }
-                fkName = rs.getString("FK_NAME");
-                refTblName = rs.getString("PKTABLE_NAME");
-                updateType = rs.getInt("UPDATE_RULE");
-                deleteType = rs.getInt("DELETE_RULE");
-                pkCols = new LinkedList<>();
-                fkCols = new LinkedList<>();
-                fkFirst = false;
+        for (ConstraintDescriptor cd: constraintDescriptorList) {
+            switch (cd.getConstraintType()) {
+                //Check
+                case DataDictionary.CHECK_CONSTRAINT:
+                    if (!cd.isEnabled())
+                        break;
+
+                    chkStr.append(", CONSTRAINT " + cd.getConstraintName() + " CHECK " + cd.getConstraintText().replace("'", "''"));
+                    break;
+                case DataDictionary.PRIMARYKEY_CONSTRAINT:
+                    int[] keyColumns = cd.getKeyColumns();
+                    boolean pkFirstCol = true;
+                    for (int index=0; index<keyColumns.length; index ++) {
+                        String colName = columnDescriptorMap.get(keyColumns[index]).getColumnName();
+                        priKeys.append(pkFirstCol ? ", CONSTRAINT " + cd.getConstraintName() + " PRIMARY KEY(\"" + colName + "\"": ",\"" + colName + "\"");
+                        pkFirstCol = false;
+                    }
+                    if (!pkFirstCol)
+                        priKeys.append(")");
+                    break;
+                case DataDictionary.UNIQUE_CONSTRAINT:
+                    if (!cd.isEnabled())
+                        break;
+                    keyColumns = cd.getKeyColumns();
+                    boolean uniqueFirstCol = true;
+                    for (int index=0; index<keyColumns.length; index ++) {
+                        String colName = columnDescriptorMap.get(keyColumns[index]).getColumnName();
+                        uniqueStr.append(uniqueFirstCol ? ", CONSTRAINT " + cd.getConstraintName() + " UNIQUE (\"" + colName + "\"": ",\"" + colName + "\"");
+                        uniqueFirstCol = false;
+                    }
+                    if (!uniqueFirstCol)
+                        uniqueStr.append(")");
+                    break;
+                case DataDictionary.FOREIGNKEY_CONSTRAINT:
+                    keyColumns = cd.getKeyColumns();
+                    String fkName = cd.getConstraintName();
+                    ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor = (ForeignKeyConstraintDescriptor)cd;
+                    ConstraintDescriptor referencedCd = foreignKeyConstraintDescriptor.getReferencedConstraint();
+                    TableDescriptor referencedTableDescriptor = referencedCd.getTableDescriptor();
+                    int[] referencedKeyColumns = referencedCd.getKeyColumns();
+                    String refTblName = referencedTableDescriptor.getQualifiedName();
+                    ColumnDescriptorList referencedTableCDL = referencedTableDescriptor.getColumnDescriptorList();
+                    Map<Integer, ColumnDescriptor> referencedTableCDM = referencedTableCDL
+                            .stream()
+                            .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
+
+                    int updateType = foreignKeyConstraintDescriptor.getRaUpdateRule();
+                    int deleteType = foreignKeyConstraintDescriptor.getRaDeleteRule();
+
+                    List<String> referencedColNames = new LinkedList<>();
+                    List<String> fkColNames = new LinkedList<>();
+                    for (int index=0; index<keyColumns.length; index ++) {
+                        fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
+                        referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
+                    }
+                    fkKeys.append(", " + buildForeignKeyConstraint(fkName,refTblName,referencedColNames,fkColNames,updateType,deleteType));
+                    break;
+                default:
+                    break;
             }
-            pkCols.add(rs.getString("PKCOLUMN_NAME"));
-            fkCols.add(rs.getString("FKCOLUMN_NAME"));
         }
-        rs.close();
-        if (!fkFirst)
-            fkKeys.append("," + buildForeignKeyConstraint(fkName,refTblName,pkCols,fkCols,updateType,deleteType)); //Append the final constraint
-        //End Foreign Key
 
         return  chkStr.toString() + uniqueStr.toString() + priKeys.toString() + fkKeys.toString();
     }
@@ -2448,10 +2466,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         fkStr.append(" ON UPDATE ");
         switch (updateRule) {
-            case java.sql.DatabaseMetaData.importedKeyRestrict:
+            case RA_RESTRICT:
                 fkStr.append("RESTRICT");
                 break;
-            case java.sql.DatabaseMetaData.importedKeyNoAction:
+            case RA_NOACTION:
                 fkStr.append("NO ACTION");
                 break;
             default:  // shouldn't happen
@@ -2459,16 +2477,16 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
         fkStr.append(" ON DELETE ");
         switch (deleteRule) {
-            case java.sql.DatabaseMetaData.importedKeyRestrict:
+            case RA_RESTRICT:
                 fkStr.append("RESTRICT");
                 break;
-            case java.sql.DatabaseMetaData.importedKeyNoAction:
+            case RA_NOACTION:
                 fkStr.append("NO ACTION");
                 break;
-            case java.sql.DatabaseMetaData.importedKeyCascade:
+            case RA_CASCADE:
                 fkStr.append("CASCADE");
                 break;
-            case java.sql.DatabaseMetaData.importedKeySetNull:
+            case RA_SETNULL:
                 fkStr.append("SET NULL");
                 break;
             default:  // shouldn't happen
@@ -2477,25 +2495,17 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return fkStr.toString();
     }
 
-    public static boolean reinstateAutoIncrement(PreparedStatement getAutoIncStmt, String colName,
-                                          String tableId, StringBuffer colDef) throws SQLException {
-        getAutoIncStmt.setString(1, colName);
-        getAutoIncStmt.setString(2, tableId);
-        try (ResultSet autoIncCols = getAutoIncStmt.executeQuery()) {
-            if (autoIncCols.next()) {
-                long start = autoIncCols.getLong(1);
-                if (!autoIncCols.wasNull()) {
-                    colDef.append(" GENERATED ");
-                    colDef.append(autoIncCols.getObject(5) == null ?
-                            "ALWAYS " : "BY DEFAULT ");
-                    colDef.append("AS IDENTITY (START WITH ");
-                    colDef.append(autoIncCols.getLong(1));
-                    colDef.append(", INCREMENT BY ");
-                    colDef.append(autoIncCols.getLong(2));
-                    colDef.append(")");
-                    return true;
-                }
-            }
+    public static boolean reinstateAutoIncrement(ColumnDescriptor columnDescriptor, StringBuffer colDef) throws SQLException {
+        if (columnDescriptor.getAutoincInc() != 0) {
+            colDef.append(" GENERATED ");
+            colDef.append(columnDescriptor.getDefaultInfo() == null ?
+                    "ALWAYS " : "BY DEFAULT ");
+            colDef.append("AS IDENTITY (START WITH ");
+            colDef.append(columnDescriptor.getAutoincStart());
+            colDef.append(", INCREMENT BY ");
+            colDef.append(columnDescriptor.getAutoincInc());
+            colDef.append(")");
+            return true;
         }
         return false;
     }
@@ -2555,6 +2565,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             DDLMessage.DDLChange ddlChange = ProtoUtil.createUpdateSystemProcedure(activeTransaction.getTxnId());
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
+            schemaName = EngineUtils.validateSchema(schemaName);
             dd.createOrUpdateSystemProcedure(schemaName,procName,tc);
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);

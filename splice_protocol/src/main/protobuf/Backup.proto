@@ -4,6 +4,38 @@ option java_generic_services = true;
 option java_generate_equals_and_hash = true;
 option optimize_for = SPEED;
 
-message foo {
-    optional int32 foo = 1;
+message BackupJobStatus {
+    enum BackupScope {
+        TABLE = 1;
+        SCHEMA = 2;
+        DATABASE = 3;
+    }
+
+    optional int64 backupId = 1;
+    optional BackupScope scope = 2;
+    optional bool isIncremental = 3;
+    optional int64 lastActiveTimestamp = 4;
+    repeated string objects = 5;
+}
+
+message BackupRegionStatus {
+    optional bytes startKey = 1;
+    optional bytes endKey = 2;
+    optional bytes status = 3;
+    repeated string backupFiles = 4;
+}
+
+service BackupCoprocessorService {
+    rpc prepareBackup(PrepareBackupRequest)
+        returns (PrepareBackupResponse);
+}
+
+message PrepareBackupRequest {
+    optional bytes startKey=1;
+    optional bytes endKey=2;
+    optional int64 backupId=3;
+}
+
+message PrepareBackupResponse {
+    optional bool readyForBackup = 1;
 }

@@ -14,19 +14,21 @@
 
 package com.splicemachine.hbase;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.Service;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
-import com.splicemachine.backup.BackupRegionStatus;
+import com.splicemachine.backup.BackupMessage;
 import com.splicemachine.backup.BackupRestoreConstants;
-import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.si.data.hbase.coprocessor.CoprocessorUtils;
+import com.splicemachine.si.data.hbase.coprocessor.DummyScanner;
+import com.splicemachine.backup.BackupMessage.BackupRegionStatus;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.coprocessor.*;
 import org.apache.hadoop.hbase.regionserver.*;
@@ -38,7 +40,7 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.ZooDefs;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -51,7 +53,7 @@ import java.util.concurrent.locks.ReentrantLock;
 /**
  * Created by jyuan on 2/18/16.
  */
-public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorService implements RegionCoprocessor, RegionObserver {
+public class BackupEndpointObserver extends BackupMessage.BackupCoprocessorService implements RegionCoprocessor, RegionObserver {
     private static final Logger LOG=Logger.getLogger(BackupEndpointObserver.class);
 
     private AtomicBoolean isSplitting;
@@ -67,10 +69,12 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
     private AtomicBoolean preparing;
     private ThreadLocal<Collection<? extends StoreFile>> storeFiles = new ThreadLocal<Collection<? extends StoreFile>>();
     private ReentrantLock bulkLoadLock = new ReentrantLock();
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.of(this);
             region = (HRegion) ((RegionCoprocessorEnvironment) e).getRegion();
             String[] name = region.getTableDescriptor().getTableName().getNameAsString().split(":");
             if (name.length == 2) {
@@ -105,11 +109,11 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
     @Override
     public void prepareBackup(
             com.google.protobuf.RpcController controller,
-            SpliceMessage.PrepareBackupRequest request,
-            com.google.protobuf.RpcCallback<SpliceMessage.PrepareBackupResponse> done) {
+            BackupMessage.PrepareBackupRequest request,
+            com.google.protobuf.RpcCallback<BackupMessage.PrepareBackupResponse> done) {
         try {
             preparing.set(true);
-            SpliceMessage.PrepareBackupResponse.Builder responseBuilder =
+            BackupMessage.PrepareBackupResponse.Builder responseBuilder =
                     prepare(request);
 
             assert responseBuilder.hasReadyForBackup();
@@ -122,9 +126,9 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
 
     }
 
-    public SpliceMessage.PrepareBackupResponse.Builder prepare(SpliceMessage.PrepareBackupRequest request) throws Exception{
+    public BackupMessage.PrepareBackupResponse.Builder prepare(BackupMessage.PrepareBackupRequest request) throws Exception{
 
-        SpliceMessage.PrepareBackupResponse.Builder responseBuilder = SpliceMessage.PrepareBackupResponse.newBuilder();
+        BackupMessage.PrepareBackupResponse.Builder responseBuilder = BackupMessage.PrepareBackupResponse.newBuilder();
         responseBuilder.setReadyForBackup(false);
 
         if (!BackupUtils.regionKeysMatch(request, region)) {
@@ -158,13 +162,18 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
                 region.flushcache(false,false, null);
                 region.waitForFlushesAndCompactions();
 
-                canceled = BackupUtils.backupCanceled();
+                canceled = BackupUtils.backupCanceled(backupId);
                 if (!canceled) {
                     // Create a ZNode to indicate that the region is being copied
                     RegionInfo regionInfo = region.getRegionInfo();
-                    BackupRegionStatus backupRegionStatus = new BackupRegionStatus(regionInfo.getStartKey(), regionInfo.getEndKey(),
-                            HConfiguration.BACKUP_IN_PROGRESS);
-                    boolean created = ZkUtils.recursiveSafeCreate(regionBackupPath, backupRegionStatus.toBytes(), ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+                    BackupRegionStatus backupRegionStatus = BackupRegionStatus.newBuilder()
+                            .setStartKey(ByteString.copyFrom(regionInfo.getStartKey()))
+                            .setEndKey((ByteString.copyFrom(regionInfo.getEndKey())))
+                            .setStatus(ByteString.copyFrom(HConfiguration.BACKUP_IN_PROGRESS))
+                            .build();
+
+                    boolean created = ZkUtils.recursiveSafeCreate(regionBackupPath, backupRegionStatus.toByteArray(),
+                            ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
                     if (LOG.isDebugEnabled()) {
                         if (ZkUtils.getRecoverableZooKeeper().exists(regionBackupPath, false) != null) {
                             SpliceLogUtils.debug(LOG,"created znode %s to mark backup in progress, created = %s", regionBackupPath, created);
@@ -243,7 +252,7 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
             BackupUtils.waitForBackupToComplete(tableName, regionName);
             isCompacting.set(true);
             SpliceLogUtils.info(LOG, "setting isCompacting=true for %s:%s", tableName, regionName);
-            return scanner;
+            return scanner == null ? DummyScanner.INSTANCE : scanner;
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -299,6 +308,7 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
         }
     }
 
+    @SuppressFBWarnings(value="UL_UNRELEASED_LOCK_EXCEPTION_PATH")
     @Override
     public void postBulkLoadHFile(ObserverContext<RegionCoprocessorEnvironment> ctx, List<Pair<byte[], String>> stagingFamilyPaths, Map<byte[], List<Path>> finalPaths) throws IOException {
 
@@ -341,6 +351,6 @@ public class BackupEndpointObserver extends SpliceMessage.BackupCoprocessorServi
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 }

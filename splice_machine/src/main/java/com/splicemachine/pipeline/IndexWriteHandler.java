@@ -121,6 +121,8 @@ public class IndexWriteHandler extends RoutingWriteHandler{
             if (newIndex == null)
                 return true;
             newIndex.setType(KVPair.Type.INSERT);
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "performing index insert on row %s", Bytes.toHex(newIndex.getRowKey()));
             if(deleteMutation!=null && newIndex.rowKeySlice().equals(deleteMutation.rowKeySlice())){
                 /*
                  * DB-4165: When we do an update to the base table, that translates to a delete

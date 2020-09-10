@@ -32,7 +32,7 @@
 package com.splicemachine.db.impl.sql.conn;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ContextId;
@@ -53,8 +53,8 @@ import com.splicemachine.db.iapi.sql.conn.*;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.sql.execute.CursorActivation;
+import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
@@ -65,6 +65,7 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
@@ -142,7 +143,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private DataSetProcessorType type;
 
     private final String ipAddress;
-    private Database db;
+    private InternalDatabase db;
 
     private final int instanceNumber;
     private String drdaID;
@@ -271,6 +272,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private int maxStatementLogLen;
     private boolean logQueryPlan;
 
+    // default to 6
+    private int tableLimitForExhaustiveSearch = 6;
+
     // this used to be computed in OptimizerFactoryContextImpl; i.e everytime a
     // connection was made. To keep the semantics same I'm putting it out here
     // instead of in the OptimizerFactory which is only initialized when the
@@ -338,6 +342,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String origStmtTxt;
 
     private String defaultSchema;
+    private boolean nljPredicatePushDownDisabled = false;
 
     private String replicationRole = "NONE";
 
@@ -347,7 +352,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             TransactionController tranCtrl,
             LanguageFactory lf,
             LanguageConnectionFactory lcf,
-            Database db,
+            InternalDatabase db,
             String userName,
             List<String> groupuserlist,
             int instanceNumber,
@@ -391,11 +396,29 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         String maxStatementLogLenStr = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.maxStatementLogLen");
-        maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.valueOf
+        maxStatementLogLen = maxStatementLogLenStr == null ? -1 : Integer.parseInt
                 (maxStatementLogLenStr);
 
         String logQueryPlanProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logQueryPlan");
         logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
+
+        try {
+            String valueString = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.tableLimitForExhaustiveSearch");
+            int value = Integer.parseInt(valueString);
+            if (value > 0)
+                tableLimitForExhaustiveSearch = value;
+        } catch (Exception e) {
+            // no op, use default value 6
+        }
+
+        try {
+            String nljPredPushDownString =
+                    PropertyUtil.getCachedDatabaseProperty(this, Property.DISABLE_NLJ_PREIDCATE_PUSH_DOWN);
+            if (nljPredPushDownString != null)
+                nljPredicatePushDownDisabled = Boolean.valueOf(nljPredPushDownString);
+        } catch (Exception e) {
+            // no op, use default value 6
+        }
 
         lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators=new ArrayList<>();
@@ -404,21 +427,30 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         sessionProperties = new SessionPropertiesImpl();
         // transfer setting of skipStats and defaultSelectivityFactor from jdbc connnection string to sessionProperties
         if (skipStats)
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SKIPSTATS, new Boolean(skipStats).toString());
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SKIPSTATS, Boolean.toString(skipStats));
         if (defaultSelectivityFactor > 0)
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, new Double(defaultSelectivityFactor).toString());
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR, Double.toString(defaultSelectivityFactor));
         if (connectionProperties != null) {
-            String olapQueue = connectionProperties.getProperty(Property.CONNECTION_OLAP_QUEUE);
-            if (olapQueue != null) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE, olapQueue);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_OLAP_QUEUE, SessionProperties.PROPERTYNAME.OLAPQUEUE);
+            setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_SNAPSHOT, SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_PARALLEL_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
+            setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
+
+            String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+            if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS, "TRUE".toString());
             }
-            String snapshot = connectionProperties.getProperty(Property.CONNECTION_SNAPSHOT);
-            if (snapshot != null) {
-                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP, snapshot);
+
+            setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCHES, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES);
+            setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCH_SIZE, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
+            String disableNestedLoopJoinPredicatePushDown = connectionProperties.getProperty(Property.CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN);
+            if (disableNestedLoopJoinPredicatePushDown != null &&
+                    disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
             }
         }
         if (type.isSessionHinted()) {
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USESPARK, type.isSpark());
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isSpark());
         } else {
             assert type.isDefaultControl();
         }
@@ -427,6 +459,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         String ignoreCommentOptEnabledStr = PropertyUtil.getCachedDatabaseProperty(this, MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED);
         ignoreCommentOptEnabled = Boolean.valueOf(ignoreCommentOptEnabledStr);
 
+    }
+
+    private void setSessionFromConnectionProperty(Properties connectionProperties, String connectionPropName, SessionProperties.PROPERTYNAME sessionPropName) {
+        String value = connectionProperties.getProperty(connectionPropName);
+        if (value != null) {
+            this.sessionProperties.setProperty(sessionPropName, value);
+        }
     }
 
     /**
@@ -585,6 +624,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public boolean getLogQueryPlan(){
         return logQueryPlan;
+    }
+
+    @Override
+    public int getTableLimitForExhaustiveSearch() {
+        Integer tableLimit = (Integer) sessionProperties.getProperty(
+                SessionProperties.PROPERTYNAME.TABLELIMITFOREXHAUSTIVESEARCH);
+        if (tableLimit != null)
+            return tableLimit;
+        return tableLimitForExhaustiveSearch;
     }
 
     @Override
@@ -1561,7 +1609,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 tempTablesXApostCommit();
             }
         }
-        tc.commitDataDictionaryChange();
+        if (tc != null)
+            tc.commitDataDictionaryChange();
     }
 
     /**
@@ -1938,6 +1987,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * execution time, set transaction isolation level calls this method before
      * changing the isolation level.
      */
+    @SuppressFBWarnings(value = "DM_GC", justification = "Intentional")
     @Override
     public boolean verifyAllHeldResultSetsAreClosed() throws StandardException{
         boolean seenOpenResultSets=false;
@@ -1976,7 +2026,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         System.gc();
         System.runFinalization();
 
-
         /* For every activation */
         for(int i=acts.size()-1;i>=0;i--){
 
@@ -2013,6 +2062,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * @param action   The action causing the possible invalidation
      * @return Nothing.
      */
+    @SuppressFBWarnings(value = "DM_GC", justification = "Intentional")
     @Override
     public boolean verifyNoOpenResultSets(PreparedStatement pStmt,Provider provider,int action)
             throws StandardException{
@@ -2057,7 +2107,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         // let's try and force these out rather than throw an error
         System.gc();
         System.runFinalization();
-
 
         /* For every activation */
         // synchronize on acts as other threads may be closing activations
@@ -2620,7 +2669,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public Database getDatabase(){
+    public InternalDatabase getDatabase(){
         return db;
     }
 
@@ -3271,6 +3320,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public void refreshCurrentRoles(Activation a) throws StandardException {
+        List<String> roles = getCurrentSQLSessionContext(a).getRoles();
+        List<String> rolesToRemove = new ArrayList<>();
+        for (String role : roles) {
+            if (role != null) {
+                beginNestedTransaction(true);
+                try {
+                    if (!roleIsSettable(a, role)) {
+                        // invalid role, so remove it from the currentRoles list in SQLSessionContext
+                        rolesToRemove.add(role);
+                    }
+                } finally {
+                    commitNestedTransaction();
+                }
+            }
+        }
+        removeRoles(a, rolesToRemove);
+    }
+
+    @Override
     public String getCurrentUserId(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentUser();
     }
@@ -3293,10 +3362,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getCurrentGroupUserDelimited(Activation a) throws StandardException {
         if(LOG.isDebugEnabled()) {
-            LOG.debug(String.format("getCurrentGroupUserDelimited():\n" +
-                            "sessionUser: %s,\n" +
-                            "defaultRoles: %s,\n" +
-                            "groupUserList: %s\n",
+            LOG.debug(String.format("getCurrentGroupUserDelimited():%n" +
+                            "sessionUser: %s,%n" +
+                            "defaultRoles: %s,%n" +
+                            "groupUserList: %s%n",
                     sessionUser,
                     (defaultRoles==null?"null":defaultRoles.toString()),
                     (groupuserlist==null?"null":groupuserlist.toString())));
@@ -3320,10 +3389,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getCurrentRoleIdDelimited(Activation a) throws StandardException{
         if(LOG.isDebugEnabled()) {
-            LOG.debug(String.format("getCurrentRoleIdDelimited():\n" +
-                            "sessionUser: %s,\n" +
-                            "defaultRoles: %s,\n" +
-                            "groupUserList: %s\n",
+            LOG.debug(String.format("getCurrentRoleIdDelimited():%n" +
+                            "sessionUser: %s,%n" +
+                            "defaultRoles: %s,%n" +
+                            "groupUserList: %s%n",
                     sessionUser,
                     (defaultRoles==null?"null":defaultRoles.toString()),
                     (groupuserlist==null?"null":groupuserlist.toString())));
@@ -3331,23 +3400,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         List<String> roles=getCurrentSQLSessionContext(a).getRoles();
 
-        List<String > rolesToRemove = new ArrayList<>();
+        refreshCurrentRoles(a);
         String roleListString = null;
         for (String role : roles) {
-            if (role != null) {
-                beginNestedTransaction(true);
-
-                try {
-                    if (!roleIsSettable(a, role)) {
-                        // invalid role, so remove it from the currentRoles list in SQLSessionContext
-                        rolesToRemove.add(role);
-                        role = null;
-                    }
-                } finally {
-                    commitNestedTransaction();
-                }
-            }
-
             if (role != null) {
                 if (roleListString == null)
                     roleListString = IdUtil.normalToDelimited(role);
@@ -3355,7 +3410,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     roleListString = roleListString + ", " + IdUtil.normalToDelimited(role);
             }
         }
-        removeRoles(a, rolesToRemove);
         return roleListString;
     }
 
@@ -3377,9 +3431,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public void setSessionProperties(Properties newProperties) {
-        for (Object property: newProperties.keySet()) {
-            SessionProperties.PROPERTYNAME propertyName = (SessionProperties.PROPERTYNAME)property;
-            sessionProperties.setProperty(propertyName, newProperties.get(property));
+        for (Map.Entry<Object, Object> propertyEntry: newProperties.entrySet()) {
+            SessionProperties.PROPERTYNAME propertyName = (SessionProperties.PROPERTYNAME)propertyEntry.getKey();
+            sessionProperties.setProperty(propertyName, propertyEntry.getValue());
         }
 
         return;
@@ -3779,18 +3833,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void logStartFetching(String statement) {
+    public void logStartFetching(String uuid, String statement) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format("Start fetching from the result set. %s, %s",
-                    getLogHeader(), formatLogStmt(statement)));
+            stmtLogger.info(String.format("Start fetching from the result set. %s, uuid=%s, %s",
+                    getLogHeader(), uuid, formatLogStmt(statement)));
         }
     }
 
     @Override
-    public void logEndFetching(String statement, long fetchedRows) {
+    public void logEndFetching(String uuid, String statement, long fetchedRows) {
         if (stmtLogger.isInfoEnabled()) {
-            stmtLogger.info(String.format("End fetching from the result set. %s, fetchedRows=%d, %s",
-                    getLogHeader(), fetchedRows, formatLogStmt(statement)));
+            stmtLogger.info(String.format("End fetching from the result set. %s, uuid=%s, fetchedRows=%d, %s",
+                    getLogHeader(), uuid, fetchedRows, formatLogStmt(statement)));
         }
     }
 
@@ -3898,5 +3952,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public String getReplicationRole() {
         return replicationRole;
+    }
+
+    public boolean isNLJPredicatePushDownDisabled() {
+        Boolean disablePushDown = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN);
+        if (disablePushDown != null) {
+            return disablePushDown;
+        }
+
+        return nljPredicatePushDownDisabled;
     }
 }

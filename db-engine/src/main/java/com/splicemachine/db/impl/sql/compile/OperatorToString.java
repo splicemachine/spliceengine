@@ -317,11 +317,16 @@ public class OperatorToString {
                     String functionName = eon.sparkFunctionName();
 
                     // Splice extracts fractional seconds, but spark only extracts whole seconds.
-                    if (functionName.equals("SECOND") || functionName.equals("WEEK") ||
-                        functionName.equals("WEEKDAY") || functionName.equals("WEEKDAYNAME"))
+                    // Spark by default counts weeks starting on Sunday.
+                    if (functionName.equals("SECOND") || functionName.equals("WEEK")) {
                         throwNotImplementedError();
-                    else
+                    } else if (functionName.equals("WEEKDAY")) {
+                        return format("cast(date_format(%s, \"u\") as int) ", opToString2(uop.getOperand(), vars));
+                    } else if (functionName.equals("WEEKDAYNAME")) {
+                        return format("date_format(%s, \"EEEE\") ", opToString2(uop.getOperand(), vars));
+                    } else {
                         return format("%s(%s) ", functionName, opToString2(uop.getOperand(), vars));
+                    }
                 }
                 else if (operand instanceof DB2LengthOperatorNode) {
                     DB2LengthOperatorNode lengthOp = (DB2LengthOperatorNode)operand;
@@ -347,9 +352,9 @@ public class OperatorToString {
                     else if (operatorString.equals("ABS/ABSVAL"))
                         operatorString = "abs";
                 }
-                else if (operand instanceof SimpleStringOperatorNode) {
-                    SimpleStringOperatorNode sso = (SimpleStringOperatorNode) operand;
-                    return format("%s(%s) ", operatorString, opToString2(sso.getOperand(), vars));
+                else if (operand instanceof SimpleStringOperatorNode ||
+                         operand instanceof NotNode) {
+                    return format("%s(%s) ", operatorString, opToString2(uop.getOperand(), vars));
                 }
                 else
                     throwNotImplementedError();
@@ -610,8 +615,15 @@ public class OperatorToString {
             // Need to CAST if the final type is decimal because the precision
             // or scale used by spark to hold the result may not match what
             // splice has chosen, and could cause an overflow.
+            //
+            // DB-9333
+            // Also need a final CAST for division operator because Spark may
+            // decide to use a different result type. It happens when at least
+            // one operand of the division is an aggregate function. Plus, minus,
+            // and multiplication of aggregate functions are fine.
             boolean doCast = operand instanceof BinaryArithmeticOperatorNode &&
-                             operand.getTypeId().getTypeFormatId() == DECIMAL_TYPE_ID &&
+                             (operand.getTypeId().getTypeFormatId() == DECIMAL_TYPE_ID ||
+                              ((BinaryArithmeticOperatorNode)operand).getOperatorString().equals("/")) &&
                              vars.sparkExpression;
             String expressionString =
                     format("(%s %s %s)", leftOperandString,
@@ -663,9 +675,6 @@ public class OperatorToString {
                     if (top.getOperator().equals("LOCATE") ||
                         top.getOperator().equals("replace") ||
                         (top.getOperator().equals("substring") && top.getRightOperand() != null)) {
-
-                        if (vars.sparkVersion.lessThan(spark_2_3_0) && top.getOperator().equals("replace"))
-                            throwNotImplementedError();
 
                         vars.relationalOpDepth.decrement();
                         String retval = format("%s(%s, %s, %s) ", top.getOperator(), opToString2(top.getReceiver(), vars),

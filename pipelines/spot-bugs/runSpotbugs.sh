@@ -52,7 +52,7 @@ echo "$count specific errors to fix before this PR can be merged:"
 echo "$spotbugs_errors"
 echo "#######################################################"
 echo ""
-echo "To reproduce locally, run ./pipelines/spot-bugs/runSpotbugs.sh $platform $branch"
+echo "To reproduce locally, run mvn -Pcore,$platform,mem,ee -DskipTests clean install && ./pipelines/spot-bugs/runSpotbugs.sh $platform $branch"
 
 rm out_file
 

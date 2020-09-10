@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import javax.annotation.Nullable;

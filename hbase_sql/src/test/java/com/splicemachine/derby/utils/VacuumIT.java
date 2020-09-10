@@ -21,6 +21,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -52,7 +53,7 @@ import static org.junit.Assert.assertTrue;
  * @author Scott Fines
  * Date: 3/19/14
  */
-@Category(value = {SerialTest.class})
+@Category({SerialTest.class, LongerThanTwoMinutes.class})
 public class VacuumIT extends SpliceUnitTest{
     public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
     protected static String TABLE = "T";

@@ -122,4 +122,21 @@ public class CreateSchemaIT {
         }
     }
 
+    // DB-8357
+    @Test
+    public void testSchemaAutoCreation() throws Exception {
+        try {
+            methodWatcher.execute("create table AUTO_SCHEMA.AAA (col1 int)");
+            ResultSet rs = methodWatcher.executeQuery("SELECT SCHEMANAME FROM SYS.SYSSCHEMAS WHERE SCHEMANAME = 'AUTO_SCHEMA'");
+            String expected = "SCHEMANAME  |\n" +
+                    "-------------\n" +
+                    "AUTO_SCHEMA |";
+            assertEquals("list of schemas does not match", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+        }
+        finally {
+            methodWatcher.execute("DROP TABLE AUTO_SCHEMA.AAA");
+            methodWatcher.execute("DROP SCHEMA AUTO_SCHEMA RESTRICT");
+        }
+    }
 }

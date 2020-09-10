@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV2;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV3;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.stats.FakeColumnStatisticsImpl;
@@ -81,10 +82,11 @@ import com.splicemachine.utils.kryo.KryoPool;
 import de.javakaffee.kryoserializers.ArraysAsListSerializer;
 import de.javakaffee.kryoserializers.UUIDSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.serializer.KryoRegistrator;
-import org.spark_project.guava.base.Optional;
+import splice.com.google.common.base.Optional;
 
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -260,6 +262,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             }
 
             @Override
+            @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "DB-9304")
             protected void readValue(Kryo kryo, Input input, SQLBit dvd) throws StandardException {
                 byte[] data = new byte[input.readInt()];
                 //noinspection ResultOfMethodCallIgnored
@@ -276,6 +279,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             }
 
             @Override
+            @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "DB-9304")
             protected void readValue(Kryo kryo, Input input, SQLVarbit dvd) throws StandardException {
                 byte[] data = new byte[input.readInt()];
                 //noinspection ResultOfMethodCallIgnored
@@ -292,6 +296,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             }
 
             @Override
+            @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "DB-9304")
             protected void readValue(Kryo kryo, Input input, SQLLongVarbit dvd) throws StandardException {
                 byte[] data = new byte[input.readInt()];
                 //noinspection ResultOfMethodCallIgnored
@@ -518,6 +523,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             }
 
             @Override
+            @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "DB-9304")
             protected void readValue(Kryo kryo, Input input, SQLBlob dvd) throws StandardException {
                 byte[] data = new byte[input.readInt()];
                 //noinspection ResultOfMethodCallIgnored
@@ -936,6 +942,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(TriggerRowHolderImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerDescriptorV2.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TriggerDescriptorV3.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(StringBuilder.class);
     }

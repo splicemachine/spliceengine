@@ -25,13 +25,19 @@
 
 package com.splicemachine.db.client.am;
 
+import java.io.UnsupportedEncodingException;
 import java.sql.DataTruncation;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.client.net.Typdef;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public abstract class Sqlca {
-    transient protected Connection connection_;
+    transient protected ClientConnection connection_;
     SqlException exceptionThrownOnStoredProcInvocation_;
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "messageTextRetrievedContainsTokensOnly_ is read in ExceptionFormatter.printTrace")
     boolean messageTextRetrievedContainsTokensOnly_ = true;
 
     // data corresponding to SQLCA fields
@@ -53,7 +59,6 @@ public abstract class Sqlca {
     protected byte[] sqlErrpBytes_;
     protected byte[] sqlWarnBytes_;
     
-    protected int sqlErrmcCcsid_;
     protected boolean containsSqlcax_ = true;
     protected long rowsetRowCount_;
 
@@ -75,7 +80,7 @@ public abstract class Sqlca {
      * procedure to get the same message). */
     private String[] cachedMessages;
 
-    protected Sqlca(com.splicemachine.db.client.am.Connection connection) {
+    protected Sqlca(ClientConnection connection) {
         connection_ = connection;
         agent_ = connection_ != null ? connection_.agent_ : null;
     }
@@ -148,6 +153,7 @@ public abstract class Sqlca {
      * Initialize and build the arrays <code>sqlErrmcMessages_</code> and
      * <code>sqlStates_</code>.
      */
+    @SuppressFBWarnings(value = "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", justification = "the value is set in NetSqlcla.setSqlerrmcBytes")
     private void initSqlErrmcMessages() {
         if (sqlErrmcMessages_ == null || sqlStates_ == null) {
             // processSqlErrmcTokens handles null sqlErrmcBytes_ case
@@ -175,6 +181,7 @@ public abstract class Sqlca {
         }
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9811")
     public int[] getSqlErrd() {
         if (sqlErrd_ != null) {
             return sqlErrd_;
@@ -184,6 +191,7 @@ public abstract class Sqlca {
         return sqlErrd_;
     }
 
+    @SuppressFBWarnings(value = {"EI_EXPOSE_REP", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"}, justification = "DB-9811, sqlWarn_ is set in NetSqlca.setSqlwarnBytes")
     synchronized public char[] getSqlWarn() {
         if (sqlWarn_ != null) {
             return sqlWarn_;
@@ -301,6 +309,7 @@ public abstract class Sqlca {
     }
 
     // May or may not get the formatted message depending upon datasource directives.  cannot throw exeption.
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "exceptionThrownOnStoredProcInvocation is read in ExceptionFormatter.printTrace")
     synchronized String getJDBCMessage(int messageNumber) {
         // The transient connection_ member will only be null if the Sqlca has been deserialized
         if (connection_ != null && connection_.retrieveMessageText_) {
@@ -441,7 +450,7 @@ public abstract class Sqlca {
         return sqlErrd_[2];
     }
 
-    public long getRowCount() throws com.splicemachine.db.client.am.DisconnectException {
+    public long getRowCount() {
         return ((long) sqlErrd_[0] << 32) + sqlErrd_[1];
     }
 
@@ -453,7 +462,8 @@ public abstract class Sqlca {
         return containsSqlcax_;
     }
 
-    public void resetRowsetSqlca(com.splicemachine.db.client.am.Connection connection,
+    @SuppressFBWarnings(value = {"EI_EXPOSE_REP2", "IS2_INCONSISTENT_SYNC"}, justification = "DB-9811, DB-9812")
+    public void resetRowsetSqlca(ClientConnection connection,
                                  int sqlCode,
                                  String sqlState,
                                  byte[] sqlErrpBytes) {
@@ -469,6 +479,26 @@ public abstract class Sqlca {
 
     public long getRowsetRowCount() {
         return rowsetRowCount_;
+    }
+
+    public String [] getArgs() {
+        if (sqlErrmcBytes_ == null || sqlErrmcBytes_.length == 0)
+            return null;
+        int beginOffset = 0;
+        List<String> argList = new ArrayList<>();
+        char delimiter = Sqlca.SQLERRMC_TOKEN_DELIMITER.charAt(0);
+        try {
+            for (int i = 0; i < sqlErrmcBytes_.length; i++) {
+                if (sqlErrmcBytes_[i] == delimiter) {
+                    argList.add(bytes2String(sqlErrmcBytes_, beginOffset, i - beginOffset));
+                    beginOffset = i + 1;
+                }
+            }
+            return argList.toArray(new String[0]);
+        }
+        catch (UnsupportedEncodingException e) {
+            return null;
+        }
     }
 }
 

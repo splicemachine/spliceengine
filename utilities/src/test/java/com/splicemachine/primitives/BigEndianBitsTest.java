@@ -14,7 +14,7 @@
 
 package com.splicemachine.primitives;
 
-import org.spark_project.guava.collect.Lists;
+import com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;

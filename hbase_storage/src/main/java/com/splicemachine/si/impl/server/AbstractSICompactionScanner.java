@@ -26,6 +26,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -40,12 +41,16 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
     private final SICompactionState compactionState;
     private final InternalScanner delegate;
     private final BlockingQueue<Entry> queue;
+    private Semaphore permits;
     private final Timer timer;
     private final int timeDelta;
     private final CompactionContext context;
     private final PurgeConfig purgeConfig;
     private AtomicReference<IOException> failure = new AtomicReference<>();
     private AtomicLong remainingTime;
+    private volatile boolean stop = false;
+    private Thread readerThread;
+    private long size;
 
     public AbstractSICompactionScanner(SICompactionState compactionState,
                                        InternalScanner scanner,
@@ -57,16 +62,22 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         this.delegate = scanner;
         this.purgeConfig = purgeConfig;
         this.queue = new ArrayBlockingQueue(bufferSize);
-        this.timer = new Timer("Compaction-resolution-throttle", true);
+        this.permits = new Semaphore(bufferSize);
         this.timeDelta = (int) (60000 * resolutionShare);
         this.remainingTime = new AtomicLong(timeDelta);
         this.context = context;
+
+        String name = "Compaction-resolution-throttle-"+UUID.randomUUID();
+        LOG.info("Starting " + name);
+        this.timer = new Timer(name, true);
+        this.size = 0;
     }
 
     @Override
-    public boolean next(List<Cell> list) throws IOException{
+    public boolean next(List<Cell> list) throws IOException {
         if (failure.get() != null) {
             timer.cancel();
+            delegate.close();
             throw failure.get();
         }
         /*
@@ -75,18 +86,31 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
         Entry entry;
         try {
             entry = queue.take();
+            int toRelease = entry.cells.size();
             final boolean more = entry.more;
             List<TxnView> txns = waitFor(entry.txns);
-            compactionState.mutate(entry.cells, txns, list, purgeConfig);
+            size += compactionState.mutate(entry.cells, txns, list, purgeConfig);
             if (!more) {
                 timer.cancel();
-                    context.close();
+                context.close();
             }
+            permits.release(toRelease);
             return more;
-        } catch (Exception e) {
+        } catch (Throwable t) {
             timer.cancel();
-            throw new IOException(e);
+            stop = true;
+            delegate.close();
+
+            // unblock reading thread
+            permits.release(queue.size());
+            queue.clear();
+
+            throw new IOException(t);
         }
+    }
+
+    public long numberOfScannedBytes() {
+        return size;
     }
 
     private List<TxnView> waitFor(List<Future<TxnView>> txns) throws ExecutionException, InterruptedException {
@@ -125,32 +149,36 @@ public abstract class AbstractSICompactionScanner implements InternalScanner {
 
     @Override
     public void close() throws IOException {
+        stop = true;
+        timer.cancel();
         delegate.close();
+        readerThread.interrupt();
     }
 
     public void start() {
-        Thread thread = new Thread( new Runnable() {
-            @Override
-            public void run() {
-                boolean more = true;
-                try {
-                    while (more) {
-                        List<Cell> list = new ArrayList<>();
-                        more = delegate.next(list);
-                        List<Future<TxnView>> txns = compactionState.resolve(list);
-                        queue.put(new Entry(list, txns, more));
-                    }
-                } catch (IOException e) {
-                    LOG.error("Unexpected exception", e);
-                    failure.set(e);
-                } catch (InterruptedException ie) {
-                    LOG.error("Unexpected exception", ie);
-                    failure.set(new IOException("Compaction interrupted", ie));
+        readerThread = new Thread(() -> {
+            boolean more = true;
+            try {
+                while (more && !stop) {
+                    List<Cell> list = new ArrayList<>();
+                    more = delegate.next(list);
+                    List<Future<TxnView>> txns = compactionState.resolve(list);
+                    queue.put(new Entry(list, txns, more));
+                    // We acquire the permits after inserting because we don't want to block indefinitely if
+                    // we process a row with more Cells than maximum permits available, we don't care too much about
+                    // going a bit above the max number of permits
+                    permits.acquire(list.size());
                 }
+            } catch (IOException e) {
+                LOG.error("Unexpected exception", e);
+                failure.set(e);
+            } catch (Throwable t) {
+                LOG.error("Unexpected exception", t);
+                failure.set(new IOException("Compaction interrupted", t));
             }
         }, "CompactionReader");
-        thread.setDaemon(true);
-        thread.start();
+        readerThread.setDaemon(true);
+        readerThread.start();
         timer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() {

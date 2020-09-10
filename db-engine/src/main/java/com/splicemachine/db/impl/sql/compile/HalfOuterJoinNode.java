@@ -38,8 +38,8 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
 
 import java.util.List;
 
@@ -762,9 +762,8 @@ public class HalfOuterJoinNode extends JoinNode{
 
     @Override
     protected void oneRowRightSide(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
-        // always return false for now
         mb.push(rightResultSet.getFromSSQ() && rightResultSet.isOneRowResultSet());
-        mb.push(false);  //isNotExists?
+        mb.push(((FromTable)rightResultSet).getSemiJoinType());
     }
 
     /**
@@ -853,14 +852,14 @@ public class HalfOuterJoinNode extends JoinNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 // at this point, all the right outer join has been converted to left join, so we
                 // should always see a left join here
                 .append(joinStrategy.getJoinStrategyType().niceName()).append("LeftOuter").append("Join(")
-                .append("n=").append(order)
+                .append("n=").append(getResultSetNumber())
                 .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         if (joinPredicates !=null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);

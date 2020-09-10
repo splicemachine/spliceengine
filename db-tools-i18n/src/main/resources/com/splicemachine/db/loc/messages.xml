@@ -423,7 +423,7 @@ Guide.
 
             <msg>
                 <name>08004.C.7</name>
-                <text>Connection refused to database '{0}' because it is in replication slave mode.</text>
+                <text>Connection refused to database '{0}' because it is in replication replica mode.</text>
                 <arg>databaseName</arg>
             </msg>
 
@@ -1426,7 +1426,8 @@ Guide.
 
             <msg>
                 <name>42610</name>
-                <text>All the arguments to the COALESCE/VALUE function cannot be parameters. The function needs at least one argument that is not a parameter.</text>
+                <text>All the arguments to the '{0}' function cannot be parameters. The function needs at least one argument that is not a parameter.</text>
+                <arg>functionName</arg>
             </msg>
 
             <msg>
@@ -2595,7 +2596,8 @@ Guide.
 
             <msg>
                 <name>42Y47</name>
-                <text>Invalid Properties list in FROM list.  The hint useSpark needs (true/false) and does not support '{0}'.</text>
+                <text>Invalid Properties list in FROM list.  The hint {0} needs (true/false) and does not support '{1}'.</text>
+                <arg>hintName</arg>
                 <arg>value</arg>
             </msg>
 
@@ -3205,12 +3207,31 @@ Guide.
             <msg>
                 <name>42ZD0</name>
 		<text>Surpassed limit of buffered rows in control mode, please resubmit as Spark query</text>
+                <!-- todo(Spark->OLAP) -->
             </msg>
 
             <msg>
                 <name>42ZD1</name>
                 <text>Using both useSpark=true and useSpark=false at the same level ('{0}') is illegal</text>
+                <!-- todo(Spark->OLAP) -->
                 <arg>level</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD2</name>
+                <text>Using time travel clause with {0} is not allowed</text>
+                <arg>artifactName</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD5</name>
+                <text>In the Properties list, the invalid value '{0}' was specified for the tableLimitForExhaustiveSearch property. Expecting a positive integer.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD6</name>
+                <text>Scalar MIN and MAX functions do not accept arguments of type LOB, XML, array, cursor, row, or structured type.</text>
             </msg>
 
             <msg>
@@ -5554,15 +5575,15 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
 
             <msg>
                 <name>XRE00</name>
-                <text>This LogFactory module does not support replicatiosn.</text>
+                <text>This LogFactory module does not support replication.</text>
             </msg>
             <msg>
                 <name>XRE01</name>
-                <text>The log received from the master is corrupted.</text>
+                <text>The log received from the primary is corrupted.</text>
             </msg>
             <msg>
                 <name>XRE02</name>
-                <text>Master and Slave at different versions. Unable to proceed with Replication.</text>
+                <text>Primary and Replica at different versions. Unable to proceed with Replication.</text>
             </msg>
             <msg>
                 <name>XRE03</name>
@@ -5585,34 +5606,34 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
 
             <msg>
                 <name>XRE05.C</name>
-                <text>The log files on the master and slave are not in synch for replicated database '{0}'. The master log instant is {1}:{2}, whereas the slave log instant is {3}:{4}. This is FATAL for replication - replication will be stopped.</text>
+                <text>The log files on the primary and replica are not in synch for replicated database '{0}'. The master log instant is {1}:{2}, whereas the replica log instant is {3}:{4}. This is FATAL for replication - replication will be stopped.</text>
                 <arg>dbname</arg>
-                <arg>masterfile</arg>
-                <arg>masteroffset</arg>
-                <arg>slavefile</arg>
-                <arg>slaveoffset</arg>
+                <arg>primaryfile</arg>
+                <arg>primaryoffset</arg>
+                <arg>replicafile</arg>
+                <arg>replicaoffset</arg>
             </msg>
 
             <msg>
                 <name>XRE06</name>
-                <text>The connection attempts to the replication slave for the database {0} exceeded the specified timeout period.</text>
+                <text>The connection attempts to the replication replica for the database {0} exceeded the specified timeout period.</text>
                 <arg>dbname</arg>
             </msg>
 
             <msg>
                 <name>XRE07</name>
-                <text>Could not perform operation because the database is not in replication master mode.</text>
+                <text>Could not perform operation because the database is not in replication primary mode.</text>
             </msg>
 
             <msg>
                 <name>XRE08</name>
-                <text>Replication slave mode started successfully for database '{0}'. Connection refused because the database is in replication slave mode. </text>
+                <text>Replication replica mode started successfully for database '{0}'. Connection refused because the database is in replication replica mode. </text>
                 <arg>dbname</arg>
             </msg>
 
             <msg>
                 <name>XRE09.C</name>
-                <text>Cannot start replication slave mode for database '{0}'. The database has already been booted.</text>
+                <text>Cannot start replication replica mode for database '{0}'. The database has already been booted.</text>
                 <arg>dbname</arg>
             </msg>
 
@@ -5662,12 +5683,12 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
 
             <msg>
                 <name>XRE40</name>
-                <text>Could not perform operation because the database is not in replication slave mode.</text>
+                <text>Could not perform operation because the database is not in replication replica mode.</text>
             </msg>
 
             <msg>
                 <name>XRE41.C</name>
-                <text>Replication operation 'failover' or 'stopSlave' refused on the slave database because the connection with the master is working. Issue the 'failover' or 'stopMaster' operation on the master database instead.</text>
+                <text>Replication operation 'failover' or 'stopReplica' refused on the replica database because the connection with the primary is working. Issue the 'failover' or 'stopPrimary' operation on the primary database instead.</text>
             </msg>
 
             <msg>
@@ -5678,7 +5699,7 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
 
             <msg>
                 <name>XRE43</name>
-                <text>Unexpected error when trying to stop replication slave mode. To stop repliation slave mode, use operation 'stopSlave' or 'failover'.</text>
+                <text>Unexpected error when trying to stop replication replica mode. To stop repliation replica mode, use operation 'stopReplica' or 'failover'.</text>
             </msg>
 
         </family>
@@ -8664,19 +8685,19 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
             <msg>
                 <name>R003</name>
-                <text>Replication slave role started for database '{0}'.</text>
+                <text>Replication replica role started for database '{0}'.</text>
                 <arg>dbname</arg>
             </msg>
 
             <msg>
                 <name>R004</name>
-                <text>Replication slave role was stopped for database '{0}'.</text>
+                <text>Replication replica role was stopped for database '{0}'.</text>
                 <arg>dbname</arg>
             </msg>
 
             <msg>
                 <name>R005</name>
-                <text>Replication slave got a fatal error for database '{0}'. Replication will be stopped.</text>
+                <text>Replication replica got a fatal error for database '{0}'. Replication will be stopped.</text>
                 <arg>dbname</arg>
             </msg>
 
@@ -8705,13 +8726,13 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
             <msg>
                 <name>R010</name>
-                <text>Replication master trying to reconnect to slave for database '{0}'.</text>
+                <text>Replication primary trying to reconnect to replica for database '{0}'.</text>
                 <arg>dbname</arg>
             </msg>
 
             <msg>
                 <name>R011</name>
-                <text>Replication slave database '{0}' listens for connections from master on '{1}:{2}'.</text>
+                <text>Replication replica database '{0}' listens for connections from primary on '{1}:{2}'.</text>
                 <arg>dbname</arg>
                 <arg>hostname</arg>
                 <arg>port</arg>
@@ -9092,6 +9113,10 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>schema</arg>
            </msg>
            <msg>
+               <name>BR026</name>
+               <text>Cannot connect because database is being restored.</text>
+           </msg>
+           <msg>
                <name>RPL001</name>
                <text>Incorrect replication role '{0}'</text>
                <arg>role</arg>
@@ -9252,20 +9277,22 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
            <msg>
                <name>EXT23</name>
-               <text>'Only '{0}' attributes defined but '{1}' present in the external file : '{2}'</text>
+               <text>{0} attribute(s) defined but {1} present in the external file : '{2}'. Suggested Schema is '{3}'.</text>
                <arg>definedAttributeCount</arg>
                <arg>externalAttributeCount</arg>
                <arg>location</arg>
+               <arg>suggestedSchema</arg>
            </msg>
 
            <msg>
                <name>EXT24</name>
-               <text>The field '{0}':'{1}' defined in the table is not compatible with the field '{2}':'{3}' defined in the external file '{4}'</text>
+               <text>The field '{0}':'{1}' defined in the table is not compatible with the field '{2}':'{3}' defined in the external file '{4}'. Suggested Schema is '{5}'.</text>
                <arg>definedAttributeName</arg>
                <arg>definedAttributeDataType</arg>
                <arg>externalAttributeName</arg>
                <arg>externalAttributeDataType</arg>
                <arg>location</arg>
+               <arg>suggestedSchema</arg>
            </msg>
 
            <msg>

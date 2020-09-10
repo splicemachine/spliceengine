@@ -56,7 +56,6 @@ import java.util.Vector;
 public class IndexToBaseRowNode extends FromTable{
     protected FromBaseTable source;
     protected ConglomerateDescriptor baseCD;
-    protected boolean cursorTargetTable;
     public PredicateList restrictionList;
     protected boolean forUpdate;
     private FormatableBitSet heapReferencedCols;
@@ -403,10 +402,10 @@ public class IndexToBaseRowNode extends FromTable{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         return spaceToLevel() +
                 "IndexLookup" + "(" +
-                "n=" + order +
+                "n=" + getResultSetNumber() +
                 attrDelim + getFinalCostEstimate(false).prettyIndexLookupString(attrDelim) +
                 ")";
     }

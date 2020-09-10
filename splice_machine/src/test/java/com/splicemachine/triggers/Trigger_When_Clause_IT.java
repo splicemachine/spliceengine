@@ -32,12 +32,13 @@
 package com.splicemachine.triggers;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.*;
 import java.util.Arrays;
@@ -51,8 +52,8 @@ import static org.junit.Assert.assertTrue;
 /**
  * Test WHEN clause in triggers.
  */
-@Category(value = {SerialTest.class})
 @RunWith(Parameterized.class)
+@Category({SerialTest.class, LongerThanTwoMinutes.class})
 public class Trigger_When_Clause_IT extends SpliceUnitTest {
 
 
@@ -1401,10 +1402,81 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
     }
 
     @Test
+    public void testMultipleStatement() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a int, b int)");
+            s.execute("create table t2 (a int, b int)");
+            s.execute("insert into t1 values(1,1)");
+            s.execute("insert into t2 values(1,1)");
+
+            s.execute("CREATE TRIGGER mytrig\n" +
+                    "   AFTER UPDATE OF a,b\n" +
+                    "   ON t1\n" +
+                    "   REFERENCING OLD AS OLD NEW AS NEW\n" +
+                    "   FOR EACH ROW\n" +
+                    "   WHEN (OLD.a = OLD.b)\n" +
+                    "BEGIN ATOMIC\n" +
+                    "insert into t2 values(2,2);\n" +
+                    "insert into t2 values(1,1);\n" +
+                    "END");
+
+            s.execute("UPDATE t1 SET a=4");
+
+            String query = "select * from t1";
+            String expected = "A | B |\n" +
+                    "--------\n" +
+                    " 4 | 1 |";
+            testQuery(query, expected, s);
+            query = "select * from t2 order by a";
+            expected = "A | B |\n" +
+                    "--------\n" +
+                    " 1 | 1 |\n" +
+                    " 1 | 1 |\n" +
+                    " 2 | 2 |";
+            testQuery(query, expected, s);
+        }
+    }
+
+    @Test
+    public void testFailedMultipleStatement() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table t1 (a int, b int)");
+            s.execute("create table t2 (a int, b int, primary key(a))");
+            s.execute("insert into t1 values(1,1)");
+            s.execute("insert into t2 values(1,1)");
+
+            s.execute("CREATE TRIGGER mytrig\n" +
+                    "   AFTER UPDATE OF a,b\n" +
+                    "   ON t1\n" +
+                    "   REFERENCING OLD AS OLD NEW AS NEW\n" +
+                    "   FOR EACH ROW\n" +
+                    "   WHEN (OLD.a = OLD.b)\n" +
+                    "BEGIN ATOMIC\n" +
+                    "insert into t2 values(2,2);\n" + // That one should work
+                    "insert into t2 values(1,1);\n" + // That one should fail
+                    "END");
+
+            testFail("23505",
+                    "UPDATE t1 SET a=4", s);
+
+            String query = "select * from t1";
+            String expected = "A | B |\n" +
+                    "--------\n" +
+                    " 1 | 1 |";
+            testQuery(query, expected, s);
+            query = "select * from t2";
+            expected = "A | B |\n" +
+                    "--------\n" +
+                    " 1 | 1 |";
+            testQuery(query, expected, s);
+        }
+    }
+
+    @Test
     public void testSignal() throws Exception {
         try (Statement s = conn.createStatement()) {
             s.execute("create table t1 (a int, b char(11))");
-            s.execute("create table t2 (a int, b int)");
+            s.execute("create table t2 (a int, b char(11))");
             s.execute("insert into t1 values(1,1)");
             s.execute("insert into t2 values(1,1)");
             s.execute("INSERT INTO t1 values(2,'hello')");

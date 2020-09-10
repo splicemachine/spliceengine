@@ -69,6 +69,7 @@ import scala.Tuple2;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -407,7 +408,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     SQLState.EXTERNAL_TABLES_NO_INDEX,td.getName());
         }
 
-
+        if (td == null) {
+            throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
+        }
 
         DDLUtils.validateTableDescriptor(td, indexName, tableName);
         try {
@@ -449,6 +452,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                 }
 
                 IndexRowGenerator irg = cd.getIndexDescriptor();
+                if (irg.isUnique() != unique ||
+                        irg.excludeNulls() != excludeNulls ||
+                        irg.excludeDefaults() != excludeDefaults) {
+                    continue;
+                }
                 int[] bcps = irg.baseColumnPositions();
                 boolean[] ia = irg.isAscending();
                 int j = 0;
@@ -780,6 +788,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         return indexProperties;
     }
 
+
+    @SuppressFBWarnings(value = "DLS_DEAD_LOCAL_STORE", justification = "Intentional")
     private void createAndPopulateIndex(Activation activation,
                                         TransactionController tc,
                                         DataDictionary dd,
@@ -836,7 +846,6 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             }
             indexController.close();
             long indexCId=createConglomerateDescriptor(dd,tc,sd,td,indexRowGenerator,ddg);
-
             // dump split keys
             if (splitKeys!= null && splitKeys.length > 0) {
                 List<Tuple2<Long, byte[][]>> cutPointsList = Lists.newArrayList();
@@ -851,7 +860,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             // tentativeTransaction must be a fully distributed transaction capable of committing with a CommitTimestamp,
             // in order to reuse this commit timestamp as the begin timestamp and chain the transactions
             ((Txn) parentTxn).forbidSubtransactions();
-            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, "CreateIndex".getBytes());
+            tentativeTransaction = lifecycleManager.beginChildTransaction(parentTxn, "CreateIndex".getBytes(Charset.defaultCharset().name()));
             ddlChange = ProtoUtil.createTentativeIndexChange(tentativeTransaction.getTxnId(),
                     activation.getLanguageConnectionContext(),
                     td.getHeapConglomerateId(), conglomId, td, indexRowGenerator, defaultValue);
@@ -887,7 +896,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, operationContext), true);
+                    null, timeFormat, dateFormat, timestampFormat, false, operationContext), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
             for (ExecRow row : rows) {

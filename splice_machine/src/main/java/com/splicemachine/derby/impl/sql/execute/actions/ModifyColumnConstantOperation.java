@@ -61,35 +61,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     private static final Logger LOG = Logger.getLogger(ModifyColumnConstantOperation.class);
 
     /**
-     * <p>
-     * A list that describes how the original SQL text of the trigger action
-     * statement was modified when transition tables and transition variables
-     * were replaced by VTI calls. Each element in the list contains four
-     * integers describing positions where modifications have happened. The
-     * first two integers are begin and end positions of a transition table
-     * or transition variable in {@link #originalActionText the original SQL
-     * text}. The last two integers are begin and end positions of the
-     * corresponding replacement in {@link #actionText the transformed SQL
-     * text}.
-     * </p>
-     *
-     * <p>
-     * Begin positions are inclusive and end positions are exclusive.
-     * </p>
-     */
-    private final ArrayList<int[]>
-            actionTransformations = new ArrayList<int[]>();
-
-    /**
-     * Structure that has the same shape as {@code actionTransformations},
-     * except that it describes the transformations in the WHEN clause.
-     */
-    private final ArrayList<int[]>
-            whenClauseTransformations = new ArrayList<int[]>();
-
-    private int[] referencedColsInTriggerAction;
-
-    /**
      * Make the AlterAction for an ALTER TABLE statement.
      *
      * @param sd                     descriptor for the table's schema.
@@ -147,8 +118,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
              * We need to scan the table to find out how many rows
              * there are.
              */
-            if ((aColumnInfo.action == ColumnInfo.CREATE) && !(aColumnInfo.dataType.isNullable()) &&
-                    (aColumnInfo.defaultInfo == null) && (aColumnInfo.autoincInc == 0)) {
+            if (aColumnInfo.action == ColumnInfo.CREATE && !aColumnInfo.dataType.isNullable() &&
+                    aColumnInfo.defaultInfo == null && aColumnInfo.defaultValue == null && aColumnInfo.autoincInc == 0) {
                 tableNeedsScanning = true;
             }
         }
@@ -343,8 +314,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // the sql query is.
         // UPDATE table
         //  set ai_column = ConnectionInfo.nextAutoincrementValue(
-        //							schemaName, tableName,
-        //							columnName)
+        //                            schemaName, tableName,
+        //                            columnName)
         String updateStmt = "UPDATE " +
                 IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
                 " SET " + IdUtil.normalToDelimited(columnName) + "=" +
@@ -389,35 +360,36 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     private void updateNewColumnToDefault(ColumnDescriptor columnDescriptor, TableDescriptor td, LanguageConnectionContext lcc)
         throws StandardException {
         DefaultInfo defaultInfo = columnDescriptor.getDefaultInfo();
-        String  columnName = columnDescriptor.getColumnName();
-        String  defaultText;
+        String columnName = columnDescriptor.getColumnName();
+        String defaultText;
 
-        if ( defaultInfo.isGeneratedColumn() ) { defaultText = "default"; }
-        else { defaultText = columnDescriptor.getDefaultInfo().getDefaultText(); }
+        if ( defaultInfo == null || defaultInfo.isGeneratedColumn() ) {
+            defaultText = "default";
+        } else {
+            defaultText = defaultInfo.getDefaultText();
+        }
 
-		/* Need to use delimited identifiers for all object names
-		 * to ensure correctness.
-		 */
+        /* Need to use delimited identifiers for all object names
+         * to ensure correctness.
+         */
         String updateStmt = "UPDATE " +
             IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
             " SET " + IdUtil.normalToDelimited(columnName) + "=" +
             defaultText;
-
 
         executeUpdate(lcc, updateStmt);
     }
 
     private void updateNonPhysicallyPopulatedColumnToDefault(ColumnDescriptor columnDescriptor, TableDescriptor td, LanguageConnectionContext lcc)
             throws StandardException {
-        DefaultInfo defaultInfo = columnDescriptor.getDefaultInfo();
         String  columnName = columnDescriptor.getColumnName();
         String  defaultText;
 
         defaultText = columnDescriptor.getDefaultInfo().getDefaultText();
 
-		/* Need to use delimited identifiers for all object names
-		 * to ensure correctness.
-		 */
+        /* Need to use delimited identifiers for all object names
+         * to ensure correctness.
+         */
         String updateStmt = "UPDATE " +
                 IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
                 " SET " + IdUtil.normalToDelimited(columnName) + "=" +
@@ -517,20 +489,20 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     }
 
     private boolean validateNotNullConstraint (
-            String							columnNames[],
-            boolean							nullCols[],
-            int								numRows,
-            LanguageConnectionContext		lcc,
+            String                            columnNames[],
+            boolean                            nullCols[],
+            int                                numRows,
+            LanguageConnectionContext        lcc,
             TableDescriptor td,
-            String							errorMsg ) throws StandardException {
+            String                            errorMsg ) throws StandardException {
         boolean foundNullable = false;
         StringBuilder constraintText = new StringBuilder();
 
-		    /*
-		     * Check for nullable columns and create a constraint string which can
-		     * be used in validateConstraint to check whether any of the
-		     * data is null.
-		     */
+            /*
+             * Check for nullable columns and create a constraint string which can
+             * be used in validateConstraint to check whether any of the
+             * data is null.
+             */
         for (int colCtr = 0; colCtr < columnNames.length; colCtr++) {
             ColumnDescriptor cd = td.getColumnDescriptor(columnNames[colCtr]);
 
@@ -553,17 +525,17 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             }
         }
 
-		    /* if the table has nullable columns and isn't empty
-		     * we need to validate the data
-		     */
+            /* if the table has nullable columns and isn't empty
+             * we need to validate the data
+             */
         if (foundNullable && numRows > 0) {
             if (!ConstraintConstantOperation.validateConstraint(null,constraintText.toString(),td,lcc,false)) {
-                if (errorMsg.equals(SQLState.LANG_NULL_DATA_IN_PRIMARY_KEY_OR_UNIQUE_CONSTRAINT)) {	//alter table add primary key
+                if (errorMsg.equals(SQLState.LANG_NULL_DATA_IN_PRIMARY_KEY_OR_UNIQUE_CONSTRAINT)) {    //alter table add primary key
                     //soft upgrade mode
                     throw ErrorState.LANG_NULL_DATA_IN_PRIMARY_KEY_OR_UNIQUE_CONSTRAINT.newException(td.getQualifiedName());
-                } else if (errorMsg.equals(SQLState.LANG_NULL_DATA_IN_PRIMARY_KEY)) {	//alter table add primary key
+                } else if (errorMsg.equals(SQLState.LANG_NULL_DATA_IN_PRIMARY_KEY)) {    //alter table add primary key
                     throw ErrorState.LANG_NULL_DATA_IN_PRIMARY_KEY.newException(td.getQualifiedName());
-                } else {	//alter table modify column not null
+                } else {    //alter table modify column not null
                     throw ErrorState.LANG_NULL_DATA_IN_NON_NULL_COLUMN.newException(td.getQualifiedName(),columnNames[0]);
                 }
             }
@@ -709,11 +681,13 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
      *    entire index is dropped.
      *
      * @param   columnName the name of the column specfication in the ALTER
-     *						statement-- currently we allow only one.
-     * @exception StandardException 	thrown on failure.
+     *                        statement-- currently we allow only one.
+     * @exception StandardException     thrown on failure.
      */
     @SuppressWarnings("unchecked")
-    private void dropColumnFromTable(Activation activation,TableDescriptor tableDescriptor,String columnName ) throws StandardException {
+    private void dropColumnFromTable(Activation activation,
+                                     TableDescriptor tableDescriptor,
+                                     String columnName) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
@@ -887,7 +861,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                         if (whenClauseId != null) {
                             gotDropped = columnDroppedAndTriggerDependencies(
                                     trdToBeDropped, tableDescriptor, whenClauseId,
-                                    true, cascade, columnName, activation);
+                                    -1, cascade, columnName, activation);
                         }
                         // If no dependencies were found in the WHEN clause,
                         // we have to check if the triggered SQL statement
@@ -895,10 +869,12 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                         // were dependencies and the trigger has already been
                         // dropped, there is no point in looking for more
                         // dependencies.
-                        if (!gotDropped)
-                            columnDroppedAndTriggerDependencies(trdToBeDropped, tableDescriptor,
-                                                                trdToBeDropped.getActionId(),
-                                                                false, cascade, columnName, activation);
+                        for (int i = 0; i < trdToBeDropped.getTriggerDefinitionSize() && !gotDropped; ++i) {
+                            gotDropped = columnDroppedAndTriggerDependencies(trdToBeDropped, tableDescriptor,
+                                    trdToBeDropped.getActionId(i),
+                                    i, cascade, columnName, activation);
+                        }
+
                     }
                 }
             }
@@ -1153,13 +1129,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
     }
 
+
     private boolean
     columnDroppedAndTriggerDependencies(TriggerDescriptor trd,
                                         TableDescriptor td,
-                                        UUID spsUUID, boolean isWhenClause,
-			                boolean cascade, String columnName,
+                                        UUID spsUUID, int index,
+                            boolean cascade, String columnName,
                                         Activation activation)
             throws StandardException {
+        boolean isWhenClause = index == -1;
         /*
          * For the trigger, get the trigger action sql provided by the user
          * in the create trigger sql. This sql is saved in the system
@@ -1179,9 +1157,9 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 dd.getSPSDescriptor(spsUUID).getCompSchemaId(),
                 null);
         CompilerContext newCC = lcc.pushCompilerContext(compSchema);
-        Parser	pa = newCC.getParser();
+        Parser    pa = newCC.getParser();
         String originalSQL = isWhenClause ? trd.getWhenClauseText()
-                                          : trd.getTriggerDefinition();
+                                          : trd.getTriggerDefinition(index);
 
         Visitable node = isWhenClause ? pa.parseSearchCondition(originalSQL)
                                       : pa.parseStatement(originalSQL);
@@ -1213,18 +1191,18 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             //    SELECT oldt.c11 from DERBY4998_SOFT_UPGRADE_RESTRICT
 
             SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc)
-                                             : trd.getActionSPS(lcc);
-			int[] referencedColsInTriggerAction = new int[td.getNumberOfColumns()];
-			java.util.Arrays.fill(referencedColsInTriggerAction, -1);
+                                             : trd.getActionSPS(lcc, index);
+            int[] referencedColsInTriggerAction = new int[td.getNumberOfColumns()];
+            java.util.Arrays.fill(referencedColsInTriggerAction, -1);
             String newText = dd.getTriggerActionString(node,
-				trd.getOldReferencingName(),
-				trd.getNewReferencingName(),
+                trd.getOldReferencingName(),
+                trd.getNewReferencingName(),
                 originalSQL,
-				trd.getReferencedCols(),
-				referencedColsInTriggerAction,
-				0,
-				trd.getTableDescriptor(),
-				trd.getTriggerEventDML(),
+                trd.getReferencedCols(),
+                referencedColsInTriggerAction,
+                0,
+                trd.getTableDescriptor(),
+                trd.getTriggerEventDML(),
                 true,
                 null,
                 null);
@@ -1308,7 +1286,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     return true;
                 }
                 else
-                {	// we'd better give an error if don't drop it,
+                {    // we'd better give an error if don't drop it,
                     throw StandardException.newException(
                             SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT,
                             dd.getDependencyManager().getActionString(DependencyManager.DROP_COLUMN),
@@ -1425,7 +1403,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
      *
      * @return Number of rows (0, 1 or > 1) in table.
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException        Thrown on failure
      */
     public static int getSemiRowCount(TransactionController tc, TableDescriptor td) throws StandardException {
         int numRows = 0;

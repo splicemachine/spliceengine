@@ -16,14 +16,16 @@ package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -31,7 +33,7 @@ import java.util.Collection;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 /**
  * @author Scott Fines
@@ -40,6 +42,7 @@ import static org.junit.Assert.assertEquals;
 
 
 @RunWith(Parameterized.class)
+@Category(LongerThanTwoMinutes.class)
 public class CrossJoinIT extends SpliceUnitTest {
 
 
@@ -710,5 +713,43 @@ public class CrossJoinIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testCrossJoinPreserveSortOrderNoJoinStrategyHint() throws Exception {
+        String sqlText = format("select tt2.a from \n" +
+                "tab2 tt2 --splice-properties useSpark=%s\n" +
+                "inner join %s ttb\n" +
+                "on ttb.c2 < 5 and tt2.a < 4 order by tt2.a", useSpark, bigTable);
 
+        if (useSpark) {
+            try (ResultSet rs = classWatcher.executeQuery("explain " + sqlText)) {
+                String matchString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                assertTrue("Cross join is not selected for OLAP", matchString.contains("CrossJoin"));
+            }
+        }
+
+        /* DB-9579
+         * The plan of the query above may or may not have an OrderBy. It depends on optimizer
+         * implementation and that could change over time. However, correctness should always
+         * be guaranteed and result must be the same for both OLTP and OLAP.
+         */
+        String expected = "A |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 1 |\n" +
+                " 1 |\n" +
+                " 1 |\n" +
+                " 2 |\n" +
+                " 2 |\n" +
+                " 2 |\n" +
+                " 2 |\n" +
+                " 3 |\n" +
+                " 3 |\n" +
+                " 3 |\n" +
+                " 3 |";
+
+        try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
+            String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n,actual result: " + resultString, expected, resultString);
+        }
+    }
 }

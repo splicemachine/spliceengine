@@ -49,7 +49,7 @@ public class HPipelineTestEnv extends HBaseSITestEnv implements PipelineTestEnv{
         ContextFactoryDriverService.setDriver(ctxFactoryLoader);
         //pass in rsServices = null because we don't need the extra safety for these tests
         this.env = HBasePipelineEnvironment.loadEnvironment(super.getClock(),ctxFactoryLoader);
-        DatabaseLifecycleManager.manager().start(); //start the database
+        DatabaseLifecycleManager.manager().start(null); //start the database
     }
 
     @Override

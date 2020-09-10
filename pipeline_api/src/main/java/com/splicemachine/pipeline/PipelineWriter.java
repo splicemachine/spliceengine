@@ -27,7 +27,7 @@ import com.splicemachine.pipeline.traffic.SpliceWriteControl;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.primitives.Ints;
 
 import javax.annotation.Nonnull;
 import javax.annotation.concurrent.ThreadSafe;

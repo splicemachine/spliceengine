@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1957-SNAPSHOT</version>
+        <version>3.1.0.1974-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -33,6 +33,7 @@
         <skipTests>${maven.skip.tests}</skipTests>
         <skip.dep.copy>${skipSparkPrepare}</skip.dep.copy>
         <argLine>-Xms64m -Xmx4g ${jacocoAgent}</argLine>
+        <tmpDir>${project.build.directory}/tmp</tmpDir>
     </properties>
     <dependencies>
         <dependency>
@@ -93,6 +94,20 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_spark</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}-tests</classifier>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark2</artifactId>
+            <version>${project.version}</version>
+            <classifier>${envClassifier}</classifier>
+        </dependency>
+        <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>splice_spark2</artifactId>
             <version>${project.version}</version>
             <classifier>${envClassifier}-tests</classifier>
             <type>test-jar</type>
@@ -200,6 +215,10 @@
             <scope>runtime</scope>
             <exclusions>
                 <exclusion>
+                    <groupId>org.glassfish.jersey.containers</groupId>
+                    <artifactId>jersey-container-servlet</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>net.jpountz.lz4</groupId>
                     <artifactId>lz4</artifactId>
                 </exclusion>
@@ -209,6 +228,12 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <dependency>  <!-- needed by Kafka 2.0 but not 2.2 -->
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.15</version>
+            <scope>runtime</scope>
+        </dependency>
         <!-- Yarn dependencies -->
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -216,16 +241,6 @@
             <version>${hadoop.version}</version>
             <classifier>tests</classifier>
             <scope>runtime</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-server</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.sun.jersey</groupId>
-                    <artifactId>jersey-core</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
@@ -304,7 +319,6 @@
         <dependency>
             <groupId>org.scalatest</groupId>
             <artifactId>scalatest_${scala.binary.version}</artifactId>
-            <version>2.2.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -321,6 +335,12 @@
             <groupId>org.apache.directory.server</groupId>
             <artifactId>apacheds-protocol-ldap</artifactId>
             <version>2.0.0-M15</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>bouncycastle</groupId>
+                    <artifactId>bcprov-jdk15</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
     <build>
@@ -405,6 +425,11 @@
             </plugin>
             <plugin>
                 <artifactId>maven-failsafe-plugin</artifactId>
+                <configuration>
+                    <additionalClasspathElements>
+                        <additionalClasspathElement>${project.basedir}/target/hbase-site.xml</additionalClasspathElement>
+                    </additionalClasspathElements>
+                </configuration>
                 <executions>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: SERIAL -->
                     <execution>
@@ -416,7 +441,8 @@
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
                             <excludedGroups>
-                                ${excluded.categories}
+                                ${excluded.categories},
+                                ${excluded.longerthan}
                             </excludedGroups>
                             <argLine>-Xmx2g -Xms64m</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
@@ -448,7 +474,8 @@
                             <excludedGroups>
                                 com.splicemachine.test.SerialTest,
                                 com.splicemachine.test.RestoreTest,
-                                ${excluded.categories}
+                                ${excluded.categories},
+                                ${excluded.longerthan}
                             </excludedGroups>
                             <parallel>classes</parallel>
                             <threadCount>1</threadCount>
@@ -487,6 +514,23 @@
                             </includes>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>integration-tests-ensds</id>
+                        <goals>
+                            <goal>integration-test</goal>
+                            <goal>verify</goal>
+                        </goals>
+                        <configuration>
+                            <dependenciesToScan>
+                                <dependency>com.splicemachine:splice_spark2</dependency>
+                            </dependenciesToScan>
+                            <argLine>-Xmx2g -Xms64m -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/ ${hbase.rootdir}</argLine>
+                            <redirectTestOutputToFile>true</redirectTestOutputToFile>
+                            <includes>
+                                <include>com/splicemachine/spark2/splicemachine/**/*IT.java</include>
+                            </includes>
+                        </configuration>
+                    </execution>
                     <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: BACKUP -->
                     <execution>
                         <id>integration-tests-backup</id>
@@ -520,6 +564,7 @@
                             <target name="StartSpliceServer" unless="${server.skip.start}">
                                 <taskdef resource="net/sf/antcontrib/antcontrib.properties"
                                          classpathref="maven.plugin.classpath"/>
+                                <mkdir dir="${tmpDir}"/>
                                 <if>
                                     <istrue value="${failTasksRandomly}"/>
                                     <!-- run with chaos monkey (default) -->
@@ -715,6 +760,7 @@
                                 </argument>
                                 <argument>-Djava.net.preferIPv4Stack=true</argument>
                                 <argument>-Dzookeeper.sasl.client=false</argument>
+                                <argument>-Djava.io.tmpdir=${tmpDir}</argument>
                                 <argument>-Xmx1g</argument>
                                 <argument>-Xms64m</argument>
                                 <argument>-XX:MinHeapFreeRatio=10</argument>
@@ -817,7 +863,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -852,7 +897,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
                         <executions>
                             <execution>
                                 <goals>
@@ -869,54 +913,6 @@
                             <arguments>
                                 <!-- Root of the serve classpath. Yarn config file (yarn-site.xml) will be written here. -->
                                 <argument>${project.build.directory}</argument>
-                            </arguments>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>spliceYarn</id>
-            <activation>
-                <property>
-                    <name>spliceYarn</name>
-                </property>
-            </activation>
-            <properties>
-                <nodeCount>1</nodeCount>
-            </properties>
-            <dependencies>
-                <dependency>
-                    <groupId>org.apache.spark</groupId>
-                    <artifactId>spark-network-yarn_${scala.binary.version}</artifactId>
-                    <version>${spark.version}</version>
-                    <scope>runtime</scope>
-                </dependency>
-            </dependencies>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.codehaus.mojo</groupId>
-                        <artifactId>exec-maven-plugin</artifactId>
-                        <version>1.4.0</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>java</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <configuration>
-                            <!-- exec:java required so that these 2 dependency properties are available (they aren't with exec:exec -->
-                            <classpathScope>test</classpathScope>
-                            <!--<includeProjectDependencies>false</includeProjectDependencies>-->
-                            <!--<includePluginDependencies>true</includePluginDependencies>-->
-                            <mainClass>com.splicemachine.test.SpliceTestYarnPlatform</mainClass>
-                            <arguments>
-                                <argument>${project.build.directory}/classes</argument>
-                                <argument>${secure}</argument>
-                                <argument>${nodeCount}</argument>
-                                <argument>-Dlog4j.configurationFile=${log4j.config.uri}</argument>
                             </arguments>
                         </configuration>
                     </plugin>
@@ -961,6 +957,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
+                                <argument>-Djava.io.tmpdir=${tmpDir}</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>
@@ -1010,7 +1007,8 @@
                                 <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
                                 <argument>-Dsplice.spark.locality.wait=60s</argument>
                                 <argument>-Dsplice.spark.logConf=true</argument>
-                                <argument>-Dsplice.spark.master=yarn-client</argument>
+                                <argument>-Dsplice.spark.master=yarn</argument>
+                                <argument>-Dsplice.spark.submit.deployMode=client</argument>
                                 <argument>
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>
@@ -1128,7 +1126,10 @@
                                 <argument>-enableassertions</argument>
                                 <argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4001</argument>
                                 <argument>-XX:+UseG1GC</argument>
-
+                                <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.port=10103</argument>
+                                <argument>-Djava.io.tmpdir=${tmpDir}</argument>
                                 <argument>com.splicemachine.test.SpliceTestClusterParticipant</argument>
                                 <argument>${project.build.directory}</argument>
                                 <argument>${memberNumber}</argument>
@@ -1160,6 +1161,14 @@
             <id>dbaas</id>
             <properties>
                 <extraDependency>splice_ee</extraDependency>
+                <extraDependency2>splice_ee</extraDependency2>
+                <extraDependency3>splice_ee</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>dbaas3.0</id>
+            <properties>
+                <extraDependency>splice_sentry</extraDependency>
                 <extraDependency2>splice_ee</extraDependency2>
                 <extraDependency3>splice_ee</extraDependency3>
             </properties>
@@ -1458,6 +1467,7 @@
                                 <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
                                 <argument>-Dcom.sun.management.jmxremote.port=10102</argument>
+                                <argument>-Djava.io.tmpdir=${tmpDir}</argument>
                                 <argument>-Dsplice.authentication=NATIVE</argument>
                                 <argument>-Dcom.splicemachine.enableLegacyAsserts=true</argument>
                                 <argument>
@@ -1505,7 +1515,8 @@
                                 <argument>-Dsplice.spark.kryoserializer.buffer=4m</argument>
                                 <argument>-Dsplice.spark.locality.wait=60s</argument>
                                 <argument>-Dsplice.spark.logConf=true</argument>
-                                <argument>-Dsplice.spark.master=yarn-client</argument>
+                                <argument>-Dsplice.spark.master=yarn</argument>
+                                <argument>-Dsplice.spark.submit.deployMode=client</argument>
                                 <argument>
                                     -Dsplice.spark.scheduler.allocation.file=${project.basedir}/src/main/resources/fairscheduler.xml
                                 </argument>

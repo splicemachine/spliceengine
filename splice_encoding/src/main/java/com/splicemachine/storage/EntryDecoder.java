@@ -21,7 +21,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.storage.index.BitIndexing;
 import com.splicemachine.utils.ByteSlice;
-import org.spark_project.guava.base.Supplier;
+import splice.com.google.common.base.Supplier;
 
 /**
  * Holds the bytes for a row, a BitIndex for that row, and a MultiFieldDecoder for that row and provides methods
@@ -48,6 +48,10 @@ public class EntryDecoder implements Supplier<MultiFieldDecoder> {
 
     public EntryDecoder(byte[] bytes) {
         set(bytes);
+    }
+
+    public EntryDecoder(byte[] bytes, int offset, int length) {
+        set(bytes, offset, length);
     }
 
     public void set(byte[] bytes) {

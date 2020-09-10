@@ -17,6 +17,7 @@ import io.airlift.slice.Slice;
 import org.apache.parquet.column.Dictionary;
 import org.apache.parquet.column.Encoding;
 import org.apache.parquet.io.api.Binary;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Arrays;
 
@@ -81,6 +82,7 @@ public class SliceDictionary extends Dictionary {
     }
 
     @Override
+    @SuppressFBWarnings(value={"BC_EQUALS_METHOD_SHOULD_WORK_FOR_ALL_OBJECTS","HE_EQUALS_USE_HASHCODE"}, justification="DB-9846")
     public boolean equals(Object obj) {
         assert obj != null;
         return Arrays.equals(slice,((SliceDictionary) obj).slice);

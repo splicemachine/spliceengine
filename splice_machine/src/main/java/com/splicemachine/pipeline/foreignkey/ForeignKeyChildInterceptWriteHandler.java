@@ -160,7 +160,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
     }
 
     private boolean hasData(DataResult result,SimpleTxnFilter filter) throws IOException {
-        if(result!=null && result.size()>0) {
+        if(result!=null && !result.isEmpty()) {
             int cellCount = result.size();
             for (DataCell dc : result) {
                 DataFilter.ReturnCode returnCode = filter.filterCell(dc);

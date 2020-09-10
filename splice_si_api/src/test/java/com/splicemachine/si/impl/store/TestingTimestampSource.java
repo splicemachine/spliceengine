@@ -14,7 +14,6 @@
 
 package com.splicemachine.si.impl.store;
 
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.timestamp.api.TimestampSource;
 
 /**
@@ -54,7 +53,7 @@ public class TestingTimestampSource implements TimestampSource{
     }
 
     @Override
-    public void refresh() {
+    public void bumpTimestamp(long timestamp) {
 
     }
 }

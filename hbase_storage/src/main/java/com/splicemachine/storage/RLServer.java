@@ -77,4 +77,11 @@ public class RLServer implements PartitionServer{
     public int hashCode(){
         return regionLocation.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return "RLServer{" +
+                "regionLocation=" + regionLocation +
+                '}';
+    }
 }

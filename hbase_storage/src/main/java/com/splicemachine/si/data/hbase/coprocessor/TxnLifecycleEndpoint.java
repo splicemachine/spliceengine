@@ -31,6 +31,7 @@ import com.splicemachine.si.impl.region.RegionServerControl;
 import com.splicemachine.si.impl.region.RegionTxnStore;
 import com.splicemachine.si.impl.region.TransactionResolver;
 import com.splicemachine.timestamp.api.TimestampSource;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -39,14 +40,13 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.ipc.RpcUtils;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.apache.hadoop.hbase.regionserver.HBasePlatformUtils;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Supplier;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.primitives.Longs;
+import splice.com.google.common.base.Supplier;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.primitives.Longs;
 
 import java.io.IOException;
 import java.util.List;
@@ -289,6 +289,22 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
         try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()) {
             lifecycleStore.rollbackTransactionsAfter(request.getTxnId());
             done.run(TxnMessage.VoidResponse.getDefaultInstance());
+        }catch(IOException ioe){
+            setControllerException(controller,ioe);
+        }
+    }
+
+    @Override
+    public void getTxnAt(
+            com.google.protobuf.RpcController controller,
+            com.splicemachine.si.coprocessor.TxnMessage.TxnAtRequest request,
+            com.google.protobuf.RpcCallback<com.splicemachine.si.coprocessor.TxnMessage.TxnAtResponse> done){
+        try (RpcUtils.RootEnv ignored = RpcUtils.getRootEnv()) {
+            TxnMessage.TxnAtResponse.Builder response = TxnMessage.TxnAtResponse.newBuilder();
+            Pair<Long, Long> result = lifecycleStore.getTxnAt(request.getTs());
+            response.setTxnId(result.getFirst());
+            response.setTs(result.getSecond());
+            done.run(response.build());
         }catch(IOException ioe){
             setControllerException(controller,ioe);
         }

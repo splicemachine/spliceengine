@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1957-SNAPSHOT</version>
+        <version>3.1.0.1974-SNAPSHOT</version>
     </parent>
     <properties>
         <skipTests>${maven.skip.tests}</skipTests>
@@ -40,10 +40,8 @@
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <!-- org.spark_project.guava -->
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.spark</groupId>
@@ -109,7 +107,7 @@
                     <dependenciesToScan>
                         <dependency>com.splicemachine:splice_machine</dependency>
                     </dependenciesToScan>
-                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent</excludedGroups>
+                    <excludedGroups>com.splicemachine.si.testenv.ArchitectureIndependent, ${excluded.longerthan}</excludedGroups>
                     <argLine>-Xmx512m</argLine>
                 </configuration>
             </plugin>
@@ -186,7 +184,7 @@
                         </goals>
                         <configuration>
                             <groups>com.splicemachine.test.SerialTest</groups>
-                            <excludedGroups>com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
+                            <excludedGroups>com.splicemachine.test.HBaseTest, ${excluded.categories}, ${excluded.longerthan}</excludedGroups>
                             <argLine>-Xmx3g</argLine>
                             <redirectTestOutputToFile>true</redirectTestOutputToFile>
                             <dependenciesToScan>
@@ -208,7 +206,7 @@
                             <goal>verify</goal>
                         </goals>
                         <configuration>
-                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.HBaseTest, ${excluded.categories}</excludedGroups>
+                            <excludedGroups>com.splicemachine.test.SerialTest, com.splicemachine.test.HBaseTest, ${excluded.categories}, ${excluded.longerthan}</excludedGroups>
                             <!--<skipTests>${skip.integration.tests}</skipTests>-->
                             <parallel>classes</parallel>
                             <threadCount>4</threadCount>
@@ -268,12 +266,12 @@
                             <key>com.splicemachine.enableLegacyAsserts</key>
                             <value>true</value>
                         </systemProperty>
-                     <!-- Uncomment the following to dump activation class files for mem platform to the mem_sql directory.
-                        <systemProperty>
-                            <key>splice.debug.dumpClassFile</key>
-                            <value>true</value>
-                        </systemProperty>
-                      -->
+                        <!-- Uncomment the following to dump activation class files for mem platform to the mem_sql directory.
+                           <systemProperty>
+                               <key>splice.debug.dumpClassFile</key>
+                               <value>true</value>
+                           </systemProperty>
+                         -->
                     </systemProperties>
                 </configuration>
             </plugin>

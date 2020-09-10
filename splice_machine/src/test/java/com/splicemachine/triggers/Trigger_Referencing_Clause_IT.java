@@ -32,12 +32,13 @@
 package com.splicemachine.triggers;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.*;
 import java.util.Arrays;
@@ -51,8 +52,9 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_TRIGGER
 /**
  * Test REFERENCING clause in triggers.
  */
-@Category(value = {SerialTest.class})
+@Ignore
 @RunWith(Parameterized.class)
+@Category({SerialTest.class, LongerThanTwoMinutes.class})
 public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
 

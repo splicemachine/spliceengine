@@ -35,6 +35,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
@@ -44,7 +45,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -61,7 +62,7 @@ import static org.junit.Assert.assertEquals;
 /* The test result is dependent on different values of the service property setting at the time of the run, so
    need to run sequentially
  */
-@Category(SerialTest.class)
+@Category({SerialTest.class, LongerThanTwoMinutes.class})
 @RunWith(Parameterized.class)
 public class ProjectionPruningIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(ProjectionPruningIT.class);

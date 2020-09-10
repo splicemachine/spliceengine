@@ -238,6 +238,31 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
     }
 
     @Test
+    public void testOuterJoinWithDTAndSingleTableConditionOnOuter() throws Exception {
+        String sqlText = "select a3, b3, a2, b2, a1, b1 from t1 right join (select * from t2 left join t3 on a2=a3) dt on a1=a2 and a2=3 order by a1, b1, a2, b2";
+        rowContainsQuery(new int[]{5, 6, 7, 8, 9}, "explain " + sqlText, methodWatcher,
+                new String[]{"LeftOuterJoin", "preds=[(A2[10:1] = 3),(A1[10:5] = A2[10:1])]"},
+                new String[]{"TableScan[T1"},
+                new String[]{"LeftOuterJoin", "preds=[(A2[4:1] = A3[4:3])]"},
+                new String[]{"TableScan[T3"},
+                new String[]{"TableScan[T2"});
+
+        String expected = "A3  | B3  |A2 |B2 | A1  | B1  |\n" +
+                "--------------------------------\n" +
+                "  3  | 30  | 3 |30 |  3  | 30  |\n" +
+                "NULL |NULL | 2 |20 |NULL |NULL |\n" +
+                "NULL |NULL | 2 |20 |NULL |NULL |\n" +
+                "NULL |NULL | 4 |40 |NULL |NULL |\n" +
+                "  5  | 50  | 5 |50 |NULL |NULL |\n" +
+                "  6  | 60  | 6 |60 |NULL |NULL |\n" +
+                "  6  | 60  | 6 |60 |NULL |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+    }
+
+    @Test
     public void testOuterJoinWithUnion() throws Exception {
         String sqlText = "select * from t1 left join (select a2 as X from t2 union all select a3 as X from t3) dt --splice-properties joinStrategy=nestedloop \n on a1=X and X=3";
         rowContainsQuery(new int[]{3, 4, 5, 6, 7}, "explain " + sqlText, methodWatcher,
@@ -425,6 +450,27 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
     @Test
     public void testSubqueryInOnClause() throws Exception {
         String sqlText = "select * from t1 left join t2 on a1=a2 and a1 in (select a3 from t3)";
+
+        rowContainsQuery(new int[]{3}, "explain " + sqlText, methodWatcher,
+                new String[]{"LeftOuterJoin", "preds=[is not null(subq=7),(A1[8:1] = A2[8:4])]"});
+
+        String expected = "A1 |B1 | C1  | A2  | B2  | C2  |\n" +
+                "--------------------------------\n" +
+                " 1 |10 |  1  |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |NULL |NULL |NULL |\n" +
+                " 3 |30 |  3  |  3  | 30  |  3  |\n" +
+                " 4 |40 |NULL |NULL |NULL |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testDB9593() throws Exception {
+        String sqlText = "select * from t1 --splice-properties useDefaultRowCount=25000\n" +
+                "left join t2 on a1=a2 and a1 in (select a3 from t3)";
 
         rowContainsQuery(new int[]{3}, "explain " + sqlText, methodWatcher,
                 new String[]{"LeftOuterJoin", "preds=[is not null(subq=7),(A1[8:1] = A2[8:4])]"});

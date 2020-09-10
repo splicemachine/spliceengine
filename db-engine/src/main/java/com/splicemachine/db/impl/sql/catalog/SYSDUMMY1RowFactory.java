@@ -68,9 +68,10 @@ public class SYSDUMMY1RowFactory extends CatalogRowFactory
      */
     public SYSDUMMY1RowFactory(UUIDFactory uuidf,
                                ExecutionFactory ef,
-                               DataValueFactory dvf)
+                               DataValueFactory dvf,
+                               DataDictionary dd)
     {
-        super(uuidf,ef,dvf);
+        super(uuidf,ef,dvf,dd);
 
         initInfo(SYSDUMMY1_COLUMN_COUNT, "SYSDUMMY1",
                  null, null, uuids);
@@ -86,7 +87,7 @@ public class SYSDUMMY1RowFactory extends CatalogRowFactory
      * @exception   StandardException thrown on failure
      */
 
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
         throws StandardException
     {
         ExecRow row = getExecutionFactory().getValueRow(SYSDUMMY1_COLUMN_COUNT);

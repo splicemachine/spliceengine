@@ -40,7 +40,7 @@ public class HBaseTimestampHostProvider implements TimestampHostProvider {
         try {
             hostName = connectionFactory.getMasterServer().getHostname();
         } catch (Exception e) {
-            TimestampClient.doClientErrorThrow(LOG, "Unable to determine host name for active hbase master", e);
+            TimestampClient.throwClientError(LOG, "Unable to determine host name for active hbase master", e);
         }
         return hostName;
     }

@@ -17,16 +17,21 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
-import java.sql.*;
+import java.sql.Connection;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -40,6 +45,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  * type of the result expression was poorly chosen.
  */
 @RunWith(Parameterized.class)
+@Category(LongerThanTwoMinutes.class)
 public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
     
     private Boolean useSpark;
@@ -892,10 +898,33 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
 
         sqlText = format("select a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a/3 from ts_decimal --splice-properties useSpark=%s", useSpark);
 
-        // For now, this query is expected to overflow.
-        List<String> expectedErrors =
-          Arrays.asList("The resulting value is outside the range for the data type DECIMAL/NUMERIC(38,28).");
-          testFail(sqlText, expectedErrors, methodWatcher);
+        expected = "1             |\n" +
+                "---------------------------\n" +
+                "153333333328.733333333333 |\n" +
+                "153333333331.800000000000 |\n" +
+                "153333333331.800000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select (a+a)/cast(3 as decimal(11,1)) from ts_decimal --splice-properties useSpark=%s", useSpark);
+
+        expected = "1            |\n" +
+                "-------------------------\n" +
+                "6666666666.466666666667 |\n" +
+                "6666666666.600000000000 |\n" +
+                "6666666666.600000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select (cast(a as decimal(20,10)) + cast(a as decimal(20,10)))/cast(3 as decimal(20,10)) from ts_decimal --splice-properties useSpark=%s", useSpark);
+
+        expected = "1              |\n" +
+                "------------------------------\n" +
+                "6666666666.46666666666666667 |\n" +
+                "6666666666.60000000000000000 |\n" +
+                "6666666666.60000000000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("select f1+f1+f1+f1+f1+f1+f1+f1+f1+f1+f1 from ts_float --splice-properties useSpark=%s", useSpark);
 

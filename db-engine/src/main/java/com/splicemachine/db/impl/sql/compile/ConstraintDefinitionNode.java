@@ -45,6 +45,8 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.reference.SQLState;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.util.Properties;
 
 /**
@@ -71,6 +73,7 @@ public class ConstraintDefinitionNode extends TableElementNode
 	ValueNode		 checkCondition;
 	private int				 behavior;
     private int verifyType = DataDictionary.DROP_CONSTRAINT; // By default do not check the constraint type
+	private boolean canBeIgnored;
 
 	public void init(
 					Object constraintName,
@@ -97,6 +100,7 @@ public class ConstraintDefinitionNode extends TableElementNode
 		this.checkCondition = (ValueNode) checkCondition;
 		this.constraintText = (String) constraintText;
 		this.behavior = (Integer) behavior;
+		this.setCanBeIgnored(false);
 	}
 
 	public void init(
@@ -477,6 +481,7 @@ public class ConstraintDefinitionNode extends TableElementNode
 	 *
 	 * @return	The array of 1-based column references for a check constraint.
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9810")
 	public int[] getCheckColumnReferences()
 	{
 		return checkColumnReferences;
@@ -488,6 +493,7 @@ public class ConstraintDefinitionNode extends TableElementNode
 	 * @param checkColumnReferences	The array of 1-based column references
 	 *								for the check constraint.
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9810")
 	public void setCheckColumnReferences(int[] checkColumnReferences)
 	{
 		this.checkColumnReferences = checkColumnReferences;
@@ -530,5 +536,13 @@ public class ConstraintDefinitionNode extends TableElementNode
 			uuidFactory = Monitor.getMonitor().getUUIDFactory();
 		}
 		return	uuidFactory;
+	}
+
+	public boolean canBeIgnored() {
+		return canBeIgnored;
+	}
+
+	public void setCanBeIgnored(boolean canBeIgnored) {
+		this.canBeIgnored = canBeIgnored;
 	}
 }

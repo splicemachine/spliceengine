@@ -25,7 +25,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.collect.Iterables;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

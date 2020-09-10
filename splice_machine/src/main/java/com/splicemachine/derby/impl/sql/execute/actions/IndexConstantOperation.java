@@ -21,6 +21,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -45,12 +47,15 @@ import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.primitives.Ints;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public abstract class IndexConstantOperation extends DDLSingleTableConstantOperation {
 	private static final Logger LOG = Logger.getLogger(IndexConstantOperation.class);
@@ -126,9 +131,12 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 		 */
         Txn childTxn;
         try {
+            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+            Boolean sparkHint = (Boolean)lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
+
             childTxn = beginChildTransaction(indexTransaction, tentativeIndex.getIndex().getConglomerate());
             ScanSetBuilder<ExecRow> builder = getIndexScanBuilder(td, indexTransaction, demarcationPoint,
-                    tentativeIndex, baseDefaultRow, false);
+                    tentativeIndex, baseDefaultRow, false, sparkHint);
 
 			String scope = this.getScopeName();
 			String prefix = StreamUtils.getScopeString(this);
@@ -182,12 +190,15 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
 	}
 
 
+	private static int MB = 1024*1024;
+
     public ScanSetBuilder<ExecRow> getIndexScanBuilder(TableDescriptor td,
                                                        TxnView indexTransaction,
                                                        long demarcationPoint,
                                                        DDLMessage.TentativeIndex tentativeIndex,
                                                        ExecRow baseDefaultRow,
-                                                       boolean sampling) throws StandardException{
+                                                       boolean sampling,
+                                                       Boolean sparkHint) throws StandardException{
 
         // This preps the scan to emulate TableScanOperation and use that code path
         List<Integer> indexCols = tentativeIndex.getIndex().getIndexColsToMainColMapList();
@@ -227,12 +238,16 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
                 rowDecodingMap[i] = baseColumnMap[i];
         }
 
-
-        String table = Long.toString(tentativeIndex.getTable().getConglomerate());
-        Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table,false);
-        for (PartitionLoad load: partitionLoadCollection) {
-            if (load.getMemStoreSizeMB() > 0 || load.getStorefileSizeMB() > 0)
-                distributed = true;
+        if (sparkHint == null) {
+            String table = Long.toString(tentativeIndex.getTable().getConglomerate());
+            Collection<PartitionLoad> partitionLoadCollection = EngineDriver.driver().partitionLoadWatcher().tableLoad(table, false);
+            for (PartitionLoad load : partitionLoadCollection) {
+                if (load.getMemStoreSize() > 1*MB || load.getStorefileSize() > 1*MB)
+                    distributed = true;
+            }
+        } else {
+            // Honor the session-level hint
+            distributed = sparkHint;
         }
         DataSetProcessor dsp;
         if (distributed || sampling)
@@ -268,7 +283,7 @@ public abstract class IndexConstantOperation extends DDLSingleTableConstantOpera
     protected byte[][] sample(Activation activation, TableDescriptor td, TxnView txn, long demarcationPoint,
                               DDLMessage.TentativeIndex tentativeIndex, ExecRow baseDefaultRow, double sampleFraction) throws StandardException{
         ScanSetBuilder<ExecRow> builder = getIndexScanBuilder(td, txn, demarcationPoint,
-                tentativeIndex, baseDefaultRow, true);
+                tentativeIndex, baseDefaultRow, true, null);
 
         try {
             String scope = this.getScopeName();

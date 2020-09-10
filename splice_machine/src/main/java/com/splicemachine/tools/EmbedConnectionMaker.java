@@ -38,7 +38,19 @@ public final class EmbedConnectionMaker {
      */
 //    @Override
     public Connection createNew(Properties dbProperties) throws SQLException {
-        return driver.connect(JDBC_URL,dbProperties);
+        return createNew(JDBC_URL, dbProperties);
+    }
+
+    /**
+     * Creates a Connection to the DB specified by jdbcString using dbProperties.
+     * 
+     * @param jdbcString
+     * @param dbProperties
+     * @return
+     * @throws SQLException
+     */
+    public Connection createNew(String jdbcString, Properties dbProperties) throws SQLException {
+        return driver.connect(jdbcString, dbProperties);
     }
 
     /**

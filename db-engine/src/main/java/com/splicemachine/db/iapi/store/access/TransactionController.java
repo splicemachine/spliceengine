@@ -1653,4 +1653,8 @@ public interface TransactionController
 
 
     boolean isElevated();
+
+    String getCatalogVersion(long conglomerateNumber) throws StandardException;
+
+    void setCatalogVersion(long conglomerteNumber, String version) throws StandardException;
 }

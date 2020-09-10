@@ -18,6 +18,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
+import com.splicemachine.db.iapi.error.ExceptionUtil;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.PipelineLoadService;
@@ -52,7 +53,7 @@ import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.wal.WALEdit;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -75,25 +76,34 @@ public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
     private volatile ContextFactoryLoader factoryLoader;
     private volatile PipelineLoadService<TableName> service;
     private volatile WriteContextFactory<TransactionalRegion> ctxFactory;
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(final CoprocessorEnvironment e) throws IOException{
         try {
-            RegionCoprocessorEnvironment rce=((RegionCoprocessorEnvironment)e);
-
-            String tableName=rce.getRegion().getTableDescriptor().getTableName().getQualifierAsString();
-            TableType table=EnvUtils.getTableType(HConfiguration.getConfiguration(),rce);
-            switch(table){
+            RegionCoprocessorEnvironment rce = ((RegionCoprocessorEnvironment) e);
+            optionalRegionObserver = Optional.of(this);
+            String tableName = rce.getRegion().getTableDescriptor().getTableName().getQualifierAsString();
+            TableType table = EnvUtils.getTableType(HConfiguration.getConfiguration(), rce);
+            switch (table) {
                 case DERBY_SYS_TABLE:
-                    conglomId=-1; //bypass index management on derby system tables
+                    conglomId = -1; //bypass index management on derby system tables
                     break;
                 case USER_TABLE:
-                    conglomId=Long.parseLong(tableName);
+                    conglomId = Long.parseLong(tableName);
                     break;
                 default:
                     return; //disregard table environments which are not user or system tables
             }
+        } catch (Throwable t) {
+            throw CoprocessorUtils.getIOException(t);
+        }
+    }
 
+    @Override
+    public void postOpen(ObserverContext<RegionCoprocessorEnvironment> c) {
+        RegionCoprocessorEnvironment rce = c.getEnvironment();
+        try {
             final long cId = conglomId;
             final RegionPartition baseRegion=new RegionPartition((HRegion)rce.getRegion());
             ServerControl sc = new RegionServerControl((HRegion)rce.getRegion(),(RegionServerServices)rce.getOnlineRegions());
@@ -139,13 +149,14 @@ public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
             }
             DatabaseLifecycleManager.manager().registerGeneralService(service);
         } catch (Throwable t) {
-            throw CoprocessorUtils.getIOException(t);
+            ExceptionUtil.throwAsRuntime(CoprocessorUtils.getIOException(t));
         }
     }
 
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.empty();
             if (region != null)
                 region.close();
             if(service!=null) {
@@ -265,6 +276,6 @@ public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 }

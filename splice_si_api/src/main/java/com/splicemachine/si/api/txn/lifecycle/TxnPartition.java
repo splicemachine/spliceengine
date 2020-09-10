@@ -15,7 +15,9 @@
 package com.splicemachine.si.api.txn.lifecycle;
 
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.api.txn.TxnTimeTravelResult;
 import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 
 import javax.annotation.concurrent.ThreadSafe;
@@ -193,4 +195,6 @@ public interface TxnPartition{
     void recordRollbackSubtransactions(long txnId, long[] subIds) throws IOException;
 
     TxnMessage.TaskId getTaskId(long txnId) throws IOException;
+
+    Pair<Long, Long> getTxAt(long ts) throws IOException;
 }

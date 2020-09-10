@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.lifecycle;
 
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.PipelineLoadService;
@@ -78,6 +78,12 @@ public class PipelinePartitionCreator implements PartitionCreator{
     @Override
     public PartitionCreator withSplitKeys(byte[][] splitKeys) {
         baseCreator = baseCreator.withSplitKeys(splitKeys);
+        return this;
+    }
+
+    @Override
+    public PartitionCreator withCatalogVersion(String version) {
+        baseCreator = baseCreator.withCatalogVersion(version);
         return this;
     }
 

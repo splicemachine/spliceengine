@@ -48,7 +48,9 @@ import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.utils.IndentedString;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -58,6 +60,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -68,7 +73,11 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
-import java.io.*;
+import java.io.Externalizable;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Serializable;
 import java.net.URI;
 import java.util.*;
 
@@ -141,7 +150,21 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <V> DataSet<V> getEmpty(String name) {
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
+        return getEmpty(name, null);
+    }
+
+    @Override
+    public <V> DataSet<V> getEmpty(String name, OperationContext context) {
+        if (context == null)
+            return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1), name);
+        try {
+            return new NativeSparkDataSet<>(
+                    SpliceSpark.getSession().createDataFrame(
+                            SpliceSpark.getContext().emptyRDD(),
+                            context.getOperation().schema()), context);
+        } catch (StandardException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -177,7 +200,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return operationContext;
     }
 
-
+    @SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE",justification = "Intentional")
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Activation activation) {
         BroadcastedActivation ba = activation != null ? broadcastedActivation : null;
@@ -320,42 +343,26 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                           double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
+            ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
             try {
-                if (!ExternalTableUtils.isExisting(location))
-                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
-
-                if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                    return getEmpty();
-
-                // Infer schema from external files
-                StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "p");
-
                 table = SpliceSpark.getSession()
                         .read()
-                        .schema(dataSchema)
+                        .schema(tableSchema)
                         .parquet(location);
-
-                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
-
             } catch (Exception e) {
-                return handleExceptionInCaseOfEmptySet(e,location);
+                return handleExceptionSparkRead(e, location, false);
             }
-            table = processExternalDataset(execRow, table, baseColumnMap, qualifiers, probeValue);
 
-            if (useSample) {
-                return new NativeSparkDataSet(table
-                        .sample(false, sampleFraction), context);
-            } else {
-                return new NativeSparkDataSet(table, context);
-            }
+            checkNumColumns(location, baseColumnMap, table);
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
+            return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
+                    execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
-
-
 
     @Override
     public <V> DataSet<V> readAvroFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
@@ -364,47 +371,32 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                        boolean useSample, double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
+            StructType tableSchemaCopy =
+                    new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
+
+            // Infer schema from external files
+            // todo: this is slow on bigger directories, as it's calling getExternalFileSchema,
+            // which will do a spark.read() before doing the spark.read() here ...
+            StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "a");
+            if(dataSchema == null)
+                return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
+
             try {
-                if (!ExternalTableUtils.isExisting(location))
-                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
-
-                if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                    return getEmpty();
-
-                StructType copy = new StructType(Arrays.copyOf(tableSchema.fields(), tableSchema.fields().length));
-
-                // Infer schema from external files\
-                StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "a");
-
                 SparkSession spark = SpliceSpark.getSession();
                 // Creates a DataFrame from a specified file
                 table = spark.read().schema(dataSchema).format("com.databricks.spark.avro").load(location);
-
-                int i = 0;
-                for (StructField sf : copy.fields()) {
-                    if (sf.dataType().sameType(DataTypes.DateType)) {
-                        String colName = table.schema().fields()[i].name();
-                        table = table.withColumn(colName, table.col(colName).cast(DataTypes.DateType));
-                    }
-                    i++;
-                }
-
-                ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
-
             } catch (Exception e) {
-                return handleExceptionInCaseOfEmptySet(e,location);
+                return handleExceptionSparkRead(e, location, false);
             }
-            table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
+            checkNumColumns(location, baseColumnMap, table);
+            table = ExternalTableUtils.castDateTypeInAvroDataSet(table, tableSchemaCopy);
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
-            if (useSample) {
-                return new NativeSparkDataSet(table
-                        .sample(false, sampleFraction), context);
-            } else {
-                return new NativeSparkDataSet(table, context);
-            }
+            return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
+                    execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -418,7 +410,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
      * @return
      * @throws Exception
      */
-    private <V> DataSet<V> handleExceptionInCaseOfEmptySet(Exception e, String location) throws Exception {
+    private <V> DataSet<V> handleExceptionInferSchema(Exception e, String location) throws Exception {
         // Cannot Infer Schema, Argh
         if ((e instanceof AnalysisException || e instanceof FileNotFoundException) && e.getMessage() != null &&
                 (e.getMessage().startsWith("Unable to infer schema") || e.getMessage().startsWith("No Avro files found"))) {
@@ -429,6 +421,20 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         throw e;
     }
 
+    private <V> DataSet<V> handleExceptionSparkRead(Exception e, String location, boolean checkEmpty) throws Exception {
+        // Cannot Infer Schema, Argh
+        if( e instanceof org.apache.spark.sql.AnalysisException )
+        {
+            if( e.getMessage().startsWith("Path does not exist"))
+                throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+            if( checkEmpty && e.getMessage().startsWith("Unable to infer schema") && ExternalTableUtils.isEmptyDirectory(location))
+                return getEmpty();
+
+        }
+        throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
+    }
+
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
     public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
         StructType schema = null;
@@ -442,19 +448,42 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             if (!mergeSchema) {
                 fs = FileSystem.get(URI.create(location), conf);
                 String fileName = getFile(fs, location);
-                if (fileName != null) {
-                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-",""));
-                    fs.mkdirs(temp);
-                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
+                boolean canWrite = true;
+                if( (fileName == null || (fs.getFileStatus(new Path(location)).getPermission().toShort() & 0222) == 0 )) {
+                    canWrite = false;
+                }
+                else {
+                    temp = new Path(location, TEMP_DIR_PREFIX + "_" + UUID.randomUUID().toString().replaceAll("-", ""));
 
+                    try {
+                        fs.mkdirs(temp);
+                    } catch (IOException e) {
+                        canWrite = false;
+                        temp = null;
+                    }
+                }
+
+                if( canWrite )
+                {
+                    SpliceLogUtils.info(LOG, "created temporary directory %s", temp);
                     // Copy a data file to temp directory
                     int index = fileName.indexOf(location);
                     if (index != -1) {
                         String s = fileName.substring(index + location.length() + 1);
                         Path destDir = new Path(temp, s);
-                        FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
-                        location = temp.toString();
+                        try {
+                            FileUtil.copy(fs, new Path(fileName), fs, destDir, false, conf);
+                            location = temp.toString();
+                        } catch (IOException e) {
+                            canWrite = false;
+                        }
                     }
+                }
+
+                if( !canWrite )
+                {
+                    SpliceLogUtils.info(LOG, "couldn't create temporary directory %s, " +
+                            "will read schema from whole directory", temp);
                 }
             }
             try {
@@ -488,7 +517,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     schema = dataset.schema();
                 }
             } catch (Exception e) {
-                handleExceptionInCaseOfEmptySet(e, location);
+                handleExceptionInferSchema(e, location);
             } finally {
                 if (!mergeSchema && fs != null && temp!= null && fs.exists(temp)){
                     fs.delete(temp, true);
@@ -496,7 +525,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 }
             }
         }catch (Exception e) {
-            throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+            throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
 
         return schema;
@@ -549,19 +578,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
             if (storedAs!=null) {
                 if (storedAs.toLowerCase().equals("p")) {
+                    compression = SparkDataSet.getParquetCompression(compression);
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).parquet(location);
                 }
                 else if (storedAs.toLowerCase().equals("a")) {
-                    if (compression.equals("none")) {
-                        compression = "uncompressed";
-                    }
+                    compression = SparkDataSet.getAvroCompression(compression);
                     /*
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                             .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
                      */
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                            .mode(SaveMode.Append).format("avro").save(location);
+                            .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
                 }
                 else if (storedAs.toLowerCase().equals("o")) {
                     empty.write().option("compression",compression).partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
@@ -576,7 +604,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
         catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -609,14 +637,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 Column col = new Column(allCols[i]);
                 DataValueDescriptor dvd = execRow.getColumn(baseColumnMap[i] + 1);
 
-                if (dvd instanceof SQLChar &&
-                    !(dvd instanceof SQLVarchar)) {
-                    SQLChar sc = (SQLChar) dvd;
-                    if (sc.getSqlCharSize() > 0) {
-                        Column adapted = functions.rpad(col, sc.getSqlCharSize(), " ");
-                        col = adapted.as(allCols[i]);
-                    }
-                }
+                if ( dvd instanceof SQLChar || dvd instanceof SQLVarchar )
+                    col = convertSparkStringColToCharVarchar(col, dvd, allCols[i]);
+
                 cols.add(col);
             }
         }
@@ -633,6 +656,51 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     }
 
+    private <V> DataSet<V> externalTablesPostProcess(int[] baseColumnMap, OperationContext context,
+                                                     Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
+                                                     boolean useSample, double sampleFraction, Dataset<Row> table) throws StandardException {
+
+        table = processExternalDataset(execRow, table, baseColumnMap, qualifiers, probeValue);
+
+        if (useSample) {
+            return new NativeSparkDataSet(table
+                    .sample(false, sampleFraction), context);
+        } else {
+            return new NativeSparkDataSet(table, context);
+        }
+    }
+
+    /**
+     * since spark has only strings, not CHAR/VARCHAR,
+     * we need to "create" CHAR/VARCHAR column out of string columns
+     * - for CHAR, we need to right-pad strings
+     * - for CHAR/VARCHAR, we need to make sure we're considering the maximum string length
+     *   note that we will use Java/Scala String length, which is measured in
+     *   UTF-16 characters, which is NOT the byte length and also NOT necessarily the character length.
+     *   e.g. the single character U+1F602 (https://www.fileformat.info/info/unicode/char/1f602/index.htm)
+     *   is encoded as 0xD83D 0xDE02 and therefore has length 2.
+     */
+    private Column convertSparkStringColToCharVarchar(Column col, DataValueDescriptor dvd, String name) {
+        //
+        if (dvd instanceof SQLChar &&
+                !(dvd instanceof SQLVarchar)) {
+            SQLChar sc = (SQLChar) dvd;
+            if (sc.getSqlCharSize() > 0) {
+                Column adapted = functions.rpad(col, sc.getSqlCharSize(), " ");
+                col = adapted.as(name);
+            }
+        }
+        else if ( dvd instanceof SQLChar) {
+            // rpad will already cut strings
+            SQLChar sc = (SQLChar) dvd;
+            if (sc.getSqlCharSize() > 0) {
+                Column adapted = functions.substring(col, 0, sc.getSqlCharSize() );
+                col = adapted.as(name);
+            }
+        }
+        return col;
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public <V> DataSet<V> readPinnedTable(
@@ -646,8 +714,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     .map(new RowToLocatedRowFunction(context,execRow)));
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.PIN_READ_FAILURE,e.getMessage());
+                    SQLState.PIN_READ_FAILURE, e, e.getMessage());
         }
+    }
+    private <V> DataSet<V> checkExistingOrEmpty( String location, OperationContext context ) throws StandardException, IOException {
+        FileInfo fileinfo = ImportUtils.getImportFileInfo(location);
+        if( !fileinfo.exists() )
+            throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
+        if ( fileinfo.isEmptyDirectory() ) // Handle Empty Directory
+            return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
+        else
+            return null;
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -659,11 +736,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         assert baseColumnMap != null:"baseColumnMap Null";
         assert partitionColumnMap != null:"partitionColumnMap Null";
         try {
-            if (!ExternalTableUtils.isExisting(location))
-                throw StandardException.newException(SQLState.EXTERNAL_TABLES_LOCATION_NOT_EXIST, location);
-
-            if (ExternalTableUtils.isEmptyDirectory(location)) // Handle Empty Directory
-                return getEmpty();
+            DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
+            if( empty_ds != null ) return empty_ds;
 
             SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
             Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
@@ -674,13 +748,19 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             if (statsjob)
                 configuration.set(SpliceOrcNewInputFormat.SPLICE_COLLECTSTATS, "true");
 
-            JavaRDD<Row> rows = SpliceSpark.getContext().newAPIHadoopFile(
-                    location,
-                    SpliceOrcNewInputFormat.class,
-                    NullWritable.class,
-                    Row.class,
-                    configuration)
-                            .values();
+            JavaRDD<Row> rows;
+            try {
+                rows = SpliceSpark.getContext().newAPIHadoopFile(
+                        location,
+                        SpliceOrcNewInputFormat.class,
+                        NullWritable.class,
+                        Row.class,
+                        configuration)
+                        .values();
+            }
+            catch (Exception e) {
+                return handleExceptionSparkRead(e, location, false);
+            }
 
             if (useSample) {
                 return new SparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)));
@@ -689,7 +769,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
@@ -726,46 +806,50 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     options.put("sep", columnDelimiter);
 
                 table = SpliceSpark.getSession().read().options(options).csv(location);
-
                 if (table.schema().fields().length == 0)
                     return getEmpty();
+            } catch (Exception e) {
+                return handleExceptionSparkRead(e, location, true);
+            }
 
-                if (op == null) {
-                    // stats collection scan
-                    for(int index = 0; index < execRow.schema().fields().length; index++) {
+            checkNumColumns(location, baseColumnMap, table);
+            if (op == null) {
+                // stats collection scan
+                for(int index = 0; index < execRow.schema().fields().length; index++) {
+                    StructField ft = table.schema().fields()[index];
+                    Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
+                    table = table.withColumn(ft.name(), cl);
+                }
+            } else {
+                for( int index = 0; index< baseColumnMap.length; index++) {
+                    if (baseColumnMap[index] != -1) {
                         StructField ft = table.schema().fields()[index];
-                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
+                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
                         table = table.withColumn(ft.name(), cl);
                     }
-                } else {
-                    for( int index = 0; index< baseColumnMap.length; index++) {
-                        if (baseColumnMap[index] != -1) {
-                            StructField ft = table.schema().fields()[index];
-                            Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
-                            table = table.withColumn(ft.name(), cl);
-                        }
-                    }
                 }
-
-
-            } catch (Exception e) {
-                return handleExceptionInCaseOfEmptySet(e,location);
             }
-            table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
 
-            if (useSample) {
-                return new NativeSparkDataSet(table
-                        .sample(false, sampleFraction), context);
-            } else {
-                return new NativeSparkDataSet(table, context);
-            }
+
+            return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
+                    execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
-                    SQLState.EXTERNAL_TABLES_READ_FAILURE,e.getMessage());
+                    SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
     }
 
-    private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list, int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
+    /// check that we don't access a column that's not there with baseColumnMap
+    private static void checkNumColumns(String location, int[] baseColumnMap, Dataset<Row> table) throws StandardException {
+        if( baseColumnMap.length > table.schema().fields().length) {
+            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
+                    baseColumnMap.length, table.schema().fields().length,
+                    location, ExternalTableUtils.getSuggestedSchema(table.schema()));
+        }
+    }
+
+    private static Column createFilterCondition(Dataset dataset,String[] allColIdInSpark, Qualifier[][] qual_list,
+                                                int[] baseColumnMap, DataValueDescriptor probeValue) throws StandardException {
         assert qual_list!=null:"qualifier[][] passed in is null";
         boolean     row_qualifies = true;
         Column andCols = null;
@@ -863,8 +947,10 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public TableChecker getTableChecker(String schemaName, String tableName, DataSet table,
-                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix) {
-        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix);
+                                        KeyHashDecoder tableKeyDecoder, ExecRow tableKey, TxnView txn, boolean fix,
+                                        int[] baseColumnMap, boolean isSystemTable) {
+        return new SparkTableChecker(schemaName, tableName, table, tableKeyDecoder, tableKey, txn, fix, baseColumnMap,
+                isSystemTable);
     }
 
     @Override
@@ -1156,4 +1242,26 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public void resetOpDepth() { opDepth = 0; }
+
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+        Properties props = new Properties();
+        String consumerGroupId = "spark-consumer-dss-sdsp";
+        String bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, consumerGroupId);
+        props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumerGroupId+"-"+UUID.randomUUID());
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
+
+        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
+        List ps = consumer.partitionsFor(topicName);
+        List<Integer> partitions = new ArrayList<>(ps.size());
+        for (int i = 0; i < ps.size(); ++i) {
+            partitions.add(i);
+        }
+        consumer.close();
+
+        SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
+        return rdd.flatMap(new KafkaReadFunction(context, topicName, bootstrapServers));
+    }
 }

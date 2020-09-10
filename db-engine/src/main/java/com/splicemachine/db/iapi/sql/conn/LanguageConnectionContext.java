@@ -32,7 +32,7 @@
 package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -152,6 +152,12 @@ public interface LanguageConnectionContext extends Context {
      * @return value of logQueryPlan
      */
     boolean getLogQueryPlan();
+
+    /**
+     * Get value of tableLimitForExhaustiveSearch
+     * @return value of tableLimitForExhaustiveSearch
+     */
+    int getTableLimitForExhaustiveSearch();
 
     /**
      * get the lock escalation threshold to use with this connection.
@@ -812,7 +818,7 @@ public interface LanguageConnectionContext extends Context {
     /**
       Returns the Database of this connection.
      */
-    Database getDatabase();
+    InternalDatabase getDatabase();
 
     /**
      * Returns true if isolation level has been set using JDBC/SQL.
@@ -1148,6 +1154,14 @@ public interface LanguageConnectionContext extends Context {
      * @return List of roleids
      */
     List<String> getCurrentRoles(Activation a);
+
+    /**
+     * Removes all revoked roles from the list of current roles of the dynamic
+     * call context associated with this activation.
+     * @param a activation of the statement wanting to refresh the roles.
+     */
+    void refreshCurrentRoles(Activation a) throws StandardException;
+
     /**
      * Get the current role authorization identifier in external delimited form
      * (not case normal form) of the dynamic call context associated with this
@@ -1416,8 +1430,8 @@ public interface LanguageConnectionContext extends Context {
     void logErrorCompiling(String statement, Throwable t, long nanoTimeSpent);
     void logCommit();
     void logRollback();
-    void logStartFetching(String statement);
-    void logEndFetching(String statement, long fetchedRows);
+    void logStartFetching(String uuid, String statement);
+    void logEndFetching(String uuid, String statement, long fetchedRows);
     void logNextBatch(ParameterValueSet pvs);
     void logStartExecuting(String uuid, String engine, String stmt, ExecPreparedStatement ps,
                            ParameterValueSet pvs);
@@ -1444,4 +1458,7 @@ public interface LanguageConnectionContext extends Context {
 	void setReplicationRole(String role);
 
 	String getReplicationRole();
+
+    boolean isNLJPredicatePushDownDisabled();
+
 }

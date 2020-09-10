@@ -44,7 +44,7 @@ public class ClobLocatorOutputStream extends java.io.OutputStream {
     /**
      * Connection used to read Clob from server.
      */
-    private final Connection connection;
+    private final ClientConnection connection;
     
     /**
      * The Clob to be accessed.
@@ -70,7 +70,7 @@ public class ClobLocatorOutputStream extends java.io.OutputStream {
      *        to start writing; the first position is 1
      * @throws com.splicemachine.db.client.am.SqlException
      */
-    public ClobLocatorOutputStream(Connection connection, Clob clob, long pos)
+    public ClobLocatorOutputStream(ClientConnection connection, Clob clob, long pos)
     throws SqlException {
         if (pos-1 > clob.sqlLength()) {
             throw new IndexOutOfBoundsException();

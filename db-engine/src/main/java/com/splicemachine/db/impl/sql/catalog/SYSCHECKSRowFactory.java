@@ -38,13 +38,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CheckConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SubCheckConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -92,9 +86,9 @@ public class SYSCHECKSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-	public SYSCHECKSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+	public SYSCHECKSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo(SYSCHECKS_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids );
 	}
 
@@ -113,7 +107,7 @@ public class SYSCHECKSRowFactory extends CatalogRowFactory
 	 *
 	 * @exception   StandardException thrown on failure
 	 */
-	public ExecRow makeRow(TupleDescriptor	td, TupleDescriptor parent)
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor	td, TupleDescriptor parent)
 					throws StandardException 
 	{
 		DataValueDescriptor		col;
@@ -124,6 +118,9 @@ public class SYSCHECKSRowFactory extends CatalogRowFactory
 
 		if (td != null)
 		{
+			if (!(td instanceof CheckConstraintDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
 			CheckConstraintDescriptor cd = (CheckConstraintDescriptor)td;
 			/*
 			** We only allocate a new UUID if the descriptor doesn't already have one.
@@ -191,8 +188,6 @@ public class SYSCHECKSRowFactory extends CatalogRowFactory
 		String				constraintText;
 		String				constraintUUIDString;
 		UUID				constraintUUID;
-
-		ddg = dd.getDataDescriptorGenerator();
 
 		/* 1st column is CONSTRAINTID (UUID - char(36)) */
 		col = row.getColumn(SYSCHECKS_CONSTRAINTID);

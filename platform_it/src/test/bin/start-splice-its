@@ -58,13 +58,7 @@ while getopts ":chp:b:" flag ; do
 done
 
 # Check if server running. Shut down if so.
-Y=( $(ps -ef | awk '/spliceYarn|CoarseGrainedScheduler|ExecutorLauncher/ && !/awk/ {print $2}') )
-S=( $(ps -ef | awk '/SpliceTestPlatform|SpliceSinglePlatform|SpliceTestClusterParticipant/ && !/awk/ {print $2}') )
-Z=( $(ps -ef | awk '/ZooKeeperServerMain/ && !/awk/ {print $2}') )
-if [[ -n ${Y[0]} || -n ${S[0]} || -n ${Z[0]} ]]; then
-    echo "Splice server is running. Shutting down."
-    "${SCRIPT_DIR}"/stop-splice-its
-fi
+"${SCRIPT_DIR}"/stop-splice-its
 
 # Start zookeeper in background.
 echo "Starting ZooKeeperServerMain, log file is ${ZOOLOG}"
@@ -91,9 +85,11 @@ if [ ${COUNT} -eq 0 ]; then
     exit 5
 fi
 
+pushd ../standalone/ > /dev/null
 # Start SpliceTestYarnPlatform in background.
 echo "Starting SpliceTestYarnPlatform, log file is ${YARNLOG}"
-mvn -B exec:java -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn >> ${YARNLOG} 2>&1 &
+mvn -B exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceYarn >> ${YARNLOG} 2>&1 &
+popd > /dev/null
 
 # Start Kafka in background.
 echo "Starting TestKafkaCluster, log file is ${KAFKALOG}"

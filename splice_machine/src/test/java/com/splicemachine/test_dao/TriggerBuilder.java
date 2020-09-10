@@ -14,11 +14,11 @@
 
 package com.splicemachine.test_dao;
 
-import org.spark_project.guava.base.Joiner;
+import splice.com.google.common.base.Joiner;
 
-import static org.spark_project.guava.base.Preconditions.checkArgument;
-import static org.spark_project.guava.base.Preconditions.checkNotNull;
-import static org.spark_project.guava.base.Preconditions.checkState;
+import static splice.com.google.common.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkNotNull;
+import static splice.com.google.common.base.Preconditions.checkState;
 import static org.apache.commons.lang3.StringUtils.isNotBlank;
 
 /**

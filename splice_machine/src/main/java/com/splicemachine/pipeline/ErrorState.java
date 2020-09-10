@@ -682,6 +682,8 @@ public enum ErrorState{
 
         @Override
         public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof ForeignKeyViolation))
+                return super.newException(rootCause);
             ForeignKeyViolation fkV=(ForeignKeyViolation)rootCause;
             ConstraintContext context=fkV.getContext();
             return StandardException.newException(getSqlState(),context.getMessages());
@@ -1086,6 +1088,8 @@ public enum ErrorState{
     LANG_WINDOW_FUNCTION_CONTEXT_ERROR("42ZC2"),
 
     LANG_INVALID_SPARK_AND_CONTROL("42ZD1"),
+
+    LANG_ILLEGAL_TIME_TRAVEL("42ZD2"),
 
     //following 3 matches the DB2 sql states
     LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA("428EK"),
@@ -1626,7 +1630,7 @@ public enum ErrorState{
     AUTH_ENCRYPT_NOT_DB_OWNER("08004.C.5"),
     AUTH_HARD_UPGRADE_NOT_DB_OWNER("08004.C.6"),
     //DERBY-1828: AUTH_x_NOT_DB_OWNER used to be "2850H/I/J.C"),
-    CANNOT_CONNECT_TO_DB_IN_SLAVE_MODE("08004.C.7"),
+    CANNOT_CONNECT_TO_DB_IN_REPLICA_MODE("08004.C.7"),
     AUTH_REPLICATION_NOT_DB_OWNER("08004.C.8"),
     //DERBY-2109: new state/msg(considered sql state 28101.C not appropriate)
     AUTH_SHUTDOWN_MISSING_PERMISSION("08004.C.9"),
@@ -1847,26 +1851,26 @@ public enum ErrorState{
     */
     LOGMODULE_DOES_NOT_SUPPORT_REPLICATION("XRE00"),
     REPLICATION_LOG_CORRUPTED("XRE01"),
-    REPLICATION_MASTER_SLAVE_VERSION_MISMATCH("XRE02"),
+    REPLICATION_PRIMARY_REPLICA_VERSION_MISMATCH("XRE02"),
     REPLICATION_UNEXPECTED_EXCEPTION("XRE03"),
     REPLICATION_CONNECTION_EXCEPTION("XRE04.C.1"),
     REPLICATION_CONNECTION_LOST("XRE04.C.2"),
     REPLICATION_LOG_OUT_OF_SYNCH("XRE05.C"),
-    REPLICATION_MASTER_TIMED_OUT("XRE06"),
-    REPLICATION_NOT_IN_MASTER_MODE("XRE07"),
-    REPLICATION_SLAVE_STARTED_OK("XRE08"),
-    CANNOT_START_SLAVE_ALREADY_BOOTED("XRE09.C"),
+    REPLICATION_PRIMARY_TIMED_OUT("XRE06"),
+    REPLICATION_NOT_IN_PRIMARY_MODE("XRE07"),
+    REPLICATION_REPLICA_STARTED_OK("XRE08"),
+    CANNOT_START_REPLICA_ALREADY_BOOTED("XRE09.C"),
     REPLICATION_CONFLICTING_ATTRIBUTES("XRE10"),
     REPLICATION_DB_NOT_BOOTED("XRE11.C"),
     REPLICATION_UNEXPECTED_MESSAGEID("XRE12"),
     REPLICATION_FAILOVER_SUCCESSFUL("XRE20.D"),
     REPLICATION_FAILOVER_UNSUCCESSFUL("XRE21.C"),
-    REPLICATION_MASTER_ALREADY_BOOTED("XRE22.C"),
+    REPLICATION_PRIMARY_ALREADY_BOOTED("XRE22.C"),
     REPLICATION_UNLOGGED_OPERATIONS_IN_PROGRESS("XRE23"),
-    REPLICATION_NOT_IN_SLAVE_MODE("XRE40"),
-    SLAVE_OPERATION_DENIED_WHILE_CONNECTED("XRE41.C"),
-    REPLICATION_SLAVE_SHUTDOWN_OK("XRE42.C"),
-    REPLICATION_STOPSLAVE_NOT_INITIATED("XRE43"),
+    REPLICATION_NOT_IN_REPLICA_MODE("XRE40"),
+    REPLICA_OPERATION_DENIED_WHILE_CONNECTED("XRE41.C"),
+    REPLICATION_REPLICA_SHUTDOWN_OK("XRE42.C"),
+    REPLICATION_STOPREPLICA_NOT_INITIATED("XRE43"),
 
     /*
      * Splice Specific Error Messages
@@ -1988,6 +1992,8 @@ public enum ErrorState{
 
         @Override
         public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof CannotCommitException))
+                return super.newException(rootCause);
             CannotCommitException cce=(CannotCommitException)rootCause;
             return StandardException.newException(getSqlState(),cce.getTxnId());
         }

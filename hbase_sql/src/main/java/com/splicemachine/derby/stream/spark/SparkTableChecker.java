@@ -3,11 +3,12 @@ package com.splicemachine.derby.stream.spark;
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
-import com.splicemachine.derby.impl.storage.CheckTableJob.IndexFilter;
-import com.splicemachine.derby.impl.storage.CheckTableJob.LeadingIndexColumnInfo;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.IndexFilter;
+import com.splicemachine.derby.impl.storage.CheckTableUtils.LeadingIndexColumnInfo;
 import com.splicemachine.derby.impl.storage.KeyByRowIdFunction;
 import com.splicemachine.derby.stream.function.IndexTransformFunction;
 import com.splicemachine.derby.stream.function.KVPairFunction;
@@ -26,9 +27,11 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaFutureAction;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.api.java.function.Function2;
 import scala.Tuple2;
@@ -55,22 +58,25 @@ public class SparkTableChecker implements TableChecker {
     private PairDataSet<String, ExecRow> filteredTable;
     private KeyHashDecoder tableKeyDecoder;
     private ExecRow tableKeyTemplate;
-    private KeyHashDecoder indexKeyDecoder;
-    private ExecRow indexKeyTemplate;
     private int  maxCheckTableError;
     private long filteredTableCount;
     private TxnView txn;
     private boolean fix;
     private long conglomerate;
     private DDLMessage.TentativeIndex tentativeIndex;
+    private int[] baseColumnMap;
+    private boolean isSystemTable;
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public SparkTableChecker(String schemaName,
                              String tableName,
                              DataSet table,
                              KeyHashDecoder tableKeyDecoder,
                              ExecRow tableKey,
                              TxnView txn,
-                             boolean fix) {
+                             boolean fix,
+                             int[] baseColumnMap,
+                             boolean isSystemTable) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.baseTable = table;
@@ -78,21 +84,19 @@ public class SparkTableChecker implements TableChecker {
         this.tableKeyTemplate = tableKey;
         this.txn = txn;
         this.fix = fix;
+        this.baseColumnMap = baseColumnMap;
+        this.isSystemTable = isSystemTable;
         maxCheckTableError = SIDriver.driver().getConfiguration().getMaxCheckTableErrors();
     }
 
     @Override
     public List<String> checkIndex(PairDataSet index,
                                    String indexName,
-                                   KeyHashDecoder indexKeyDecoder,
-                                   ExecRow indexKey,
                                    LeadingIndexColumnInfo leadingIndexColumnInfo,
                                    long conglomerate,
                                    DDLMessage.TentativeIndex tentativeIndex) throws Exception {
 
         this.indexName = indexName;
-        this.indexKeyDecoder = indexKeyDecoder;
-        this.indexKeyTemplate = indexKey;
         this.conglomerate = conglomerate;
         this.tentativeIndex = tentativeIndex;
 
@@ -130,7 +134,7 @@ public class SparkTableChecker implements TableChecker {
         }
 
         if (indexCount - invalidIndexCount > tableCount - missingIndexCount) {
-            messages.addAll(checkDuplicateIndexes(index));
+            messages.addAll(checkDuplicateIndexes(filteredTable, index));
         }
         return messages;
     }
@@ -148,32 +152,48 @@ public class SparkTableChecker implements TableChecker {
      * @throws InterruptedException
      * @throws ExecutionException
      */
-    private List<String> checkDuplicateIndexes(PairDataSet index) throws StandardException, InterruptedException, ExecutionException {
-        List<String> messages = Lists.newLinkedList();
-        SpliceSpark.pushScope(String.format("Check duplicates in index %s.%s", schemaName, indexName));
-        JavaPairRDD duplicateIndexRdd = ((SparkPairDataSet)index).rdd
-                .combineByKey(new createCombiner(), new mergeValue(), new mergeCombiners())
-                .filter(new DuplicateIndexFilter());
+    private List<String> checkDuplicateIndexes(PairDataSet table, PairDataSet index) throws StandardException {
+        try {
+            SpliceSpark.pushScope(String.format("Check duplicates in index %s.%s", schemaName, indexName));
+            JavaPairRDD duplicateIndexRdd = ((SparkPairDataSet) index).rdd
+                    .combineByKey(new CreateCombiner(), new MergeValue(), new MergeCombiners())
+                    .filter(new DuplicateIndexFilter());
 
-        long count = 0;
-        JavaFutureAction<List> futureAction = duplicateIndexRdd.takeAsync(maxCheckTableError);
-        List<Tuple2<String, List<byte[]>>> result = futureAction.get();
-        for(Tuple2<String, List<byte[]>> tuple : result) {
-            List<byte[]> keys = tuple._2;
-            for (byte[] key : keys) {
-                indexKeyDecoder.set(key, 0, key.length);
-                indexKeyDecoder.decode(indexKeyTemplate);
-                messages.add(indexKeyTemplate.getClone().toString() + "=>" + tuple._1);
-                count++;
+            JavaPairRDD joinedRdd = duplicateIndexRdd
+                    .join(((SparkPairDataSet) table).rdd);
+
+            JavaRDD duplicateIndex = joinedRdd
+                    .mapPartitions(new SparkFlatMapFunction<>(new DeleteDuplicateIndexFunction<>(conglomerate, txn, tentativeIndex, baseColumnMap, fix)));
+
+            Iterator it = duplicateIndex.toLocalIterator();
+            long count = duplicateIndex.count();
+            return reportDuplicateIndexes(it, count, fix);
+        }catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+        finally {
+            SpliceSpark.popScope();
+        }
+    }
+
+    private List<String> reportDuplicateIndexes(Iterator it, long count, boolean fix) throws StandardException, InterruptedException, ExecutionException {
+        List<String> messages = Lists.newLinkedList();
+        int n = 0;
+        while (it.hasNext()) {
+            n++;
+            Tuple2<String, Tuple2<byte[], ExecRow>> t = (Tuple2<String, Tuple2<byte[], ExecRow>>)it.next();
+            messages.add(t._2._2 + "@" + Bytes.toHex(t._2._1) + "=>" + t._1);
+            if (!fix && n >= maxCheckTableError) {
+                messages.add("...");
+                break;
             }
         }
-        if (count >= maxCheckTableError) {
-            count = duplicateIndexRdd.count();
-            messages.add("...");
+        if (fix) {
+            messages.add(0,String.format("Deleted the following %d duplicate indexes", count));
         }
-
-        messages.add(0, String.format("The following %d indexes are duplicates:", count));
-        SpliceSpark.popScope();
+        else {
+            messages.add(0, String.format("The following %d indexes are duplicates:", count));
+        }
         return messages;
     }
 
@@ -187,7 +207,7 @@ public class SparkTableChecker implements TableChecker {
     private List<String> checkInvalidIndexes(PairDataSet table, PairDataSet index) throws StandardException {
         List<String> messages = Lists.newLinkedList();
         SpliceSpark.pushScope(String.format("Check invalidate index from %s.%s", schemaName, indexName));
-        PairDataSet<String, byte[]> d1 = index.subtractByKey(table, null);
+        PairDataSet<String, Tuple2<byte[], ExecRow>> d1 = index.subtractByKey(table, null);
         SpliceSpark.popScope();
         JavaPairRDD rdd = ((SparkPairDataSet) d1).rdd;
         invalidIndexCount = rdd.count();
@@ -213,8 +233,8 @@ public class SparkTableChecker implements TableChecker {
             messages.add(String.format("The following %d indexes are deleted:", invalidIndexCount));
             Iterator itr = rdd.toLocalIterator();
             while (itr.hasNext()) {
-                Tuple2<String, ExecRow> tuple = (Tuple2<String, ExecRow>) itr.next();
-                byte[] key = tuple._2.getKey();
+                Tuple2<String, Tuple2<byte[], ExecRow>> tuple = (Tuple2<String, Tuple2<byte[], ExecRow>>) itr.next();
+                byte[] key = tuple._2._1;
                 writeBuffer.add(new KVPair(key, new byte[0], KVPair.Type.DELETE));
                 if (i == maxCheckTableError) {
                     messages.add("...");
@@ -222,10 +242,7 @@ public class SparkTableChecker implements TableChecker {
                 if (i > maxCheckTableError) {
                     continue;
                 }
-
-                indexKeyDecoder.set(key, 0, key.length);
-                indexKeyDecoder.decode(indexKeyTemplate);
-                messages.add(indexKeyTemplate.getClone().toString() + "=>" + tuple._1);
+                messages.add(tuple._2._2 + "=>" + tuple._1);
                 i++;
             }
             writeBuffer.flushBuffer();
@@ -243,16 +260,14 @@ public class SparkTableChecker implements TableChecker {
         messages.add(String.format("The following %d indexes are invalid:", invalidIndexCount));
         Iterator itr = rdd.toLocalIterator();
         while (itr.hasNext()) {
-            Tuple2<String, byte[]> tuple = (Tuple2<String, byte[]>) itr.next();
+            Tuple2<String, Tuple2<byte[], ExecRow>> tuple = (Tuple2<String, Tuple2<byte[], ExecRow>>) itr.next();
 
             if (i >= maxCheckTableError) {
                 messages.add("...");
                 break;
             }
-            byte[] key = tuple._2;
-            indexKeyDecoder.set(key, 0, key.length);
-            indexKeyDecoder.decode(indexKeyTemplate);
-            messages.add(indexKeyTemplate.getClone().toString() + "=>" + tuple._1);
+            byte[] key = tuple._2._1;
+            messages.add(tuple._2._2 + "@" + Bytes.toHex(key) + "=>" + tuple._1);
             i++;
         }
 
@@ -296,9 +311,15 @@ public class SparkTableChecker implements TableChecker {
     private List<String> reportMissingIndexes(JavaPairRDD rdd, boolean fix) throws StandardException {
 
         if (fix) {
+            List<Integer> baseColumnMapList = Lists.newArrayList();
+            for (int i = 0; i < baseColumnMap.length; ++i) {
+                if (baseColumnMap[i] >= 0) {
+                    baseColumnMapList.add(i+1);
+                }
+            }
             PairDataSet dsToWrite =  new SparkPairDataSet(rdd)
                     .map(new AddKeyFunction())
-                    .map(new IndexTransformFunction(tentativeIndex), null, false, true, "Prepare Index")
+                    .map(new IndexTransformFunction(tentativeIndex, baseColumnMapList, isSystemTable), null, false, true, "Prepare Index")
                     .index(new KVPairFunction(), false, true, "Add missing indexes");
             DataSetWriter writer = dsToWrite.directWriteData()
                     .destConglomerate(tentativeIndex.getIndex().getConglomerate())
@@ -331,7 +352,8 @@ public class SparkTableChecker implements TableChecker {
                 byte[] key = Bytes.fromHex(tuple._1);
                 tableKeyDecoder.set(key, 0, key.length);
                 tableKeyDecoder.decode(tableKeyTemplate);
-                messages.add(tableKeyTemplate.getClone().toString());
+                ValueRow r = (ValueRow) tableKeyTemplate.getClone();
+                messages.add(r.toString());
             }
             else {
                 messages.add(tuple._1);
@@ -342,31 +364,31 @@ public class SparkTableChecker implements TableChecker {
         return messages;
     }
 
-    public static class createCombiner implements Function<byte[], List<byte[]>> {
+    public static class CreateCombiner implements Function<Tuple2<byte[], ExecRow>, List<Tuple2<byte[], ExecRow>>> {
 
         @Override
-        public List<byte[]> call(byte[] key) {
+        public List<Tuple2<byte[], ExecRow>> call(Tuple2<byte[], ExecRow> t) {
 
-            List<byte[]> l = Lists.newLinkedList();
-            l.add(key);
+            List<Tuple2<byte[], ExecRow>> l = Lists.newLinkedList();
+            l.add(t);
             return l;
         }
     }
 
 
-    public static class mergeValue implements Function2<List<byte[]>, byte[], List<byte[]>> {
+    public static class MergeValue implements Function2<List<Tuple2<byte[], ExecRow>>, Tuple2<byte[], ExecRow>, List<Tuple2<byte[], ExecRow>>> {
 
         @Override
-        public List<byte[]> call(List<byte[]> l1, byte[] key) {
+        public List<Tuple2<byte[], ExecRow>> call(List<Tuple2<byte[], ExecRow>> l1, Tuple2<byte[], ExecRow> t) {
 
-            l1.add(key);
+            l1.add(t);
             return l1;
         }
     }
-    public static class mergeCombiners implements Function2<List<byte[]>, List<byte[]>, List<byte[]>> {
+    public static class MergeCombiners implements Function2<List<Tuple2<byte[], ExecRow>>, List<Tuple2<byte[], ExecRow>>, List<Tuple2<byte[], ExecRow>>> {
 
         @Override
-        public List<byte[]> call(List<byte[]> l1, List<byte[]> l2) {
+        public List<Tuple2<byte[], ExecRow>> call(List<Tuple2<byte[], ExecRow>> l1, List<Tuple2<byte[], ExecRow>> l2) {
 
             l1.addAll(l2);
             return l1;

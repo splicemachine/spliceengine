@@ -197,4 +197,8 @@ public abstract class BaseSpliceTransaction<T extends BaseTransaction> implement
     public TxnView getActiveStateTxn(){
         return transaction.getActiveStateTxn();
     }
+
+    public boolean isRestoreMode() {
+        return transaction.isRestoreMode();
+    }
 }

@@ -21,7 +21,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -39,8 +38,9 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.EngineUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -69,8 +69,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private boolean alwaysFalse;
 		public SpliceMethod<DataValueDescriptor> restriction;
 		public SpliceMethod<ExecRow> projection;
-        public ExecRow projectionResult;
-		public NoPutResultSet[] subqueryTrackingArray;
 		private ExecRow execRowDefinition;
 		private ExecRow projRow;
 		private String filterPred = null;
@@ -102,6 +100,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		        return "true";
         }
 
+		@SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")
 		public String[] getExpressions() {
 		    return expressions;
         }
@@ -109,10 +108,12 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		@SuppressWarnings("UnusedDeclaration")
 		public ProjectRestrictOperation() { super(); }
 
+		@SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "DB-9844")
 		public ProjectRestrictOperation(SpliceOperation source,
                                         Activation activation,
                                         GeneratedMethod restriction,
                                         GeneratedMethod projection,
+                                        int resultColumnTypeArrayItem,
                                         int resultSetNumber,
                                         GeneratedMethod cr,
                                         int mapRefItem,
@@ -125,7 +126,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                                         String[] expressions,
 				        boolean hasGroupingFunction,
                                         String subqueryText) throws StandardException {
-				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+				super(activation,resultColumnTypeArrayItem, resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.restrictionMethodName = (restriction == null) ? null : restriction.getMethodName();
 				this.projectionMethodName = (projection == null) ? null : projection.getMethodName();
 				this.constantRestrictionMethodName = (cr == null) ? null : cr.getMethodName();
@@ -240,6 +241,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				return source;
 		}
 
+		@SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE", justification = "DB-9844")
 		public ExecRow doProjection(ExecRow sourceRow) throws StandardException {
 			if (reuseResult && projRow != null)
 				return projRow;
@@ -261,7 +263,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				}
 				// Copy any mapped columns from the source
 				for (int index = 0; index < projectMapping.length; index++) {
-						if (sourceRow != null && projectMapping[index] != -1) {
+						if (projectMapping[index] != -1) {
 								DataValueDescriptor dvd = sourceRow.getColumn(projectMapping[index]);
 								// See if the column has been marked for cloning.
 								// If the value isn't a stream, don't bother cloning it.

@@ -56,6 +56,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     // true by default.
     boolean useStatistics=true;
 
+    int tableLimitForExhaustiveSearch;
+
     // FromList could have a view in it's list. If the view is defined in SESSION
     // schema, then we do not want to cache the statement's plan. This boolean
     // will help keep track of such a condition.
@@ -77,6 +79,10 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      */
     private WindowList windows;
 
+    /// list of aliases that can be used later by the ORDER BY statement in ResultColumnList
+    private List<ResultColumn> aliases = new ArrayList<>();
+    /// @sa useAliases
+    private boolean aliasesUsable = false;
 
     /**
      * Initializer for a FromList
@@ -85,6 +91,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     public void init(Object optimizeJoinOrder){
         fixedJoinOrder=!((Boolean)optimizeJoinOrder);
         isTransparent=false;
+        tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
     }
 
     /**
@@ -700,6 +707,19 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
          */
         predicateList.categorize();
 
+        // When left outer join is flattend, its ON clause condition could be released to the WHERE clause but
+        // with an outerJoinLevel > 0. These predicates cannot be pushed to tables whose outerJoinLevel does not match.
+        // As a simplification, we don't push predicates down whoe OuterJoinLevel is greater than 0.
+        PredicateList levelZeroPredicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        for (int i = predicateList.size()-1; i >= 0 ; i--) {
+            Predicate pred = predicateList.elementAt(i);
+            if (pred.getOuterJoinLevel() == 0) {
+                levelZeroPredicateList.addOptPredicate(pred);
+                predicateList.removeOptPredicate(i);
+            }
+        }
+
+
         int size=size();
         for(int index=0;index<size;index++){
             FromTable fromTable=(FromTable)elementAt(index);
@@ -708,8 +728,15 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             // ON clause condition) to right of outer join for now, it can be enhanced in the future
             if (fromTable.getOuterJoinLevel() > 0)
                 continue;
-            fromTable.pushExpressions(predicateList);
+            fromTable.pushExpressions(levelZeroPredicateList);
         }
+
+        // append the predicates that are not pushed down back to the original predicatelist
+        for ( int i=0; i < levelZeroPredicateList.size(); i++) {
+            predicateList.addOptPredicate(levelZeroPredicateList.elementAt(i));
+        }
+        levelZeroPredicateList.removeAllPredicates();
+
     }
 
 
@@ -763,6 +790,15 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     }else{
                         throw StandardException.newException(SQLState.LANG_INVALID_STATISTICS_SPEC,value);
                     }
+                    break;
+                case "tableLimitForExhaustiveSearch":
+                    try {
+                        tableLimitForExhaustiveSearch = Integer.parseInt(value);
+                    } catch (NumberFormatException nfe) {
+                        throw StandardException.newException(SQLState.LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH, value);
+                    }
+                    if (tableLimitForExhaustiveSearch <= 0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH, value);
                     break;
                 default:
                     throw StandardException.newException(SQLState.LANG_INVALID_FROM_LIST_PROPERTY,key,value);
@@ -1256,6 +1292,9 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     fbt.setExistsTable(true,isNotExists, matchRowId);
                     fbt.setDependencyMap((JBitSet)dependencyMap.clone());
                 }
+                // set the same for the parent PR node:
+                prn.setExistsTable(true, isNotExists, matchRowId);
+                prn.setDependencyMap((JBitSet)dependencyMap.clone());
             }
         }
     }
@@ -1383,5 +1422,49 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             for (FromTable fromTable: ssqList)
                 addElement(fromTable);
         }
+    }
+
+    /// add something that might be used later by ORDER BY for aliases resolving
+    public void addAlias(ResultColumn vn) {
+        if( vn != null && vn.getName() != null )
+            aliases.add(vn);
+    }
+
+    /// check if the columnReference is referencing an alias.
+    /// this should only happen when ColumnReferences that are in ValueNodes of ORDER BY part of ResultColumnList
+    /// callee should then replace the reference to the aliases by the expression that this alias points too
+    public ValueNode getAlias(ColumnReference columnReference) throws StandardException {
+        if( !aliasesUsable ) return null;
+        ResultColumn rc = aliases.stream().filter(c -> c.getName().equals(columnReference.columnName))
+                                 .findFirst().orElse(null);
+        if( rc != null ) {
+            // we might have to replace this with rc.getExpression().getClone() (and fix all getClone())
+            return rc.getExpression();
+        }
+        else
+            return null;
+    }
+
+    /**
+     * we have to call useAliases to make aliases accessible,
+     * otherwise SELECT would also have access to aliases left-to-right
+     */
+    public void useAliases() {
+        aliasesUsable = true;
+    }
+    /// clear aliases so that they're not usable from HAVING or GROUP BY
+    // this is intentional currently, as it's not clear if the current approach in FromList.getAlias
+    // is valid in WHERE, HAVING and GROUP BY statements. maybe we would need to do a copy of the expression,
+    // not only a reference
+    public void clearAliases()
+    {
+        aliases.clear();
+        aliasesUsable = false;
+    }
+
+    @Override
+    public int getTableLimitForExhaustiveSearch()
+    {
+        return tableLimitForExhaustiveSearch;
     }
 }

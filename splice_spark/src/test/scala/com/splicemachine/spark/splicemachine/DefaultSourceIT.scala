@@ -16,46 +16,83 @@ package com.splicemachine.spark.splicemachine
 import java.io.File
 import java.math.BigDecimal
 import java.nio.file.{Files, Path}
-import java.sql.{Time, Timestamp}
+import java.sql.{Connection, SQLException, Time, Timestamp}
 import java.util.Date
 
-import com.splicemachine.derby.vti.SpliceDatasetVTI
+import com.splicemachine.test.LongerThanTwoMinutes
 import org.apache.commons.io.FileUtils
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql._
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
-import org.apache.spark.sql.jdbc.JdbcDialects
+import org.apache.spark.sql.functions._
+import org.junit.Assert._
+import org.junit.experimental.categories.Category
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
+import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
 
 import scala.collection.immutable.IndexedSeq
-import org.apache.spark.sql._
-import org.junit.runner.RunWith
-import org.junit.Assert._
-import org.scalatest.{BeforeAndAfter, FunSuite, Matchers}
-import org.scalatest.junit.JUnitRunner
-import org.apache.spark.sql.functions._
-import java.sql.Connection
 
 @RunWith(classOf[JUnitRunner])
+@Category(Array(classOf[LongerThanTwoMinutes]))
 class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with Matchers {
   val rowCount = 10
-  var sqlContext : SQLContext = _
   var rows : IndexedSeq[(Int, Int, String, Long)] = _
 
   before {
     val rowCount = 10
     if (sqlContext == null)
       sqlContext = new SQLContext(sc)
-    if (splicemachineContext.tableExists(internalTN)) {
-      splicemachineContext.dropTable(internalTN)
+
+    try {
+        splicemachineContext.dropTable(internalTN)
     }
-    if (splicemachineContext.tableExists(schema+"."+"T")) {
-      splicemachineContext.dropTable(schema+"."+"T")
+    catch {
+      case e: SQLException =>
     }
-    if (splicemachineContext.tableExists(schema+"."+"T2")) {
-      splicemachineContext.dropTable(schema+"."+"T2")
+    try {
+        splicemachineContext.dropTable(schema + "." + "T")
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T2")
+    }
+    catch {
+      case e: SQLException =>
     }
     insertInternalRows(rowCount)
     splicemachineContext.getConnection().commit()
     sqlContext.read.options(internalOptions).splicemachine.createOrReplaceTempView(table)
+  }
+  
+  after {
+
+    try {
+      splicemachineContext.dropTable(internalTN)
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(externalTN)
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T")
+    }
+    catch {
+      case e: SQLException =>
+    }
+    try {
+      splicemachineContext.dropTable(schema + "." + "T2")
+    }
+    catch {
+      case e: SQLException =>
+    }
   }
 
   test("read from datasource api") {
@@ -82,7 +119,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
       ps.setBoolean(1, false)
       ps.setString(2, "\n")
       ps.setDate(3, java.sql.Date.valueOf("2013-09-05"))
-      ps.setBigDecimal(4, new BigDecimal("11"))
+      ps.setBigDecimal(4, new BigDecimal(11, new java.math.MathContext(15)).setScale(2))
       ps.setDouble(5, 11)
       ps.setInt(6, 11)
       ps.setInt(7, 11)
@@ -91,6 +128,11 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
       ps.setTime(10, new Time(11))
       ps.setTimestamp(11, new Timestamp(11))
       ps.setString(12, "somet\nestinfo" + 11)
+      ps.setBigDecimal(13, new BigDecimal(11, new java.math.MathContext(4)).setScale(1) )
+      ps.setInt(14, 11)
+      ps.setString(15, "long varchar somet\nestinfo" + 11)
+      ps.setFloat(16, 11)
+      ps.setInt(17, 11)
       ps.execute()
     }finally {
       conn.close()
@@ -113,16 +155,14 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     assert(newDF.count == 20)
   }
 
-  test("insertion with sampling") {  // DB-9395
-    val userDir: String = System.getProperty("user.dir")
-    val dataDir = userDir+"/src/test/data/lineitem.csv";
+  test("insertion with sampling") {
     val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
-    conn.createStatement().execute("create table TestContext.T(id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), c1 double, c2 double, c3 double, primary key(id))")
-    conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) values (100, 100, 100), (200, 200, 200), (300, 300, 300), (400, 400, 400)");
+    conn.createStatement().execute(s"create table $schema.T(id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), c1 double, c2 double, c3 double, primary key(id))")
+    conn.createStatement().execute(s"insert into $schema.T(c1,c2,c3) values (100, 100, 100), (200, 200, 200), (300, 300, 300), (400, 400, 400)");
     for (i <- 0 to 20) {
-      conn.createStatement().execute("insert into TestContext.T(c1,c2,c3) select c1,c2,c3 from TestContext.t")
+      conn.createStatement().execute(s"insert into $schema.T(c1,c2,c3) select c1,c2,c3 from $schema.t")
     }
-    conn.createStatement().execute("create table TestContext.T2(id int, c1 double, c2 double, c3 double, primary key(id))")
+    conn.createStatement().execute(s"create table $schema.T2(id int, c1 double, c2 double, c3 double, primary key(id))")
     val options = Map(
       JDBCOptions.JDBC_TABLE_NAME -> (schema+"."+"T"),
       JDBCOptions.JDBC_URL -> defaultJDBCURL
@@ -461,7 +501,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
 
   test("table scan with projection and predicate numeric") {
     assertEquals("[[0.00], [1.00], [2.00], [3.00], [4.00]]",
-      sqlContext.sql(s"""SELECT c4_decimal FROM $table where c4_decimal < 5.0000""").collectAsList().toString)
+      sqlContext.sql(s"""SELECT c4_numeric FROM $table where c4_numeric < 5.0000""").collectAsList().toString)
   }
 
   test("table scan with projection and predicate double") {
@@ -489,12 +529,13 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
       sqlContext.sql(s"""SELECT c9_smallint FROM $table where c9_smallint < 5""").collectAsList().toString)
   }
   test("table scan with projection and predicate timestamp") {
-    val ts0 = new Timestamp(0)
-    val ts1 = new Timestamp(1)
-    val ts2 = new Timestamp(2)
-    val ts3 = new Timestamp(3)
-    val ts4 = new Timestamp(4)
-    val ts5 = new Timestamp(5)
+    val offset = java.util.TimeZone.getDefault.getRawOffset
+    val ts0 = new Timestamp(0-offset)
+    val ts1 = new Timestamp(1-offset)
+    val ts2 = new Timestamp(2-offset)
+    val ts3 = new Timestamp(3-offset)
+    val ts4 = new Timestamp(4-offset)
+    val ts5 = new Timestamp(5-offset)
 
     val results = String.format("[[%s], [%s], [%s], [%s], [%s]]", ts0, ts1, ts2, ts3, ts4)
     assertEquals(results,
@@ -572,3 +613,5 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
   }
 
 }
+
+object e

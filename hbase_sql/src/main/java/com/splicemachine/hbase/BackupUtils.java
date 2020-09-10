@@ -16,22 +16,21 @@ package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
-import com.splicemachine.backup.BackupJobStatus;
-import com.splicemachine.backup.BackupRegionStatus;
+import com.splicemachine.backup.BackupMessage;
+import com.splicemachine.backup.BackupMessage.BackupJobStatus;
 import com.splicemachine.backup.BackupRestoreConstants;
-import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.BackupDescriptor;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.backup.BackupMessage.BackupRegionStatus;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -157,7 +156,7 @@ public class BackupUtils {
                 try {
                     byte[] bs = ZkUtils.getData(regionBackupPath);
                     BackupRegionStatus backupRegionStatus = BackupRegionStatus.parseFrom(bs);
-                    byte[] status = backupRegionStatus.getStatus();
+                    byte[] status = backupRegionStatus.getStatus().toByteArray();
                     if (Bytes.compareTo(status, HConfiguration.BACKUP_IN_PROGRESS) == 0) {
                         if (LOG.isDebugEnabled())
                             SpliceLogUtils.debug(LOG, "Table %s region %s is in backup", tableName, regionName);
@@ -216,13 +215,10 @@ public class BackupUtils {
                 }
                 boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
                 if (!isRestoreMode) {
-                    if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
-                        }
-                        shouldRegister = true;
-                    } else {
-                        List<String> backupJobs = zooKeeper.getChildren(spliceBackupPath, false);
+                    // check whether there is running backup first. If so, no need to check SYSBACKUPS file and
+                    // avoid read/write contention on it
+                    List<String> backupJobs = zooKeeper.getChildren(spliceBackupPath, false);
+                    if (backupJobs.size() > 0) {
                         for (String backupId : backupJobs) {
                             String path = spliceBackupPath + "/" + backupId;
                             byte[] data = zooKeeper.getData(path, false, null);
@@ -234,6 +230,12 @@ public class BackupUtils {
                                 shouldRegister = true;
                             }
                         }
+                    }
+                    if (!shouldRegister && BackupUtils.existsDatabaseBackup(fs, rootDir)) {
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
+                        }
+                        shouldRegister = true;
                     }
                 }
             }
@@ -267,9 +269,9 @@ public class BackupUtils {
         return false;
     }
 
-    public static boolean backupCanceled() throws KeeperException, InterruptedException {
+    public static boolean backupCanceled(long backupId) throws KeeperException, InterruptedException {
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-        String path = BackupUtils.getBackupPath();
+        String path = BackupUtils.getBackupPath() + "/" + backupId;
         return zooKeeper.exists(path, false) == null;
     }
 
@@ -323,7 +325,7 @@ public class BackupUtils {
      * @param region
      * @return
      */
-    public static boolean regionKeysMatch(SpliceMessage.PrepareBackupRequest request, HRegion region) {
+    public static boolean regionKeysMatch(BackupMessage.PrepareBackupRequest request, HRegion region) {
         byte[] requestStartKey = request.hasStartKey() ? request.getStartKey().toByteArray() : new byte[0];
         byte[] requestEndKey = request.hasEndKey() ? request.getEndKey().toByteArray() : new byte[0];
 

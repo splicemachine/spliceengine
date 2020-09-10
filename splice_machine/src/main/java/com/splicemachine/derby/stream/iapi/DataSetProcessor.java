@@ -48,6 +48,8 @@ public interface DataSetProcessor {
 
     <V> DataSet<V> getEmpty(String name);
 
+    <V> DataSet<V> getEmpty(String name, OperationContext context);
+
     /**
      * Generates a single row dataset from a value.
      */
@@ -268,7 +270,7 @@ public interface DataSetProcessor {
     Boolean isCached(long conglomerateId) throws StandardException;
 
     TableChecker getTableChecker(String schemaName, String tableName, DataSet tableDataSet, KeyHashDecoder decoder,
-                                 ExecRow key, TxnView txn, boolean fix);
+                                 ExecRow key, TxnView txn, boolean fix, int[] baseColumnMap, boolean isSystemTable);
 
     // Operations related to spark explain ->
     boolean isSparkExplain();
@@ -286,4 +288,5 @@ public interface DataSetProcessor {
     void resetOpDepth();
     // <- End operations related to spark explain.
 
+    <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext op) throws StandardException;
 }

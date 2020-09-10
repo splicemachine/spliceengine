@@ -14,20 +14,18 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
-import org.spark_project.guava.base.Charsets;
-import org.spark_project.guava.io.Files;
-import org.spark_project.guava.io.PatternFilenameFilter;
+import org.junit.*;
+import splice.com.google.common.base.Charsets;
+import splice.com.google.common.io.Files;
+import splice.com.google.common.io.PatternFilenameFilter;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,8 +37,6 @@ import java.util.zip.GZIPInputStream;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
-import org.junit.Assert;
-import org.xerial.snappy.SnappyInputStream;
 
 /**
  * This IT assumes the server side writes to the local files system accessible to IT itself.  Currently true only
@@ -54,8 +50,17 @@ public class ExportOperationIT {
     public static SpliceSchemaWatcher SCHEMA_WATCHER = new SpliceSchemaWatcher(CLASS_NAME);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
-    @Rule
-    public TemporaryFolder temporaryFolder = new TemporaryFolder();
+
+    static File temporaryFolder;
+    @BeforeClass
+    public static void createTempDirectory() throws Exception {
+        temporaryFolder = SpliceUnitTest.createTempDirectory(CLASS_NAME);
+    }
+
+    @AfterClass
+    public static void deleteTempDirectory() throws Exception {
+        SpliceUnitTest.deleteTempDirectory(temporaryFolder);
+    }
 
     @Test
     public void export() throws Exception {
@@ -92,7 +97,7 @@ public class ExportOperationIT {
         String exportSQL = buildExportSQL("select * from export_test order by a");
 
         exportAndAssertExportResults(exportSQL,8);
-        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "25,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
@@ -123,7 +128,7 @@ public class ExportOperationIT {
         String exportSQL = buildExportSQL("select * from export_local order by a asc", "None");
 
         exportAndAssertExportResults(exportSQL, 6);
-        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "25,3.14159,14:31:20,varchar1\n" +
@@ -146,7 +151,7 @@ public class ExportOperationIT {
         String exportSQL = buildExportSQL("select * from pipe order by a asc", "NONE", "|");
 
         exportAndAssertExportResults(exportSQL, 6);
-        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "25|3.14159|14:31:20|varchar1\n" +
@@ -169,7 +174,7 @@ public class ExportOperationIT {
         String exportSQL = buildExportSQL("select * from tabs order by a asc", " none ", "\\t");
 
         exportAndAssertExportResults(exportSQL, 6);
-        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "25\t3.14159\t14:31:20\tvarchar1\n" +
@@ -240,7 +245,7 @@ public class ExportOperationIT {
         String exportSQL = buildExportSQL("select * from export_compressed_bz2 order by a asc", "BZ2");
 
         exportAndAssertExportResults(exportSQL, 6);
-        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv.bz2"));
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.bz2"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "25,3.14159,14:31:20,varchar1\n" +
@@ -263,7 +268,7 @@ public class ExportOperationIT {
         String exportSQL = buildExportSQL("select * from export_compressed_gz order by a asc", "GZIP");
 
         exportAndAssertExportResults(exportSQL, 6);
-        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv.gz"));
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "25,3.14159,14:31:20,varchar1\n" +
@@ -286,7 +291,7 @@ public class ExportOperationIT {
         String exportSQL = buildExportSQL("select * from export_compressed_gz2 order by a asc", true);
 
         exportAndAssertExportResults(exportSQL, 6);
-        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv.gz"));
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "25,3.14159,14:31:20,varchar1\n" +
@@ -312,7 +317,7 @@ public class ExportOperationIT {
         String exportSQL = buildExportSQL("select * from export_decimal order by a asc", null);
 
         exportAndAssertExportResults(exportSQL, 2);
-        File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "1,2000.0000000000000000000000000,3.00\n" +
@@ -322,11 +327,11 @@ public class ExportOperationIT {
         //
         // alternate column order
         //
-        FileUtils.deleteDirectory(temporaryFolder.getRoot());
+        FileUtils.deleteDirectory(temporaryFolder);
         exportSQL = buildExportSQL("select c,b,a from export_decimal order by a asc", "NONE");
 
         exportAndAssertExportResults(exportSQL, 2);
-        files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "3.00,2000.0000000000000000000000000,1\n" +
@@ -336,11 +341,11 @@ public class ExportOperationIT {
         //
         // column subset
         //
-        FileUtils.deleteDirectory(temporaryFolder.getRoot());
+        FileUtils.deleteDirectory(temporaryFolder);
         exportSQL = buildExportSQL("select b from export_decimal order by a asc", "NONE");
 
         exportAndAssertExportResults(exportSQL, 2);
-        files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
+        files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
                         "2000.0000000000000000000000000\n" +
@@ -462,7 +467,7 @@ public class ExportOperationIT {
     }
 
     private String buildExportSQL(String selectQuery, String compression, String fieldDelimiter) {
-        String exportPath = temporaryFolder.getRoot().getAbsolutePath();
+        String exportPath = temporaryFolder.getAbsolutePath();
         if (compression == null) {
             return String.format("EXPORT('%s', false, 3, NULL, '%s', NULL)", exportPath, fieldDelimiter) + " " + selectQuery;
         }
@@ -472,7 +477,7 @@ public class ExportOperationIT {
     }
 
     private String buildExportSQL(String selectQuery, boolean compression, String fieldDelimiter) {
-        String exportPath = temporaryFolder.getRoot().getAbsolutePath();
+        String exportPath = temporaryFolder.getAbsolutePath();
         return String.format("EXPORT('%s', %s, 3, NULL, '%s', NULL)", exportPath, compression, fieldDelimiter) + " " + selectQuery;
     }
 

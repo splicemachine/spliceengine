@@ -23,6 +23,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
@@ -104,8 +105,10 @@ public class InsertInsertTransactionIT {
             preparedStatement.execute();
         }catch(SQLException se){
             Assert.assertEquals("Incorrect exception thrown!", SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,se.getSQLState());
+
             throw se;
         }
+
     }
 
     @Test
@@ -129,6 +132,7 @@ public class InsertInsertTransactionIT {
         conn2.commit();
         conn2Count = conn2.count("select * from " + table + " where a = "+a);
         Assert.assertEquals("Rows are visible that aren't supposed to be!", 1, conn2Count);
+
     }
 
     @Test
@@ -162,6 +166,14 @@ public class InsertInsertTransactionIT {
 
         conn1CountB = conn1.count("select * from "+ table+" where b = "+b);
         Assert.assertEquals("Value hasn't been updated!",0l,conn1CountB);
+
+        CallableStatement callableStatement = classWatcher.getOrCreateConnection().
+                prepareCall("call SYSCS_UTIL.SYSCS_FLUSH_TABLE(?,?)");
+        callableStatement.setString(1, schemaWatcher.schemaName);
+        callableStatement.setString(2, "A");
+
+        callableStatement.execute();
+
     }
 
     @Test

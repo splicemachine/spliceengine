@@ -110,6 +110,10 @@ public class GroupByList extends OrderedColumnList{
             if (OrderByColumn.isReferedColByNum(groupByCol.getColumnExpression())) {
                 ResultColumnList targetCols = select.getResultColumns();
                 int columnPosition = (Integer) groupByCol.getColumnExpression().getConstantValueAsObject();
+                if (columnPosition <= 0) {
+                    throw StandardException.newException(SQLState.LANG_COLUMN_OUT_OF_RANGE,
+                            String.valueOf(columnPosition));
+                }
                 ResultColumn resultCol = targetCols.getResultColumn(columnPosition);
 
 			    /* Column is out of range if either a) resultCol is null, OR

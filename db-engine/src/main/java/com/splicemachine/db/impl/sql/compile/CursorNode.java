@@ -810,11 +810,11 @@ public class CursorNode extends DMLStatementNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Cursor").append("(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSetNode().getResultSetNumber());
                 if (name != null) {
                     sb.append(attrDelim).append("name=").append(name);
                 }

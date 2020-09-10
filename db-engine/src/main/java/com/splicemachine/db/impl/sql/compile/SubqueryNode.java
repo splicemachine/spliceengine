@@ -636,7 +636,7 @@ public class SubqueryNode extends ValueNode{
             if (!(resultSet instanceof RowResultSetNode)) {
                 this.fetchFirst = (ValueNode) getNodeFactory().getNode(
                         C_NodeTypes.INT_CONSTANT_NODE,
-                        1,
+                        Integer.valueOf(1),
                         getContextManager());
             }
 
@@ -1100,7 +1100,10 @@ public class SubqueryNode extends ValueNode{
          */
 
         /* Optimize the underlying result set */
-        resultSet=resultSet.optimize(dataDictionary, null, outerRows, forSpark);
+        resultSet=resultSet.optimize(dataDictionary, null, 0, forSpark);
+        if (subqueryType != EXPRESSION_SUBQUERY || hasCorrelatedCRs()) {
+            resultSet.getCostEstimate().multiply(outerRows, resultSet.getCostEstimate());
+        }
     }
 
     /**
@@ -2517,7 +2520,6 @@ public class SubqueryNode extends ValueNode{
             default:
                 assert false;
         }
-
         // clean up the state of the tree to reflect a bound expression subquery
         subqueryType=EXPRESSION_SUBQUERY;
         setDataTypeServices(resultSet.getResultColumns());
@@ -2556,12 +2558,12 @@ public class SubqueryNode extends ValueNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         // TODO JL Costs?
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Subquery(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSet().getResultSetNumber());
                 if (resultSet!=null) {
                     sb.append(attrDelim).append(resultSet.getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
                 }

@@ -16,11 +16,12 @@
 package com.splicemachine.access.configuration;
 
 
-import org.spark_project.guava.base.Splitter;
+import splice.com.google.common.base.Splitter;
 
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Repository for holding configuration keys for Olap client/server.
@@ -83,6 +84,9 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_EXTERNAL = "splice.olap_server.external";
     private static final boolean DEFAULT_OLAP_SERVER_EXTERNAL = true;
 
+    public static final String OLAP_SERVER_MAX_RETRIES = "splice.olap_server.maxRetries";
+    public static final int DEFAULT_OLAP_SERVER_MAX_RETRIES = 30;
+
     public static final String OLAP_SERVER_SUBMIT_ATTEMPTS = "splice.olap_server.submitAttempts";
     private static final int DEFAULT_OLAP_SERVER_SUBMIT_ATTEMPTS = 50;
 
@@ -111,7 +115,7 @@ public class OlapConfigurations implements ConfigurationDefault {
 
     // Size of buffer for asynchronous transaction resolution
     public static final String SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = "spark.compaction.resolution.bufferSize";
-    public static final int DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = 1024*100;
+    public static final int DEFAULT_SPARK_COMPACTION_RESOLUTION_BUFFER_SIZE = 1024*1024;
 
     // Whether we block asynchronous transaction resolution when the executor is full
     public static final String SPARK_COMPACTION_BLOCKING = "spark.compaction.blocking";
@@ -145,10 +149,22 @@ public class OlapConfigurations implements ConfigurationDefault {
     public static final String OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME = "splice.olap_server.isolated.compaction.queue_name";
     public static final String DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME = "compaction";
 
-    // Whether we should purge deleted rows during compaction
+    // Whether we should purge deleted rows during flush & compaction
     public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS = "splice.olap.compaction.automaticallyPurgeDeletedRows";
     public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS = true;
 
+    // Whether we should purge old updates during flush & compaction
+    public static final String OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = "splice.olap.compaction.automaticallyPurgeOldUpdates";
+    public static final boolean DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES = false;
+
+    // Olap Server keepalive timeout in seconds until it kills itself. It has to be larger than an HMaster failover
+    // when deployed on premise if we want it to survive the HMaster failover.
+    public static final String OLAP_SERVER_KEEPALIVE_TIMEOUT = "splice.olap.server.keepalive.timeout";
+    public static final long DEFAULT_OLAP_SERVER_KEEPALIVE_TIMEOUT = 900; // 15 minutes
+
+    // Olap Server mode for external execution, either YARN or KUBERNETES
+    public static final String OLAP_SERVER_MODE = "splice.olap_server.deployment.mode";
+    public static final String DEFAULT_OLAP_SERVER_MODE = "YARN";
 
     /* Map of Splice queues to YARN queues
 
@@ -159,12 +175,27 @@ public class OlapConfigurations implements ConfigurationDefault {
     */
     public static final String OLAP_SERVER_YARN_QUEUES = "splice.olap_server.queue.";
 
+    public static final String SPARK_IO_COMPRESSION_CODEC = "spark.io.compression.codec";
+    public static final String DEFAULT_SPARK_IO_COMPRESSION_CODEC = "lz4";
+
+    public static final String SPARK_RESULT_STREAMING_BATCHES = "spark.result.streaming.batches";
+    public static final int DEFAULT_SPARK_RESULT_STREAMING_BATCHES = 10;
+
+    public static final String SPARK_RESULT_STREAMING_BATCH_SIZE = "spark.result.streaming.batch.size";
+    public static final int DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE = 1024;
+
+    public static final String SPARK_SLOW_RESULT_STREAMING_BATCHES = "spark.slow.result.streaming.batches";
+    public static final int DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCHES = 4;
+
+    public static final String SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE = "spark.slow.result.streaming.batch.size";
+    public static final int DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE = 20;
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
         builder.olapServerBindPort  = configurationSource.getInt(OLAP_SERVER_BIND_PORT, DEFAULT_OLAP_SERVER_BIND_PORT);
         builder.olapServerStagingDir = configurationSource.getString(OLAP_SERVER_STAGING_DIR, DEFAULT_OLAP_SERVER_STAGING_DIR);
         builder.olapServerExternal  = configurationSource.getBoolean(OLAP_SERVER_EXTERNAL, DEFAULT_OLAP_SERVER_EXTERNAL);
+        builder.olapServerMaxRetries = configurationSource.getInt(OLAP_SERVER_MAX_RETRIES, DEFAULT_OLAP_SERVER_MAX_RETRIES);
         builder.olapClientWaitTime  = configurationSource.getInt(OLAP_CLIENT_WAIT_TIME, DEFAULT_OLAP_CLIENT_WAIT_TIME);
         builder.olapClientTickTime  = configurationSource.getInt(OLAP_CLIENT_TICK_TIME, DEFAULT_OLAP_CLIENT_TICK_TIME);
         builder.olapServerThreads = configurationSource.getInt(OLAP_SERVER_THREADS, DEFAULT_OLAP_SERVER_THREADS);
@@ -187,14 +218,29 @@ public class OlapConfigurations implements ConfigurationDefault {
                 .withKeyValueSeparator("=")
                 .split(isolatedRoles);
 
-        Map<String, String> queues = new HashMap();
-        for (String queue : builder.olapServerIsolatedRoles.values()) {
-            queues.put(queue, configurationSource.getString(OLAP_SERVER_YARN_QUEUES + queue, DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE));
-        }
-        builder.olapServerYarnQueues = queues;
         builder.olapServerIsolatedCompaction = configurationSource.getBoolean(OLAP_SERVER_ISOLATED_COMPACTION, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION);
         builder.olapServerIsolatedCompactionQueueName = configurationSource.getString(OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME, DEFAULT_OLAP_SERVER_ISOLATED_COMPACTION_QUEUE_NAME);
+
+        // Set up mappings for Splice Queues to YARN queues, possible mappings are all defined in olapServerIsolatedRoles,
+        // the compaction queue name if enabled and the 'default' queue
+        Stream<String> queueNames = Stream.concat(builder.olapServerIsolatedRoles.values().stream(), Stream.of("default"));
+        if (builder.olapServerIsolatedCompaction)
+            queueNames = Stream.concat(queueNames, Stream.of(builder.olapServerIsolatedCompactionQueueName));
+        builder.olapServerYarnQueues = queueNames.collect(Collectors.toMap(
+                        Function.identity(),
+                        queue -> configurationSource.getString(OLAP_SERVER_YARN_QUEUES + queue, DEFAULT_OLAP_SERVER_YARN_DEFAULT_QUEUE)));
+
         builder.olapCompactionAutomaticallyPurgeDeletedRows = configurationSource.getBoolean(OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS, DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_DELETED_ROWS);
+        builder.olapCompactionAutomaticallyPurgeOldUpdates = configurationSource.getBoolean(OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES, DEFAULT_OLAP_COMPACTION_AUTOMATICALLY_PURGE_OLD_UPDATES);
+
+        builder.sparkIoCompressionCodec = configurationSource.getString(SPARK_IO_COMPRESSION_CODEC, DEFAULT_SPARK_IO_COMPRESSION_CODEC);
+        builder.sparkResultStreamingBatches = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_RESULT_STREAMING_BATCHES);
+        builder.sparkResultStreamingBatchSize = configurationSource.getInt(SPARK_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_RESULT_STREAMING_BATCH_SIZE);
+        builder.sparkSlowResultStreamingBatches = configurationSource.getInt(SPARK_SLOW_RESULT_STREAMING_BATCHES, DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCHES);
+        builder.sparkSlowResultStreamingBatchSize = configurationSource.getInt(SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE, DEFAULT_SPARK_SLOW_RESULT_STREAMING_BATCH_SIZE);
+
+        builder.olapServerKeepAliveTimeout = configurationSource.getLong(OLAP_SERVER_KEEPALIVE_TIMEOUT, DEFAULT_OLAP_SERVER_KEEPALIVE_TIMEOUT);
+        builder.olapServerMode = configurationSource.getString(OLAP_SERVER_MODE, DEFAULT_OLAP_SERVER_MODE);
         builder.sparkAccumulatorsEnabled = configurationSource.getBoolean(SPARK_ACCUMULATORS_ENABLED, DEFAULT_SPARK_ACCUMULATORS_ENABLED);
     }
 }

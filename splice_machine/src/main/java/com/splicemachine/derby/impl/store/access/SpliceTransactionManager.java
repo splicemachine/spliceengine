@@ -14,6 +14,8 @@
 
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -37,10 +39,13 @@ import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.txn.ReadOnlyTxn;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
+
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -551,14 +556,8 @@ public class SpliceTransactionManager implements XATransactionController,
         // Create the conglomerate
         // RESOLVE (mikem) - eventually segmentid's will be passed into here
         // in the properties. For now just use 0.]
-        long conglomid;
-        if ((temporaryFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY) {
-            conglomid = accessmanager.getNextConglomId(cfactory
-                    .getConglomerateFactoryId());
-        } else {
-            conglomid = accessmanager.getNextConglomId(cfactory
-                    .getConglomerateFactoryId());
-        }
+        long conglomid = accessmanager.getNextConglomId(cfactory
+                .getConglomerateFactoryId());;
 
         // call the factory to actually create the conglomerate.
         Conglomerate conglom = cfactory.createConglomerate(isExternal,this,
@@ -1293,12 +1292,32 @@ public class SpliceTransactionManager implements XATransactionController,
     @Override
     public boolean isElevated(){
         BaseSpliceTransaction rawTransaction=getRawTransaction();
-        assert rawTransaction instanceof BaseSpliceTransaction:
-                "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction -> " + rawTransaction;
-        BaseSpliceTransaction txn=(BaseSpliceTransaction)rawTransaction;
-        return txn.allowsWrites();
+        return rawTransaction.allowsWrites();
     }
 
+    @Override
+    public String getCatalogVersion(long conglomerateNumber) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            return admin.getCatalogVersion(conglomerateNumber);
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    @Override
+    public void setCatalogVersion(long conglomerateNumber, String version) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            admin.setCatalogVersion(conglomerateNumber, version);
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
     /**************************************************************************
      * Public Methods implementing the XATransactionController interface.
      **************************************************************************

@@ -15,14 +15,14 @@
 package com.splicemachine.testutil;
 
 import com.splicemachine.db.iapi.reference.Limits;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import org.apache.commons.lang.RandomStringUtils;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
 import java.util.Random;
-import static org.spark_project.guava.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkArgument;
 
 /**
  * A builder for building collections of BigDecimals with that fit in derby's decimal column.

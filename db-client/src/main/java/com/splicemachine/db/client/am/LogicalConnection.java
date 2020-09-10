@@ -25,6 +25,8 @@
 
 package com.splicemachine.db.client.am;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.sql.*;
 import java.sql.Blob;
 import java.sql.Clob;
@@ -44,13 +46,14 @@ import java.util.concurrent.Executor;
  * nulled out, only the {@code PooledConnection} instance will maintain a
  * handle to the physical connection.
  */
+@SuppressFBWarnings(value = "IS2_INCONSISTENT_SYNC", justification = "Tofix: DB-10210")
 public class LogicalConnection implements java.sql.Connection {
     /**
      * Underlying physical connection for this logical connection.
      * <p>
      * Set to {@code null} when this logical connection is closed.
      */
-    Connection physicalConnection_;
+    ClientConnection physicalConnection_;
     private com.splicemachine.db.client.ClientPooledConnection pooledConnection_ = null;
     /**
      * Logical database metadata object created on demand and then cached.
@@ -60,7 +63,7 @@ public class LogicalConnection implements java.sql.Connection {
      */
     private LogicalDatabaseMetaData logicalDatabaseMetaData = null;
 
-    public LogicalConnection(Connection physicalConnection,
+    public LogicalConnection(ClientConnection physicalConnection,
                              com.splicemachine.db.client.ClientPooledConnection pooledConnection) throws SqlException {
         physicalConnection_ = physicalConnection;
         pooledConnection_ = pooledConnection;

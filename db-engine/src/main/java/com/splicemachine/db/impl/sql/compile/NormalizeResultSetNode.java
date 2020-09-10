@@ -703,11 +703,11 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
 
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("NormalizeResult").append("(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSetNumber());
         sb.append(attrDelim).append(getFinalCostEstimate(false).prettyScrollInsensitiveString(attrDelim));
         sb = sb.append(")");
         return sb.toString();

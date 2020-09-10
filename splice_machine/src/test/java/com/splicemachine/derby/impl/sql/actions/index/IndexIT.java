@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
@@ -23,7 +24,7 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import org.spark_project.guava.base.Joiner;
+import splice.com.google.common.base.Joiner;
 
 import java.sql.*;
 import java.util.List;
@@ -46,7 +47,7 @@ import static org.junit.Assert.assertEquals;
  * @author Jeff Cunningham
  *         Date: 7/31/13
  */
-@Category(value = {SerialTest.class})
+@Category(value = {SerialTest.class, LongerThanTwoMinutes.class})
 public class IndexIT extends SpliceUnitTest{
     private static final Logger LOG=Logger.getLogger(IndexIT.class);
 
@@ -777,6 +778,7 @@ public class IndexIT extends SpliceUnitTest{
     // DB-5029
     public void testCreateIndexAndUpdateDataViaIndexScan() throws Exception {
         methodWatcher.executeUpdate("create table double_INDEXES1(column1 DOUBLE)");
+        methodWatcher.executeUpdate("INSERT INTO double_INDEXES1(column1) VALUES (-1.79769E+308),(1.79769E+308),(0)");
         methodWatcher.executeUpdate("CREATE INDEX doubleIndex2 ON double_INDEXES1(column1 ASC)");
         methodWatcher.executeUpdate("update double_INDEXES1 set column1 = -1.79769E+308 where column1 = -1.79769E+308");
         rowContainsQuery(new int[]{1,2,3},"select column1 from double_INDEXES1 --splice-properties index=doubleIndex2\n order by column1",methodWatcher,

@@ -27,7 +27,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableList;
 
 import java.util.List;
 

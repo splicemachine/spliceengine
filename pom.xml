@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.1.0.1957-SNAPSHOT</version>
+    <version>3.1.0.1974-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -71,6 +71,7 @@
         <argLine>${jacocoAgent}</argLine>
         <excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.BackupTest
         </excluded.categories>
+        <excluded.longerthan> </excluded.longerthan>
         <failTasksRandomly>true</failTasksRandomly>
         <jacoco_out/>
         <skipUT>false</skipUT>
@@ -89,6 +90,9 @@
         <spark.version>2.4.3</spark.version>
         <scala.version>2.11.6</scala.version>
         <netty-all.version>4.1.17.Final</netty-all.version>
+        <scalatest.version>2.2.4</scalatest.version>
+        <scalamock.version>3.1.4</scalamock.version>
+        <commons.lang3.version>3.3.2</commons.lang3.version>
         <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
         <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
     </properties>
@@ -301,7 +305,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.3.2</version>
+                <version>${commons.lang3.version}</version>
             </dependency>
             <dependency>
                 <groupId>javax.servlet</groupId>
@@ -388,7 +392,7 @@
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-scala_2.11</artifactId>
+                <artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
                 <version>2.9.9</version>
             </dependency>
             <dependency>
@@ -431,6 +435,11 @@
                 <groupId>org.glassfish</groupId>
                 <artifactId>javax.el</artifactId>
                 <version>3.0.1-b11</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest_${scala.binary.version}</artifactId>
+                <version>${scalatest.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -600,6 +609,9 @@
                     <groupId>com.github.spotbugs</groupId>
                     <artifactId>spotbugs-maven-plugin</artifactId>
                     <version>3.1.12.2</version>
+                    <configuration>
+                        <excludeFilterFile>${session.executionRootDirectory}/findbugs-exclude-filter.xml</excludeFilterFile>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
@@ -742,6 +754,12 @@
                 <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=/user/hbase/spark-warehouse</spark.warehouse>
                 <spark.defaultfs>-Dsplice.spark.hadoop.fs.defaultFS=hdfs://localhost:58878/</spark.defaultfs>
                 <hbase.rootdir>-Dhbase.rootdir=/hbase</hbase.rootdir>
+            </properties>
+        </profile>
+        <profile>
+            <id>skipTestsLongerThan2Minutes</id>
+            <properties>
+                <excluded.longerthan>com.splicemachine.test.LongerThanTwoMinutes</excluded.longerthan>
             </properties>
         </profile>
         <profile>
@@ -889,9 +907,12 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
+                <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
             </modules>
@@ -912,7 +933,6 @@
                 <hadoop.version>3.0.0-cdh6.3.0</hadoop.version>
                 <hbase.version>2.1.0-cdh6.3.0</hbase.version>
                 <hive.version>2.1.1-cdh6.3.0</hive.version>
-                <spark.major.version>spark2.4</spark.major.version>
                 <zookeeper.version>3.4.5-cdh6.3.0</zookeeper.version>
                 <spark.version>2.4.0-cdh6.3.0</spark.version>
                 <spark.major.version>spark2.4</spark.major.version>
@@ -925,9 +945,12 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
+                <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
             </modules>
@@ -961,9 +984,53 @@
                 <module>hbase_storage</module>
                 <module>hbase_pipeline</module>
                 <module>hbase_sql</module>
+                <module>standalone</module>
+                <module>platform_it</module>
+                <module>spark_sql</module>
+                <module>splice_ck</module>
+                <module>splice_spark</module>
+                <module>splice_spark2</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>dbaas3.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>dbaas3.0</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>6.3.2</cdh.parcel.version>
+                <envClassifier>dbaas3.0</envClassifier>
+                <envHbase>hbase2.1.4</envHbase>
+                <hadoop.version>3.0.0-cdh6.3.2</hadoop.version>
+                <hbase.version>2.1.0-cdh6.3.2</hbase.version>
+                <hive.version>2.1.1-cdh6.3.2</hive.version>
+                <zookeeper.version>3.4.5-cdh6.3.2</zookeeper.version>
+                <scala.binary.version>2.12</scala.binary.version>
+                <scala.version>2.12.12</scala.version>
+                <spark.version>3.0.0</spark.version>
+                <spark.major.version>spark3.0</spark.major.version>
+                <kafka.version>2.2.1-cdh6.3.2</kafka.version>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
+                <parquet.version>orc-spark-3.0</parquet.version>
+                <netty-all.version>4.1.17.Final</netty-all.version>
+                <scalatest.version>3.0.0</scalatest.version>
+                <scalamock.version>3.4.1</scalamock.version>
+                <commons.lang3.version>3.9</commons.lang3.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
                 <module>splice_spark</module>
+                <module>splice_spark2</module>
                 <module>scala_util</module>
                 <module>assembly</module>
             </modules>
@@ -1243,6 +1310,9 @@
                 <groupId>com.github.spotbugs</groupId>
                 <artifactId>spotbugs-maven-plugin</artifactId>
                 <version>3.1.12.2</version>
+                <configuration>
+                    <excludeFilterFile>${session.executionRootDirectory}/findbugs-exclude-filter.xml</excludeFilterFile>
+                </configuration>
             </plugin>
         </plugins>
     </reporting>

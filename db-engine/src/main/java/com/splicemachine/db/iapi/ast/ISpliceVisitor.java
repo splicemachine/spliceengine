@@ -166,6 +166,7 @@ public interface ISpliceVisitor {
     Visitable visit(RevokeRoleNode node) throws StandardException;
     Visitable visit(RowNumberFunctionNode node) throws StandardException;
     Visitable visit(SavepointNode node) throws StandardException;
+    Visitable visit(ScalarMinMaxFunctionNode node) throws StandardException;
     Visitable visit(SetRoleNode node) throws StandardException;
     Visitable visit(SetSchemaNode node) throws StandardException;
     Visitable visit(SetTransactionIsolationNode node) throws StandardException;
@@ -209,6 +210,7 @@ public interface ISpliceVisitor {
     Visitable visit(ExplainNode node) throws StandardException;
     Visitable visit(ExportNode node) throws StandardException;
     Visitable visit(BinaryExportNode node) throws StandardException;
+    Visitable visit(KafkaExportNode node) throws StandardException;
     Visitable visit(CreatePinNode node) throws StandardException;
     Visitable visit(DropPinNode node) throws StandardException;
     Visitable visit(ArrayOperatorNode node) throws StandardException;
@@ -221,5 +223,7 @@ public interface ISpliceVisitor {
     Visitable visit(SetNode node) throws StandardException;
     Visitable visit(FullOuterJoinNode node) throws StandardException;
     Visitable visit(StringAggregateNode node) throws StandardException;
+    Visitable visit(ToInstantOperatorNode node) throws StandardException;
+    Visitable visit(ToHbaseEscapedOperatorNode node) throws StandardException;
 
 }

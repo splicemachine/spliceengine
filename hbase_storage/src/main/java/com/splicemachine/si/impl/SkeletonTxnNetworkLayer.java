@@ -130,6 +130,48 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
         return done.get();
     }
 
+    @Override
+    public TxnMessage.TxnAtResponse getTxnAt(final TxnMessage.TxnAtRequest request) throws IOException {
+        Map<byte[], TxnMessage.TxnAtResponse> data=coprocessorService(TxnMessage.TxnLifecycleService.class,
+                HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW, instance -> {
+                    ServerRpcController controller=new ServerRpcController();
+                    BlockingRpcCallback<TxnMessage.TxnAtResponse> response=new BlockingRpcCallback<>();
+
+                    instance.getTxnAt(controller,request,response);
+                    dealWithError(controller);
+                    return response.get();
+                });
+        TxnMessage.TxnAtResponse.Builder result = TxnMessage.TxnAtResponse.newBuilder();
+        result.setTs(Long.MAX_VALUE);
+        result.setTxnId(-1);
+        boolean allAfter = true;
+        for(TxnMessage.TxnAtResponse response : data.values())
+        {
+            if(response.getTxnId() != -1)
+            {
+                allAfter = false;
+                break;
+            }
+        }
+        if(allAfter) {
+            return result.build();
+        }
+
+        for(TxnMessage.TxnAtResponse response : data.values())
+        {
+            if(response.getTxnId() == -1)
+            {
+                continue;
+            }
+            if(Math.abs(response.getTs() - request.getTs()) <= Math.abs(result.getTs() - request.getTs()))
+            {
+                result.setTs(response.getTs());
+                result.setTxnId(response.getTxnId());
+            }
+        }
+        return result.build();
+    }
+
 
     protected abstract TxnMessage.TxnLifecycleService getLifecycleService(byte[] rowKey) throws IOException;
 

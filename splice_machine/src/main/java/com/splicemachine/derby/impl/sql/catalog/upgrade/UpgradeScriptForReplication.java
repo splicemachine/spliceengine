@@ -28,7 +28,7 @@ import java.io.IOException;
  * Created by jyuan on 2/12/19.
  */
 public class UpgradeScriptForReplication extends UpgradeScriptBase {
-    private static final Logger LOG = Logger.getLogger(UpgradeScriptForDroppedConglomerates.class);
+    private static final Logger LOG = Logger.getLogger(UpgradeScriptForReplication.class);
     public UpgradeScriptForReplication(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
@@ -42,9 +42,9 @@ public class UpgradeScriptForReplication extends UpgradeScriptBase {
                 admin.newPartition().withName(HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME).create();
             }
 
-            if (!admin.tableExists(HBaseConfiguration.SLAVE_REPLICATION_PROGRESS_TABLE_NAME)) {
-                LOG.info("Creating " + HBaseConfiguration.SLAVE_REPLICATION_PROGRESS_TABLE_NAME);
-                admin.newPartition().withName(HBaseConfiguration.SLAVE_REPLICATION_PROGRESS_TABLE_NAME).create();
+            if (!admin.tableExists(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME)) {
+                LOG.info("Creating " + HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME);
+                admin.newPartition().withName(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME).create();
             }
         } catch (IOException e) {
             LOG.warn("Exception while creating while creating replication tables", e);

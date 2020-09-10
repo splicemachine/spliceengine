@@ -199,6 +199,7 @@ public interface C_NodeTypes
     int INTERSECT_OR_EXCEPT_NODE = 157;
     int REPLACE_OPERATOR_NODE = 158;
     // 159 - 183 available
+    int SCALAR_MIN_MAX_FUNCTION_NODE = 183;
     int TIMESTAMP_ADD_FN_NODE = 184;
     int TIMESTAMP_DIFF_FN_NODE = 185;
     int MODIFY_COLUMN_TYPE_NODE = 186;
@@ -283,9 +284,14 @@ public interface C_NodeTypes
     int STRING_AGGREGATE_NODE = 273;
     int VALUE_TUPLE_NODE = 274;
     int TIME_SPAN_NODE = 275;
+    int STATEMENT_LIST_NODE = 276;
+    int KAFKA_EXPORT_NODE = 277;
+
+    int TO_INSTANT_NODE = 278;
+    int TO_HBASE_ESCAPED_NODE = 279;
 
     // Final value in set, keep up to date!
-    int FINAL_VALUE = TIME_SPAN_NODE;
+    int FINAL_VALUE = TO_HBASE_ESCAPED_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

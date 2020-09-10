@@ -31,16 +31,19 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Collections;
-import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Class that represents a call to the LEAD() and LAG() window functions.
  */
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public final class LeadLagFunctionNode extends WindowFunctionNode {
 
     private int offset = 1;
@@ -80,6 +83,20 @@ public final class LeadLagFunctionNode extends WindowFunctionNode {
             throw StandardException.newException(SQLState.LANG_MISSING_LEAD_LAG_DEFAULT);
         } else {
 //            this.defaultValue = this.operand.getTypeServices().getNullabilityType(true);
+        }
+
+        // lead/lag always works on the entire partition, so ignore the window frame input
+        WindowFrameDefinition newWindowFrame = new WindowFrameDefinition(true);
+        newWindowFrame.setFrameMode(WindowFrameDefinition.FrameMode.ROWS);
+        OverClause overClause = this.getWindow().getOverClause();
+        if (!overClause.getFrameDefinition().isEquivalent(newWindowFrame)) {
+            OverClause newOverClause = new OverClause.Builder(getContextManager())
+                    .setPartition(overClause.getPartition())
+                    .setOrderByClause(overClause.getOrderByClause())
+                    .setFrameDefinition(newWindowFrame)
+                    .build();
+
+            this.getWindow().setOverClause(newOverClause);
         }
     }
 

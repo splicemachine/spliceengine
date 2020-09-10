@@ -26,7 +26,7 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 
 public abstract class NoRowsOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(NoRowsOperation.class);

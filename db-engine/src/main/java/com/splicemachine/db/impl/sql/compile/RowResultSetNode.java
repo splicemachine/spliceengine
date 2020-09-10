@@ -900,10 +900,10 @@ public class RowResultSetNode extends FromTable {
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         return spaceToLevel() +
                 "Values" + "(" +
-                "n=" + order +
+                "n=" + getResultSetNumber() +
                 attrDelim + getFinalCostEstimate(false).prettyProcessingString(attrDelim) +
                 ")";
     }

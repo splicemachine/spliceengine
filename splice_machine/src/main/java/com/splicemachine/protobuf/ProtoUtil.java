@@ -33,10 +33,10 @@ import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.primitives.Ints;
 
 import javax.annotation.Nullable;
 import java.util.Collections;

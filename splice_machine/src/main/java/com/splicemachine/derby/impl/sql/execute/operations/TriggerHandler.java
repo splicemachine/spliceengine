@@ -39,7 +39,8 @@ import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.EmbedConnectionMaker;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -125,6 +126,7 @@ public class TriggerHandler {
         return null;
     }
 
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "DB-9844")
     public void setTxn(TxnView txn) {
         this.txn = txn;
         if (triggerRowHolder != null)
@@ -159,6 +161,7 @@ public class TriggerHandler {
         return 0;
     }
 
+    @SuppressFBWarnings(value = {"EI_EXPOSE_REP2","URF_UNREAD_FIELD"}, justification = "DB-9844")
     public void initTriggerRowHolders(boolean isSpark, TxnView txn, byte[] token, long ConglomID) throws StandardException {
         this.isSpark = isSpark;
         this.txn = txn;

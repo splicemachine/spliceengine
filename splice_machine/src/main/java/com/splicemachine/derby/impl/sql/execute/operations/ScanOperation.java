@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -124,6 +124,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         );
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")
     public int[] getColumnOrdering() throws StandardException{
         if(columnOrdering==null){
             columnOrdering=scanInformation.getColumnOrdering();
@@ -300,6 +301,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     }
 
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")
     public int[] getKeyDecodingMap() throws StandardException{
         if(keyDecodingMap==null) {
             keyDecodingMap = getKeyDecodingMap(
@@ -310,6 +312,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return keyDecodingMap;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")
     public int[] getRowDecodingMap() throws StandardException {
         if(rowDecodingMap==null) {
             rowDecodingMap = getRowDecodingMap(
@@ -430,6 +433,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return rowIdKey;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "DB-9844")
     public int[] getPartitionColumnMap() {
         return partitionColumnMap;
     }

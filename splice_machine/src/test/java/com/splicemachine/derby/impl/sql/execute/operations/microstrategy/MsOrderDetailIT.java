@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
-import org.spark_project.guava.collect.Sets;
+import splice.com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;

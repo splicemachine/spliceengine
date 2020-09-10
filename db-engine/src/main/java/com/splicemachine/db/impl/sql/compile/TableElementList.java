@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
@@ -107,7 +107,6 @@ public class TableElementList extends QueryTreeNodeVector {
         throws StandardException
     {
 		int			size = size();
-		int collationType = sd.getCollationType();
 		for (int index = 0; index < size; index++)
 		{
 			TableElementNode tableElement = (TableElementNode) elementAt(index);
@@ -185,10 +184,9 @@ public class TableElementList extends QueryTreeNodeVector {
 			//key constraints for this table. And then we will compare them with  new
 			//primary key/unique key constraint column lists.
 			ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
-			ConstraintDescriptor cd;
-
 			if (cdl != null) //table does have some pre-existing constraints defined on it
 			{
+				ConstraintDescriptor cd;
 				for (int i=0; i<cdl.size();i++)
 				{
 					cd = cdl.elementAt(i);
@@ -270,25 +268,35 @@ public class TableElementList extends QueryTreeNodeVector {
 
 				for (int i=0; i<constraintsVector.size();i++)
 				{
-
 					destConstraint = constraintsVector.elementAt(i);
-					if (destConstraint instanceof ConstraintDefinitionNode)
+					if (destConstraint instanceof ConstraintDefinitionNode) // match against newly added constraint (create table)
 					{
 						ConstraintDefinitionNode destCDN = (ConstraintDefinitionNode)destConstraint;
 						destName = destCDN.getConstraintMoniker();
 						destColumnNames = destCDN.getColumnList().getColumnNames();
+						//check if there are multiple constraints with same set of columns
+
+						if (columnsMatch(cdn.getColumnList().getColumnNames(), destColumnNames))
+						{
+							if(cdn.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {
+								cdn.setCanBeIgnored(true);
+							} else if (destCDN.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT) {
+								cdn.setCanBeIgnored(true);
+							}
+						}
+
 					}
-					else if (destConstraint instanceof ConstraintDescriptor)
+					else if (destConstraint instanceof ConstraintDescriptor) // match against existing constraint (alter table)
 					{
 						//will come here only for pre-existing constraints in case of alter table
 						ConstraintDescriptor destCD = (ConstraintDescriptor)destConstraint;
 						destName = destCD.getConstraintName();
 						destColumnNames = destCD.getColumnDescriptors().getColumnNames();
+						//check if there are multiple constraints with same set of columns
+						if (columnsMatch(cdn.getColumnList().getColumnNames(), destColumnNames))
+							throw StandardException.newException(SQLState.LANG_MULTIPLE_CONSTRAINTS_WITH_SAME_COLUMNS,
+									cdn.getConstraintMoniker(), destName);
 					}
-					//check if there are multiple constraints with same set of columns
-					if (columnsMatch(cdn.getColumnList().getColumnNames(), destColumnNames))
-						throw StandardException.newException(SQLState.LANG_MULTIPLE_CONSTRAINTS_WITH_SAME_COLUMNS,
-						cdn.getConstraintMoniker(), destName);
 				}
 				constraintsVector.addElement(cdn);
 			}

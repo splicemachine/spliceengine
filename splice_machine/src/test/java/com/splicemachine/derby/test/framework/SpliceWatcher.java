@@ -18,7 +18,7 @@ import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.*;
 import java.util.List;
@@ -26,7 +26,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.spark_project.guava.base.Strings.isNullOrEmpty;
+import static splice.com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * A TestWatcher that provides Connections, Statements, and ResultSets and then closes them when finished() is called.

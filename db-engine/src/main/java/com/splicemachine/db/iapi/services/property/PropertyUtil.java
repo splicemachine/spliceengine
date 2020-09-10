@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.iapi.services.property;
 
-import org.spark_project.guava.base.Optional;
+import splice.com.google.common.base.Optional;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.EngineType;
@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.Serializable;
 import java.util.Dictionary;
@@ -79,6 +80,7 @@ import java.util.Properties;
 public class PropertyUtil {
 
 	// List of properties that are stored in the service.properties file
+	@SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     public static final String[] servicePropertyList = {
             EngineType.PROPERTY,
             Property.NO_AUTO_BOOT,
@@ -140,6 +142,7 @@ public class PropertyUtil {
 		return NOT_SET;
 	}
 
+	@SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE", justification = "DB-9844")
 	public static boolean isDBOnly(Dictionary set) {
 
 		if (set == null)
@@ -151,6 +154,7 @@ public class PropertyUtil {
                 (value != null ? value.trim() : value));
 	}
 
+	@SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE", justification = "DB-9844")
 	public static boolean isDBOnly(Properties set) {
 
 		if (set == null)
@@ -342,7 +346,8 @@ public class PropertyUtil {
 
 		@exception StandardException Standard Derby error handling. 
 	*/
-	public static String getServiceProperty(PersistentSet set, String key, String defaultValue) 
+	@SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE", justification = "DB-9844")
+	public static String getServiceProperty(PersistentSet set, String key, String defaultValue)
 		throws StandardException {
 
 

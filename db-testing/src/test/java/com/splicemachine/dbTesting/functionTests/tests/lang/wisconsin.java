@@ -69,7 +69,7 @@ public class wisconsin {
         }
 
         inStream = new BufferedInputStream(sqlIn, 
-                utilMain.BUFFEREDFILESIZE);		
+                utilMain.BUFFEREDFILESIZE);
 
 		ij.runScript(conn, inStream, "US-ASCII",
 			     System.out, (String) null );

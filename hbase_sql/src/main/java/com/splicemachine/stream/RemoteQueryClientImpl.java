@@ -21,6 +21,8 @@ import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -31,9 +33,10 @@ import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.si.constants.SIConstants;
 import io.netty.channel.ChannelHandler;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ListenableFuture;
-import org.spark_project.guava.util.concurrent.MoreExecutors;
+import splice.com.google.common.util.concurrent.ListenableFuture;
+import splice.com.google.common.util.concurrent.MoreExecutors;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -70,6 +73,18 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         return server;
     }
 
+    private int getPropertyOrDefault(Activation activation, SessionProperties.PROPERTYNAME valueProperty, int defaultValue) {
+        int value;
+        Integer batchesProperty = (Integer) activation.getLanguageConnectionContext().getSessionProperties()
+                .getProperty(valueProperty);
+        if (batchesProperty != null) {
+            value = batchesProperty.intValue();
+        } else {
+            value = defaultValue;
+        }
+        return value;
+    }
+
     @Override
     public void submit() throws StandardException {
         Activation activation = root.getActivation();
@@ -78,8 +93,11 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         try {
             updateLimitOffset();
             SConfiguration config = HConfiguration.getConfiguration();
-            int streamingBatches = config.getSparkResultStreamingBatches();
-            int streamingBatchSize = config.getSparkResultStreamingBatchSize();
+            boolean hasLOBs = hasLOBs(root);
+            int streamingBatches = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES,
+                    hasLOBs ? config.getSparkSlowResultStreamingBatches() : config.getSparkResultStreamingBatches());
+            int streamingBatchSize = getPropertyOrDefault(activation, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE,
+                    hasLOBs ? config.getSparkSlowResultStreamingBatchSize() : config.getSparkResultStreamingBatchSize());
             streamListener = new StreamListener(limit, offset, streamingBatches, streamingBatchSize);
             StreamListenerServer server = getServer();
             server.register(streamListener);
@@ -90,20 +108,23 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
 
             String sql = activation.getPreparedStatement().getSource();
             sql = sql == null ? root.toString() : sql;
-            String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+            String userId = lcc.getCurrentUserId(activation);
             int localPort = config.getNetworkBindPort();
-            int sessionId = activation.getLanguageConnectionContext().getInstanceNumber();
+            int sessionId = lcc.getInstanceNumber();
+            Integer parallelPartitionsProperty = (Integer) lcc.getSessionProperties()
+                    .getProperty(SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
+            int parallelPartitions = parallelPartitionsProperty == null ? StreamableRDD.DEFAULT_PARALLEL_PARTITIONS : parallelPartitionsProperty;
+            Integer shufflePartitionsProperty = (Integer) lcc.getSessionProperties()
+                    .getProperty(SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
             String opUuid = root.getUuid() != null ? "," + root.getUuid().toString() : "";
             String session = hostname + ":" + localPort + "," + sessionId + opUuid;
 
             RemoteQueryJob jobRequest = new RemoteQueryJob(ah, root.getResultSetNumber(), uuid, host, port, session, userId, sql,
-                    streamingBatches, streamingBatchSize);
+                    streamingBatches, streamingBatchSize, parallelPartitions, shufflePartitionsProperty);
 
-            String requestedQueue = (String) activation.getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
-            List<String> roles = activation.getLanguageConnectionContext().getCurrentRoles(activation);
-
-            String queue = chooseQueue(requestedQueue, roles, config.getOlapServerIsolatedRoles());
-            
+            String requestedQueue = (String) lcc.getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.OLAPQUEUE);
+            String queue = chooseQueue(activation, requestedQueue, config.getOlapServerIsolatedRoles());
             olapFuture = EngineDriver.driver().getOlapClient().submit(jobRequest, queue);
             olapFuture.addListener(new Runnable() {
                 @Override
@@ -113,7 +134,12 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
                         streamListener.completed(olapResult);
                     } catch (ExecutionException e) {
                         LOG.warn("Execution failed", e);
-                        streamListener.failed(e.getCause());
+                        Throwable cause = e.getCause();
+                        if (cause instanceof IOException) { // including ConnectException
+                            streamListener.failed(StandardException.newException(SQLState.OLAP_SERVER_CONNECTION, cause));
+                        } else {
+                            streamListener.failed(cause);
+                        }
                     } catch (InterruptedException e) {
                         // this shouldn't happen, the olapFuture already completed
                         Thread.currentThread().interrupt();
@@ -127,22 +153,54 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         }
     }
 
-    /**
-     * If requestedQueue is null, return the assigned queue for any of the active roles. If none match return the default queue
-     * If requestedQueue is not null, make sure the requestedQueue is assigned to any of this users's roles and return it if there's a match. If it's not return the default queue
-     */
-    private String chooseQueue(String requestedQueue, List<String> roles, Map<String, String> olapServerIsolatedRoles) {
-        if (requestedQueue != null) {
-            // make sure the requested queue is available for the user roles
-            for (String role: roles) {
-                if (requestedQueue.equals(olapServerIsolatedRoles.get(role))) {
-                    return requestedQueue;
+    private boolean hasLOBs(SpliceBaseOperation root) throws StandardException {
+        if (root instanceof ScrollInsensitiveOperation) {
+            for (ResultColumnDescriptor descriptor : root.getActivation().getResultDescription().getColumnInfo()) {
+                if (descriptor.getType().getTypeId().isBlobTypeId() || descriptor.getType().getTypeId().isClobTypeId()) {
+                    return true;
                 }
             }
+        }
+        return false;
+    }
+
+    /**
+     * If user is current data base owner:
+     *      - if `requestedQueue` is not null -> return it
+     *      - if `requestedQueue` is null -> return the default queue.
+     * If user is normal user:
+     *      - If requestedQueue is null, return the assigned queue for any of the active roles.
+     *        If none match return the default queue
+     *      - If requestedQueue is not null, make sure the requestedQueue is assigned to any of this users's roles and
+     *        return it if there's a match. If it's not return the default queue with the side effect of refreshing
+     *        the list of user roles.
+     */
+    private String chooseQueue(Activation activation, String requestedQueue,
+                               Map<String, String> olapServerIsolatedRoles) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+
+        List<String> userGroups = lcc.getCurrentGroupUser(activation);
+        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
+        if(lcc.getCurrentUserId(activation).equals(dbo) || (userGroups != null && userGroups.contains(dbo))) {
+            if(requestedQueue != null) {
+                return requestedQueue;
+            }
         } else {
-            for (String role : roles) {
-                if (olapServerIsolatedRoles.get(role) != null) {
-                    return olapServerIsolatedRoles.get(role);
+            // remove any stale revoked roles (DB-9749)
+            lcc.refreshCurrentRoles(activation);
+            List<String> roles = lcc.getCurrentRoles(activation);
+            if (requestedQueue != null) {
+                // make sure the requested queue is available for the user roles
+                for (String role: roles) {
+                    if (requestedQueue.equals(olapServerIsolatedRoles.get(role))) {
+                        return requestedQueue;
+                    }
+                }
+            } else {
+                for (String role : roles) {
+                    if (olapServerIsolatedRoles.get(role) != null) {
+                        return olapServerIsolatedRoles.get(role);
+                    }
                 }
             }
         }

@@ -61,8 +61,8 @@ import com.splicemachine.db.impl.sql.compile.StringAggregateDefinition;
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.BinaryOperatorNode;
 import com.splicemachine.db.impl.sql.compile.CallStatementNode;
-import    com.splicemachine.db.impl.sql.compile.CharConstantNode;
-import    com.splicemachine.db.impl.sql.compile.CastNode;
+import com.splicemachine.db.impl.sql.compile.CharConstantNode;
+import com.splicemachine.db.impl.sql.compile.CastNode;
 import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.CreateAliasNode;
@@ -93,6 +93,7 @@ import com.splicemachine.db.impl.sql.compile.PrivilegeNode;
 import com.splicemachine.db.impl.sql.compile.ConstraintDefinitionNode;
 import com.splicemachine.db.impl.sql.compile.DMLModStatementNode;
 import com.splicemachine.db.impl.sql.compile.RoutineDesignator;
+import com.splicemachine.db.impl.sql.compile.StatementListNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.compile.TableElementList;
 import com.splicemachine.db.impl.sql.compile.TableElementNode;
@@ -220,10 +221,11 @@ public class SQLParser
     private static final int    USING_CLAUSE = 1;
 
     // Defines for optional table clauses
-    private static final int    OPTIONAL_TABLE_CLAUSES_SIZE = 3;
+    private static final int    OPTIONAL_TABLE_CLAUSES_SIZE = 4;
     private static final int    OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES = 0;
     private static final int    OPTIONAL_TABLE_CLAUSES_DERIVED_RCL = 1;
     private static final int    OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME = 2;
+    private static final int    OPTIONAL_TABLE_CLAUSES_TXN_ID = 3;
 
     // Define for UTF8 max
     private static final int    MAX_UTF8_LENGTH = 65535;
@@ -1249,6 +1251,45 @@ public class SQLParser
     }
 
     /**
+     * Check if this MIN/MAX an aggregate function.
+     * We need this check because MIN/MAX also has an scalar version.
+     */
+    private boolean isMinMaxAggregate()
+    {
+      boolean seeComma = false;
+      boolean seeRightParen = false;
+      int leftParenCount = 0;
+
+      if (getToken(2).kind != LEFT_PAREN)
+        return false;
+
+      for (int i = 3; i < Integer.MAX_VALUE; i++) {
+        if (getToken(i).kind == LEFT_PAREN) {
+          leftParenCount++;
+        } else if (getToken(i).kind == RIGHT_PAREN) {
+          if (leftParenCount > 0) {
+            leftParenCount--;
+          } else {
+            seeRightParen = true;
+            break;
+          }
+        } else if (getToken(i).kind == COMMA) {
+          if (leftParenCount == 0) {
+            seeComma = true;
+            break;
+          }
+        } else if (getToken(i).kind == EOF) {
+          break;
+        }
+      }
+
+      if (seeRightParen && !seeComma)
+        return true;
+
+      return false;
+    }
+
+    /**
      * Determine whether the next sequence of tokens can be the beginning
      * of an aggregateNode()() rule.  aggregateNodes() start with one
      * of the built-in aggregate names, or with an identifier followed
@@ -1270,8 +1311,10 @@ public class SQLParser
         switch (getToken(1).kind)
         {
           case MAX:
-          case AVG:
           case MIN:
+            retval = isMinMaxAggregate();
+            break;
+          case AVG:
           case SUM:
             // This is a built-in aggregate
             retval = true;
@@ -1302,8 +1345,9 @@ public class SQLParser
         switch (getToken(1).kind)
         {
           case MAX:
-          case AVG:
           case MIN:
+            return isMinMaxAggregate();
+          case AVG:
           case SUM:
           case COUNT:
           case STRING_AGG:
@@ -2288,7 +2332,8 @@ public class SQLParser
      */
     private StatementNode verifySyntaxAndCreate(Object[] declareTableClauses,
                                                 TableName tableName,
-                                                TableElementList tableElementList) throws StandardException {
+                                                TableElementList tableElementList,
+                                                Integer createBehavior) throws StandardException {
         // NOT LOGGED is allways true
         // if ON COMMIT behavior not explicitly specified in DECLARE command, default to ON COMMIT PRESERVE ROWS
         if (declareTableClauses[1] == null) {
@@ -2308,6 +2353,7 @@ public class SQLParser
         return (StatementNode) nodeFactory.getNode(
                                 C_NodeTypes.CREATE_TABLE_NODE,
                                 tableName,
+                                createBehavior,
                                 tableElementList,
                                 (Properties)null,
                                 (Boolean) declareTableClauses[1],
@@ -2398,6 +2444,10 @@ public class SQLParser
         // place the newline later on.
         src = src.replaceAll("(--)(?i)(?=splice-properties)(.*?)(\\n|\\r|\\r\\n)",
                                "$1$2$3"+Character.toString(endOfHintMarker));
+
+        // If there is a comment before the statement, replacement ops above produce spaces before the
+        // CREATE token. The first string after split below would be empty, causing charAt(0) to fail.
+        src = src.trim();
 
         for (String part : src.split("\\s+")) {
             if (part.charAt(0) == endOfHintMarker)
@@ -3094,6 +3144,8 @@ TOKEN [IGNORE_CASE] :
 |    <WEEKDAYNAME: "weekdayname">
 |    <WHEN: "when">
 |   <MERGE: "merge">
+|   <TO_INSTANT: "to_instant">
+|   <TO_HBASE_ESCAPED: "to_hbase_escaped">
 }
 
 /*
@@ -3120,14 +3172,17 @@ TOKEN [IGNORE_CASE] :
 |    <CURTIME: "curtime">
 |    <DATABASE: "database">
 |    <DENSERANK: "dense_rank">
-|    <GET_CURRENT_CONNECTION: "getCurrentConnection">
 |    <EXPLAIN: "explain">
+|    <GET_CURRENT_CONNECTION: "getCurrentConnection">
+|    <GREATEST: "greatest">
+|    <LEAST: "least">
 |    <SPARKEXPLAIN: "sparkexplain">
 |    <SPARKEXPLAIN_LOGICAL: "sparkexplain_logical">
 |    <SPARKEXPLAIN_OPTIMIZED: "sparkexplain_optimized">
 |    <SPARKEXPLAIN_ANALYZED: "sparkexplain_analyzed">
 |    <EXPORT: "export">
 |    <EXPORT_BINARY: "export_binary">
+|	<EXPORT_KAFKA: "export_kafka">
 |    <FIRSTVALUE: "first_value">
 |    <LAG: "lag">
 |    <LASTVALUE: "last_value">
@@ -3700,6 +3755,7 @@ StatementPart(Token[] tokenHolder) throws StandardException :
         statementNode = explainStatement() |
         statementNode = exportStatement() |
         statementNode = binaryExportStatement() |
+        statementNode = kafkaExportStatement() |
         statementNode = pinStatement() |
         statementNode = dropPinStatement() |
         statementNode = signalStatement()
@@ -4039,13 +4095,15 @@ explainStatement() throws StandardException :
 {
     StatementNode   statementNode;
     StatementNode    explainStatement;
+    Token           getToken = null;
 }
 {
-    <EXPLAIN> statementNode = preparableSQLDataStatement()
+    <EXPLAIN> [getToken = <GET> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.NONE,
+                                   (getToken != null),
                                    getContextManager());
     }
     | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
@@ -4053,6 +4111,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.EXECUTED,
+                                   false,
                                    getContextManager());
     }
     | <SPARKEXPLAIN_LOGICAL> statementNode = preparableSQLDataStatement()
@@ -4060,6 +4119,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.LOGICAL,
+                                   false,
                                    getContextManager());
     }
     | <SPARKEXPLAIN_ANALYZED> statementNode = preparableSQLDataStatement()
@@ -4067,6 +4127,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.ANALYZED,
+                                   false,
                                    getContextManager());
     }
     | <SPARKEXPLAIN_OPTIMIZED> statementNode = preparableSQLDataStatement()
@@ -4074,6 +4135,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.OPTIMIZED,
+                                   false,
                                    getContextManager());
     }
 }
@@ -4109,6 +4171,22 @@ exportStatement() throws StandardException :
     <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                   statementNode,
+                                   parameterList,
+                                   getContextManager());
+    }
+}
+
+StatementNode
+kafkaExportStatement() throws StandardException :
+{
+    StatementNode   statementNode;
+    Vector parameterList = new Vector();
+}
+{
+    <EXPORT_KAFKA> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+    {
+        return (KafkaExportNode) nodeFactory.getNode(C_NodeTypes.KAFKA_EXPORT_NODE,
                                    statementNode,
                                    parameterList,
                                    getContextManager());
@@ -4210,6 +4288,15 @@ deleteBody() throws StandardException :
           * bind time, in keeping with the design decision that the parser's
            * output should look like the language.
          */
+        boolean isBulkDelete = false;
+        if (tableProperties != null) {
+            String dir = (String)tableProperties.remove(DeleteNode.BULK_DELETE_DIRECTORY);
+            if (dir != null) {
+                deleteProperties = new FormatableProperties();
+                deleteProperties.setProperty(DeleteNode.BULK_DELETE_DIRECTORY, dir);
+                isBulkDelete = true;
+            }
+        }
         if (fromTable == null)
             fromTable = (FromTable) nodeFactory.getNode(
                                         C_NodeTypes.FROM_BASE_TABLE,
@@ -4218,15 +4305,11 @@ deleteBody() throws StandardException :
                                         ReuseFactory.getInteger(
                                                 FromBaseTable.DELETE),
                                         null,
+                                        isBulkDelete,
+                                        null,
                                         getContextManager());
 
-        if (tableProperties != null) {
-            String dir = (String)tableProperties.remove(DeleteNode.BULK_DELETE_DIRECTORY);
-            if (dir != null) {
-                deleteProperties = new FormatableProperties();
-                deleteProperties.setProperty(DeleteNode.BULK_DELETE_DIRECTORY, dir);
-            }
-        }
+
         /* Update the FromTable with any properties, if non-null */
         if (tableProperties != null && tableProperties.size() > 0)
         {
@@ -4762,13 +4845,19 @@ declareTemporaryTableDeclaration() throws StandardException :
     TableName            tableName;
     TableElementList tableElementList;
     Object[] declareTableClauses = new Object[3];
+    Token ifTok = null;
+    Token ifTok2 = null;
 }
 {
-    <DECLARE> <GLOBAL> <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    <DECLARE> <GLOBAL> <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
+        boolean ifNotExists = ifTok != null || ifTok2 != null;
+
+        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+                                     (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                    new Integer(StatementType.CREATE_DEFAULT)));
     }
 }
 
@@ -4788,13 +4877,19 @@ createTemporaryTableDeclaration() throws StandardException :
     TableName            tableName;
     TableElementList tableElementList;
     Object[] declareTableClauses = new Object[3];
+    Token ifTok = null;
+    Token ifTok2 = null;
 }
 {
-    ( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    ( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
+        boolean ifNotExists = ifTok != null || ifTok2 != null;
+
+        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+                                     (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                    new Integer(StatementType.CREATE_DEFAULT)));
     }
 }
 
@@ -7680,8 +7775,8 @@ coalesceFunction(String coalesceOrValue) throws StandardException :
 }
 {
     <LEFT_PAREN>
-        coalesceExpression(expressionList)
-        ( <COMMA> coalesceExpression(expressionList) )*
+        argumentExpression(expressionList)
+        ( <COMMA> argumentExpression(expressionList) )*
     <RIGHT_PAREN>
     {
         return (ValueNode)nodeFactory.getNode(
@@ -7693,10 +7788,34 @@ coalesceFunction(String coalesceOrValue) throws StandardException :
 }
 
 /*
- * <A NAME="coalesceExpression">coalesceExpression</A>
+ * <A NAME="scalarMinMaxFunction">scalarMinMaxFunction</A>
+ */
+ValueNode
+scalarMinMaxFunction(String minOrMax) throws StandardException :
+{
+    ValueNodeList args = (ValueNodeList) nodeFactory.getNode(
+        C_NodeTypes.VALUE_NODE_LIST,
+        getContextManager());
+}
+{
+    <LEFT_PAREN>
+        argumentExpression(args)
+        ( <COMMA> argumentExpression(args) )+
+    <RIGHT_PAREN>
+    {
+        return (ValueNode)nodeFactory.getNode(
+                C_NodeTypes.SCALAR_MIN_MAX_FUNCTION_NODE,
+                minOrMax,
+                args,
+                getContextManager());
+    }
+}
+
+/*
+ * <A NAME="argumentExpression">argumentExpression</A>
  */
 void
-coalesceExpression(ValueNodeList expressionList) throws StandardException :
+argumentExpression(ValueNodeList expressionList) throws StandardException :
 {
     ValueNode    expression;
 }
@@ -8143,8 +8262,8 @@ valueExpressionPrimary() throws StandardException :
         return value;
     }
 |
-        // This LOOKAHEAD is required to distinguish an
-        // window/aggregate function from
+    // This LOOKAHEAD is required to distinguish an
+    // window/aggregate function from
     // miscBuiltins(). Both can start with an identifier.
 
     LOOKAHEAD( { windowOrAggregateFunctionFollows() } )
@@ -8264,6 +8383,10 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == NVL ||
                 getToken(1).kind == VALUE ||
+                getToken(1).kind == MIN ||
+                getToken(1).kind == MAX ||
+                getToken(1).kind == LEAST ||
+                getToken(1).kind == GREATEST ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
                 getToken(1).kind == RIGHT ||
@@ -8312,7 +8435,9 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLSERIALIZE ||
                 getToken(1).kind == XMLEXISTS ||
                 getToken(1).kind == XMLQUERY ||
-                getToken(1).kind == GROUPING) &&
+                getToken(1).kind == GROUPING ||
+                getToken(1).kind == TO_INSTANT ||
+                getToken(1).kind == TO_HBASE_ESCAPED ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -8442,9 +8567,35 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                                         getContextManager());
     }
 |
+    ( <MIN> | <LEAST> ) value = scalarMinMaxFunction("MIN")
+    {
+        return value;
+    }
+|
+    ( <MAX> | <GREATEST> ) value = scalarMinMaxFunction("MAX")
+    {
+        return value;
+    }
+|
     value = xmlFunction()
     {
         return value;
+    }
+|
+    <TO_INSTANT> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.TO_INSTANT_NODE,
+                                    value,
+                                    getContextManager());
+    }
+|
+    <TO_HBASE_ESCAPED> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.TO_HBASE_ESCAPED_NODE,
+                                    value,
+                                    getContextManager());
     }
 }
 
@@ -10729,13 +10880,13 @@ existsExpression() throws StandardException :
 ResultSetNode
 tableExpression(ResultColumnList selectList) throws StandardException :
 {
-    SelectNode    selectNode;
-    FromList    fromList;
-    ValueNode    whereClause = null;
-    GroupByList    groupByList = null;
+    SelectNode   selectNode;
+    FromList     fromList;
+    ValueNode    whereClause  = null;
+    GroupByList  groupByList  = null;
     ValueNode    havingClause = null;
     Token        whereToken;
-    WindowList  windows = null;
+    WindowList   windows      = null;
 }
 {
     fromList = fromClause()
@@ -10891,21 +11042,25 @@ tableReferenceTypes(boolean nestedInParens) throws StandardException :
 Object[]
 optionalTableClauses() throws StandardException :
 {
-    Object[]             otc = null;
-    Properties            tableProperties = null;
-    ResultColumnList    derivedRCL = null;
-    String                correlationName = null;
+    Object[]         otc = null;
+    Properties       tableProperties = null;
+    ResultColumnList derivedRCL = null;
+    String           correlationName = null;
+    ValueNode        txnIdExpression = null;
 }
 {
     otc = optionalTableProperties()
     {
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
         return otc;
     }
 |
+    LOOKAHEAD( { getToken(1).kind != AS || getToken(2).kind != OF })
     [ [ <AS> ]
         correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
+        [txnIdExpression = asOfClause()]
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [tableProperties = propertyList(true) <CHECK_PROPERTIES>] ]
     {
@@ -10913,6 +11068,19 @@ optionalTableClauses() throws StandardException :
         otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
+        return otc;
+    }
+|
+    txnIdExpression = asOfClause()
+    [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
+    [tableProperties = propertyList(true) <CHECK_PROPERTIES>]
+    {
+        otc = new Object[OPTIONAL_TABLE_CLAUSES_SIZE];
+        otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
+        otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
+        otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
         return otc;
     }
 }
@@ -11000,9 +11168,11 @@ FromTable tableFactor() throws StandardException :
         fromTable = (FromTable) nodeFactory.getNode(
                                             C_NodeTypes.FROM_BASE_TABLE,
                                             tableName,
-                                                (String) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME],
-                                                (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
-                                                (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
+                                            (String) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME],
+                                            (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
+                                            (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
+                                            false,
+                                            (ValueNode) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
                                             getContextManager());
         return fromTable;
     }
@@ -12253,6 +12423,18 @@ windowDefinition(WindowList wl) throws StandardException :
     }
 }
 
+ValueNode
+asOfClause() throws StandardException :
+{
+    ValueNode txIdExpression = null;
+}
+{
+    <AS> <OF> txIdExpression = primaryExpression()
+    {
+        return txIdExpression;
+    }
+}
+
 StatementNode
 schemaDefinition() throws StandardException :
 {
@@ -12570,10 +12752,12 @@ tableDefinition() throws StandardException :
     ValueNode   timestampFormat = null;
     ValueNode   dateFormat = null;
     ValueNode   timeFormat = null;
+    Token ifTok = null;
+    Token ifTok2 = null;
 }
 {
     [ isExternal = isExternal() ]
-    <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
             // Lookahead needed to choose between
             // tableElementList and tableColumnList
     (        LOOKAHEAD({getToken(1).kind == LEFT_PAREN &&
@@ -12592,9 +12776,14 @@ tableDefinition() throws StandardException :
               {
                       validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                                 linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
+
+                      boolean ifNotExists = ifTok != null || ifTok2 != null;
+
                           return (StatementNode) nodeFactory.getNode(
                                               C_NodeTypes.CREATE_TABLE_NODE,
                                               tableName,
+                                              (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                             new Integer(StatementType.CREATE_DEFAULT)),
                                               tableElementList,
                                               properties,
                                               new Character(lockGranularity),
@@ -12628,9 +12817,14 @@ tableDefinition() throws StandardException :
             {
             validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                         linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
+
+            ifNotExists = ifTok != null || ifTok2 != null;
+
                 return (StatementNode) nodeFactory.getNode(
                                         C_NodeTypes.CREATE_TABLE_NODE,
                                         tableName,
+                                        (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                       new Integer(StatementType.CREATE_DEFAULT)),
                                         tableElementList,
                                         properties,
                                         new Character(lockGranularity),
@@ -12687,9 +12881,14 @@ tableDefinition() throws StandardException :
                 }
                 validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                 linesTerminatedByChar, location, compression, partitionedResultColumns, tableElementList);
+
+                boolean ifNotExists = ifTok != null || ifTok2 != null;
+
                 StatementNode node = (StatementNode)nodeFactory.getNode(
                                         C_NodeTypes.CREATE_TABLE_NODE,
                                         tableName,
+                                        (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
+                                                       new Integer(StatementType.CREATE_DEFAULT)),
                                         resultColumns,
                                         queryExpression,
                                         isExternal,
@@ -13568,6 +13767,7 @@ void withClause(Vector parameterList) throws StandardException :
                                     offsetClauses[ FETCH_FIRST_CLAUSE ],
                                     Boolean.valueOf( hasJDBClimitClause ),
                                     Boolean.valueOf(isRecursive),
+                                    Boolean.valueOf(true),  // is dynamic
                                     getContextManager()));
     }
 }
@@ -13638,6 +13838,7 @@ viewDefinition(Token beginToken) throws StandardException :
                                 offsetClauses[ FETCH_FIRST_CLAUSE ],
                                 Boolean.valueOf( hasJDBClimitClause ),
                                 Boolean.valueOf(isRecursive),
+                                Boolean.valueOf(false),  // not dynamic
                                 getContextManager());
     }
 }
@@ -13674,23 +13875,62 @@ actionStatement(Token[] tokenHolder, HashSet<String> hs) throws StandardExceptio
     }
 }
 
-QueryTreeNode
-triggerActions(Token[] tokenHolder, MutableInt endOffset, HashSet<String> hs) throws StandardException :
+StatementListNode
+triggerActionList(HashSet<String> hs,
+                  Boolean isBefore,
+                  List<String> actionTextList) throws StandardException :
 {
-    QueryTreeNode actionNode = null;
-    Token endPosition;
+    StatementListNode actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+    StatementNode actionNode = null;
 }
 {
-    <BEGIN> <ATOMIC> actionNode = actionStatement(tokenHolder, hs)
-    endPosition = <SEMICOLON>
+    <BEGIN> <ATOMIC>
+    (
+        actionNode = triggerAction(hs, isBefore, actionTextList)
+        <SEMICOLON>
+        {
+            actionNodeList.addStatement(actionNode);
+        }
+    )*
     <END>
     {
-        endOffset.setValue(endPosition.beginOffset - 1);
-        return actionNode;
+        return actionNodeList;
     }
 |
+    actionNode = triggerAction(hs, isBefore, actionTextList)
+    {
+        actionNodeList.addStatement(actionNode);
+        return actionNodeList;
+    }
+}
+
+StatementNode
+triggerAction(HashSet<String> hs,
+              Boolean isBefore,
+              List<String> actionTextList) throws StandardException :
+{
+    Token[] tokenHolder = new Token[1];
+    StatementNode actionNode = null;
+}
+{
     actionNode = actionStatement(tokenHolder, hs)
     {
+        // No DML in action node for BEFORE triggers.
+        if (isBefore.booleanValue() && (actionNode instanceof DMLModStatementNode)) {
+                throw StandardException.newException(
+                    SQLState.LANG_UNSUPPORTED_TRIGGER_STMT,
+                    ((StatementNode) actionNode).statementToString(), "BEFORE");
+                    }
+
+        if (actionNode instanceof SetNode && !isBefore)
+            throw StandardException.newException(SQLState.LANG_UNSUPPORTED_TRIGGER_STMT, "SET", "AFTER");
+
+        actionNode.setBeginOffset(tokenHolder[0].beginOffset);
+        actionNode.setEndOffset(getToken(0).endOffset);
+
+        actionTextList.add(StringUtil.slice(
+                statementSQLText, actionNode.getBeginOffset(), actionNode.getEndOffset(), false));
+
         return actionNode;
     }
 }
@@ -13698,28 +13938,21 @@ triggerActions(Token[] tokenHolder, MutableInt endOffset, HashSet<String> hs) th
 StatementNode
 triggerDefinition() throws StandardException :
 {
-    Boolean                isBefore;
-    Boolean                isRow = Boolean.FALSE;  // STATEMENT implicit by default
-    TableName            tableName;
-    TableName            triggerName;
-    Token[]                tokenHolder = new Token[1];
-    Token                beginToken;
-    Token                checkTok = null;
-    Token                endToken;
-    int                    actionBegin;
-    int                    actionEnd;
-    TriggerEventDML        triggerEvent;
-    QueryTreeNode        actionNode;
+    Boolean             isBefore;
+    Boolean             isRow = Boolean.FALSE;  // STATEMENT implicit by default
+    TableName           tableName;
+    TableName           triggerName;
+    TriggerEventDML     triggerEvent;
+    StatementNode       actionNode;
+    StatementListNode   actionNodeList;
+    List<String>        actionTextList = new ArrayList();
     ValueNode           whenClause = null;
     Token               whenOpen = null;
     Token               whenClose = null;
-    int                 whenOffset = 0;
-    int                 whenEnd = 0;
     ResultColumnList    triggerColumns = (ResultColumnList) nodeFactory.getNode(
                                             C_NodeTypes.RESULT_COLUMN_LIST,
                                             getContextManager());
-    Vector                refClause = null;
-    MutableInt            endOffset = new MutableInt(-1);
+    Vector              refClause = null;
     HashSet<String>     hs = new HashSet<String>();
 }
 {
@@ -13732,25 +13965,12 @@ triggerDefinition() throws StandardException :
         [ <MODE> <DB2SQL> ]
         [ <WHEN> whenOpen = <LEFT_PAREN> whenClause = valueExpression() whenClose = <RIGHT_PAREN> ]
         //we are not top level statement
-        actionNode = triggerActions(tokenHolder, endOffset, hs)
+        actionNodeList = triggerActionList(hs, isBefore, actionTextList)
         // the trigger body
     {
-        actionEnd = endOffset.intValue() != -1 ? endOffset.intValue() : getToken(0).endOffset;
-        actionBegin = tokenHolder[0].beginOffset;
-        actionNode.setBeginOffset(actionBegin);
-        actionNode.setEndOffset(actionEnd);
-
-        // No DML in action node for BEFORE triggers.
-        if (isBefore.booleanValue() && (actionNode instanceof DMLModStatementNode)) {
-                throw StandardException.newException(
-                    SQLState.LANG_UNSUPPORTED_TRIGGER_STMT,
-                    ((StatementNode) actionNode).statementToString(), "BEFORE");
-                    }
-
-
         // no params in trigger action
          HasNodeVisitor visitor = new HasNodeVisitor(ParameterNode.class);
-        actionNode.accept(visitor);
+        actionNodeList.accept(visitor);
         if (whenClause != null) {
             whenClause.accept(visitor);
         }
@@ -13758,21 +13978,19 @@ triggerDefinition() throws StandardException :
         {
             throw StandardException.newException(SQLState.LANG_NO_PARAMS_IN_TRIGGER_ACTION);
         }
-        if (actionNode instanceof SetNode && !isBefore)
-            throw StandardException.newException(SQLState.LANG_UNSUPPORTED_TRIGGER_STMT, "SET", "AFTER");
-
-        String actionText = StringUtil.slice(
-                statementSQLText, actionBegin, actionEnd, false);
 
         String whenText = null;
         if (whenClause != null) {
-            whenOffset = whenOpen.endOffset + 1;
-            whenEnd = whenClose.beginOffset - 1;
-            whenClause.setBeginOffset(whenOffset);
-            whenClause.setEndOffset(whenEnd);
+            whenClause.setBeginOffset(whenOpen.endOffset + 1);
+            whenClause.setEndOffset(whenClose.beginOffset - 1);
             whenText = StringUtil.slice(statementSQLText,
-                                        whenOffset, whenEnd, false);
+                                        whenClause.getBeginOffset(),
+                                        whenClause.getEndOffset(),
+                                        false);
         }
+
+        actionNodeList.setBeginOffset(actionNodeList.get(0).getBeginOffset());
+        actionNodeList.setEndOffset(actionNodeList.get(actionNodeList.size() - 1).getEndOffset());
 
         return (StatementNode) nodeFactory.getNode(
                                 C_NodeTypes.CREATE_TRIGGER_NODE,
@@ -13786,10 +14004,8 @@ triggerDefinition() throws StandardException :
                                 refClause,            // referencing clause
                                 whenClause,  // when clause node
                                 whenText,    // when clause text
-                                ReuseFactory.getInteger(whenOffset),  // when clause begin offset
-                                actionNode,
-                                actionText,
-                                ReuseFactory.getInteger(actionBegin),
+                                actionNodeList,
+                                actionTextList,
                                 getContextManager());
     }
 }
@@ -17829,6 +18045,7 @@ nonReservedKeyword()  :
     |    tok = <FORTRAN>
     |    tok = <FRACTION>
     |    tok = <GENERATED>
+    |    tok = <GREATEST>
     |    tok = <GROUPING>
     |    tok = <HFILE>
     |    tok = <IDENTITY_VAL_LOCAL>
@@ -17848,6 +18065,7 @@ nonReservedKeyword()  :
     |    tok = <LASTVALUE>
     |    tok = <LCASE>
     |    tok = <LEAD>
+    |    tok = <LEAST>
     |    tok = <LENGTH>
     |    tok = <LEVEL>
     |   tok = <LIMIT>

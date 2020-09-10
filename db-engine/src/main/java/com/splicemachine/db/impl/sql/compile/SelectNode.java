@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -46,7 +47,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
-import org.spark_project.guava.base.Predicates;
+import splice.com.google.common.base.Predicates;
 
 import java.sql.Types;
 import java.util.*;
@@ -460,9 +461,7 @@ public class SelectNode extends ResultSetNode{
     public void bindExpressions(FromList fromListParam) throws StandardException{
         int fromListParamSize=fromListParam.size();
         int fromListSize=fromList.size();
-        int numDistinctAggs;
 
-        assert fromList!=null: "FromList is unexepctedly null!";
         assert resultColumns!=null: "ResultColumns is unexpectedly null!";
 
         /* NOTE - a lot of this code would be common to bindTargetExpression(),
@@ -960,14 +959,24 @@ public class SelectNode extends ResultSetNode{
         if(wherePredicates!=null && !wherePredicates.isEmpty() && !fromList.isEmpty()){
             // Perform various forms of transitive closure on wherePredicates
             if(fromList.size()>1){
-                performTransitiveClosure(numTables);
+                performTransitiveClosure();
             }
 
             if(orderByList!=null){
+
+                // When left outer join is flattened, its ON clause condition could be released to the WHERE clause but
+                // with an outerJoinLevel > 0. These predicates cannot be used to eliminate order by columns
+                PredicateList levelZeroPredicateList = (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+                for (int i = wherePredicates.size()-1; i >= 0 ; i--) {
+                    Predicate pred = wherePredicates.elementAt(i);
+                    if (pred.getOuterJoinLevel() == 0) {
+                        levelZeroPredicateList.addOptPredicate(pred);
+                    }
+                }
                 // Remove constant columns from order by list.  Constant
                 // columns are ones that have equality comparisons with
                 // constant expressions (e.g. x = 3)
-                orderByList.removeConstantColumns(wherePredicates);
+                orderByList.removeConstantColumns(levelZeroPredicateList);
                 /*
                 ** It's possible for the order by list to shrink to nothing
                 ** as a result of removing constant columns.  If this happens,
@@ -977,6 +986,7 @@ public class SelectNode extends ResultSetNode{
                     orderByList=null;
                     resultColumns.removeOrderByColumns();
                 }
+                levelZeroPredicateList.removeAllPredicates();
             }
         }
 
@@ -1098,9 +1108,11 @@ public class SelectNode extends ResultSetNode{
         }
 
         /* Copy the referenced table map to the new tree top, if necessary */
+        /* the code that update newTop above has been commented out, so this code has become obselete
         if(newTop!=this){
             newTop.setReferencedTableMap((JBitSet)referencedTableMap.clone());
         }
+        */
 
 
         if(orderByList!=null){
@@ -1488,6 +1500,61 @@ public class SelectNode extends ResultSetNode{
         return this;
     }
 
+    /* check if specialMaxScan is possible
+       criteria:
+       1. This is for control path execution
+       2. The select has no constraints, that is originalWhereClause!=null
+       3. The select contains only one base table;
+       4. there is only one min/max aggregate with no group by
+       5. the parameter of the aggregate is a simple column reference, not any complex expression
+    */
+    private boolean setUpSpecialMaxScanIfPossible(boolean forSpark) {
+        if (forSpark)
+            return false;
+
+        if (originalWhereClause != null)
+            return false;
+
+        if (fromList.size() > 1)
+            return false;
+
+        if (!(fromList.elementAt(0) instanceof ProjectRestrictNode) ||
+             !(((ProjectRestrictNode)fromList.elementAt(0)).getChildResult() instanceof FromBaseTable))
+            return false;
+
+        FromBaseTable table = (FromBaseTable)((ProjectRestrictNode)fromList.elementAt(0)).getChildResult();
+
+        if (groupByList != null)
+            return false;
+
+        List<AggregateNode> aggs= new ArrayList<>();
+        if (selectAggregates != null && !selectAggregates.isEmpty())
+            aggs.addAll(selectAggregates);
+        if (havingAggregates != null && !havingAggregates.isEmpty())
+                aggs.addAll(havingAggregates);
+
+        if (aggs.size() != 1)
+            return false;
+
+        AggregateNode an=aggs.get(0);
+        AggregateDefinition ad=an.getAggregateDefinition();
+        if (!(ad instanceof MaxMinAggregateDefinition))
+            return false;
+
+        if (!(an.getOperand() instanceof ColumnReference))
+            return false;
+
+        ColumnReference cr = (ColumnReference)an.getOperand();
+        if (cr.getTableNumber() != table.tableNumber)
+            return false;
+
+        // If all the above criteria meet, then set the Aggregate in the FromBaseTable node.
+        // We need to check if the column reference in the aggregate node is a leading index/PK column during costing,
+        // so that we can determine if specialMaxScan can be used or not
+        table.setAggregateForSpecialMaxScan(an);
+        return true;
+    }
+
     /**
      * Optimize this SelectNode.  This means choosing the best access path
      * for each table, among other things.
@@ -1603,6 +1670,7 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
+        setUpSpecialMaxScanIfPossible(forSpark);
         Optimizer optimizer = getOptimizer(fromList, wherePredicates, dataDictionary, orderByList);
         optimizer.setForSpark(forSpark);
         findBestPlan(optimizer, dataDictionary, outerRows);
@@ -1715,7 +1783,7 @@ public class SelectNode extends ResultSetNode{
         **
         ** This should be the same optimizer we got above.
         */
-        optimizer.modifyAccessPaths();
+        optimizer.modifyAccessPaths(null);
 
         // Load the costEstimate for the final "best" join order.
         costEstimate=optimizer.getFinalCost();
@@ -1779,8 +1847,6 @@ public class SelectNode extends ResultSetNode{
              */
             leftResultSet=(ResultSetNode)fromList.elementAt(0);
 
-            getBaseTableNode(leftResultSet); //gets the left base table node. HAS SIDE-EFFECTS, do not remove
-
             leftRCList=leftResultSet.getResultColumns();
             leftResultSet.setResultColumns(leftRCList.copyListAndObjects());
             leftRCList.genVirtualColumnNodes(leftResultSet,leftResultSet.resultColumns);
@@ -1796,8 +1862,6 @@ public class SelectNode extends ResultSetNode{
              * (Right gets appended to left, so only right's ids need updating.)
              */
             rightResultSet=(ResultSetNode)fromList.elementAt(1);
-
-            getBaseTableNode(rightResultSet); //gets the right base table node. HAS SIDE-EFFECTS, do not remove
 
             rightRCList=rightResultSet.getResultColumns();
             rightResultSet.setResultColumns(rightRCList.copyListAndObjects());
@@ -2030,6 +2094,12 @@ public class SelectNode extends ResultSetNode{
      */
     void pushExpressionsIntoSelect(Predicate predicate) throws StandardException{
         wherePredicates.pullExpressions(referencedTableMap.size(),predicate.getAndNode());
+        Boolean disableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        if (disableTC == null || !disableTC) {
+            if (fromList.size() > 1) {
+                performTransitiveClosure();
+            }
+        }
         fromList.pushPredicates(wherePredicates);
     }
 
@@ -2310,15 +2380,14 @@ public class SelectNode extends ResultSetNode{
      * The 2 types are transitive closure on join clauses and on search clauses.
      * Join clauses will be processed first to maximize benefit for search clauses.
      *
-     * @param numTables The number of tables in the query
      * @throws StandardException Thrown on error
      */
-    private void performTransitiveClosure(int numTables) throws StandardException{
+    private void performTransitiveClosure() throws StandardException{
         // Join clauses
-        wherePredicates.joinClauseTransitiveClosure(numTables,fromList,getCompilerContext());
+        wherePredicates.joinClauseTransitiveClosure(fromList,getCompilerContext());
 
         // Search clauses
-        wherePredicates.searchClauseTransitiveClosure(numTables,fromList.hashJoinSpecified());
+        wherePredicates.searchClauseTransitiveClosure(fromList.hashJoinSpecified());
     }
 
     /**
@@ -2459,13 +2528,13 @@ public class SelectNode extends ResultSetNode{
         return orderByList;
     }
 
-    public static class SelectNodeWithSubqueryPredicate implements org.spark_project.guava.base.Predicate<Visitable> {
+    public static class SelectNodeWithSubqueryPredicate implements splice.com.google.common.base.Predicate<Visitable> {
         @Override
         public boolean apply(Visitable input) {
             return (input instanceof SelectNode) && (!((SelectNode) input).getWhereSubquerys().isEmpty() || !((SelectNode) input).getSelectSubquerys().isEmpty());
         }
     }
-    public static class SelectNodeNestingLevelFunction implements org.spark_project.guava.base.Function<SelectNode, Integer> {
+    public static class SelectNodeNestingLevelFunction implements splice.com.google.common.base.Function<SelectNode, Integer> {
         @Override
         public Integer apply(SelectNode input) {
             return input.getNestingLevel();

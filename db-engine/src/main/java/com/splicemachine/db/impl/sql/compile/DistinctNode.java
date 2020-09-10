@@ -152,7 +152,8 @@ public class DistinctNode extends SingleChildResultSetNode
                                    RowOrdering rowOrdering)
             throws StandardException
     {
-        CostEstimate childCost = ((Optimizable) childResult).optimizeIt(
+        // RESOLVE: NEED TO FACTOR IN THE COST OF GROUPING (SORTING) HERE
+        ((Optimizable) childResult).optimizeIt(
                 optimizer, predList, outerCost, rowOrdering);
 
         return super.optimizeIt(optimizer, predList, outerCost, rowOrdering);
@@ -356,11 +357,11 @@ public class DistinctNode extends SingleChildResultSetNode
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("Distinct").append("(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSetNumber());
         sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();

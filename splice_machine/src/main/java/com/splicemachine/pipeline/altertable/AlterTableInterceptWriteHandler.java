@@ -59,6 +59,7 @@ public class AlterTableInterceptWriteHandler implements WriteHandler{
                 ctx.success(mutation);
             }
         } catch (Exception e) {
+            LOG.error("Unexpected exception", e);
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
 

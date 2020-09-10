@@ -14,18 +14,13 @@
 
 package com.splicemachine.pipeline;
 
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.execute.RowUtil;
-import com.splicemachine.derby.utils.FormatableBitSetUtils;
-import org.spark_project.guava.base.Optional;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Multimap;
-import org.spark_project.guava.collect.Multimaps;
+import splice.com.google.common.base.Optional;
+import splice.com.google.common.collect.Iterables;
+import splice.com.google.common.collect.Multimap;
+import splice.com.google.common.collect.Multimaps;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -54,9 +49,7 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
-import java.util.ArrayList;
 import static com.splicemachine.pipeline.ConglomerateDescriptors.*;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -202,6 +195,8 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
                 if(ddlChange.getDropIndex().getBaseConglomerate()!=conglomId) break;
                 TxnView txn=DDLUtils.getLazyTransaction(ddlChange.getTxnId());
                 long indexConglomId=ddlChange.getDropIndex().getConglomerate();
+                if (indexSharedByConstraint(ddlChange, txn, indexConglomId))
+                    break;
                 synchronized(indexFactories){
                     for(LocalWriteFactory factory : indexFactories.list()){
                         if(factory.getConglomerateId()==indexConglomId &&!(factory instanceof DropIndexFactory)){
@@ -220,6 +215,31 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         }
     }
 
+    private boolean indexSharedByConstraint(DDLMessage.DDLChange ddlChange, TxnView txn, long indexConglomId) {
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = null;
+        try {
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
+            DataDictionary dd =transactionResource.getLcc().getDataDictionary();
+            UUID tableId = ProtoUtil.getDerbyUUID(ddlChange.getDropIndex().getTableUUID());
+            TableDescriptor td = dd.getTableDescriptor(tableId);
+            ConglomerateDescriptorList cdl = td.getConglomerateDescriptorList();
+            int count = 0;
+            for (ConglomerateDescriptor cd : cdl) {
+                long conglomId = cd.getConglomerateNumber();
+                if (conglomId == indexConglomId)
+                    count++;
+            }
+
+            return count > 1;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (prepared)
+                transactionResource.close();
+        }
+    }
     /* ****************************************************************************************************************/
     /*private helper methods*/
 
@@ -373,5 +393,4 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
         ConstraintContext cc=ConstraintContext.primaryKey(tableName,constraintName);
         return new ConstraintFactory(new PrimaryKeyConstraint(cc,osf),pef);
     }
-
 }

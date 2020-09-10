@@ -16,17 +16,19 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -43,6 +45,7 @@ import static org.junit.Assert.*;
  */
 @SuppressWarnings("unchecked")
 @RunWith(Parameterized.class)
+@Category(LongerThanTwoMinutes.class)
 public class WindowFunctionIT extends SpliceUnitTest {
     private Boolean useSpark;
 
@@ -4726,7 +4729,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "        A.PRSN_KEY, " +
                 "         ROW_NUMBER() OVER (PARTITION BY A.PRSN_KEY ORDER BY " +
                 "MOST_RECENT_STAGING_DATE DESC) \"ROWNUM\", " +
-                "         LEAD(STAGE_NUM) OVER (PARTITION BY B.PRSN_KEY ORDER BY " +
+                "         LEAD(STAGE_NUM) OVER (PARTITION BY A.PRSN_KEY ORDER BY " +
                 "MOST_RECENT_STAGING_DATE DESC ) \"PREV_STAGE_NUM\" " +
                 "        from ( " +
                 "                select " +

@@ -98,13 +98,13 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
 		,"f81e0025-010c-bc85-060d-000000109ab8"	// index3
     };
 
-    public SYSSCHEMAPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSSCHEMAPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo(COLUMN_COUNT, SCHEMANAME_STRING, indexColumnPositions, indexUniqueness, uuids);
 	}
 
-	public ExecRow makeRow(TupleDescriptor pd, TupleDescriptor parent) throws StandardException
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor pd, TupleDescriptor parent) throws StandardException
 	{
 		UUID						oid;
         DataValueDescriptor grantee = null;
@@ -127,6 +127,9 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         }
         else
         {
+            if (!(pd instanceof SchemaPermsDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + pd.getClass().getName());
+
             SchemaPermsDescriptor spd = (SchemaPermsDescriptor) pd;
             oid = spd.getUUID();
             if ( oid == null )
@@ -255,22 +258,24 @@ public class SYSSCHEMAPERMSRowFactory extends PermissionsCatalogRowFactory
         
         switch( indexNumber)
         {
-        case GRANTEE_SCHEMA_GRANTOR_INDEX_NUM:
-            row = getExecutionFactory().getIndexableRow( 2);
-            row.setColumn(1, getAuthorizationID( perm.getGrantee()));
-            String schemaUUIDStr = ((SchemaPermsDescriptor) perm).getSchemaUUID().toString();
-            row.setColumn(2, new SQLChar(schemaUUIDStr));
-            break;
-        case SCHEMAPERMSID_INDEX_NUM:
-            row = getExecutionFactory().getIndexableRow( 1);
-            String schemaPermsUUIDStr = perm.getObjectID().toString();
-            row.setColumn(1, new SQLChar(schemaPermsUUIDStr));
-            break;
-        case SCHEMAID_INDEX_NUM:
-            row = getExecutionFactory().getIndexableRow( 1);
-            schemaUUIDStr = ((SchemaPermsDescriptor) perm).getSchemaUUID().toString();
-            row.setColumn(1, new SQLChar(schemaUUIDStr));
-            break;
+            case GRANTEE_SCHEMA_GRANTOR_INDEX_NUM:
+                row = getExecutionFactory().getIndexableRow( 2);
+                row.setColumn(1, getAuthorizationID( perm.getGrantee()));
+                String schemaUUIDStr = ((SchemaPermsDescriptor) perm).getSchemaUUID().toString();
+                row.setColumn(2, new SQLChar(schemaUUIDStr));
+                break;
+            case SCHEMAPERMSID_INDEX_NUM:
+                row = getExecutionFactory().getIndexableRow( 1);
+                String schemaPermsUUIDStr = perm.getObjectID().toString();
+                row.setColumn(1, new SQLChar(schemaPermsUUIDStr));
+                break;
+            case SCHEMAID_INDEX_NUM:
+                row = getExecutionFactory().getIndexableRow( 1);
+                schemaUUIDStr = ((SchemaPermsDescriptor) perm).getSchemaUUID().toString();
+                row.setColumn(1, new SQLChar(schemaUUIDStr));
+                break;
+            default:
+                break;
         }
         return row;
     } // end of buildIndexRow

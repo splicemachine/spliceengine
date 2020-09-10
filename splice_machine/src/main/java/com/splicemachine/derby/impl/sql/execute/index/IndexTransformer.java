@@ -20,9 +20,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
+import com.splicemachine.derby.utils.EngineUtils;
+import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import org.apache.commons.lang.SerializationUtils;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.primitives.Ints;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
@@ -45,7 +48,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.spark_project.guava.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Builds an index table KVPair given a base table KVPair.
@@ -91,6 +94,7 @@ public class IndexTransformer {
     private transient DataGet baseGet = null;
     private transient DataResult baseResult = null;
     private boolean ignore;
+    protected EntryDataHash entryEncoder;
 
     public IndexTransformer(DDLMessage.TentativeIndex tentativeIndex) {
         index = tentativeIndex.getIndex();
@@ -146,7 +150,7 @@ public class IndexTransformer {
     public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException {
         // do a Get() on all the indexed columns of the base table
         DataResult result =fetchBaseRow(mutation,ctx,indexedColumns);
-        if(result==null||result.size()<=0){
+        if(result==null || result.isEmpty()){
             // we can't find the old row, may have been deleted already
             return null;
         }
@@ -165,6 +169,37 @@ public class IndexTransformer {
         return translate(toTransform);
     }
 
+    public KVPair encodeSystemTableIndex(ExecRow execRow) throws StandardException, IOException {
+
+        String tableVersion = table.getTableVersion();
+        boolean isUnique = index.getUnique();
+        boolean[] order = new boolean[isUnique ? index.getDescColumnsCount() : index.getDescColumnsCount() + 1];
+        for (int i = 0; i < order.length; ++i) {
+            if (i < index.getDescColumnsCount()) {
+                order[i] = !index.getDescColumns(i);
+            }
+            else {
+                order[i] = true;
+            }
+        }
+        DataValueDescriptor[] dvds = execRow.getRowArray();
+        if (index.getUnique()) {
+            dvds = new DataValueDescriptor[execRow.nColumns()-1];
+            System.arraycopy(execRow.getRowArray(),0, dvds,0, dvds.length);
+        }
+        byte[] key = DerbyBytesUtil.generateIndexKey(dvds, order,tableVersion,false);
+
+        if(entryEncoder==null){
+            int[] validCols= EngineUtils.bitSetToMap(null);
+            DescriptorSerializer[] serializers=VersionedSerializers.forVersion(tableVersion,true).getSerializers(execRow);
+            entryEncoder=new EntryDataHash(validCols,null,serializers);
+        }
+        ValueRow rowToEncode=new ValueRow(execRow.getRowArray().length);
+        rowToEncode.setRowArray(execRow.getRowArray());
+        entryEncoder.setRow(rowToEncode);
+        byte[] value =entryEncoder.encode();
+        return new KVPair(key, value);
+    }
 
     public KVPair writeDirectIndex(ExecRow execRow) throws IOException, StandardException {
         assert execRow != null: "ExecRow passed in is null";
@@ -461,7 +496,7 @@ public class IndexTransformer {
             else
                 era.add(pos, data, off, length);
             try {
-                if (defaultValue != null && !defaultValue.isNull() &&
+                if (!defaultValue.isNull() &&
                         defaultValue.equals(defaultValue,defaultValuesExecRow.getColumn(1)).getBoolean()) {
                     ignore = true;
                 } } catch (StandardException se) {

@@ -15,9 +15,10 @@
 package com.splicemachine.pipeline;
 
 import com.splicemachine.db.client.am.SqlException;
+import com.splicemachine.db.client.am.Sqlca;
 import com.splicemachine.db.iapi.reference.SQLState;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Throwables;
+import splice.com.google.common.base.Throwables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -58,7 +59,12 @@ public class Exceptions {
                 String state = sqlException.getSQLState();
                 String messageID = sqlException.getMessage();
                 Throwable next = sqlException.getNextException();
-                return StandardException.newPreLocalizedException(state, next, messageID);
+                Sqlca sca = sqlException.getSqlca();
+                String [] args = sca.getArgs();
+                if (args != null)
+                    return StandardException.newException(state, next, args);
+                else
+                    return StandardException.newPreLocalizedException(state, next, messageID);
             } else if (rootCause instanceof SQLException) {
                 return StandardException.plainWrapException(rootCause);
             }
@@ -97,7 +103,13 @@ public class Exceptions {
     }
 
     public static IOException getIOException(Throwable t){
-        return getIOException(t,PipelineDriver.driver().exceptionFactory());
+        if (PipelineDriver.driver() != null) {
+            return getIOException(t, PipelineDriver.driver().exceptionFactory());
+        } else if (t instanceof IOException) {
+            return (IOException) t;
+        } else {
+            return new IOException(t);
+        }
     }
 
     public static RuntimeException getRuntimeException(Throwable t){

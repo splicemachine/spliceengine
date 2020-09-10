@@ -25,6 +25,10 @@
 
 package com.splicemachine.db.client.am;
 
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
@@ -34,9 +38,8 @@ import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Calendar;
-import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.db.shared.common.sanity.SanityManager;
 
+@SuppressFBWarnings(value = {"NM_SAME_SIMPLE_NAME_AS_INTERFACE", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"})
 public abstract class ResultSet implements java.sql.ResultSet,
         ResultSetCallbackInterface {
     //---------------------navigational members-----------------------------------
@@ -62,7 +65,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
     //   That is, the state data is set by the constructor and never changes.
 
     // Alias for statement_.connection
-    public final Connection connection_;
+    public final ClientConnection connection_;
 
     //----------------------------- constants ------------------------------------
 
@@ -153,7 +156,6 @@ public abstract class ResultSet implements java.sql.ResultSet,
     public boolean isAfterLast_ = false;
     public boolean isFirst_ = false;
     public boolean isLast_ = false;
-    public boolean rowsetContainsLastRow_ = false;
     public Sqlca[] rowsetSqlca_;
 
     // Gets its initial value from the statement when the result set is created.
@@ -172,8 +174,6 @@ public abstract class ResultSet implements java.sql.ResultSet,
     protected long firstRowInRowset_ = 0;       // absolute position of the first row in the current rowset
     protected long lastRowInRowset_ = 0;        // absolute position of the last row in the current rowset
     protected long currentRowInRowset_ = -1;     // relative position to the first row in the current rowsetwel
-
-    protected long absoluteRowNumberForTheIntendedRow_;
 
     private boolean isOnInsertRow_ = false;  // reserved for later
     protected boolean isOnCurrentRow_ = true;
@@ -254,8 +254,8 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 new SqlWarning(
                     agent_.logWriter_, 
                     new ClientMessageId(SQLState.INVALID_RESULTSET_TYPE),
-                        new Integer(statement_.resultSetType_),
-                        new Integer(resultSetType_)));
+                                        statement_.resultSetType_,
+                                        resultSetType_));
         }
 
         // Only set the warning if actual resultSetConcurrency returned by the server is
@@ -444,10 +444,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
             return;
         }
         closeOpenStreams();
-        // See if there are open locators on the current row, if valid.
-        if (isValidCursorPosition_ && !isOnInsertRow_) {
-            lobState.checkCurrentRow(cursor_);
-        }
+
         // NOTE: The preClose_ method must also check for locators if
         //       prefetching of data is enabled for result sets containing LOBs.
         preClose_();
@@ -459,6 +456,11 @@ public abstract class ResultSet implements java.sql.ResultSet,
             }
         } finally {
             markClosed(true);
+        }
+
+        // See if there are open locators on the current row, if valid.
+        if (isValidCursorPosition_ && !isOnInsertRow_) {
+            lobState.checkCurrentRow(cursor_);
         }
 
         if (statement_.openOnClient_ && statement_.isCatalogQuery_) {
@@ -526,11 +528,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
 
     void readClose() throws SqlException {
         try {
-            if (generatedSection_ == null) { // none call statement result set case
-                readCursorClose_();
-            } else { // call statement result set(s) case
-                readCursorClose_();
-            }
+            readCursorClose_();
         } finally {
             markClosed();
         }
@@ -1305,16 +1303,8 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 agent_.logWriter_.traceEntry(this, "getRef", column);
             }
             checkGetterPreconditions(column, "getRef");
-            java.sql.Ref result = isNull(column) ? null : cursor_.getRef(column);
-            if (true) {
-                throw new SqlException(agent_.logWriter_,
-                    new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
-            }
-            if (agent_.loggingEnabled()) {
-                agent_.logWriter_.traceExit(this, "getRef", result);
-            }
-            setWasNull(column);  // Placed close to the return to minimize risk of thread interference
-            return result;
+            throw new SqlException(agent_.logWriter_,
+                new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
         }
         catch ( SqlException se )
         {
@@ -1332,16 +1322,8 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 agent_.logWriter_.traceEntry(this, "getArray", column);
             }
             checkGetterPreconditions(column, "getArray");
-            java.sql.Array result = isNull(column) ? null : cursor_.getArray(column);
-            if (true) {
-                throw new SqlException(agent_.logWriter_,
-                    new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
-            }
-            if (agent_.loggingEnabled()) {
-                agent_.logWriter_.traceExit(this, "getArray", result);
-            }
-            setWasNull(column);  // Placed close to the return to minimize risk of thread interference
-            return result;
+            throw new SqlException(agent_.logWriter_,
+                new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED));
         }
         catch ( SqlException se )
         {
@@ -2340,8 +2322,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         }
         if (row > Integer.MAX_VALUE) {
             this.accumulateWarning(new SqlWarning(agent_.logWriter_, 
-                new ClientMessageId(SQLState.NUMBER_OF_ROWS_TOO_LARGE_FOR_INT),
-                new Long(row)));
+                new ClientMessageId(SQLState.NUMBER_OF_ROWS_TOO_LARGE_FOR_INT), row));
         }
         return (int) row;
     }
@@ -2635,8 +2616,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
                     break;
                 default:
                     throw new SqlException(agent_.logWriter_, 
-                        new ClientMessageId(SQLState.INVALID_FETCH_DIRECTION),
-                        new Integer(direction));
+                        new ClientMessageId(SQLState.INVALID_FETCH_DIRECTION), direction);
                 }
             }
         }
@@ -2671,8 +2651,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 checkForClosedResultSet("setFetchSize");
                 if (rows < 0 || (maxRows_ != 0 && rows > maxRows_)) {
                     throw new SqlException(agent_.logWriter_, 
-                        new ClientMessageId(SQLState.INVALID_FETCH_SIZE),
-                        new Integer(rows)).getSQLException();
+                        new ClientMessageId(SQLState.INVALID_FETCH_SIZE), rows).getSQLException();
                 }
                 setFetchSize_(rows);
             }
@@ -2804,8 +2783,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
                 checkUpdatePreconditions(column, "updateNull");
                 if (!resultSetMetaData_.nullable_[column - 1]) {
                     throw new SqlException(agent_.logWriter_, 
-                        new ClientMessageId(SQLState.LANG_NULL_INTO_NON_NULL),
-                        new Integer(column));
+                        new ClientMessageId(SQLState.LANG_NULL_INTO_NON_NULL), column);
                 }
                 updateColumn(column, null);
             }
@@ -4749,7 +4727,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         if (column < 1 || column > resultSetMetaData_.columns_) {
             throw new SqlException(agent_.logWriter_, 
                 new ClientMessageId(SQLState.LANG_INVALID_COLUMN_POSITION),
-                new Integer(column), new Integer(resultSetMetaData_.columns_));
+                                    column, resultSetMetaData_.columns_);
         }
     }
 
@@ -5647,7 +5625,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         if(length > Integer.MAX_VALUE)
                 throw new SqlException(agent_.logWriter_,
                     new ClientMessageId(SQLState.CLIENT_LENGTH_OUTSIDE_RANGE_FOR_DATATYPE),
-                    new Long(length), new Integer(Integer.MAX_VALUE)).getSQLException();
+                        length, Integer.MAX_VALUE).getSQLException();
         else
             updateAsciiStream(columnIndex,x,(int)length);
     }
@@ -5711,7 +5689,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
          if(length > Integer.MAX_VALUE)
                 throw new SqlException(agent_.logWriter_,
                     new ClientMessageId(SQLState.CLIENT_LENGTH_OUTSIDE_RANGE_FOR_DATATYPE),
-                    new Long(length), new Integer(Integer.MAX_VALUE)).getSQLException();
+                        length, Integer.MAX_VALUE).getSQLException();
         else
             updateBinaryStream(columnIndex,x,(int)length);
 
@@ -5812,7 +5790,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
         if(length > Integer.MAX_VALUE)
                 throw new SqlException(agent_.logWriter_,
                     new ClientMessageId(SQLState.CLIENT_LENGTH_OUTSIDE_RANGE_FOR_DATATYPE),
-                    new Long(length), new Integer(Integer.MAX_VALUE)).getSQLException();
+                        length, Integer.MAX_VALUE).getSQLException();
         else
             updateCharacterStream(columnIndex,x,(int)length);
     }

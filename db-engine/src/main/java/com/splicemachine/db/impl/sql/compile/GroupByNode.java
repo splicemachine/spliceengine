@@ -52,6 +52,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfoList;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.*;
@@ -240,7 +241,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
         // RESOLVE: NEED TO FACTOR IN THE COST OF GROUPING (SORTING) HERE
-        CostEstimate childCost=((Optimizable)childResult).optimizeIt(
+        ((Optimizable)childResult).optimizeIt(
                 optimizer,
                 predList,
                 outerCost,
@@ -608,9 +609,12 @@ public class GroupByNode extends SingleChildResultSetNode{
                             ** any predicates at all.
                             */
                             else if(!selectHasPredicates){
-                                fbt.disableBulkFetch();
-                                fbt.doSpecialMaxScan();
-                                singleInputRowOptimization=true;
+                                // we have make the choice during costing whether to pick SpecialMaxScan
+                                if (accessPath.getSpecialMaxScan()) {
+                                    fbt.disableBulkFetch();
+                                    fbt.doSpecialMaxScan();
+                                    singleInputRowOptimization = true;
+                                }
                             }
                         }
                     }else if(an.getOperand() instanceof ConstantNode){
@@ -761,7 +765,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                     C_NodeTypes.VIRTUAL_COLUMN_NODE,
                     this, // source result set.
                     gbRC,
-                    new Integer(groupByRCL.size()), //sometimes the boxing is needed to make it compile
+                    Integer.valueOf(groupByRCL.size()), //sometimes the boxing is needed to make it compile
                     getContextManager());
 
             // we replace each group by expression
@@ -897,7 +901,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                 C_NodeTypes.VIRTUAL_COLUMN_NODE,
                 this,
                 gbRC,
-                new Integer(groupByRCL.size()),
+                groupByRCL.size(),
                 getContextManager());
 
             groupingIdColumns.put(numElements - i - 1, vc);
@@ -947,7 +951,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                 C_NodeTypes.VIRTUAL_COLUMN_NODE,
                 this, // source result set.
                 gbRC,
-                new Integer(groupByRCL.size()), //sometimes the boxing is needed to make it compile
+                groupByRCL.size(), //sometimes the boxing is needed to make it compile
                 getContextManager());
 
         addGroupingIdColumnsForNativeSpark();
@@ -1405,6 +1409,7 @@ public class GroupByNode extends SingleChildResultSetNode{
      * we'll process those expressions in the order: a*(a+b),
      * a+b+c, a+b, then a.
      */
+    @SuppressFBWarnings(value="SE_COMPARATOR_SHOULD_BE_SERIALIZABLE", justification="DB-9367")
     private static final class ExpressionSorter implements Comparator<SubstituteExpressionVisitor>{
         @Override
         public int compare(SubstituteExpressionVisitor o1,SubstituteExpressionVisitor o2){
@@ -1430,14 +1435,31 @@ public class GroupByNode extends SingleChildResultSetNode{
     }
 
     @Override
-    public String printExplainInformation(String attrDelim, int order) throws StandardException {
+    public String printExplainInformation(String attrDelim) throws StandardException {
         StringBuilder sb = new StringBuilder();
         sb = sb.append(spaceToLevel())
                 .append("GroupBy").append("(")
-                .append("n=").append(order);
+                .append("n=").append(getResultSetNumber());
         sb.append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
         sb = sb.append(")");
         return sb.toString();
+    }
+
+    public HashSet<String> getNoStatsColumns() throws StandardException {
+        assert costEstimate != null : "Trying to get columns missing statistic but there is no cost estimation.";
+
+        HashSet<String> noStatsColumns = new HashSet<>();
+        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+        for (OrderedColumn oc : groupingList) {
+            oc.accept(cnv);
+        }
+        // we do not need stats on columns inside aggregate functions, no need to visit them
+        List<ColumnReference> columnRefNodes = cnv.getList();
+        for (ColumnReference cr : columnRefNodes) {
+            if (!cr.useRealColumnStatistics())
+                noStatsColumns.add(cr.getSource().getSchemaName() + "." + cr.getSource().getFullName());
+        }
+        return noStatsColumns;
     }
 
 }

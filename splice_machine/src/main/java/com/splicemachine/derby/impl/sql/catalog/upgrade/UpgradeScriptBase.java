@@ -54,24 +54,11 @@ public class UpgradeScriptBase implements UpgradeScript {
     protected void upgradeSystemTables() throws StandardException {
     }
 
-    protected void upgradeSystemProcedures() throws StandardException{
-        if(LOG.isInfoEnabled()) LOG.info("Upgrading system procedures");
-        sdd.createOrUpdateAllSystemProcedures(tc);
-    }
-
     protected void upgradeSystemFunctions() throws StandardException {
 
     }
-
-    protected void upgradeSystemStoredStatements() throws StandardException {
-        if(LOG.isInfoEnabled()) LOG.info("Updating system prepared statements");
-        sdd.updateMetadataSPSes(tc);
-    }
-
     public void run() throws StandardException{
     	upgradeSystemTables();
-    	upgradeSystemProcedures();
     	upgradeSystemFunctions();
-    	upgradeSystemStoredStatements();
     }
 }

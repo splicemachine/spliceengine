@@ -55,6 +55,11 @@ public class OrderByIT extends SpliceUnitTest {
                         row(1,2,1,1,1)))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table t2 (a1 int)")
+                .withInsert("insert into t2 values (?)")
+                .withRows( rows( row(1), row(2), row(3), row(4), row(5) ))
+                .create();
         conn.commit();
     }
 
@@ -377,4 +382,60 @@ public class OrderByIT extends SpliceUnitTest {
         rs.close();
     }
 
+    @Test
+    public void testAliasInOrderComplex() throws Exception {
+        String sqlText = "select sum(a1) as ALIAS from t2 order by -ALIAS";
+        String expected = "ALIAS |\n" +
+                         "--------\n" +
+                         "  15   |" ;
+        SqlExpectToString( methodWatcher, sqlText, expected, false );
+
+        sqlText = "select sqrt(a1*a1)*2 as ALIAS from t2 order by -2*ALIAS+a1";
+        expected = "ALIAS |\n" +
+                  "--------\n" +
+                  " 10.0  |\n" +
+                  "  8.0  |\n" +
+                  "  6.0  |\n" +
+                  "  4.0  |\n" +
+                  "  2.0  |";
+        SqlExpectToString( methodWatcher, sqlText, expected, false );
+    }
+
+    @Test
+    public void testAliasInOrderSimple() throws Exception {
+        // use these TWO order by to make sure ResultColumnList correctly calculates getFirstOrderByIndex.
+        String sqlText = "select a1 as ALIAS from t2 order by -ALIAS, -2*ALIAS";
+        String expected = "ALIAS |\n--------\n   5   |\n   4   |\n   3   |\n   2   |\n   1   |";
+        SqlExpectToString( methodWatcher, sqlText, expected, false );
+    }
+
+    // make sure we disable access to alias for WHERE, HAVING and GROUP BY
+    @Test
+    public void testUsingAliasOnlyInOrderBy() throws Exception {
+        String sqlTexts[] =
+                {       "select a1+1 as ALIAS from t2 WHERE ALIAS > 0 ORDER BY -ALIAS",
+                        "select a1+1 as ALIAS from t2 GROUP BY ALIAS ORDER BY -ALIAS",
+                        "select a1, sum(b1+1) as ALIAS from t1 GROUP BY a1 HAVING ALIAS > 0 ORDER BY -ALIAS"
+                        };
+        for( String sqlText : sqlTexts ) {
+            SqlExpectException( methodWatcher, sqlText, "42X04" );
+        }
+    }
+    // avoid that we refer an alias on the more left hand side inside the same select
+    @Test
+    public void testAliasNoLeftToRightReferal() throws Exception {
+        SqlExpectException( methodWatcher, "select a1*2 as ALIAS1, ALIAS1+1 as ALIAS2 from t2 order by -ALIAS2", "42X04" );
+    }
+
+    @Test
+    public void testOrderByOutOfRangeOrdinalPosition() throws Exception {
+        String sqlTexts[] =
+                {       "select a1 from t2 ORDER BY -1",
+                        "select a1 from t2 ORDER BY 0",
+                        "select a1 from t2 ORDER BY 2"
+                };
+        for( String sqlText : sqlTexts ) {
+            SqlExpectException( methodWatcher, sqlText, "42X77" );
+        }
+    }
 }

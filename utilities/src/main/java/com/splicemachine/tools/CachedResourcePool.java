@@ -14,8 +14,8 @@
 
 package com.splicemachine.tools;
 
-import org.spark_project.guava.base.Preconditions;
-import org.spark_project.guava.cache.*;
+import com.google.common.base.Preconditions;
+import com.google.common.cache.*;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;

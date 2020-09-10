@@ -20,6 +20,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.Transactions;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -34,7 +35,7 @@ import java.sql.Statement;
  * @author Scott Fines
  * Date: 8/27/14
  */
-@Category({Transactions.class})
+@Category({Transactions.class, LongerThanTwoMinutes.class})
 public class IndexTransactionIT {
 
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(IndexTransactionIT.class.getSimpleName().toUpperCase());

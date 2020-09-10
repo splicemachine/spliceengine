@@ -20,11 +20,14 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
+import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
+
 import java.io.IOException;
 
 /**
@@ -32,7 +35,8 @@ import java.io.IOException;
  *         Date: 12/28/15
  */
 public class HPartitionCreator implements PartitionCreator{
-    private HTableDescriptor descriptor;
+    private TableDescriptorBuilder descriptorBuilder;
+    private TableName tableName;
     private final Connection connection;
     private final HColumnDescriptor userDataFamilyDescriptor;
     private final Clock clock;
@@ -50,45 +54,57 @@ public class HPartitionCreator implements PartitionCreator{
 
     @Override
     public PartitionCreator withName(String name){
-        descriptor = new HTableDescriptor(tableInfoFactory.getTableInfo(name));
+        assert tableName == null;
+        tableName = tableInfoFactory.getTableInfo(name);
+        descriptorBuilder = TableDescriptorBuilder.newBuilder(tableName);
         return this;
     }
 
     @Override
     public PartitionCreator withDisplayNames(String[] displayNames){
+        assert descriptorBuilder!=null: "Programmer error: must specify name first!";
         if (displayNames[0] != null) {
-            descriptor.setValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, displayNames[0]);
+            descriptorBuilder.setValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR, displayNames[0]);
         }
-        descriptor.setValue(SIConstants.TABLE_DISPLAY_NAME_ATTR, displayNames[1] != null ? displayNames[1] : descriptor.getNameAsString());
+        descriptorBuilder.setValue(SIConstants.TABLE_DISPLAY_NAME_ATTR, displayNames[1] != null ? displayNames[1] : tableName.getNameAsString());
         if (displayNames[2] != null) {
-            descriptor.setValue(SIConstants.INDEX_DISPLAY_NAME_ATTR, displayNames[2]);
+            descriptorBuilder.setValue(SIConstants.INDEX_DISPLAY_NAME_ATTR, displayNames[2]);
         }
         return this;
     }
 
     @Override
     public PartitionCreator withPartitionSize(long partitionSize){
-        descriptor.setMaxFileSize(partitionSize*1024*1024);
+        assert descriptorBuilder!=null: "Programmer error: must specify name first!";
+        descriptorBuilder.setMaxFileSize(partitionSize*1024*1024);
         return this;
     }
 
     @Override
     public PartitionCreator withCoprocessor(String coprocessor) throws IOException{
-        assert descriptor!=null: "Programmer error: must specify name first!";
-        descriptor.addCoprocessor(coprocessor);
+        assert descriptorBuilder!=null: "Programmer error: must specify name first!";
+        descriptorBuilder.setCoprocessor(coprocessor);
         return this;
     }
 
     @Override
     public PartitionCreator withTransactionId(long txnId) throws IOException {
-        descriptor.setValue(SIConstants.TRANSACTION_ID_ATTR, Long.toString(txnId));
+        assert descriptorBuilder!=null: "Programmer error: must specify name first!";
+        descriptorBuilder.setValue(SIConstants.TRANSACTION_ID_ATTR, Long.toString(txnId));
+        return this;
+    }
+
+    @Override
+    public PartitionCreator withCatalogVersion(String version) {
+        descriptorBuilder.setValue(SIConstants.CATALOG_VERSION_ATTR, version);
         return this;
     }
 
     @Override
     public Partition create() throws IOException{
-        assert descriptor!=null: "No table to create!";
-        descriptor.addFamily(userDataFamilyDescriptor);
+        assert descriptorBuilder!=null: "No table to create!";
+        descriptorBuilder.setColumnFamily(userDataFamilyDescriptor);
+        TableDescriptor descriptor = descriptorBuilder.build();
         try(Admin admin = connection.getAdmin()){
             if (splitKeys == null) {
                 admin.createTable(descriptor);
@@ -98,11 +114,11 @@ public class HPartitionCreator implements PartitionCreator{
             }
 
         }
-        TableName tableName=descriptor.getTableName();
         return new ClientPartition(connection,tableName,connection.getTable(tableName),clock,partitionInfoCache);
     }
 
     @Override
+    @SuppressFBWarnings(value="EI_EXPOSE_REP2", justification="DB-9371")
     public PartitionCreator withSplitKeys(byte[][] splitKeys) {
         this.splitKeys = splitKeys;
         return this;

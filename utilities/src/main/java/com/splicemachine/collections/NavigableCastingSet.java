@@ -14,9 +14,9 @@
 
 package com.splicemachine.collections;
 
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.collect.Iterators;
+import com.google.common.base.Function;
+import com.google.common.collect.Collections2;
+import com.google.common.collect.Iterators;
 import java.util.*;
 
 /**

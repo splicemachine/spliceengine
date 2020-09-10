@@ -24,6 +24,7 @@ your cluster contains the prerequisite software components:
 * YARN installed
 * ZooKeeper installed
 * Spark 2 installed
+* Kafka installed
 * Ensure that Phoenix services are **NOT** installed on your cluster, as
   they interfere with Splice Machine HBase settings.
 
@@ -99,9 +100,13 @@ Follow the steps to install splicemachine server.
 
 (5)
 
-| Custom hdfs-site Property   | Value   |
-|---------------------------- |-------  |
-| dfs.datanode.handler.count  | 20      |
+| Custom hdfs-site Property                                  | Value   |
+|----------------------------------------------------------- |-------  |
+| dfs.datanode.handler.count                                 | 20      |
+| dfs.client.block.write.retries                             | 6       |
+| dfs.client.block.write.locateFollowingBlock.retries        | 10      |
+| dfs.client.block.write.replace-datanode-on-failure.policy  | ALWAYS  |
+| dfs.namenode.replication.min                               | 2       |
 
 ### YARN Configuration
 
@@ -210,6 +215,7 @@ Note:
 | splice.client.write.maxDependentWrites                | 60000                                                                                                     |
 | splice.client.write.maxIndependentWrites              | 60000                                                                                                     |
 | splice.compression                                    | snappy                                                                                                    |
+| splice.kafka.bootstrapServers                         | < Hostname of Kafka server in this environment >:9092                                                       |
 | splice.marshal.kryoPoolSize                           | 1100                                                                                                      |
 | splice.olap_server.clientWaitTime                     | 900000                                                                                                    |
 | splice.ring.bufferSize                                | 131072                                                                                                    |
@@ -308,7 +314,7 @@ export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS {% if hbase_max_direct_memory_size 
  export HBASE_CLASSPATH_PREFIX=/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/3.1.0.0-78/phoenix/lib/phoenix-core-5.0.0.3.1.0.0-78.jar
  fi
 #Add Splice Specific Information to HBase Master
- export HBASE_MASTER_OPTS="${HBASE_MASTER_OPTS} -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn -Dsplice.spark.submit.deployMode=client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true -Dsplice.spark.reducer.maxReqSizeShuffleToMem=134217728 -Dsplice.spark.yarn.am.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.yarn.am.extraJavaOptions=-Dhdp.version=3.1.0.0-78 -Dsplice.spark.driver.extraJavaOptions=-Dhdp.version=3.1.0.0-78 -Dsplice.spark.driver.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.driver.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=2 -Dsplice.spark.executor.memory=2g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.executor.userClassPathFirst=true -Dsplice.spark.driver.userClassPathFirst=true -Dsplice.spark.executor.extraJavaOptions=-Dhdp.version=3.1.0.0-78 -Dsplice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*:/usr/hdp/3.1.0.0-78/hadoop-mapreduce/* -Dsplice.spark.yarn.jars=/usr/hdp/3.1.0.0-78/spark2/jars/*"
+ export HBASE_MASTER_OPTS="${HBASE_MASTER_OPTS} -Dsplice.spark.enabled=true -Dsplice.spark.app.name=SpliceMachine -Dsplice.spark.master=yarn -Dsplice.spark.submit.deployMode=client -Dsplice.spark.logConf=true -Dsplice.spark.yarn.maxAppAttempts=1 -Dsplice.spark.driver.maxResultSize=1g -Dsplice.spark.driver.cores=2 -Dsplice.spark.yarn.am.memory=1g -Dsplice.spark.dynamicAllocation.enabled=true -Dsplice.spark.dynamicAllocation.executorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.cachedExecutorIdleTimeout=120 -Dsplice.spark.dynamicAllocation.minExecutors=0 -Dsplice.spark.kryo.referenceTracking=false -Dsplice.spark.kryo.registrator=com.splicemachine.derby.impl.SpliceSparkKryoRegistrator -Dsplice.spark.kryoserializer.buffer.max=512m -Dsplice.spark.kryoserializer.buffer=4m -Dsplice.spark.locality.wait=100 -Dsplice.spark.memory.fraction=0.5 -Dsplice.spark.scheduler.mode=FAIR -Dsplice.spark.serializer=org.apache.spark.serializer.KryoSerializer -Dsplice.spark.shuffle.compress=false -Dsplice.spark.shuffle.file.buffer=128k -Dsplice.spark.shuffle.service.enabled=true -Dsplice.spark.reducer.maxReqSizeShuffleToMem=134217728 -Dsplice.spark.yarn.am.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.yarn.am.waitTime=10s -Dsplice.spark.yarn.executor.memoryOverhead=2048 -Dsplice.spark.yarn.am.extraJavaOptions=-Dhdp.version=3.1.0.0-78 -Dsplice.spark.driver.extraJavaOptions=-Dhdp.version=3.1.0.0-78 -Dsplice.spark.driver.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.driver.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar -Dsplice.spark.ui.retainedJobs=100 -Dsplice.spark.ui.retainedStages=100 -Dsplice.spark.worker.ui.retainedExecutors=100 -Dsplice.spark.worker.ui.retainedDrivers=100 -Dsplice.spark.streaming.ui.retainedBatches=100 -Dsplice.spark.executor.cores=2 -Dsplice.spark.executor.memory=2g -Dspark.compaction.reserved.slots=4 -Dsplice.spark.eventLog.enabled=true -Dsplice.spark.eventLog.dir=hdfs:///user/splice/history -Dsplice.spark.local.dir=/tmp -Dsplice.spark.executor.userClassPathFirst=true -Dsplice.spark.driver.userClassPathFirst=true -Dsplice.spark.executor.extraJavaOptions=-Dhdp.version=3.1.0.0-78 -Dsplice.spark.executor.extraLibraryPath=/usr/hdp/current/hadoop-client/lib/native -Dsplice.spark.executor.extraClassPath=/usr/hdp/current/hbase-regionserver/conf:/usr/hdp/current/hbase-regionserver/lib/htrace-core-3.1.0-incubating.jar:/var/lib/splicemachine/*:/usr/hdp/3.1.0.0-78/spark2/jars/*:/usr/hdp/current/hbase-master/lib/*:/usr/hdp/3.1.0.0-78/kafka/libs/*:/usr/hdp/3.1.0.0-78/hadoop-mapreduce/* -Dsplice.spark.yarn.jars=/usr/hdp/3.1.0.0-78/spark2/jars/*"
 #Add Splice Specific Information to Region Server
  export HBASE_REGIONSERVER_OPTS="${HBASE_REGIONSERVER_OPTS} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=10102" 
  ```
@@ -323,6 +329,10 @@ Check the location of your hdp version if not 3.1.0.0-78, update the locations t
 
 7. Restart all the services affected to start Splice Machine!
 
+### Kafka Maintenance Installation
+
+See the [splice_spark2 README](../../../splice_spark2/README.md) for instructions for setting up the Kafka Maintenance 
+process in a bare metal installation.
 
 ## Start any Additional Services
 

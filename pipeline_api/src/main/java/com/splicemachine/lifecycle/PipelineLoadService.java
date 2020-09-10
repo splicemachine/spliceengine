@@ -15,7 +15,7 @@
 package com.splicemachine.lifecycle;
 
 import com.splicemachine.pipeline.security.AclChecker;
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.pipeline.*;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;

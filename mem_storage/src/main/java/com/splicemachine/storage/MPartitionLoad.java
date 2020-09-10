@@ -26,17 +26,17 @@ public class MPartitionLoad implements PartitionLoad{
     }
 
     @Override
-    public int getStorefileSizeMB(){
+    public long getStorefileSize(){
         return 0;
     }
 
     @Override
-    public int getMemStoreSizeMB(){
+    public long getMemStoreSize(){
         return 1;
     }
 
     @Override
-    public int getStorefileIndexSizeMB(){
+    public long getStorefileIndexSize(){
         return 0;
     }
 

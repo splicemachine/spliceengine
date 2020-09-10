@@ -49,99 +49,99 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import java.util.List;
 
 public class GenericAuthorizer implements Authorizer {
-	//
-	//Enumerations for user access levels.
-	private static final int NO_ACCESS = 0;
-	private static final int READ_ACCESS = 1;
-	private static final int FULL_ACCESS = 2;
-	
-	//
-	//Configurable userAccessLevel - derived from Database level
-	//access control lists + database boot time controls.
-	private int userAccessLevel;
+    //
+    //Enumerations for user access levels.
+    private static final int NO_ACCESS = 0;
+    private static final int READ_ACCESS = 1;
+    private static final int FULL_ACCESS = 2;
 
-	//
-	//Connection's readOnly status
+    //
+    //Configurable userAccessLevel - derived from Database level
+    //access control lists + database boot time controls.
+    private int userAccessLevel;
+
+    //
+    //Connection's readOnly status
     boolean readOnlyConnection;
 
-	private final LanguageConnectionContext lcc;
-	
+    private final LanguageConnectionContext lcc;
+
     public GenericAuthorizer(LanguageConnectionContext lcc)
-		 throws StandardException
-	{
-		this.lcc = lcc;
+         throws StandardException
+    {
+        this.lcc = lcc;
 
-		refresh();
-	}
+        refresh();
+    }
 
-	/*
-	  Return true if the connection must remain readOnly
-	  */
-	private boolean connectionMustRemainReadOnly()
-	{
-		return lcc.getDatabase().isReadOnly() ||
-				(userAccessLevel == READ_ACCESS);
-	}
+    /*
+      Return true if the connection must remain readOnly
+      */
+    private boolean connectionMustRemainReadOnly()
+    {
+        return lcc.getDatabase().isReadOnly() ||
+                (userAccessLevel == READ_ACCESS);
+    }
 
-	/**
-	  Used for operations that do not involve tables or routines.
+    /**
+      Used for operations that do not involve tables or routines.
      
-	  @see Authorizer#authorize
-	  @exception StandardException Thrown if the operation is not allowed
-	*/
-	public void authorize( int operation) throws StandardException
-	{
-		authorize( (Activation) null, operation);
-	}
+      @see Authorizer#authorize
+      @exception StandardException Thrown if the operation is not allowed
+    */
+    public void authorize( int operation) throws StandardException
+    {
+        authorize( (Activation) null, operation);
+    }
 
-	@Override
-	public boolean canSeeSchema(Activation activation, String schemaName, String authorizationId) {
-		return true;
-	}
+    @Override
+    public boolean canSeeSchema(Activation activation, String schemaName, String authorizationId) {
+        return true;
+    }
 
-	/**
-	  @see Authorizer#authorize
-	  @exception StandardException Thrown if the operation is not allowed
-	 */
-	public void authorize( Activation activation, int operation) throws StandardException
-	{
-		int sqlAllowed = lcc.getStatementContext().getSQLAllowed();
+    /**
+      @see Authorizer#authorize
+      @exception StandardException Thrown if the operation is not allowed
+     */
+    public void authorize( Activation activation, int operation) throws StandardException
+    {
+        int sqlAllowed = lcc.getStatementContext().getSQLAllowed();
 
-		switch (operation)
-		{
-		case Authorizer.SQL_ARBITARY_OP:
-		case Authorizer.SQL_CALL_OP:
-			if (sqlAllowed == RoutineAliasInfo.NO_SQL)
-				throw externalRoutineException(operation, sqlAllowed);
-			break;
-		case Authorizer.SQL_SELECT_OP:
-			if (sqlAllowed > RoutineAliasInfo.READS_SQL_DATA)
-				throw externalRoutineException(operation, sqlAllowed);
-			break;
+        switch (operation)
+        {
+        case Authorizer.SQL_ARBITARY_OP:
+        case Authorizer.SQL_CALL_OP:
+            if (sqlAllowed == RoutineAliasInfo.NO_SQL)
+                throw externalRoutineException(operation, sqlAllowed);
+            break;
+        case Authorizer.SQL_SELECT_OP:
+            if (sqlAllowed > RoutineAliasInfo.READS_SQL_DATA)
+                throw externalRoutineException(operation, sqlAllowed);
+            break;
 
-		// SQL write operations
-		case Authorizer.SQL_WRITE_OP:
-		case Authorizer.PROPERTY_WRITE_OP:
-			if (isReadOnlyConnection())
-				throw StandardException.newException(SQLState.AUTH_WRITE_WITH_READ_ONLY_CONNECTION);
-			if (sqlAllowed > RoutineAliasInfo.MODIFIES_SQL_DATA)
-				throw externalRoutineException(operation, sqlAllowed);
-			break;
+        // SQL write operations
+        case Authorizer.SQL_WRITE_OP:
+        case Authorizer.PROPERTY_WRITE_OP:
+            if (isReadOnlyConnection())
+                throw StandardException.newException(SQLState.AUTH_WRITE_WITH_READ_ONLY_CONNECTION);
+            if (sqlAllowed > RoutineAliasInfo.MODIFIES_SQL_DATA)
+                throw externalRoutineException(operation, sqlAllowed);
+            break;
 
-		// SQL DDL operations
-		case Authorizer.JAR_WRITE_OP:
-		case Authorizer.SQL_DDL_OP:
- 			if (isReadOnlyConnection())
-				throw StandardException.newException(SQLState.AUTH_DDL_WITH_READ_ONLY_CONNECTION);
+        // SQL DDL operations
+        case Authorizer.JAR_WRITE_OP:
+        case Authorizer.SQL_DDL_OP:
+             if (isReadOnlyConnection())
+                throw StandardException.newException(SQLState.AUTH_DDL_WITH_READ_ONLY_CONNECTION);
 
-			if (sqlAllowed > RoutineAliasInfo.MODIFIES_SQL_DATA)
-				throw externalRoutineException(operation, sqlAllowed);
-			break;
+            if (sqlAllowed > RoutineAliasInfo.MODIFIES_SQL_DATA)
+                throw externalRoutineException(operation, sqlAllowed);
+            break;
 
-		default:
-			if (SanityManager.DEBUG)
-				SanityManager.THROWASSERT("Bad operation code "+operation);
-		}
+        default:
+            if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT("Bad operation code "+operation);
+        }
         if( activation != null)
         {
             List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
@@ -149,12 +149,12 @@ public class GenericAuthorizer implements Authorizer {
             String dbo = dd.getAuthorizationDatabaseOwner();
             List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 
-            // Database Owner can access any object. Ignore 
+            // Database Owner can access any object. Ignore
             // requiredPermissionsList for Database Owner
             if( requiredPermissionsList != null    && 
                 !requiredPermissionsList.isEmpty() &&
-					!(lcc.getCurrentUserId(activation).equals(dbo)
-							|| (groupuserlist != null && groupuserlist.contains(dbo))))
+                    !(lcc.getCurrentUserId(activation).equals(dbo)
+                            || (groupuserlist != null && groupuserlist.contains(dbo))))
             {
 
                  /*
@@ -179,12 +179,12 @@ public class GenericAuthorizer implements Authorizer {
                   * conflict with parent locks.
                   */  
                 lcc.beginNestedTransaction(true);
-            	
+
                 try 
                 {
                     try 
                     {
-                    	// perform the permission checking
+                        // perform the permission checking
                         for (Object aRequiredPermissionsList : requiredPermissionsList) {
                             ((StatementPermission) aRequiredPermissionsList).check
                                     (lcc, false, activation);
@@ -196,125 +196,125 @@ public class GenericAuthorizer implements Authorizer {
                 } 
                 finally 
                 {
-                	// make sure we commit; otherwise, we will end up with 
-                	// mismatch nested level in the language connection context.
+                    // make sure we commit; otherwise, we will end up with
+                    // mismatch nested level in the language connection context.
                     lcc.commitNestedTransaction();
                 }
             }
         }
     }
 
-	public static StandardException externalRoutineException(int operation, int sqlAllowed) {
+    public static StandardException externalRoutineException(int operation, int sqlAllowed) {
 
-		String sqlState;
-		if (sqlAllowed == RoutineAliasInfo.READS_SQL_DATA)
-			sqlState = SQLState.EXTERNAL_ROUTINE_NO_MODIFIES_SQL;
-		else if (sqlAllowed == RoutineAliasInfo.CONTAINS_SQL)
-		{
-			switch (operation)
-			{
-			case Authorizer.SQL_WRITE_OP:
-			case Authorizer.PROPERTY_WRITE_OP:
-			case Authorizer.JAR_WRITE_OP:
-			case Authorizer.SQL_DDL_OP:
-				sqlState = SQLState.EXTERNAL_ROUTINE_NO_MODIFIES_SQL;
-				break;
-			default:
-				sqlState = SQLState.EXTERNAL_ROUTINE_NO_READS_SQL;
-				break;
-			}
-		}
-		else
-			sqlState = SQLState.EXTERNAL_ROUTINE_NO_SQL;
+        String sqlState;
+        if (sqlAllowed == RoutineAliasInfo.READS_SQL_DATA)
+            sqlState = SQLState.EXTERNAL_ROUTINE_NO_MODIFIES_SQL;
+        else if (sqlAllowed == RoutineAliasInfo.CONTAINS_SQL)
+        {
+            switch (operation)
+            {
+            case Authorizer.SQL_WRITE_OP:
+            case Authorizer.PROPERTY_WRITE_OP:
+            case Authorizer.JAR_WRITE_OP:
+            case Authorizer.SQL_DDL_OP:
+                sqlState = SQLState.EXTERNAL_ROUTINE_NO_MODIFIES_SQL;
+                break;
+            default:
+                sqlState = SQLState.EXTERNAL_ROUTINE_NO_READS_SQL;
+                break;
+            }
+        }
+        else
+            sqlState = SQLState.EXTERNAL_ROUTINE_NO_SQL;
 
-		return StandardException.newException(sqlState);
-	}
-	
+        return StandardException.newException(sqlState);
+    }
 
-	private void getUserAccessLevel() throws StandardException
-	{
-		userAccessLevel = NO_ACCESS;
-		if (userOnAccessList(Property.FULL_ACCESS_USERS_PROPERTY))
-			userAccessLevel = FULL_ACCESS;
 
-		if (userAccessLevel == NO_ACCESS &&
-			userOnAccessList(Property.READ_ONLY_ACCESS_USERS_PROPERTY))
-			userAccessLevel = READ_ACCESS;
+    private void getUserAccessLevel() throws StandardException
+    {
+        userAccessLevel = NO_ACCESS;
+        if (userOnAccessList(Property.FULL_ACCESS_USERS_PROPERTY))
+            userAccessLevel = FULL_ACCESS;
 
-		if (userAccessLevel == NO_ACCESS)
-			userAccessLevel = getDefaultAccessLevel();
-	}
+        if (userAccessLevel == NO_ACCESS &&
+            userOnAccessList(Property.READ_ONLY_ACCESS_USERS_PROPERTY))
+            userAccessLevel = READ_ACCESS;
 
-	private int getDefaultAccessLevel() throws StandardException
-	{
-		PersistentSet tc = lcc.getTransactionExecute();
+        if (userAccessLevel == NO_ACCESS)
+            userAccessLevel = getDefaultAccessLevel();
+    }
 
-		String modeS = (String)
-			PropertyUtil.getServiceProperty(
-									tc,
-									Property.DEFAULT_CONNECTION_MODE_PROPERTY);
-		if (modeS == null)
-			return FULL_ACCESS;
-		else if(StringUtil.SQLEqualsIgnoreCase(modeS, Property.NO_ACCESS))
-			return NO_ACCESS;
-		else if(StringUtil.SQLEqualsIgnoreCase(modeS, Property.READ_ONLY_ACCESS))
-			return READ_ACCESS;
-		else if(StringUtil.SQLEqualsIgnoreCase(modeS, Property.FULL_ACCESS))
-			return FULL_ACCESS;
-		else
-		{
-			if (SanityManager.DEBUG)
-				SanityManager.THROWASSERT("Invalid value for property "+
-										  Property.DEFAULT_CONNECTION_MODE_PROPERTY+
-										  " "+
-										  modeS);
- 			return FULL_ACCESS;
-		}
-	}
+    private int getDefaultAccessLevel() throws StandardException
+    {
+        PersistentSet tc = lcc.getTransactionExecute();
 
-	private boolean userOnAccessList(String listName) throws StandardException {
-		PersistentSet tc = lcc.getTransactionExecute();
-		//String listS = (String) PropertyUtil.getServiceProperty(tc, listName);
-		// XXX = TODO JLEACH: Fix This...
-		String listS = null;
+        String modeS = (String)
+            PropertyUtil.getServiceProperty(
+                                    tc,
+                                    Property.DEFAULT_CONNECTION_MODE_PROPERTY);
+        if (modeS == null)
+            return FULL_ACCESS;
+        else if(StringUtil.SQLEqualsIgnoreCase(modeS, Property.NO_ACCESS))
+            return NO_ACCESS;
+        else if(StringUtil.SQLEqualsIgnoreCase(modeS, Property.READ_ONLY_ACCESS))
+            return READ_ACCESS;
+        else if(StringUtil.SQLEqualsIgnoreCase(modeS, Property.FULL_ACCESS))
+            return FULL_ACCESS;
+        else
+        {
+            if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT("Invalid value for property "+
+                                          Property.DEFAULT_CONNECTION_MODE_PROPERTY+
+                                          " "+
+                                          modeS);
+             return FULL_ACCESS;
+        }
+    }
+
+    private boolean userOnAccessList(String listName) throws StandardException {
+        //PersistentSet tc = lcc.getTransactionExecute();
+        //String listS = (String) PropertyUtil.getServiceProperty(tc, listName);
+        // XXX = TODO JLEACH: Fix This...
+        String listS = null;
         return IdUtil.idOnList(lcc.getSessionUserId(),listS);
-	}
+    }
 
-	/**
-	  @see Authorizer#isReadOnlyConnection
-	 */
-	public boolean isReadOnlyConnection()
-	{
-		return readOnlyConnection;
-	}
+    /**
+      @see Authorizer#isReadOnlyConnection
+     */
+    public boolean isReadOnlyConnection()
+    {
+        return readOnlyConnection;
+    }
 
-	/**
-	  @see Authorizer#isReadOnlyConnection
-	  @exception StandardException Thrown if the operation is not allowed
-	 */
-	public void setReadOnlyConnection(boolean on, boolean authorize)
-		 throws StandardException
-	{
-		if (authorize && !on) {
-			if (connectionMustRemainReadOnly())
-				throw StandardException.newException(SQLState.AUTH_CANNOT_SET_READ_WRITE);
-		}
-		readOnlyConnection = on;
-	}
+    /**
+      @see Authorizer#isReadOnlyConnection
+      @exception StandardException Thrown if the operation is not allowed
+     */
+    public void setReadOnlyConnection(boolean on, boolean authorize)
+         throws StandardException
+    {
+        if (authorize && !on) {
+            if (connectionMustRemainReadOnly())
+                throw StandardException.newException(SQLState.AUTH_CANNOT_SET_READ_WRITE);
+        }
+        readOnlyConnection = on;
+    }
 
-	/**
-	  @see Authorizer#refresh
-	  @exception StandardException Thrown if the operation is not allowed
-	  */
-	public void refresh() throws StandardException
-	{
-		getUserAccessLevel();
-		if (!readOnlyConnection)
-			readOnlyConnection = connectionMustRemainReadOnly();
+    /**
+      @see Authorizer#refresh
+      @exception StandardException Thrown if the operation is not allowed
+      */
+    public void refresh() throws StandardException
+    {
+        getUserAccessLevel();
+        if (!readOnlyConnection)
+            readOnlyConnection = connectionMustRemainReadOnly();
 
-		// Is a connection allowed.
-		if (userAccessLevel == NO_ACCESS)
-			throw StandardException.newException(SQLState.AUTH_DATABASE_CONNECTION_REFUSED);
-	}
-	
+        // Is a connection allowed.
+        if (userAccessLevel == NO_ACCESS)
+            throw StandardException.newException(SQLState.AUTH_DATABASE_CONNECTION_REFUSED);
+    }
+
 }

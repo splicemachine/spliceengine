@@ -20,11 +20,11 @@ package com.splicemachine.access.client;
  *
  */
 public class MemstoreAware {
-    public boolean splitMerge = false;
-    public int totalFlushCount;
-    public int currentCompactionCount;
-    public int currentScannerCount;
-    public boolean flush = false;
+    public final boolean splitMerge;
+    public final int totalFlushCount;
+    public final int currentCompactionCount;
+    public final int currentScannerCount;
+    public final boolean flush;
 
     public MemstoreAware() {
         this.splitMerge = false;
@@ -42,37 +42,35 @@ public class MemstoreAware {
         this.flush = isFlushing;
     }
     
-    
+    public static MemstoreAware changeSplitMerge(MemstoreAware clone, boolean splitMerge) {
+        return new MemstoreAware(splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
+                clone.currentScannerCount,clone.flush);
+    }
 
-        public static MemstoreAware changeSplitMerge(MemstoreAware clone, boolean splitMerge) {
-            return new MemstoreAware(splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
-                    clone.currentScannerCount,clone.flush);
-        }
+    public static MemstoreAware changeFlush(MemstoreAware clone, boolean flush) {
+        return new MemstoreAware(clone.splitMerge, clone.totalFlushCount+1, clone.currentCompactionCount,
+                clone.currentScannerCount,flush);
+    }
 
-        public static MemstoreAware changeFlush(MemstoreAware clone, boolean flush) {
-            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount+1, clone.currentCompactionCount,
-                    clone.currentScannerCount,flush);
-        }
-       
-        public static MemstoreAware incrementCompactionCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount+1,
-                    clone.currentScannerCount,clone.flush);
-        }
+    public static MemstoreAware incrementCompactionCount(MemstoreAware clone) {
+        return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount+1,
+                clone.currentScannerCount,clone.flush);
+    }
 
-        public static MemstoreAware decrementCompactionCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount-1,
-                    clone.currentScannerCount,clone.flush);
-        }
+    public static MemstoreAware decrementCompactionCount(MemstoreAware clone) {
+        return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount-1,
+                clone.currentScannerCount,clone.flush);
+    }
 
-        public static MemstoreAware incrementScannerCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
-                    clone.currentScannerCount+1,clone.flush);
-        }
+    public static MemstoreAware incrementScannerCount(MemstoreAware clone) {
+        return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
+                clone.currentScannerCount+1,clone.flush);
+    }
 
-        public static MemstoreAware decrementScannerCount(MemstoreAware clone) {
-            return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
-                    clone.currentScannerCount-1,clone.flush);
-        }
+    public static MemstoreAware decrementScannerCount(MemstoreAware clone) {
+        return new MemstoreAware(clone.splitMerge, clone.totalFlushCount, clone.currentCompactionCount,
+                clone.currentScannerCount-1,clone.flush);
+    }
 
     @Override
     public String toString() {

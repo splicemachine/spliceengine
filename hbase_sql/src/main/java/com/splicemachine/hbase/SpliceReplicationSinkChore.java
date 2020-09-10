@@ -17,22 +17,22 @@ package com.splicemachine.hbase;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
-import com.splicemachine.replication.ReplicationStatus;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.joda.time.DateTime;
-
+import com.splicemachine.replication.ReplicationMessage.ReplicationStatus;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.*;
 
 /**
@@ -42,14 +42,14 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
 
     private static final Logger LOG = Logger.getLogger(SpliceReplicationSinkChore.class);
     Connection connection;
-    private Map<String, Long> replicationProgress = new HashMap<>();
+    private Map<String, Pair<Long,Long>> replicationProgress = new HashMap<>();
     private TableName masterSnapshotTable;
     private TableName replicationProgressTable;
     private RecoverableZooKeeper rzk;
     private String replicationPath;
     private String replicationPeerPath;
     private String replicationSourcePath;
-    private volatile boolean isReplicationSlave;
+    private volatile boolean isReplica;
     private ZKWatcher replicationSourceWatcher;
     private String peerId;
     private String masterQuorum;
@@ -67,7 +67,7 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
             connection = HBaseConnectionFactory.getInstance(HConfiguration.getConfiguration()).getConnection();
             String namespace = HConfiguration.getConfiguration().getNamespace();
             masterSnapshotTable = TableName.valueOf(namespace, HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME);
-            replicationProgressTable = TableName.valueOf(namespace, HBaseConfiguration.SLAVE_REPLICATION_PROGRESS_TABLE_NAME);
+            replicationProgressTable = TableName.valueOf(namespace, HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME);
             rzk = ZkUtils.getRecoverableZooKeeper();
             replicationPath = ReplicationUtils.getReplicationPath();
             replicationPeerPath = ReplicationUtils.getReplicationPeerPath();
@@ -75,8 +75,8 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
             while (rzk.exists(replicationPath, false) ==null) {
                 Thread.sleep(100);
             }
-            byte[] status = rzk.getData(replicationPath, new ReplicationSlaveWatcher(this), null);
-            isReplicationSlave = Bytes.compareTo(status, HBaseConfiguration.REPLICATION_SLAVE) == 0;
+            byte[] status = rzk.getData(replicationPath, new ReplicaWatcher(this), null);
+            isReplica = Bytes.compareTo(status, HBaseConfiguration.REPLICATION_REPLICA) == 0;
             initReplicationConfig();
         } catch (Exception e) {
             throw new IOException(e);
@@ -90,18 +90,18 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
             if (statusChanged) {
                 SpliceLogUtils.info(LOG, "status changed");
                 initReplicationConfig();
-                //ReplicationUtils.setReplicationRole("SLAVE");
+                //ReplicationUtils.setReplicationRole("REPLICA");
                 statusChanged = false;
             }
 
-            if (!isReplicationSlave)
+            if (!isReplica)
                 return;
 
 
             if (replicationProgress.size() == 0) {
                 getReplicationProgress(connection, replicationProgress);
                 //cleanupReplicationProgress(replicationProgress);
-                // If there is no entry in SLAVE_REPLICATION_PROGRESS, do nothing
+                // If there is no entry in REPLICA_REPLICATION_PROGRESS, do nothing
                 if (replicationProgress.size() == 0)
                     return;
             }
@@ -125,7 +125,7 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
             String walName = entry.getKey();
             int index = walName.lastIndexOf(".");
             String walGroup = walName.substring(0, index);
-            Long logNum = new Long(walName.substring(index+1));
+            Long logNum = Long.valueOf(walName.substring(index+1));
             if (regionGroupMap.containsKey(walGroup)) {
                 Long ln = regionGroupMap.get(walGroup);
                 if (logNum > ln) {
@@ -162,7 +162,7 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
      * @param replicationProgress
      * @throws IOException
      */
-    private void getReplicationProgress(Connection conn, Map<String, Long> replicationProgress) throws IOException {
+    private void getReplicationProgress(Connection conn, Map<String, Pair<Long, Long>> replicationProgress) throws IOException {
         Table progressTable = conn.getTable(replicationProgressTable);
         Get getReplicationProgress = new Get(HBaseConfiguration.REPLICATION_PROGRESS_ROWKEY_BYTES);
         Result r = progressTable.get(getReplicationProgress);
@@ -174,64 +174,41 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
             if(Arrays.equals(colName, HBaseConfiguration.REPLICATION_PROGRESS_TSCOL_BYTES)){
                 long latestTimestamp = Bytes.toLong(CellUtil.cloneValue(cell));
                 //if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.info(LOG, "timestamp = %d", latestTimestamp);
+                    SpliceLogUtils.info(LOG, "timestamp = %d, %s", latestTimestamp, new DateTime(latestTimestamp).toString());
                 //}
             }
             else {
-                String region = Bytes.toString(CellUtil.cloneQualifier(cell));
+                String walName = Bytes.toString(CellUtil.cloneQualifier(cell));
+                int index = walName.lastIndexOf(".");
+                String walGroup = walName.substring(0, index);
+                Long logNum = Long.valueOf(walName.substring(index + 1));
                 Long seqNum = Bytes.toLong(CellUtil.cloneValue(cell));
-                replicationProgress.put(region, seqNum);
+                replicationProgress.put(walGroup, new Pair<>(logNum,seqNum));
                 //if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.info(LOG, "replication progress: region=%s, seqNum=%s", region, seqNum);
+                    SpliceLogUtils.info(LOG, "replication progress: walGroup=%s, logNum= %d, seqNum=%d", walGroup, logNum, seqNum);
                 //}
             }
-        }
-    }
-
-    private void getReplicationProgress(Map<String, Long> replicationProgress) throws IOException {
-
-        try {
-            RecoverableZooKeeper rzk = replicationSourceWatcher.getRecoverableZooKeeper();
-            List<String> regionServers = rzk.getChildren(rootDir + "/replication/rs", false);
-            for (String rs: regionServers) {
-                String path = rootDir + "/replication/rs/" + rs + "/" + peerId;
-                if (rzk.exists(path, false) != null) {
-                    List<String> fileNames = rzk.getChildren(path, false);
-                    for (String fileName : fileNames) {
-                        try {
-                            byte[] pos = rzk.getData(path + "/" + fileName, false, null);
-                            long position = ZKUtil.parseWALPositionFrom(pos);
-                            replicationProgress.put(fileName, position);
-                        } catch (KeeperException.NoNodeException ne) {
-                            SpliceLogUtils.info(LOG, "Node %s does not exists because the log has completed " +
-                                    "replication. Ignore...");
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            throw new IOException(e);
         }
     }
 
     public void changeStatus() throws IOException{
-        byte[] status = ZkUtils.getData(replicationPath, new ReplicationSlaveWatcher(this), null);
+        byte[] status = ZkUtils.getData(replicationPath, new ReplicaWatcher(this), null);
         if (Bytes.compareTo(status, HBaseConfiguration.REPLICATION_NONE) == 0) {
             //ReplicationUtils.setReplicationRole("NONE");
         }
-        boolean wasReplicationSlave = isReplicationSlave;
-        isReplicationSlave = Bytes.compareTo(status, HBaseConfiguration.REPLICATION_SLAVE) == 0;
-        SpliceLogUtils.info(LOG, "isReplicationSlave changed from %s to %s", wasReplicationSlave, isReplicationSlave);
-        statusChanged = wasReplicationSlave!=isReplicationSlave;
+        boolean wasReplica = isReplica;
+        isReplica = Bytes.compareTo(status, HBaseConfiguration.REPLICATION_REPLICA) == 0;
+        SpliceLogUtils.info(LOG, "isReplica changed from %s to %s", wasReplica, isReplica);
+        statusChanged = wasReplica != isReplica;
     }
 
     private void initReplicationConfig() throws IOException {
-        SpliceLogUtils.info(LOG, "isReplicationSlave = %s", isReplicationSlave);
-        if (isReplicationSlave) {
-            String clusterKey = new String(ZkUtils.getData(replicationSourcePath));
+        SpliceLogUtils.info(LOG, "isReplica = %s", isReplica);
+        if (isReplica) {
+            String clusterKey = new String(ZkUtils.getData(replicationSourcePath), Charset.defaultCharset().name());
             byte[] replicationStatusBytes = ZkUtils.getData(replicationPeerPath);
             ReplicationStatus replicationStatus = ReplicationStatus.parseFrom(replicationStatusBytes);
-            peerId = Short.toString(replicationStatus.getPeerId());
+            peerId = Short.toString((short)replicationStatus.getPeerId());
             String[] s = clusterKey.split(":");
             masterQuorum = s[0] + ":" + s[1];
             rootDir = s[2];
@@ -259,7 +236,7 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
         try (ResultScanner scanner = snapshotTable.getScanner(scan)) {
             for (Result r : scanner) {
                 byte[] rowKey = r.getRow();
-                long timestamp = new Long(new String(rowKey));
+                long timestamp = Long.parseLong(new String(rowKey, Charset.defaultCharset().name()));
                 //if (LOG.isDebugEnabled()) {
                     SpliceLogUtils.info(LOG, "Checking snapshot taken at %d", timestamp);
                 //}
@@ -276,16 +253,28 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
                     }
                     else {
                         String walName = Bytes.toString(colName);
-                        Long position = Bytes.toLong(CellUtil.cloneValue(cell));
-                        if (replicationProgress.containsKey(walName)) {
-                            long appliedPosition = replicationProgress.get(walName);
+                        int index = walName.lastIndexOf(".");
+                        String walGroup = walName.substring(0, index);
+                        long logNum = Long.parseLong(walName.substring(index + 1));
+                        long position = Bytes.toLong(CellUtil.cloneValue(cell));
+                        if (replicationProgress.containsKey(walGroup)) {
+                            Pair<Long, Long> pair = replicationProgress.get(walGroup);
+                            long appliedLogNum = pair.getFirst();
+                            long appliedPosition = pair.getSecond();
                             //if (LOG.isDebugEnabled()) {
                             SpliceLogUtils.info(LOG,
-                                    "WAL=%s, snapshot=%d, progress=%d", walName, position, appliedPosition);
+                                    "WAL=%s, snapshot=%d, logNum=%d, progress=%d", walName, position,
+                                    appliedLogNum, appliedPosition);
                             //}
-                            if (appliedPosition < position) {
-                                // applied seqNum is behind snapshot seqNum,cannot move timestamp forward
+                            if (appliedLogNum < logNum){
+                                // it is still replicating older wals, cannot move timestamp forward
                                 return;
+                            }
+                            else if (logNum == appliedLogNum) {
+                                if (appliedPosition < position) {
+                                    // applied wal position is behind snapshot wal position,cannot move timestamp forward
+                                    return;
+                                }
                             }
                         }
                     }
@@ -308,15 +297,18 @@ public class SpliceReplicationSinkChore extends ScheduledChore {
     private void updateZkProgress(long ts) throws IOException {
         String peerPath = ReplicationUtils.getReplicationPeerPath();
         byte[] replicationStatusBytes = ZkUtils.getData(peerPath);
-        ReplicationStatus replicationStatus = ReplicationStatus.parseFrom(replicationStatusBytes);
-        replicationStatus.setReplicationProgress(ts);
-        replicationStatusBytes = replicationStatus.toBytes();
+        ReplicationStatus replicationStatus = ReplicationStatus.newBuilder()
+                .mergeFrom(ReplicationStatus.parseFrom(replicationStatusBytes))
+                .setReplicationProgress(ts)
+                .build();
+
+        replicationStatusBytes = replicationStatus.toByteArray();
         ZkUtils.setData(peerPath, replicationStatusBytes, -1);
     }
-    private static class ReplicationSlaveWatcher implements Watcher {
+    private static class ReplicaWatcher implements Watcher {
         private final SpliceReplicationSinkChore replicationProgressTrackerChore;
 
-        public ReplicationSlaveWatcher(SpliceReplicationSinkChore replicationProgressTrackerChore) {
+        public ReplicaWatcher(SpliceReplicationSinkChore replicationProgressTrackerChore) {
             this.replicationProgressTrackerChore = replicationProgressTrackerChore;
         }
 

@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -39,6 +41,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
@@ -57,25 +60,49 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
     public static final int CURRENT_TIME = 1;
     public static final int CURRENT_TIMESTAMP = 2;
 
-    static private final int jdbcTypeId[] = {
+    static private final int[] jdbcTypeId = {
         Types.DATE,
         Types.TIME,
         Types.TIMESTAMP
     };
-    static private final String methodName[] = { // used in toString only
+    static private final String[] methodName = {
         "CURRENT DATE",
         "CURRENT TIME",
-        "CURRENT TIMSTAMP"
+        "CURRENT TIMESTAMP"
     };
 
     private int whichType;
+
+    public CurrentDatetimeOperatorNode() {
+    }
+
+    public CurrentDatetimeOperatorNode(ContextManager cm) {
+        super(cm);
+    }
 
     public boolean isCurrentDate() { return whichType == CURRENT_DATE; }
     public boolean isCurrentTime() { return whichType == CURRENT_TIME; }
     public boolean isCurrentTimestamp() { return whichType == CURRENT_TIMESTAMP; }
 
     public void init(Object whichType) {
-        this.whichType = (Integer) whichType;
+        if (whichType instanceof Integer) {
+            this.whichType = (Integer) whichType;
+        } else {
+            assert whichType instanceof TypeId;
+            switch(((TypeId)whichType).getTypeFormatId()) {
+                case StoredFormatIds.DATE_TYPE_ID:
+                    this.whichType = CURRENT_DATE;
+                    break;
+                case StoredFormatIds.TIME_TYPE_ID:
+                    this.whichType = CURRENT_TIME;
+                    break;
+                case StoredFormatIds.TIMESTAMP_TYPE_ID:
+                    this.whichType = CURRENT_TIMESTAMP;
+                    break;
+                default:
+                    assert false;
+            }
+        }
 
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(this.whichType >= 0 && this.whichType <= 2);
@@ -175,20 +202,12 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
         print the non-node subfields
      */
     public String toString() {
-//        if (SanityManager.DEBUG)
-//        {
-            return "methodName: " + methodName[whichType] + "\n" +
-                super.toString();
-//        }
-//        else
-//        {
-//            return "";
-//        }
+        return "methodName: " + methodName[whichType] + "\n" + super.toString();
     }
         
-        /**
-         * {@inheritDoc}
-         */
+    /**
+     * {@inheritDoc}
+     */
     protected boolean isEquivalent(ValueNode o)
     {
         if (isSameNodeType(o))
@@ -227,5 +246,9 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
         // This node is immutable, so just return the node itself
         // as its own clone.
         return this;
+    }
+
+    public String getMethodName() {
+        return methodName[whichType];
     }
 }

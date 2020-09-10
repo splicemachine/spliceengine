@@ -22,11 +22,14 @@ import java.util.*;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.compactions.SpliceCompactionRequest;
 import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
+import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
@@ -40,6 +43,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.server.PurgeConfigBuilder;
 import com.splicemachine.si.impl.server.SICompactionState;
 import com.splicemachine.si.impl.server.PurgeConfig;
 import com.splicemachine.si.impl.server.SimpleCompactionContext;
@@ -83,11 +87,12 @@ import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.wal.WALEdit;
+import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Iterables;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Iterables;
+import splice.com.google.common.collect.Maps;
 
 import static com.splicemachine.si.constants.SIConstants.ENTRY_PREDICATE_LABEL;
 
@@ -104,11 +109,13 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     protected TransactionalRegion region;
     protected TableAuthManager authManager = null;
     protected boolean authTokenEnabled;
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
             SpliceLogUtils.trace(LOG, "starting %s", SIObserver.class);
+            optionalRegionObserver = Optional.of(this);
             RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment) e;
             TableName tableName = rce.getRegion().getTableDescriptor().getTableName();
             doesTableNeedSI(tableName);
@@ -149,6 +156,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     public void stop(CoprocessorEnvironment e) throws IOException{
         try {
             SpliceLogUtils.trace(LOG,"stopping %s",SIObserver.class);
+            optionalRegionObserver = Optional.empty();
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -195,13 +203,19 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            PurgeConfig purgeConfig;
+            PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
             if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                purgeConfig = PurgeConfig.purgeDuringFlushConfig();
+                purgeConfig.purgeDeletesDuringFlush();
             } else {
-                purgeConfig = PurgeConfig.noPurgeConfig();
+                purgeConfig.noPurgeDeletes();
             }
-            SICompactionScanner siScanner = new SICompactionScanner(state, scanner, purgeConfig, conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+            purgeConfig.transactionLowWatermark(TransactionsWatcher.getLowWatermarkTransaction());
+            purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
+            // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
+            // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
+            SICompactionScanner siScanner = new SICompactionScanner(
+                    state, scanner, purgeConfig.build(), conf.getFlushResolutionShare(),
+                    conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
         }else {
@@ -211,31 +225,26 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public InternalScanner preCompact(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, ScanType scanType, CompactionLifeCycleTracker tracker, CompactionRequest request) throws IOException {
+        assert request instanceof SpliceCompactionRequest;
         try {
-            if(tableEnvMatch && scanner != null){
+            // We can't return null, there's a check in org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost.preCompact
+            // return a dummy implementation instead
+            if (scanner == null || scanner == DummyScanner.INSTANCE)
+                return DummyScanner.INSTANCE;
+
+            if(tableEnvMatch){
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
-                boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
+                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
                 SConfiguration conf = driver.getConfiguration();
-                PurgeConfig purgeConfig;
-                if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                    if (request.isMajor())
-                        purgeConfig = PurgeConfig.purgeDuringMajorCompactionConfig();
-                    else
-                        purgeConfig = PurgeConfig.purgeDuringMinorCompactionConfig();
-                } else {
-                    purgeConfig = PurgeConfig.noPurgeConfig();
-                }
                 SICompactionScanner siScanner = new SICompactionScanner(
-                        state, scanner, purgeConfig,
-                        conf.getOlapCompactionResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
+                        state, scanner, ((SpliceCompactionRequest) request).getPurgeConfig(),
+                        conf.getOlapCompactionResolutionShare(), conf.getLocalCompactionResolutionBufferSize(), context);
                 siScanner.start();
                 return siScanner;
-            }else{
-                return scanner;
             }
+            return scanner;
         } catch (Throwable t) {
             throw CoprocessorUtils.getIOException(t);
         }
@@ -349,7 +358,7 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 
     protected boolean shouldUseSI(OperationWithAttributes op){
@@ -498,6 +507,27 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
         finally {
             if (in != null) {
                 in.close();
+            }
+        }
+    }
+
+    @Override
+    public void preWALRestore(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, WALKey logKey, WALEdit logEdit) throws IOException {
+        // DB-9895: HBase may replay a WAL edits that has been persisted in HFile. It could happen that a row with
+        // FIRST_WRITE_TOKE has already been persisted in an HFile. If the row is replayed to memstore and deleted,
+        // the row will be purged during flush. However, the row that already persisted in HFile is still visible.
+        // Remove FIRST_WRITE_TOKE during wal replay to prevent this from happening.
+        SConfiguration config = HConfiguration.getConfiguration();
+        String namespace = logKey.getTableName().getNamespaceAsString();
+        if (namespace.equals(config.getNamespace())) {
+            ArrayList<Cell> cells = logEdit.getCells();
+            Iterator<Cell> it = cells.iterator();
+            while (it.hasNext()) {
+                Cell cell = it.next();
+                CellType cellType = CellUtils.getKeyValueType(cell);
+                if (cellType == CellType.FIRST_WRITE_TOKEN) {
+                    it.remove();
+                }
             }
         }
     }

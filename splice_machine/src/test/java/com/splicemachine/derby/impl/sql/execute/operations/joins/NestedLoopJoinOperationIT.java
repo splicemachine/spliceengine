@@ -468,11 +468,38 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
                 "        FROM (select * from t4) S\n" +
                 "        UNION\n" +
                 "        SELECT *\n" +
-                "        FROM (select X.* from t4 as X, t4 as Y where X.a4=Y.a4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        FROM (select X.* from --splice-properties joinOrder=fixed\n" +
+                "t4 as Y, t4 as X --splice-properties joinStrategy=broadcast\n" +
+                " where X.a4=Y.a4) S) V --splice-properties joinStrategy=nestedloop\n" +
                 "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
         String expected = "B3 |\n" +
                 "----\n" +
                 " a |";
+
+        /* plan should looks like below where T3.A3[1:1] = S.A4[7:1] is pushed down
+        Plan
+        ----
+        Cursor(n=21,rows=182,updateMode=READ_ONLY (1),engine=OLTP (query hint))
+          ->  ScrollInsensitive(n=21,totalCost=1144.672,outputRows=182,outputHeapSize=964 B,partitions=1)
+            ->  ProjectRestrict(n=20,totalCost=981.824,outputRows=182,outputHeapSize=964 B,partitions=1)
+              ->  NestedLoopJoin(n=18,totalCost=981.824,outputRows=182,outputHeapSize=964 B,partitions=1)
+                ->  ProjectRestrict(n=17,totalCost=981.824,outputRows=182,outputHeapSize=964 B,partitions=1)
+                  ->  Distinct(n=16,totalCost=981.824,outputRows=182,outputHeapSize=964 B,partitions=1)
+                    ->  Union(n=14,totalCost=16.336,outputRows=18,outputHeapSize=60 B,partitions=2)
+                      ->  ProjectRestrict(n=11,totalCost=12.296,outputRows=16,outputHeapSize=56 B,partitions=1)
+                        ->  BroadcastJoin(n=9,totalCost=12.296,outputRows=16,outputHeapSize=56 B,partitions=1,preds=[(X.A4[9:2] = Y.A4[9:1])])
+                          ->  TableScan[T4(1712)](n=7,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=56 B,partitions=1,preds=[(T3.A3[1:1] = X.A4[7:1])])
+                          ->  TableScan[T4(1712)](n=5,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
+                      ->  TableScan[T4(1712)](n=2,totalCost=4.04,scannedRows=20,outputRows=2,outputHeapSize=4 B,partitions=1,preds=[(T3.A3[1:1] = T4.A4[2:1])])
+                ->  ProjectRestrict(n=1,totalCost=4.04,outputRows=10,outputHeapSize=20 B,partitions=1,preds=[like(B3[0:2], %) ])
+                  ->  TableScan[T3(1696)](n=0,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
+
+         */
+        rowContainsQuery(new int[]{9, 10, 11, 12}, "explain " + sql, methodWatcher,
+                new String[]{"BroadcastJoin", "preds=[(X.A4[9:2] = Y.A4[9:1])]"},
+                new String[]{"TableScan[T4", "preds=[(T3.A3[1:1] = X.A4[7:1])]"},
+                new String[]{"TableScan[T4"},
+                new String[]{"TableScan[T4", "preds=[(T3.A3[1:1] = T4.A4[2:1])]"});
 
         ResultSet rs = methodWatcher.executeQuery(sql);
         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));

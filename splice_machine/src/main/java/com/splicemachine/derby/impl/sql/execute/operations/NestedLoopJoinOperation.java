@@ -52,14 +52,14 @@ public class NestedLoopJoinOperation extends JoinOperation {
                                        GeneratedMethod restriction,
                                        int resultSetNumber,
                                        boolean oneRowRightSide,
-                                       boolean notExistsRightSide,
+                                       byte semiJoinType,
                                        boolean rightFromSSQ,
                                        double optimizerEstimatedRowCount,
                                        double optimizerEstimatedCost,
                                        String userSuppliedOptimizerOverrides,
                                        String sparkExpressionTreeAsString) throws StandardException {
                 super(leftResultSet,leftNumCols,rightResultSet,rightNumCols,activation,restriction,
-                      resultSetNumber,oneRowRightSide,notExistsRightSide,rightFromSSQ,optimizerEstimatedRowCount,
+                      resultSetNumber,oneRowRightSide, semiJoinType,rightFromSSQ,optimizerEstimatedRowCount,
                       optimizerEstimatedCost,userSuppliedOptimizerOverrides,sparkExpressionTreeAsString);
                 this.isHash = false;
                 init();
@@ -114,9 +114,10 @@ public class NestedLoopJoinOperation extends JoinOperation {
             if (isOuterJoin())
                 result = left.mapPartitions(new NLJOuterJoinFunction(operationContext), true);
             else {
-                if (notExistsRightSide)
+                if (isAntiJoin())
                     result = left.mapPartitions(new NLJAntiJoinFunction(operationContext), true);
                 else {
+                    // if inclusion join or regular inner join with one matching row on right
                     if (oneRowRightSide)
                         result = left.mapPartitions(new NLJOneRowInnerJoinFunction(operationContext), true);
                     else

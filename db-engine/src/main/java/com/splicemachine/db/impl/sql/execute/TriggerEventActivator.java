@@ -197,7 +197,6 @@ public class TriggerEventActivator {
     }
 
     private void setupExecutors(TriggerInfo triggerInfo) throws StandardException {
-
         // The SET statement cannot be executed in parallel.
         String regex    =   "(^set[\\s]+)|([\\s]+set[\\s]+)";
         Pattern pattern =   Pattern.compile(regex, Pattern.CASE_INSENSITIVE);
@@ -205,16 +204,21 @@ public class TriggerEventActivator {
         for (TriggerDescriptor td : triggerInfo.getTriggerDescriptors()) {
             TriggerEvent event = td.getTriggerEvent();
             if (td.isRowTrigger()) {
-                String sql = td.getTriggerDefinition().toUpperCase();
-                Matcher matcher =   pattern.matcher(sql);
-                if ((sql.contains("INSERT") && sql.contains("INTO")) ||
-                        (sql.contains("UPDATE") && sql.contains("SET")) ||
-                        (sql.contains("DELETE") && sql.contains("FROM")) ||
-                       matcher.find()) {
-                    addToMap(rowExecutorsMap, event, td);
+                boolean runConcurrently = true;
+                for (String sql: td.getTriggerDefinitionList()) {
+                    sql = sql.toUpperCase();
+                    Matcher matcher = pattern.matcher(sql);
+                    if ((sql.contains("INSERT") && sql.contains("INTO")) ||
+                            (sql.contains("UPDATE") && sql.contains("SET")) ||
+                            (sql.contains("DELETE") && sql.contains("FROM")) ||
+                            matcher.find()) {
+                        runConcurrently = false;
+                    }
                 }
-                else {
+                if (runConcurrently) {
                     addToMap(rowConcurrentExecutorsMap, event, td);
+                } else {
+                    addToMap(rowExecutorsMap, event, td);
                 }
             } else {
                 addToStatementTriggersMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, getLcc()));

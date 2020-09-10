@@ -27,7 +27,7 @@ import java.io.Serializable;
  */
 public abstract class SpliceFunction<Op extends SpliceOperation, From, To>
     extends AbstractSpliceFunction<Op>
-		implements ExternalizableFunction<From, To>, org.spark_project.guava.base.Function<From,To>, Serializable {
+		implements ExternalizableFunction<From, To>, splice.com.google.common.base.Function<From,To>, Serializable {
 
 	public SpliceFunction() {
         super();

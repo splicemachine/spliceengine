@@ -281,7 +281,7 @@ private class ListenableQueue[A] extends Queue[A] {
     synchronized {
       latch = new CountDownLatch(count - size)
     }
-    if (!latch.await(1, TimeUnit.MINUTES))
+    if (!latch.await(3, TimeUnit.MINUTES))
       throw new TimeoutException("Timeout reached")
   }
 }

@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) 2012 - 2020 Splice Machine, Inc.
+  ~
+  ~ This file is part of Splice Machine.
+  ~ Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+  ~ GNU Affero General Public License as published by the Free Software Foundation, either
+  ~ version 3, or (at your option) any later version.
+  ~ Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+  ~ without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  ~ See the GNU Affero General Public License for more details.
+  ~ You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+  ~ If not, see <http://www.gnu.org/licenses/>.
+  -->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <artifactId>support_spark_history</artifactId>
+    <description>Starts Spark History server</description>
+    <packaging>pom</packaging>
+    <parent>
+        <artifactId>spliceengine-parent</artifactId>
+        <groupId>com.splicemachine</groupId>
+        <version>3.1.0.1974-SNAPSHOT</version>
+    </parent>
+    <properties>
+        <argLine>-Xms64m -Xmx4g ${jacocoAgent}</argLine>
+    </properties>
+    <profiles>
+        <profile>
+            <id>sparkHistory</id>
+            <activation>
+                <property>
+                    <name>sparkHistory</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.spark</groupId>
+                    <artifactId>spark-core_${scala.binary.version}</artifactId>
+                    <version>${spark.version}</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <classpathScope>test</classpathScope>
+                            <executable>java</executable>
+                            <arguments>
+                                <!-- <argument>-verbose:gc</argument> -->
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>-Xdebug</argument>
+                                <argument>-Djava.net.preferIPv4Stack=true</argument>
+                                <argument>-Djava.awt.headless=true</argument>
+                                <argument>-Xmx8G</argument>
+                                <argument>-Dzookeeper.sasl.client=false</argument>
+                                <argument>-Dspark.ui.retainedJobs=3000</argument>
+                                <argument>-Dspark.ui.retainedStages=3000</argument>
+                                <argument>-Dcom.sun.management.jmxremote.ssl=false</argument>
+                                <argument>-Dcom.sun.management.jmxremote.authenticate=false</argument>
+                                <argument>
+                                    -Djava.library.path=${project.build.directory}/../../assembly/${envClassifier}/native/${os.detected.classifier}:/usr/local/lib/
+                                </argument>
+                                <argument>org.apache.spark.deploy.history.HistoryServer</argument>
+                                <argument>${project.build.directory}/../../platform_it/target/SpliceTestYarnPlatform/</argument>
+                            </arguments>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>

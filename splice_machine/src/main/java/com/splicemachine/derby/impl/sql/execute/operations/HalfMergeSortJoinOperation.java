@@ -64,7 +64,7 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
                                       GeneratedMethod restriction,
                                       int resultSetNumber,
                                       boolean oneRowRightSide,
-                                      boolean notExistsRightSide,
+                                      byte semiJoinType,
                                       boolean rightFromSSQ,
                                       double optimizerEstimatedRowCount,
                                       double optimizerEstimatedCost,
@@ -73,7 +73,7 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
             throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
                 -1, -1, activation, restriction,
-                resultSetNumber, oneRowRightSide, notExistsRightSide, rightFromSSQ, optimizerEstimatedRowCount,
+                resultSetNumber, oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
                 optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
     }
 
@@ -94,7 +94,7 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
             if (isOuterJoin())
                 return sorted.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
             else {
-                if (notExistsRightSide)
+                if (isAntiJoin())
                     return sorted.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext));
                 else {
                     return sorted.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));

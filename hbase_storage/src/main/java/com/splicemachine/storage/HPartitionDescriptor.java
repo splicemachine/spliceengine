@@ -15,17 +15,17 @@
 
 package com.splicemachine.storage;
 
-import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.client.TableDescriptor;
 
 public class HPartitionDescriptor implements PartitionDescriptor {
 
-    private final HTableDescriptor descriptor;
+    private final TableDescriptor descriptor;
 
-    HPartitionDescriptor(HTableDescriptor descriptor) {
+    HPartitionDescriptor(TableDescriptor descriptor) {
         this.descriptor = descriptor;
     }
 
-    public HTableDescriptor getDescriptor() {
+    public TableDescriptor getDescriptor() {
         return descriptor;
     }
 }

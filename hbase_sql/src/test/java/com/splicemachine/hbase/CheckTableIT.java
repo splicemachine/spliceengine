@@ -21,6 +21,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
@@ -30,19 +31,22 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.*;
 
 /**
  * Created by jyuan on 2/15/18.
  */
+@Category(LongerThanTwoMinutes.class)
 public class CheckTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = CheckTableIT.class.getSimpleName().toUpperCase();
@@ -57,6 +61,9 @@ public class CheckTableIT extends SpliceUnitTest {
     private static final String EI = "EI";
     private static final String F = "F";
     private static final String FI = "FI";
+    private static final String I = "I";
+    private static final String II = "II";
+    private static final String H = "H";
 
     @ClassRule
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -174,6 +181,35 @@ public class CheckTableIT extends SpliceUnitTest {
         ps = spliceClassWatcher.prepareStatement("insert into CHECKTABLEIT2.F select * from B");
         ps.execute();
         deleteFirstIndexRegion(spliceClassWatcher, conn, "CHECKTABLEIT2", F, FI);
+
+        new TableCreator(conn)
+                .withCreate("create table G(i int)")
+                .withIndex("create index GI on G(I)")
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table H(i int, j int, primary key(i))")
+                .withInsert("insert into H(i, j) values(?,?)")
+                .withRows(rows(
+                        row(1, 1),
+                        row(2, 2),
+                        row(3, 3)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table I(i int, j int, primary key(i))")
+                .withInsert("insert into I(i, j) values(?,?)")
+                .withIndex("create unique index II on I(j)")
+                .withRows(rows(
+                        row(1, 1),
+                        row(2, 2),
+                        row(3, 3)))
+                .create();
+
+        new TableCreator(conn)
+                    .withCreate("create table T9863(i int)")
+                    .withIndex("create unique index I9863 on T9863(I)")
+                    .create();
     }
 
     @AfterClass
@@ -183,9 +219,123 @@ public class CheckTableIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testSystemTable() throws Exception {
+        // delete one row from SYSCONGLOMERATES_INDEX2
+        ResultSet rs = spliceClassWatcher.executeQuery("select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
+                "where conglomeratename='GI'");
+        rs.next();
+        String rowid = rs.getString(1);
+        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
+                "where conglomeratename='SYSCONGLOMERATES_INDEX2'");
+        rs.next();
+        long index2 = rs.getLong(1);
+        rs.close();
+        spliceClassWatcher.execute(String.format("call syscs_util.syscs_dictionary_delete(%d, '%s')",
+               index2, rowid));
+
+        // delete one row from SYSCONGLOMERATES_INDEX1
+        rs = spliceClassWatcher.executeQuery("select conglomerateid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
+                "where conglomeratename='GI'");
+        rs.next();
+        String conglomerateId = rs.getString(1);
+        rs.close();
+
+        rs = spliceClassWatcher.executeQuery(String.format("select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
+                "where conglomerateid='%s'", conglomerateId));
+        rs.next();
+        rowid = rs.getString(1);
+        rs.close();
+
+        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=null\n" +
+                "where conglomeratename='SYSCONGLOMERATES_INDEX1'");
+        rs.next();
+        long index1 = rs.getLong(1);
+        rs.close();
+
+        spliceClassWatcher.execute(String.format("call syscs_util.syscs_dictionary_delete(%d, '%s')",
+                index1, rowid));
+
+        // Repair missing indexes
+        spliceClassWatcher.execute(String.format("call syscs_util.fix_table('SYS', 'SYSCONGLOMERATES', null, '%s/fix-conglomerates.out')", getResourceDirectory()));
+        String select =
+                "SELECT \"message\" " +
+                        "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
+                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
+                        "AS messages (\"message\" varchar(200)) order by 1";
+        rs = spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-conglomerates.out", getResourceDirectory())));
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        rs.close();
+
+        rs = spliceClassWatcher.executeQuery("select rowid from sys.sysconglomerates --splice-properties index=null\n" +
+                "where conglomeratename='GI'");
+        rs.next();
+        rowid = rs.getString(1);
+
+        // depending on the rowid, the order of the strings below could be different, so need a sort
+        String expected = String.format("message                                    |\n" +
+                "--------------------------------------------------------------------------------\n" +
+                "                               %s                                |\n" +
+                "                               %s                                |\n" +
+                "Created indexes for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
+                "Created indexes for the following 1 rows from base table SYS.SYSCONGLOMERATES: |\n" +
+                "                           SYSCONGLOMERATES_INDEX1:                            |\n" +
+                "                           SYSCONGLOMERATES_INDEX2:                            |", rowid, rowid);
+
+
+        String sortedExpected = Stream.of(expected.split("\n")).sorted().collect(Collectors.joining("\n"));
+        String sortedS = Stream.of(s.split("\n")).sorted().collect(Collectors.joining("\n"));
+
+        assertEquals(sortedS, sortedExpected, sortedS);
+
+        // Check the table again
+        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('SYS', 'SYSCONGLOMERATES', null, 2, '%s/fix-conglomerates.out')", getResourceDirectory()));
+        rs.next();
+        s = rs.getString(1);
+        assertEquals(s, s, "No inconsistencies were found.");
+    }
+
+    @Test
     public void testCheckTable() throws Exception {
-        checkTable(SCHEMA_NAME, A, AI);
-        checkTable(SCHEMA_NAME, B, BI);
+
+        checkTable(SCHEMA_NAME, A, AI, Arrays.asList(
+                "                 { 1, 810081 }@8100C0C09090=>810081                  |\n",
+                "                 { 2, 820082 }@8200C18090A0=>820082                  |\n",
+                "                 { 7, 870087 }@8700C3C090F0=>870087                  |\n"));
+
+        checkTable(SCHEMA_NAME, B, BI, Arrays.asList(
+                "                      { 1, 810081 }@81=>810081                       |\n",
+                "                      { 2, 820082 }@82=>820082                       |\n",
+                "                      { 7, 870087 }@87=>870087                       |\n"));
+        testChekSchema();
+        removeDuplicateIndexes();
+    }
+
+    public void removeDuplicateIndexes() throws Exception {
+        spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/fix-%s.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
+        String select =
+                "SELECT \"message\" " +
+                        "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
+                        "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
+                        "AS messages (\"message\" varchar(200)) order by 1";
+        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), A)));
+        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+
+        String expected = "message                                 |\n" +
+                "--------------------------------------------------------------------------\n" +
+                "Created indexes for the following 2 rows from base table CHECKTABLEIT.A: |\n" +
+                "                    Removed the following 1 indexes:                     |\n" +
+                "                  The following 2 indexes are deleted:                   |\n" +
+                "                   { 1, 810081 }@8100C0C09090=>810081                    |\n" +
+                "                   { 2, 820082 }@8200C18090A0=>820082                    |\n" +
+                "                                { 4, 4 }                                 |\n" +
+                "                                { 5, 5 }                                 |\n" +
+                "                   { 7, 870087 }@8700C3C090F0=>870087                    |\n" +
+                "                                   AI:                                   |";
+        assertEquals(s, expected, s);
+        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
+        rs.next();
+        s = rs.getString(1);
+        assertEquals(s, "No inconsistencies were found.", s);
     }
 
     @Test
@@ -204,13 +354,13 @@ public class CheckTableIT extends SpliceUnitTest {
                 "count = 99904 |\n" +
                 "     F:       |\n" +
                 "     FI:      |";
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
 
         spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 1, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
         rs.next();
         s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
     }
 
     @Test
@@ -229,7 +379,7 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                              { 1, 1 }                                |\n" +
                 "                              { 2, 2 }                                |\n" +
                 "                                 EI:                                  |";
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
 
         spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/fix-%s.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
         select =
@@ -239,27 +389,26 @@ public class CheckTableIT extends SpliceUnitTest {
                         "AS messages (\"message\" varchar(200)) order by 1";
         rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), E)));
         s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        expected = "message                                |\n" +
-                "------------------------------------------------------------------------\n" +
-                "Create index for the following 2 rows from base table CHECKTABLEIT2.E: |\n" +
-                "                               { 1, 1 }                                |\n" +
-                "                               { 2, 2 }                                |\n" +
-                "                                  EI:                                  |";
-        Assert.assertEquals(s, expected, s);
+        expected = "message                                  |\n" +
+                "---------------------------------------------------------------------------\n" +
+                "Created indexes for the following 2 rows from base table CHECKTABLEIT2.E: |\n" +
+                "                                { 1, 1 }                                  |\n" +
+                "                                { 2, 2 }                                  |\n" +
+                "                                   EI:                                    |";
+        assertEquals(s, expected, s);
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
         rs.next();
         s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
     }
     @Test
     public void checkTableWithSkippedNullValues() throws Exception {
         ResultSet rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, D, getResourceDirectory(), D));
         rs.next();
         String s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
     }
 
-    @Test
     public void testChekSchema() throws Exception {
 
         spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', null, null, 1, '%s/check-%s1.out')", SCHEMA_NAME, getResourceDirectory(), SCHEMA_NAME));
@@ -298,7 +447,7 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                                                                      T2:                                                                      |\n" +
                 "                                                                      T3:                                                                      |";
 
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
 
         spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', null, null, 2, '%s/check-%s2.out')", SCHEMA_NAME, getResourceDirectory(), SCHEMA_NAME));
         select =
@@ -308,31 +457,28 @@ public class CheckTableIT extends SpliceUnitTest {
                         "AS messages (\"message\" varchar(200)) order by 1";
         rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s2.out", getResourceDirectory(), SCHEMA_NAME)));
         s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        expected =
-                "message                               |\n" +
-                        "----------------------------------------------------------------------\n" +
-                        "               The following 2 indexes are duplicates:               |\n" +
-                        "               The following 2 indexes are duplicates:               |\n" +
-                        "                The following 2 indexes are invalid:                 |\n" +
-                        "                The following 2 indexes are invalid:                 |\n" +
-                        "The following 2 rows from base table CHECKTABLEIT.A are not indexed: |\n" +
-                        "The following 2 rows from base table CHECKTABLEIT.B are not indexed: |\n" +
-                        "                            { 1 }=>810081                            |\n" +
-                        "                            { 1 }=>810081                            |\n" +
-                        "                            { 2 }=>820082                            |\n" +
-                        "                            { 2 }=>820082                            |\n" +
-                        "                              { 4, 4 }                               |\n" +
-                        "                              { 4, 4 }                               |\n" +
-                        "                              { 5, 5 }                               |\n" +
-                        "                              { 5, 5 }                               |\n" +
-                        "                            { 7 }=>870087                            |\n" +
-                        "                            { 7 }=>870087                            |\n" +
-                        "                            { 8 }=>870087                            |\n" +
-                        "                            { 8 }=>870087                            |\n" +
-                        "                                 AI:                                 |\n" +
-                        "                                 BI:                                 |";
+        expected = "message                               |\n" +
+                "----------------------------------------------------------------------\n" +
+                "               The following 1 indexes are duplicates:               |\n" +
+                "               The following 1 indexes are duplicates:               |\n" +
+                "                The following 2 indexes are invalid:                 |\n" +
+                "                The following 2 indexes are invalid:                 |\n" +
+                "The following 2 rows from base table CHECKTABLEIT.A are not indexed: |\n" +
+                "The following 2 rows from base table CHECKTABLEIT.B are not indexed: |\n" +
+                "                 { 1, 810081 }@8100C0C09090=>810081                  |\n" +
+                "                      { 1, 810081 }@81=>810081                       |\n" +
+                "                 { 2, 820082 }@8200C18090A0=>820082                  |\n" +
+                "                      { 2, 820082 }@82=>820082                       |\n" +
+                "                              { 4, 4 }                               |\n" +
+                "                              { 4, 4 }                               |\n" +
+                "                              { 5, 5 }                               |\n" +
+                "                              { 5, 5 }                               |\n" +
+                "                 { 7, 870087 }@8700C3C090F0=>870087                  |\n" +
+                "                      { 7, 870087 }@87=>870087                       |\n" +
+                "                                 AI:                                 |\n" +
+                "                                 BI:                                 |";
 
-        Assert.assertEquals(s, expected, s);
+        assertEquals(s, expected, s);
     }
 
     @Test
@@ -357,61 +503,91 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                                                                      C2:                                                                      |\n" +
                 "                                                                      C3:                                                                      |\n" +
                 "                                                                      C:                                                                       |";
-        Assert.assertEquals(s, s, expected);
+        assertEquals(s, s, expected);
 
         rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, C, getResourceDirectory(), C));
         rs.next();
         s = rs.getString(1);
-        Assert.assertEquals(s, s, "No inconsistencies were found.");
+        assertEquals(s, s, "No inconsistencies were found.");
     }
 
+    @Test
+    public void testDB_9863() throws Exception {
+        try (Connection c = spliceClassWatcher.createConnection();
+            Statement st = c.createStatement()) {
+            c.setAutoCommit(false);
+
+            st.executeUpdate("insert into T9863 values 1");
+            st.executeUpdate("delete from T9863");
+            st.executeUpdate("insert into T9863 values 1");
+
+            c.rollback();
+
+            st.executeUpdate("insert into T9863 values 1");
+            c.commit();
+
+            try (ResultSet rs = st.executeQuery(String.format("call syscs_util.check_table('%s', 'T9863', null, 2, '%s/check-T9863.out')", SCHEMA_NAME, getResourceDirectory()))) {
+                assertTrue(rs.next());
+                assertEquals("No inconsistencies were found.", rs.getString(1));
+            }
+        }
+    }
+
+    @Test
+    public void testForeignKeyUniqueIndex() throws Exception {
+        spliceClassWatcher.execute("alter table I add CONSTRAINT fc FOREIGN KEY(j) REFERENCES H(i) ON UPDATE NO ACTION ON DELETE restrict");
+        ResultSet rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, I, getResourceDirectory(), I));
+        rs.next();
+        String s = rs.getString(1);
+        Assert.assertEquals(s, s, "No inconsistencies were found.");
+    }
     @Test
     public void negativeTests() throws Exception {
 
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 1, null)", SCHEMA_NAME, A, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "TS008");
+            assertEquals(e.getSQLState(), "TS008");
         }
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 1, ' ')", SCHEMA_NAME, A, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
 
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "TS008");
+            assertEquals(e.getSQLState(), "TS008");
         }
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 3, '%s/check-%s.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "TS007");
+            assertEquals(e.getSQLState(), "TS007");
         }
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', 'XY', 2, '%s/check-%s.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "42X65");
+            assertEquals(e.getSQLState(), "42X65");
         }
 
         try {
             spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', null, 'AI', 2, '%s/check-%s.out')", SCHEMA_NAME, getResourceDirectory(), A));
-            Assert.assertTrue("Should fail!", false);
+            fail("Should fail!");
         }
         catch (SQLException e) {
-            Assert.assertEquals(e.getSQLState(), "TS008");
+            assertEquals(e.getSQLState(), "TS008");
         }
     }
 
-    private void checkTable(String schemaName, String tableName, String indexName) throws Exception {
+    private void checkTable(String schemaName, String tableName, String indexName, List<String> expectedRowIds) throws Exception {
 
         //Run check_table
         spliceClassWatcher.execute(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s.out')", schemaName, tableName, getResourceDirectory(), tableName));
@@ -424,18 +600,17 @@ public class CheckTableIT extends SpliceUnitTest {
         String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
         String expected = format("message                               |\n" +
                 "----------------------------------------------------------------------\n" +
-                "               The following 2 indexes are duplicates:               |\n" +
+                "               The following 1 indexes are duplicates:               |\n" +
                 "                The following 2 indexes are invalid:                 |\n" +
                 "The following 2 rows from base table CHECKTABLEIT.%s are not indexed: |\n" +
-                "                            { 1 }=>810081                            |\n" +
-                "                            { 2 }=>820082                            |\n" +
+                expectedRowIds.get(0) +
+                expectedRowIds.get(1) +
                 "                              { 4, 4 }                               |\n" +
                 "                              { 5, 5 }                               |\n" +
-                "                            { 7 }=>870087                            |\n" +
-                "                            { 8 }=>870087                            |\n" +
+                expectedRowIds.get(2) +
                 "                                 %s:                                 |", tableName, indexName);
 
-        Assert.assertEquals(s, s, expected);
+        assertEquals(s, s, expected);
     }
 
     private static void splitTable(String schemaName, String tableName, String indexName) throws Exception {

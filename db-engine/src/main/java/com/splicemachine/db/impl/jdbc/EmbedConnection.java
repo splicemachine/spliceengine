@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.jdbc;
 
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -63,6 +63,7 @@ import java.security.AccessControlException;
 import java.security.Permission;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /* can't import due to name overlap:
 import java.sql.Connection;
@@ -112,7 +113,9 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public static final SQLException NO_MEM =
         Util.generateCsSQLException(SQLState.LOGIN_FAILED, "java.lang.OutOfMemoryError");
-    
+
+	public static final AtomicBoolean isHBaseJVM = new AtomicBoolean(false);
+
     /**
      * Low memory state object for connection requests.
      */
@@ -175,7 +178,7 @@ public abstract class EmbedConnection implements EngineConnection
 	*/
 	final EmbedConnection rootConnection;
 	private SQLWarning 		topWarning;
-	/**	
+	/**
 		Factory for JDBC objects to be created.
 	*/
 	private InternalDriver factory;
@@ -217,7 +220,6 @@ public abstract class EmbedConnection implements EngineConnection
 		applicationConnection = rootConnection = this;
 		factory = driver;
 
-
 		tr = new TransactionResourceImpl(driver, url, info);
 
 		active = true;
@@ -235,10 +237,10 @@ public abstract class EmbedConnection implements EngineConnection
 			boolean shutdown = Boolean.valueOf(info.getProperty(Attribute.SHUTDOWN_ATTR));
 
 			// see if database is already booted
-			Database database = (Database) Monitor.findService(Property.DATABASE_MODULE, tr.getDBName());
+            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, tr.getDBName());
 
 			// See if user wants to create a new database.
-			boolean	createBoot = createBoot(info);	
+			boolean	createBoot = createBoot(info);
 
 			// DERBY-2264: keeps track of whether we do a plain boot before an
 			// (re)encryption or hard upgrade boot to (possibly) authenticate
@@ -251,11 +253,11 @@ public abstract class EmbedConnection implements EngineConnection
 												isEncryptionBoot(info));
 			boolean isTwoPhaseUpgradeBoot = (!createBoot &&
 											 isHardUpgradeBoot(info));
-			boolean isStartSlaveBoot = isStartReplicationSlaveBoot(info);
-            // Set to true if startSlave command is attempted on an
+			boolean isStartReplicaBoot = isStartReplicationReplicaBoot(info);
+            // Set to true if startReplica command is attempted on an
             // already booted database. Will raise an exception when
             // credentials have been verified
-            boolean slaveDBAlreadyBooted = false;
+            boolean replicaDBAlreadyBooted = false;
 
             boolean isFailoverMasterBoot = false;
             final boolean dropDatabase = isDropDatabase(info);
@@ -281,7 +283,6 @@ public abstract class EmbedConnection implements EngineConnection
 			else if (!shutdown)
 			{
 				if (isTwoPhaseEncryptionBoot || isTwoPhaseUpgradeBoot) {
-					savedInfo = info;
 					info = removePhaseTwoProps((Properties)info.clone());
 				}
 
@@ -311,7 +312,7 @@ public abstract class EmbedConnection implements EngineConnection
 					// with the system level authentication service.
                     //
                     checkUserCredentials( true, null, info );
-					
+
 					// Process with database creation
 					database = createDatabase(tr.getDBName(), info);
 					tr.setDatabase(database);
@@ -330,10 +331,10 @@ public abstract class EmbedConnection implements EngineConnection
             try {
                 checkUserCredentials( false, tr.getDBName(), info );
             } catch (SQLException sqle) {
-                if (isStartSlaveBoot && !slaveDBAlreadyBooted) {
+                if (isStartReplicaBoot && !replicaDBAlreadyBooted) {
                     // Failing credentials check on a previously
                     // unbooted db should not leave the db booted
-                    // for startSlave command.
+                    // for startReplica command.
 
                     // tr.startTransaction is needed to get the
                     // Database context. Without this context,
@@ -411,11 +412,11 @@ public abstract class EmbedConnection implements EngineConnection
 			restoreContextStack();
 			tr.lcc = null;
 			tr.cm = null;
-			
+
 			//System.out.println("free");
 			//System.out.println(Runtime.getRuntime().freeMemory());
             memoryState.setLowMemory();
-			
+
 			//noMemory.printStackTrace();
 			// throw Util.generateCsSQLException(SQLState.LOGIN_FAILED, noMemory.getMessage(), noMemory);
 			throw NO_MEM;
@@ -448,9 +449,9 @@ public abstract class EmbedConnection implements EngineConnection
      * used in the exception message if not booted
      * @throws java.sql.SQLException thrown if database is not booted
      */
-    private void checkDatabaseBooted(Database database,
-                                     String operation, 
-                                     String dbname) throws SQLException {
+    private void checkDatabaseBooted(InternalDatabase database,
+									 String operation,
+									 String dbname) throws SQLException {
         if (database == null) {
             // Do not clear the TransactionResource context. It will
             // be restored as part of the finally clause of the constructor.
@@ -496,7 +497,7 @@ public abstract class EmbedConnection implements EngineConnection
 			restoreCount++;
 		if(restoreCount > 1)
 			throw newSQLException(SQLState.CONFLICTING_RESTORE_ATTRIBUTES);
-	
+
         // check if user has specified re-encryption attributes in
         // combination with createFrom/restoreFrom/rollForwardRecoveryFrom
         // attributes.  Re-encryption is not
@@ -506,13 +507,13 @@ public abstract class EmbedConnection implements EngineConnection
         }
 
 
-		//add the restore count to create count to make sure 
+		//add the restore count to create count to make sure
 		//user has not specified and restore together by mistake.
 		createCount = createCount + restoreCount ;
 
 		//
 		if (createCount > 1) throw newSQLException(SQLState.CONFLICTING_CREATE_ATTRIBUTES);
-		
+
         // Don't allow combinations of create/restore and drop.
         if (createCount == 1 && isDropDatabase(p)) {
             // See whether we have conflicting create or restore attributes.
@@ -576,14 +577,14 @@ public abstract class EmbedConnection implements EngineConnection
                 p.getProperty(Attribute.UPGRADE_ATTR));
 	}
 
-    private boolean isStartReplicationSlaveBoot(Properties p) {
+    private boolean isStartReplicationReplicaBoot(Properties p) {
         return ((Boolean.valueOf(
-                p.getProperty(Attribute.REPLICATION_START_SLAVE))));
+                p.getProperty(Attribute.REPLICATION_START_REPLICA))));
     }
 
-    private boolean isStartReplicationMasterBoot(Properties p) {
+    private boolean isStartReplicationPrimaryBoot(Properties p) {
         return ((Boolean.valueOf(
-                p.getProperty(Attribute.REPLICATION_START_MASTER))));
+                p.getProperty(Attribute.REPLICATION_START_PRIMARY))));
     }
     
     /**
@@ -600,20 +601,20 @@ public abstract class EmbedConnection implements EngineConnection
 
     private boolean isStopReplicationMasterBoot(Properties p) {
         return ((Boolean.valueOf(
-                p.getProperty(Attribute.REPLICATION_STOP_MASTER))));
+                p.getProperty(Attribute.REPLICATION_STOP_PRIMARY))));
     }
     
     /**
      * Examine the boot properties and determine if a boot with the
-     * given attributes should stop slave replication mode.
+     * given attributes should stop replica replication mode.
      * 
      * @param p The attribute set.
-     * @return true if the stopSlave attribute has been set, false
+     * @return true if the stopReplica attribute has been set, false
      * otherwise.
      */
-    private boolean isStopReplicationSlaveBoot(Properties p) {
+    private boolean isStopReplicationReplicaBoot(Properties p) {
         return Boolean.valueOf(
-                p.getProperty(Attribute.REPLICATION_STOP_SLAVE));
+                p.getProperty(Attribute.REPLICATION_STOP_REPLICA));
     }
 
  	/**
@@ -633,9 +634,9 @@ public abstract class EmbedConnection implements EngineConnection
 
 
 	/**
-	 * Create a new connection based off of the 
+	 * Create a new connection based off of the
 	 * connection passed in.  Initializes state
-	 * based on input connection, and copies 
+	 * based on input connection, and copies
 	 * appropriate object pointers. This is only used
 	   for nested connections.
 	 *
@@ -645,7 +646,7 @@ public abstract class EmbedConnection implements EngineConnection
 	{
 		if (SanityManager.DEBUG)
 		{
-			SanityManager.ASSERT(inputConnection.active, 
+			SanityManager.ASSERT(inputConnection.active,
 			"trying to create a proxy for an inactive conneciton");
 		}
 
@@ -655,7 +656,7 @@ public abstract class EmbedConnection implements EngineConnection
 
 
 		/*
-		** Nesting specific state we are copying from 
+		** Nesting specific state we are copying from
 		** the inputConnection
 		*/
 
@@ -859,7 +860,7 @@ public abstract class EmbedConnection implements EngineConnection
 
 			throw handleException(e);
 		}
-	
+
 	}
 
 	/* Enumerate operations controlled by database owner powers */
@@ -912,7 +913,7 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public int getEngineType()
     {
-        Database db = getDatabase();
+        InternalDatabase db = getDatabase();
 
         if( null == db)
             return 0;
@@ -937,7 +938,7 @@ public abstract class EmbedConnection implements EngineConnection
      * @return a new Statement object 
      * @exception SQLException if a database-access error occurs.
      */
-	public final Statement createStatement() throws SQLException 
+	public final Statement createStatement() throws SQLException
 	{
 		return createStatement(ResultSet.TYPE_FORWARD_ONLY,
 							   ResultSet.CONCUR_READ_ONLY,
@@ -956,7 +957,7 @@ public abstract class EmbedConnection implements EngineConnection
       * @exception SQLException if a database-access error occurs.
     */
     public final Statement createStatement(int resultSetType,
-    								 int resultSetConcurrency) 
+    								 int resultSetConcurrency)
 						throws SQLException
 	{
 		return createStatement(resultSetType, resultSetConcurrency,
@@ -1228,8 +1229,8 @@ public abstract class EmbedConnection implements EngineConnection
      * pre-compiled SQL statement 
      * @exception SQLException if a database-access error occurs.
      */
-	public final CallableStatement prepareCall(String sql) 
-		throws SQLException 
+	public final CallableStatement prepareCall(String sql)
+		throws SQLException
 	{
 		return prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY,
 						   ResultSet.CONCUR_READ_ONLY,
@@ -1250,7 +1251,7 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public final CallableStatement prepareCall(String sql, int resultSetType,
 				 int resultSetConcurrency)
-		throws SQLException 
+		throws SQLException
 	{
 		return prepareCall(sql, resultSetType, resultSetConcurrency,
 						   connectionHoldAbility);
@@ -1273,21 +1274,21 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public final CallableStatement prepareCall(String sql, int resultSetType, 
 				 int resultSetConcurrency, int resultSetHoldability)
-		throws SQLException 
+		throws SQLException
 	{
 		checkIfClosed();
 
 		synchronized (getConnectionSynchronization())
 		{
             setupContextStack();
-			try 
+			try
 			{
 			    return factory.newEmbedCallableStatement(this, sql,
 											   setResultSetType(resultSetType),
 											   resultSetConcurrency,
 											   resultSetHoldability);
-			} 
-			finally 
+			}
+			finally
 			{
 			    restoreContextStack();
 			}
@@ -1384,7 +1385,7 @@ public abstract class EmbedConnection implements EngineConnection
 			{
 				throw handleException(t);
 			}
-			finally 
+			finally
 			{
 				restoreContextStack();
 			}
@@ -1419,12 +1420,12 @@ public abstract class EmbedConnection implements EngineConnection
 			} catch (Throwable t) {
 				throw handleException(t);
 			}
-			finally 
+			finally
 			{
 				restoreContextStack();
 			}
 			needCommit = false;
-		} 
+		}
 	}
 
     /**
@@ -1463,14 +1464,14 @@ public abstract class EmbedConnection implements EngineConnection
         }
     }
 
-	// This inner close takes the exception and calls 
+	// This inner close takes the exception and calls
 	// the context manager to make the connection close.
 	// The exception must be a session severity exception.
 	//
 	// NOTE: This method is not part of JDBC specs.
 	//
     protected void close(StandardException e) throws SQLException {
-		
+
 		synchronized(getConnectionSynchronization())
 		{
 			if (rootConnection == this)
@@ -1485,16 +1486,16 @@ public abstract class EmbedConnection implements EngineConnection
 							tr.rollback();
                             InterruptStatus.
                                     restoreIntrFlagIfSeen(tr.getLcc());
-							
+
 							// Let go of lcc reference so it can be GC'ed after
 							// cleanupOnError, the tr will stay around until the
 							// rootConnection itself is GC'ed, which is dependent
 							// on how long the client program wants to hold on to
 							// the Connection object.
-							tr.clearLcc(); 
+							tr.clearLcc();
                             // DERBY-4856, assume database is not up
                             tr.cleanupOnError(e, false);
-							
+
 						} catch (Throwable t) {
 							throw handleException(t);
 						} finally {
@@ -1505,7 +1506,7 @@ public abstract class EmbedConnection implements EngineConnection
 						// the database, the transaction is not active, but
 						// the cleanup has not been done yet.
                         InterruptStatus.restoreIntrFlagIfSeen();
-						tr.clearLcc(); 
+						tr.clearLcc();
                         // DERBY-4856, assume database is not up
                         tr.cleanupOnError(e, false);
 					}
@@ -1738,7 +1739,7 @@ public abstract class EmbedConnection implements EngineConnection
      *
      * @return the first SQLWarning or null 
      *
-	 * Synchronization note: Warnings are synchronized 
+	 * Synchronization note: Warnings are synchronized
 	 * on nesting level
      */
 	public final synchronized SQLWarning getWarnings() throws SQLException {
@@ -1750,7 +1751,7 @@ public abstract class EmbedConnection implements EngineConnection
      * After this call, getWarnings returns null until a new warning is
      * reported for this Connection.  
      *
-	 * Synchronization node: Warnings are synchonized 
+	 * Synchronization node: Warnings are synchonized
 	 * on nesting level
      */
     public final synchronized void clearWarnings() throws SQLException {
@@ -1787,7 +1788,7 @@ public abstract class EmbedConnection implements EngineConnection
     public final void setTypeMap(java.util.Map map) throws SQLException {
         checkIfClosed();
         if( map == null)
-            throw Util.generateCsSQLException(SQLState.INVALID_API_PARAMETER,map,"map",
+            throw Util.generateCsSQLException(SQLState.INVALID_API_PARAMETER,null,"map",
                                               "java.sql.Connection.setTypeMap");
         if(!(map.isEmpty()))
             throw Util.notImplemented();
@@ -1795,14 +1796,14 @@ public abstract class EmbedConnection implements EngineConnection
 
 	/////////////////////////////////////////////////////////////////////////
 	//
-	//	Implementation specific methods	
+	//	Implementation specific methods
 	//
 	/////////////////////////////////////////////////////////////////////////
 
 	/**
 		Add a warning to the current list of warnings, to follow
 		this note from Connection.getWarnings.
-		Note: Subsequent warnings will be chained to this SQLWarning. 
+		Note: Subsequent warnings will be chained to this SQLWarning.
 
 		@see java.sql.Connection#getWarnings
 	*/
@@ -1852,13 +1853,13 @@ public abstract class EmbedConnection implements EngineConnection
 	SQLException handleException(Throwable thrownException)
 			throws SQLException
 	{
-		//assume in case of SQLException cleanup is 
+		//assume in case of SQLException cleanup is
 		//done already. This assumption is inline with
-		//TR's assumption. In case no rollback was 
+		//TR's assumption. In case no rollback was
 		//called lob objects will remain valid.
 		if (thrownException instanceof StandardException) {
 			if (((StandardException) thrownException)
-				.getSeverity() 
+				.getSeverity()
 				>= ExceptionSeverity.TRANSACTION_SEVERITY) {
 				clearLOBMapping();
 			}
@@ -1868,7 +1869,7 @@ public abstract class EmbedConnection implements EngineConnection
 		** By default, rollback the connection on if autocommit
 	 	** is on.
 		*/
-		return getTR().handleException(thrownException, 
+		return getTR().handleException(thrownException,
 								  autoCommit,
 								  true // Rollback xact on auto commit
 								  );
@@ -1888,7 +1889,7 @@ public abstract class EmbedConnection implements EngineConnection
 		Because this is the last stop for exceptions,
 		it will catch anything that occurs in it and try
 		to cleanup before re-throwing them.
-	
+
 		@param thrownException the exception
 		@param rollbackOnAutoCommit rollback the xact on if autocommit is
 				on, otherwise rollback stmt but leave xact open (and
@@ -1896,23 +1897,23 @@ public abstract class EmbedConnection implements EngineConnection
 				will be true, excepting operations on result sets, like
 				getInt().
 	*/
-	final SQLException handleException(Throwable thrownException, 
-									   boolean rollbackOnAutoCommit) 
-			throws SQLException 
+	final SQLException handleException(Throwable thrownException,
+									   boolean rollbackOnAutoCommit)
+			throws SQLException
 	{
-		//assume in case of SQLException cleanup is 
+		//assume in case of SQLException cleanup is
 		//done already. This assumption is inline with
-		//TR's assumption. In case no rollback was 
+		//TR's assumption. In case no rollback was
 		//called lob objects will remain valid.
 		if (thrownException instanceof StandardException) {
 			if (((StandardException) thrownException)
-				.getSeverity() 
+				.getSeverity()
 				>= ExceptionSeverity.TRANSACTION_SEVERITY) {
 				clearLOBMapping();
 			}
 		}
 		return getTR().handleException(thrownException, autoCommit,
-								  rollbackOnAutoCommit); 
+								  rollbackOnAutoCommit);
 
 	}
 
@@ -1931,7 +1932,7 @@ public abstract class EmbedConnection implements EngineConnection
 		any closing of the underlying connection or commit work
 		is assumed to be done elsewhere.
 
-		Called from EmbedConnectionContext's cleanup routine,	
+		Called from EmbedConnectionContext's cleanup routine,
 		and by proxy.close().
 	 */
 
@@ -1953,7 +1954,7 @@ public abstract class EmbedConnection implements EngineConnection
 	/**
 		@exception Throwable	standard error policy
 	 */
-	protected void finalize() throws Throwable 
+	protected void finalize() throws Throwable
 	{
 		try {
 			// Only close root connections, since for nested
@@ -1986,9 +1987,9 @@ public abstract class EmbedConnection implements EngineConnection
      *
 	 * @exception SQLException if commit returns error
 	 */
-	protected void commitIfNeeded() throws SQLException 
+	protected void commitIfNeeded() throws SQLException
     {
-		if (autoCommit && needCommit) 
+		if (autoCommit && needCommit)
         {
             try
             {
@@ -2019,9 +2020,9 @@ public abstract class EmbedConnection implements EngineConnection
      *
 	 * @exception SQLException if commit returns error
 	 */
-	protected void commitIfAutoCommit() throws SQLException 
+	protected void commitIfAutoCommit() throws SQLException
     {
-		if (autoCommit) 
+		if (autoCommit)
         {
             try
             {
@@ -2097,12 +2098,12 @@ public abstract class EmbedConnection implements EngineConnection
 		@param dbname the database name
 		@param info the properties
 
-		@return	Database The newly created database or null.
+        @return    Database The newly created database or null.
 
 	 	@exception SQLException if fails to create database
 	*/
 
-	private Database createDatabase(String dbname, Properties info)
+    private InternalDatabase createDatabase(String dbname, Properties info)
 		throws SQLException {
 
 		info = filterProperties(info);
@@ -2113,7 +2114,7 @@ public abstract class EmbedConnection implements EngineConnection
 		//checkDatabaseCreatePrivileges(user, dbname);
 
 		try {
-			if (Monitor.createPersistentService(Property.DATABASE_MODULE, dbname, info) == null) 
+			if (Monitor.createPersistentService(Property.DATABASE_MODULE, dbname, info) == null)
 			{
 				// service already exists, create a warning
 				addWarning(SQLWarningFactory.newSQLWarning(SQLState.DATABASE_EXISTS, dbname));
@@ -2130,7 +2131,7 @@ public abstract class EmbedConnection implements EngineConnection
 		// and they shouldn't be interested in these JDBC attributes.
 		info.clear();
 
-		return (Database) Monitor.findService(Property.DATABASE_MODULE, dbname);
+        return (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
 	}
 
     /**
@@ -2264,13 +2265,16 @@ public abstract class EmbedConnection implements EngineConnection
 
 			info = filterProperties(info);
 
+			String s = (String)info.get("isHBaseJVM");
+			isHBaseJVM.set(Boolean.parseBoolean(s));
+
 			if (softAuthenticationBoot) {
 				info.setProperty(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK,
 								 "true");
 			} else {
 				info.remove(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK);
 			}
-			
+
 			// try to start the service if it doesn't already exist
 			if (!Monitor.startPersistentService(dbname, info)) {
 				// a false indicates the monitor cannot handle a service
@@ -2285,7 +2289,7 @@ public abstract class EmbedConnection implements EngineConnection
 			// and they shouldn't be interested in these JDBC attributes.
 			info.clear();
 
-			Database database = (Database) Monitor.findService(Property.DATABASE_MODULE, dbname);
+            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
 			tr.setDatabase(database);
 
 		} catch (StandardException mse) {
@@ -2377,7 +2381,7 @@ public abstract class EmbedConnection implements EngineConnection
 	 * db.* properties does not work this way, it's not a defined way
 	 * to set such properties and could be a secuirty hole in allowing
 	 * remote connections to override system, application or database settings.
-	 * 
+	 *
 	 * @return a new Properties set copied from the parameter but with no
 	 * db.* properties.
 	 */
@@ -2403,7 +2407,7 @@ public abstract class EmbedConnection implements EngineConnection
 	** their classes into the mix.
 	*/
 
-	protected Database getDatabase() 
+    protected InternalDatabase getDatabase()
 	{
 		if (SanityManager.DEBUG)
 			SanityManager.ASSERT(!isClosed(), "connection is closed");
@@ -2489,7 +2493,7 @@ public abstract class EmbedConnection implements EngineConnection
 			try
 			{
                 LanguageConnectionContext lcc = getLanguageConnection();
-				XATransactionController tc = 
+				XATransactionController tc =
                     (XATransactionController)lcc.getTransactionExecute();
 
 				int ret = tc.xa_prepare();
@@ -2540,7 +2544,7 @@ public abstract class EmbedConnection implements EngineConnection
 			{
 				throw handleException(t);
 			}
-			finally 
+			finally
 			{
 				restoreContextStack();
 			}
@@ -2566,7 +2570,7 @@ public abstract class EmbedConnection implements EngineConnection
 			{
 				throw handleException(t);
 			}
-			finally 
+			finally
 			{
 				restoreContextStack();
 			}
@@ -2595,19 +2599,19 @@ public abstract class EmbedConnection implements EngineConnection
 		}
 		return resultSetType;
 	}
-	
 
-	/** 
-	 * Set the transaction isolation level that will be used for the 
-	 * next prepare.  Used by network server to implement DB2 style 
+
+	/**
+	 * Set the transaction isolation level that will be used for the
+	 * next prepare.  Used by network server to implement DB2 style
 	 * isolation levels.
 	 * @param level Isolation level to change to.  level is the DB2 level
 	 *               specified in the package names which happen to correspond
-	 *               to our internal levels. If 
+	 *               to our internal levels. If
 	 *               level == ExecutionContext.UNSPECIFIED_ISOLATION,
 	 *               the statement won't be prepared with an isolation level.
-	 * 
-	 * 
+	 *
+	 *
 	 */
 	public void setPrepareIsolation(int level) throws SQLException
 	{
@@ -2626,7 +2630,7 @@ public abstract class EmbedConnection implements EngineConnection
 				throw Util.generateCsSQLException(
 															   SQLState.UNIMPLEMENTED_ISOLATION_LEVEL, level);
 		}
-		
+
 		synchronized(getConnectionSynchronization())
 		{
 			getLanguageConnection().setPrepareIsolationLevel(level);
@@ -2634,7 +2638,7 @@ public abstract class EmbedConnection implements EngineConnection
 	}
 
 	/**
-	 * Return prepare isolation 
+	 * Return prepare isolation
 	 */
 	public int getPrepareIsolation()
 	{
@@ -2800,11 +2804,11 @@ public abstract class EmbedConnection implements EngineConnection
         if (rootConnection.lobHashMap != null) {
             rootConnection.lobHashMap.clear ();
         }
-		
-		synchronized (this) {   
+
+		synchronized (this) {
             // Try a bit harder to close all open files, as open file handles
             // can cause problems further down the road.
-			if (lobFiles != null) {       
+			if (lobFiles != null) {
                 SQLException firstException = null;
                 for (Object lobFile : lobFiles) {
                     try {
@@ -2906,8 +2910,8 @@ public abstract class EmbedConnection implements EngineConnection
 	}
     
 	/**
-	 * Remove LOBFile from the lobFiles set. This will occur when the lob 
-	 * is freed or at transaction end if the lobFile was removed from the 
+	 * Remove LOBFile from the lobFiles set. This will occur when the lob
+	 * is freed or at transaction end if the lobFile was removed from the
 	 * WeakHashMap but not finalized.
 	 * @param lobFile  LOBFile to remove.
 	 */

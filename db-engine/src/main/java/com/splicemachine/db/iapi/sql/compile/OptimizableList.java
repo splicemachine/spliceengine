@@ -115,4 +115,9 @@ public interface OptimizableList {
 	 * @param optimizer The optimizer being used.
 	 */
 	void initAccessPaths(Optimizer optimizer);
+
+	/**
+	 * Return the maximum number of tables to be considered for exhaustive search.
+	 */
+	int getTableLimitForExhaustiveSearch();
 }

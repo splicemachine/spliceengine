@@ -80,9 +80,9 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    public SYSSNAPSHOTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSSNAPSHOTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf,DataDictionary dd)
     {
-        super(uuidf,ef,dvf);
+        super(uuidf,ef,dvf,dd);
         initInfo(COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
 
@@ -100,8 +100,7 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
      * @exception StandardException thrown on failure
      */
 
-    public ExecRow makeRow(TupleDescriptor td,
-                           TupleDescriptor parent)
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
             throws StandardException
     {
 
@@ -114,6 +113,9 @@ public class SYSSNAPSHOTSRowFactory extends CatalogRowFactory
 
         if (td != null)
         {
+            if (!(td instanceof SnapshotDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             SnapshotDescriptor descriptor = (SnapshotDescriptor)td;
             snapshotName = descriptor.getSnapshotName();
             schemaName = descriptor.getSchemaName();

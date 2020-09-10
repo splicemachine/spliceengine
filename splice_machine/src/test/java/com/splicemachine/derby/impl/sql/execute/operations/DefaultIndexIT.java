@@ -23,6 +23,7 @@ import org.junit.rules.TestRule;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * Created by tgildersleeve on 7/11/17.
@@ -62,6 +63,7 @@ public class DefaultIndexIT extends SpliceUnitTest{
     private static SpliceIndexWatcher T3_IX_D3_DESC_EXCL_DEFAULTS = new SpliceIndexWatcher(T3.tableName, schemaWatcher.schemaName, "T3_IX_D3_DESC_EXCL_DEFAULTS", schemaWatcher.schemaName, "(d3 desc)", false, false, true);
     private static SpliceIndexWatcher T3_IX_B3_DESC_C3_EXCL_DEFAULTS = new SpliceIndexWatcher(T3.tableName, schemaWatcher.schemaName, "T3_IX_B3_DESC_C3_EXCL_DEFAULTS", schemaWatcher.schemaName, "(b3 desc, c3)", false, false, true);
 
+    private static SpliceTableWatcher T4 = new SpliceTableWatcher("T4", schemaWatcher.schemaName, "(a4 int, b4 varchar(30) default 'DEFAULT', c4 int, d4 char(20))");
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(schemaWatcher.schemaName);
@@ -90,7 +92,9 @@ public class DefaultIndexIT extends SpliceUnitTest{
             .around(T3)
             .around(T3_IX_C3_DESC_EXCL_DEFAULTS)
             .around(T3_IX_D3_DESC_EXCL_DEFAULTS)
-            .around(T3_IX_B3_DESC_C3_EXCL_DEFAULTS);
+            .around(T3_IX_B3_DESC_C3_EXCL_DEFAULTS)
+            .around(T4)
+    ;
 
     private Connection conn;
 
@@ -132,6 +136,13 @@ public class DefaultIndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(String.format("INSERT INTO T3 VALUES(1, 1, 'AAA', 'AAA', 'AAA'), " +
                 "(2, 5, ' ', ' ', 'BBB'), " +
                 "(3, 5, '     ', '     ', 'CCC')"));
+
+        methodWatcher.executeUpdate(String.format("INSERT INTO T4 VALUES " +
+                "(1,'a',1, 'A'), " +
+                "(2, 'b', 2, 'B')," +
+                "(3, 'DEFAULT', null, 'C')," +
+                "(4, null, null, 'D')"));
+
     }
 
     @Test
@@ -984,4 +995,37 @@ public class DefaultIndexIT extends SpliceUnitTest{
         }
     }
 
+    @Test
+    public void testIndexExcludeNullThroughSpark() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.executeUpdate("set session_property useSpark=true");
+            s.executeUpdate("create index T4_IX_B4_EXCL_NULLS on T4(c4) exclude null keys");
+            String sql = String.format("SELECT count(*) FROM T4 --SPLICE-PROPERTIES index=T4_IX_B4_EXCL_NULLS\n where c4 is not null");
+            ResultSet rs = s.executeQuery(sql);
+
+            String expected = "1 |\n" +
+                    "----\n" +
+                    " 2 |";
+            Assert.assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+            s.executeUpdate("set session_property useSpark=null");
+        }
+    }
+
+    @Test
+    public void testIndexExcludeDefaultThroughSpark() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.executeUpdate("set session_property useSpark=true");
+            s.executeUpdate("create index T4_IX_B4_EXCL_DEFAULTS on T4(b4) exclude default keys");
+            String sql = String.format("SELECT count(*) FROM T4 --SPLICE-PROPERTIES index=T4_IX_B4_EXCL_DEFAULTS\n where b4 != 'DEFAULT'");
+            ResultSet rs = s.executeQuery(sql);
+
+            String expected = "1 |\n" +
+                    "----\n" +
+                    " 2 |";
+            Assert.assertEquals("\n"+sql+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
+            s.executeUpdate("set session_property useSpark=null");
+        }
+    }
 }

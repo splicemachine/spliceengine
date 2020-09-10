@@ -25,24 +25,17 @@
 
 package com.splicemachine.db.client.net;
 
-import java.sql.Array;
-import com.splicemachine.db.client.am.SQLExceptionFactory;
-import com.splicemachine.db.client.am.SqlException;
-import java.sql.NClob;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLClientInfoException;
-import java.sql.SQLException;
-import java.sql.SQLPermission;
-import java.sql.SQLXML;
-import java.sql.Struct;
-import java.util.Map;
-import java.util.Properties;
-import java.util.concurrent.Executor;
 import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.am.ClientMessageId;
 import com.splicemachine.db.client.am.FailedProperties40;
+import com.splicemachine.db.client.am.SQLExceptionFactory;
+import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.shared.common.reference.SQLState;
+
+import java.sql.*;
+import java.util.Map;
+import java.util.Properties;
+import java.util.concurrent.Executor;
 
 public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnection {
     /**
@@ -174,7 +167,7 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
         if (timeout < 0) {
             throw new SqlException(agent_.logWriter_,
                                new ClientMessageId(SQLState.INVALID_API_PARAMETER),
-                               new Integer(timeout), "timeout",
+                               timeout, "timeout",
                                "java.sql.Connection.isValid" ).getSQLException();
         }
 
@@ -281,27 +274,23 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
      */
     public void setClientInfo(Properties properties)
     throws SQLClientInfoException {
-	FailedProperties40 fp = new FailedProperties40(properties);
+	FailedProperties40 fp = verifyClientInfo(properties);
 	try { checkForClosedConnection(); } 
 	catch (SqlException se) {
 	    throw new SQLClientInfoException(se.getMessage(), se.getSQLState(),
 	    		se.getErrorCode(),
 	    		fp.getProperties());
 	}
-	
-	if (properties == null || properties.isEmpty()) {
-            return;
-        }
 
-	SqlException se = 
-	    new SqlException(agent_.logWriter_,
-			     new ClientMessageId
-			     (SQLState.PROPERTY_UNSUPPORTED_CHANGE), 
-			     fp.getFirstKey(), fp.getFirstValue());
+	if (!fp.isEmpty()) {
+        SqlException se = new SqlException(agent_.logWriter_,
+                new ClientMessageId(SQLState.PROPERTY_UNSUPPORTED_CHANGE),
+                fp.getFirstKey(), fp.getFirstValue());
         throw new SQLClientInfoException(se.getMessage(),
-        		se.getSQLState(), 
-	    		se.getErrorCode(),
-	    		fp.getProperties());
+                se.getSQLState(),
+                se.getErrorCode(),
+                fp.getProperties());
+    }
     }
 
     /**
@@ -469,4 +458,24 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
         }
     }
 
+    protected FailedProperties40 verifyClientInfo(Properties properties) {
+        FailedProperties40 badProperties = new FailedProperties40(null);
+        if (properties == null)
+            return badProperties;
+
+        for (Object k : properties.keySet()) {
+            String key = (String)k;
+            switch (key) {
+                case "ApplicationName":
+                case "ClientUser":
+                case "ClientHostname":
+                    break;
+                default:
+                    badProperties.addProperty(key, properties.getProperty(key),
+                            ClientInfoStatus.REASON_UNKNOWN_PROPERTY);
+                    break;
+            }
+        }
+        return badProperties;
+    }
 }

@@ -145,4 +145,8 @@ public abstract class BaseTransaction implements Transaction {
     }
 
     public abstract void setTxn(Txn txn);
+
+    public boolean isRestoreMode() {
+        return false;
+    }
 }

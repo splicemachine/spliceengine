@@ -19,10 +19,10 @@ import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.db.impl.services.reflect.ReflectClassesJava2;
-import org.spark_project.guava.base.Throwables;
-import org.spark_project.guava.cache.CacheBuilder;
-import org.spark_project.guava.cache.CacheLoader;
-import org.spark_project.guava.cache.LoadingCache;
+import splice.com.google.common.base.Throwables;
+import splice.com.google.common.cache.CacheBuilder;
+import splice.com.google.common.cache.CacheLoader;
+import splice.com.google.common.cache.LoadingCache;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.shared.common.udt.UDTBase;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.SQLDecimal;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.ByteArrayInputStream;
@@ -120,6 +121,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
     }
 
     @Override
+    @SuppressFBWarnings(value = "RR_NOT_CHECKED", justification = "DB-9844")
     public T read(Kryo kryo, Input input, Class<T> type) {
         int size = input.readInt(true);
 
@@ -210,6 +212,7 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         }
 
         @Override
+        @SuppressFBWarnings(value = "BC_EQUALS_METHOD_SHOULD_WORK_FOR_ALL_OBJECTS", justification = "DB-9844")
         public boolean equals(Object o) {
             if (this == o) return true;
             if (o == null) return false;

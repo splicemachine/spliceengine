@@ -21,6 +21,7 @@ import com.splicemachine.access.hbase.HBaseTableInfoFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.spark.FetchSplitsJob;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -29,6 +30,7 @@ import com.splicemachine.storage.HScan;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Connection;
@@ -44,7 +46,10 @@ import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import static java.lang.String.format;
 
@@ -54,9 +59,10 @@ import static java.lang.String.format;
 public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> implements Configurable {
     protected static final Logger LOG = Logger.getLogger(AbstractSMInputFormat.class);
     private static int MAX_RETRIES = 30;
+    private static int PARTITION_LOAD_REFRESH_THRESHOLD = 8;
     protected Configuration conf;
     protected Table table;
-    protected int splits;
+    private List<InputSplit> inputSplits;
 
     private List<InputSplit> toSMSplits (List<Partition> splits) throws IOException {
         List<InputSplit> sMSplits = Lists.newArrayList();
@@ -73,10 +79,46 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         return sMSplits;
     }
 
+    private List<InputSplit> getInputSplitsFromCache(JobContext context) {
+        if (inputSplits != null) {
+            return inputSplits;
+        }
+
+        String splitCacheId = context.getConfiguration().get(MRConstants.SPLICE_SCAN_INPUT_SPLITS_ID);
+        if (StringUtils.isNotEmpty(splitCacheId)) {
+            if (FetchSplitsJob.splitCache.containsKey(splitCacheId)) {
+                Future<List<InputSplit>> cachedSplitsFuture = FetchSplitsJob.splitCache.get(splitCacheId);
+                List<InputSplit> cachedSplits = null;
+                if (cachedSplitsFuture != null) {
+                    try {
+                        cachedSplits = cachedSplitsFuture.get();
+                    } catch (ExecutionException | InterruptedException e) {
+                        throw new RuntimeException(e.getMessage(), e);
+                    }
+                }
+                FetchSplitsJob.splitCache.remove(splitCacheId);
+                if (cachedSplits != null) {
+                    inputSplits = cachedSplits;
+                    return cachedSplits;
+                }
+            }
+        }
+
+        return null;
+    }
+
     @Override
     public List<InputSplit> getSplits(JobContext context) throws IOException,
             InterruptedException {
+
+        List<InputSplit> cachedSplits = getInputSplitsFromCache(context);
+        if (cachedSplits != null) {
+            return cachedSplits;
+        }
+
         setConf(context.getConfiguration());
+        int splitsPerTable = conf.getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
+
         Scan s;
         try {
             TableScannerBuilder tsb = TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO));
@@ -94,7 +136,6 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         Partition clientPartition = new ClientPartition(connection, table.getName(), table, clock, driver.getPartitionInfoCache());
         int retryCounter = 0;
         boolean refresh = false;
-        this.splits = conf.getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
 
         boolean eachRegionOneSplit = oneSplitPerRegion(conf);
         long tableSize = 0;
@@ -107,26 +148,23 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                 return regionSplits;
             }
             List<Partition> splits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), refresh);
-            try {
-                String tableName = table.getName().getNameAsString().split(":")[1];
-                HBaseRegionLoads loadWatcher = HBaseRegionLoads.INSTANCE;
-                Collection<PartitionLoad> tableLoad = loadWatcher.tableLoad(tableName, true);
-                for (PartitionLoad partitionLoad: tableLoad) {
-                    tableSize += (partitionLoad.getStorefileSizeMB() + partitionLoad.getMemStoreSizeMB());
+            if (splitsPerTable > 0) { // we only use the total table size if the user explicitly request a number of splits
+                try {
+                    String tableName = table.getName().getNameAsString().split(":")[1];
+                    HBaseRegionLoads loadWatcher = HBaseRegionLoads.INSTANCE;
+                    boolean refreshPartitionLoad = splits.size() < PARTITION_LOAD_REFRESH_THRESHOLD;
+                    Collection<PartitionLoad> tableLoad = loadWatcher.tableLoad(tableName, refreshPartitionLoad);
+                    for (PartitionLoad partitionLoad : tableLoad) {
+                        tableSize += (partitionLoad.getStorefileSize() + partitionLoad.getMemStoreSize());
+                    }
+                    if (tableSize < 0)
+                        tableSize = 0;
                 }
-                // Convert MB to bytes.
-                tableSize *= 1048576;
-                int splitsPerTableMin = HConfiguration.getConfiguration().getSplitsPerTableMin();
-                if (tableSize < 0)
-                    tableSize = 0;
-                if (this.splits == 0) {
-                    this.splits = Math.max((int) (tableSize / HConfiguration.getConfiguration().getSplitBlockSize()), splitsPerTableMin);
+                catch (Exception e) {
+                    // Don't cause the query to abort if we couldn't get the table size.
+                    // Just log a warning.
+                    LOG.warn(format("Failed to compute size for table: %s", table));
                 }
-            }
-            catch (Exception e) {
-                // Don't cause the query to abort if we couldn't get the table size.
-                // Just log a warning.
-                LOG.warn(format("Failed to compute size for table: %s", table));
             }
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "getSplits " + splits);
@@ -136,13 +174,13 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
             }
             SubregionSplitter splitter = new HBaseSubregionSplitter();
 
-            List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), this.splits, tableSize);
+            List<InputSplit> lss= splitter.getSubSplits(table, splits, s.getStartRow(), s.getStopRow(), splitsPerTable, tableSize);
             //check if split count changed in-between
-            List<Partition>  newSplits = clientPartition.subPartitions(s.getStartRow(), s.getStopRow(), true);
-            if (splits.size() != newSplits.size()) {
+
+            if (isRefreshNeeded(lss, s.getStartRow(), s.getStopRow())) {
                 // retry
                 refresh = true;
-                LOG.warn("mismatched splits: earlier [" + splits.size() + "], later [" + newSplits.size() + "] for region " + clientPartition);
+                LOG.warn("mismatched splits for region " + clientPartition + ", refresh of splits is needed");
                 retryCounter++;
                 if (retryCounter > MAX_RETRIES) {
                     throw new RuntimeException("MAX_RETRIES exceeded during getSplits");
@@ -152,6 +190,66 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                return lss;
             }
         }
+    }
+
+    private int compareRows(byte[] left, byte[] right) {
+        return org.apache.hadoop.hbase.util.Bytes.compareTo(left, right);
+    }
+
+    private boolean splitContainsScan(SMSplit split, byte[] scanStartRow, byte[] scanStopRow) {
+        if (scanStartRow.length == 0 && scanStopRow.length == 0) {
+            return compareRows(split.split.getStartRow(), scanStartRow) == 0 &&
+                    compareRows(split.split.getEndRow(), scanStopRow) == 0;
+        } else {
+            if (compareRows(split.split.getStartRow(), scanStartRow) < 1) {
+                if (split.split.getEndRow().length == 0 || compareRows(split.split.getEndRow(), scanStopRow) >= 0) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
+    /**
+     * Checks the sequence of split rows. If any gap between splits is found or start/stop row of scan does not
+     * correspond to the generated splits, the splitting has to be recalculated again.
+     *
+     * @param inputSplits generated splits
+     * @param scanStartRow
+     * @param scanStopRow
+     * @return
+     */
+    protected boolean isRefreshNeeded(List<InputSplit> inputSplits, byte[] scanStartRow, byte[] scanStopRow) {
+        assert inputSplits.stream().allMatch(is -> (is instanceof SMSplit)) : "items expected to be instanceof SMSplit";
+
+        if (inputSplits.size() < 2) {
+            return !splitContainsScan((SMSplit) inputSplits.get(0), scanStartRow, scanStopRow);
+        } else {
+            inputSplits.sort(new Comparator<InputSplit>() {
+                @Override
+                public int compare(InputSplit o1, InputSplit o2) {
+                    SMSplit smSplit1 = (SMSplit) o1;
+                    SMSplit smSplit2 = (SMSplit) o2;
+
+                    return compareRows(smSplit1.split.getStartRow(), smSplit2.split.getStartRow());
+                }
+            });
+
+            for (int i = 1; i < inputSplits.size(); i++) {
+                byte currentStartRow[] = ((SMSplit) inputSplits.get(i)).split.getStartRow();
+                byte prevEndRow[] = ((SMSplit) inputSplits.get(i - 1)).split.getEndRow();
+                if (compareRows(currentStartRow, prevEndRow) != 0) {
+                    LOG.warn("The gap in splits is found: current split [" + inputSplits.get(i) + "], previous split [" + inputSplits.get(i - 1) + "]");
+                    return true;
+                }
+            }
+            SMSplit firstSplit = (SMSplit) inputSplits.get(0);
+            SMSplit lastSplit = (SMSplit) inputSplits.get(inputSplits.size() - 1);
+            if (compareRows(firstSplit.split.getStartRow(), scanStartRow) > 0 || (lastSplit.split.getEndRow().length != 0 && compareRows(lastSplit.split.getEndRow(), scanStopRow) < 0)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

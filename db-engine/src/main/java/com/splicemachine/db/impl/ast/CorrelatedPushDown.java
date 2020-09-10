@@ -33,14 +33,15 @@ package com.splicemachine.db.impl.ast;
 
 
 import com.carrotsearch.hppc.LongArrayList;
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Collections2;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.collect.Collections2;
+import splice.com.google.common.collect.Iterables;
 import java.util.*;
 
 /**
@@ -111,7 +112,7 @@ public class CorrelatedPushDown extends AbstractSpliceVisitor {
             return subq;
         }
         /* revisit, thinking about non-colrefs or colrefs w/o ResultCols underneath */
-        org.spark_project.guava.base.Predicate<ValueNode> isUncorrelated =
+        splice.com.google.common.base.Predicate<ValueNode> isUncorrelated =
             RSUtils.refPointsTo(pr);
         Collection<ValueNode> uncorrelated =
             Collections2.filter(colRefs, isUncorrelated);
@@ -129,9 +130,9 @@ public class CorrelatedPushDown extends AbstractSpliceVisitor {
         return subq;
     }
 
-
     public static final Function<Predicate,List<ValueNode>> binaryOperands = new Function<Predicate, List<ValueNode>>() {
         @Override
+        @SuppressFBWarnings(value = "NP_PARAMETER_MUST_BE_NONNULL_BUT_MARKED_AS_NULLABLE", justification = "DB-9844")
         public List<ValueNode> apply(Predicate pred) {
             ValueNode operator = pred.getAndNode().getLeftOperand();
             if (operator instanceof BinaryRelationalOperatorNode) {

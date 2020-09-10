@@ -23,32 +23,17 @@ public class PurgeConfig {
 
     private final PurgeLatestTombstone purgeLatestTombstone;
     private final boolean respectActiveTransactions;
-    private final boolean purge;
+    private final boolean purgeDeletes;
+    private final boolean purgeUpdates;
+    private final long transactionLowWatermark;
 
-    public PurgeConfig(boolean purge, PurgeLatestTombstone purgeLatestTombstone, boolean respectActiveTransactions) {
-        this.purge = purge;
+    public PurgeConfig(boolean purgeDeletes, PurgeLatestTombstone purgeLatestTombstone,
+                       boolean purgeUpdates, boolean respectActiveTransactions, long transactionLowWatermark) {
+        this.purgeDeletes = purgeDeletes;
         this.purgeLatestTombstone = purgeLatestTombstone;
+        this.purgeUpdates = purgeUpdates;
         this.respectActiveTransactions = respectActiveTransactions;
-    }
-
-    public static PurgeConfig forcePurgeConfig() {
-        return new PurgeConfig(true, PurgeLatestTombstone.ALWAYS, false);
-    }
-
-    public static PurgeConfig purgeDuringFlushConfig() {
-        return new PurgeConfig(true, PurgeLatestTombstone.IF_FIRST_WRITE_PRESENT, true);
-    }
-
-    public static PurgeConfig purgeDuringMinorCompactionConfig() {
-        return new PurgeConfig(true, PurgeLatestTombstone.IF_DELETE_FOLLOWS_FIRST_WRITE, true);
-    }
-
-    public static PurgeConfig purgeDuringMajorCompactionConfig() {
-        return new PurgeConfig(true, PurgeLatestTombstone.ALWAYS, true);
-    }
-
-    public static PurgeConfig noPurgeConfig() {
-        return new PurgeConfig(false, PurgeLatestTombstone.ALWAYS, true);
+        this.transactionLowWatermark = transactionLowWatermark;
     }
 
     public PurgeLatestTombstone getPurgeLatestTombstone() {
@@ -59,8 +44,16 @@ public class PurgeConfig {
         return respectActiveTransactions;
     }
 
-    public boolean shouldPurge() {
-        return purge;
+    public boolean shouldPurgeDeletes() {
+        return purgeDeletes;
+    }
+
+    public boolean shouldPurgeUpdates() {
+        return purgeUpdates;
+    }
+
+    public long getTransactionLowWatermark() {
+        return transactionLowWatermark;
     }
 }
 

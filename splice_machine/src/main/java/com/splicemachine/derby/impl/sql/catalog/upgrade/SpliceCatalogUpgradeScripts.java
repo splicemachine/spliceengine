@@ -58,30 +58,23 @@ public class SpliceCatalogUpgradeScripts{
             }
         };
         scripts=new TreeMap<>(ddComparator);
-        scripts.put(new Splice_DD_Version(sdd,1,0,0),new UpgradeScriptForFuji(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,1,1,1),new LassenUpgradeScript(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,6,0),new UpgradeScriptFor260(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,1), new UpgradeScriptForModifySchemaPermissionAndDefaultRole(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1812), new UpgradeScriptToCleanSysRoutinePerms(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1817), new UpgradeScriptForSysTokens(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1842), new UpgradeScriptForDroppedConglomerates(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1849), new UpgradeScriptToRemoveFKDependencyOnPrivileges(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,2,8,0, 1851), new UpgradeScriptToAddUseExtrapolationInSysColumns(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1901), new UpgradeScriptToRemoveUnusedBackupTables(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1909), new UpgradeScriptForReplication(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1917), new UpgradeScriptForMultiTenancy(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1924), new UpgradeScriptToAddPermissionViewsForMultiTenancy(sdd,tc));
 
-        // Two system procedures are moved, so we need to run base script to update all system procedures
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1928), new UpgradeScriptBase(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1933), new UpgradeScriptToUpdateViewForSYSCONGLOMERATEINSCHEMAS(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1938), new UpgradeScriptForTriggerWhenClause(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1940), new UpgradeScriptForReplicationSystemTables(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1941), new UpgradeScriptForTableColumnViewInSYSIBM(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1948), new UpgradeScriptBase(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1948), new UpgradeScriptForAddDefaultToColumnViewInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1953), new UpgradeScriptForRemoveUnusedIndexInSYSFILESTable(sdd,tc));
-        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1954), new UpgradeScriptToInvalidateStoredStatement(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1959), new UpgradeScriptForTriggerMultipleStatements(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1962), new UpgradeScriptForAddDefaultToColumnViewInSYSVW(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1964), new UpgradeScriptForAliasToTableView(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1970), new UpgradeScriptForAddTablesAndViewsInSYSIBMADM(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1971), new UpgradeScriptToAddCatalogVersion(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1974), new UpgradeScriptToAddMinRetentionPeriodColumnToSYSTABLES(sdd, tc));
     }
     public void run() throws StandardException{
 
@@ -96,12 +89,17 @@ public class SpliceCatalogUpgradeScripts{
         NavigableSet<Splice_DD_Version> keys=scripts.navigableKeySet();
         for(Splice_DD_Version version : keys){
             if(currentVersion!=null){
-                if(ddComparator.compare(version,currentVersion)<0){
+                if(ddComparator.compare(version,currentVersion)<=0){
                     continue;
                 }
             }
             UpgradeScript script=scripts.get(version);
             script.run();
         }
+
+        // Always update system procedures and stored statements
+        sdd.clearSPSPlans();
+        sdd.createOrUpdateAllSystemProcedures(tc);
+        sdd.updateMetadataSPSes(tc);
     }
 }

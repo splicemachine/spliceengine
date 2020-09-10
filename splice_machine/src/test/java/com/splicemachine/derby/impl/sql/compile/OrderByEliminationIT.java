@@ -432,4 +432,40 @@ public class OrderByEliminationIT extends SpliceUnitTest {
         rs.close();
         rowContainsQuery(4, "explain "+sqlText, "OrderBy", methodWatcher);
     }
+
+    @Test
+    public void testOrderByEliminationInteractionWithFlattenedOuterJoin() throws Exception {
+        /* Q1 */
+        String sqlText = "select c1, c2 from t1 left join t2 on c1=c2 and c1=5 order by c1 desc";
+        String expected = "C1 | C2  |\n" +
+                "----------\n" +
+                " 3 |NULL |\n" +
+                " 3 |NULL |\n" +
+                " 3 |NULL |\n" +
+                " 1 |NULL |\n" +
+                " 1 |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        rowContainsQuery(3, "explain "+sqlText, "OrderBy", methodWatcher);
+    }
+
+    @Test
+    public void testOrderByEliminationInteractionWithFlattenedOuterJoin2() throws Exception {
+        /* Q1 */
+        String sqlText = "select a1, b1, c1, a2 from t1 left join t2 on a1=a2 and a1=5 order by b1";
+        String expected = "A1 |B1 |C1 | A2  |\n" +
+                "------------------\n" +
+                " 1 | 1 | 1 |NULL |\n" +
+                " 1 | 2 | 3 |NULL |\n" +
+                " 2 | 2 | 3 |NULL |\n" +
+                " 3 | 2 | 3 |NULL |\n" +
+                " 1 | 3 | 1 |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        rs.close();
+        rowContainsQuery(3, "explain "+sqlText, "OrderBy", methodWatcher);
+    }
 }

@@ -40,13 +40,13 @@ hbase_zookeeper_quorum = config['configurations']['hbase-site']['hbase.zookeeper
 #    spark_queue = 'default'
 
 # e.g. 2.3
-stack_version_unformatted = str(config['hostLevelParams']['stack_version'])
+stack_version_unformatted = str(config['clusterLevelParams']['stack_version'])
 
 # e.g. 2.3.0.0
 #hdp_stack_version = format_hdp_stack_version(stack_version_unformatted)
 
 # e.g. 2.3.0.0-2130
-full_version = default("/commandParams/version", None)
+full_version = default("/clusterLevelParams/version", None)
 hdp_version = full_version
 stack_root = Script.get_stack_root()
 
@@ -59,7 +59,7 @@ hadoop_bin_dir = stack_select.get_hadoop_dir("bin")
 hadoop_conf_dir = conf_select.get_hadoop_conf_dir()
 security_enabled = config['configurations']['cluster-env']['security_enabled']
 kinit_path_local = get_kinit_path(default('/configurations/kerberos-env/executable_search_paths', None))
-dfs_type = default("/commandParams/dfs_type", "")
+dfs_type = default("/clusterLevelParams/dfs_type", "")
 splice_pid_file = "/tmp/splice-ambari-master.pid"
 
 

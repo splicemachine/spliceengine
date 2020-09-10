@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -2144,12 +2145,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * @param cc        The CompilerContext to use
      * @throws StandardException Thrown on error
      */
-    void joinClauseTransitiveClosure(int numTables,FromList fromList,CompilerContext cc) throws StandardException{
+    void joinClauseTransitiveClosure(FromList fromList, CompilerContext cc) throws StandardException{
         // Nothing to do if < 3 tables
         if(fromList.size()<3){
             return;
         }
 
+        int numTables = getCompilerContext().getMaximalPossibleTableCount();
         /* Create an array of numTables PredicateLists to hold the join clauses. */
         PredicateList[] joinClauses=new PredicateList[numTables];
         for(int index=0;index<numTables;index++){
@@ -2432,7 +2434,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * @param hashJoinSpecified Whether or not user specified a hash join
      * @throws StandardException Thrown on error
      */
-    void searchClauseTransitiveClosure(int numTables,boolean hashJoinSpecified) throws StandardException{
+    void searchClauseTransitiveClosure(boolean hashJoinSpecified) throws StandardException{
         PredicateList equijoinClauses=new PredicateList();
         PredicateList searchClauses=new PredicateList();
         RelationalOperator equalsNode=null;
@@ -2619,7 +2621,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                             getContextManager());
                     newAnd.postBindFixup();
                     // Add a new predicate to both the search clauses and this list
-                    JBitSet tableMap=new JBitSet(numTables);
+                    JBitSet tableMap=new JBitSet(getCompilerContext().getMaximalPossibleTableCount());
                     newAnd.categorize(tableMap,false);
                     Predicate newPred=(Predicate)getNodeFactory().getNode(
                             C_NodeTypes.PREDICATE,
@@ -2640,6 +2642,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             return;
         }
 
+        Boolean disableTC = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
+        if (disableTC == null || !disableTC) {
+            /* do not remove equality join conditions, in the presence of 3 tables, this could still cause unconstaints join,
+             * so return here directly */
+            return;
+        }
+
+
         // If all equijoin predicates are candidate for transitive closure transformation,
         // don't do it, because otherwise all potentially fast hashable join strategies will be ruled out.
         boolean doTransform = false;
@@ -2654,9 +2664,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         if (!doTransform) {
             return;
         }
-            /* Walk list backwards since we can delete while
-             * traversing the list.
-           */
+        /* Walk list backwards since we can delete while
+        * traversing the list.
+        */
         for(int index=size()-1;index>=0;index--){
             Predicate predicate=elementAt(index);
 
@@ -2664,6 +2674,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 removeElementAt(index);
             }
         }
+
+        return;
     }
 
     public void removeAllPredicates() throws StandardException {
@@ -2747,13 +2759,15 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     @Override
     public void transferPredicates(OptimizablePredicateList otherList,
                                    JBitSet referencedTableMap,
-                                   Optimizable table) throws StandardException{
+                                   Optimizable table,
+                                   JBitSet joinedTableSet) throws StandardException{
         Predicate predicate;
         PredicateList theOtherList=(PredicateList)otherList;
 
             /* Walk list backwards since we can delete while
            * traversing the list.
              */
+        boolean hasNestedLoopJoinPredicatePushedFromOuter = false;
         for(int index=size()-1;index>=0;index--){
             predicate=elementAt(index);
 
@@ -2766,7 +2780,20 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
             }
 
-            if(referencedTableMap.contains(predicate.getReferencedSet())){
+            // there could be nestedloop join condition pushed from outer block that should be treated as
+            // single table conditions, however, they would contain table number from tables from the outer block,
+            // so use joinedTableSet to mask out those table numbers
+            JBitSet maskedReferencedSet = (JBitSet)predicate.getReferencedSet().clone();
+            int numBitsSet = maskedReferencedSet.cardinality();
+            maskedReferencedSet.and(joinedTableSet);
+            int maskedNumBitsSet = maskedReferencedSet.cardinality();
+
+            // may not be fully covered by the current joined table set, however,
+            if(referencedTableMap.contains(maskedReferencedSet)){
+                if (maskedNumBitsSet < numBitsSet) {
+                    hasNestedLoopJoinPredicatePushedFromOuter = true;
+                }
+                
                 // We need to keep the counters up to date when removing a predicate
                 if(predicate.isStartKey())
                     numberOfStartPredicates--;
@@ -2784,6 +2811,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 removeElementAt(index);
             }
         }
+
+        if (hasNestedLoopJoinPredicatePushedFromOuter)
+            table.setHasJoinPredicatePushedDownFromOuter(true);
 
         // order the useful predicates on the other list
         AccessPath ap=table.getTrulyTheBestAccessPath();
@@ -4203,7 +4233,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * being considered in estimateCost. For us, each predicate can have
      * different index positions for different indices.
      */
-    private class PredicateWrapper{
+    private static class PredicateWrapper{
         int indexPosition;
         Predicate pred;
         int predicateID;
@@ -4246,7 +4276,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     /**
      * Another inner class which is basically a List of Predicate Wrappers.
      */
-    private class PredicateWrapperList{
+    private static class PredicateWrapperList{
         List<PredicateWrapper> pwList;
         int numPreds;
         int numDuplicates;

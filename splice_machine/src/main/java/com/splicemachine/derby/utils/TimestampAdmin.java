@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.hbase.jmx.JMXUtils;
 
 import javax.management.MalformedObjectNameException;

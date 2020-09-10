@@ -30,8 +30,9 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -72,15 +73,16 @@ public class SpliceRegionAdminIT {
 
     @BeforeClass
     public static void init() throws Exception {
+        String badDir = SpliceUnitTest.createBadLogDirectory(SCHEMA_NAME).getCanonicalPath();
         TestUtils.executeSqlFile(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME);
         spliceClassWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s',null,'L_ORDERKEY,L_LINENUMBER'," +
-                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,LINEITEM,
-                getResource("lineitemKey.csv")));
+                        "'%s','|',null,null,null,null,-1,'%s',true,null)",SCHEMA_NAME,LINEITEM,
+                getResource("lineitemKey.csv"), badDir));
 
         spliceClassWatcher.execute(String.format("call SYSCS_UTIL.SYSCS_SPLIT_TABLE_OR_INDEX('%s','%s','O_CUST_IDX'," +
                         "'O_CUSTKEY,O_ORDERKEY'," +
-                        "'%s','|',null,null,null,null,-1,'/BAD',true,null)",SCHEMA_NAME,ORDERS,
-                getResource("custIndex.csv")));
+                        "'%s','|',null,null,null,null,-1,'%s',true,null)",SCHEMA_NAME,ORDERS,
+                getResource("custIndex.csv"), badDir));
         spliceClassWatcher.execute(String.format("CALL SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', true)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), getResource("data")));
 
         spliceTableSplitKeys.add(0, "{ NULL, NULL }");

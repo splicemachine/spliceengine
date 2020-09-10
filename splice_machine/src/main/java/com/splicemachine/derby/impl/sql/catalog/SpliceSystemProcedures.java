@@ -1177,14 +1177,24 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build());
 
                     Procedure purgeDeletedRows = Procedure.newBuilder().name("SET_PURGE_DELETED_ROWS")
-                            .varchar("schemaName", 128)
-                            .varchar("tableName", 128)
+                            .catalog("schemaName")
+                            .catalog("tableName")
                             .varchar("enable", 5)
                             .numOutputParams(0)
                             .numResultSets(0)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(purgeDeletedRows);
+
+                    Procedure minRetentionPeriod = Procedure.newBuilder().name("SET_MIN_RETENTION_PERIOD")
+                            .varchar("schemaName", 128)
+                            .varchar("tableName", 128)
+                            .bigint("minRetentionPeriod")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(minRetentionPeriod);
 
                     Procedure snapshotSchema = Procedure.newBuilder().name("SNAPSHOT_SCHEMA")
                             .varchar("schemaName", 128)
@@ -1363,7 +1373,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .smallint("peerId")
                             .varchar("clusterKey", 32672)
                             .arg("enabled", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
-                            .arg("isSerial", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(addPeer);
@@ -1509,6 +1518,22 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
                             .build();
                     procedures.add(getReplicationProgress);
+
+                    Procedure dumpUnreplicatedWals = Procedure.newBuilder().name("DUMP_UNREPLICATED_WALS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(dumpUnreplicatedWals);
+
+                    Procedure replicationEnabled = Procedure.newBuilder().name("REPLICATION_ENABLED")
+                            .numOutputParams(0)
+                            .catalog("schemaName")
+                            .catalog("tableName")
+                            .numResultSets(1)
+                            .ownerClass(ReplicationSystemProcedure.class.getCanonicalName())
+                            .build();
+                    procedures.add(replicationEnabled);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 
 /**
  * A poor mans structure used in DataDictionaryImpl.java.
@@ -64,7 +65,7 @@ public class TabInfoImpl
      * this value, then it refers to the row
      * that is a duplicate.
      */
-    static  final   int     ROWNOTDUPLICATE = -1;
+    public static final   int     ROWNOTDUPLICATE = -1;
 
     private IndexInfoImpl[]				indexes;
     private long						heapConglomerate;
@@ -117,6 +118,7 @@ public class TabInfoImpl
     {
         this.heapConglomerate = heapConglomerate;
         heapSet = true;
+        crf.setHeapConglomerate(heapConglomerate);
     }
 
     /**
@@ -545,7 +547,6 @@ public class TabInfoImpl
     {
         int							insertRetCode;
         int							retCode = ROWNOTDUPLICATE;
-        int							indexCount = crf.getNumIndexes();
         ConglomerateController	indexController = null;
 
         // Open the conglomerates
@@ -801,6 +802,11 @@ public class TabInfoImpl
         drivingScan.close();
         rc.close();
 
+        // Create a savepoint so that any subsequent writes to the rows we just deleted don't end up
+        // with the same timestamp, see DB-9553
+        tc.setSavePoint("DD_SAVEPOINT-" + UUID.randomUUID().toString(), null);
+        tc.elevate("dictionary");
+
         return rowsDeleted;
     }
 
@@ -920,7 +926,7 @@ public class TabInfoImpl
         try
         {
             RowLocation rl[] = new RowLocation[1];
-            ExecRow notUsed = getRowInternal(tc, heapCC, key, indexNumber, rl);
+            getRowInternal(tc, heapCC, key, indexNumber, rl);
             return rl[0];
         }
         finally

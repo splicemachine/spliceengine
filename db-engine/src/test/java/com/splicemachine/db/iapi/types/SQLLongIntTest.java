@@ -38,7 +38,7 @@ import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.Arrays;
+import java.io.*;
 
 /**
  *
@@ -138,5 +138,63 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
                  */
                 double range = stats.selectivityExcludingValueIfSkewed(sqlLongint);
                 Assert.assertTrue(range + " did not match expected value of 1.0d", (range == 1.0d));
+        }
+
+        class MockObjectOutput extends ObjectOutputStream {
+                public MockObjectOutput() throws IOException { super(); }
+                public Boolean isNull = null;
+                public Long value = null;
+                @Override
+                public void writeBoolean(boolean bool) { isNull = bool; }
+                @Override
+                public void writeLong(long val) { value = val; }
+        }
+
+        class MockObjectInput extends ObjectInputStream {
+                public MockObjectInput() throws IOException { super(); }
+                public Boolean isNull = null;
+                public Long value = null;
+                @Override
+                public boolean readBoolean() { return isNull; }
+                @Override
+                public long readLong() { return value; }
+        }
+
+        @Test
+        public void writeExternal() throws IOException {
+                SQLLongint lint = new SQLLongint(42);
+                MockObjectOutput moo = new MockObjectOutput();
+                lint.writeExternal(moo);
+                Assert.assertFalse("Shouldn't be null", moo.isNull);
+                Assert.assertTrue("Unexpected value", moo.value == 42);
+        }
+
+        @Test
+        public void readExternal() throws IOException {
+                SQLLongint lint = new SQLLongint();
+                MockObjectInput moi = new MockObjectInput();
+                moi.isNull = false;
+                moi.value = 42L;
+                lint.readExternal(moi);
+                Assert.assertFalse("Shouldn't be null", lint.isNull());
+                Assert.assertTrue("Unexpected value", lint.getLong() == 42);
+        }
+
+        @Test
+        public void writeExternalNull() throws IOException {
+                SQLLongint lint = new SQLLongint();
+                MockObjectOutput moo = new MockObjectOutput();
+                lint.writeExternal(moo);
+                Assert.assertTrue("Should be null", moo.isNull);
+        }
+
+        @Test
+        public void readExternalNull() throws IOException {
+                SQLLongint lint = new SQLLongint();
+                MockObjectInput moi = new MockObjectInput();
+                moi.isNull = true;
+                moi.value = 0L;
+                lint.readExternal(moi);
+                Assert.assertTrue("Should be null", lint.isNull());
         }
 }

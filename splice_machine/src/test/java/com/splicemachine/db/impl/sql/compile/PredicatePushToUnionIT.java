@@ -3,14 +3,17 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -26,6 +29,7 @@ import static org.junit.Assert.assertEquals;
  * Created by yxia on 5/30/19.
  */
 @RunWith(Parameterized.class)
+@Category(LongerThanTwoMinutes.class)
 public class PredicatePushToUnionIT extends SpliceUnitTest {
 
     private Boolean useSpark;
@@ -528,6 +532,65 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
                 "  select t3.b3, t3.c3, t11.a1 from --splice-properties joinOrder=fixed\n " +
                 "t3, t11 where t3.b3 = t11.b1) dt(Y, Z, W)  where Z=3 and Y=3 and W='C'", useSpark);
 
+        /* plan will add the predicate "t11.b1 =3" derived by TC compared to the example in testUnionAllBranchHasInnerJoin()
+        Plan
+        ----
+        Cursor(n=25,rows=51,updateMode=READ_ONLY (1),engine=OLAP (query hint))
+          ->  ScrollInsensitive(n=25,totalCost=73.886,outputRows=51,outputHeapSize=204 B,partitions=3)
+            ->  ProjectRestrict(n=23,totalCost=48.86,outputRows=51,outputHeapSize=204 B,partitions=3,preds=[(A1[22:3] = C         ),(B1[22:1] = 3),(C1[22:2] = 3)])
+              ->  Union(n=22,totalCost=48.86,outputRows=51,outputHeapSize=204 B,partitions=3)
+                ->  ProjectRestrict(n=21,totalCost=12.262,outputRows=17,outputHeapSize=68 B,partitions=1)
+                  ->  BroadcastJoin(n=19,totalCost=12.262,outputRows=17,outputHeapSize=68 B,partitions=1,preds=[(T3.B3[19:1] = T11.B1[19:4])])
+                    ->  TableScan[T11(1648)](n=17,totalCost=4.034,scannedRows=17,outputRows=17,outputHeapSize=68 B,partitions=1,preds=[(T11.A1[17:1] = C         ),(T11.B1[17:2] = 3)])
+                    ->  TableScan[T3(1632)](n=15,totalCost=4.04,scannedRows=20,outputRows=17,outputHeapSize=34 B,partitions=1,preds=[(T3.C3[15:2] = 3),(T3.B3[15:1] = 3)])
+                ->  Union(n=14,totalCost=32.558,outputRows=34,outputHeapSize=136 B,partitions=2)
+                  ->  ProjectRestrict(n=13,totalCost=12.25,outputRows=17,outputHeapSize=68 B,partitions=1)
+                    ->  MergeJoin(n=11,totalCost=12.25,outputRows=17,outputHeapSize=68 B,partitions=1,preds=[(T2.B2[11:1] = T11.B1[11:4])])
+                      ->  TableScan[T11(1648)](n=9,totalCost=4.034,scannedRows=17,outputRows=17,outputHeapSize=68 B,partitions=1,preds=[(T11.A1[9:1] = C         ),(T11.B1[9:2] = 3)])
+                      ->  ProjectRestrict(n=8,totalCost=4.028,outputRows=17,outputHeapSize=34 B,partitions=1)
+                        ->  IndexScan[IDX_T2(1617)](n=7,totalCost=4.028,scannedRows=17,outputRows=17,outputHeapSize=34 B,partitions=1,baseTable=T2(1600),preds=[(T2.C2[7:1] = 3),(T2.B2[7:2] = 3)])
+                  ->  ProjectRestrict(n=6,totalCost=12.25,outputRows=17,outputHeapSize=68 B,partitions=1)
+                    ->  MergeJoin(n=4,totalCost=12.25,outputRows=17,outputHeapSize=68 B,partitions=1,preds=[(T1.B1[4:1] = T11.B1[4:4])])
+                      ->  TableScan[T11(1648)](n=2,totalCost=4.034,scannedRows=17,outputRows=17,outputHeapSize=68 B,partitions=1,preds=[(T11.A1[2:1] = C         ),(T11.B1[2:2] = 3)])
+                      ->  ProjectRestrict(n=1,totalCost=4.028,outputRows=17,outputHeapSize=34 B,partitions=1)
+                        ->  IndexScan[IDX_T1(1585)](n=0,totalCost=4.028,scannedRows=17,outputRows=17,outputHeapSize=34 B,partitions=1,baseTable=T1(1568),preds=[(T1.C1[0:1] = 3),(T1.B1[0:2] = 3)])
+
+        19 rows selected
+         */
+
+        rowContainsQuery(new int[]{7, 8, 12, 14, 17, 19}, "explain " + sqlText, methodWatcher,
+                new String[]{"TableScan", "preds=[(T11.A1[17:1] = C         ),(T11.B1[17:2] = 3)]"},
+                new String[]{"TableScan", "preds=[(T3.C3[15:2] = 3),(T3.B3[15:1] = 3)]"},
+                new String[]{"TableScan", "preds=[(T11.A1[9:1] = C         ),(T11.B1[9:2] = 3)]"},
+                new String[]{"IndexScan", "preds=[(T2.C2[7:1] = 3),(T2.B2[7:2] = 3)]"},
+                new String[]{"TableScan", "preds=[(T11.A1[2:1] = C         ),(T11.B1[2:2] = 3)]"},
+                new String[]{"IndexScan", "preds=[(T1.C1[0:1] = 3),(T1.B1[0:2] = 3)]"});
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "Y | Z | W |\n" +
+                        "------------\n" +
+                        " 3 | 3 | C |\n" +
+                        " 3 | 3 | C |";
+
+        assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
+
+    @Test
+    public void testUnionAllBranchHasInnerJoin_disableTCForPushedInPredicate() throws Exception {
+        TestConnection conn = methodWatcher.createConnection();
+        conn.execute("set session_property DISABLE_TC_PUSHED_DOWN_INTO_VIEWS=true");
+        String sqlText = format("select Y, Z, W from (" +
+                "select t1.b1, t1.c1, t11.a1 from --splice-properties joinOrder=fixed\n " +
+                "t1 --splice-properties useSpark=%s\n, t11 where t1.b1 = t11.b1 " +
+                "  union all \n" +
+                "  select t2.b2, t2.c2, t11.a1 from --splice-properties joinOrder=fixed\n " +
+                "t2, t11 where t2.b2=t11.b1 \n" +
+                "  union all \n" +
+                "  select t3.b3, t3.c3, t11.a1 from --splice-properties joinOrder=fixed\n " +
+                "t3, t11 where t3.b3 = t11.b1) dt(Y, Z, W)  where Z=3 and Y=3 and W='C'", useSpark);
+
         /* plan should look like the following:
         Plan
         ----
@@ -554,7 +617,8 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
         19 rows selected
 
          */
-        rowContainsQuery(new int[]{7, 8, 12, 14, 17, 19}, "explain " + sqlText, methodWatcher,
+
+        rowContainsQuery(new int[]{7, 8, 12, 14, 17, 19}, "explain " + sqlText, conn,
                 new String[]{"TableScan", "preds=[(T11.A1[17:1] = C         )]"},
                 new String[]{"TableScan", "preds=[(T3.C3[15:2] = 3),(T3.B3[15:1] = 3)]"},
                 new String[]{"TableScan", "preds=[(T11.A1[9:1] = C         )]"},
@@ -562,7 +626,8 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
                 new String[]{"TableScan", "preds=[(T11.A1[2:1] = C         )]"},
                 new String[]{"IndexScan", "preds=[(T1.C1[0:1] = 3),(T1.B1[0:2] = 3)]"});
 
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
+
+        ResultSet rs = conn.query(sqlText);
         String expected =
                 "Y | Z | W |\n" +
                         "------------\n" +
@@ -571,6 +636,9 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
 
         assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+
+        conn.execute("set session_property DISABLE_TC_PUSHED_DOWN_INTO_VIEWS=false");
+        conn.close();
     }
 
     @Test

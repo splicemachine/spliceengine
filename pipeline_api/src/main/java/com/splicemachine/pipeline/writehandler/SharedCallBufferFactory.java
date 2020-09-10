@@ -87,9 +87,9 @@ public class SharedCallBufferFactory{
         wc.registerContext(context, indexToMainMutationMap);
         CallBuffer<KVPair> writeBuffer;
         if (useAsyncWriteBuffers) {
-            writeBuffer = writerPool.writeBuffer(partitionFactory.getTable(conglomBytes), txn,token, hook, wc);
+            writeBuffer = writerPool.writeBuffer(partitionFactory.getTable(conglomBytes), txn,token, hook, wc, false);
         } else {
-            writeBuffer = writerPool.synchronousWriteBuffer(partitionFactory.getTable(conglomBytes), txn, token, hook, wc, maxSize);
+            writeBuffer = writerPool.synchronousWriteBuffer(partitionFactory.getTable(conglomBytes), txn, token, hook, wc, maxSize, false);
         }
         sharedCallBufferMap.put(conglomBytes, writeBuffer);
         return writeBuffer;

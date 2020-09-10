@@ -40,9 +40,11 @@ import java.io.FileInputStream;
 import java.io.IOException;
 
 import com.splicemachine.db.iapi.tools.i18n.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  */
+@SuppressFBWarnings(value = "NM_CLASS_NAMING_CONVENTION",justification = "DB-9772")
 public class mtTestCase
 {
 	public String name = null;
@@ -82,7 +84,7 @@ public class mtTestCase
 	{
 		return file;
 	}
-	
+
 	public void setPropFile(String name)
 	{
 		this.propFile = name;
@@ -97,12 +99,12 @@ public class mtTestCase
 	{
 		this.weight = (float)(weight/100.0);
 	}
-	
+
 	public void setIgnoreErrors(Hashtable t)
 	{
 		this.ignoreErrors = t;
 	}
-	
+
 	public void setDescription(String description)
 	{
 		this.description = description;
@@ -111,7 +113,7 @@ public class mtTestCase
 	/**
 	** Initialize the test case.  See initialize(String)
 	*/
-	public synchronized BufferedInputStream initialize() 
+	public synchronized BufferedInputStream initialize()
 			throws FileNotFoundException, IOException
 	{
 		return initialize(null);
@@ -122,32 +124,41 @@ public class mtTestCase
 	** file and sets the input stream.  Used to set up
 	** prior to running the thread.
 	*/
-	public synchronized BufferedInputStream initialize(String inputDir) 
+	public synchronized BufferedInputStream initialize(String inputDir)
 			throws FileNotFoundException, IOException
 	{
-		String filePath; 
+		String filePath;
 		BufferedInputStream	inStream = null;
 
 		// load up properties
 		if (propFile != null)
-		{	
-			BufferedInputStream	propStream;
+		{
+			BufferedInputStream	propStream = null;
 			Properties		p;
 			String propPath = (inputDir == null) ?
-						propFile : 
+						propFile :
 				(inputDir + "/" + propFile);
-			
-			try 
+
+			try
 			{
 				propStream = new BufferedInputStream(new FileInputStream(propPath));
+				p = System.getProperties();
+				p.load(propStream);
 			} catch (FileNotFoundException e)
 			{
 				System.out.println(name+": unable to find properties file "+propPath);
 				throw e;
 			}
+			finally {
+				if(propStream != null) {
+					try {
+						propStream.close();
+					} catch (IOException e) {
+						// do nothing
+					}
+				}
+			}
 
-			p = System.getProperties();
-			p.load(propStream);
 			// for network server need to alter url
 			String framework = p.getProperty("framework");
 			
@@ -167,9 +178,9 @@ public class mtTestCase
                 }
 			}
             // this is a special case for the MultiTest.
-            // check and alter url if there are any encryption related 
-            // properties that need to be set on the url 
-            if (("true").equalsIgnoreCase(p.getProperty("encryption"))) 
+            // check and alter url if there are any encryption related
+            // properties that need to be set on the url
+            if (("true").equalsIgnoreCase(p.getProperty("encryption")))
             {
                String encryptUrl = "dataEncryption=true;bootPassword=Thursday";
                String dbUrl = p.getProperty("ij.database");
@@ -185,28 +196,28 @@ public class mtTestCase
                    p.setProperty("ij.database",dbUrl + ";"+encryptUrl);
                }
             }
-            
+
 			// If the initial connection is being specified as a DataSource
 			// on the command line using -Dij.dataSource=<dsclassname>
 			// then remove the ij.database and ij.protocol property.
-            // This is because the ij.database and ij.protocol 
+            // This is because the ij.database and ij.protocol
             // will override the ij.dataSource property.
 			if (System.getProperty("ij.dataSource") != null)
 			{
 				p.remove("ij.database");
 				p.remove("ij.protocol");
 			}
-            
+
 			System.setProperties(p);
 		}
 		// set input stream
 		filePath = (inputDir == null) ?
 						file : (inputDir + "/" + file);
 
-		try 
+		try
 		{
-			inStream = new BufferedInputStream(new FileInputStream(filePath), 
-							utilMain.BUFFEREDFILESIZE);		
+			inStream = new BufferedInputStream(new FileInputStream(filePath),
+							utilMain.BUFFEREDFILESIZE);
 		} catch (FileNotFoundException e)
 		{
 			System.out.println("unable to find properties file "+filePath);
@@ -216,10 +227,10 @@ public class mtTestCase
 	}
 
 	/**
-	** Attempt to grab this test case.  
+	** Attempt to grab this test case.
 	** Uses random number and the weight of this
 	** case to determine if the grab was successful.
-	** 
+	**
 	** @return true/false
 	*/
 	public synchronized boolean grab()
@@ -247,11 +258,10 @@ public class mtTestCase
         is = LocalizedResource.getInstance().getNewInput(infile);
 
 		LocalizedInput [] in = { is };
-	
+
 		out.println("--------------"+file+"-----------------");
 		utilInstance = new utilMain(1, out, ignoreErrors);
 		utilInstance.initFromEnvironment();
-		utilInstance.setMtUse(true);
 		utilInstance.go(in, out);
 		log.flush();
 		out.flush();
@@ -274,15 +284,10 @@ public class mtTestCase
 	public String alterURL(String url, String newURLPrefix)
 	{
         String urlPrefix = "jdbc:splice:";
-	
+
 		if (url.startsWith(newURLPrefix))
 			return url;
 
-		// If we don't have a URL prefix for this framework
-		// just return
-		if (newURLPrefix == null)
-			return url;
-	
 		if (url.equals(urlPrefix)) // Replace embedded
 			return newURLPrefix;
 
@@ -303,10 +308,10 @@ public class mtTestCase
 		//System.out.println("New url:" +url);
 		return url;
     }
-  
+
 
 // NOTE: tried invoking ij directly, but had some problems,
-// so stick with calling utilMain().	
+// so stick with calling utilMain().
 //	/**
 //	** Run the test case.  Invokes IJ to do our
 //	** dirty work.
@@ -316,8 +321,8 @@ public class mtTestCase
 //		ASCII_UCodeESC_CharStream charStream;
 //		ijTokenManager	ijTokMgr;
 //		ij	ijParser;
-//	
-//		
+//
+//
 //		out.println("--------------"+file+"-----------------");
 //		charStream = new ASCII_UCodeESC_CharStream(in, 1, 1);
 //		ijTokMgr = new ijTokenManager(charStream);
@@ -339,5 +344,5 @@ public class mtTestCase
 				"\n\tdescription: "+description;
 	}
 
-	
+
 }

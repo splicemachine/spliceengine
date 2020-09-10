@@ -31,26 +31,19 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import java.sql.Types;
-
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.SQLBoolean;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.UserType;
+import com.splicemachine.db.iapi.types.*;
+
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 
 /**
@@ -122,9 +115,9 @@ public class SYSALIASESRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    public SYSALIASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSALIASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo(SYSALIASES_COLUMN_COUNT, "SYSALIASES", indexColumnPositions, uniqueness, uuids);
 	}
 
@@ -142,7 +135,7 @@ public class SYSALIASESRowFactory extends CatalogRowFactory
 	 *
 	 * @exception   StandardException thrown on failure
 	 */
-	public ExecRow makeRow(TupleDescriptor	td, TupleDescriptor parent)
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor	td, TupleDescriptor parent)
 					throws StandardException 
 	{
 		DataValueDescriptor		col;
@@ -157,8 +150,8 @@ public class SYSALIASESRowFactory extends CatalogRowFactory
 		boolean					systemAlias = false;
 		AliasInfo				aliasInfo = null;
 
-		if (td != null) {
-
+		if (td != null && (td instanceof AliasDescriptor)) {
+			
 			AliasDescriptor 		ad = (AliasDescriptor)td;
 			aliasID	= ad.getUUID().toString();
 			aliasName = ad.getDescriptorName();
@@ -397,4 +390,31 @@ public class SYSALIASESRowFactory extends CatalogRowFactory
         SystemColumnImpl.getIdentifierColumn("SPECIFICNAME", false)
         };
     }
+
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+        cdsl.add(
+                new ColumnDescriptor[]{
+                        new ColumnDescriptor("SCHEMANAME",1,1,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("ALIAS",2,2,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                                null,null,view,viewId,0,0,0),
+                        new ColumnDescriptor("BASETABLE",3,3,
+                                DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 256),
+                                null,null,view,viewId,0,0,0)
+                });
+        return cdsl;
+    }
+    public static String SYSALIAS_TO_TABLE_VIEW_SQL = "create view SYSALIASTOTABLEVIEW as \n" +
+            "SELECT S.SCHEMANAME, A.alias as ALIAS, cast(A.ALIASINFO as varchar(256)) as BASETABLE \n" +
+            "FROM \n" +
+            "SYS.SYSALIASES A, SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S \n" +
+            "WHERE A.ALIASTYPE = 'S' AND \n" +
+            "S.SCHEMAID = T.SCHEMAID AND \n" +
+            "A.SCHEMAID = T.SCHEMAID AND \n" +
+            "A.ALIAS = T.TABLENAME";
+
 }

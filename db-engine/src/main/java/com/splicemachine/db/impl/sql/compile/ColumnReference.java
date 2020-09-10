@@ -47,7 +47,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * A ColumnReference represents a column in the query tree.  The parser generates a
@@ -468,7 +470,13 @@ public class ColumnReference extends ValueNode {
         matchingRC = fromList.bindColumnReference(this);
             /* Error if no match found in fromList */
         if (matchingRC == null) {
-            throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
+            // not found in normal table, check if it is an alias?
+            ValueNode node = fromList.getAlias(this);
+            if (node == null) {
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
+            }
+            // if found, REPLACE this alias-referencing node with the expression the alias is pointing to
+            return node;
         }
 
         return this;
@@ -500,6 +508,11 @@ public class ColumnReference extends ValueNode {
     public String getColumnName()
     {
         return columnName;
+    }
+
+    public String getSchemaQualifiedColumnName() throws StandardException
+    {
+        return source.getSchemaName() + "." + source.getFullName();
     }
 
     /**
@@ -802,6 +815,8 @@ public class ColumnReference extends ValueNode {
         {
             ColumnReference cr = (ColumnReference) source.getExpression();
             tableNumber = cr.getTableNumber();
+            columnNumber = cr.getColumnNumber();
+
             if (SanityManager.DEBUG)
             {
                 // if dummy cr generated to replace aggregate, it may not have table number
@@ -1470,6 +1485,10 @@ public class ColumnReference extends ValueNode {
         return getStoreCostController().rowCount();
     }
 
+    public boolean useRealColumnStatistics() throws StandardException {
+        return getStoreCostController().useRealColumnStatistics(columnNumber);
+    }
+
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {
         return getSource() == null ? null : getSource().getBaseConglomerateDescriptor();
     }
@@ -1497,4 +1516,7 @@ public class ColumnReference extends ValueNode {
         return false;
     }
 
+    public boolean isSourceRowIdColumn() {
+        return source != null && source.getExpression() instanceof CurrentRowLocationNode;
+    }
 }

@@ -14,7 +14,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -24,7 +23,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
-import java.sql.SQLException;
+import java.sql.ResultSet;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -60,25 +59,24 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
                         row(9,9,9,"i"),
                         row(10,10,10,"j")))
                 .create();
-        for (int i = 0; i < 16; i++) {
-            spliceClassWatcher.executeUpdate("insert into t2 select * from t2");
-        }
 
         new TableCreator(conn)
                 .withCreate("create table t1 (a1 int, b1 int, c1 int, d1 varchar(10000))")
                 .create();
-        // make t1 twice as big as t2
-        for (int i = 0; i < 2; i++) {
-            spliceClassWatcher.executeUpdate("insert into t1 select * from t2");
-        }
 
         conn.createStatement().executeQuery(format(
-                "CALL SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T1', true)",
+                "CALL SYSCS_UTIL.FAKE_TABLE_STATISTICS('%s','T1', 100000000, 10050, 1)",
                 schemaName));
 
         conn.createStatement().executeQuery(format(
-                "CALL SYSCS_UTIL.COLLECT_TABLE_STATISTICS('%s','T2', true)",
+                "CALL SYSCS_UTIL.FAKE_TABLE_STATISTICS('%s','T2', 5000, 10050, 1)",
                 schemaName));
+
+        conn.createStatement().executeQuery(format(
+                "CALL SYSCS_UTIL.FAKE_COLUMN_STATISTICS('%s','T2', 'A2', 0, 500)",
+                schemaName));
+
+
 
         conn.commit();
     }
@@ -91,13 +89,13 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
     @Test
     public void testMemoryLimitForConsecutiveBroadcastJoin() throws Exception {
         StringBuilder fromClause = new StringBuilder("from --splice-properties joinOrder=fixed\n" +
-                "t1\n");
+                "t1 \n");
         StringBuilder whereClause = new StringBuilder("where\n");
 
-        int numT2 = 400;
+        int numT2 = 100;
 
         for (int i=1; i<=numT2; i++) {
-            fromClause.append(format(", t2 as X%d --splice-properties joinStrategy=BROADCAST\n", i));
+            fromClause.append(format(", t2 as X%d\n", i));
             if (i>1)
                 whereClause.append(format("and d1=X%d.d2\n", i));
             else
@@ -105,12 +103,17 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
         }
         String sqlText = "explain select a1, X1.a2\n" + fromClause + whereClause;
 
-        try {
-            methodWatcher.executeQuery(sqlText);
-            Assert.fail("Query is expected to fail with too many broadcast joins that exceed the memory limit.");
-        } catch (SQLException e) {
-            Assert.assertEquals(SQLState.LANG_NO_BEST_PLAN_FOUND, e.getSQLState());
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while(rs.next()) {
+            String resultString = rs.getString(1);
+            if (resultString.contains("BroadcastJoin"))
+                i++;
         }
+
+        Assert.assertTrue("Query should not pick broadcast join for all the joins.", i < 100);
+
     }
 
     @Test
@@ -118,19 +121,21 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
         StringBuilder fromClause = new StringBuilder("from --splice-properties joinOrder=fixed\n" +
                 "t1\n");
 
-        int numT2 = 400;
+        int numT2 = 100;
 
         for (int i=1; i<=numT2; i++) {
-            fromClause.append(format("left join t2 as X%d --splice-properties joinStrategy=BROADCAST\n on a1=X%d.a2 \n", i, i));
+            fromClause.append(format("left join t2 as X%d on a1=X%d.a2 \n", i, i));
         }
         String sqlText = "explain select a1, X1.a2\n" + fromClause;
 
-        try {
-            methodWatcher.executeQuery(sqlText);
-            Assert.fail("Query is expected to fail with too many broadcast joins that exceed the memory limit.");
-        } catch (SQLException e) {
-            Assert.assertEquals(SQLState.LANG_ILLEGAL_FORCED_JOIN_ORDER, e.getSQLState());
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while(rs.next()) {
+            String resultString = rs.getString(1);
+            if (resultString.contains("BroadcastJoin"))
+                i++;
         }
+        Assert.assertTrue("Query should not pick broadcast join for all the joins.", i < 100);
     }
 
     @Test
@@ -138,18 +143,20 @@ public class BroadcastJoinMemoryLimitIT extends SpliceUnitTest {
         StringBuilder fromClause = new StringBuilder("from --splice-properties joinOrder=fixed\n" +
                 "(select * from t1) as DT\n");
 
-        int numT2 = 400;
+        int numT2 = 100;
 
         for (int i=1; i<=numT2; i++) {
-            fromClause.append(format("left join (select * from t2) as DT%d --splice-properties joinStrategy=BROADCAST\n on DT.a1=DT%d.a2 \n", i, i));
+            fromClause.append(format("left join (select * from t2) as DT%d on DT.a1=DT%d.a2 \n", i, i));
         }
         String sqlText = "explain select DT.a1, DT1.a2\n" + fromClause;
 
-        try {
-            methodWatcher.executeQuery(sqlText);
-            Assert.fail("Query is expected to fail with too many broadcast joins that exceed the memory limit.");
-        } catch (SQLException e) {
-            Assert.assertEquals(SQLState.LANG_ILLEGAL_FORCED_JOIN_ORDER, e.getSQLState());
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        int i=0;
+        while(rs.next()) {
+            String resultString = rs.getString(1);
+            if (resultString.contains("BroadcastJoin"))
+                i++;
         }
+        Assert.assertTrue("Query should not pick broadcast join for all the joins.", i < 100);
     }
 }

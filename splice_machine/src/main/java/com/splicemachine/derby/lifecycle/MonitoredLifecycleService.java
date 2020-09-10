@@ -33,7 +33,7 @@ public class MonitoredLifecycleService extends EngineLifecycleService{
     public MonitoredLifecycleService(DistributedDerbyStartup startup,
                                      SConfiguration configuration,
                                      boolean isMaster){
-        super(startup, configuration, isMaster);
+        super(startup, configuration, isMaster, true);
     }
 
     @Override

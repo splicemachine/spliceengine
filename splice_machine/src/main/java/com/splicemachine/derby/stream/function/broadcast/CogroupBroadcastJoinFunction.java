@@ -15,8 +15,8 @@
 package com.splicemachine.derby.stream.function.broadcast;
 
 import com.splicemachine.derby.stream.function.IteratorUtils;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.FluentIterable;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.JoinTable;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -32,12 +32,13 @@ public class CogroupBroadcastJoinFunction extends AbstractBroadcastJoinFlatMapFu
     public CogroupBroadcastJoinFunction() {
     }
 
-    public CogroupBroadcastJoinFunction(OperationContext operationContext) {
-        super(operationContext);
+    public CogroupBroadcastJoinFunction(OperationContext operationContext,
+                                        boolean noCacheBroadcastJoinRight) {
+        super(operationContext, noCacheBroadcastJoinRight);
     }
 
-    public CogroupBroadcastJoinFunction(OperationContext operationContext, boolean rightAsLeft) {
-        super(operationContext, rightAsLeft);
+    public CogroupBroadcastJoinFunction(OperationContext operationContext, boolean rightAsLeft, boolean noCacheBroadcastJoinRight) {
+        super(operationContext, rightAsLeft, noCacheBroadcastJoinRight);
     }
 
     @Override

@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.reference.Module;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.locks.LockOwner;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 
 /**
  * UpdateLoader implements then functionality of
@@ -98,13 +99,12 @@ public final class UpdateLoader implements LockOwner {
 	private final LockFactory lf;
 	private final ShExLockable classLoaderLock;
 	private int version;
-    private boolean normalizeToUpper;
-	private DatabaseClasses parent;
-	private final CompatibilitySpace compat;
+    private final CompatibilitySpace compat;
 
 	private boolean needReload;
 	private JarReader jarReader;
 	private static volatile UpdateLoader instance = null;
+	private boolean isHBaseJVM = EmbedConnection.isHBaseJVM.get();
 
 	/**
 	 * Singleton factory method.
@@ -112,17 +112,16 @@ public final class UpdateLoader implements LockOwner {
 	 * @param classpath
 	 * @param parent
 	 * @param verbose
-	 * @param normalizeToUpper
 	 *
 	 * @return reference to singleton instance
 	 *
 	 * @throws StandardException
 	 */
-	public static synchronized UpdateLoader getInstance(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
+	public static synchronized UpdateLoader getInstance(String classpath, DatabaseClasses parent, boolean verbose)
 			throws StandardException {
 
 		if (instance == null) {
-			instance = new UpdateLoader(classpath, parent, verbose, normalizeToUpper);
+			instance = new UpdateLoader(classpath, parent, verbose);
 		}
 
 		return instance;
@@ -134,16 +133,13 @@ public final class UpdateLoader implements LockOwner {
 	 * @param classpath
 	 * @param parent
 	 * @param verbose
-	 * @param normalizeToUpper
 	 *
 	 * @throws StandardException
 	 */
-	private UpdateLoader(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
+	private UpdateLoader(String classpath, DatabaseClasses parent, boolean verbose)
 		throws StandardException {
 
-        this.normalizeToUpper = normalizeToUpper;
-		this.parent = parent;
-		lf = (LockFactory) Monitor.getServiceModule(parent, Module.LockFactory);
+        lf = (LockFactory) Monitor.getServiceModule(parent, Module.LockFactory);
 		compat = (lf != null) ? lf.createCompatibilitySpace(this) : null;
 
 		if (verbose) {
@@ -157,7 +153,7 @@ public final class UpdateLoader implements LockOwner {
 		initializeFromClassPath(classpath);
 	}
 
-	private void initializeFromClassPath(String classpath) throws StandardException {
+	private synchronized void initializeFromClassPath(String classpath) throws StandardException {
 
 		final String[][] elements = IdUtil.parseDbClassPath(classpath);
 		
@@ -219,11 +215,14 @@ public final class UpdateLoader implements LockOwner {
 
 			synchronized (this) {
 
-				if (needReload) {
+				if (needReload || !isHBaseJVM) {
+					// Reload jars if this is executed by olap server or executor, because they are not
+					// aware of jar DDLs
 					reload();
 				}
 			
 				Class clazz = checkLoaded(className, resolve);
+
 				if (clazz != null)
 					return clazz;
                 
@@ -250,21 +249,6 @@ public final class UpdateLoader implements LockOwner {
 						return c;
 					}
 				}
-				// Ok we are missing the class, we will try to reload once and Find it...
-				reload();
-				initDone = false;
-				initLoaders();
-				for (JarLoader aJarList : jarList) {
-					jl = aJarList;
-					Class c = jl.loadClassData(className, jvmClassName, resolve);
-					if (c != null) {
-						if (vs != null)
-							vs.println(MessageService.getTextMessage(MessageId.CM_CLASS_LOAD, className, jl.getJarName()));
-
-						return c;
-					}
-				}
-
 			}
 
 			return null;
@@ -400,7 +384,7 @@ public final class UpdateLoader implements LockOwner {
 
 	}
 
-	private void initLoaders() {
+	private synchronized void initLoaders() {
 
 		if (initDone)
 			return;
@@ -422,8 +406,6 @@ public final class UpdateLoader implements LockOwner {
 
 	private void reload() throws StandardException {
 		thisClasspath = getClasspath();
-		// first close the existing jar file opens
-		close();
 		initializeFromClassPath(thisClasspath);
 		needReload = false;
 	}

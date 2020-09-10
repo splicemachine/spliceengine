@@ -15,8 +15,8 @@
 package com.splicemachine.pipeline.foreignkey;
 
 import com.splicemachine.ddl.DDLMessage;
-import org.spark_project.guava.collect.ImmutableList;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.ddl.DDLMessage.*;
@@ -166,7 +166,6 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         if (fks.isEmpty()) {
             return;
         }
-        ColumnDescriptorList backingIndexColDescriptors = cDescriptor.getColumnDescriptors();
         String parentTableName = cDescriptor.getTableDescriptor().getName();
         List<Long> backingIndexConglomIds = Lists.newArrayList();
         List<DDLMessage.FKConstraintInfo> fkConstraintInfos = Lists.newArrayList();

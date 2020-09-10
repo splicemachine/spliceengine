@@ -58,7 +58,7 @@ public class BaseTableNumbersVisitor implements Visitor
 	 * base table was.
 	 */
 	private int columnNumber;
-	private boolean doNotAllowLimitNAndJoin = false;
+	private boolean doNotAllowLimitNAndWinFunc = false;
 	private boolean stopTraversing = false;
 
 	/**
@@ -73,11 +73,11 @@ public class BaseTableNumbersVisitor implements Visitor
 		columnNumber = -1;
 	}
 
-	public BaseTableNumbersVisitor(JBitSet tableMap, boolean doNotAllowLimitNAndJoin)
+	public BaseTableNumbersVisitor(JBitSet tableMap, boolean doNotAllowLimitNAndWinFunc)
 	{
 		this.tableMap = tableMap;
 		columnNumber = -1;
-		this.doNotAllowLimitNAndJoin = doNotAllowLimitNAndJoin;
+		this.doNotAllowLimitNAndWinFunc = doNotAllowLimitNAndWinFunc;
 	}
 	/**
 	 * Set a new JBitSet to serve as the holder for base table numbers
@@ -142,16 +142,16 @@ public class BaseTableNumbersVisitor implements Visitor
 			rc = (ResultColumn)node;
 		else if (node instanceof SelectNode)
 		{
-			if (doNotAllowLimitNAndJoin) {
+			if (doNotAllowLimitNAndWinFunc) {
 				boolean noPush = false;
 				// no limit n/top n
 				if (((SelectNode) node).offset != null || ((SelectNode) node).fetchFirst != null) {
 					noPush = true;
 				}
 
-				// no join
-				if (((SelectNode) node).fromList.size() > 1 ||
-						((SelectNode) node).fromList.elementAt(0) instanceof JoinNode) {
+				// we should not push join condition underneath a window function.
+				// this restriction may be relaxed in the future if the join column is a partition by column
+				if (((SelectNode)node).hasWindows()) {
 					noPush = true;
 				}
 

@@ -20,7 +20,7 @@ import com.splicemachine.pipeline.ErrorState;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeFieldType;
 import org.joda.time.Months;
-import org.spark_project.guava.collect.ImmutableMap;
+import splice.com.google.common.collect.ImmutableMap;
 
 import java.sql.Date;
 import java.sql.SQLException;
