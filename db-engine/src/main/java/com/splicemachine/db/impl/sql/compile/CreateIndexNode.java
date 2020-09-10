@@ -277,7 +277,6 @@ public class CreateIndexNode extends DDLStatementNode
 
         if (onExpression) {
             bindIndexExpressions();
-            generateExecutableIndexExpression();
         }
 
         /* Statement is dependent on the TableDescriptor */
@@ -398,6 +397,10 @@ public class CreateIndexNode extends DDLStatementNode
     {
         SchemaDescriptor sd = getSchemaDescriptor();
         int approxLength = 0;
+
+        if (onExpression) {
+            generateExecutableIndexExpression();
+        }
 
         // bump the page size for the index,
         // if the approximate sizes of the columns in the key are
