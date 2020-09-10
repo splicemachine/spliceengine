@@ -107,18 +107,7 @@ node('splice-standalone'){
     stage('Create Cluster') {
         build job: '../Kubernetes/KubernetesDeploy/azure/master', parameters: [
             [$class: 'StringParameterValue', name: 'action', value: "create"],
-            [$class: 'StringParameterValue', name: 'environment', value: target_cluster],
-            [$class: 'StringParameterValue', name: 'kubernetes_version', value: "1.14.8"],
-            [$class: 'StringParameterValue', name: 'enable_cloud_manager', value: "true"],
-            [$class: 'StringParameterValue', name: 'enable_tick', value: "true"],
-            [$class: 'StringParameterValue', name: 'enable_elastic_stack', value: "true"],
-            [$class: 'StringParameterValue', name: 'core_vmsize', value: "Standard_D4s_v3"],
-            [$class: 'StringParameterValue', name: 'core_max_vmcount', value: "3"],
-            [$class: 'StringParameterValue', name: 'db_vmsize', value: "Standard_D16s_v3"],
-            [$class: 'StringParameterValue', name: 'meta_max_vmcount', value: "3"],
-            [$class: 'StringParameterValue', name: 'meta_vmsize', value: "Standard_D8s_v3"],
-            [$class: 'StringParameterValue', name: 'db_max_vmcount', value: "12"],
-            [$class: 'StringParameterValue', name: 'tag_creator', value: scmVars.GIT_BRANCH]
+            [$class: 'StringParameterValue', name: 'environment', value: target_cluster]
         ]
     }
     stage('Create Splice-DB') {
@@ -140,7 +129,7 @@ node('splice-standalone'){
                 if ( jdbc_ip == "") {
                     throw exception("JDBC URL not found/initialized")
                 }
-                sh "helm install --name integration-test charts/integration-tests --namespace test --set jdbc_url='jdbc:splice://$jdbc_ip:1527/splicedb;ssl=basic;password=admin;' --set splice_release='DB-9133_3.0' --set artifact_user='$jenkins_user' --set artifact_password='$jenkins_pass'"
+                sh "helm install --name integration-test charts/integration-tests --namespace test --set jdbc_url='jdbc:splice://$jdbc_ip:1527/splicedb;ssl=basic;password=admin;' --set splice_release='$scmVars.GIT_BRANCH' --set artifact_user='$jenkins_user' --set artifact_password='$jenkins_pass'"
                 sh "sleep 5m"
                 sh "kubectl logs -l job-name=integration-tests --follow -n test"
                 sh "touch it.log"
@@ -172,18 +161,7 @@ node('splice-standalone'){
             build job: '../Kubernetes/KubernetesDeploy/azure/master', parameters: [
                 [$class: 'StringParameterValue', name: 'action', value: "destroy"],
                 [$class: 'StringParameterValue', name: 'environment', value: target_cluster],
-                [$class: 'StringParameterValue', name: 'destroy_confirmation', value: target_cluster],
-                [$class: 'StringParameterValue', name: 'kubernetes_version', value: "1.14.8"],
-                [$class: 'StringParameterValue', name: 'enable_cloud_manager', value: "true"],
-                [$class: 'StringParameterValue', name: 'enable_tick', value: "true"],
-                [$class: 'StringParameterValue', name: 'enable_elastic_stack', value: "true"],
-                [$class: 'StringParameterValue', name: 'core_vmsize', value: "Standard_D4s_v3"],
-                [$class: 'StringParameterValue', name: 'core_max_vmcount', value: "3"],
-                [$class: 'StringParameterValue', name: 'db_vmsize', value: "Standard_D16s_v3"],
-                [$class: 'StringParameterValue', name: 'meta_max_vmcount', value: "3"],
-                [$class: 'StringParameterValue', name: 'meta_vmsize', value: "Standard_D8s_v3"],
-                [$class: 'StringParameterValue', name: 'db_max_vmcount', value: "12"],
-                [$class: 'StringParameterValue', name: 'tag_creator', value: scmVars.GIT_BRANCH]
+                [$class: 'StringParameterValue', name: 'destroy_confirmation', value: target_cluster]
             ]
             }
         }
