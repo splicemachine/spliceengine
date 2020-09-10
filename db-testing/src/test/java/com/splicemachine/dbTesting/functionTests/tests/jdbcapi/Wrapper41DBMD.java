@@ -33,8 +33,8 @@ package com.splicemachine.dbTesting.functionTests.tests.jdbcapi;
 
 import java.sql.SQLException;
 
+import com.splicemachine.db.client.am.ClientDatabaseMetaData;
 import com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData;
-import com.splicemachine.db.client.am.DatabaseMetaData;
 
 /**
  * A wrapper around the new DatabaseMetaData methods added by JDBC 4.1.
@@ -50,7 +50,7 @@ public  class   Wrapper41DBMD
     ///////////////////////////////////////////////////////////////////////
 
     private EmbedDatabaseMetaData    _embedded;
-    private DatabaseMetaData      _netclient;
+    private ClientDatabaseMetaData _netclient;
     
     ///////////////////////////////////////////////////////////////////////
     //
@@ -61,7 +61,7 @@ public  class   Wrapper41DBMD
     public Wrapper41DBMD( Object wrapped ) throws Exception
     {
         if ( wrapped instanceof EmbedDatabaseMetaData ) { _embedded = (EmbedDatabaseMetaData) wrapped; }
-        else if ( wrapped instanceof DatabaseMetaData ) { _netclient = (DatabaseMetaData) wrapped; }
+        else if ( wrapped instanceof ClientDatabaseMetaData) { _netclient = (ClientDatabaseMetaData) wrapped; }
         else { throw nothingWrapped(); }
     }
     

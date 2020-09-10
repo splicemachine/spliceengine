@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.sql.conn;
 
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.*;
 import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
@@ -77,339 +77,338 @@ import java.util.Properties;
  *
  */
 public class GenericLanguageConnectionFactory
-	implements LanguageConnectionFactory, CacheableFactory, PropertySetCallback, ModuleControl, ModuleSupportable {
+    implements LanguageConnectionFactory, CacheableFactory, PropertySetCallback, ModuleControl, ModuleSupportable {
 
-	/*
-		fields
-	 */
-	private 	ExecutionFactory		ef;
-	private 	OptimizerFactory		of;
-	private		TypeCompilerFactory		tcf;
-	private 	DataValueFactory		dvf;
-	private 	UUIDFactory				uuidFactory;
-	private 	JavaFactory				javaFactory;
-	private 	ClassFactory			classFactory;
-	private 	NodeFactory				nodeFactory;
-	private 	PropertyFactory			pf;
-	private AuthorizationFactory        authorizationFactory;
+    /*
+        fields
+     */
+    private     ExecutionFactory        ef;
+    private     OptimizerFactory        of;
+    private        TypeCompilerFactory        tcf;
+    private     DataValueFactory        dvf;
+    private     UUIDFactory                uuidFactory;
+    private     JavaFactory                javaFactory;
+    private     ClassFactory            classFactory;
+    private     NodeFactory                nodeFactory;
+    private     PropertyFactory            pf;
+    private AuthorizationFactory        authorizationFactory;
 
-	private		int						nextLCCInstanceNumber;
+    private        int                        nextLCCInstanceNumber;
 
-	/*
-	  for caching prepared statements 
-	*/
-	private int cacheSize = Property.STATEMENT_CACHE_SIZE_DEFAULT;
+    /*
+      for caching prepared statements
+    */
+    private int cacheSize = Property.STATEMENT_CACHE_SIZE_DEFAULT;
 
-	/*
-	   constructor
-	*/
-	public GenericLanguageConnectionFactory() {
-	}
+    /*
+       constructor
+    */
+    public GenericLanguageConnectionFactory() {
+    }
 
-	/*
-	   LanguageConnectionFactory interface
-	*/
+    /*
+       LanguageConnectionFactory interface
+    */
 
-	/*
-		these are the methods that do real work, not just look for factories
-	 */
+    /*
+        these are the methods that do real work, not just look for factories
+     */
 
-	/**
-		Get a Statement for the connection
-		@param compilationSchema schema
-		@param statementText the text for the statement
-		@param forReadOnly if concurrency is CONCUR_READ_ONLY
-		@return	The Statement
-	 */
+    /**
+        Get a Statement for the connection
+        @param compilationSchema schema
+        @param statementText the text for the statement
+        @param forReadOnly if concurrency is CONCUR_READ_ONLY
+        @return    The Statement
+     */
         public Statement getStatement(SchemaDescriptor compilationSchema, String statementText, boolean forReadOnly,
-									  LanguageConnectionContext lcc) throws StandardException
+                                      LanguageConnectionContext lcc) throws StandardException
         {
-	    return new GenericStatement(compilationSchema, statementText, forReadOnly, lcc);
-	}
+        return new GenericStatement(compilationSchema, statementText, forReadOnly, lcc);
+    }
 
 
-	/**
-		Get a LanguageConnectionContext. this holds things
-		we want to remember about activity in the language system,
-		where this factory holds things that are pretty stable,
-		like other factories.
-		<p>
-		The returned LanguageConnectionContext is intended for use
-		only by the connection that requested it.
+    /**
+        Get a LanguageConnectionContext. this holds things
+        we want to remember about activity in the language system,
+        where this factory holds things that are pretty stable,
+        like other factories.
+        <p>
+        The returned LanguageConnectionContext is intended for use
+        only by the connection that requested it.
 
-		@return a language connection context for the context stack.
-		@exception StandardException the usual -- for the subclass
-	 */
+        @return a language connection context for the context stack.
+        @exception StandardException the usual -- for the subclass
+     */
     @Override
-	public LanguageConnectionContext newLanguageConnectionContext(
-		ContextManager cm,
-		TransactionController tc,
-		LanguageFactory lf,
-		Database db,
-		String userName,
-		List<String> groupuserlist,
-		String drdaID,
-		String dbname,
+    public LanguageConnectionContext newLanguageConnectionContext(
+        ContextManager cm,
+        TransactionController tc,
+        LanguageFactory lf,
+        InternalDatabase db,
+        String userName,
+        List<String> groupuserlist,
+        String drdaID,
+        String dbname,
         String rdbIntTkn,
         DataSetProcessorType type,
-		boolean skipStats,
-		double defaultSelectvityFactor,
-		String ipAddresss,
-		String defaultSchema,
-		Properties sessionProperties) throws StandardException {
-		
-		return new GenericLanguageConnectionContext(cm,
-													tc,
-													lf,
-													this,
-													db,
-													userName,
-													groupuserlist,
-													getNextLCCInstanceNumber(),
-													drdaID,
-													dbname,
-													rdbIntTkn,
+        boolean skipStats,
+        double defaultSelectvityFactor,
+        String ipAddresss,
+        String defaultSchema,
+        Properties sessionProperties) throws StandardException {
+
+        return new GenericLanguageConnectionContext(cm,
+                                                    tc,
+                                                    lf,
+                                                    this,
+                                                    db,
+                                                    userName,
+                                                    groupuserlist,
+                                                    getNextLCCInstanceNumber(),
+                                                    drdaID,
+                                                    dbname,
+                                                    rdbIntTkn,
                                                     type,
-				                                    skipStats,
-				                                    defaultSelectvityFactor,
-													ipAddresss,
+                                                    skipStats,
+                                                    defaultSelectvityFactor,
+                                                    ipAddresss,
                                                     defaultSchema,
                                                     sessionProperties
-				);
-	}
+                );
+    }
 
-	public Cacheable newCacheable(CacheManager cm) {
-		return new CachedStatement();
-	}
+    public Cacheable newCacheable(CacheManager cm) {
+        return new CachedStatement();
+    }
 
-	/*
-		these methods all look for factories that we booted.
-	 */
-	 
-	 /**
-		Get the UUIDFactory to use with this language connection
-		REMIND: this is only used by the compiler; should there be
-		a compiler module control class to boot compiler-only stuff?
-	 */
-	public UUIDFactory	getUUIDFactory()
-	{
-		return uuidFactory;
-	}
+    /*
+        these methods all look for factories that we booted.
+     */
 
-	/**
-		Get the ClassFactory to use with this language connection
-	 */
-	public ClassFactory	getClassFactory()
-	{
-		return classFactory;
-	}
+     /**
+        Get the UUIDFactory to use with this language connection
+        REMIND: this is only used by the compiler; should there be
+        a compiler module control class to boot compiler-only stuff?
+     */
+    public UUIDFactory    getUUIDFactory()
+    {
+        return uuidFactory;
+    }
 
-	/**
-		Get the JavaFactory to use with this language connection
-		REMIND: this is only used by the compiler; should there be
-		a compiler module control class to boot compiler-only stuff?
-	 */
-	public JavaFactory	getJavaFactory()
-	{
-		return javaFactory;
-	}
+    /**
+        Get the ClassFactory to use with this language connection
+     */
+    public ClassFactory    getClassFactory()
+    {
+        return classFactory;
+    }
 
-	/**
-		Get the NodeFactory to use with this language connection
-		REMIND: is this only used by the compiler?
-	 */
-	public NodeFactory	getNodeFactory()
-	{
-		return nodeFactory;
-	}
+    /**
+        Get the JavaFactory to use with this language connection
+        REMIND: this is only used by the compiler; should there be
+        a compiler module control class to boot compiler-only stuff?
+     */
+    public JavaFactory    getJavaFactory()
+    {
+        return javaFactory;
+    }
 
-	/**
-		Get the ExecutionFactory to use with this language connection
-	 */
-	public ExecutionFactory	getExecutionFactory() {
-		return ef;
-	}
+    /**
+        Get the NodeFactory to use with this language connection
+        REMIND: is this only used by the compiler?
+     */
+    public NodeFactory    getNodeFactory()
+    {
+        return nodeFactory;
+    }
 
-	/**
-		Get the PropertyFactory to use with this language connection
-	 */
-	public PropertyFactory	getPropertyFactory() 
-	{
-		return pf;
-	}	
+    /**
+        Get the ExecutionFactory to use with this language connection
+     */
+    public ExecutionFactory    getExecutionFactory() {
+        return ef;
+    }
 
-	/**
-		Get the OptimizerFactory to use with this language connection
-	 */
-	public OptimizerFactory	getOptimizerFactory() {
-		return of;
-	}
-	/**
-		Get the TypeCompilerFactory to use with this language connection
-	 */
-	public TypeCompilerFactory getTypeCompilerFactory() {
-		return tcf;
-	}
+    /**
+        Get the PropertyFactory to use with this language connection
+     */
+    public PropertyFactory    getPropertyFactory()
+    {
+        return pf;
+    }
 
-	/**
-		Get the DataValueFactory to use with this language connection
-	 */
-	public DataValueFactory		getDataValueFactory() {
-		return dvf;
-	}
+    /**
+        Get the OptimizerFactory to use with this language connection
+     */
+    public OptimizerFactory    getOptimizerFactory() {
+        return of;
+    }
+    /**
+        Get the TypeCompilerFactory to use with this language connection
+     */
+    public TypeCompilerFactory getTypeCompilerFactory() {
+        return tcf;
+    }
 
-	/*
-		ModuleControl interface
-	 */
+    /**
+        Get the DataValueFactory to use with this language connection
+     */
+    public DataValueFactory        getDataValueFactory() {
+        return dvf;
+    }
 
-	/**
-		this implementation will not support caching of statements.
-	 */
+    /*
+        ModuleControl interface
+     */
+
+    /**
+        this implementation will not support caching of statements.
+     */
     @Override
-	public boolean canSupport(Properties startParams) {
-		return Monitor.isDesiredType(startParams, EngineType.STANDALONE_DB);
-	}
+    public boolean canSupport(Properties startParams) {
+        return Monitor.isDesiredType(startParams, EngineType.STANDALONE_DB);
+    }
 
-	private	int	statementCacheSize(Properties startParams)
-	{
-		String wantCacheProperty = null;
+    private    int    statementCacheSize(Properties startParams)
+    {
+        String wantCacheProperty = null;
 
-		wantCacheProperty =
-			PropertyUtil.getPropertyFromSet(startParams, Property.STATEMENT_CACHE_SIZE);
+        wantCacheProperty =
+            PropertyUtil.getPropertyFromSet(startParams, Property.STATEMENT_CACHE_SIZE);
 
-		if (SanityManager.DEBUG)
-			SanityManager.DEBUG("StatementCacheInfo", "Cacheing implementation chosen if null or 0<"+wantCacheProperty);
+        if (SanityManager.DEBUG)
+            SanityManager.DEBUG("StatementCacheInfo", "Cacheing implementation chosen if null or 0<"+wantCacheProperty);
 
-		if (wantCacheProperty != null) {
-			try {
-			    cacheSize = Integer.parseInt(wantCacheProperty);
-			} catch (NumberFormatException nfe) {
-				cacheSize = Property.STATEMENT_CACHE_SIZE_DEFAULT;
-			}
-		}
+        if (wantCacheProperty != null) {
+            try {
+                cacheSize = Integer.parseInt(wantCacheProperty);
+            } catch (NumberFormatException nfe) {
+                cacheSize = Property.STATEMENT_CACHE_SIZE_DEFAULT;
+            }
+        }
 
-		return cacheSize;
-	}
-	
-	/**
-	 * Start-up method for this instance of the language connection factory.
-	 * Note these are expected to be booted relative to a Database.
-	 *
-	 * @param startParams	The start-up parameters (ignored in this case)
-	 *
-	 * @exception StandardException	Thrown on failure to boot
-	 */
-	public void boot(boolean create, Properties startParams) 
-		throws StandardException {
+        return cacheSize;
+    }
 
-		//The following call to Monitor to get DVF is going to get the already
-		//booted DVF (DVF got booted by BasicDatabase's boot method. 
-		//BasicDatabase also set the correct Locale in the DVF. There after,
-		//DVF with correct Locale is available to rest of the Derby code.
-		dvf = (DataValueFactory) Monitor.bootServiceModule(create, this, ClassName.DataValueFactory, startParams);
-		javaFactory = (JavaFactory) Monitor.startSystemModule(Module.JavaFactory);
-		uuidFactory = Monitor.getMonitor().getUUIDFactory();
-		classFactory = (ClassFactory) Monitor.getServiceModule(this, Module.ClassFactory);
-		if (classFactory == null)
- 			classFactory = (ClassFactory) Monitor.findSystemModule(Module.ClassFactory);
+    /**
+     * Start-up method for this instance of the language connection factory.
+     * Note these are expected to be booted relative to a Database.
+     *
+     * @param startParams    The start-up parameters (ignored in this case)
+     *
+     * @exception StandardException    Thrown on failure to boot
+     */
+    public void boot(boolean create, Properties startParams)
+        throws StandardException {
 
-		//set the property validation module needed to do propertySetCallBack
-		//register and property validation
-		setValidation();
+        //The following call to Monitor to get DVF is going to get the already
+        //booted DVF (DVF got booted by BasicDatabase's boot method.
+        //BasicDatabase also set the correct Locale in the DVF. There after,
+        //DVF with correct Locale is available to rest of the Derby code.
+        dvf = (DataValueFactory) Monitor.bootServiceModule(create, this, ClassName.DataValueFactory, startParams);
+        javaFactory = (JavaFactory) Monitor.startSystemModule(Module.JavaFactory);
+        uuidFactory = Monitor.getMonitor().getUUIDFactory();
+        classFactory = (ClassFactory) Monitor.getServiceModule(this, Module.ClassFactory);
+        if (classFactory == null)
+             classFactory = (ClassFactory) Monitor.findSystemModule(Module.ClassFactory);
 
-		ef = (ExecutionFactory) Monitor.bootServiceModule(create, this, ExecutionFactory.MODULE, startParams);
-		of = (OptimizerFactory) Monitor.bootServiceModule(create, this, OptimizerFactory.MODULE, startParams);
-		tcf =
-		   (TypeCompilerFactory) Monitor.startSystemModule(TypeCompilerFactory.MODULE);
-		nodeFactory = (NodeFactory) Monitor.bootServiceModule(create, this, NodeFactory.MODULE, startParams);
+        //set the property validation module needed to do propertySetCallBack
+        //register and property validation
+        setValidation();
 
-	}
+        ef = (ExecutionFactory) Monitor.bootServiceModule(create, this, ExecutionFactory.MODULE, startParams);
+        of = (OptimizerFactory) Monitor.bootServiceModule(create, this, OptimizerFactory.MODULE, startParams);
+        tcf =
+           (TypeCompilerFactory) Monitor.startSystemModule(TypeCompilerFactory.MODULE);
+        nodeFactory = (NodeFactory) Monitor.bootServiceModule(create, this, NodeFactory.MODULE, startParams);
 
-	/**
-	 * Stop this module.  In this case, nothing needs to be done.
-	 */
-	public void stop() {
-	}
+    }
 
-	/*
-	** Methods of PropertySetCallback
-	*/
+    /**
+     * Stop this module.  In this case, nothing needs to be done.
+     */
+    public void stop() {
+    }
 
-	public void init(boolean dbOnly, Dictionary p) {
-		// not called yet ...
-	}
+    /*
+    ** Methods of PropertySetCallback
+    */
 
-	/**
-	  @see PropertySetCallback#validate
-	  @exception StandardException Thrown on error.
-	*/
-	public boolean validate(String key,
-						 Serializable value,
-						 Dictionary p)
-		throws StandardException {
-		if (value == null)
-			return true;
-		else if (key.equals(Property.DEFAULT_CONNECTION_MODE_PROPERTY))
-		{
-			String value_s = (String)value;
-			if (value_s != null &&
-				!StringUtil.SQLEqualsIgnoreCase(value_s, Property.NO_ACCESS) &&
-				!StringUtil.SQLEqualsIgnoreCase(value_s, Property.READ_ONLY_ACCESS) &&
-				!StringUtil.SQLEqualsIgnoreCase(value_s, Property.FULL_ACCESS))
-				throw StandardException.newException(SQLState.AUTH_INVALID_AUTHORIZATION_PROPERTY, key, value_s);
+    public void init(boolean dbOnly, Dictionary p) {
+        // not called yet ...
+    }
 
-			return true;
-		}
-		else if (key.equals(Property.READ_ONLY_ACCESS_USERS_PROPERTY) ||
-				 key.equals(Property.FULL_ACCESS_USERS_PROPERTY))
-		{
-			String value_s = (String)value;
+    /**
+      @see PropertySetCallback#validate
+      @exception StandardException Thrown on error.
+    */
+    public boolean validate(String key,
+                         Serializable value,
+                         Dictionary p)
+        throws StandardException {
+        if (value == null)
+            return true;
+        else if (key.equals(Property.DEFAULT_CONNECTION_MODE_PROPERTY))
+        {
+            String value_s = (String)value;
+            if (!StringUtil.SQLEqualsIgnoreCase(value_s, Property.NO_ACCESS) &&
+                !StringUtil.SQLEqualsIgnoreCase(value_s, Property.READ_ONLY_ACCESS) &&
+                !StringUtil.SQLEqualsIgnoreCase(value_s, Property.FULL_ACCESS))
+                throw StandardException.newException(SQLState.AUTH_INVALID_AUTHORIZATION_PROPERTY, key, value_s);
 
-			/** Parse the new userIdList to verify its syntax. */
-			String[] newList_a;
-			try {newList_a = IdUtil.parseIdList(value_s);}
-			catch (StandardException se) {
+            return true;
+        }
+        else if (key.equals(Property.READ_ONLY_ACCESS_USERS_PROPERTY) ||
+                 key.equals(Property.FULL_ACCESS_USERS_PROPERTY))
+        {
+            String value_s = (String)value;
+
+            /** Parse the new userIdList to verify its syntax. */
+            String[] newList_a;
+            try {newList_a = IdUtil.parseIdList(value_s);}
+            catch (StandardException se) {
                 throw StandardException.newException(SQLState.AUTH_INVALID_AUTHORIZATION_PROPERTY, se, key,value_s);
-			}
+            }
 
-			/** Check the new list userIdList for duplicates. */
-			String dups = IdUtil.dups(newList_a);
-			if (dups != null) throw StandardException.newException(SQLState.AUTH_DUPLICATE_USERS, key,dups);
+            /** Check the new list userIdList for duplicates. */
+            String dups = IdUtil.dups(newList_a);
+            if (dups != null) throw StandardException.newException(SQLState.AUTH_DUPLICATE_USERS, key,dups);
 
-			/** Check for users with both read and full access permission. */
-			String[] otherList_a;
-			String otherList;
-			if (key.equals(Property.READ_ONLY_ACCESS_USERS_PROPERTY))
-				otherList = (String)p.get(Property.FULL_ACCESS_USERS_PROPERTY);
-			else
-				otherList = (String)p.get(Property.READ_ONLY_ACCESS_USERS_PROPERTY);
-			otherList_a = IdUtil.parseIdList(otherList);
-			String both = IdUtil.intersect(newList_a,otherList_a);
-			if (both != null) throw StandardException.newException(SQLState.AUTH_USER_IN_READ_AND_WRITE_LISTS, both);
-			
-			return true;
-		}
+            /** Check for users with both read and full access permission. */
+            String[] otherList_a;
+            String otherList;
+            if (key.equals(Property.READ_ONLY_ACCESS_USERS_PROPERTY))
+                otherList = (String)p.get(Property.FULL_ACCESS_USERS_PROPERTY);
+            else
+                otherList = (String)p.get(Property.READ_ONLY_ACCESS_USERS_PROPERTY);
+            otherList_a = IdUtil.parseIdList(otherList);
+            String both = IdUtil.intersect(newList_a,otherList_a);
+            if (both != null) throw StandardException.newException(SQLState.AUTH_USER_IN_READ_AND_WRITE_LISTS, both);
 
-		return false;
-	}
-	/** @see PropertySetCallback#apply */
-	@Override
-	public Serviceable apply(String key,
-							 Serializable value,
-							 Dictionary p, TransactionController tc) {
-			 return null;
-	}
-	/** @see PropertySetCallback#map */
-	public Serializable map(String key, Serializable value, Dictionary p)
-	{
-		return null;
-	}
+            return true;
+        }
 
-	protected void setValidation() throws StandardException {
-		pf = (PropertyFactory) Monitor.findServiceModule(this,
-			Module.PropertyFactory);
-		pf.addPropertySetNotification(this);
-	}
+        return false;
+    }
+    /** @see PropertySetCallback#apply */
+    @Override
+    public Serviceable apply(String key,
+                             Serializable value,
+                             Dictionary p, TransactionController tc) {
+             return null;
+    }
+    /** @see PropertySetCallback#map */
+    public Serializable map(String key, Serializable value, Dictionary p)
+    {
+        return null;
+    }
+
+    protected void setValidation() throws StandardException {
+        pf = (PropertyFactory) Monitor.findServiceModule(this,
+            Module.PropertyFactory);
+        pf.addPropertySetNotification(this);
+    }
 
     public Parser newParser(CompilerContext cc)
     {
@@ -417,27 +416,27 @@ public class GenericLanguageConnectionFactory
     }
 
     public CommentStripper newCommentStripper() {
-		return new com.splicemachine.db.impl.sql.misc.CommentStripperImpl();
-	}
+        return new com.splicemachine.db.impl.sql.misc.CommentStripperImpl();
+    }
 
-	// Class methods
+    // Class methods
 
-	/**
-	 * Get the instance # for the next LCC.
-	 * (Useful for logStatementText=true output.
-	 *
-	 * @return instance # of next LCC.
-	 */
-	protected synchronized int getNextLCCInstanceNumber()
-	{
-		return nextLCCInstanceNumber++;
-	}
+    /**
+     * Get the instance # for the next LCC.
+     * (Useful for logStatementText=true output.
+     *
+     * @return instance # of next LCC.
+     */
+    protected synchronized int getNextLCCInstanceNumber()
+    {
+        return nextLCCInstanceNumber++;
+    }
 
-	@Override
-	public AuthorizationFactory getAuthorizationFactory() {
-		if (authorizationFactory==null) {
-			authorizationFactory = AuthorizationFactoryService.newAuthorizationFactory();
-		}
-		return authorizationFactory;
-	}
+    @Override
+    public AuthorizationFactory getAuthorizationFactory() {
+        if (authorizationFactory==null) {
+            authorizationFactory = AuthorizationFactoryService.newAuthorizationFactory();
+        }
+        return authorizationFactory;
+    }
 }

@@ -29,35 +29,12 @@ import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.ClientPooledConnection40;
 import com.splicemachine.db.client.ClientXAConnection;
 import com.splicemachine.db.client.ClientXAConnection40;
-import com.splicemachine.db.client.am.CachingLogicalConnection40;
-import com.splicemachine.db.client.am.CallableStatement;
-import com.splicemachine.db.client.am.CallableStatement40;
-import com.splicemachine.db.client.am.ColumnMetaData;
-import com.splicemachine.db.client.am.ColumnMetaData40;
-import com.splicemachine.db.client.am.ClientJDBCObjectFactory;
-import com.splicemachine.db.client.am.LogicalConnection;
-import com.splicemachine.db.client.am.LogicalConnection40;
-import com.splicemachine.db.client.am.PreparedStatement;
-import com.splicemachine.db.client.am.PreparedStatement40;
-import com.splicemachine.db.client.am.ParameterMetaData;
-import com.splicemachine.db.client.am.ParameterMetaData40;
-import com.splicemachine.db.client.am.LogicalCallableStatement;
-import com.splicemachine.db.client.am.LogicalCallableStatement40;
-import com.splicemachine.db.client.am.LogicalPreparedStatement;
-import com.splicemachine.db.client.am.LogicalPreparedStatement40;
-import com.splicemachine.db.client.am.LogWriter;
-import com.splicemachine.db.client.am.Agent;
-import com.splicemachine.db.client.am.SQLExceptionFactory40;
-import com.splicemachine.db.client.am.Section;
-import com.splicemachine.db.client.am.Statement;
-import com.splicemachine.db.client.am.Statement40;
-import com.splicemachine.db.client.am.StatementCacheInteractor;
-import com.splicemachine.db.client.am.SqlException;
-import com.splicemachine.db.client.am.Cursor;
+import com.splicemachine.db.client.am.*;
 import com.splicemachine.db.client.am.stmtcache.JDBCStatementCache;
 import com.splicemachine.db.client.am.stmtcache.StatementKey;
 import com.splicemachine.db.jdbc.ClientBaseDataSource;
 import com.splicemachine.db.jdbc.ClientXADataSource;
+import sun.nio.ch.Net;
 
 import java.sql.SQLException;
 
@@ -97,6 +74,8 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
         ClientBaseDataSource ds, LogWriter logWriter,String user,
         String password) throws SQLException
     {
+        assert ds == null || ds instanceof ClientXADataSource;
+        assert logWriter == null || logWriter instanceof NetLogWriter;
         return new ClientXAConnection40((ClientXADataSource)ds,
             (NetLogWriter)logWriter,user,password);
     }
@@ -119,7 +98,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
      * @throws SqlException
      */
     public CallableStatement newCallableStatement(Agent agent,
-            com.splicemachine.db.client.am.Connection connection,
+            ClientConnection connection,
             String sql,int type,int concurrency,
             int holdability,ClientPooledConnection cpc) throws SqlException {
         return new CallableStatement40(agent,connection,sql,type,concurrency,
@@ -131,7 +110,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
      * (or LogicalConnection40) which implements java.sql.Connection.
      */
     public LogicalConnection newLogicalConnection(
-                    com.splicemachine.db.client.am.Connection physicalConnection,
+                    ClientConnection physicalConnection,
                     ClientPooledConnection pooledConnection)
         throws SqlException {
         return new LogicalConnection40(physicalConnection, pooledConnection);
@@ -149,7 +128,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
     * @throws SqlException if creation of the logical connection fails
     */
     public LogicalConnection newCachingLogicalConnection(
-            com.splicemachine.db.client.am.Connection physicalConnection,
+            ClientConnection physicalConnection,
             ClientPooledConnection pooledConnection,
             JDBCStatementCache stmtCache) throws SqlException {
         return new CachingLogicalConnection40(physicalConnection,
@@ -161,7 +140,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
      * Returns an instance of com.splicemachine.db.client.am.CallableStatement40
      */
     public PreparedStatement newPreparedStatement(Agent agent,
-            com.splicemachine.db.client.am.Connection connection,
+            ClientConnection connection,
             String sql,Section section,ClientPooledConnection cpc) 
             throws SqlException {
         return new PreparedStatement40(agent,connection,sql,section,cpc);
@@ -200,7 +179,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
      *
      */
     public PreparedStatement newPreparedStatement(Agent agent,
-            com.splicemachine.db.client.am.Connection connection,
+            ClientConnection connection,
             String sql,int type,int concurrency,
             int holdability,int autoGeneratedKeys,
             String [] columnNames,
@@ -243,59 +222,57 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
     /**
      * returns an instance of com.splicemachine.db.client.net.NetConnection40
      */
-    public com.splicemachine.db.client.am.Connection newNetConnection
+    public ClientConnection newNetConnection
             (com.splicemachine.db.client.am.LogWriter netLogWriter,
             String databaseName,java.util.Properties properties)
             throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,databaseName,properties));
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
+        return new NetConnection40((NetLogWriter)netLogWriter,databaseName,properties);
     }
     /**
      * returns an instance of com.splicemachine.db.client.net.NetConnection40
      */
-    public com.splicemachine.db.client.am.Connection newNetConnection
+    public ClientConnection newNetConnection
             (com.splicemachine.db.client.am.LogWriter netLogWriter,
             com.splicemachine.db.jdbc.ClientBaseDataSource clientDataSource,
             String user,String password) throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,clientDataSource,user,password));
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
+        return new NetConnection40((NetLogWriter)netLogWriter,clientDataSource,user,password);
     }
     /**
      * returns an instance of com.splicemachine.db.client.net.NetConnection40
      */
-    public com.splicemachine.db.client.am.Connection
+    public ClientConnection
             newNetConnection(com.splicemachine.db.client.am.LogWriter netLogWriter,
             int driverManagerLoginTimeout,String serverName,
             int portNumber,String databaseName,
             java.util.Properties properties) throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,driverManagerLoginTimeout,
-                serverName,portNumber,databaseName,properties));
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
+        return new NetConnection40((NetLogWriter)netLogWriter,driverManagerLoginTimeout,
+                serverName,portNumber,databaseName,properties);
     }
     /**
      * returns an instance of com.splicemachine.db.client.net.NetConnection40
      */
-    public com.splicemachine.db.client.am.Connection
+    public ClientConnection
             newNetConnection(com.splicemachine.db.client.am.LogWriter netLogWriter,
             String user,
             String password,
             com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
             int rmId,boolean isXAConn) throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,user,password,dataSource,
-                rmId,isXAConn));
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
+        return new NetConnection40((NetLogWriter)netLogWriter,user,password,dataSource, rmId,isXAConn);
     }
     /**
      * returns an instance of com.splicemachine.db.client.net.NetConnection40
      */
-    public com.splicemachine.db.client.am.Connection
+    public ClientConnection
             newNetConnection(com.splicemachine.db.client.am.LogWriter netLogWriter,
             String ipaddr,int portNumber,
             com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
             boolean isXAConn) throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,ipaddr,portNumber,dataSource,
-                isXAConn));
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
+        return new NetConnection40((NetLogWriter)netLogWriter,ipaddr,portNumber,dataSource, isXAConn);
     }
     /**
      * Returns an instance of com.splicemachine.db.client.net.NetConnection.
@@ -313,15 +290,14 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
      * @return a com.splicemachine.db.client.am.Connection object
      * @throws             SqlException
      */
-    public com.splicemachine.db.client.am.Connection newNetConnection(
+    public ClientConnection newNetConnection(
             com.splicemachine.db.client.am.LogWriter netLogWriter,String user,
             String password,
             com.splicemachine.db.jdbc.ClientBaseDataSource dataSource,
             int rmId,boolean isXAConn,ClientPooledConnection cpc) 
             throws SqlException {
-        return (com.splicemachine.db.client.am.Connection)
-        (new NetConnection40((NetLogWriter)netLogWriter,user,password,dataSource,rmId,
-                isXAConn,cpc));
+        assert netLogWriter == null || netLogWriter instanceof NetLogWriter;
+        return new NetConnection40((NetLogWriter)netLogWriter,user,password,dataSource,rmId, isXAConn,cpc);
         
     }
     /**
@@ -342,8 +318,8 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
     /**
      * returns an instance of com.splicemachine.db.client.net.NetDatabaseMetaData
      */
-    public com.splicemachine.db.client.am.DatabaseMetaData newNetDatabaseMetaData(Agent netAgent,
-            com.splicemachine.db.client.am.Connection netConnection) {
+    public ClientDatabaseMetaData newNetDatabaseMetaData(Agent netAgent,
+                                                         ClientConnection netConnection) {
         return new NetDatabaseMetaData40((NetAgent)netAgent,
                 (NetConnection)netConnection);
     }
@@ -356,7 +332,7 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
      * @throws SqlException
      *
      */
-     public Statement newStatement(Agent agent, com.splicemachine.db.client.am.Connection connection)
+     public Statement newStatement(Agent agent, ClientConnection connection)
                                             throws SqlException {
          return new Statement40(agent,connection);
      }
@@ -375,11 +351,11 @@ public class ClientJDBCObjectFactoryImpl40 implements ClientJDBCObjectFactory{
      * @throws SqlException
      *
      */
-     public Statement newStatement(Agent agent, 
-                     com.splicemachine.db.client.am.Connection connection, int type,
-                     int concurrency, int holdability,
-                     int autoGeneratedKeys, String[] columnNames,
-                     int[] columnIndexes) 
+     public Statement newStatement(Agent agent,
+                                   ClientConnection connection, int type,
+                                   int concurrency, int holdability,
+                                   int autoGeneratedKeys, String[] columnNames,
+                                   int[] columnIndexes)
                      throws SqlException {
          return new Statement40(agent,connection,type,concurrency,holdability,
                  autoGeneratedKeys,columnNames, columnIndexes);
