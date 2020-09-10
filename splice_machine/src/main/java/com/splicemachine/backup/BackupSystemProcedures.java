@@ -186,7 +186,6 @@ public class BackupSystemProcedures {
             throws StandardException, SQLException {
         type = type.trim();
         Connection conn = SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
         try {
             // Check directory
             if (directory == null || directory.isEmpty()) {
@@ -331,7 +330,6 @@ public class BackupSystemProcedures {
 
         type = type.trim();
         Connection conn = SpliceAdmin.getDefaultConn();
-        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 
         try {
             // Check directory
@@ -425,7 +423,7 @@ public class BackupSystemProcedures {
         try{
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             List<Long> backupIds = Lists.newArrayList();
-            backupIds.add(new Long(backupId));
+            backupIds.add(backupId);
             backupManager.removeBackup(backupIds);
             resultSets[0] = ProcedureUtils.generateResult("Success", "Delete backup "+backupId);
         } catch (Throwable t) {

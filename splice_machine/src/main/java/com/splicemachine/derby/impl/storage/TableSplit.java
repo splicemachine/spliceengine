@@ -33,6 +33,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Splitter;
@@ -363,7 +364,7 @@ public class TableSplit{
         }
     }
 
-
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "String provided with system default encoding")
     private static byte[] createRegionName(String regionName) {
         return regionName.getBytes();
     }
