@@ -212,7 +212,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
             if (id.isOnExpression()) {
                 assert exprAst != null;
-                List<ColumnReference> crList = matchIndexExpression(relop, inNode, isIn, exprAst, optTable);
+                List<ColumnReference> crList =
+                        matchIndexExpression(relop, inNode, isIn, pred.isInListProbePredicate(), exprAst, optTable);
                 if (!crList.isEmpty()) {
                     indexCol = crList.get(0);
                 }
@@ -557,7 +558,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             for (indexPosition = 0; indexPosition < exprTexts.length; indexPosition++) {
                 ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[indexPosition]);
                 setTableNumber(exprAst, optTable);
-                List<ColumnReference> crList = matchIndexExpression(relop, inNode, isIn, exprAst, optTable);
+                List<ColumnReference> crList =
+                        matchIndexExpression(relop, inNode, isIn, pred.isInListProbePredicate(), exprAst, optTable);
                 if (!crList.isEmpty()) {
                     indexCol = crList.get(0);
                     pred.setMatchIndexExpression(true);
@@ -614,23 +616,30 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     // have at least one column reference. Also, since an index is defined on one table, an index expression
     // cannot have column references referencing different tables.
     private static List<ColumnReference> matchIndexExpression(RelationalOperator relOp, InListOperatorNode inNode,
-                                                              boolean isIn, ValueNode indexExprAst, Optimizable optTable)
+                                                              boolean isIn, boolean isProbe,
+                                                              ValueNode indexExprAst, Optimizable optTable)
             throws StandardException
     {
         CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+        int tableNumber = optTable.getTableNumber();  // OK to be -1, will be checked when use
         if (isIn) {
             if (inNode.getLeftOperand().equals(indexExprAst)) {
                 inNode.getLeftOperand().accept(cnv);
+                if (isProbe) {
+                    assert relOp instanceof BinaryOperatorNode;
+                    BinaryOperatorNode binOp = (BinaryOperatorNode) relOp;
+                    binOp.setMatchIndexExpr(tableNumber, true);
+                }
             }
         } else {
             if (relOp instanceof BinaryOperatorNode) {
                 BinaryOperatorNode binOp = (BinaryOperatorNode) relOp;
                 if (binOp.getLeftOperand().equals(indexExprAst)) {
                     binOp.getLeftOperand().accept(cnv);
-                    binOp.setMatchIndexExpr(optTable.getTableNumber(), true);
+                    binOp.setMatchIndexExpr(tableNumber, true);
                 } else if (binOp.getRightOperand().equals(indexExprAst)) {
                     binOp.getRightOperand().accept(cnv);
-                    binOp.setMatchIndexExpr(optTable.getTableNumber(), false);
+                    binOp.setMatchIndexExpr(tableNumber, false);
                 }
             } else if (relOp instanceof IsNullNode) {
                 IsNullNode isNull = (IsNullNode) relOp;
@@ -938,7 +947,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     }
                 } else {
                     pred.setIndexPosition(position);
-                /* Remember the useful predicate */
+                    /* Remember the useful predicate */
                     usefulPredicates[usefulCount++] = pred;
                 }
             }else{
@@ -3339,7 +3348,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             /* genereate an array of type descriptors for the inlist columns */
             DataTypeDescriptor[] typeArray = new DataTypeDescriptor[ilon.getLeftOperandList().size()];
             for (int i = 0; i < ilon.getLeftOperandList().size(); i++) {
-                typeArray[i] = ((ColumnReference)(ilon.getLeftOperandList().elementAt(i))).getTypeServices();
+                typeArray[i] = ((ValueNode)(ilon.getLeftOperandList().elementAt(i))).getTypeServices();
             }
             FormatableArrayHolder typeArrayHolder = new FormatableArrayHolder(typeArray);
             int typeArrayItem = acb.addItem(typeArrayHolder);

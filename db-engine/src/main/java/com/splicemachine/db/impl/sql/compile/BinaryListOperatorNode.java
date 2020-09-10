@@ -110,9 +110,11 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         return (ValueNode) (singleLeftOperand ? leftOperandList.elementAt(0) : null);
     }
     
-    public boolean allLeftOperandsColumnReferences() {
-        for (Object obj:leftOperandList) {
-            if (!(obj instanceof  ColumnReference))
+    public boolean allLeftOperandsContainColumnReferences() throws StandardException {
+        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+        for (int i = 0; i < leftOperandList.size(); i++) {
+            leftOperandList.elementAt(i).accept(cnv);
+            if (cnv.getList().isEmpty())
                 return false;
         }
         return true;

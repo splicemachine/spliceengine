@@ -1320,6 +1320,16 @@ public class IndexIT extends SpliceUnitTest{
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
+
+        // In-list probe
+        query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) in ('ABA', 'BAR')", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "bar |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test
@@ -1331,15 +1341,18 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), MOD(i, 3), d)", tableName, tableName));
         methodWatcher.executeUpdate(format("insert into %s values ('abc', 30, 0.5)", tableName));
 
-        String query = format("select c from %s --splice-properties index=%s_IDX\n where mod(i,3) = 0", tableName, tableName);
+        // NOT EQUAL
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) != 'BAR'", tableName, tableName);
         String expected = "C  |\n" +
                 "-----\n" +
-                "abc |";
+                "abc |\n" +
+                "foo |";
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
 
+        // IS NOT NULL
         methodWatcher.executeUpdate(format("insert into %s values (NULL, 100, 0.9)", tableName));
         query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) is not null", tableName, tableName);
         expected = "C  |\n" +
@@ -1347,6 +1360,26 @@ public class IndexIT extends SpliceUnitTest{
                 "abc |\n" +
                 "bar |\n" +
                 "foo |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // In-list no probe
+        query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) not in ('ABC', 'BAR')", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "foo |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // gap from the first index column
+        query = format("select c from %s --splice-properties index=%s_IDX\n where mod(i,3) = 0", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "abc |";
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
