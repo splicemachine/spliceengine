@@ -726,6 +726,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         this.stopKey=otherPred.isStopKey();
         this.isQualifier=otherPred.isQualifier();
         this.searchClauseHT=otherPred.getSearchClauseHT();
+        this.matchIndexExpression=otherPred.matchIndexExpression();
 
     }
 
