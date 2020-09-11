@@ -151,9 +151,9 @@ public class MetaDataAccessControlIT {
 
         // create user connections
         user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
-        user1Conn = spliceClassWatcher.connectionBuilder().user(USER2).password(PASSWORD2).build();
-        user1Conn = spliceClassWatcher.connectionBuilder().user(USER3).password(PASSWORD3).build();
-        user1Conn = spliceClassWatcher.connectionBuilder().user(USER4).password(PASSWORD4).build();
+        user2Conn = spliceClassWatcher.connectionBuilder().user(USER2).password(PASSWORD2).build();
+        user3Conn = spliceClassWatcher.connectionBuilder().user(USER3).password(PASSWORD3).build();
+        user4Conn = spliceClassWatcher.connectionBuilder().user(USER4).password(PASSWORD4).build();
         sparkUser1Conn = spliceClassWatcher.connectionBuilder().useOLAP(true).user(USER1).password(PASSWORD1).build();
         sparkUser2Conn = spliceClassWatcher.connectionBuilder().useOLAP(true).user(USER2).password(PASSWORD2).build();
     }
