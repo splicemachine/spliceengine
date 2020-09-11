@@ -194,10 +194,10 @@ public class SpliceNetConnection {
                 url.append(host != null ? host : jdbcHost);
                 url.append(":");
                 url.append(port != null ? port : jdbcPort);
+                url.append("/");
             } else {
                 url.append(jdbcUrl);
             }
-            url.append("/");
             url.append(database != null ? database: jdbcDatabase);
             return DriverManager.getConnection(url.toString(), info);
         }
