@@ -5,20 +5,20 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public class CsvOptions {
-    public String delimited = null;
-    public String escaped = null; // escaped by
-    public String lines = null; // delimited by
+    public String columnDelimiter = null; // character used to separate columns in the CSV file (default = ,)
+    public String escapeCharacter = null; // character used to escape string separators, e.g. "hello \"world\"!". default \
+    public String lineTerminator = null;  // LINES DELIMITED BY
     public CsvOptions() {}
     public CsvOptions(ObjectInput in) throws IOException {
         readExternal(in);
     }
-    public CsvOptions(String delimited,
-                      String escaped,
-                      String lines)
+    public CsvOptions(String columnDelimiter,
+                      String escapeCharacter,
+                      String lineTerminator)
     {
-        this.delimited = delimited;
-        this.escaped = escaped;
-        this.lines = lines;
+        this.columnDelimiter = columnDelimiter;
+        this.escapeCharacter = escapeCharacter;
+        this.lineTerminator = lineTerminator;
     }
 
     private void writeEx(ObjectOutput out, String s) throws IOException
@@ -33,13 +33,13 @@ public class CsvOptions {
     }
 
     public void writeExternal(ObjectOutput out) throws IOException {
-        writeEx(out, delimited);
-        writeEx(out, escaped);
-        writeEx(out, lines);
+        writeEx(out, columnDelimiter);
+        writeEx(out, escapeCharacter);
+        writeEx(out, lineTerminator);
     }
     public void readExternal(ObjectInput in) throws IOException {
-        delimited   = readExString(in);
-        escaped     = readExString(in);
-        lines       = readExString(in);
+        columnDelimiter = readExString(in);
+        escapeCharacter = readExString(in);
+        lineTerminator = readExString(in);
     }
 }

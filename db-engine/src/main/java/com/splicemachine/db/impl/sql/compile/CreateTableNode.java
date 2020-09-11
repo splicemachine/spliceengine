@@ -697,10 +697,10 @@ public class CreateTableNode extends DDLStatementNode
                     isLogicalKey,
                     splitKeyPath,
                     splitColumnDelimiter,
-					splitCharacterDelimiter,
-					splitTimestampFormat,
-					splitDateFormat,
-					splitTimeFormat
+                    splitCharacterDelimiter,
+                    splitTimestampFormat,
+                    splitDateFormat,
+                    splitTimeFormat
             ));
     }
 

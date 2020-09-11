@@ -55,7 +55,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.system.CsvOptions;
 import splice.com.google.common.primitives.Ints;
 
@@ -346,7 +345,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @return
      */
     public String getLines() {
-        return csvOptions.lines;
+        return csvOptions.lineTerminator;
     }
 
     /**
@@ -356,7 +355,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @return
      */
     public String getEscaped() {
-        return csvOptions.escaped;
+        return csvOptions.escapeCharacter;
     }
 
     /**
@@ -366,7 +365,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @return
      */
     public String getDelimited() {
-        return csvOptions.delimited;
+        return csvOptions.columnDelimiter;
     }
 
     public CsvOptions getCsvOptions() { return csvOptions; }

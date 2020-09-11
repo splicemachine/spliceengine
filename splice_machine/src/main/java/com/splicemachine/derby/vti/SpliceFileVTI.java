@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import com.splicemachine.system.SplitKeyOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
@@ -138,7 +139,9 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, true, operationContext), true);
+                return textSet.flatMap(new FileFunction(
+                        new SplitKeyOptions(characterDelimiter, columnDelimiter, timeFormat, dateTimeFormat, timestampFormat),
+                        execRow, columnIndex, true, operationContext), true);
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");

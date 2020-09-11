@@ -852,9 +852,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 //        if( csvOptions.dateFormat != null )
 //            options.put("dateFormat", csvOptions.dateFormat); // default yyyy-MM-dd
 
-        String delimited = ImportUtils.unescape(csvOptions.delimited);
-        String escaped = ImportUtils.unescape(csvOptions.escaped);
-        String lines = ImportUtils.unescape(csvOptions.lines);
+        String delimited = ImportUtils.unescape(csvOptions.columnDelimiter);
+        String escaped = ImportUtils.unescape(csvOptions.escapeCharacter);
+        String lines = ImportUtils.unescape(csvOptions.lineTerminator);
 
         if (delimited != null)
             options.put("sep", delimited);

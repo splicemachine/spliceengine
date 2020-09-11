@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
+import com.splicemachine.system.SplitKeyOptions;
 
 import java.io.*;
 import java.util.*;
@@ -37,8 +38,8 @@ import java.util.*;
     }
     public StreamFileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex, String timeFormat,
                         String dateTimeFormat, String timestampFormat, String charset, OperationContext operationContext) {
-        super(characterDelimiter,columnDelimiter,execRow,columnIndex,timeFormat,
-                dateTimeFormat,timestampFormat,operationContext);
+        super( new SplitKeyOptions(characterDelimiter,columnDelimiter, timeFormat, dateTimeFormat,timestampFormat),
+                execRow,columnIndex,operationContext);
         assert charset != null;
         this.charset = charset;
     }

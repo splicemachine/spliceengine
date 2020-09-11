@@ -5,8 +5,8 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 public class SplitKeyOptions {
-    public String columnDelimiter = null;
-    public String characterDelimiter = null;
+    public String columnDelimiter = null;    // character used to separate columns in the CSV file (default = ,)
+    public String characterDelimiter = null; // character used to delimit strings in the CSV file ( default = ")
     public String timestampFormat = null;
     public String dateFormat = null;
     public String timeFormat = null;

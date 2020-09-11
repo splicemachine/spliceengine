@@ -149,32 +149,6 @@ public interface ScanSetBuilder<V>{
     ScanSetBuilder<V> pin(boolean pin);
 
     ScanSetBuilder<V> csvOptions(CsvOptions csvOptions);
-    /**
-     *
-     * Column delimitter
-     *
-     * @param delimited
-     * @return
-     */
-    ScanSetBuilder<V> delimited(String delimited);
-
-    /**
-     *
-     * Escaped clause for delimitters
-     *
-     * @param escaped
-     * @return
-     */
-    ScanSetBuilder<V> escaped(String escaped);
-
-    /**
-     *
-     * Line delimitter
-     *
-     * @param lines
-     * @return
-     */
-    ScanSetBuilder<V> lines(String lines);
 
     /**
      *

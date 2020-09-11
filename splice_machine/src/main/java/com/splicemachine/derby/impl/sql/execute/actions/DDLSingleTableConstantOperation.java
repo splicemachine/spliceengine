@@ -35,6 +35,7 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.system.SplitKeyOptions;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -274,7 +275,8 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
                         cd.getConglomerateName(), td.getName(), td.getUUID(),
                         cols, cd.getIndexDescriptor().isAscending(),
                         true, cd.getUUID(), false, false, false,false,false,0,
-						null,null,null,null,null,null,null,prop);
+						null, null,
+						new SplitKeyOptions (null,null,null,null,null) ,prop);
 
         //create index
         action.executeConstantAction(activation);

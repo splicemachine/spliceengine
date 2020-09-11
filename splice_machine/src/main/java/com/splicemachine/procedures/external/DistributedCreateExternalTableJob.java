@@ -124,15 +124,15 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
     }
 
     public String getDelimited() {
-        return csvOptions.delimited;
+        return csvOptions.columnDelimiter;
     }
 
     public String getEscaped() {
-        return csvOptions.escaped;
+        return csvOptions.escapeCharacter;
     }
 
     public String getLines() {
-        return csvOptions.lines;
+        return csvOptions.lineTerminator;
     }
 
     public String getStoredAs() {
