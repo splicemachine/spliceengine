@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.regionserver.Store;
 
@@ -111,7 +112,7 @@ public class SpliceCompactionUtils {
         long minRetentionTs = System.currentTimeMillis() - minRetentionPeriod * 1000;
         long minRetentionTxnId = SIDriver.driver().getTxnStore().getTxnAt(minRetentionTs);
         if(minRetentionTxnId == -1) {
-            return lowTxnWatermark;
+            return SIConstants.OLDEST_TIME_TRAVEL_TX;
         }
         return Math.min(lowTxnWatermark, minRetentionTxnId);
     }

@@ -31,6 +31,9 @@ import org.apache.hadoop.hbase.regionserver.throttle.ThroughputController;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * We use this class to pass the PurgeConfig down the stack to flush logic in SIObserver.
+ */
 public class SpliceDefaultFlusher extends DefaultStoreFlusher {
     public SpliceDefaultFlusher(Configuration conf, HStore store) throws IOException {
         super(conf, store);
