@@ -857,15 +857,14 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
-                                             int[] partitionBy,
+    public DataSet<ExecRow> writeParquetFile(int[] partitionBy,
                                              String location,
                                              String compression,
                                              OperationContext context) throws StandardException {
 
         compression = getParquetCompression( compression );
         return getNativeSparkDataSet( context )
-                .writeParquetFile(dsp, partitionBy, location, compression, context);
+                .writeParquetFile(partitionBy, location, compression, context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -877,16 +876,15 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location,
-                                          int[] baseColumnMap,
-                                          OperationContext context,
-                                          CsvOptions csvOptions) throws StandardException, IOException {
+    public DataSet<ExecRow> writeTextFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
+                                          CsvOptions csvOptions, OperationContext context) throws StandardException, IOException {
 
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                 context.getOperation().schema());
 
-        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(op, location, baseColumnMap, context, csvOptions);
+        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(baseColumnMap, partitionBy, location,
+                compression, csvOptions, context);
     }
 
     @Override @SuppressWarnings({ "unchecked", "rawtypes" })

@@ -120,25 +120,7 @@ public class DataDescriptorGenerator
                         csvOptions, storedAs, location, compression, isPinned, purgeDeletedRows,
                         minRetentionPeriod);
     }{}
-    public TableDescriptor newTableDescriptor(String tableName,
-                                              SchemaDescriptor schema,
-                                              int tableType,
-                                              char lockGranularity,
-                                              int columnSequence,
-                                              String delimited,
-                                              String escaped,
-                                              String lines,
-                                              String storedAs,
-                                              String location,
-                                              String compression,
-                                              boolean isPinned,
-                                              boolean purgeDeletedRows,
-                                              Long minRetentionPeriod) {
-        CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines);
-        return new TableDescriptor(dataDictionary, tableName, schema, tableType, lockGranularity, columnSequence,
-                csvOptions, storedAs, location, compression, isPinned, purgeDeletedRows,
-                minRetentionPeriod);
-    }{}
+
     /**
      * Create a descriptor for the temporary table within the given schema.
      *

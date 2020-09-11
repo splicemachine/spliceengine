@@ -297,14 +297,13 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      * Write Parquet File to the Hadoop Filesystem compliant location.
      *
-     * @param dsp
      * @param partitionBy
      * @param location
      * @param context
      * @return
      */
-    DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression,
-                                         OperationContext context) throws StandardException;
+    DataSet<ExecRow> writeParquetFile(int[] partitionBy, String location, String compression,
+                                      OperationContext context) throws StandardException;
 
     /**
      *
@@ -337,15 +336,15 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      * Write text file to the Hadoop compliant location.
      *
-     * @param op
-     * @param location
      * @param baseColumnMap
-     * @param context
+     * @param partitionBy
+     * @param location
+     * @param compression
      * @param csvOptions
+     * @param context
      * @return
      */
-    DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, int[] baseColumnMap,
-                                   OperationContext context, CsvOptions csvOptions) throws StandardException, IOException;
+    DataSet<ExecRow> writeTextFile(int[] baseColumnMap, int[] partitionBy, String location, String compression, CsvOptions csvOptions, OperationContext context) throws StandardException, IOException;
 
     /**
      *

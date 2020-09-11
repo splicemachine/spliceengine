@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.system.CsvOptions;
 import splice.com.google.common.collect.Lists;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -525,9 +526,9 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         // RESOLVE - Deal with lock granularity
         tabDesc = ddg.newTableDescriptor(tableName, schema, tableTypeEnum, lockGranularity.charAt(0),
                 row.getColumn(SYSTABLES_COLUMN_SEQUENCE).getInt(),
-                delimitedDVD != null ? delimitedDVD.getString() : null,
-                escapedDVD != null ? escapedDVD.getString() : null,
-                linesDVD != null ? linesDVD.getString() : null,
+                new CsvOptions(delimitedDVD != null ? delimitedDVD.getString() : null,
+                    escapedDVD != null ? escapedDVD.getString() : null,
+                    linesDVD != null ? linesDVD.getString() : null),
                 storedDVD != null ? storedDVD.getString() : null,
                 locationDVD != null ? locationDVD.getString() : null,
                 compressionDVD != null ? compressionDVD.getString() : null,

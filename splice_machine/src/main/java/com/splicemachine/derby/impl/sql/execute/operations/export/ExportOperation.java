@@ -219,7 +219,7 @@ public class ExportOperation extends SpliceBaseOperation {
                         compression = "none";
                     }
 
-                    dataset.writeParquetFile(dsp, new int[]{}, exportParams.getDirectory(), compression, writeContext);
+                    dataset.writeParquetFile(new int[]{}, exportParams.getDirectory(), compression, writeContext);
                     long end = System.currentTimeMillis();
                     ValueRow vr = new ValueRow(2);
                     vr.setColumn(1, new SQLLongint(writeContext.getRecordsWritten()));

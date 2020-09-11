@@ -6899,7 +6899,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                             sd,
                                             TableDescriptor.BASE_TABLE_TYPE,
                                             TableDescriptor.ROW_LOCK_GRANULARITY,
-                                            -1,null,null,null,
+                                            -1,new CsvOptions(),
                                             null,null,null,false,false,null);
                     td.setUUID(getUUIDForCoreTable("SYSTABLES", sd.getUUID().toString(), tc));
                     conglomID = coreInfo[SYSTABLES_CORE_NUM].getHeapConglomerate();
@@ -6911,7 +6911,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                             sd,
                                             TableDescriptor.BASE_TABLE_TYPE,
                                             TableDescriptor.ROW_LOCK_GRANULARITY,
-                                            -1,null,null,null,
+                                            -1,new CsvOptions(),
                                             null,null,null,false,false,null);
                     td.setUUID(getUUIDForCoreTable("SYSCOLUMNS", sd.getUUID().toString(), tc));
                     conglomID = coreInfo[SYSCOLUMNS_CORE_NUM].getHeapConglomerate();
@@ -7208,7 +7208,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         columnCount=columnList.length;
         td=ddg.newTableDescriptor(name,sd,TableDescriptor.SYSTEM_TABLE_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,
-                null,null,null,null,null,null,false,false,null);
+                new CsvOptions(),null,null,null,false,false,null);
         td.setUUID(crf.getCanonicalTableUUID());
         addDescriptor(td,sd,SYSTABLES_CATALOG_NUM,false,tc,false);
         toid=td.getUUID();

@@ -1113,8 +1113,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
-                                             int[] partitionBy,
+    public DataSet<ExecRow> writeParquetFile(int[] partitionBy,
                                              String location,
                                              String compression,
                                              OperationContext context) throws StandardException {
@@ -1151,7 +1150,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                           OperationContext context) throws StandardException
     {
         compression = SparkDataSet.getAvroCompression(compression);
-        DataFrameWriter writer = getDataFrameWriter(partitionBy, compression, context);
+        DataFrameWriter writer = getDataFrameWriter(partitionBy, context).option(SPARK_COMPRESSION_OPTION,compression);
         writer.mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
@@ -1160,16 +1159,16 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
+    public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
                                                     OperationContext context) throws StandardException {
-        DataFrameWriter writer = getDataFrameWriter(partitionBy, compression, context);
+        DataFrameWriter writer = getDataFrameWriter(partitionBy, context).option(SPARK_COMPRESSION_OPTION,compression);
         writer.mode(SaveMode.Append).orc(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
     }
 
-    private DataFrameWriter getDataFrameWriter(int[] partitionBy, String compression, OperationContext context) throws StandardException {
+    private DataFrameWriter getDataFrameWriter(int[] partitionBy, OperationContext context) throws StandardException {
         StructType tableSchema = SparkDataSet.generateTableSchema(context);
 
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
@@ -1188,16 +1187,15 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
         }
-        return insertDF.write().option(SPARK_COMPRESSION_OPTION,compression)
-                .partitionBy(partitionByCols);
+        return insertDF.write().partitionBy(partitionByCols);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location,
-                                          int[] baseColumnMap,
-                                          OperationContext context, CsvOptions csvOptions) throws IOException {
-        Dataset<Row> insertDF = dataset;
-        insertDF.write().options(getCsvOptions(csvOptions)).mode(SaveMode.Append).csv(location);
+    public DataSet<ExecRow> writeTextFile(int[] baseColumnMap, int[] partitionBy, String location, String compression,
+                                          CsvOptions csvOptions, OperationContext context) throws IOException, StandardException {
+        //Dataset<Row> insertDF = dataset;
+        DataFrameWriter writer = getDataFrameWriter(partitionBy, context).option(SPARK_COMPRESSION_OPTION,compression);
+        writer.options(getCsvOptions(csvOptions)).mode(SaveMode.Append).csv(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));

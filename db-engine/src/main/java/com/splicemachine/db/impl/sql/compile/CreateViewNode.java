@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.system.CsvOptions;
 
 import java.util.Collections;
 
@@ -592,7 +593,9 @@ public class CreateViewNode extends DDLStatementNode
 		 * (Pass in row locking, even though meaningless for views.)
 		 */
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-		TableDescriptor td = ddg.newTableDescriptor(getRelativeName(),sd,TableDescriptor.WITH_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null, null,false,false,null);
+		TableDescriptor td = ddg.newTableDescriptor(getRelativeName(),sd,TableDescriptor.WITH_TYPE,
+				TableDescriptor.ROW_LOCK_GRANULARITY,-1,new CsvOptions(),
+				null,null, null,false,false,null);
 		UUID toid = td.getUUID();
 
 		// No Need to add since this will be dynamic!!!

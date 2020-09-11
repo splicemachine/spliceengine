@@ -384,14 +384,14 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 ImportUtils.validateWritable(location,false);
 
                 if (storedAs.toLowerCase().equals("p"))
-                    return set.writeParquetFile(dsp, partitionBy, location, compression, operationContext);
+                    return set.writeParquetFile(partitionBy, location, compression, operationContext);
                 else if (storedAs.toLowerCase().equals("a"))
                     return set.writeAvroFile(dsp, partitionBy, location, compression, operationContext);
                 else if (storedAs.toLowerCase().equals("o"))
                     return set.writeORCFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
                 else if (storedAs.toLowerCase().equals("t"))
-                    return set.writeTextFile(this,location, IntArrays.count(execRowTypeFormatIds.length),
-                            operationContext, csvOptions);
+                    return set.writeTextFile(IntArrays.count(execRowTypeFormatIds.length), partitionBy, location, compression,
+                            csvOptions, operationContext);
                 else
                     new RuntimeException("storedAs type not supported -> " + storedAs);
             }

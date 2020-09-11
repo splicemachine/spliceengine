@@ -33,6 +33,7 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
+import com.splicemachine.system.CsvOptions;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -299,8 +300,8 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 			TableDescriptor td;
 			DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 			td = ddg.newTableDescriptor(aliasName, sd, TableDescriptor.SYNONYM_TYPE,
-						TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
-					null,null,null,null,null,null,false,false,null);
+					TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1, new CsvOptions(),
+					null,null,null,false,false,null);
 			dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
             break;
 		

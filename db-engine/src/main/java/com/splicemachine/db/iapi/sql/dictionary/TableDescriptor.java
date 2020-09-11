@@ -360,7 +360,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
     /**
      *
-     * Delimitter string
+     * Delimiter string
      *
      * @return
      */
