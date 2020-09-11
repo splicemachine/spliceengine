@@ -28,6 +28,7 @@ import com.splicemachine.db.impl.sql.catalog.DefaultSystemProcedureGenerator;
 import com.splicemachine.db.impl.sql.catalog.Procedure;
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.impl.load.HdfsImport;
+import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeSystemProcedures;
 import com.splicemachine.derby.impl.storage.SpliceRegionAdmin;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.utils.*;
@@ -942,6 +943,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(vacuum);
 
+
                     /*
                      * Procedure to return timestamp generator info
                      */
@@ -1538,16 +1540,32 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     Procedure beginRollingUpgrade = Procedure.newBuilder().name("BEGIN_ROLLING_UPGRADE")
                             .numOutputParams(0)
                             .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
                             .build();
                     procedures.add(beginRollingUpgrade);
 
                     Procedure endRollingUpgrade = Procedure.newBuilder().name("END_ROLLING_UPGRADE")
                             .numOutputParams(0)
                             .numResultSets(1)
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
                             .build();
                     procedures.add(endRollingUpgrade);
+
+                    Procedure unloadRegions = Procedure.newBuilder().name("UNLOAD_REGIONS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("hostAndPort", 32672)
+                            .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                            .build();
+                    procedures.add(unloadRegions);
+
+                    Procedure loadRegions = Procedure.newBuilder().name("LOAD_REGIONS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("hostAndPort", 32672)
+                            .ownerClass(UpgradeSystemProcedures.class.getCanonicalName())
+                            .build();
+                    procedures.add(loadRegions);
                 }  // End key == sysUUID
 
             } // End iteration through map keys (schema UUIDs)

@@ -257,3 +257,19 @@ service SpliceRSRpcServices {
     rpc launchOlapServers(LaunchOlapServersRequest)
         returns (LaunchOlapServersResponse);
 }
+
+message SpliceRegionInfo{
+    optional string tableName = 1;
+    optional bytes startKey = 2;
+    optional bytes endKey = 3;
+    optional int64 regionId = 4;
+    optional int32 replicaId = 5;
+    optional bool offLine = 6;
+    optional bool split = 7;
+    optional bytes regionName = 8;
+    optional string encodedName = 9;
+}
+
+message MigratedRegions{
+    repeated SpliceRegionInfo regions = 1;
+}

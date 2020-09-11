@@ -16,9 +16,15 @@ package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import java.util.List;
+
 public interface UpgradeManager {
 
     default void startRollingUpgrade() throws StandardException {}
 
     default void endRollingUpgrade() throws StandardException {}
+
+    default List<String> unloadRegions(String hostAndPort) throws StandardException {return null;}
+
+    default List<String> loadRegions(String serverName) throws StandardException { return null;}
 }

@@ -2573,26 +2573,4 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw PublicAPI.wrapStandardException(se);
         }
     }
-
-    public static void BEGIN_ROLLING_UPGRADE(final ResultSet[] resultSets) throws SQLException, StandardException {
-        try {
-            UpgradeManager upgradeManager = EngineDriver.driver().manager().getUpgradeManager();
-            upgradeManager.startRollingUpgrade();
-            resultSets[0] = ProcedureUtils.generateResult("Success", "The system is rolling upgrade.");
-        }
-        catch (Exception e) {
-            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
-        }
-    }
-
-    public static void END_ROLLING_UPGRADE(final ResultSet[] resultSets) throws SQLException, StandardException {
-        try {
-            UpgradeManager upgradeManager = EngineDriver.driver().manager().getUpgradeManager();
-            upgradeManager.endRollingUpgrade();
-            resultSets[0] = ProcedureUtils.generateResult("Success", "The system completed rolling upgrade.");
-        }
-        catch (Exception e) {
-            resultSets[0] = ProcedureUtils.generateResult("Error", e.getLocalizedMessage());
-        }
-    }
 }
