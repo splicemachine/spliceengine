@@ -44,7 +44,7 @@ public class CreateSchemaIT {
     protected static SpliceSchemaWatcher sullivan1SchemaWatcher = new SpliceSchemaWatcher("SULLIVAN1");
     protected static SpliceSchemaWatcher sullivanSchemaWatcher = new SpliceSchemaWatcher("SULLIVAN");
     protected static SpliceSchemaWatcher cmprod = new SpliceSchemaWatcher("cmprod");
-    protected static SpliceUserWatcher cmprodUser = new SpliceUserWatcher("cmprod","bigdata4u");
+    protected static SpliceUserWatcher cmprodUser = new SpliceUserWatcher("cmprod","cmprod_password");
 
 
     @ClassRule
@@ -112,7 +112,7 @@ public class CreateSchemaIT {
         try {
             methodWatcher.execute("call SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER('cmprod','cmprod')");
             methodWatcher.execute("create table cmprod.table1 (col1 int)");
-            connection = SpliceNetConnection.newBuilder().user("cmprod").password("bigdata4u").build();
+            connection = SpliceNetConnection.newBuilder().user("cmprod").password("cmprod_password").build();
             ResultSet rs = connection.createStatement().executeQuery("select * from cmprod.table1");
             rs.next();
             rs.close();
