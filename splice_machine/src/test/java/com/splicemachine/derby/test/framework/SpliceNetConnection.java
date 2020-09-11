@@ -112,7 +112,7 @@ public class SpliceNetConnection {
         else {
             jdbcHost = System.getProperty(PROPERTY_JDBC_HOST, DEFAULT_HOST);
             jdbcPort = System.getProperty(PROPERTY_JDBC_PORT, DEFAULT_PORT);
-            jdbcUrl = URL_PREFIX + jdbcHost + ":" + jdbcPort + "/";
+            jdbcUrl = URL_PREFIX + jdbcHost + ":" + jdbcPort;
             jdbcDatabase = System.getProperty(PROPERTY_JDBC_DATABASE, DEFAULT_DATABASE);
         }
         jdbcUser = System.getProperty(PROPERTY_JDBC_USER, jdbcUser);
@@ -194,10 +194,10 @@ public class SpliceNetConnection {
                 url.append(host != null ? host : jdbcHost);
                 url.append(":");
                 url.append(port != null ? port : jdbcPort);
-                url.append("/");
             } else {
                 url.append(jdbcUrl);
             }
+            url.append("/");
             url.append(database != null ? database: jdbcDatabase);
             return DriverManager.getConnection(url.toString(), info);
         }
@@ -224,15 +224,4 @@ public class SpliceNetConnection {
         }
         return sb.toString();
     }
-
-    public static Connection getConnectionAs(String providedUrl, String userName, String password) throws SQLException {
-        Properties info = new Properties();
-        info.put("user", userName);
-        info.put("password", password);
-        if (jdbcSsl != null) {
-            info.put("ssl", jdbcSsl);
-        }
-        return DriverManager.getConnection(providedUrl, info);
-    }
-
 }
