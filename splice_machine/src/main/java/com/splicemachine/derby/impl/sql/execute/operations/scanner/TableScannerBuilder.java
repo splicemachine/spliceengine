@@ -357,20 +357,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     public ScanSetBuilder<V> csvOptions(CsvOptions csvOptions)
     {
         this.csvOptions = csvOptions;
-    }
-
-    public ScanSetBuilder<V> delimited(String delimited){
-        csvOptions.delimited = delimited;
-        return this;
-    }
-
-    public ScanSetBuilder<V> escaped(String escaped){
-        csvOptions.escaped = escaped;
-        return this;
-    }
-
-    public ScanSetBuilder<V> lines(String lines){
-        csvOptions.lines = lines;
         return this;
     }
 
@@ -667,11 +653,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public CsvOptions getCsvOptions() {
         return csvOptions;
-    }
-
-    @Override
-    public String getLines() {
-        return csvOptions.lines;
     }
 
     @Override

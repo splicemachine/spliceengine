@@ -74,22 +74,4 @@ public class CsvOptions {
         escaped     = readExString(in);
         lines       = readExString(in);
     }
-
-    public String toCreateTableString()
-    {
-        if( delimited == null && escaped == null && lines == null ) return "";
-        else {
-            String str = "";
-            if (delimited != null)
-                str = str + "FIELDS TERMINATED BY '" + delimited + "' ";
-            if (escaped != null) {
-                if( delimited == null ) // no ESCAPED by without FIELDS TERMINATED BY
-                    str = str + "FIELDS TERMINATED BY ',' ";
-                str = str + "ESCAPED BY '" + escaped + "' ";
-            }
-            if (lines != null)
-                str = str + "LINES TERMINATED BY '" + lines + "' ";
-            return "ROW FORMAT DELIMITED " + str;
-        }
-    }
 }

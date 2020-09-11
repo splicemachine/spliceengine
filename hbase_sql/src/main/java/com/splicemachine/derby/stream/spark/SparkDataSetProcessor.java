@@ -509,7 +509,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                 .read()
                                 .orc(location);
                     } else if (storedAs.toLowerCase().equals("t")) {
-                        dataset = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(location)
+                        dataset = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(location);
                     } else {
                         throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
                     }

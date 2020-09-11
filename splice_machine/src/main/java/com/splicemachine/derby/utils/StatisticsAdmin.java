@@ -726,9 +726,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                 .storedAs(table.getStoredAs())
                 .location(table.getLocation())
                 .compression(table.getCompression())
-                .delimited(table.getDelimited())
-                .lines(table.getLines())
-                .escaped(table.getEscaped())
+                .csvOptions(table.getCsvOptions())
                 .partitionByColumns(table.getPartitionBy())
                 ;
     }

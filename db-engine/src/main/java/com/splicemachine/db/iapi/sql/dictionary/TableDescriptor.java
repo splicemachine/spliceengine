@@ -369,6 +369,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return csvOptions.delimited;
     }
 
+    public CsvOptions getCsvOptions() { return csvOptions; }
+
     /**
      * Will tell if the current table is currently pinned in the memory
      * @return

@@ -37,6 +37,7 @@ import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.iapi.ScopeNamed;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -156,9 +157,7 @@ public class CreatePinConstantOperation implements ConstantAction, ScopeNamed {
                     .rowDecodingMap(ScanOperation.getRowDecodingMap(accessedKeyCols,conglomerate.getColumnOrdering(),baseColumnMap))
                 .accessedKeyColumns(accessedKeyCols)
                 .template(td.getEmptyExecRow())
-                .escaped(td.getEscaped())
-                .lines(td.getLines())
-                .delimited(td.getDelimited())
+                .csvOptions( td.getCsvOptions() )
                 .location(td.getLocation())
                 .storedAs(td.getStoredAs())
                 .compression(td.getCompression())
