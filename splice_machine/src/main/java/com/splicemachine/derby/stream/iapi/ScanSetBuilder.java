@@ -24,6 +24,8 @@ import com.splicemachine.si.api.server.TransactionalRegion;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
+import com.splicemachine.system.CsvOptions;
+
 import java.io.IOException;
 
 /**
@@ -146,6 +148,7 @@ public interface ScanSetBuilder<V>{
      */
     ScanSetBuilder<V> pin(boolean pin);
 
+    ScanSetBuilder<V> csvOptions(CsvOptions csvOptions);
     /**
      *
      * Column delimitter
@@ -208,28 +211,9 @@ public interface ScanSetBuilder<V>{
     boolean getPin();
 
     /**
-     *
-     * Return how the columns are delimitted.
-     *
-     * @return
+     * @return the csv options
      */
-    String getDelimited();
-
-    /**
-     *
-     * Get the escape character for textfile parsing.
-     *
-     * @return
-     */
-    String getEscaped();
-
-    /**
-     *
-     * Retrieve the line delimitter
-     *
-     * @return
-     */
-    String getLines();
+    CsvOptions getCsvOptions();
 
     /**
      *

@@ -354,6 +354,11 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
+    public ScanSetBuilder<V> csvOptions(CsvOptions csvOptions)
+    {
+        this.csvOptions = csvOptions;
+    }
+
     public ScanSetBuilder<V> delimited(String delimited){
         csvOptions.delimited = delimited;
         return this;
@@ -660,13 +665,8 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     }
 
     @Override
-    public String getDelimited() {
-        return csvOptions.delimited;
-    }
-
-    @Override
-    public String getEscaped() {
-        return csvOptions.escaped;
+    public CsvOptions getCsvOptions() {
+        return csvOptions;
     }
 
     @Override

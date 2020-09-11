@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.system.CsvOptions;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -61,9 +62,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
     protected boolean rowIdKey;
     protected boolean pin;
     protected int splits;
-    protected String delimited;
-    protected String escaped;
-    protected String lines;
+    protected CsvOptions csvOptions = new CsvOptions();
     protected String storedAs;
     protected String location;
     int partitionRefItem;
@@ -101,9 +100,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         this.rowIdKey = rowIdKey;
         this.pin = pin;
         this.splits = splits;
-        this.delimited = delimited;
-        this.escaped = escaped;
-        this.lines = lines;
+        this.csvOptions = new CsvOptions(delimited, escaped, lines, null, null);
         this.storedAs = storedAs;
         this.location = location;
         this.partitionRefItem = partitionRefItem;
@@ -143,9 +140,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         tableVersion=in.readUTF();
         rowIdKey = in.readBoolean();
         pin = in.readBoolean();
-        delimited = in.readBoolean()?in.readUTF():null;
-        escaped = in.readBoolean()?in.readUTF():null;
-        lines = in.readBoolean()?in.readUTF():null;
+        csvOptions = new CsvOptions(in);
         storedAs = in.readBoolean()?in.readUTF():null;
         location = in.readBoolean()?in.readUTF():null;
         partitionRefItem = in.readInt();
@@ -162,15 +157,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         out.writeUTF(tableVersion);
         out.writeBoolean(rowIdKey);
         out.writeBoolean(pin);
-        out.writeBoolean(delimited!=null);
-        if (delimited!=null)
-            out.writeUTF(delimited);
-        out.writeBoolean(escaped!=null);
-        if (escaped!=null)
-            out.writeUTF(escaped);
-        out.writeBoolean(lines!=null);
-        if (lines!=null)
-            out.writeUTF(lines);
+        csvOptions.writeExternal(out);
         out.writeBoolean(storedAs!=null);
         if (storedAs!=null)
             out.writeUTF(storedAs);
