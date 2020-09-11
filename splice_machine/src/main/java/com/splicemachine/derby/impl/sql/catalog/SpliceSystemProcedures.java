@@ -1187,8 +1187,8 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     procedures.add(purgeDeletedRows);
 
                     Procedure minRetentionPeriod = Procedure.newBuilder().name("SET_MIN_RETENTION_PERIOD")
-                            .varchar("schemaName", 128)
-                            .varchar("tableName", 128)
+                            .catalog("schemaName")
+                            .catalog("tableName")
                             .bigint("minRetentionPeriod")
                             .numOutputParams(0)
                             .numResultSets(0)

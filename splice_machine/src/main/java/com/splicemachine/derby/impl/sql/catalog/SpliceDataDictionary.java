@@ -25,6 +25,7 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -1666,8 +1667,15 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, 1);
             tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
 
-            columnDescriptor = new ColumnDescriptor(SYSTABLESRowFactory.MIN_RETENTION_PERIOD, colNumber,
-                    colNumber, dtd, null, null, td, uuid, 0, 0, td.getColumnSequence());
+            if(td.getSchemaName().equals("SYS")) {
+                SpliceLogUtils.info(LOG, String.format("detected system table %s, setting default value for min. retention period", td.getName()));
+                DataValueDescriptor dvd = new SQLLongint(7*24*60*60);
+                columnDescriptor = new ColumnDescriptor(SYSTABLESRowFactory.MIN_RETENTION_PERIOD, colNumber,
+                        colNumber, dtd, dvd, new DefaultInfoImpl(false, dvd.getString(), dvd), td, uuid, 0, 0, td.getColumnSequence());
+            } else {
+                columnDescriptor = new ColumnDescriptor(SYSTABLESRowFactory.MIN_RETENTION_PERIOD, colNumber,
+                        colNumber, dtd, null, null, td, uuid, 0, 0, td.getColumnSequence());
+            }
 
             addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
 
