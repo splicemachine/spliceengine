@@ -112,7 +112,7 @@ public class CreateSchemaIT {
         try {
             methodWatcher.execute("call SYSCS_UTIL.SYSCS_UPDATE_SCHEMA_OWNER('cmprod','cmprod')");
             methodWatcher.execute("create table cmprod.table1 (col1 int)");
-            connection = SpliceNetConnection.getConnectionAs("cmprod", "bigdata4u");
+            connection = SpliceNetConnection.newBuilder().user("cmprod").password("bigdata4u").build();
             ResultSet rs = connection.createStatement().executeQuery("select * from cmprod.table1");
             rs.next();
             rs.close();

@@ -93,7 +93,7 @@ public class WithStatementIT extends SpliceUnitTest {
         new TableCreator(connection)
                 .withCreate("create table t12 (i int)").create();
 
-        testUserConn = spliceClassWatcher.createConnection(TEST_USER, TEST_PASSWORD);
+        testUserConn = spliceClassWatcher.connectionBuilder().user(TEST_USER).password(TEST_PASSWORD).build();
 
         connection.createStatement().execute(format("grant access,select on schema %s to %s", SCHEMA, TEST_USER));
     }

@@ -191,7 +191,7 @@ public class FunctionIT extends SpliceUnitTest {
 
     @Test
     public void testCallToSystemFunctionFromUserWithoutDefaultSchema() throws Exception {
-        TestConnection user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+        TestConnection user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
 
         PreparedStatement ps = user1Conn.prepareStatement("VALUES rand(10)");
         ResultSet rs = ps.executeQuery();
