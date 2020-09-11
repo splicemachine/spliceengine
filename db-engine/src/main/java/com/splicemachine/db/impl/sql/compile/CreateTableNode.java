@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.system.CsvOptions;
 
 import java.util.Properties;
 
@@ -84,11 +85,11 @@ public class CreateTableNode extends DDLStatementNode
 	boolean                       presplit;
 	boolean                       isLogicalKey;
 	String                        splitKeyPath;
-	String                        columnDelimiter;
-	String                        characterDelimiter;
-	String                        timestampFormat;
-	String                        dateFormat;
-	String                        timeFormat;
+	String                        splitColumnDelimiter;
+	String                        splitCharacterDelimiter;
+	String                        splitTimestampFormat;
+	String                        splitDateFormat;
+	String                        splitTimeFormat;
 
 	/**
 	 * Initializer for a CreateTableNode for a base table
@@ -150,6 +151,7 @@ public class CreateTableNode extends DDLStatementNode
 		this.mergeSchema = (Boolean)mergeSchema;
 	}
 
+	// Initializer for a CreateTableNode when using splitkeys
 	public void init(
 			Object newObjectName,
 			Object createBehavior,
@@ -159,11 +161,11 @@ public class CreateTableNode extends DDLStatementNode
 			Object presplit,
 			Object isLogicalKey,
 			Object splitKeyPath,
-			Object columnDelimiter,
-			Object characterDelimiter,
-			Object timestampFormat,
-			Object dateFormat,
-			Object timeFormat
+			Object splitColumnDelimiter,
+			Object splitCharacterDelimiter,
+			Object splitTimestampFormat,
+			Object splitDateFormat,
+			Object splitTimeFormat
 		)
 		throws StandardException
 	{
@@ -191,11 +193,11 @@ public class CreateTableNode extends DDLStatementNode
 		this.presplit = (Boolean) presplit;
 		this.isLogicalKey = (Boolean)isLogicalKey;
         this.splitKeyPath = splitKeyPath!=null ? ((CharConstantNode)splitKeyPath).getString() : null;
-        this.columnDelimiter = columnDelimiter != null ? ((CharConstantNode)columnDelimiter).getString() : null;
-        this.characterDelimiter = characterDelimiter != null ? ((CharConstantNode)characterDelimiter).getString() : null;
-        this.timestampFormat = timestampFormat != null ? ((CharConstantNode)timestampFormat).getString() : null;
-        this.dateFormat = dateFormat != null ? ((CharConstantNode)dateFormat).getString() : null;
-        this.timeFormat = timeFormat != null ? ((CharConstantNode)timeFormat).getString() : null;
+        this.splitColumnDelimiter = splitColumnDelimiter != null ? ((CharConstantNode)splitColumnDelimiter).getString() : null;
+		this.splitCharacterDelimiter = splitCharacterDelimiter != null ? ((CharConstantNode)splitCharacterDelimiter).getString() : null;
+		this.splitTimestampFormat = splitTimestampFormat != null ? ((CharConstantNode)splitTimestampFormat).getString() : null;
+		this.splitDateFormat = splitDateFormat != null ? ((CharConstantNode)splitDateFormat).getString() : null;
+		this.splitTimeFormat = splitTimeFormat != null ? ((CharConstantNode)splitTimeFormat).getString() : null;
 	}
 
 	/**
@@ -694,11 +696,11 @@ public class CreateTableNode extends DDLStatementNode
                     presplit,
                     isLogicalKey,
                     splitKeyPath,
-                    columnDelimiter,
-                    characterDelimiter,
-                    timestampFormat,
-                    dateFormat,
-                    timeFormat
+                    splitColumnDelimiter,
+					splitCharacterDelimiter,
+					splitTimestampFormat,
+					splitDateFormat,
+					splitTimeFormat
             ));
     }
 

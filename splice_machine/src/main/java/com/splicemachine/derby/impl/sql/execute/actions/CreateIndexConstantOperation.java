@@ -60,7 +60,7 @@ import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.system.CsvOptions;
+import com.splicemachine.system.SplitKeyOptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -182,7 +182,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private double          sampleFraction;
     private String          splitKeyPath;
     private String          hfilePath;
-    private CsvOptions      csvOptions;
+    private SplitKeyOptions splitKeyOptions;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -258,7 +258,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             double          sampleFraction,
             String          splitKeyPath,
             String          hfilePath,
-            CsvOptions      csvOptions,
+            SplitKeyOptions splitKeyOptions,
             Properties		properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
@@ -281,7 +281,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.sampleFraction             = sampleFraction;
         this.splitKeyPath               = splitKeyPath;
         this.hfilePath                  = hfilePath;
-        this.csvOptions                 = csvOptions;
+        this.splitKeyOptions            = splitKeyOptions;
     }
 
     /**
@@ -885,7 +885,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
-            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(csvOptions, execRow,
+            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(splitKeyOptions, execRow,
                     null, false, operationContext), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);

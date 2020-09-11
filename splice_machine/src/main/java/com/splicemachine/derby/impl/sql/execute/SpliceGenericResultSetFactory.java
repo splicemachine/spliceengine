@@ -1770,8 +1770,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines, null, null,
-                        null, null, null);
+            CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines);
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
                     statusDirectory, failBadRecordCount, skipConflictDetection, skipWAL,
                     optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,

@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.compile.ValueNode;
+import com.splicemachine.system.SplitKeyOptions;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -232,11 +233,7 @@ public abstract class GenericConstantActionFactory {
         double          sampleFraction,
         String          splitKeyPath,
         String          hfilePath,
-        String          columnDelimiter,
-        String          characterDelimiter,
-        String          timestampFormat,
-        String          dateFormat,
-        String          timeFormat,
+        SplitKeyOptions splitKeyOptions,
         Properties        properties
     );
 
@@ -344,11 +341,11 @@ public abstract class GenericConstantActionFactory {
         boolean presplit,
         boolean isLogicalKey,
         String splitKeyPath,
-        String columnDelimiter,
-        String characterDelimiter,
-        String timestampFormat,
-        String dateFormat,
-        String timeFormat
+        String splitColumnDelimiter,
+        String splitCharacterDelimiter,
+        String splitTimestampFormat,
+        String splitDateFormat,
+        String splitTimeFormat
         );
 
     public abstract    ConstantAction    getPinTableConstantAction (

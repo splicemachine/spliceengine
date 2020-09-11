@@ -134,8 +134,7 @@ public class DataDescriptorGenerator
                                               boolean isPinned,
                                               boolean purgeDeletedRows,
                                               Long minRetentionPeriod) {
-        CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines, null, null,
-                null, null, null);
+        CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines);
         return new TableDescriptor(dataDictionary, tableName, schema, tableType, lockGranularity, columnSequence,
                 csvOptions, storedAs, location, compression, isPinned, purgeDeletedRows,
                 minRetentionPeriod);

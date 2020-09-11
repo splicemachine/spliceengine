@@ -44,6 +44,7 @@ import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
 import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.system.SplitKeyOptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
@@ -92,6 +93,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     private Properties				properties;
 
     private CsvOptions csvOptions;
+    private SplitKeyOptions splitKeyOptions;
 
     private String storedAs;
     private String location;
@@ -135,7 +137,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             boolean presplit,
             boolean isLogicalKey,
             String splitKeyPath,
-            CsvOptions csvOptions) {
+            CsvOptions csvOptions,
+            SplitKeyOptions splitKeyOptions) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.tableType = tableType;
@@ -147,6 +150,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         this.onRollbackDeleteRows = onRollbackDeleteRows;
 
         this.csvOptions = csvOptions;
+        this.splitKeyOptions = splitKeyOptions;
         this.isExternal = isExternal;
         this.storedAs = storedAs;
         this.location = location;
@@ -706,7 +710,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(pkFormatIds);
-            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction( csvOptions,
+            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction( splitKeyOptions,
                     execRow, null,
                     false, operationContext), true);
             List<ExecRow> rows = dataSet.collect();

@@ -39,6 +39,7 @@ import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.system.CsvOptions;
+import com.splicemachine.system.SplitKeyOptions;
 
 /**
  * A Constant Action for creating a table in a Splice-efficient fashion
@@ -90,12 +91,14 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 									  boolean presplit,
 									  boolean isLogicalKey,
 									  String splitKeyPath,
-									  CsvOptions csvOptions) {
+									  CsvOptions csvOptions,
+									  SplitKeyOptions splitKeyOptions) {
 
 		super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity,
 				onCommitDeleteRows, onRollbackDeleteRows, isExternal,
 				storedAs, location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
-				csvOptions );
+				csvOptions,
+				splitKeyOptions);
 		this.tableType = tableType;
 		this.tableName = tableName;
 		this.schemaName = schemaName;

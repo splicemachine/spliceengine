@@ -12747,11 +12747,11 @@ tableDefinition() throws StandardException :
     Boolean     isLogicalKey = Boolean.TRUE;
     Boolean     presplit = Boolean.FALSE;
     ValueNode   splitKeysPath = null;
-    ValueNode   columnDelimiter = null;
-    ValueNode   characterDelimiter = null;
-    ValueNode   timestampFormat = null;
-    ValueNode   dateFormat = null;
-    ValueNode   timeFormat = null;
+    ValueNode   splitColumnDelimiter = null;
+    ValueNode   splitCharacterDelimiter = null;
+    ValueNode   splitTimestampFormat = null;
+    ValueNode   splitDateFormat = null;
+    ValueNode   splitTimeFormat = null;
     Token ifTok = null;
     Token ifTok2 = null;
 }
@@ -12768,11 +12768,11 @@ tableDefinition() throws StandardException :
             ([<LOGICAL> {isLogicalKey = Boolean.TRUE;} |<PHYSICAL> {isLogicalKey = Boolean.FALSE;}]
               <SPLITKEYS> {presplit = Boolean.TRUE;}
               <LOCATION> {splitKeysPath = literal();}
-              [<COLUMNDELIMITER> {columnDelimiter = literal();}]
-              [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
-              [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
-              [<DATEFORMAT> {dateFormat = literal();}]
-              [<TIMEFORMAT> {timeFormat = literal();}]
+              [<COLUMNDELIMITER> {splitColumnDelimiter = literal();}]
+              [<CHARACTERDELIMITER> {splitCharacterDelimiter = literal();}]
+              [<TIMESTAMPFORMAT> {splitTimestampFormat = literal();}]
+              [<DATEFORMAT> {splitDateFormat = literal();}]
+              [<TIMEFORMAT> {splitTimeFormat = literal();}]
               {
                       validateParameters(isExternal, storageFormat, terminationChar, escapedByChar,
                                 linesTerminatedByChar, location,compression, partitionedResultColumns, tableElementList);
@@ -12790,11 +12790,11 @@ tableDefinition() throws StandardException :
                                               presplit,
                                               isLogicalKey,
                                               splitKeysPath,
-                                              columnDelimiter,
-                                              characterDelimiter,
-                                              timestampFormat,
-                                              dateFormat,
-                                              timeFormat,
+                                              splitColumnDelimiter,
+                                              splitCharacterDelimiter,
+                                              splitTimestampFormat,
+                                              splitDateFormat,
+                                              splitTimeFormat,
                                               getContextManager());
                           }
             |[<COMMA>]
@@ -13086,11 +13086,11 @@ indexDefinition() throws StandardException :
     TableName    tableName;
     ValueNode   hfilePath = null;
     ValueNode   splitKeysPath = null;
-    ValueNode   columnDelimiter = null;
-    ValueNode   characterDelimiter = null;
-    ValueNode   timestampFormat = null;
-    ValueNode   dateFormat = null;
-    ValueNode   timeFormat = null;
+    ValueNode   splitColumnDelimiter = null;
+    ValueNode   splitCharacterDelimiter = null;
+    ValueNode   splitTimestampFormat = null;
+    ValueNode   splitDateFormat = null;
+    ValueNode   splitTimeFormat = null;
     ValueNode   sampleFraction = null;
     Boolean     sampling = Boolean.FALSE;
     Boolean     preSplit = Boolean.FALSE;
@@ -13113,11 +13113,11 @@ indexDefinition() throws StandardException :
         [   [<LOGICAL> {isLogicalKey = Boolean.TRUE;} |<PHYSICAL> {isLogicalKey = Boolean.FALSE;}]
             <SPLITKEYS> {preSplit = Boolean.TRUE;}
                 <LOCATION> {splitKeysPath = literal();}
-                 [<COLUMNDELIMITER> {columnDelimiter = literal();}]
-                 [<CHARACTERDELIMITER> {characterDelimiter = literal();}]
-                 [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
-                 [<DATEFORMAT> {dateFormat = literal();}]
-                 [<TIMEFORMAT> {timeFormat = literal();}]
+                 [<COLUMNDELIMITER> {splitColumnDelimiter = literal();}]
+                 [<CHARACTERDELIMITER> {splitCharacterDelimiter = literal();}]
+                 [<TIMESTAMPFORMAT> {splitTimestampFormat = literal();}]
+                 [<DATEFORMAT> {splitDateFormat = literal();}]
+                 [<TIMEFORMAT> {splitTimeFormat = literal();}]
 
             |<AUTO> {sampling = Boolean.TRUE;}
              <SPLITKEYS> {preSplit = Boolean.TRUE;}
@@ -13167,11 +13167,11 @@ indexDefinition() throws StandardException :
                                 sampling,
                                 sampleFraction,
                                 splitKeysPath,
-                                columnDelimiter,
-                                characterDelimiter,
-                                timestampFormat,
-                                dateFormat,
-                                timeFormat,
+                                splitColumnDelimiter,
+                                splitCharacterDelimiter,
+                                splitTimestampFormat,
+                                splitDateFormat,
+                                splitTimeFormat,
                                 hfilePath,
                                 properties,
                                 getContextManager());

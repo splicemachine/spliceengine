@@ -30,6 +30,7 @@ import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
 import com.splicemachine.system.CsvOptions;
+import com.splicemachine.system.SplitKeyOptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -95,19 +96,19 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        boolean presplit,
                                                        boolean isLogicalKey,
                                                        String splitKeyPath,
-                                                       String columnDelimiter,
-                                                       String characterDelimiter,
-                                                       String timestampFormat,
-                                                       String dateFormat,
-                                                       String timeFormat) {
+                                                       String splitColumnDelimiter,
+                                                       String splitCharacterDelimiter,
+                                                       String splitTimestampFormat,
+                                                       String splitDateFormat,
+                                                       String splitTimeFormat) {
         SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
             schemaName, tableName, Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
             constantActions,properties,createBehavior,lockGranularity,
             onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString, isExternal,
                 storedAs,location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
-                new CsvOptions(delimited, escaped, lines, columnDelimiter, characterDelimiter,
-                        timestampFormat, dateFormat, timeFormat) );
+                new CsvOptions(delimited, escaped, lines),
+                new SplitKeyOptions(splitColumnDelimiter, splitCharacterDelimiter, splitTimestampFormat, splitDateFormat, splitTimeFormat) );
     }
 
 
@@ -132,17 +133,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        double       sampleFraction,
                                                        String       splitKeyPath,
                                                        String       hfilePath,
-                                                       String       columnDelimiter,
-                                                       String       characterDelimiter,
-                                                       String       timestampFormat,
-                                                       String       dateFormat,
-                                                       String       timeFormat,
+                                                       SplitKeyOptions splitKeyOptions,
                                                        Properties	properties){
         SpliceLogUtils.trace(LOG,"getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName,indexName,schemaName,tableName,Arrays.toString(columnNames));
         return new CreateIndexConstantOperation(forCreateTable,unique,uniqueWithDuplicateNulls,indexType, schemaName,
                 indexName,tableName,tableId,columnNames,isAscending,isConstraint, conglomerateUUID, excludeNulls,
-                excludeDefaults,preSplit,isLogicalKey,sampling,sampleFraction,splitKeyPath,hfilePath,
-                new CsvOptions(null, null, null, columnDelimiter,characterDelimiter,timestampFormat, dateFormat,timeFormat), properties);
+                excludeDefaults,preSplit,isLogicalKey,sampling,sampleFraction,splitKeyPath,hfilePath, splitKeyOptions, properties);
     }
 
     @Override

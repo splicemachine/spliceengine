@@ -23,6 +23,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import com.splicemachine.system.CsvOptions;
+import com.splicemachine.system.SplitKeyOptions;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -50,9 +51,9 @@ public class FileFunction extends AbstractFileFunction<String> {
         super();
     }
 
-    public FileFunction(CsvOptions csvOptions, ExecRow execRow, int[] columnIndex,
+    public FileFunction(SplitKeyOptions splitKeyOptions, ExecRow execRow, int[] columnIndex,
                         boolean oneLineRecord, OperationContext operationContext) {
-        super(csvOptions, execRow, columnIndex, operationContext);
+        super(splitKeyOptions, execRow, columnIndex, operationContext);
         this.oneLineRecord = oneLineRecord;
     }
 

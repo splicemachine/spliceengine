@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.system.SplitKeyOptions;
 
 /**
  * A CreateIndexNode is the root of a QueryTree that represents a CREATE INDEX
@@ -76,11 +77,7 @@ public class CreateIndexNode extends DDLStatementNode
 	double              sampleFraction;
     String              splitKeyPath;
     String              hfilePath;
-    String              columnDelimiter;
-    String              characterDelimiter;
-    String              timestampFormat;
-    String              dateFormat;
-    String              timeFormat;
+    SplitKeyOptions		splitKeyOptions = new SplitKeyOptions();
 
 
 	TableDescriptor		td;
@@ -112,7 +109,7 @@ public class CreateIndexNode extends DDLStatementNode
                     Object sampleFraction,
                     Object splitKeyPath,
                     Object columnDelimiter,
-                    Object characterDelimite,
+                    Object characterDelimiter,
                     Object timestampFormat,
                     Object dateFormat,
                     Object timeFormat,
@@ -134,11 +131,12 @@ public class CreateIndexNode extends DDLStatementNode
         this.sampling = (Boolean)sampling;
         this.sampleFraction = sampleFraction!=null ? ((NumericConstantNode)sampleFraction).getValue().getDouble():0;
         this.splitKeyPath = splitKeyPath!=null ? ((CharConstantNode)splitKeyPath).getString() : null;
-        this.columnDelimiter = columnDelimiter != null ? ((CharConstantNode)columnDelimiter).getString() : null;
-        this.characterDelimiter = characterDelimite != null ? ((CharConstantNode)characterDelimite).getString() : null;
-        this.timestampFormat = timestampFormat != null ? ((CharConstantNode)timestampFormat).getString() : null;
-        this.dateFormat = dateFormat != null ? ((CharConstantNode)dateFormat).getString() : null;
-        this.timeFormat = timeFormat != null ? ((CharConstantNode)timeFormat).getString() : null;
+		this.splitKeyOptions = new SplitKeyOptions(
+				columnDelimiter != null ? ((CharConstantNode)columnDelimiter).getString() : null,
+				characterDelimiter != null ? ((CharConstantNode)characterDelimiter).getString() : null,
+				timestampFormat != null ? ((CharConstantNode)timestampFormat).getString() : null,
+				dateFormat != null ? ((CharConstantNode)dateFormat).getString() : null,
+				timeFormat != null ? ((CharConstantNode)timeFormat).getString() : null );
         this.hfilePath = hfilePath != null ? ((CharConstantNode)hfilePath).getString() : null;
 	}
 
@@ -354,11 +352,7 @@ public class CreateIndexNode extends DDLStatementNode
                 sampleFraction,
                 splitKeyPath,
                 hfilePath,
-                columnDelimiter,
-                characterDelimiter,
-                timestampFormat,
-                dateFormat,
-                timeFormat,
+				splitKeyOptions,
                 properties);
 	}
 

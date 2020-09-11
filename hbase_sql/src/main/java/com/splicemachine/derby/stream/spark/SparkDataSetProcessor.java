@@ -837,16 +837,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
      */
     public static HashMap<String, String> getCsvOptions(CsvOptions csvOptions) throws IOException {
         HashMap<String, String> options = new HashMap<String, String>();
-
-        // !!! no such thing as timeFormat
-        assert ( csvOptions.timeFormat == null );
-
-        // not yet clear:
-        //assert( csvOptions.delimited == null );
-        String delimited = ImportUtils.unescape(csvOptions.delimited);
-        if (delimited != null)
-            options.put("sep", delimited);
-
         // maybe interesting:
         // ignoreLeadingWhiteSpace
         // ignoreTrailingWhiteSpace
@@ -854,30 +844,26 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         // encoding : default UTF8
 
         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-        String timestampFormat = csvOptions.timestampFormat;
+        String timestampFormat = null; //csvOptions.timeStampFormat;
         if( timestampFormat == null )
             timestampFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ";
         options.put("timestampFormat", timestampFormat);
 
-        if( csvOptions.dateFormat != null )
-            options.put("dateFormat", csvOptions.dateFormat); // default yyyy-MM-dd
+//        if( csvOptions.dateFormat != null )
+//            options.put("dateFormat", csvOptions.dateFormat); // default yyyy-MM-dd
 
-        String characterDelimiter = ImportUtils.unescape(csvOptions.characterDelimiter);
-        String columnDelimiter = ImportUtils.unescape(csvOptions.columnDelimiter);
+        String delimited = ImportUtils.unescape(csvOptions.delimited);
         String escaped = ImportUtils.unescape(csvOptions.escaped);
         String lines = ImportUtils.unescape(csvOptions.lines);
 
-        if (characterDelimiter!=null)
-            options.put("escape", characterDelimiter);
-        if (columnDelimiter != null)
-            options.put("sep", columnDelimiter);
+        if (delimited != null)
+            options.put("sep", delimited);
         if (escaped != null)
             options.put("escape", escaped); // default \
         if( lines != null ) {
             assert( lines.length() <= 1);
             options.put("lineSep", lines);
         }
-
         return options;
     }
 

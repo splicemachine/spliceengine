@@ -100,7 +100,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         this.rowIdKey = rowIdKey;
         this.pin = pin;
         this.splits = splits;
-        this.csvOptions = new CsvOptions(delimited, escaped, lines, null, null);
+        this.csvOptions = new CsvOptions(delimited, escaped, lines);
         this.storedAs = storedAs;
         this.location = location;
         this.partitionRefItem = partitionRefItem;
