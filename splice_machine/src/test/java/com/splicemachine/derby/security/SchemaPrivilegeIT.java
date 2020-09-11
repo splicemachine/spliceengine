@@ -128,15 +128,15 @@ public class SchemaPrivilegeIT {
     public  void setUpClass() throws Exception {
         adminConn = spliceClassWatcherAdmin.createConnection();
         user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
-        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER2).password(PASSWORD2).build();
-        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER3).password(PASSWORD3).build();
+        user2Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER2).password(PASSWORD2).build();
+        user3Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER3).password(PASSWORD3).build();
         adminConn.execute( format("insert into %s.%s values ( 1, 2, 3)", SCHEMA1, TABLE ) );
         adminConn.execute( format("insert into %s.%s values ( 1, 2, 3)", SCHEMA1, TABLE2 ) );
         user3Conn.execute( format("insert into %s.%s values ( 1, 2, 3)", SECOND_SCHEMA, TABLE ) );
         user3Conn.execute(format("insert into %s.%s values ( 4, 5, 6)", THIRD_SCHEMA, TABLE3 ));
         user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER1).password(PASSWORD1).build();
-        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER2).password(PASSWORD2).build();
-        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER3).password(PASSWORD3).build();
+        user2Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER2).password(PASSWORD2).build();
+        user3Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER3).password(PASSWORD3).build();
     }
 
     @Test
