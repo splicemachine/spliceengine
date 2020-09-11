@@ -43,7 +43,6 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.function.SplicePredicateFunction;
 import com.splicemachine.derby.stream.function.TakeFunction;
-import com.splicemachine.derby.stream.function.ZipperFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
@@ -54,6 +53,7 @@ import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.codec.binary.Base64;
@@ -796,7 +796,7 @@ public class SparkDataSet<V> implements DataSet<V> {
 
         // what is this? why is this so different from parquet/orc ?
         // actually very close to NativeSparkDataSet.writeFile
-        dataSchema = ExternalTableUtils.getDataSchema(dsp, tableSchema, partitionBy, location, "a");
+        dataSchema = ExternalTableUtils.getDataSchemaAvro(dsp, tableSchema, partitionBy, location, "a" );
 
         if (dataSchema == null)
             dataSchema = tableSchema;
@@ -877,15 +877,16 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter,
-                                                int[] baseColumnMap,
-                                                OperationContext context) throws StandardException {
+    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location,
+                                          int[] baseColumnMap,
+                                          OperationContext context,
+                                          CsvOptions csvOptions) throws StandardException, IOException {
 
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                 context.getOperation().schema());
 
-        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context);
+        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(op, location, baseColumnMap, context, csvOptions);
     }
 
     @Override @SuppressWarnings({ "unchecked", "rawtypes" })

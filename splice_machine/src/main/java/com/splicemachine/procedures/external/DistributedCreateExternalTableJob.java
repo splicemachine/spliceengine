@@ -18,6 +18,7 @@ import com.splicemachine.concurrent.Clock;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import com.splicemachine.system.CsvOptions;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -32,9 +33,7 @@ import java.util.concurrent.Callable;
  * and avoid to have a case where the user query a table that doesn't have a file attached to it.
  */
 public class DistributedCreateExternalTableJob extends DistributedJob implements Externalizable {
-    private String delimited;
-    private String escaped;
-    private String lines;
+    private CsvOptions csvOptions;
     private String storedAs;
     private String location;
     private String compression;
@@ -46,20 +45,17 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
 
 
     public DistributedCreateExternalTableJob() {
+        this.csvOptions = new CsvOptions();
     }
 
-    public DistributedCreateExternalTableJob(String delimited,
-                                             String escaped,
-                                             String lines,
+    public DistributedCreateExternalTableJob(CsvOptions csvOptions,
                                              String storedAs,
                                              String location,
                                              String compression,
                                              int[] partitionBy,
                                              String jobGroup,
                                              ColumnInfo[] columnInfo) {
-        this.delimited = delimited;
-        this.escaped = escaped;
-        this.lines = lines;
+        this.csvOptions = csvOptions;
         this.storedAs = storedAs;
         this.compression = compression;
         this.location = location;
@@ -86,17 +82,7 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
             out.writeInt(partitionBy[i]);
         }
 
-        out.writeBoolean(delimited!=null);
-        if (delimited!=null)
-            out.writeUTF(delimited);
-
-        out.writeBoolean(escaped!=null);
-        if (escaped!=null)
-            out.writeUTF(escaped);
-
-        out.writeBoolean(lines!=null);
-        if (lines!=null)
-            out.writeUTF(lines);
+        csvOptions.writeExternal(out);
 
         out.writeBoolean(storedAs!=null);
         if (storedAs!=null)
@@ -125,9 +111,7 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
             partitionBy[i]=in.readInt();
         }
 
-        delimited   = in.readBoolean()?in.readUTF():null;
-        escaped     = in.readBoolean()?in.readUTF():null;
-        lines       = in.readBoolean()?in.readUTF():null;
+        csvOptions = new CsvOptions(in);
         storedAs    = in.readBoolean()?in.readUTF():null;
         location    = in.readBoolean()?in.readUTF():null;
         compression    = in.readBoolean()?in.readUTF():null;
@@ -140,15 +124,15 @@ public class DistributedCreateExternalTableJob extends DistributedJob implements
     }
 
     public String getDelimited() {
-        return delimited;
+        return csvOptions.delimited;
     }
 
     public String getEscaped() {
-        return escaped;
+        return csvOptions.escaped;
     }
 
     public String getLines() {
-        return lines;
+        return csvOptions.lines;
     }
 
     public String getStoredAs() {

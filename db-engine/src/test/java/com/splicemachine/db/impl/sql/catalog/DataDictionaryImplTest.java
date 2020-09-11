@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.NumberDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.system.CsvOptions;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -128,7 +129,7 @@ public class DataDictionaryImplTest {
         DataDescriptorGenerator ddg = new DataDescriptorGenerator(dataDictionary);
         UUID schemaUuid = new BasicUUID("8000000d-00d0-fd77-3ed8-000a0a0b1900"), tableUuid = new BasicUUID("08264012-014b-c29b-a826-000003009390");
         SchemaDescriptor sd = new SchemaDescriptor(dataDictionary, "SYS", "SPLICE", schemaUuid, true);
-        TableDescriptor td = new TableDescriptor(dataDictionary, "SYSTABLESTATS", sd, 1, 'R', -1, null, null, null, null, null, null, false, false,null);
+        TableDescriptor td = new TableDescriptor(dataDictionary, "SYSTABLESTATS", sd, 1, 'R', -1, new CsvOptions(), null,  null, null, false, false,null);
         td.setUUID(new BasicUUID("08264012-014b-c29b-a826-000003009390"));
         td.setVersion("4.0");
         td.getColumnDescriptorList().add(new ColumnDescriptor("CONGLOMERATEID", 1 , 1 , new DataTypeDescriptor(TypeId.BIGINT_ID, true), null, null, tableUuid, null, 0, 0, 0, true,1, (byte) 0));

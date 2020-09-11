@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.system.CsvOptions;
 
 /**
  * A Constant Action for creating a table in a Splice-efficient fashion
@@ -82,9 +83,6 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 									  boolean onRollbackDeleteRows,
 									  String withDataQueryString,
 									  boolean isExternal,
-									  String delimited,
-									  String escaped,
-									  String lines,
 									  String storedAs,
 									  String location,
 									  String compression,
@@ -92,14 +90,12 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 									  boolean presplit,
 									  boolean isLogicalKey,
 									  String splitKeyPath,
-									  String columnDelimiter,
-									  String characterDelimiter,
-									  String timestampFormat,
-									  String dateFormat,
-									  String timeFormat) {
-		super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity, onCommitDeleteRows, onRollbackDeleteRows, isExternal,
-				delimited, escaped, lines, storedAs, location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
-                columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat);
+									  CsvOptions csvOptions) {
+
+		super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity,
+				onCommitDeleteRows, onRollbackDeleteRows, isExternal,
+				storedAs, location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
+				csvOptions );
 		this.tableType = tableType;
 		this.tableName = tableName;
 		this.schemaName = schemaName;

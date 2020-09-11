@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.system.CsvOptions;
 
 import java.lang.reflect.Member;
 import java.lang.reflect.Modifier;
@@ -153,7 +154,8 @@ public class NewInvocationNode extends MethodCallNode
 					getSchemaDescriptor(vtiName.getSchemaName()),
 					TableDescriptor.VTI_TYPE,
 					TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
-					null,null,null,null,null,null, false,false, null);
+					new CsvOptions(),null,null,null,
+					false,false, null);
 		}
 
 		/* Use the table descriptor to figure out what the corresponding

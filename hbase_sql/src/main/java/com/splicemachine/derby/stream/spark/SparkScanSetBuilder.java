@@ -89,12 +89,15 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             Qualifier[][] qualifiers = operation == null?null:operation.getScanInformation().getScanQualifiers();
             DataSet locatedRows;
             if (storedAs.equals("T"))
-                locatedRows = dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
+                locatedRows = dsp.readTextFile(op, location, baseColumnMap, operationContext,
+                        qualifiers,null, execRow, useSample, sampleFraction, csvOptions);
             else if (storedAs.equals("P"))
-                locatedRows = dsp.readParquetFile(schema, baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
+                locatedRows = dsp.readParquetFile(schema, baseColumnMap, partitionByColumns, location, operationContext,
+                        qualifiers,null, execRow, useSample, sampleFraction);
             else if (storedAs.equals("A")) {
 //                ExternalTableUtils.supportAvroDateTypeColumns(execRow);
-                locatedRows = dsp.readAvroFile(schema, baseColumnMap, partitionByColumns, location, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
+                locatedRows = dsp.readAvroFile(schema, baseColumnMap, partitionByColumns, location, operationContext,
+                        qualifiers, null, execRow, useSample, sampleFraction);
             }
             else if (storedAs.equals("O"))
 

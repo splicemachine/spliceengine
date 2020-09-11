@@ -14,8 +14,10 @@
 
 package com.splicemachine.concurrent;
 
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
+import splice.com.google.common.base.Supplier;
+import splice.com.google.common.base.Suppliers;
+//import com.google.common.base.Supplier;
+//import com.google.common.base.Suppliers;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**

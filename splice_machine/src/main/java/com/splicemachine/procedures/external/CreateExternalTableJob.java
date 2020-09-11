@@ -73,7 +73,8 @@ public class CreateExternalTableJob implements Callable<Void> {
         for (int i = 0; i < columnInfo.length;i++) {
             fields[i] = dvds[i].getStructField(columnInfo[i].name);
         }
-        dsp.createEmptyExternalFile(fields, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),  request.getStoredAs(), request.getLocation(),request.getCompression());
+        dsp.createEmptyExternalFile(fields, IntArrays.count(execRowTypeFormatIds.length), request.getPartitionBy(),
+                                    request.getStoredAs(), request.getLocation(), request.getCompression());
 
 
         jobStatus.markCompleted(new SuccessfulOlapResult());

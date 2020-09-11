@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+import com.splicemachine.system.CsvOptions;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -108,6 +109,22 @@ public class DataDescriptorGenerator
                                               int tableType,
                                               char lockGranularity,
                                               int columnSequence,
+                                              CsvOptions csvOptions,
+                                              String storedAs,
+                                              String location,
+                                              String compression,
+                                              boolean isPinned,
+                                              boolean purgeDeletedRows,
+                                              Long minRetentionPeriod) {
+        return new TableDescriptor(dataDictionary, tableName, schema, tableType, lockGranularity, columnSequence,
+                        csvOptions, storedAs, location, compression, isPinned, purgeDeletedRows,
+                        minRetentionPeriod);
+    }{}
+    public TableDescriptor newTableDescriptor(String tableName,
+                                              SchemaDescriptor schema,
+                                              int tableType,
+                                              char lockGranularity,
+                                              int columnSequence,
                                               String delimited,
                                               String escaped,
                                               String lines,
@@ -117,11 +134,12 @@ public class DataDescriptorGenerator
                                               boolean isPinned,
                                               boolean purgeDeletedRows,
                                               Long minRetentionPeriod) {
+        CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines, null, null,
+                null, null, null);
         return new TableDescriptor(dataDictionary, tableName, schema, tableType, lockGranularity, columnSequence,
-                        delimited, escaped, lines, storedAs, location, compression, isPinned, purgeDeletedRows,
-                        minRetentionPeriod);
+                csvOptions, storedAs, location, compression, isPinned, purgeDeletedRows,
+                minRetentionPeriod);
     }{}
-
     /**
      * Create a descriptor for the temporary table within the given schema.
      *

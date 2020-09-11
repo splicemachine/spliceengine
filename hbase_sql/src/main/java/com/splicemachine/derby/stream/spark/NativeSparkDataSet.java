@@ -38,6 +38,7 @@ import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.sparksql.ParserUtils;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -68,6 +69,7 @@ import java.util.*;
 import java.util.concurrent.Future;
 import java.util.zip.GZIPOutputStream;
 
+import static com.splicemachine.derby.stream.spark.SparkDataSetProcessor.getCsvOptions;
 import static org.apache.spark.sql.functions.*;
 
 
@@ -1191,13 +1193,11 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter,
-                                                int[] baseColumnMap,
-                                                OperationContext context) {
+    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location,
+                                          int[] baseColumnMap,
+                                          OperationContext context, CsvOptions csvOptions) throws IOException {
         Dataset<Row> insertDF = dataset;
-        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-        insertDF.write().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
-                .mode(SaveMode.Append).csv(location);
+        insertDF.write().options(getCsvOptions(csvOptions)).mode(SaveMode.Append).csv(location);
         ValueRow valueRow=new ValueRow(1);
         valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
         return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));

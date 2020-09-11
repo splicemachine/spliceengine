@@ -32,6 +32,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportKafkaOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -1769,10 +1770,12 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
+            CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines, null, null,
+                        null, null, null);
             SpliceOperation top = new InsertOperation(below.getOperation(), generationClauses, checkGM, insertMode,
                     statusDirectory, failBadRecordCount, skipConflictDetection, skipWAL,
                     optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
-                    delimited,escaped,lines,storedAs,location, compression, partitionBy,bulkImportDirectory,
+                    csvOptions, storedAs, location, compression, partitionBy, bulkImportDirectory,
             samplingOnly, outputKeysOnly, skipSampling, sampleFraction, indexName);
 
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);

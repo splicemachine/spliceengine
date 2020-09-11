@@ -23,8 +23,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGener
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.output.*;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -337,14 +339,13 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      * @param op
      * @param location
-     * @param characterDelimiter
-     * @param columnDelimiter
      * @param baseColumnMap
      * @param context
+     * @param csvOptions
      * @return
      */
-    DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                      OperationContext context) throws StandardException;
+    DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, int[] baseColumnMap,
+                                   OperationContext context, CsvOptions csvOptions) throws StandardException, IOException;
 
     /**
      *

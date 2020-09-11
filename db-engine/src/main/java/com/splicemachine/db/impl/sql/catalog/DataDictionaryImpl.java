@@ -68,6 +68,7 @@ import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Function;
@@ -1445,8 +1446,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         if(SchemaDescriptor.STD_SYSTEM_DIAG_SCHEMA_NAME.equals(
                 sd.getSchemaName())){
-            TableDescriptor td=new TableDescriptor(this,tableName,sd,TableDescriptor.VTI_TYPE,TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
-                    null,null,null,null,null,null, false,false, null);
+            TableDescriptor td=new TableDescriptor(this, tableName, sd,
+                    TableDescriptor.VTI_TYPE,TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
+                    new CsvOptions(),null,null,null, false,
+                    false, null);
 
             // ensure a vti class exists
             if(getVTIClass(td,false)!=null)

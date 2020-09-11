@@ -31,6 +31,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.DataScanner;
+import com.splicemachine.system.CsvOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
@@ -74,9 +75,9 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     protected MetricFactory metricFactory =Metrics.noOpMetricFactory();
     protected DataValueDescriptor optionalProbeValue;
     protected boolean pin;
-    protected String delimited;
-    protected String escaped;
-    protected String lines;
+
+    protected CsvOptions csvOptions = new CsvOptions();
+
     protected String storedAs;
     protected String location;
     protected String compression;
@@ -354,17 +355,17 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     }
 
     public ScanSetBuilder<V> delimited(String delimited){
-        this.delimited=delimited;
+        csvOptions.delimited = delimited;
         return this;
     }
 
     public ScanSetBuilder<V> escaped(String escaped){
-        this.escaped=escaped;
+        csvOptions.escaped = escaped;
         return this;
     }
 
     public ScanSetBuilder<V> lines(String lines){
-        this.lines=lines;
+        csvOptions.lines = lines;
         return this;
     }
 
@@ -476,9 +477,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             if (optionalProbeValue!=null)
                 out.writeObject(optionalProbeValue);
             out.writeBoolean(pin);
-            writeNullableString(delimited,out);
-            writeNullableString(escaped,out);
-            writeNullableString(lines,out);
+            csvOptions.writeExternal(out);
             writeNullableString(storedAs,out);
             writeNullableString(location,out);
             out.writeBoolean(useSample);
@@ -554,12 +553,7 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             if (in.readBoolean())
                 optionalProbeValue = (DataValueDescriptor) in.readObject();
             pin = in.readBoolean();
-            if (in.readBoolean())
-                delimited = in.readUTF();
-            if (in.readBoolean())
-                escaped = in.readUTF();
-            if (in.readBoolean())
-                lines = in.readUTF();
+            csvOptions = new CsvOptions(in);
             if (in.readBoolean())
                 storedAs = in.readUTF();
             if (in.readBoolean())
@@ -667,17 +661,17 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
 
     @Override
     public String getDelimited() {
-        return delimited;
+        return csvOptions.delimited;
     }
 
     @Override
     public String getEscaped() {
-        return escaped;
+        return csvOptions.escaped;
     }
 
     @Override
     public String getLines() {
-        return lines;
+        return csvOptions.lines;
     }
 
     @Override

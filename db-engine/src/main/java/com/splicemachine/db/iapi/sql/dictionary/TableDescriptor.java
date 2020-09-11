@@ -56,6 +56,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.system.CsvOptions;
 import splice.com.google.common.primitives.Ints;
 
 /**
@@ -157,9 +158,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     int tableType;
     String tableVersion;
     private int columnSequence;
-    private String delimited;
-    private String escaped;
-    private String lines;
+    private CsvOptions csvOptions;
     private String storedAs;
     private String location;
     private String compression;
@@ -238,7 +237,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            int tableType,
                            boolean onCommitDeleteRows,
                            boolean onRollbackDeleteRows, int numberOfColumns){
-        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false,false, null);
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,
+                new CsvOptions(),null,null,null,false,false, null);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -257,9 +257,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            SchemaDescriptor schema,
                            int tableType,
                            char lockGranularity, int numberOfColumns,
-                           String delimited,
-                           String escaped,
-                           String lines,
+                           CsvOptions csvOptions,
                            String storedAs,
                            String location,
                            String compression,
@@ -278,9 +276,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.columnDescriptorList=new ColumnDescriptorList();
         this.constraintDescriptorList=new ConstraintDescriptorList();
         this.triggerDescriptorList=new GenericDescriptorList();
-        this.delimited = delimited;
-        this.escaped = escaped;
-        this.lines = lines;
+        this.csvOptions = csvOptions;
         this.storedAs = storedAs;
         this.location = location;
         this.compression = compression;
@@ -350,7 +346,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @return
      */
     public String getLines() {
-        return lines;
+        return csvOptions.lines;
     }
 
     /**
@@ -360,7 +356,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @return
      */
     public String getEscaped() {
-        return escaped;
+        return csvOptions.escaped;
     }
 
     /**
@@ -370,7 +366,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @return
      */
     public String getDelimited() {
-        return delimited;
+        return csvOptions.delimited;
     }
 
     /**

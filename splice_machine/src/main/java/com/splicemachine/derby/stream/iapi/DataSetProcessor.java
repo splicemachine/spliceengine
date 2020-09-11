@@ -24,6 +24,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.system.CsvOptions;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
@@ -175,7 +176,8 @@ public interface DataSetProcessor {
      * @param location
      * @throws StandardException
      */
-    void createEmptyExternalFile(StructField[] fields, int[] baseColumnMap, int[] partitionBy, String storageAs, String location, String compression) throws StandardException ;
+    void createEmptyExternalFile(StructField[] fields, int[] baseColumnMap, int[] partitionBy, String storageAs,
+                                 String location, String compression) throws StandardException ;
 
     /**
      * Get external schema. This used to verify and make sure that what is really provided in the external fil
@@ -183,9 +185,10 @@ public interface DataSetProcessor {
      * Splice Machine implement natively the Spark interface so we use this to the constraint check.
      * @param storedAs
      * @param location
+     * @param csvOptions
      * @return
      */
-    StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException;
+    StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException;
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because
@@ -236,20 +239,19 @@ public interface DataSetProcessor {
      * Reads Text files given the scan variables.  The qualifiers in conjunctive normal form
      * will be applied in the parquet storage layer.
      *
+     * @param <V>
      * @param op
      * @param location
-     * @param characterDelimiter
-     * @param columnDelimiter
      * @param baseColumnMap
      * @param context
      * @param execRow
-     * @param <V>
+     * @param csvOptions
      * @return
      * @throws StandardException
      */
-    <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                         OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                                         boolean useSample, double sampleFraction) throws StandardException;
+    <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, int[] baseColumnMap,
+                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
+                                      boolean useSample, double sampleFraction, CsvOptions csvOptions) throws StandardException;
 
     /**
      *

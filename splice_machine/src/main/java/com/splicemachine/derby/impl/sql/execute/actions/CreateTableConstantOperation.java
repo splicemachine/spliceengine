@@ -66,6 +66,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import com.splicemachine.system.CsvOptions;
 
 import java.io.IOException;
 import java.sql.SQLWarning;
@@ -89,9 +90,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     protected ConstraintConstantOperation[]	constraintActions;
     private boolean isExternal;
     private Properties				properties;
-    private String delimited;
-    private String escaped;
-    private String lines;
+
+    private CsvOptions csvOptions;
+
     private String storedAs;
     private String location;
     private String compression;
@@ -99,11 +100,6 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     private boolean presplit;
     private boolean isLogicalKey;
     private String splitKeyPath;
-    private String columnDelimiter;
-    private String characterDelimiter;
-    private String timestampFormat;
-    private String dateFormat;
-    private String timeFormat;
 
 
     /**
@@ -132,9 +128,6 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             boolean			onCommitDeleteRows,
             boolean			onRollbackDeleteRows,
             boolean isExternal,
-            String delimited,
-            String escaped,
-            String lines,
             String storedAs,
             String location,
             String compression,
@@ -142,11 +135,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             boolean presplit,
             boolean isLogicalKey,
             String splitKeyPath,
-            String columnDelimiter,
-            String characterDelimiter,
-            String timestampFormat,
-            String dateFormat,
-            String timeFormat) {
+            CsvOptions csvOptions) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.tableType = tableType;
@@ -156,10 +145,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         this.lockGranularity = lockGranularity;
         this.onCommitDeleteRows = onCommitDeleteRows;
         this.onRollbackDeleteRows = onRollbackDeleteRows;
-        this.delimited = delimited;
+
+        this.csvOptions = csvOptions;
         this.isExternal = isExternal;
-        this.escaped = escaped;
-        this.lines = lines;
         this.storedAs = storedAs;
         this.location = location;
         this.compression = compression;
@@ -167,11 +155,6 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         this.presplit = presplit;
         this.isLogicalKey = isLogicalKey;
         this.splitKeyPath = splitKeyPath;
-        this.columnDelimiter = columnDelimiter;
-        this.characterDelimiter = characterDelimiter;
-        this.timestampFormat = timestampFormat;
-        this.dateFormat = dateFormat;
-        this.timeFormat = timeFormat;
 
         if (SanityManager.DEBUG) {
             if (tableType == TableDescriptor.BASE_TABLE_TYPE && lockGranularity != TableDescriptor.TABLE_LOCK_GRANULARITY &&
@@ -454,9 +437,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         TableDescriptor td;
         if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
             td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity,columnInfo.length,
-                    delimited,
-                    escaped,
-                    lines,
+                    csvOptions,
                     storedAs,
                     location,
                     compression,
@@ -498,14 +479,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 // need to create the external file if the location provided is empty
                 String pathToParent = location.substring(0, location.lastIndexOf("/"));
                 ImportUtils.validateWritable(pathToParent, false);
-                EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited,
-                        escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
+                EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(
+                        csvOptions, storedAs, location, compression, partitionby, jobGroup, columnInfo));
 
             } else if (!fileInfo.isDirectory()) {
                 throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
             } else if (storedAs.compareToIgnoreCase("t") != 0) {
                 Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
-                        submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
+                        submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions));
                 GetSchemaExternalResult result = null;
                 SConfiguration config = EngineDriver.driver().getConfiguration();
                 while (result == null) {
@@ -725,8 +706,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(pkFormatIds);
-            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, false, operationContext), true);
+            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(
+                    csvOptions.characterDelimiter, csvOptions.columnDelimiter,
+                    execRow, null,
+                    csvOptions.timeFormat, csvOptions.dateFormat, csvOptions.timestampFormat,
+                    false, operationContext), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(execRow);
             for (ExecRow row : rows) {

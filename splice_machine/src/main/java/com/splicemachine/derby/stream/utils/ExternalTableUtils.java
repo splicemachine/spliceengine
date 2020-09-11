@@ -39,7 +39,6 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -196,9 +195,10 @@ public class ExternalTableUtils {
         }
     }
 
-    private static StructType getDataSchema(DataSetProcessor dsp, StructType tableSchema, int[] partitionColumnMap,
-                                     String location, String storeAs, boolean mergeSchema) throws StandardException {
-        StructType dataSchema =dsp.getExternalFileSchema(storeAs, location, mergeSchema);
+    private static StructType getDataSchemaAvro(DataSetProcessor dsp, StructType tableSchema, int[] partitionColumnMap,
+                                                String location, String storeAs, boolean mergeSchema) throws StandardException {
+
+        StructType dataSchema =dsp.getExternalFileSchema(storeAs, location, mergeSchema, null); // TODO: not sure...
         tableSchema =  ExternalTableUtils.supportAvroDateType(tableSchema, storeAs);
         if (dataSchema != null) {
             ExternalTableUtils.checkSchema(tableSchema, dataSchema, partitionColumnMap, location);
@@ -209,18 +209,18 @@ public class ExternalTableUtils {
         return dataSchema;
     }
 
-    public static StructType getDataSchema(DataSetProcessor dsp, StructType tableSchema, int[] partitionColumnMap,
-                                           String location, String storeAs) throws StandardException {
+    public static StructType getDataSchemaAvro(DataSetProcessor dsp, StructType tableSchema, int[] partitionColumnMap,
+                                               String location, String storeAs) throws StandardException {
         // Infer schema from external files\
         StructType dataSchema = null;
         try {
-            dataSchema = getDataSchema(dsp, tableSchema, partitionColumnMap, location, storeAs, false);
+            dataSchema = getDataSchemaAvro(dsp, tableSchema, partitionColumnMap, location, storeAs, false);
         }
         catch (StandardException e) {
             String sqlState = e.getSqlState();
             if (sqlState.equals(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE) ||
                     sqlState.equals(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES)) {
-                dataSchema = getDataSchema(dsp, tableSchema, partitionColumnMap, location, storeAs, true);
+                dataSchema = getDataSchemaAvro(dsp, tableSchema, partitionColumnMap, location, storeAs, true);
             }
             else {
                 throw e;

@@ -35,7 +35,6 @@ import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -47,12 +46,11 @@ import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.ClusterHealth;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -61,7 +59,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.*;
 
 
 /**
@@ -83,8 +80,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     public InsertNode.InsertMode insertMode;
     public String statusDirectory;
     private int failBadRecordCount;
-    protected String delimited;
-    protected String escaped;
     protected String lines;
     protected String storedAs;
     protected String location;
@@ -99,6 +94,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     protected boolean skipSampling;
     protected String indexName;
     protected double sampleFraction;
+    protected CsvOptions csvOptions;
 
     @Override
     public String getName(){
@@ -121,9 +117,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost,
                            String tableVersion,
-                           String delimited,
-                           String escaped,
-                           String lines,
+                           CsvOptions csvOptions,
                            String storedAs,
                            String location,
                            String compression,
@@ -140,9 +134,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         this.skipConflictDetection=skipConflictDetection;
         this.skipWAL=skipWAL;
         this.failBadRecordCount = (failBadRecordCount >= 0 ? failBadRecordCount : -1);
-        this.delimited = delimited;
-        this.escaped = escaped;
-        this.lines = lines;
+        this.csvOptions = csvOptions;
         this.storedAs = storedAs;
         this.location = location;
         this.compression = compression;
@@ -288,9 +280,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if(in.readBoolean())
             statusDirectory=in.readUTF();
         failBadRecordCount=in.readInt();
-        delimited = in.readBoolean()?in.readUTF():null;
-        escaped = in.readBoolean()?in.readUTF():null;
-        lines = in.readBoolean()?in.readUTF():null;
+        csvOptions = new CsvOptions(in);
         storedAs = in.readBoolean()?in.readUTF():null;
         location = in.readBoolean()?in.readUTF():null;
         compression = in.readBoolean()?in.readUTF():null;
@@ -319,15 +309,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         if(statusDirectory!=null)
             out.writeUTF(statusDirectory);
         out.writeInt(failBadRecordCount);
-        out.writeBoolean(delimited!=null);
-        if (delimited!=null)
-            out.writeUTF(delimited);
-        out.writeBoolean(escaped!=null);
-        if (escaped!=null)
-            out.writeUTF(escaped);
-        out.writeBoolean(lines!=null);
-        if (lines!=null)
-            out.writeUTF(lines);
+        csvOptions.writeExternal(out);
         out.writeBoolean(storedAs!=null);
         if (storedAs!=null)
             out.writeUTF(storedAs);
@@ -408,7 +390,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 else if (storedAs.toLowerCase().equals("o"))
                     return set.writeORCFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
                 else if (storedAs.toLowerCase().equals("t"))
-                    return set.writeTextFile(this,location,delimited,lines,IntArrays.count(execRowTypeFormatIds.length), operationContext);
+                    return set.writeTextFile(this,location, IntArrays.count(execRowTypeFormatIds.length),
+                            operationContext, csvOptions);
                 else
                     new RuntimeException("storedAs type not supported -> " + storedAs);
             }

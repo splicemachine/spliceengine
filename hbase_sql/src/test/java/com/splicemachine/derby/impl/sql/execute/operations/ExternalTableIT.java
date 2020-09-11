@@ -21,6 +21,8 @@ import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SparkSession;
 import org.junit.*;
@@ -28,8 +30,10 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.sql.*;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1660,6 +1664,84 @@ public class ExternalTableIT extends SpliceUnitTest {
         }
     }
 
+    private String concatAllCsvFiles(File path) throws Exception {
+        FileFilter fileFilter = new WildcardFileFilter("*.csv");
+        File[] files = path.listFiles(fileFilter);
+
+        StringBuilder sb = new StringBuilder();
+        for ( File file : files ) {
+            FileInputStream stream = new FileInputStream( file );
+            sb.append( IOUtils.toString(stream, "UTF-8") );
+        }
+        return sb.toString();
+    }
+
+    @Test
+    public void testCsvOptions() throws Exception {
+        String tablePath = getExternalResourceDirectory() + "test_csv_options";
+        String csvOptions[] = {
+                // default
+                    "",
+                    "\"\\\"Hallo; #\\\"World\\\"!\\\"\",\";Ha#,\"\n",
+                // TERMINATED BY
+                    "ROW FORMAT DELIMITED FIELDS TERMINATED BY ';'",
+                    "\"\\\"Hallo; #\\\"World\\\"!\\\"\";\";Ha#,\"\n",
+                // ESCAPED BY
+                    "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '#'",
+                     "\"#\"Hallo; ###\"World#\"!#\"\",\";Ha##,\"\n",
+                // LINES TERMINATED BY
+                    // note: lineSep is ignored for CSV in Spark2.4 (only used for .text)
+                    // however works in Spark3.0
+//                    "ROW FORMAT DELIMITED LINES TERMINATED BY 'Q'",
+//                    "\"\\\"Hallo; #\\\"World\\\"!\\\"\",\";Ha#,\"Q",
+//                new CsvOptions(null, null, "\t", null, null),
+        };
+        for( int i = 0; i < csvOptions.length; i+=2 ) {
+            System.out.println(csvOptions[i]);
+            // Create an external table stored as text
+            methodWatcher.executeUpdate( "CREATE EXTERNAL TABLE TEST_CSV_OPTIONS (t1 varchar(30), t2 varchar(30)) \n" +
+                    csvOptions[i] + " STORED AS TEXTFILE\n" +
+                    "location '" + tablePath + "'");
+            Assert.assertEquals( methodWatcher.executeUpdate(
+                    "insert into TEST_CSV_OPTIONS values ('\"Hallo; #\"World\"!\"', ';Ha#,')"), 1);
+
+
+            ResultSet rs = methodWatcher.executeQuery("select * from TEST_CSV_OPTIONS");
+            Assert.assertEquals("T1         | T2   |\n" +
+                    "---------------------------\n" +
+                    "\"Hallo; #\"World\"!\" |;Ha#, |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+            File path = new File(tablePath);
+            Assert.assertEquals( csvOptions[i+1], concatAllCsvFiles(path) );
+            methodWatcher.execute("drop table TEST_CSV_OPTIONS" );
+            FileUtils.deleteDirectory( path );
+        }
+    }
+
+
+//
+//
+//
+//        // insert into the table
+//        methodWatcher.execute("insert into EXT_TEXT values (1, 'text1'), (2, 'text2'), (3, 'text3'), (4, 'text4')");
+//        ResultSet rs = methodWatcher.executeQuery("select * from ext_text order by 1");
+//        String before = TestUtils.FormattedResult.ResultFactory.toString(rs);
+//
+//        // drop and recreate another external table using previous data
+//        methodWatcher.execute("drop table ext_text");
+//
+//        methodWatcher.executeUpdate(String.format("CREATE EXTERNAL TABLE EXT_TEXT2 (id INT, c_text varchar(30)) \n" +
+//                "ROW FORMAT DELIMITED \n" +
+//                "FIELDS TERMINATED BY ','\n" +
+//                "STORED AS TEXTFILE\n" +
+//                "location '%s'", getExternalResourceDirectory() + "testUsingExsitingCsvFile"));
+//
+//        rs = methodWatcher.executeQuery("select * from ext_text2 order by 1");
+//        String after = TestUtils.FormattedResult.ResultFactory.toString(rs);
+//
+//        Assert.assertEquals(after, before, after);
+//
+//    }
 
     @Test
     public void testUsingExsitingCsvFile() throws Exception {

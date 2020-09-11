@@ -25,15 +25,14 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -106,8 +105,9 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
             constantActions,properties,createBehavior,lockGranularity,
             onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString, isExternal,
-                delimited,escaped,lines,storedAs,location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
-                columnDelimiter,characterDelimiter,timestampFormat,dateFormat,timeFormat);
+                storedAs,location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
+                new CsvOptions(delimited, escaped, lines, columnDelimiter, characterDelimiter,
+                        timestampFormat, dateFormat, timeFormat) );
     }
 
 

@@ -47,6 +47,7 @@ import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.IndentedString;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -377,7 +378,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             // Infer schema from external files
             // todo: this is slow on bigger directories, as it's calling getExternalFileSchema,
             // which will do a spark.read() before doing the spark.read() here ...
-            StructType dataSchema = ExternalTableUtils.getDataSchema(this, tableSchema, partitionColumnMap, location, "a");
+            StructType dataSchema = ExternalTableUtils.getDataSchemaAvro(this, tableSchema, partitionColumnMap, location, "a");
             if(dataSchema == null)
                 return getEmpty(RDDName.EMPTY_DATA_SET.displayName(), context);
 
@@ -436,7 +437,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
+    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException {
         StructType schema = null;
         Configuration conf = HConfiguration.unwrapDelegate();
         FileSystem fs = null;
@@ -508,8 +509,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                 .read()
                                 .orc(location);
                     } else if (storedAs.toLowerCase().equals("t")) {
-                        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                        dataset = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location);
+                        dataset = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(location)
                     } else {
                         throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
                     }
@@ -597,7 +597,9 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 }
                 else if (storedAs.toLowerCase().equals("t")) {
                     // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                    empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").mode(SaveMode.Append).csv(location);
+                    // todo: do we need csvOptions here?
+                    empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").
+                            mode(SaveMode.Append).csv(location);
                 }
             }
         }
@@ -786,26 +788,14 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                                                boolean useSample, double sampleFraction) throws StandardException {
+    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, int[] baseColumnMap,
+                                             OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
+                                             boolean useSample, double sampleFraction, CsvOptions csvOptions) throws StandardException {
         assert baseColumnMap != null:"baseColumnMap Null";
         try {
             Dataset<Row> table = null;
             try {
-                HashMap<String, String> options = new HashMap<String, String>();
-
-                // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                options.put("timestampFormat","yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
-
-                characterDelimiter = ImportUtils.unescape(characterDelimiter);
-                columnDelimiter = ImportUtils.unescape(columnDelimiter);
-                if (characterDelimiter!=null)
-                    options.put("escape", characterDelimiter);
-                if (columnDelimiter != null)
-                    options.put("sep", columnDelimiter);
-
-                table = SpliceSpark.getSession().read().options(options).csv(location);
+                table = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(location);
                 if (table.schema().fields().length == 0)
                     return getEmpty();
             } catch (Exception e) {
@@ -839,13 +829,66 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
+    /**
+     * see for more options https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html#csv-scala.collection.Seq-
+     * @param csvOptions
+     * @return
+     * @throws IOException
+     */
+    public static HashMap<String, String> getCsvOptions(CsvOptions csvOptions) throws IOException {
+        HashMap<String, String> options = new HashMap<String, String>();
+
+        // !!! no such thing as timeFormat
+        assert ( csvOptions.timeFormat == null );
+
+        // not yet clear:
+        //assert( csvOptions.delimited == null );
+        String delimited = ImportUtils.unescape(csvOptions.delimited);
+        if (delimited != null)
+            options.put("sep", delimited);
+
+        // maybe interesting:
+        // ignoreLeadingWhiteSpace
+        // ignoreTrailingWhiteSpace
+        // header : uses the first line as names of columns
+        // encoding : default UTF8
+
+        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+        String timestampFormat = csvOptions.timestampFormat;
+        if( timestampFormat == null )
+            timestampFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ";
+        options.put("timestampFormat", timestampFormat);
+
+        if( csvOptions.dateFormat != null )
+            options.put("dateFormat", csvOptions.dateFormat); // default yyyy-MM-dd
+
+        String characterDelimiter = ImportUtils.unescape(csvOptions.characterDelimiter);
+        String columnDelimiter = ImportUtils.unescape(csvOptions.columnDelimiter);
+        String escaped = ImportUtils.unescape(csvOptions.escaped);
+        String lines = ImportUtils.unescape(csvOptions.lines);
+
+        if (characterDelimiter!=null)
+            options.put("escape", characterDelimiter);
+        if (columnDelimiter != null)
+            options.put("sep", columnDelimiter);
+        if (escaped != null)
+            options.put("escape", escaped); // default \
+        if( lines != null ) {
+            assert( lines.length() <= 1);
+            options.put("lineSep", lines);
+        }
+
+        return options;
+    }
+
     /// check that we don't access a column that's not there with baseColumnMap
     /// column number needs to be exactly the same, otherwise we get problems when we insert into this.
-    /// we might take this more relaxed if we would do read only, should be possible to do this with a VIEW
+    /// we might take this more relaxed if we would do read osenly, should be possible to do this with a VIEW
     private static void checkNumColumns(String location, int[] baseColumnMap, Dataset<Row> table) throws StandardException {
-        if( baseColumnMap.length != table.schema().fields().length) {
+        if( baseColumnMap.length > table.schema().fields().length) {
+        //if( baseColumnMap.length != table.schema().fields().length) {
             throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
-                    baseColumnMap.length, table.schema().fields().length,
+                    table.schema().fields().length, baseColumnMap.length,
                     location, ExternalTableUtils.getSuggestedSchema(table.schema()));
         }
     }
@@ -867,6 +910,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                 dvd = q.getOrderable();
             }
 
+            // refactor
             Object value = dvd.getObject();
             switch (q.getOperator()) {
                 case DataType.ORDER_OP_LESSTHAN:

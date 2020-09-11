@@ -33,6 +33,7 @@ public class ExportParams implements Serializable {
 
     private static final String DEFAULT_ENCODING = Charsets.UTF_8.name();
     private static final short DEFAULT_REPLICATION_COUNT = 1;
+    // use CsvOptions
     private static final char DEFAULT_FIELD_DELIMITER = ',';
     private static final char DEFAULT_QUOTE_CHAR = '"';
     private static final String DEFAULT_RECORD_DELIMITER = "\n";
