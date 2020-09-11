@@ -22,6 +22,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
+import com.splicemachine.system.CsvOptions;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import javax.annotation.concurrent.NotThreadSafe;
@@ -49,10 +50,9 @@ public class FileFunction extends AbstractFileFunction<String> {
         super();
     }
 
-    public FileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex, String timeFormat,
-                        String dateTimeFormat, String timestampFormat, boolean oneLineRecord, OperationContext operationContext) {
-        super(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat,
-                dateTimeFormat, timestampFormat, operationContext);
+    public FileFunction(CsvOptions csvOptions, ExecRow execRow, int[] columnIndex,
+                        boolean oneLineRecord, OperationContext operationContext) {
+        super(csvOptions, execRow, columnIndex, operationContext);
         this.oneLineRecord = oneLineRecord;
     }
 

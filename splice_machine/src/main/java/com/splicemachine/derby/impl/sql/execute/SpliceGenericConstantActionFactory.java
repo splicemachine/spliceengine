@@ -141,8 +141,8 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
         SpliceLogUtils.trace(LOG,"getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName,indexName,schemaName,tableName,Arrays.toString(columnNames));
         return new CreateIndexConstantOperation(forCreateTable,unique,uniqueWithDuplicateNulls,indexType, schemaName,
                 indexName,tableName,tableId,columnNames,isAscending,isConstraint, conglomerateUUID, excludeNulls,
-                excludeDefaults,preSplit,isLogicalKey,sampling,sampleFraction,splitKeyPath,hfilePath,columnDelimiter,characterDelimiter,
-                timestampFormat, dateFormat,timeFormat,properties);
+                excludeDefaults,preSplit,isLogicalKey,sampling,sampleFraction,splitKeyPath,hfilePath,
+                new CsvOptions(null, null, null, columnDelimiter,characterDelimiter,timestampFormat, dateFormat,timeFormat), properties);
     }
 
     @Override

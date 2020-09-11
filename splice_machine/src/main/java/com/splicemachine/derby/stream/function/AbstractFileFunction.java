@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import com.splicemachine.derby.utils.SpliceDateTimeFormatter;
 import com.splicemachine.derby.utils.SpliceDateFunctions;
+import com.splicemachine.system.CsvOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
 
@@ -53,15 +54,11 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     CsvPreference preference = null;
     private static final char DEFAULT_COLUMN_DELIMITTER = ",".charAt(0);
     private static final char DEFAULT_STRIP_STRING = "\"".charAt(0);
-    private String characterDelimiter;
-    private String columnDelimiter;
+    private CsvOptions csvOptions;
     protected ExecRow execRow;
-    private String timeFormat;
-    private String dateFormat;
     private SpliceDateTimeFormatter dateFormatter;
     private SpliceDateTimeFormatter timestampFormatter;
     private SpliceDateTimeFormatter timeFormatter;
-    private String timestampFormat;
     private int[] columnIndex;
 
     private transient Calendar calendar = new GregorianCalendar();
@@ -74,34 +71,29 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
         // that can be reused, to save memory, instead of
         // constructing a new one every to TO_DATE , TO_TIME or TO_TIMESTAMP is called.
 
-        this.dateFormatter      = (dateFormat == null ||
-                                   dateFormat.equals(defaultDateFormatString)) ?
-        DEFAULT_DATE_FORMATTER :
-                                  new SpliceDateTimeFormatter(dateFormat,
+        this.dateFormatter      = (csvOptions.dateFormat == null ||
+                                   csvOptions.dateFormat.equals(defaultDateFormatString)) ?
+                DEFAULT_DATE_FORMATTER :
+                                  new SpliceDateTimeFormatter(csvOptions.dateFormat,
                                        SpliceDateTimeFormatter.FormatterType.DATE);
-        this.timestampFormatter = (timestampFormat == null ||
-                                   timestampFormat.equals(defaultTimestampFormatString)) ?
-        DEFAULT_TIMESTAMP_FORMATTER :
-                                  new SpliceDateTimeFormatter(timestampFormat,
+        this.timestampFormatter = (csvOptions.timestampFormat == null ||
+                                   csvOptions.timestampFormat.equals(defaultTimestampFormatString)) ?
+                DEFAULT_TIMESTAMP_FORMATTER :
+                                  new SpliceDateTimeFormatter(csvOptions.timestampFormat,
                                        SpliceDateTimeFormatter.FormatterType.TIMESTAMP);
-        this.timeFormatter      = (timeFormat == null ||
-                                   timeFormat.equals(defaultTimeFormatString)) ?
-        DEFAULT_TIME_FORMATTER :
-                                  new SpliceDateTimeFormatter(timeFormat,
+        this.timeFormatter      = (csvOptions.timeFormat == null ||
+                                   csvOptions.timeFormat.equals(defaultTimeFormatString)) ?
+                DEFAULT_TIME_FORMATTER :
+                                  new SpliceDateTimeFormatter(csvOptions.timeFormat,
                                        SpliceDateTimeFormatter.FormatterType.TIME);
     }
 
     @SuppressWarnings("unchecked")
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    AbstractFileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex, String timeFormat,
-                         String dateFormat, String timestampFormat, OperationContext operationContext) {
+    AbstractFileFunction(CsvOptions csvOptions, ExecRow execRow, int[] columnIndex, OperationContext operationContext) {
         super(operationContext);
-        this.characterDelimiter = characterDelimiter;
-        this.columnDelimiter = columnDelimiter;
+        this.csvOptions = csvOptions;
         this.execRow = execRow;
-        this.timeFormat = timeFormat;
-        this.dateFormat = dateFormat;
-        this.timestampFormat = timestampFormat;
         this.columnIndex = columnIndex;
 
         setupFormatters();
@@ -110,15 +102,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeBoolean(characterDelimiter!=null);
-        if (characterDelimiter!=null)
-            out.writeUTF(characterDelimiter);
-        out.writeBoolean(columnDelimiter!=null);
-        if (columnDelimiter!=null)
-            out.writeUTF(columnDelimiter);
-        writeNullableUTF(out, timeFormat);
-        writeNullableUTF(out, dateFormat);
-        writeNullableUTF(out,timestampFormat);
+        csvOptions.writeExternal(out);
         try {
             ArrayUtil.writeIntArray(out, WriteReadUtils.getExecRowTypeFormatIds(execRow));
         } catch (StandardException se) {
@@ -132,16 +116,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        if (in.readBoolean())
-            characterDelimiter = in.readUTF();
-        if (in.readBoolean())
-            columnDelimiter = in.readUTF();
-        if (in.readBoolean())
-            timeFormat = in.readUTF();
-        if (in.readBoolean())
-            dateFormat = in.readUTF();
-        if (in.readBoolean())
-            timestampFormat = in.readUTF();
+        csvOptions = new CsvOptions(in);
         setupFormatters();
         execRow =WriteReadUtils.getExecRowFromTypeFormatIds(ArrayUtil.readIntArray(in));
         if (in.readBoolean())
@@ -156,8 +131,8 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
 
     @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION",justification = "Intentional")
     public ExecRow call(List<String> values,BooleanList quotedColumns) throws Exception {
-        return getRow(values, quotedColumns, operationContext, execRow, calendar, timeFormat,
-        dateFormat, timestampFormat, this.dateFormatter, this.timestampFormatter, this.timeFormatter);
+        return getRow(values, quotedColumns, operationContext, execRow, calendar, csvOptions.timeFormat,
+                csvOptions.dateFormat, csvOptions.timestampFormat, this.dateFormatter, this.timestampFormatter, this.timeFormatter);
     }
 
 
@@ -273,8 +248,8 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
             SConfiguration config =EngineDriver.driver().getConfiguration();
             int maxQuotedLines = config.getImportMaxQuotedColumnLines();
             preference=new CsvPreference.Builder(
-                    characterDelimiter!=null && !characterDelimiter.isEmpty() ?characterDelimiter.charAt(0):DEFAULT_STRIP_STRING,
-                    columnDelimiter!=null && !columnDelimiter.isEmpty() ?columnDelimiter.charAt(0):DEFAULT_COLUMN_DELIMITTER,
+                    csvOptions.characterDelimiter!=null && !csvOptions.characterDelimiter.isEmpty() ?csvOptions.characterDelimiter.charAt(0):DEFAULT_STRIP_STRING,
+                    csvOptions.columnDelimiter!=null && !csvOptions.columnDelimiter.isEmpty() ?csvOptions.columnDelimiter.charAt(0):DEFAULT_COLUMN_DELIMITTER,
                     "\n").maxLinesPerRow(maxQuotedLines).build();
         }
     }

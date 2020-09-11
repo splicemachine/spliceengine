@@ -60,6 +60,7 @@ import com.splicemachine.si.api.txn.TxnLifecycleManager;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -181,11 +182,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     private double          sampleFraction;
     private String          splitKeyPath;
     private String          hfilePath;
-    private String          columnDelimiter;
-    private String          characterDelimiter;
-    private String          timestampFormat;
-    private String          dateFormat;
-    private String          timeFormat;
+    private CsvOptions      csvOptions;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -261,11 +258,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             double          sampleFraction,
             String          splitKeyPath,
             String          hfilePath,
-            String          columnDelimiter,
-            String          characterDelimiter,
-            String          timestampFormat,
-            String          dateFormat,
-            String          timeFormat,
+            CsvOptions      csvOptions,
             Properties		properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
@@ -288,11 +281,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.sampleFraction             = sampleFraction;
         this.splitKeyPath               = splitKeyPath;
         this.hfilePath                  = hfilePath;
-        this.columnDelimiter            = columnDelimiter;
-        this.characterDelimiter         = characterDelimiter;
-        this.timestampFormat            = timestampFormat;
-        this.dateFormat                 = dateFormat;
-        this.timeFormat                 = timeFormat;
+        this.csvOptions                 = csvOptions;
     }
 
     /**
@@ -877,6 +866,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         }
     }
 
+    // todo: merge with CreateTableConstantOperation::calculateSplitKeys
     private byte[][] calculateSplitKeys(Activation activation,
                                         TableDescriptor td,
                                         IndexRowGenerator indexRowGenerator) throws IOException, StandardException{
@@ -895,8 +885,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
-            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, false, operationContext), true);
+            DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(csvOptions, execRow,
+                    null, false, operationContext), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
             for (ExecRow row : rows) {
