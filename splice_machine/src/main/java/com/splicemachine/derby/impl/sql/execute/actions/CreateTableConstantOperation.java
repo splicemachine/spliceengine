@@ -44,7 +44,7 @@ import com.splicemachine.procedures.external.DistributedGetSchemaExternalJob;
 import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.system.SplitKeyOptions;
+import com.splicemachine.system.CsvOptions2;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
@@ -93,7 +93,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
     private Properties				properties;
 
     private CsvOptions csvOptions;
-    private SplitKeyOptions splitKeyOptions;
+    private CsvOptions2 splitKeyOptions;
 
     private String storedAs;
     private String location;
@@ -138,7 +138,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             boolean isLogicalKey,
             String splitKeyPath,
             CsvOptions csvOptions,
-            SplitKeyOptions splitKeyOptions) {
+            CsvOptions2 splitKeyOptions) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.tableType = tableType;
@@ -488,7 +488,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
             } else if (!fileInfo.isDirectory()) {
                 throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
-            } else if (storedAs.compareToIgnoreCase("t") != 0) {
+            } else //if (storedAs.compareToIgnoreCase("t") != 0)
+            {
                 Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
                         submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions));
                 GetSchemaExternalResult result = null;
@@ -510,7 +511,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                     }
                 }
                 StructType externalSchema = result.getSchema();
-                checkSchema(externalSchema, activation);
+                boolean isCsv = storedAs.equalsIgnoreCase("t");
+                checkSchema(externalSchema, activation, isCsv);
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -597,7 +599,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         return cdlArray;
     }
 
-    private void checkSchema(StructType externalSchema, Activation activation) throws StandardException {
+    private void checkSchema(StructType externalSchema, Activation activation,
+                             boolean isCsv) throws StandardException {
 
         ExecRow template = new ValueRow(columnInfo.length);
         DataValueDescriptor[] dvds = template.getRowArray();
@@ -640,17 +643,20 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             }
         }
 
-        // Compare non-partition columns
-        for (int i = 0; i < nonPartitionColumns.nColumns(); ++i) {
-            //compare the data type
-            StructField externalField = externalSchema.fields()[i];
-            StructField definedField = nonPartitionColumns.schema().fields()[i];
-            if (!definedField.dataType().equals(externalField.dataType())) {
-                if (!supportAvroDateToString(storedAs,externalField,definedField)) {
-                    throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES,
-                            name_nonpart[i], ExternalTableUtils.getSqlTypeName(definedField.dataType()),
-                            externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType() ),
-                            location, ExternalTableUtils.getSuggestedSchema(externalSchema));
+        // csv will infer all columns as strings currently, so don't do a check for types
+        if( !isCsv ) {
+            // Compare non-partition columns
+            for (int i = 0; i < nonPartitionColumns.nColumns(); ++i) {
+                //compare the data type
+                StructField externalField = externalSchema.fields()[i];
+                StructField definedField = nonPartitionColumns.schema().fields()[i];
+                if (!definedField.dataType().equals(externalField.dataType())) {
+                    if (!supportAvroDateToString(storedAs, externalField, definedField)) {
+                        throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES,
+                                name_nonpart[i], ExternalTableUtils.getSqlTypeName(definedField.dataType()),
+                                externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType()),
+                                location, ExternalTableUtils.getSuggestedSchema(externalSchema));
+                    }
                 }
             }
         }

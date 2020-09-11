@@ -48,7 +48,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.system.SplitKeyOptions;
+import com.splicemachine.system.CsvOptions2;
 
 /**
  * A CreateIndexNode is the root of a QueryTree that represents a CREATE INDEX
@@ -77,7 +77,7 @@ public class CreateIndexNode extends DDLStatementNode
 	double              sampleFraction;
     String              splitKeyPath;
     String              hfilePath;
-    SplitKeyOptions		splitKeyOptions = new SplitKeyOptions();
+    CsvOptions2 splitKeyOptions = new CsvOptions2();
 
 
 	TableDescriptor		td;
@@ -131,7 +131,7 @@ public class CreateIndexNode extends DDLStatementNode
         this.sampling = (Boolean)sampling;
         this.sampleFraction = sampleFraction!=null ? ((NumericConstantNode)sampleFraction).getValue().getDouble():0;
         this.splitKeyPath = splitKeyPath!=null ? ((CharConstantNode)splitKeyPath).getString() : null;
-		this.splitKeyOptions = new SplitKeyOptions(
+		this.splitKeyOptions = new CsvOptions2(
 				columnDelimiter != null ? ((CharConstantNode)columnDelimiter).getString() : null,
 				characterDelimiter != null ? ((CharConstantNode)characterDelimiter).getString() : null,
 				timestampFormat != null ? ((CharConstantNode)timestampFormat).getString() : null,

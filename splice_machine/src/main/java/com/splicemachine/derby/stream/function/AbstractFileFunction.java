@@ -30,8 +30,7 @@ import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import com.splicemachine.derby.utils.SpliceDateTimeFormatter;
 import com.splicemachine.derby.utils.SpliceDateFunctions;
-import com.splicemachine.system.CsvOptions;
-import com.splicemachine.system.SplitKeyOptions;
+import com.splicemachine.system.CsvOptions2;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.supercsv.prefs.CsvPreference;
 
@@ -53,9 +52,9 @@ import static com.splicemachine.derby.utils.SpliceDateTimeFormatter.*;
 @SuppressWarnings("WeakerAccess") //weaker access isn't allowed because we have to be serializable
 public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<SpliceOperation, I, ExecRow> {
     CsvPreference preference = null;
-    private static final char DEFAULT_COLUMN_DELIMITTER = ",".charAt(0);
-    private static final char DEFAULT_STRIP_STRING = "\"".charAt(0);
-    private SplitKeyOptions options;
+    private static final char DEFAULT_COLUMN_DELIMITTER = ',';
+    private static final char DEFAULT_STRIP_STRING = '"';
+    private CsvOptions2 options;
     protected ExecRow execRow;
     private SpliceDateTimeFormatter dateFormatter;
     private SpliceDateTimeFormatter timestampFormatter;
@@ -91,7 +90,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
 
     @SuppressWarnings("unchecked")
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
-    AbstractFileFunction(SplitKeyOptions options, ExecRow execRow, int[] columnIndex, OperationContext operationContext) {
+    AbstractFileFunction(CsvOptions2 options, ExecRow execRow, int[] columnIndex, OperationContext operationContext) {
         super(operationContext);
         this.options = options;
         this.execRow = execRow;
@@ -117,7 +116,7 @@ public abstract class AbstractFileFunction<I> extends SpliceFlatMapFunction<Spli
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        options = new SplitKeyOptions(in);
+        options = new CsvOptions2(in);
         setupFormatters();
         execRow =WriteReadUtils.getExecRowFromTypeFormatIds(ArrayUtil.readIntArray(in));
         if (in.readBoolean())

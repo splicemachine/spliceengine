@@ -42,13 +42,10 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.TableName;
-import com.splicemachine.db.impl.sql.compile.ValueNode;
-import com.splicemachine.system.SplitKeyOptions;
+import com.splicemachine.system.CsvOptions2;
 
-import java.sql.Timestamp;
 import java.util.List;
 import java.util.Properties;
 
@@ -233,7 +230,7 @@ public abstract class GenericConstantActionFactory {
         double          sampleFraction,
         String          splitKeyPath,
         String          hfilePath,
-        SplitKeyOptions splitKeyOptions,
+        CsvOptions2 splitKeyOptions,
         Properties        properties
     );
 

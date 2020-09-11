@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.system.SplitKeyOptions;
+import com.splicemachine.system.CsvOptions2;
 import splice.com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -1309,7 +1309,7 @@ public class TableElementList extends QueryTreeNodeVector {
 					excludeNulls,
 					excludeDefaults,
 					false,false,false,0,
-					null,null, new SplitKeyOptions(),
+					null,null, new CsvOptions2(),
                     checkIndexPageSizeProperty(cdn));
 		}
 	}
