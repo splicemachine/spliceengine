@@ -37,9 +37,9 @@ import static org.junit.Assert.assertEquals;
 /**
  * Tests around creating schemas
  */
-public class CreateSchemaIT {
+public class MultiDatabaseIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static final Logger LOG = Logger.getLogger(CreateSchemaIT.class);
+    private static final Logger LOG = Logger.getLogger(MultiDatabaseIT.class);
 
     protected static SpliceSchemaWatcher sullivan1SchemaWatcher = new SpliceSchemaWatcher("SULLIVAN1");
     protected static SpliceSchemaWatcher sullivanSchemaWatcher = new SpliceSchemaWatcher("SULLIVAN");
