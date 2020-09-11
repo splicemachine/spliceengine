@@ -111,6 +111,7 @@ public class ConfigurationBuilder {
     public long transactionsWatcherUpdateInterval;
     public String backupPath;
     public String replicationPath;
+    public String rollingRestartPath;
     public String compressionAlgorithm;
     public String namespace;
     public String spliceRootPath;
