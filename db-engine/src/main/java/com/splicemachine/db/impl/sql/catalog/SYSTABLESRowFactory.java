@@ -79,7 +79,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
     @Deprecated
     protected static final int SYSTABLES_IS_PINNED              = 14;
     protected static final int SYSTABLES_PURGE_DELETED_ROWS     = 15;
-    protected static final int SYSTABLES_MIN_RETENTION_PERIOD   = 16;
+    public static final int SYSTABLES_MIN_RETENTION_PERIOD   = 16;
     /* End External Tables Columns */
 
     protected static final int SYSTABLES_INDEX1_ID        = 0;
