@@ -185,7 +185,6 @@ public class BackupSystemProcedures {
     public static void SYSCS_BACKUP_DATABASE(String directory, String type, ResultSet[] resultSets)
             throws StandardException, SQLException {
         type = type.trim();
-        Connection conn = SpliceAdmin.getDefaultConn();
         try {
             // Check directory
             if (directory == null || directory.isEmpty()) {
@@ -329,7 +328,6 @@ public class BackupSystemProcedures {
             throws StandardException, SQLException {
 
         type = type.trim();
-        Connection conn = SpliceAdmin.getDefaultConn();
 
         try {
             // Check directory
