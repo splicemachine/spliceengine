@@ -16,6 +16,7 @@ package com.splicemachine.compactions;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.hbase.SpliceCompactionUtils;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.FlushLifeCycleTrackerWithConfig;
 import com.splicemachine.si.impl.server.PurgeConfigBuilder;
@@ -50,7 +51,11 @@ public class SpliceDefaultFlusher extends DefaultStoreFlusher {
         } else {
             purgeConfig.noPurgeDeletes();
         }
-        purgeConfig.transactionLowWatermark(SpliceCompactionUtils.getTxnLowWatermark(store));
+        if(SIDriver.driver().isEngineStarted()) {
+            purgeConfig.transactionLowWatermark(SpliceCompactionUtils.getTxnLowWatermark(store));
+        } else {
+            purgeConfig.transactionLowWatermark(SIConstants.OLDEST_TIME_TRAVEL_TX);
+        }
         purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
         return super.flushSnapshot(snapshot, cacheFlushId, status, throughputController,
                 new FlushLifeCycleTrackerWithConfig(tracker, purgeConfig.build()));

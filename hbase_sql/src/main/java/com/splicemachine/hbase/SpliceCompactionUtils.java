@@ -23,6 +23,7 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.typesafe.config.ConfigException;
 import org.apache.hadoop.hbase.regionserver.Store;
 
 import java.io.IOException;
@@ -98,12 +99,15 @@ public class SpliceCompactionUtils {
             }
             @Override
             public Long getDefaultValue() {
-                return 0L;
+                return SIConstants.OLDEST_TIME_TRAVEL_TX;
             }
         });
     }
 
     public static long getTxnLowWatermark(Store store) throws IOException {
+        if(SIDriver.driver() == null || !SIDriver.driver().isEngineStarted()) {
+            return SIConstants.OLDEST_TIME_TRAVEL_TX;
+        }
         long lowTxnWatermark = TransactionsWatcher.getLowWatermarkTransaction();
         Long minRetentionPeriod = SpliceCompactionUtils.minRetentionPeriod(store);
         if(minRetentionPeriod == null || minRetentionPeriod == 0L) {
