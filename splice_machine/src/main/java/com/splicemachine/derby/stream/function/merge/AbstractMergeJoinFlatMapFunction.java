@@ -63,7 +63,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
     }
 
     protected class BufferedMergeJoinIterator implements PeekingIterator<ExecRow> {
-        protected static final int BUFFERSIZE=3000;
+        protected static final int BUFFERSIZE=4500;
         private static final int INITIALCAPACITY=100;
         private ArrayList<ExecRow> bufferedRowList = new ArrayList<>(INITIALCAPACITY);
         private PeekingIterator<ExecRow> sourceIterator;
@@ -157,7 +157,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                 initRightScan();
                 rightSide = joinOperation.getRightOperation();
                 rightSide.reset();
-                DataSetProcessor dsp =EngineDriver.driver().processorFactory().chooseProcessor(getOperation().getActivation(), rightSide);
+                DataSetProcessor dsp =EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide);
                 rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
                     @Override
                     public ExecRow apply(@Nullable ExecRow locatedRow) {
@@ -348,8 +348,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
 
             List<ExecRow> bufferList = getBufferList();
             int lastItem = bufferList.size()-1;
-            ExecRow row;
-            int previousIndex = -2;
+            ExecRow row, previousRow = null;
 
             for (int rowIndex = 0; rowIndex <= lastItem; rowIndex++) {
                 row = joinOperation.getKeyRow(bufferList.get(rowIndex));
@@ -364,33 +363,19 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                     else
                         newStartKey.setColumn(i + 1, row.getColumn(j + 1));
                 }
+
+                // Don't add the same key twice.
+                if (addRow && row.equals(previousRow))
+                    addRow = false;
+
                 if (addRow) {
+                    previousRow = row;
                     newKeyPair = new Pair<>();
                     newKeyPair.setFirst(newStartKey);
-                    boolean usePreviousRow = false;
-                    if (previousKeyPair != null) {
-                        if (previousIndex == rowIndex-1) {
-                            previousStartKey = previousKeyPair.getFirst();
-                            usePreviousRow = true;
-                        }
+                    newKeyPair.setSecond(newStartKey);
+                    rightKeyRows.add(newKeyPair);
 
-                        // If the row behind the current row in buffer has
-                        // a valid key (no nulls), then use it as the end
-                        // of the previous range...
-                        if (usePreviousRow)
-                            previousKeyPair.setSecond(previousStartKey);
-                        else  // Otherwise use the current start as the previous pair's end.
-                            previousKeyPair.setSecond(newStartKey);
-                    }
-
-                    if (previousKeyPair == null || usePreviousRow) {
-                        rightKeyRows.add(newKeyPair);
-                        previousKeyPair = newKeyPair;
-                        if (rowIndex == lastItem)
-                            newKeyPair.setSecond(newStartKey);
-                        newStartKey = new ValueRow(numKeyColumns);
-                        previousIndex = rowIndex;
-                    }
+                    newStartKey = new ValueRow(numKeyColumns);
                 }
             }
             return rightKeyRows;

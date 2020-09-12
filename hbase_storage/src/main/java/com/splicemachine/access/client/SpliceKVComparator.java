@@ -57,9 +57,8 @@ public class SpliceKVComparator extends KeyValue.KVComparator implements RawComp
             return -1;
         else if (o2.getTimestamp() == 0l && isSpecialTimestamp(o2))
             return 1;
-        else if (o1.getTimestamp() == HConstants.LATEST_TIMESTAMP && isSpecialTimestamp(o1)) {
+        else if (o1.getTimestamp() == HConstants.LATEST_TIMESTAMP && isSpecialTimestamp(o1))
             return 1;
-        }
         else if (o2.getTimestamp() == HConstants.LATEST_TIMESTAMP && isSpecialTimestamp(o2))
             return -1;
 
