@@ -37,6 +37,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.collect.Lists;
@@ -44,6 +45,8 @@ import org.spark_project.guava.collect.Maps;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+
+import static com.splicemachine.EngineDriver.*;
 
 /**
  *
@@ -80,6 +83,10 @@ public class StoreCostControllerImpl implements StoreCostController {
     private boolean isSampleStats;
     private double sampleFraction;
     private boolean isMergedStats;
+
+    // The number of parallel Spark tasks that would run concurrently
+    // to access this table.
+    private int parallelism = 1;
 
 
     public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount) throws StandardException {
@@ -175,6 +182,15 @@ public class StoreCostControllerImpl implements StoreCostController {
             }
         } else {
             tableStatistics = new TableStatisticsImpl(tableId, partitionStats,fallbackNullFraction,extraQualifierMultiplier);
+        }
+
+        long tableSize = tableStatistics.rowCount() * tableStatistics.avgRowWidth();
+        if (isMemPlatform())
+            parallelism = 1;
+        else {
+            parallelism = EngineDriver.getNumSplits(tableSize);
+            if (parallelism > getMaxExecutors())
+                parallelism = getMaxExecutors();
         }
     }
 
@@ -333,6 +349,10 @@ public class StoreCostControllerImpl implements StoreCostController {
         return missingPartitions+tableStatistics.numPartitions();
     }
 
+    @Override
+    public int getParallelism() {
+        return parallelism;
+    }
 
     @Override
     public double baseRowCount() {

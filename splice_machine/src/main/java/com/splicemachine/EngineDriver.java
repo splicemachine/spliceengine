@@ -61,6 +61,12 @@ public class EngineDriver{
 
     public static boolean isMemPlatform() { return (INSTANCE.environment.isMemPlatform()); }
 
+    public static int getMaxExecutors() { return (INSTANCE.environment.getMaxExecutors()); }
+
+    // Given a table size in bytes, return the number of splits Spark
+    // will use to read from the table, given the current Splice configuration.
+    public static int getNumSplits(long tableSize) { return (INSTANCE.environment.getNumSplits(tableSize)); }
+
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);
     }

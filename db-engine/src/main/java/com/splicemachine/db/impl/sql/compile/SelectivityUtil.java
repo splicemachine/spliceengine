@@ -251,16 +251,16 @@ public class SelectivityUtil {
                                                         CostEstimate outerCostEstimate,
                                                         double totalOutputRows){
 
-        // Join costing is done on a per-partition basis, so remote costs
+        // Join costing is done on a per parallel task basis, so remote costs
         // for a JoinOperation are calculated this way too, to make the units consistent.
         // The operation is initiated from the outer table, so it determines the
         // number of partitions.
-        int numpartitions = outerCostEstimate.partitionCount();
-        if (numpartitions <= 0)
-            numpartitions = 1;
+        int numParallelTasks = outerCostEstimate.getParallelism();
+        if (numParallelTasks <= 0)
+            numParallelTasks = 1;
         return getTotalRemoteCost(outerCostEstimate.remoteCost(),
                                   innerCostEstimate.remoteCost(),
-                outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows)/numpartitions;
+                outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows)/numParallelTasks;
     }
 
     private static double getTotalRemoteCost(double outerRemoteCost,

@@ -16,6 +16,7 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
@@ -36,6 +37,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private double localCost = Double.MAX_VALUE;
     private double remoteCost;
     private int numPartitions;
+    private int parallelism;
     private double numRows = Double.MAX_VALUE;
     private double singleScanRowCount = Double.MAX_VALUE;
     private RowOrdering rowOrdering;
@@ -57,6 +59,7 @@ public class SimpleCostEstimate implements CostEstimate{
     /* consecutive broadcast joins memory used in bytes */
     private double accumulatedMemory = 0.0d;
     private boolean singleRow = false;
+    private Optimizer optimizer;
 
     public SimpleCostEstimate(){ }
 
@@ -73,6 +76,9 @@ public class SimpleCostEstimate implements CostEstimate{
         setLocalCostPerPartition(localCost, numPartitions);
         setLocalCostPerPartition(remoteCost, numPartitions);
     }
+
+    @Override
+    public Optimizer getOptimizer() { return optimizer; }
 
     @Override public double getOpenCost(){ return openCost; }
     @Override public double getCloseCost(){ return closeCost; }
@@ -102,6 +108,8 @@ public class SimpleCostEstimate implements CostEstimate{
         this.localCost = other.localCost();
         this.remoteCost = other.remoteCost();
         this.numPartitions =other.partitionCount();
+        this.parallelism = other.getParallelism();
+        this.optimizer = other.getOptimizer();
         this.numRows = other.rowCount();
         this.singleScanRowCount = other.singleScanRowCount();
         RowOrdering rowOrdering=other.getRowOrdering();
@@ -203,6 +211,7 @@ public class SimpleCostEstimate implements CostEstimate{
         sb.append(attrDelim).append("outputRows=").append(rows);
         sb.append(attrDelim).append("outputHeapSize=").append(df.format(eHeap)).append(unit);
         sb.append(attrDelim).append("partitions=").append(partitionCount());
+        sb.append(attrDelim).append("parallelTasks=").append(getParallelism());
 
         return sb.toString();
     }
@@ -235,6 +244,7 @@ public class SimpleCostEstimate implements CostEstimate{
                 +",outputRows="+getEstimatedRowCount()
                 +",outputHeapSize="+getEstimatedHeapSize()+
                 ",partitions="+partitionCount()+
+                ",parallelism="+getParallelism()+
                 ",rowOrdering="+rowOrdering+
                 ",predicateList="+predicateList+
                 ",singleRow="+isSingleRow()+")";
@@ -245,7 +255,20 @@ public class SimpleCostEstimate implements CostEstimate{
     }
     @Override public void setRemoteCost(double remoteCost){ this.remoteCost = remoteCost; }
     @Override public void setSingleScanRowCount(double singleRowScanCount){this.singleScanRowCount = singleRowScanCount;}
-    @Override public void setNumPartitions(int numPartitions){ this.numPartitions = numPartitions; }
+    @Override public void setNumPartitions(int numPartitions){
+        this.numPartitions = numPartitions; }
+
+    @Override public void setParallelism(int numparallelTasks) {
+        parallelism = numparallelTasks;
+    }
+
+    @Override public int getParallelism() {
+        if (optimizer == null || optimizer.isForSpark())
+            return parallelism;
+        else
+            return 1;
+    }
+
     @Override public double rowCount(){ return numRows; }
     @Override public double singleScanRowCount(){ return singleScanRowCount; }
     @Override public int partitionCount(){ return numPartitions; }
@@ -311,6 +334,8 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setLocalCostPerPartition(localCostPerPartition);
         clone.setRemoteCostPerPartition(remoteCostPerPartition);
         clone.setSingleRow(singleRow);
+        clone.setParallelism(parallelism);
+        clone.setOptimizer(optimizer);
         return clone;
     }
 
@@ -578,4 +603,8 @@ public class SimpleCostEstimate implements CostEstimate{
     public boolean isSingleRow() {return singleRow;}
 
     public void setSingleRow(boolean singleRowInRelation) { singleRow = singleRowInRelation;}
+
+    public void setOptimizer(Optimizer optimizer) {
+        this.optimizer = optimizer;
+    }
 }

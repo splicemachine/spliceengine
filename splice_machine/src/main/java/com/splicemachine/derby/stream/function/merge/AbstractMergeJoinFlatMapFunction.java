@@ -158,6 +158,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                 rightSide = joinOperation.getRightOperation();
                 rightSide.reset();
                 DataSetProcessor dsp =EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide);
+                //DataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor(); // msirek-temp
                 rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
                     @Override
                     public ExecRow apply(@Nullable ExecRow locatedRow) {

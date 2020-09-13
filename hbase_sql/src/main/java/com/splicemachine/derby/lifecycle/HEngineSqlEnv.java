@@ -45,6 +45,7 @@ import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.management.Manager;
+import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.olap.AsyncOlapNIOLayer;
 import com.splicemachine.olap.JobExecutor;
 import com.splicemachine.olap.OlapServerProvider;
@@ -206,5 +207,49 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     @Override
     public ServiceDiscovery serviceDiscovery() {
         return serviceDiscovery;
+    }
+
+    @Override
+    public int getMaxExecutors() {
+        String memorySize = HConfiguration.unwrapDelegate().get("yarn.nodemanager.resource.memory-mb");
+        String minContainerSize = HConfiguration.unwrapDelegate().get("yarn.scheduler.minimum-allocation-mb");
+
+        int memSize, containerSize;
+        if (memorySize == null || minContainerSize == null)
+            return DEFAULT_MAX_EXECUTORS;
+        try {
+            memSize = Integer.valueOf(memorySize);
+            containerSize = Integer.valueOf(minContainerSize);
+        }
+        catch (NumberFormatException e) {
+            return DEFAULT_MAX_EXECUTORS;
+        }
+        return memSize / containerSize;
+    }
+
+    // Mirror the calculations in HRegionUtil.getCutpoints
+    @Override
+    public int getNumSplits(long tableSize) {
+        int numSplits, minSplits = 0;
+        if (tableSize < 0)
+            tableSize = 0;
+
+        int requestedSplits =
+            HConfiguration.unwrapDelegate().getInt(MRConstants.SPLICE_SPLITS_PER_TABLE, 0);
+        if (requestedSplits == 0) {
+            long bytesPerSplit = HConfiguration.getConfiguration().getSplitBlockSize();
+            minSplits = HConfiguration.getConfiguration().getSplitsPerRegionMin();
+            if ((tableSize / bytesPerSplit) > Integer.MAX_VALUE)
+                numSplits = Integer.MAX_VALUE;
+            else
+                numSplits = (int)(tableSize / bytesPerSplit);
+
+            if (numSplits < minSplits)
+                numSplits = minSplits;
+        }
+        else
+            numSplits = requestedSplits;
+
+        return numSplits;
     }
 }

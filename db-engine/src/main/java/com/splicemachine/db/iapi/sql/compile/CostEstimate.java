@@ -100,6 +100,19 @@ public interface CostEstimate extends StoreCostResult {
     void setNumPartitions(int numPartitions);
 
     /**
+     * Set the degree of parallelism when running on Spark,
+     * ie. the number of parallel tasks.
+     */
+
+    void setParallelism(int numparallelTasks);
+
+    /**
+     * Return the degree of parallelism when optimizing a Spark query.
+     * If optimizing for control, this method returns 1.
+     */
+    int getParallelism();
+
+    /**
      * Compare this cost estimate with the given cost estimate.
      *
      * @param other		The cost estimate to compare this one with
@@ -298,7 +311,11 @@ public interface CostEstimate extends StoreCostResult {
     /**
      * @return True, if this is a single-row relation, otherwise false
      */
-    public boolean isSingleRow();
+    boolean isSingleRow();
 
-    public void setSingleRow(boolean singleRowInRelation);
+    void setSingleRow(boolean singleRowInRelation);
+
+    void setOptimizer(Optimizer optimizer);
+
+    Optimizer getOptimizer();
 }

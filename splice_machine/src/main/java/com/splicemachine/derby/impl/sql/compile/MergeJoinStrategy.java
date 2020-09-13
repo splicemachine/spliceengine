@@ -136,7 +136,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.ALL);
         double scanSelectivity = SelectivityUtil.estimateScanSelectivity(innerTable, predList, SelectivityUtil.JoinPredicateType.MERGE_SEARCH);
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setParallelism(outerCost.getParallelism());
         boolean empty = isOuterTableEmpty(innerTable, predList);
         /* totalJoinedRows is different from totalOutputRows
          * totalJoinedRows: the number of joined rows constructed just based on the merge join search conditions, that is, the equality join conditions on the leading index columns.
@@ -171,15 +171,15 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         double joiningRowCost = numOfJoinedRows * localLatency;
 
         assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        double innerRemoteCost = innerCost.getRemoteCostPerPartition() * innerCost.partitionCount();
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition() * innerCost.getParallelism();
         if (outerTableEmpty) {
             return (outerCost.getLocalCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
         }
         else
             return outerCost.getLocalCostPerPartition()+innerCost.getLocalCostPerPartition()+
-                innerRemoteCost/outerCost.partitionCount() +
+                innerRemoteCost/outerCost.getParallelism() +
                 innerCost.getOpenCost()+innerCost.getCloseCost()
-                        + joiningRowCost/outerCost.partitionCount();
+                        + joiningRowCost/outerCost.getParallelism();
     }
 
     /* ****************************************************************************************************************/

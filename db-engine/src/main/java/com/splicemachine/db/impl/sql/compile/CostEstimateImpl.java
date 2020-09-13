@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -110,6 +111,11 @@ public class CostEstimateImpl implements CostEstimate {
 
     //no-op
     @Override public void setNumPartitions(int numPartitions) {  }
+
+    //no-op
+    @Override public void setParallelism(int numparallelTasks) {  }
+
+    @Override public int getParallelism() { return 1; }
 
     //derby always scans a single partition
     @Override public int partitionCount() { return 1; }
@@ -612,4 +618,11 @@ public class CostEstimateImpl implements CostEstimate {
     public boolean isSingleRow() {return singleRow;}
 
     public void setSingleRow(boolean singleRowInRelation) { singleRow = singleRowInRelation;}
+
+    // No-op
+    @Override
+    public void setOptimizer(Optimizer optimizer) { }
+
+    @Override
+    public Optimizer getOptimizer() { return null; }
 }

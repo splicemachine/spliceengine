@@ -242,6 +242,15 @@ public interface StoreCostController extends RowCountable{
 
     /**
      *
+     * Estimate of the number of parallel tasks Spark will use to read this table.
+     * This is meant to replace numPartitions for the purposes of optimizer join costing.
+     *
+     * @return
+     */
+    int getParallelism();
+
+    /**
+     *
      * Column Size factor of the current conglomerate.  This represents the ratio of data being returned.
      *
      * @param validColumns

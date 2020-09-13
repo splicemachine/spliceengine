@@ -280,7 +280,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setEstimatedHeapSize((long) SelectivityUtil.getTotalHeapSize(innerCost, outerCost, totalRowCount));
-        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowCount(totalRowCount);
         double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalRowCount);
         innerCost.setRemoteCost(remoteCostPerPartition);
@@ -312,7 +312,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         // or millions of RPC calls to HBase, depending on the number of rows accessed
         // in the outer table, which may saturate the network.
 
-        // If we divide inner table probe costs by outerCost.partitionCount(), as the number
+        // If we divide inner table probe costs by outerCost.getParallelism(), as the number
         // of partitions goes up, the cost of the join, according to the cost formula,
         // goes down, making nested loop join appear cheap on spark.
         // But is it really that cheap?
@@ -333,19 +333,19 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         // the primary key or index on the inner table, could be to sort the outer
         // table on the join key and then perform a merge join with the inner table.
 
-        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
-        double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.partitionCount();
+        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.getParallelism();
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.getParallelism();
         if (useSparkCostFormula)
             return outerCost.getLocalCostPerPartition() +
-                   ((outerCost.rowCount()/outerCost.partitionCount())
+                   ((outerCost.rowCount()/outerCost.getParallelism())
                     * innerLocalCost) +
             ((outerCost.rowCount())*(innerRemoteCost))
-                    + joiningRowCost/outerCost.partitionCount();
+                    + joiningRowCost/outerCost.getParallelism();
         else
             return outerCost.getLocalCostPerPartition() +
-                   (outerCost.rowCount()/outerCost.partitionCount())
+                   (outerCost.rowCount()/outerCost.getParallelism())
                     * (innerCost.localCost()+innerCost.getRemoteCost()) +
-                   joiningRowCost/outerCost.partitionCount();
+                   joiningRowCost/outerCost.getParallelism();
     }
 
     /**

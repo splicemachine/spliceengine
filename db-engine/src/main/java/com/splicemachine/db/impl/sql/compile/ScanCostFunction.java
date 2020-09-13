@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -233,8 +234,9 @@ public class ScanCostFunction{
         scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
         scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        scanCost.setLocalCostPerPartition(scanCost.localCost(), scanCost.partitionCount());
-        scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.partitionCount());
+        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
+        scanCost.setLocalCostPerPartition(scanCost.localCost(), scanCost.getParallelism());
+        scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.getParallelism());
         if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("\n" +
                             "============= generateOneRowCost() for table: %s =============%n" +
@@ -361,8 +363,9 @@ public class ScanCostFunction{
         assert localCost >= 0 : "localCost cannot be negative -> " + localCost;
         scanCost.setLocalCost(localCost);
         scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        scanCost.setLocalCostPerPartition((baseCost + lookupCost + projectionCost), scanCost.partitionCount());
-        scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.partitionCount());
+        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
+        scanCost.setLocalCostPerPartition((baseCost + lookupCost + projectionCost), scanCost.getParallelism());
+        scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.getParallelism());
 
         if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("\n" +

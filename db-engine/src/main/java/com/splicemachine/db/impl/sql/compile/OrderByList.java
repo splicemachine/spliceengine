@@ -337,7 +337,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         if(scc==null){
             if(baseCost.isUninitialized()) return;
             if (optimizer == null) {
-                double parallelCost = (baseCost.localCost()+baseCost.remoteCost())/baseCost.partitionCount();
+                double parallelCost = (baseCost.localCost()+baseCost.remoteCost())/baseCost.getParallelism();
                 baseCost.setLocalCost(baseCost.localCost()+parallelCost);
                 baseCost.setLocalCostPerPartition(baseCost.localCost());
                 /* only local cost is changed, remote cost is not changed as sort does not change

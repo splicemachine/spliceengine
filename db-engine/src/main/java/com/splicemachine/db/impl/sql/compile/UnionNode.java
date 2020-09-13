@@ -307,8 +307,9 @@ public class UnionNode extends SetOperatorNode{
         costEstimate.setRowCount(outputRows);
         costEstimate.setEstimatedHeapSize((long)heapSize);
         costEstimate.setNumPartitions(partitions);
-        costEstimate.setLocalCostPerPartition(costEstimate.localCost(), costEstimate.partitionCount());
-        costEstimate.setRemoteCostPerPartition(costEstimate.remoteCost(), costEstimate.partitionCount());
+        costEstimate.setParallelism(Math.max(leftCost.getParallelism(), rightCost.getParallelism()));
+        costEstimate.setLocalCostPerPartition(costEstimate.localCost(), costEstimate.getParallelism());
+        costEstimate.setRemoteCostPerPartition(costEstimate.remoteCost(), costEstimate.getParallelism());
 
 
         /*

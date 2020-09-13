@@ -134,4 +134,12 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
 
     @Override
     public boolean isMemPlatform() { return true; }
+
+    @Override
+    public int getMaxExecutors() {
+        return 1;
+    }
+
+    @Override
+    public int getNumSplits(long tableSize) { return 1; }
 }

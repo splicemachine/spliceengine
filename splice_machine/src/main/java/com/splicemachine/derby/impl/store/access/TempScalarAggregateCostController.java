@@ -61,7 +61,7 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
          * remote cost is then just (remoteCost/rowCount)+openCost+closeCost
          */
         CostEstimate newEstimate = baseCost.cloneMe();
-        int mapRows = baseCost.partitionCount();
+        int mapRows = baseCost.getParallelism();
         double baseRc = baseCost.rowCount();
         double remoteCostPerRow;
         double outputHeapSizePerRow;
@@ -90,7 +90,7 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
          * we can just divide the total local cost by the partition count
          *
          */
-        double mapLocalCost = baseCost.localCost()/baseCost.partitionCount();
+        double mapLocalCost = baseCost.localCost()/baseCost.getParallelism();
         double mapRemoteCost = remoteCostPerRow * baseRc;
 
         double reduceLocalCost = localCostPerRow*mapRows;
