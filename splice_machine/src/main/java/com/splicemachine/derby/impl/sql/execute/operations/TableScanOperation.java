@@ -68,7 +68,6 @@ public class TableScanOperation extends ScanOperation{
     protected int[] baseColumnMap;
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
-    protected long pastTx;
 
     /**
      *
@@ -190,7 +189,6 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
-        this.pastTx=-1;
         init();
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
