@@ -19,6 +19,7 @@ import java.util.stream.Collectors;
  * to make writing tests for all column types easier.
  */
 public class CreateTableTypeHelper {
+    PlatformVersion version;
     /**
      *
      * @param types     an array of Types that should be used
@@ -26,8 +27,9 @@ public class CreateTableTypeHelper {
      * generate corresponding entries that are somewhat associated with the integer val
      * e.g. mostly if the int values increase, the corresponding e.g. date value also increases.
      */
-    public CreateTableTypeHelper(int[] types, int[] ivalues)
+    public CreateTableTypeHelper(int[] types, int[] ivalues, PlatformVersion version)
     {
+        this.version = version;
         schema = Arrays.stream(types).mapToObj(this::getTypesName).collect(Collectors.joining(", "));
         suggestedTypes = Arrays.stream(types).mapToObj(this::getTypesNameInfered).collect(Collectors.joining(", "));
 
@@ -65,7 +67,7 @@ public class CreateTableTypeHelper {
     /**
      * @return types that are supported by Parquet
      */
-    static public int[] getParquetTypes() {
+    static public int[] getParquetTypes(PlatformVersion version) {
         return new int[]{
                 Types.VARCHAR, Types.CHAR,
                 Types.DATE, Types.TIMESTAMP,
@@ -78,7 +80,7 @@ public class CreateTableTypeHelper {
     /**
      * @return types that are supported by ORC
      */
-    static public int[] getORCTypes() {
+    static public int[] getORCTypes(PlatformVersion version) {
         return new int[]{
                 Types.VARCHAR, Types.CHAR,
                 Types.DATE, Types.TIMESTAMP,
@@ -92,17 +94,20 @@ public class CreateTableTypeHelper {
      *
      * @return types that are supported by Avro
      */
-    static public int[] getAvroTypes() {
-        return new int[]{
+    static public int[] getAvroTypes(PlatformVersion version) {
+         ArrayList<Integer> a = new ArrayList<>( Arrays.asList(
                 Types.VARCHAR, Types.CHAR,
                 // Types.DATE, Types.TIME // not supported
-                Types.TIMESTAMP,
+
                 //Types.TINYINT, Types.SMALLINT, // not supported
                 Types.INTEGER, Types.BIGINT,
                 Types.DOUBLE, Types.REAL,
                 // Types.DECIMAL, // not supported
                 Types.BOOLEAN
-        };
+         ) );
+        if( version.platform.equals("cdh") )
+            a.add( Types.TIMESTAMP );
+        return a.stream().mapToInt(s -> s).toArray();
     }
 
     ///
@@ -111,13 +116,13 @@ public class CreateTableTypeHelper {
      * @param fileFormat "PARQUET", "ORC" or "AVRO"
      * @return supported types by fileFormat PARQUET, ORC or AVRO
      */
-    static public int[] getTypes(String fileFormat) {
+    static public int[] getTypes(String fileFormat, PlatformVersion version) {
         if(fileFormat.equalsIgnoreCase("PARQUET"))
-            return getParquetTypes();
+            return getParquetTypes(version);
         else if(fileFormat.equalsIgnoreCase("ORC"))
-            return getORCTypes();
+            return getORCTypes(version);
         else if(fileFormat.equalsIgnoreCase("AVRO"))
-            return getAvroTypes();
+            return getAvroTypes(version);
         throw new RuntimeException("unsupported fileformat " + fileFormat);
     }
 

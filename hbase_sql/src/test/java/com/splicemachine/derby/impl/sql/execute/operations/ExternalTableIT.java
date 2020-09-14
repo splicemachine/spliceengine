@@ -445,12 +445,12 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     }
 
-    public void testWriteReadFromSimpleExternalTable(String fileFormat) throws Exception {
+    public void testWriteReadFromSimpleExternalTable(String fileFormat, PlatformVersion version) throws Exception {
         String name = "write_all_datatypes_" + fileFormat;
         String file = getExternalResourceDirectory() + name;
         int[] values = {1, 2, 3, 4, 0 /* = NULL */ };
-        int[] colTypes = CreateTableTypeHelper.getTypes(fileFormat);
-        CreateTableTypeHelper types = new CreateTableTypeHelper(colTypes, values);
+        int[] colTypes = CreateTableTypeHelper.getTypes(fileFormat, version);
+        CreateTableTypeHelper types = new CreateTableTypeHelper(colTypes, values, version);
 
         String externalTableOptions = " COMPRESSED WITH SNAPPY STORED AS " + fileFormat + " LOCATION '"
                 + file + "'";
@@ -492,10 +492,10 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     // tests writing all columns types, null values, suggesting schema.
     @Test
-    @Ignore("DB-10033")
     public void testWriteReadFromSimpleExternalTable() throws Exception {
+        PlatformVersion version = new PlatformVersion();
         for( String fileFormat : fileFormats )
-            testWriteReadFromSimpleExternalTable(fileFormat);
+            testWriteReadFromSimpleExternalTable(fileFormat, version);
 
     }
 
@@ -1638,7 +1638,6 @@ public class ExternalTableIT extends SpliceUnitTest {
             }
         }
     }
-
 
     @Test
     public void testUsingExsitingCsvFile() throws Exception {
