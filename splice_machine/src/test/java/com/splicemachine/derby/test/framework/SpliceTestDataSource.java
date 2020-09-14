@@ -29,6 +29,7 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.access.configuration.SQLConfiguration;
+import org.apache.spark.sql.internal.SQLConf;
 
 
 /**
@@ -37,9 +38,10 @@ import com.splicemachine.access.configuration.SQLConfiguration;
 public class SpliceTestDataSource implements DataSource {
     private static final Logger LOG = Logger.getLogger(SpliceTestDataSource.class);
 
-    public static final String DB_URL_TEMPLATE = "jdbc:splice://%s:%s/" + SQLConfiguration.SPLICE_DB + ";create=true;user=%s;password=%s";
+    public static final String DB_URL_TEMPLATE = "jdbc:splice://%s:%s/%s;create=true;user=%s;password=%s";
     public static final String DEFAULT_HOST = "localhost";
     public static final String DEFAULT_PORT = SQLConfiguration.DEFAULT_NETWORK_BIND_PORT+ "";
+    public static final String DEFAULT_DB = SQLConfiguration.SPLICE_DB;
     public static final String DEFAULT_USER = "splice";
     public static final String DEFAULT_USER_PASSWORD = "admin";
 
@@ -51,12 +53,12 @@ public class SpliceTestDataSource implements DataSource {
 
     @Override
     public Connection getConnection() throws SQLException {
-        return getConnection(createURLString(DEFAULT_HOST, DEFAULT_PORT, DEFAULT_USER, DEFAULT_USER_PASSWORD));
+        return getConnection(createURLString(DEFAULT_HOST, DEFAULT_PORT, DEFAULT_DB, DEFAULT_USER, DEFAULT_USER_PASSWORD));
     }
 
     @Override
     public Connection getConnection(String username, String password) throws SQLException {
-        return getConnection(createURLString(DEFAULT_HOST, DEFAULT_PORT, username, password));
+        return getConnection(createURLString(DEFAULT_HOST, DEFAULT_PORT, DEFAULT_DB, username, password));
     }
 
     @Override
@@ -112,7 +114,7 @@ public class SpliceTestDataSource implements DataSource {
      * @throws SQLException
      */
     public Connection getConnection(String host, int port) throws SQLException {
-        return getConnection(createURLString(host, port+"", DEFAULT_USER, DEFAULT_USER_PASSWORD));
+        return getConnection(createURLString(host, port+"", DEFAULT_DB, DEFAULT_USER, DEFAULT_USER_PASSWORD));
     }
 
     public void shutdown() {
@@ -161,8 +163,8 @@ public class SpliceTestDataSource implements DataSource {
     // Helpers
     // ====================================================================================================
 
-    private String createURLString(String host, String port, String userName, String password) {
-        return String.format(DB_URL_TEMPLATE, host, port, userName, password);
+    private String createURLString(String host, String port, String dbName, String userName, String password) {
+        return String.format(DB_URL_TEMPLATE, host, port, dbName, userName, password);
     }
 
     /**

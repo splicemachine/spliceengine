@@ -35,34 +35,34 @@ import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class CreateSchemaConstantOperation extends DDLConstantAction {
-	private static final Logger LOG = Logger.getLogger(CreateSchemaConstantOperation.class);
-	private final String					aid;	// authorization id
-	private final String					schemaName;
-	/**
-	 * Make the ConstantAction for a CREATE SCHEMA statement.
-	 * When executed, will set the default schema to the
-	 * new schema if the setToDefault parameter is set to
-	 * true.
-	 *
-	 *  @param schemaName	Name of table.
-	 *  @param aid			Authorizaton id
-	 */
-	public CreateSchemaConstantOperation(String schemaName,String aid) {
-		SpliceLogUtils.trace(LOG, "CreateSchemaConstantOperation {%s}",schemaName);
-		this.schemaName = schemaName;
-		this.aid = aid;
-	}
+    private static final Logger LOG = Logger.getLogger(CreateSchemaConstantOperation.class);
+    private final String                    aid;    // authorization id
+    private final String                    schemaName;
+    /**
+     * Make the ConstantAction for a CREATE SCHEMA statement.
+     * When executed, will set the default schema to the
+     * new schema if the setToDefault parameter is set to
+     * true.
+     *
+     *  @param schemaName    Name of table.
+     *  @param aid            Authorizaton id
+     */
+    public CreateSchemaConstantOperation(String schemaName,String aid) {
+        SpliceLogUtils.trace(LOG, "CreateSchemaConstantOperation {%s}",schemaName);
+        this.schemaName = schemaName;
+        this.aid = aid;
+    }
 
-	public	String	toString() {
-		return "CREATE SCHEMA " + schemaName;
-	}
+    public    String    toString() {
+        return "CREATE SCHEMA " + schemaName;
+    }
 
     /**
-     *	This is the guts of the Execution-time logic for CREATE SCHEMA.
+     *    This is the guts of the Execution-time logic for CREATE SCHEMA.
      *
      * @see com.splicemachine.db.iapi.sql.execute.ConstantAction#executeConstantAction(com.splicemachine.db.iapi.sql.Activation)
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException        Thrown on failure
      */
     @Override
     public void executeConstantAction( Activation activation ) throws StandardException {
@@ -72,14 +72,14 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
     }
 
     /**
-     *	This is the guts of the Execution-time logic for CREATE SCHEMA.
+     *    This is the guts of the Execution-time logic for CREATE SCHEMA.
      *  This is variant is used when we to pass in a tc other than the default
      *  used in executeConstantAction(Activation).
      *
      * @param activation current activation
      * @param tc transaction controller
      *
-     * @exception StandardException		Thrown on failure
+     * @exception StandardException        Thrown on failure
      */
     public void executeConstantAction(Activation activation,TransactionController tc) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantAction");
@@ -103,32 +103,32 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
         }
         UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
 
-		    /*
-		     * AID defaults to connection authorization if not
-		     * specified in CREATE SCHEMA (if we had module
-	 	     * authorizations, that would be the first check
-		     * for default, then session aid).
-		     */
+            /*
+             * AID defaults to connection authorization if not
+             * specified in CREATE SCHEMA (if we had module
+              * authorizations, that would be the first check
+             * for default, then session aid).
+             */
         String thisAid = aid;
         if (thisAid == null) {
             thisAid = lcc.getCurrentUserId(activation);
         }
 
-				/*
-				 * Inform the data dictionary that we are about to write to it.
-				 * There are several calls to data dictionary "get" methods here
-				 * that might be done in "read" mode in the data dictionary, but
-				 * it seemed safer to do this whole operation in "write" mode.
-				 *
-				 * We tell the data dictionary we're done writing at the end of
-				 * the transaction.
-				 */
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
         dd.startWriting(lcc);
         DDLMessage.DDLChange ddlChange = ProtoUtil.createSchema(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId());
         // Run Remotely
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
-        sd = ddg.newSchemaDescriptor(schemaName,thisAid,tmpSchemaId);
+        sd = ddg.newSchemaDescriptor(schemaName, thisAid, tmpSchemaId, lcc.getDatabase().getId());
 
         /*
          * Note on transactional behavior:

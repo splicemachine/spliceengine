@@ -987,6 +987,7 @@ public interface SQLState {
 	// String LANG_DROP_TABLE_ON_NON_TABLE                                = "42Y15"; -- replaced by 42Y62
 	String LANG_NO_METHOD_MATCHING_ALIAS                               = "42Y16";
 	// String LANG_DROP_SYSTEM_TABLE_ATTEMPTED                         = "42Y17"; -- replaced by 42X62
+	String LANG_DATABASE_DOES_NOT_EXIST                                = "42Y18";
 	String LANG_INVALID_CAST                                           = "42846";
     //	String LANG_AMBIGUOUS_GROUPING_COLUMN                              = "42Y19"; -- unused post 883.
 	//	String LANG_UNMATCHED_GROUPING_COLUMN                              =	//	"42Y20"; -- not used

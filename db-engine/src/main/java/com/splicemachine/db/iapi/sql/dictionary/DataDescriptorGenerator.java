@@ -72,6 +72,25 @@ public class DataDescriptorGenerator
     /**
      * Create a descriptor for the named schema with a null UUID.
      *
+     * @param dbName    The name of the schema we're interested in.
+     *            If the name is NULL, get the descriptor for the
+     *            current schema.
+     * @param aid    The authorization ID associated with the schema.
+     *        The owner of the schema.
+     *
+     * @param oid    The object ID
+     *
+     * @return    The descriptor for the schema.
+     * @exception StandardException        Thrown on failure
+     */
+    public DatabaseDescriptor newDatabaseDescriptor(String dbName, String aid, UUID oid) throws StandardException
+    {
+        return new DatabaseDescriptor(dataDictionary, dbName, aid, oid);
+    }
+
+    /**
+     * Create a descriptor for the named schema with a null UUID.
+     *
      * @param schemaName    The name of the schema we're interested in.
      *            If the name is NULL, get the descriptor for the
      *            current schema.
@@ -84,11 +103,11 @@ public class DataDescriptorGenerator
      * @exception StandardException        Thrown on failure
      */
     public SchemaDescriptor    newSchemaDescriptor(String schemaName,
-        String aid, UUID oid)
+        String aid, UUID oid, UUID dbid)
         throws StandardException
     {
         return new SchemaDescriptor(
-            dataDictionary, schemaName, aid, oid, 
+            dataDictionary, schemaName, aid, oid, dbid,
             dataDictionary.isSystemSchemaName(schemaName));
     }
 

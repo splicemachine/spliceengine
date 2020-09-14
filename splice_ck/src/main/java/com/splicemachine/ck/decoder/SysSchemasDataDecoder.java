@@ -26,7 +26,7 @@ public class SysSchemasDataDecoder extends UserDataDecoder {
     @Override
     public Pair<ExecRow, DescriptorSerializer[]> getExecRowAndDescriptors() {
         ExecRow er = new ValueRow(SYSSCHEMASRowFactory.SYSSCHEMAS_COLUMN_COUNT);
-        SYSSCHEMASRowFactory.setRowColumns(er, null, null, null);
+        SYSSCHEMASRowFactory.setRowColumns(er, null, null, null, null);
         SerializerMap serializerMap = new V1SerializerMap(false);
         return new Pair<>(er, serializerMap.getSerializers(er));
     }

@@ -295,6 +295,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         // create syscolumnsView
         createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNSVIEW", 0, sysVWSchema, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
 
+        // create sysdatabasesView
+        createOneSystemView(tc, SYSDATABASES_CATALOG_NUM, "SYSDATABASESVIEW", 0, sysVWSchema, SYSDATABASESRowFactory.SYSDATABASES_VIEW_SQL);
+
         SpliceLogUtils.info(LOG, "Views in SYSVW created!");
     }
 

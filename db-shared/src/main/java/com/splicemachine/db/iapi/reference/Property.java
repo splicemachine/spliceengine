@@ -680,6 +680,15 @@ public interface Property {
     int		LANG_STATEMENT_CACHE_SIZE_DEFAULT =1024;
 
     /**
+     * The size of the database cache
+     * used by the data dictionary.  Database.  Static.
+     * <p>
+     * Undocumented.
+     */
+    String	LANG_DATABASE_CACHE_SIZE = "derby.language.databaseDataDictCacheSize";
+    int		LANG_DATABASE_CACHE_SIZE_DEFAULT =1024;
+
+    /**
      * The size of the schema cache
      * used by the data dictionary.  Database.  Static.
      * <p>

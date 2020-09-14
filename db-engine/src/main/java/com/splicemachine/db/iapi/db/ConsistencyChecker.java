@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.db;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.error.PublicAPI;
 
+import com.splicemachine.db.iapi.sql.Row;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -77,80 +78,78 @@ import java.sql.SQLException;
 public class ConsistencyChecker
 {
 
-	/** no requirement for a constructor */
-	private ConsistencyChecker() {
-	}
+    /** no requirement for a constructor */
+    private ConsistencyChecker() {
+    }
 
-	/**
-	 * Check the named table, ensuring that all of its indexes are consistent
-	 * with the base table.
-	 * Use this
-	 *  method only within an SQL-J statement; do not call it directly.
-	 * <P>When tables are consistent, the method returns true. Otherwise, the method throws an exception.
-	 * <p>To check the consistency of a single table:
-	 * <p><code>
-	 * VALUES ConsistencyChecker::checkTable(<i>SchemaName</i>, <i>TableName</i>)</code></p>
-	 * <P>For example, to check the consistency of the table <i>SPLICE.Flights</i>:
-	 * <p><code>
-	 * VALUES ConsistencyChecker::checkTable('SPLICE', 'FLIGHTS')</code></p>
-	 * <p>To check the consistency of all of the tables in the 'SPLICE' schema,
-	 * stopping at the first failure: 
-	 *
-	 * <P><code>SELECT tablename, ConsistencyChecker::checkTable(<br>
-	 * 'SPLICE', tablename)<br>
-	 * FROM sys.sysschemas s, sys.systables t
-	 * WHERE s.schemaname = 'SPLICE' AND s.schemaid = t.schemaid</code>
-	 *
-	 * <p> To check the consistency of an entire database, stopping at the first failure:
-	 *
-	 * <p><code>SELECT schemaname, tablename,<br>
-	 * ConsistencyChecker::checkTable(schemaname, tablename)<br>
-	 * FROM sys.sysschemas s, sys.systables t<br>
-	 * WHERE s.schemaid = t.schemaid</code>
-	 *
-	 *
-	 *
-	 * @param schemaName	The schema name of the table.
-	 * @param tableName		The name of the table
-	 *
-	 * @return	true, if the table is consistent, exception thrown if inconsistent
-	 *
-	 * @exception	SQLException	Thrown if some inconsistency
-	 *									is found, or if some unexpected
-	 *									exception is thrown..
-	 */
-	public static boolean checkTable(String schemaName, String tableName)
-						throws SQLException
-	{
-		DataDictionary			dd;
-		TableDescriptor			td;
-		long					baseRowCount = -1;
-		TransactionController	tc;
-		ConglomerateDescriptor	heapCD;
-		ConglomerateDescriptor	indexCD;
-		ExecRow					baseRow;
-		ExecRow					indexRow;
-		RowLocation				rl = null;
-		RowLocation				scanRL = null;
-		ScanController			scan = null;
-		int[]					baseColumnPositions;
-		int						baseColumns = 0;
-		DataValueFactory		dvf;
-		long					indexRows;
-		ConglomerateController	baseCC = null;
-		ConglomerateController	indexCC = null;
-		SchemaDescriptor		sd;
-		ConstraintDescriptor	constraintDesc;
+    /**
+     * Check the named table, ensuring that all of its indexes are consistent
+     * with the base table.
+     * Use this
+     *  method only within an SQL-J statement; do not call it directly.
+     * <P>When tables are consistent, the method returns true. Otherwise, the method throws an exception.
+     * <p>To check the consistency of a single table:
+     * <p><code>
+     * VALUES ConsistencyChecker::checkTable(<i>SchemaName</i>, <i>TableName</i>)</code></p>
+     * <P>For example, to check the consistency of the table <i>SPLICE.Flights</i>:
+     * <p><code>
+     * VALUES ConsistencyChecker::checkTable('SPLICE', 'FLIGHTS')</code></p>
+     * <p>To check the consistency of all of the tables in the 'SPLICE' schema,
+     * stopping at the first failure:
+     *
+     * <P><code>SELECT tablename, ConsistencyChecker::checkTable(<br>
+     * 'SPLICE', tablename)<br>
+     * FROM sys.sysschemas s, sys.systables t
+     * WHERE s.schemaname = 'SPLICE' AND s.schemaid = t.schemaid</code>
+     *
+     * <p> To check the consistency of an entire database, stopping at the first failure:
+     *
+     * <p><code>SELECT schemaname, tablename,<br>
+     * ConsistencyChecker::checkTable(schemaname, tablename)<br>
+     * FROM sys.sysschemas s, sys.systables t<br>
+     * WHERE s.schemaid = t.schemaid</code>
+     *
+     *
+     *
+     * @param schemaName    The schema name of the table.
+     * @param tableName        The name of the table
+     *
+     * @return    true, if the table is consistent, exception thrown if inconsistent
+     *
+     * @exception    SQLException    Thrown if some inconsistency
+     *                                    is found, or if some unexpected
+     *                                    exception is thrown..
+     */
+    public static boolean checkTable(String schemaName, String tableName)
+                        throws SQLException
+    {
+        DataDictionary            dd;
+        TableDescriptor            td;
+        long                    baseRowCount = -1;
+        TransactionController    tc;
+        ConglomerateDescriptor    heapCD;
+        ConglomerateDescriptor    indexCD;
+        ExecRow                    baseRow;
+        ExecRow                    indexRow;
+        RowLocation                rl = null;
+        RowLocation                scanRL = null;
+        ScanController            scan = null;
+        int[]                    baseColumnPositions;
+        int                        baseColumns = 0;
+        DataValueFactory        dvf;
+        long                    indexRows;
+        ConglomerateController    baseCC = null;
+        ConglomerateController    indexCC = null;
+        SchemaDescriptor        sd;
+        ConstraintDescriptor    constraintDesc;
 
-		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-		tc = lcc.getTransactionExecute();
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        tc = lcc.getTransactionExecute();
 
-		try {
+        try {
 
             dd = lcc.getDataDictionary();
 
-            dvf = lcc.getDataValueFactory();
-            
             ExecutionFactory ef = lcc.getLanguageConnectionFactory().getExecutionFactory();
 
             sd = dd.getSchemaDescriptor(schemaName, tc, true);
@@ -169,40 +168,40 @@ public class ConsistencyChecker
                 return true;
             }
 
-			/* Open the heap for reading */
-			baseCC = tc.openConglomerate(
-			            td.getHeapConglomerateId(), false, 0, 
-				        TransactionController.MODE_TABLE,
-					    TransactionController.ISOLATION_SERIALIZABLE);
+            /* Open the heap for reading */
+            baseCC = tc.openConglomerate(
+                        td.getHeapConglomerateId(), false, 0,
+                        TransactionController.MODE_TABLE,
+                        TransactionController.ISOLATION_SERIALIZABLE);
 
-			/* Check the consistency of the heap */
-			baseCC.checkConsistency();
+            /* Check the consistency of the heap */
+            baseCC.checkConsistency();
 
-			heapCD = td.getConglomerateDescriptor(td.getHeapConglomerateId());
+            heapCD = td.getConglomerateDescriptor(td.getHeapConglomerateId());
 
-			/* Get a row template for the base table */
-			baseRow = ef.getValueRow(td.getNumberOfColumns());
+            /* Get a row template for the base table */
+            baseRow = ef.getValueRow(td.getNumberOfColumns());
 
-			/* Fill the row with nulls of the correct type */
-			ColumnDescriptorList cdl = td.getColumnDescriptorList();
-			int					 cdlSize = cdl.size();
+            /* Fill the row with nulls of the correct type */
+            ColumnDescriptorList cdl = td.getColumnDescriptorList();
+            int                     cdlSize = cdl.size();
 
-			for (int index = 0; index < cdlSize; index++)
-			{
-				ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);
-				baseRow.setColumn(cd.getPosition(),
-										cd.getType().getNull());
-			}
+            for (int index = 0; index < cdlSize; index++)
+            {
+                ColumnDescriptor cd = (ColumnDescriptor) cdl.elementAt(index);
+                baseRow.setColumn(cd.getPosition(),
+                                        cd.getType().getNull());
+            }
 
-			/* Look at all the indexes on the table */
-			ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
+            /* Look at all the indexes on the table */
+            ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
             for (ConglomerateDescriptor cd1 : cds) {
                 indexCD = cd1;
                 /* Skip the heap */
                 if (!indexCD.isIndex())
                     continue;
 
-				/* Check the internal consistency of the index */
+                /* Check the internal consistency of the index */
                 indexCC =
                         tc.openConglomerate(
                                 indexCD.getConglomerateNumber(),
@@ -215,7 +214,7 @@ public class ConsistencyChecker
                 indexCC.close();
                 indexCC = null;
 
-				/* if index is for a constraint check that the constraint exists */
+                /* if index is for a constraint check that the constraint exists */
 
                 if (indexCD.isConstraint()) {
                     constraintDesc = dd.getConstraintDescriptor(td, indexCD.getUUID());
@@ -227,12 +226,12 @@ public class ConsistencyChecker
                     }
                 }
 
-				/*
-				** Set the base row count when we get to the first index.
-				** We do this here, rather than outside the index loop, so
-				** we won't do the work of counting the rows in the base table
-				** if there are no indexes to check.
-				*/
+                /*
+                ** Set the base row count when we get to the first index.
+                ** We do this here, rather than outside the index loop, so
+                ** we won't do the work of counting the rows in the base table
+                ** if there are no indexes to check.
+                */
                 if (baseRowCount < 0) {
                     scan = tc.openScan(heapCD.getConglomerateNumber(),
                             false,    // hold
@@ -246,12 +245,12 @@ public class ConsistencyChecker
                             null,    // stopKeyValue
                             0);        // not used with null stop posn.
 
-					/* Also, get the row location template for index rows */
+                    /* Also, get the row location template for index rows */
                     rl = scan.newRowLocationTemplate();
                     scanRL = scan.newRowLocationTemplate();
 
                     for (baseRowCount = 0; scan.next(); baseRowCount++)
-                        ;	/* Empty statement */
+                        ;    /* Empty statement */
 
                     scan.close();
                     scan = null;
@@ -267,21 +266,21 @@ public class ConsistencyChecker
                     indexColsBitSet.set(baseColumnPositions[i] - 1);
                 }
 
-				/* Get one row template for the index scan, and one for the fetch */
+                /* Get one row template for the index scan, and one for the fetch */
                 indexRow = ef.getValueRow(baseColumns + 1);
 
-				/* Fill the row with nulls of the correct type */
+                /* Fill the row with nulls of the correct type */
                 for (int column = 0; column < baseColumns; column++) {
-					/* Column positions in the data dictionary are one-based */
+                    /* Column positions in the data dictionary are one-based */
                     ColumnDescriptor cd = td.getColumnDescriptor(baseColumnPositions[column]);
                     indexRow.setColumn(column + 1,
                             cd.getType().getNull());
                 }
 
-				/* Set the row location in the last column of the index row */
+                /* Set the row location in the last column of the index row */
                 indexRow.setColumn(baseColumns + 1, rl);
 
-				/* Do a full scan of the index */
+                /* Do a full scan of the index */
                 scan = tc.openScan(indexCD.getConglomerateNumber(),
                         false,    // hold
                         0,        // not forUpdate
@@ -301,13 +300,13 @@ public class ConsistencyChecker
                 for (int i = 0; i < baseColumns; i++) {
                     baseRowIndexOrder[i] = baseObjectArray[baseColumnPositions[i] - 1];
                 }
-			
-				/* Get the index rows and count them */
+
+                /* Get the index rows and count them */
                 for (indexRows = 0; scan.fetchNext(indexRow.getRowArray()); indexRows++) {
-					/*
-					** Get the base row using the RowLocation in the index row,
-					** which is in the last column.  
-					*/
+                    /*
+                    ** Get the base row using the RowLocation in the index row,
+                    ** which is in the last column.
+                    */
                     RowLocation baseRL = (RowLocation) indexRow.getColumn(baseColumns + 1);
                     ExecRow row = new ValueRow();
                     row.setRowArray(baseObjectArray);
@@ -315,27 +314,27 @@ public class ConsistencyChecker
                             baseCC.fetch(
                                     baseRL, row, indexColsBitSet);
 
-					/* Throw exception if fetch() returns false */
+                    /* Throw exception if fetch() returns false */
                     if (!base_row_exists) {
                         String indexName = indexCD.getConglomerateName();
                         throw StandardException.newException(SQLState.LANG_INCONSISTENT_ROW_LOCATION,
                                 (schemaName + "." + tableName),
                                 indexName,
                                 baseRL.toString(),
-                                indexRow.toString());
+                                ((Row)indexRow).toString());
                     }
 
-					/* Compare all the column values */
+                    /* Compare all the column values */
                     for (int column = 0; column < baseColumns; column++) {
                         DataValueDescriptor indexColumn =
                                 indexRow.getColumn(column + 1);
                         DataValueDescriptor baseColumn =
                                 baseRowIndexOrder[column];
 
-						/*
-						** With this form of compare(), null is considered equal
-						** to null.
-						*/
+                        /*
+                        ** With this form of compare(), null is considered equal
+                        ** to null.
+                        */
                         if (indexColumn.compare(baseColumn) != 0) {
                             ColumnDescriptor cd =
                                     td.getColumnDescriptor(
@@ -363,19 +362,19 @@ public class ConsistencyChecker
                                     cd.getColumnName(),
                                     indexColumn.toString(),
                                     baseColumn.toString(),
-                                    indexRow.toString());
+                                    ((Row)indexRow).toString());
                         }
                     }
                 }
 
-				/* Clean up after the index scan */
+                /* Clean up after the index scan */
                 scan.close();
                 scan = null;
 
-				/*
-				** The index is supposed to have the same number of rows as the
-				** base conglomerate.
-				*/
+                /*
+                ** The index is supposed to have the same number of rows as the
+                ** base conglomerate.
+                */
                 if (indexRows != baseRowCount) {
                     throw StandardException.newException(SQLState.LANG_INDEX_ROW_COUNT_MISMATCH,
                             indexCD.getConglomerateName(),
@@ -385,35 +384,35 @@ public class ConsistencyChecker
                             Long.toString(baseRowCount));
                 }
             }
-			/* check that all constraints have backing index */
-			ConstraintDescriptorList constraintDescList = 
-				dd.getConstraintDescriptors(td);
-			for (int index = 0; index < constraintDescList.size(); index++)
-			{
-				constraintDesc = constraintDescList.elementAt(index);
-				if (constraintDesc.hasBackingIndex())
-				{
-					ConglomerateDescriptor conglomDesc;
+            /* check that all constraints have backing index */
+            ConstraintDescriptorList constraintDescList =
+                dd.getConstraintDescriptors(td);
+            for (int index = 0; index < constraintDescList.size(); index++)
+            {
+                constraintDesc = constraintDescList.elementAt(index);
+                if (constraintDesc.hasBackingIndex())
+                {
+                    ConglomerateDescriptor conglomDesc;
 
-					conglomDesc = td.getConglomerateDescriptor(
-							constraintDesc.getConglomerateId());
-					if (conglomDesc == null)
-					{
-						throw StandardException.newException(
-										SQLState.LANG_OBJECT_NOT_FOUND,
-										"INDEX for CONSTRAINT",
-										constraintDesc.getConstraintName());
-					}
-				}
-			}
-			
-		}
-		catch (StandardException se)
-		{
-			throw PublicAPI.wrapStandardException(se);
-		}
-		finally
-		{
+                    conglomDesc = td.getConglomerateDescriptor(
+                            constraintDesc.getConglomerateId());
+                    if (conglomDesc == null)
+                    {
+                        throw StandardException.newException(
+                                        SQLState.LANG_OBJECT_NOT_FOUND,
+                                        "INDEX for CONSTRAINT",
+                                        constraintDesc.getConstraintName());
+                    }
+                }
+            }
+
+        }
+        catch (StandardException se)
+        {
+            throw PublicAPI.wrapStandardException(se);
+        }
+        finally
+        {
             try
             {
                 /* Clean up before we leave */
@@ -437,8 +436,8 @@ public class ConsistencyChecker
             {
                 throw PublicAPI.wrapStandardException(se);
             }
-		}
+        }
 
-		return true;
-	}
+        return true;
+    }
 }

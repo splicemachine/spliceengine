@@ -44,7 +44,7 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 //   Assign an ErrorKey, ResourceKey, and Resource for each throw statement.
 //   Save for future pass to avoid maintenance during development.
 
-public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
+public abstract class ClientDatabaseMetaData implements java.sql.DatabaseMetaData {
     //----------------------------- constants  -----------------------------------
 
     private final static short SQL_BEST_ROWID = 1;
@@ -56,7 +56,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     //---------------------navigational members-----------------------------------
 
     protected Agent agent_;
-    protected Connection connection_;
+    protected ClientConnection connection_;
 
     //-----------------------------state------------------------------------------
 
@@ -70,8 +70,6 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
     private final int serverJdbcMajorVersion;
     /** The JDBC minor version supported by the server. */
     private final int serverJdbcMinorVersion;
-
-    public boolean useServerXAState_ = true;
 
     /** True if the server supports QRYCLSIMP. */
     private boolean supportsQryclsimp_;
@@ -110,7 +108,7 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
 
     //---------------------constructors/finalizer---------------------------------
 
-    protected DatabaseMetaData(Agent agent, Connection connection, ProductLevel productLevel) {
+    protected ClientDatabaseMetaData(Agent agent, ClientConnection connection, ProductLevel productLevel) {
         agent_ = agent;
         connection_ = connection;
         productLevel_ = productLevel;
@@ -1409,7 +1407,6 @@ public abstract class DatabaseMetaData implements java.sql.DatabaseMetaData {
         PreparedStatement cs = prepareMetaDataQuery("SYSIBM.SQLTABLES('', '', '', '', 'GETSCHEMAS=1')");
         return (ResultSet) cs.executeQueryX();
     }
-
 
     // DERBY does not have the notion of a catalog, so we return a result set with no rows.
     public java.sql.ResultSet getCatalogs() throws SQLException {

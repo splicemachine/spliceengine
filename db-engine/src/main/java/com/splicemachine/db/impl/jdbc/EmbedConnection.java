@@ -31,7 +31,8 @@
 
 package com.splicemachine.db.impl.jdbc;
 
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
+import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -101,7 +102,8 @@ import java.sql.ResultSet;
  */
 public abstract class EmbedConnection implements EngineConnection
 {
-	protected static final StandardException exceptionClose = StandardException.closeException();
+    public static final ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
+    protected static final StandardException exceptionClose = StandardException.closeException();
     public static final String INTERNAL_CONNECTION = "SPLICE_INTERNAL_CONNECTION";
     
     /**
@@ -114,22 +116,22 @@ public abstract class EmbedConnection implements EngineConnection
     public static final SQLException NO_MEM =
         Util.generateCsSQLException(SQLState.LOGIN_FAILED, "java.lang.OutOfMemoryError");
 
-	public static final AtomicBoolean isHBaseJVM = new AtomicBoolean(false);
+    public static final AtomicBoolean isHBaseJVM = new AtomicBoolean(false);
 
     /**
      * Low memory state object for connection requests.
      */
     public static final LowMemory memoryState = new LowMemory();
 
-	//////////////////////////////////////////////////////////
-	// OBJECTS SHARED ACROSS CONNECTION NESTING
-	//////////////////////////////////////////////////////////
-	DatabaseMetaData dbMetadata;
+    //////////////////////////////////////////////////////////
+    // OBJECTS SHARED ACROSS CONNECTION NESTING
+    //////////////////////////////////////////////////////////
+    DatabaseMetaData dbMetadata;
 
-	TransactionResourceImpl tr; // always access tr thru getTR()
+    TransactionResourceImpl tr; // always access tr thru getTR()
 
-	private HashMap lobHashMap = null;
-	private int lobHMKey = 0;
+    private HashMap lobHashMap = null;
+    private int lobHMKey = 0;
 
     /**
      * Map to keep track of all the lobs associated with this
@@ -146,58 +148,58 @@ public abstract class EmbedConnection implements EngineConnection
     // explicitly close the files.
     private HashSet lobFiles;
     
-	//////////////////////////////////////////////////////////
-	// STATE (copied to new nested connections, but nesting
-	// specific)
-	//////////////////////////////////////////////////////////
-	private boolean	active;
+    //////////////////////////////////////////////////////////
+    // STATE (copied to new nested connections, but nesting
+    // specific)
+    //////////////////////////////////////////////////////////
+    private boolean    active;
     private boolean aborting = false;
-	boolean	autoCommit = true;
-	boolean	needCommit;
+    boolean    autoCommit = true;
+    boolean    needCommit;
 
-	// Set to true if NONE authentication is being used
-	private boolean usingNoneAuth;
+    // Set to true if NONE authentication is being used
+    private boolean usingNoneAuth;
 
-	/*
+    /*
      following is a new feature in JDBC3.0 where you can specify the holdability
      of a resultset at the end of the transaction. This gets set by the
-	 new method setHoldability(int) in JDBC3.0
+     new method setHoldability(int) in JDBC3.0
      * 
-	 */
-	private int	connectionHoldAbility = ResultSet.HOLD_CURSORS_OVER_COMMIT;
+     */
+    private int    connectionHoldAbility = ResultSet.HOLD_CURSORS_OVER_COMMIT;
 
 
-	//////////////////////////////////////////////////////////
-	// NESTING SPECIFIC OBJECTS
-	//////////////////////////////////////////////////////////
-	/*
-	** The root connection is the base connection upon
-	** which all actions are synchronized.  By default,
-	** we are the root connection unless we are created
-	** by copying the state from another connection.
-	*/
-	final EmbedConnection rootConnection;
-	private SQLWarning 		topWarning;
-	/**	
-		Factory for JDBC objects to be created.
-	*/
-	private InternalDriver factory;
+    //////////////////////////////////////////////////////////
+    // NESTING SPECIFIC OBJECTS
+    //////////////////////////////////////////////////////////
+    /*
+    ** The root connection is the base connection upon
+    ** which all actions are synchronized.  By default,
+    ** we are the root connection unless we are created
+    ** by copying the state from another connection.
+    */
+    final EmbedConnection rootConnection;
+    private SQLWarning         topWarning;
+    /**
+        Factory for JDBC objects to be created.
+    */
+    private InternalDriver factory;
 
-	/**
-		The Connection object the application is using when accessing the
-		database through this connection. In most cases this will be equal
-		to this. When Connection pooling is being used, then it will
-		be set to the Connection object handed to the application.
-		It is used for the getConnection() methods of various JDBC objects.
-	*/
-	private java.sql.Connection applicationConnection;
+    /**
+        The Connection object the application is using when accessing the
+        database through this connection. In most cases this will be equal
+        to this. When Connection pooling is being used, then it will
+        be set to the Connection object handed to the application.
+        It is used for the getConnection() methods of various JDBC objects.
+    */
+    private java.sql.Connection applicationConnection;
 
-	/**
-		An increasing counter to assign to a ResultSet on its creation.
-		Used for ordering ResultSets returned from a procedure, always
-		returned in order of their creation. Is maintained at the root connection.
-	*/
-	private int resultSetId;
+    /**
+        An increasing counter to assign to a ResultSet on its creation.
+        Used for ordering ResultSets returned from a procedure, always
+        returned in order of their creation. Is maintained at the root connection.
+    */
+    private int resultSetId;
     
     /** Cached string representation of the connection id */
     private String connString;
@@ -206,54 +208,54 @@ public abstract class EmbedConnection implements EngineConnection
 
     private String authUser;
 
-	//////////////////////////////////////////////////////////
-	// CONSTRUCTORS
-	//////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////
+    // CONSTRUCTORS
+    //////////////////////////////////////////////////////////
 
-	// create a new Local Connection, using a new context manager
-	//
-	public EmbedConnection(InternalDriver driver, String url, Properties info)
-		 throws SQLException
-	{
-		internal = info.getProperty(INTERNAL_CONNECTION) != null;
-		// Create a root connection.
-		applicationConnection = rootConnection = this;
-		factory = driver;
+    // create a new Local Connection, using a new context manager
+    //
+    public EmbedConnection(InternalDriver driver, String url, Properties info)
+         throws SQLException
+    {
+        internal = info.getProperty(INTERNAL_CONNECTION) != null;
+        // Create a root connection.
+        applicationConnection = rootConnection = this;
+        factory = driver;
 
-		tr = new TransactionResourceImpl(driver, url, info);
+        tr = new TransactionResourceImpl(driver, url, info);
 
-		active = true;
+        active = true;
 
-		// register this thread and its context manager with
-		// the global context service
-		setupContextStack();
+        // register this thread and its context manager with
+        // the global context service
+        setupContextStack();
 
-		try {
+        try {
 
-			// stick my context into the context manager
-			EmbedConnectionContext context = pushConnectionContext(tr.getContextManager());
+            // stick my context into the context manager
+            EmbedConnectionContext context = pushConnectionContext(tr.getContextManager());
 
-			// if we are shutting down don't attempt to boot or create the database
-			boolean shutdown = Boolean.valueOf(info.getProperty(Attribute.SHUTDOWN_ATTR));
+            // if we are shutting down don't attempt to boot or create the database
+            boolean shutdown = Boolean.parseBoolean(info.getProperty(Attribute.SHUTDOWN_ATTR));
 
-			// see if database is already booted
-			Database database = (Database) Monitor.findService(Property.DATABASE_MODULE, tr.getDBName());
+            // see if database is already booted
+            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, tr.getDBName());
 
-			// See if user wants to create a new database.
-			boolean	createBoot = createBoot(info);	
+            // See if user wants to create a new database.
+            boolean    createBoot = createBoot(info);
 
-			// DERBY-2264: keeps track of whether we do a plain boot before an
-			// (re)encryption or hard upgrade boot to (possibly) authenticate
-			// first. We can not authenticate before we have booted, so in
-			// order to enforce data base owner powers over encryption or
-			// upgrade, we need a plain boot, then authenticate, then, if all
-			// is well, boot with (re)encryption or upgrade.  Encryption at
-			// create time is not checked.
-			boolean isTwoPhaseEncryptionBoot = (!createBoot &&
-												isEncryptionBoot(info));
-			boolean isTwoPhaseUpgradeBoot = (!createBoot &&
-											 isHardUpgradeBoot(info));
-			boolean isStartReplicaBoot = isStartReplicationReplicaBoot(info);
+            // DERBY-2264: keeps track of whether we do a plain boot before an
+            // (re)encryption or hard upgrade boot to (possibly) authenticate
+            // first. We can not authenticate before we have booted, so in
+            // order to enforce data base owner powers over encryption or
+            // upgrade, we need a plain boot, then authenticate, then, if all
+            // is well, boot with (re)encryption or upgrade.  Encryption at
+            // create time is not checked.
+            boolean isTwoPhaseEncryptionBoot = (!createBoot &&
+                                                isEncryptionBoot(info));
+            boolean isTwoPhaseUpgradeBoot = (!createBoot &&
+                                             isHardUpgradeBoot(info));
+            boolean isStartReplicaBoot = isStartReplicationReplicaBoot(info);
             // Set to true if startReplica command is attempted on an
             // already booted database. Will raise an exception when
             // credentials have been verified
@@ -269,65 +271,69 @@ public abstract class EmbedConnection implements EngineConnection
                         Attribute.SHUTDOWN_ATTR + ", " + Attribute.DROP_ATTR);
             }
 
-			// Save original properties if we modified them for
-			// two phase encryption or upgrade boot.
-			Properties savedInfo = null;
+            // Save original properties if we modified them for
+            // two phase encryption or upgrade boot.
+            Properties savedInfo = null;
 
-			if (database != null)
-			{
-				// database already booted by someone else
-				tr.setDatabase(database);
-				isTwoPhaseEncryptionBoot = false;
-				isTwoPhaseUpgradeBoot = false;
-			}
-			else if (!shutdown)
-			{
-				if (isTwoPhaseEncryptionBoot || isTwoPhaseUpgradeBoot) {
-					info = removePhaseTwoProps((Properties)info.clone());
-				}
+            if (database != null)
+            {
+                // database already booted by someone else
+                tr.setDatabase(database);
+                isTwoPhaseEncryptionBoot = false;
+                isTwoPhaseUpgradeBoot = false;
+            }
+            else if (!shutdown)
+            {
+                if (isTwoPhaseEncryptionBoot || isTwoPhaseUpgradeBoot) {
+                    info = removePhaseTwoProps((Properties)info.clone());
+                }
 
-				// Return false iff the monitor cannot handle a service of the
-				// type indicated by the proptocol within the name.  If that's
-				// the case then we are the wrong driver.
+                isCreate.set(createBoot && !dropDatabase);
 
-				if (!bootDatabase(info, isTwoPhaseUpgradeBoot))
-				{
-					tr.clearContextInError();
-					setInactive();
-					return;
-				}
-			}
+                // Return false iff the monitor cannot handle a service of the
+                // type indicated by the protocol within the name.  If that's
+                // the case then we are the wrong driver.
+
+                if (!bootDatabase(info, isTwoPhaseUpgradeBoot))
+                {
+                    isCreate.remove();
+                    tr.clearContextInError();
+                    setInactive();
+                    return;
+                }
+                isCreate.remove();
+            }
 
            if (createBoot && !shutdown && !dropDatabase)
-			{
-				// if we are shutting down don't attempt to boot or create the
-				// database
+            {
+                // if we are shutting down don't attempt to boot or create the
+                // database
 
-				if (tr.getDatabase() != null) {
-					addWarning(SQLWarningFactory.newSQLWarning(SQLState.DATABASE_EXISTS, getDBName()));
-				} else {
+                if (tr.getDatabase() != null) {
+                    addWarning(SQLWarningFactory.newSQLWarning(SQLState.DATABASE_EXISTS, getDBName()));
+                } else {
 
                     //
-					// Check for user's credential and authenticate the user
-					// with the system level authentication service.
+                    // Check for user's credential and authenticate the user
+                    // with the system level authentication service.
                     //
                     checkUserCredentials( true, null, info );
-					
-					// Process with database creation
-					database = createDatabase(tr.getDBName(), info);
-					tr.setDatabase(database);
-				}
-			}
+
+                    // Process with database creation
+                    database = createDatabase(tr.getDBName(), info);
+                    tr.setDatabase(database);
+                }
+            }
 
 
-			if (tr.getDatabase() == null) {
-				handleDBNotFound();
-			}
+            if (tr.getDatabase() == null) {
+                handleDBNotFound();
+            }
 
 
-			// Check User's credentials and if it is a valid user of
-			// the database
-			//
+            // Check User's credentials and if it is a valid user of
+            // the database
+            //
             try {
                 checkUserCredentials( false, tr.getDBName(), info );
             } catch (SQLException sqle) {
@@ -347,25 +353,30 @@ public abstract class EmbedConnection implements EngineConnection
             }
 
             if (authUser != null && !tr.getUserName().equalsIgnoreCase(authUser)) {
-				// If we have an authenticated group username from LDAP, use that
-				tr.setGroupUserName(authUser.toUpperCase());
-			}
+                // If we have an authenticated group username from LDAP, use that
+                tr.setGroupUserName(authUser.toUpperCase());
+            }
 
-			// Make a real connection into the database, setup lcc, tc and all
-			// the rest.
-			tr.startTransaction();
+            // Make a real connection into the database, setup lcc, tc and all
+            // the rest.
+            tr.startTransaction();
 
+            // Add potentially newly created database in the sysdatabase table
+            if (createBoot && !shutdown && !dropDatabase) {
+                SystemProcedures.addDatabase(getDBName(), "PLACEHOLDER", tr.getDatabase().getId(), tr.getLcc()); // XXX different userid probably for aid?
 
-			// now we have the database connection, we can shut down
-			if (shutdown) {
-				if (!usingNoneAuth &&
-						getLanguageConnection().usesSqlAuthorization()) {
-					// DERBY-2264: Only allow database owner to shut down if
-					// authentication and sqlAuthorization is on.
-					checkIsDBOwner(OP_SHUTDOWN);
-				}
-				throw tr.shutdownDatabaseException();
-			}
+            }
+
+            // now we have the database connection, we can shut down
+            if (shutdown) {
+                if (!usingNoneAuth &&
+                        getLanguageConnection().usesSqlAuthorization()) {
+                    // DERBY-2264: Only allow database owner to shut down if
+                    // authentication and sqlAuthorization is on.
+                    checkIsDBOwner(OP_SHUTDOWN);
+                }
+                throw tr.shutdownDatabaseException();
+            }
 
             // Drop the database at this point, if that is requested.
             if (dropDatabase) {
@@ -400,28 +411,30 @@ public abstract class EmbedConnection implements EngineConnection
                 throw se;
             }
 
-			// Raise a warning in sqlAuthorization mode if authentication is not ON
-			if (usingNoneAuth && getLanguageConnection().usesSqlAuthorization())
-				addWarning(SQLWarningFactory.newSQLWarning(SQLState.SQL_AUTHORIZATION_WITH_NO_AUTHENTICATION));
+            // Raise a warning in sqlAuthorization mode if authentication is not ON
+            if (usingNoneAuth && getLanguageConnection().usesSqlAuthorization())
+                addWarning(SQLWarningFactory.newSQLWarning(SQLState.SQL_AUTHORIZATION_WITH_NO_AUTHENTICATION));
             InterruptStatus.restoreIntrFlagIfSeen(getLanguageConnection());
-		}
+        }
         catch (OutOfMemoryError noMemory)
-		{
-			//System.out.println("freeA");
+        {
+            isCreate.remove();
+            //System.out.println("freeA");
             InterruptStatus.restoreIntrFlagIfSeen();
-			restoreContextStack();
-			tr.lcc = null;
-			tr.cm = null;
-			
-			//System.out.println("free");
-			//System.out.println(Runtime.getRuntime().freeMemory());
+            restoreContextStack();
+            tr.lcc = null;
+            tr.cm = null;
+
+            //System.out.println("free");
+            //System.out.println(Runtime.getRuntime().freeMemory());
             memoryState.setLowMemory();
-			
-			//noMemory.printStackTrace();
-			// throw Util.generateCsSQLException(SQLState.LOGIN_FAILED, noMemory.getMessage(), noMemory);
-			throw NO_MEM;
-		}
-		catch (Throwable t) {
+
+            //noMemory.printStackTrace();
+            // throw Util.generateCsSQLException(SQLState.LOGIN_FAILED, noMemory.getMessage(), noMemory);
+            throw NO_MEM;
+        }
+        catch (Throwable t) {
+            isCreate.remove();
             InterruptStatus.restoreIntrFlagIfSeen();
 
             if (t instanceof StandardException)
@@ -432,11 +445,11 @@ public abstract class EmbedConnection implements EngineConnection
             }
             //DERBY-4856, assume database is not up
             tr.cleanupOnError(t, false);
-			throw handleException(t);
-		} finally {
-			restoreContextStack();
-		}
-	}
+            throw handleException(t);
+        } finally {
+            restoreContextStack();
+        }
+    }
 
     /**
      * Check that a database has already been booted. Throws an exception 
@@ -449,8 +462,8 @@ public abstract class EmbedConnection implements EngineConnection
      * used in the exception message if not booted
      * @throws java.sql.SQLException thrown if database is not booted
      */
-    private void checkDatabaseBooted(Database database,
-                                     String operation, 
+    private void checkDatabaseBooted(InternalDatabase database,
+                                     String operation,
                                      String dbname) throws SQLException {
         if (database == null) {
             // Do not clear the TransactionResource context. It will
@@ -461,59 +474,59 @@ public abstract class EmbedConnection implements EngineConnection
         }
     }
 
-	/**
-	  Examine the attributes set provided for illegal boot
-	  combinations and determine if this is a create boot.
+    /**
+      Examine the attributes set provided for illegal boot
+      combinations and determine if this is a create boot.
 
-	  @return true iff the attribute <em>create=true</em> is provided. This
-	  means create a standard database.  In other cases, returns
-	  false.
+      @return true iff the attribute <em>create=true</em> is provided. This
+      means create a standard database.  In other cases, returns
+      false.
 
-	  @param p the attribute set.
+      @param p the attribute set.
 
-	  @exception SQLException Throw if more than one of
-	  <em>create</em>, <em>createFrom</em>, <em>restoreFrom</em> and
-	  <em>rollForwardRecoveryFrom</em> is used simultaneously. <br>
+      @exception SQLException Throw if more than one of
+      <em>create</em>, <em>createFrom</em>, <em>restoreFrom</em> and
+      <em>rollForwardRecoveryFrom</em> is used simultaneously. <br>
 
-	  Also, throw if (re)encryption is attempted with one of
-	  <em>createFrom</em>, <em>restoreFrom</em> and
-	  <em>rollForwardRecoveryFrom</em>.
+      Also, throw if (re)encryption is attempted with one of
+      <em>createFrom</em>, <em>restoreFrom</em> and
+      <em>rollForwardRecoveryFrom</em>.
 
-	*/
-	private boolean createBoot(Properties p) throws SQLException
-	{
-		int createCount = 0;
+    */
+    private boolean createBoot(Properties p) throws SQLException
+    {
+        int createCount = 0;
 
-		if (Boolean.valueOf(p.getProperty(Attribute.CREATE_ATTR)))
-			createCount++;
+        if (Boolean.valueOf(p.getProperty(Attribute.CREATE_ATTR)))
+            createCount++;
 
-		int restoreCount=0;
-		//check if the user has specified any /create/restore/recover from backup attributes.
-		if (p.getProperty(Attribute.CREATE_FROM) != null)
-			restoreCount++;
-		if (p.getProperty(Attribute.RESTORE_FROM) != null)
-			restoreCount++;
-		if (p.getProperty(Attribute.ROLL_FORWARD_RECOVERY_FROM)!=null)
-			restoreCount++;
-		if(restoreCount > 1)
-			throw newSQLException(SQLState.CONFLICTING_RESTORE_ATTRIBUTES);
-	
+        int restoreCount=0;
+        //check if the user has specified any /create/restore/recover from backup attributes.
+        if (p.getProperty(Attribute.CREATE_FROM) != null)
+            restoreCount++;
+        if (p.getProperty(Attribute.RESTORE_FROM) != null)
+            restoreCount++;
+        if (p.getProperty(Attribute.ROLL_FORWARD_RECOVERY_FROM)!=null)
+            restoreCount++;
+        if(restoreCount > 1)
+            throw newSQLException(SQLState.CONFLICTING_RESTORE_ATTRIBUTES);
+
         // check if user has specified re-encryption attributes in
         // combination with createFrom/restoreFrom/rollForwardRecoveryFrom
         // attributes.  Re-encryption is not
         // allowed when restoring from backup.
         if (restoreCount != 0 && isEncryptionBoot(p)) {
-			throw newSQLException(SQLState.CONFLICTING_RESTORE_ATTRIBUTES);
+            throw newSQLException(SQLState.CONFLICTING_RESTORE_ATTRIBUTES);
         }
 
 
-		//add the restore count to create count to make sure 
-		//user has not specified and restore together by mistake.
-		createCount = createCount + restoreCount ;
+        //add the restore count to create count to make sure
+        //user has not specified and restore together by mistake.
+        createCount = createCount + restoreCount ;
 
-		//
-		if (createCount > 1) throw newSQLException(SQLState.CONFLICTING_CREATE_ATTRIBUTES);
-		
+        //
+        if (createCount > 1) throw newSQLException(SQLState.CONFLICTING_CREATE_ATTRIBUTES);
+
         // Don't allow combinations of create/restore and drop.
         if (createCount == 1 && isDropDatabase(p)) {
             // See whether we have conflicting create or restore attributes.
@@ -524,9 +537,9 @@ public abstract class EmbedConnection implements EngineConnection
             throw newSQLException(sqlState);
         }
 
-		//retuns true only for the  create flag not for restore flags
-		return (createCount - restoreCount) == 1;
-	}
+        //retuns true only for the  create flag not for restore flags
+        return (createCount - restoreCount) == 1;
+    }
 
     private void handleDBNotFound() throws SQLException {
         String dbname = tr.getDBName();
@@ -549,33 +562,33 @@ public abstract class EmbedConnection implements EngineConnection
                 p.getProperty(Attribute.DROP_ATTR)));
     }
 
-	/**
-	 * Examine boot properties and determine if a boot with the given
-	 * attributes would entail an encryption operation.
-	 *
-	 * @param p the attribute set
-	 * @return true if a boot will encrypt or re-encrypt the database
-	 */
-	private boolean isEncryptionBoot(Properties p)
-	{
-		return ((Boolean.valueOf(
+    /**
+     * Examine boot properties and determine if a boot with the given
+     * attributes would entail an encryption operation.
+     *
+     * @param p the attribute set
+     * @return true if a boot will encrypt or re-encrypt the database
+     */
+    private boolean isEncryptionBoot(Properties p)
+    {
+        return ((Boolean.valueOf(
                 p.getProperty(Attribute.DATA_ENCRYPTION))) ||
-				(p.getProperty(Attribute.NEW_BOOT_PASSWORD) != null)           ||
-				(p.getProperty(Attribute.NEW_CRYPTO_EXTERNAL_KEY) != null));
-	}
+                (p.getProperty(Attribute.NEW_BOOT_PASSWORD) != null)           ||
+                (p.getProperty(Attribute.NEW_CRYPTO_EXTERNAL_KEY) != null));
+    }
 
-	/**
-	 * Examine boot properties and determine if a boot with the given
-	 * attributes would entail a hard upgrade.
-	 *
-	 * @param p the attribute set
-	 * @return true if a boot will hard upgrade the database
-	 */
-	private boolean isHardUpgradeBoot(Properties p)
-	{
-		return Boolean.valueOf(
+    /**
+     * Examine boot properties and determine if a boot with the given
+     * attributes would entail a hard upgrade.
+     *
+     * @param p the attribute set
+     * @return true if a boot will hard upgrade the database
+     */
+    private boolean isHardUpgradeBoot(Properties p)
+    {
+        return Boolean.valueOf(
                 p.getProperty(Attribute.UPGRADE_ATTR));
-	}
+    }
 
     private boolean isStartReplicationReplicaBoot(Properties p) {
         return ((Boolean.valueOf(
@@ -617,94 +630,94 @@ public abstract class EmbedConnection implements EngineConnection
                 p.getProperty(Attribute.REPLICATION_STOP_REPLICA));
     }
 
- 	/**
-	 * Remove any encryption or upgarde properties from the given properties
-	 *
-	 * @param p the attribute set
-	 * @return clone sans encryption properties
-	 */
-	private Properties removePhaseTwoProps(Properties p)
-	{
-		p.remove(Attribute.DATA_ENCRYPTION);
-		p.remove(Attribute.NEW_BOOT_PASSWORD);
-		p.remove(Attribute.NEW_CRYPTO_EXTERNAL_KEY);
-		p.remove(Attribute.UPGRADE_ATTR);
-		return p;
-	}
+     /**
+     * Remove any encryption or upgarde properties from the given properties
+     *
+     * @param p the attribute set
+     * @return clone sans encryption properties
+     */
+    private Properties removePhaseTwoProps(Properties p)
+    {
+        p.remove(Attribute.DATA_ENCRYPTION);
+        p.remove(Attribute.NEW_BOOT_PASSWORD);
+        p.remove(Attribute.NEW_CRYPTO_EXTERNAL_KEY);
+        p.remove(Attribute.UPGRADE_ATTR);
+        return p;
+    }
 
 
-	/**
-	 * Create a new connection based off of the 
-	 * connection passed in.  Initializes state
-	 * based on input connection, and copies 
-	 * appropriate object pointers. This is only used
-	   for nested connections.
-	 *
-	 * @param inputConnection the input connection
-	 */
-	public  EmbedConnection(EmbedConnection inputConnection)
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(inputConnection.active, 
-			"trying to create a proxy for an inactive conneciton");
-		}
+    /**
+     * Create a new connection based off of the
+     * connection passed in.  Initializes state
+     * based on input connection, and copies
+     * appropriate object pointers. This is only used
+       for nested connections.
+     *
+     * @param inputConnection the input connection
+     */
+    public  EmbedConnection(EmbedConnection inputConnection)
+    {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(inputConnection.active,
+            "trying to create a proxy for an inactive conneciton");
+        }
 
-		// Proxy connections are always autocommit false
-		// thus needCommit is irrelavent.
-		autoCommit = false;
+        // Proxy connections are always autocommit false
+        // thus needCommit is irrelavent.
+        autoCommit = false;
 
 
-		/*
-		** Nesting specific state we are copying from 
-		** the inputConnection
-		*/
+        /*
+        ** Nesting specific state we are copying from
+        ** the inputConnection
+        */
 
-		/*
-		** Objects we are sharing across nestings
-		*/
-		// set it to null to allow it to be final.
-		tr = null;			// a proxy connection has no direct
-								// pointer to the tr.  Every call has to go
-								// thru the rootConnection's tr.
-		active = true;
-		this.rootConnection = inputConnection.rootConnection;
-		this.applicationConnection = this;
-		this.factory = inputConnection.factory;
+        /*
+        ** Objects we are sharing across nestings
+        */
+        // set it to null to allow it to be final.
+        tr = null;            // a proxy connection has no direct
+                                // pointer to the tr.  Every call has to go
+                                // thru the rootConnection's tr.
+        active = true;
+        this.rootConnection = inputConnection.rootConnection;
+        this.applicationConnection = this;
+        this.factory = inputConnection.factory;
 
-		//if no holdability specified for the resultset, use the holability
-		//defined for the connection
-		this.connectionHoldAbility = inputConnection.connectionHoldAbility;
+        //if no holdability specified for the resultset, use the holability
+        //defined for the connection
+        this.connectionHoldAbility = inputConnection.connectionHoldAbility;
 
-		//RESOLVE: although it looks like the right
-		// thing to share the metadata object, if
-		// we do we'll get the wrong behavior on
-		// getCurrentConnection().getMetaData().isReadOnly()
-		// so don't try to be smart and uncomment the
-		// following.  Ultimately, the metadata should
-		// be shared by all connections anyway.
-		//dbMetadata = inputConnection.dbMetadata;
-	}
+        //RESOLVE: although it looks like the right
+        // thing to share the metadata object, if
+        // we do we'll get the wrong behavior on
+        // getCurrentConnection().getMetaData().isReadOnly()
+        // so don't try to be smart and uncomment the
+        // following.  Ultimately, the metadata should
+        // be shared by all connections anyway.
+        //dbMetadata = inputConnection.dbMetadata;
+    }
 
-	//
-	// Check passed-in user's credentials.
-	//
-	private void checkUserCredentials( boolean creatingDatabase, String dbname,
-									  Properties userInfo)
-	  throws SQLException
-	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isClosed(), "connection is closed");
+    //
+    // Check passed-in user's credentials.
+    //
+    private void checkUserCredentials( boolean creatingDatabase, String dbname,
+                                      Properties userInfo)
+      throws SQLException
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(!isClosed(), "connection is closed");
 
-		// If a database name was passed-in then check user's credential
-		// in that database using the database's authentication service,
-		// otherwise check if it is a valid user in the JBMS system.
-		//
-		// NOTE: We always expect an authentication service per database
-		// and one at the system level.
-		//
-		AuthenticationService authenticationService = null;
-		try {
+        // If a database name was passed-in then check user's credential
+        // in that database using the database's authentication service,
+        // otherwise check if it is a valid user in the JBMS system.
+        //
+        // NOTE: We always expect an authentication service per database
+        // and one at the system level.
+        //
+        AuthenticationService authenticationService = null;
+        try {
             // Retrieve appropriate authentication service handle
             if (dbname == null)
                 authenticationService =
@@ -717,15 +730,15 @@ public abstract class EmbedConnection implements EngineConnection
             throw Util.generateCsSQLException(se);
         }
 
-		// check that we do have a authentication service
-		// it is _always_ expected.
-		if (authenticationService == null)
-		{
-			String failedString = MessageService.getTextMessage(
-				(dbname == null) ? MessageId.AUTH_NO_SERVICE_FOR_SYSTEM : MessageId.AUTH_NO_SERVICE_FOR_DB);
+        // check that we do have a authentication service
+        // it is _always_ expected.
+        if (authenticationService == null)
+        {
+            String failedString = MessageService.getTextMessage(
+                (dbname == null) ? MessageId.AUTH_NO_SERVICE_FOR_SYSTEM : MessageId.AUTH_NO_SERVICE_FOR_DB);
 
-			throw newSQLException(SQLState.LOGIN_FAILED, failedString);
-		}
+            throw newSQLException(SQLState.LOGIN_FAILED, failedString);
+        }
 
         //
         // We must handle the special case when the system uses NATIVE
@@ -761,19 +774,19 @@ public abstract class EmbedConnection implements EngineConnection
         //
 
         if (dbname != null) {
-        	if (!internal)
-        		checkUserIsNotARole();
-		}
+            if (!internal)
+                checkUserIsNotARole();
+        }
 
-		// Let's authenticate now
+        // Let's authenticate now
 
         boolean authenticationSucceeded = true;
         try {
-        		if (!internal) {
-					authUser = authenticationService.authenticate(dbname, userInfo);
-					authenticationSucceeded = (authUser != null) ? true : false;
-				}
-//        	authenticationSucceeded = true; // internal connections are allowed without authentication
+                if (!internal) {
+                    authUser = authenticationService.authenticate(dbname, userInfo);
+                    authenticationSucceeded = (authUser != null) ? true : false;
+                }
+//            authenticationSucceeded = true; // internal connections are allowed without authentication
         }
         catch (SQLWarning warnings)
         {
@@ -782,19 +795,19 @@ public abstract class EmbedConnection implements EngineConnection
             //
             addWarning( warnings );
         }
-		if ( !authenticationSucceeded )
-		{
- 				throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED,
+        if ( !authenticationSucceeded )
+        {
+                 throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED,
                      MessageService.getTextMessage(MessageId.AUTH_INVALID));
         }
 
-		// If authentication is not on, we have to raise a warning if sqlAuthorization is ON
-		// Since NoneAuthenticationService is the default for Derby, it should be ok to refer
-		// to its implementation here, since it will always be present.
-		if (authenticationService instanceof NoneAuthenticationServiceImpl)
-			usingNoneAuth = true;
+        // If authentication is not on, we have to raise a warning if sqlAuthorization is ON
+        // Since NoneAuthenticationService is the default for Derby, it should be ok to refer
+        // to its implementation here, since it will always be present.
+        if (authenticationService instanceof NoneAuthenticationServiceImpl)
+            usingNoneAuth = true;
 
-	}
+    }
 
     /**
      * <p>
@@ -823,88 +836,88 @@ public abstract class EmbedConnection implements EngineConnection
     }
 
 
-	/**
-	 * If applicable, check that we don't connect with a user name
-	 * that equals a role.
-	 *
-	 * @exception SQLException Will throw if the current authorization
-	 *            id in {@code lcc} (which is already normalized to
-	 *            case normal form - CNF) equals an existing role name
-	 *            (which is also stored in CNF).
-	 */
-	private void checkUserIsNotARole() throws SQLException {
-		TransactionResourceImpl tr = getTR();
+    /**
+     * If applicable, check that we don't connect with a user name
+     * that equals a role.
+     *
+     * @exception SQLException Will throw if the current authorization
+     *            id in {@code lcc} (which is already normalized to
+     *            case normal form - CNF) equals an existing role name
+     *            (which is also stored in CNF).
+     */
+    private void checkUserIsNotARole() throws SQLException {
+        TransactionResourceImpl tr = getTR();
 
-		try {
-			tr.startTransaction();
+        try {
+            tr.startTransaction();
             LanguageConnectionContext lcc = tr.getLcc();
             String username = lcc.getSessionUserId();
 
-			DataDictionary dd = lcc.getDataDictionary();
+            DataDictionary dd = lcc.getDataDictionary();
 
-			// Check is only performed if we have db.database.sqlAuthorization == true
-			if (lcc.usesSqlAuthorization()) {
-				String failedString = MessageService.getTextMessage(MessageId.AUTH_INVALID);
-				if (dd.getRoleDefinitionDescriptor(username) != null) {
-					throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED, failedString);
-				}
-			}
+            // Check is only performed if we have db.database.sqlAuthorization == true
+            if (lcc.usesSqlAuthorization()) {
+                String failedString = MessageService.getTextMessage(MessageId.AUTH_INVALID);
+                if (dd.getRoleDefinitionDescriptor(username) != null) {
+                    throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED, failedString);
+                }
+            }
 
-			tr.rollback();
+            tr.rollback();
             InterruptStatus.restoreIntrFlagIfSeen(lcc);
-		} catch (StandardException e) {
-			try {
-				tr.rollback();
-			} catch (StandardException ignored) {
-			}
+        } catch (StandardException e) {
+            try {
+                tr.rollback();
+            } catch (StandardException ignored) {
+            }
 
-			throw handleException(e);
-		}
-	
-	}
+            throw handleException(e);
+        }
 
-	/* Enumerate operations controlled by database owner powers */
-	private static final int OP_ENCRYPT = 0;
-	private static final int OP_SHUTDOWN = 1;
-	private static final int OP_HARD_UPGRADE = 2;
-	private static final int OP_REPLICATION = 3;
-	/**
-	 * Check if actual authenticationId is equal to the database owner's.
-	 *
-	 * @param operation attempted operation which needs database owner powers
-	 * @throws SQLException if actual authenticationId is different
-	 * from authenticationId of database owner.
-	 */
-	private void checkIsDBOwner(int operation) throws SQLException
-	{
-		final LanguageConnectionContext lcc = getLanguageConnection();
+    }
+
+    /* Enumerate operations controlled by database owner powers */
+    private static final int OP_ENCRYPT = 0;
+    private static final int OP_SHUTDOWN = 1;
+    private static final int OP_HARD_UPGRADE = 2;
+    private static final int OP_REPLICATION = 3;
+    /**
+     * Check if actual authenticationId is equal to the database owner's.
+     *
+     * @param operation attempted operation which needs database owner powers
+     * @throws SQLException if actual authenticationId is different
+     * from authenticationId of database owner.
+     */
+    private void checkIsDBOwner(int operation) throws SQLException
+    {
+        final LanguageConnectionContext lcc = getLanguageConnection();
         final String actualId = lcc.getSessionUserId();
-		final String dbOwnerId = lcc.getDataDictionary().
-			getAuthorizationDatabaseOwner();
-		if (!actualId.equals(dbOwnerId)) {
-			switch (operation) {
-			case OP_ENCRYPT:
-				throw newSQLException(SQLState.AUTH_ENCRYPT_NOT_DB_OWNER,
-									  actualId, tr.getDBName());
-			case OP_SHUTDOWN:
-				throw newSQLException(SQLState.AUTH_SHUTDOWN_NOT_DB_OWNER,
-									  actualId, tr.getDBName());
-			case OP_HARD_UPGRADE:
-				throw newSQLException(SQLState.AUTH_HARD_UPGRADE_NOT_DB_OWNER,
-									  actualId, tr.getDBName());
-			case OP_REPLICATION:
-				throw newSQLException(SQLState.AUTH_REPLICATION_NOT_DB_OWNER,
-									  actualId, tr.getDBName());
-			default:
-				if (SanityManager.DEBUG) {
-					SanityManager.THROWASSERT(
-						"illegal checkIsDBOwner operation");
-				}
-				throw newSQLException(
-					SQLState.AUTH_DATABASE_CONNECTION_REFUSED);
-			}
-		}
-	}
+        final String dbOwnerId = lcc.getDataDictionary().
+            getAuthorizationDatabaseOwner();
+        if (!actualId.equals(dbOwnerId)) {
+            switch (operation) {
+            case OP_ENCRYPT:
+                throw newSQLException(SQLState.AUTH_ENCRYPT_NOT_DB_OWNER,
+                                      actualId, tr.getDBName());
+            case OP_SHUTDOWN:
+                throw newSQLException(SQLState.AUTH_SHUTDOWN_NOT_DB_OWNER,
+                                      actualId, tr.getDBName());
+            case OP_HARD_UPGRADE:
+                throw newSQLException(SQLState.AUTH_HARD_UPGRADE_NOT_DB_OWNER,
+                                      actualId, tr.getDBName());
+            case OP_REPLICATION:
+                throw newSQLException(SQLState.AUTH_REPLICATION_NOT_DB_OWNER,
+                                      actualId, tr.getDBName());
+            default:
+                if (SanityManager.DEBUG) {
+                    SanityManager.THROWASSERT(
+                        "illegal checkIsDBOwner operation");
+                }
+                throw newSQLException(
+                    SQLState.AUTH_DATABASE_CONNECTION_REFUSED);
+            }
+        }
+    }
 
     /**
      * Gets the EngineType of the connected database.
@@ -913,19 +926,19 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public int getEngineType()
     {
-        Database db = getDatabase();
+        InternalDatabase db = getDatabase();
 
         if( null == db)
             return 0;
         return db.getEngineType();
     }
     
-	/*
-	** Methods from java.sql.Connection
-	*/
+    /*
+    ** Methods from java.sql.Connection
+    */
 
     /**
-	 * SQL statements without parameters are normally
+     * SQL statements without parameters are normally
      * executed using Statement objects. If the same SQL statement 
      * is executed many times, it is more efficient to use a 
      * PreparedStatement
@@ -938,12 +951,12 @@ public abstract class EmbedConnection implements EngineConnection
      * @return a new Statement object 
      * @exception SQLException if a database-access error occurs.
      */
-	public final Statement createStatement() throws SQLException 
-	{
-		return createStatement(ResultSet.TYPE_FORWARD_ONLY,
-							   ResultSet.CONCUR_READ_ONLY,
-							   connectionHoldAbility);
-	}
+    public final Statement createStatement() throws SQLException
+    {
+        return createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                               ResultSet.CONCUR_READ_ONLY,
+                               connectionHoldAbility);
+    }
 
     /**
      * JDBC 2.0
@@ -957,12 +970,12 @@ public abstract class EmbedConnection implements EngineConnection
       * @exception SQLException if a database-access error occurs.
     */
     public final Statement createStatement(int resultSetType,
-    								 int resultSetConcurrency) 
-						throws SQLException
-	{
-		return createStatement(resultSetType, resultSetConcurrency,
-			    connectionHoldAbility);
-	}
+                                     int resultSetConcurrency)
+                        throws SQLException
+    {
+        return createStatement(resultSetType, resultSetConcurrency,
+                connectionHoldAbility);
+    }
 
     /**
      * JDBC 3.0
@@ -979,16 +992,16 @@ public abstract class EmbedConnection implements EngineConnection
      * @exception SQLException if a database-access error occurs.
      */
     public final Statement createStatement(int resultSetType,
-    								 int resultSetConcurrency,
-    								 int resultSetHoldability)
-						throws SQLException
-	{
-		checkIfClosed();
+                                     int resultSetConcurrency,
+                                     int resultSetHoldability)
+                        throws SQLException
+    {
+        checkIfClosed();
 
-		return factory.newEmbedStatement(this, false,
-			setResultSetType(resultSetType), resultSetConcurrency,
-			resultSetHoldability);
-	}
+        return factory.newEmbedStatement(this, false,
+            setResultSetType(resultSetType), resultSetConcurrency,
+            resultSetHoldability);
+    }
 
     /**
      * A SQL statement with or without IN parameters can be
@@ -1017,15 +1030,15 @@ public abstract class EmbedConnection implements EngineConnection
      * @exception SQLException if a database-access error occurs.
      */
     public final PreparedStatement prepareStatement(String sql)
-	    throws SQLException
-	{
-		return prepareStatement(sql,ResultSet.TYPE_FORWARD_ONLY,
-			ResultSet.CONCUR_READ_ONLY,
-			connectionHoldAbility,
-			Statement.NO_GENERATED_KEYS,
-			null,
-			null);
-	}
+        throws SQLException
+    {
+        return prepareStatement(sql,ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY,
+            connectionHoldAbility,
+            Statement.NO_GENERATED_KEYS,
+            null,
+            null);
+    }
 
 
     /**
@@ -1041,17 +1054,17 @@ public abstract class EmbedConnection implements EngineConnection
      * @exception SQLException if a database-access error occurs.
      */
     public final PreparedStatement prepareStatement(String sql, int resultSetType,
-					int resultSetConcurrency)
-	    throws SQLException
-	{
-		return prepareStatement(sql,
-			resultSetType,
-			resultSetConcurrency,
-			connectionHoldAbility,
-			Statement.NO_GENERATED_KEYS,
-			null,
-			null);
-	}
+                    int resultSetConcurrency)
+        throws SQLException
+    {
+        return prepareStatement(sql,
+            resultSetType,
+            resultSetConcurrency,
+            connectionHoldAbility,
+            Statement.NO_GENERATED_KEYS,
+            null,
+            null);
+    }
 
     /**
      * JDBC 3.0
@@ -1069,139 +1082,139 @@ public abstract class EmbedConnection implements EngineConnection
      * @exception SQLException if a database-access error occurs.
      */
     public final PreparedStatement prepareStatement(String sql, int resultSetType,
-					int resultSetConcurrency, int resultSetHoldability)
-	    throws SQLException
-	{
-		return prepareStatement(sql,
-			resultSetType,
-			resultSetConcurrency,
-			resultSetHoldability,
-			Statement.NO_GENERATED_KEYS,
-			null,
-			null);
-	}
+                    int resultSetConcurrency, int resultSetHoldability)
+        throws SQLException
+    {
+        return prepareStatement(sql,
+            resultSetType,
+            resultSetConcurrency,
+            resultSetHoldability,
+            Statement.NO_GENERATED_KEYS,
+            null,
+            null);
+    }
 
 
-	/**
-	 * Creates a default PreparedStatement object capable of returning
-	 * the auto-generated keys designated by the given array. This array contains
-	 * the indexes of the columns in the target table that contain the auto-generated
-	 * keys that should be made available. This array is ignored if the SQL statement
-	 * is not an INSERT statement
+    /**
+     * Creates a default PreparedStatement object capable of returning
+     * the auto-generated keys designated by the given array. This array contains
+     * the indexes of the columns in the target table that contain the auto-generated
+     * keys that should be made available. This array is ignored if the SQL statement
+     * is not an INSERT statement
 
-		JDBC 3.0
-	 *
-	 *
-	 * @param sql  An SQL statement that may contain one or more ? IN parameter placeholders
-	 * @param columnIndexes  An array of column indexes indicating the columns
-	 *  that should be returned from the inserted row or rows
-	 *
-	 * @return  A new PreparedStatement object, containing the pre-compiled
-	 *  SQL statement, that will have the capability of returning auto-generated keys
-	 *  designated by the given array of column indexes
-	 *
-	 * @exception SQLException  Thrown on error.
-	 */
-	public final PreparedStatement prepareStatement(
-			String sql,
-			int[] columnIndexes)
+        JDBC 3.0
+     *
+     *
+     * @param sql  An SQL statement that may contain one or more ? IN parameter placeholders
+     * @param columnIndexes  An array of column indexes indicating the columns
+     *  that should be returned from the inserted row or rows
+     *
+     * @return  A new PreparedStatement object, containing the pre-compiled
+     *  SQL statement, that will have the capability of returning auto-generated keys
+     *  designated by the given array of column indexes
+     *
+     * @exception SQLException  Thrown on error.
+     */
+    public final PreparedStatement prepareStatement(
+            String sql,
+            int[] columnIndexes)
     throws SQLException
-	{
-  		return prepareStatement(sql,
-			ResultSet.TYPE_FORWARD_ONLY,
-			ResultSet.CONCUR_READ_ONLY,
-			connectionHoldAbility,
-			(columnIndexes == null || columnIndexes.length == 0)
-				? Statement.NO_GENERATED_KEYS
-				: Statement.RETURN_GENERATED_KEYS,
-			columnIndexes,
-			null);
-	}
+    {
+          return prepareStatement(sql,
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY,
+            connectionHoldAbility,
+            (columnIndexes == null || columnIndexes.length == 0)
+                ? Statement.NO_GENERATED_KEYS
+                : Statement.RETURN_GENERATED_KEYS,
+            columnIndexes,
+            null);
+    }
 
-	/**
-	 * Creates a default PreparedStatement object capable of returning
-	 * the auto-generated keys designated by the given array. This array contains
-	 * the names of the columns in the target table that contain the auto-generated
-	 * keys that should be returned. This array is ignored if the SQL statement
-	 * is not an INSERT statement
-	 *
-		JDBC 3.0
-	 *
-	 * @param sql  An SQL statement that may contain one or more ? IN parameter placeholders
-	 * @param columnNames  An array of column names indicating the columns
-	 *  that should be returned from the inserted row or rows
-	 *
-	 * @return  A new PreparedStatement object, containing the pre-compiled
-	 *  SQL statement, that will have the capability of returning auto-generated keys
-	 *  designated by the given array of column names
-	 *
-	 * @exception SQLException Thrown on error.
-	 */
-	public final PreparedStatement prepareStatement(
-			String sql,
-			String[] columnNames)
+    /**
+     * Creates a default PreparedStatement object capable of returning
+     * the auto-generated keys designated by the given array. This array contains
+     * the names of the columns in the target table that contain the auto-generated
+     * keys that should be returned. This array is ignored if the SQL statement
+     * is not an INSERT statement
+     *
+        JDBC 3.0
+     *
+     * @param sql  An SQL statement that may contain one or more ? IN parameter placeholders
+     * @param columnNames  An array of column names indicating the columns
+     *  that should be returned from the inserted row or rows
+     *
+     * @return  A new PreparedStatement object, containing the pre-compiled
+     *  SQL statement, that will have the capability of returning auto-generated keys
+     *  designated by the given array of column names
+     *
+     * @exception SQLException Thrown on error.
+     */
+    public final PreparedStatement prepareStatement(
+            String sql,
+            String[] columnNames)
     throws SQLException
-	{
-  		return prepareStatement(sql,
-			ResultSet.TYPE_FORWARD_ONLY,
-			ResultSet.CONCUR_READ_ONLY,
-			connectionHoldAbility,
-			(columnNames == null || columnNames.length == 0)
-				? Statement.NO_GENERATED_KEYS
-				: Statement.RETURN_GENERATED_KEYS,
-			null,
-			columnNames);
-	}
+    {
+          return prepareStatement(sql,
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY,
+            connectionHoldAbility,
+            (columnNames == null || columnNames.length == 0)
+                ? Statement.NO_GENERATED_KEYS
+                : Statement.RETURN_GENERATED_KEYS,
+            null,
+            columnNames);
+    }
 
-	/**
-	 * Creates a default PreparedStatement object that has the capability to
-	 * retieve auto-generated keys. The given constant tells the driver
-	 * whether it should make auto-generated keys available for retrieval.
-	 * This parameter is ignored if the SQL statement is not an INSERT statement.
-	 * JDBC 3.0
-	 *
-	 * @param sql  A SQL statement that may contain one or more ? IN parameter placeholders
-	 * @param autoGeneratedKeys  A flag indicating whether auto-generated keys
-	 *  should be returned
-	 *
-	 * @return  A new PreparedStatement object, containing the pre-compiled
-	 *  SQL statement, that will have the capability of returning auto-generated keys
-	 *
-	 * @exception SQLException  Feature not implemented for now.
-	 */
-	public final PreparedStatement prepareStatement(
-			String sql,
-			int autoGeneratedKeys)
+    /**
+     * Creates a default PreparedStatement object that has the capability to
+     * retieve auto-generated keys. The given constant tells the driver
+     * whether it should make auto-generated keys available for retrieval.
+     * This parameter is ignored if the SQL statement is not an INSERT statement.
+     * JDBC 3.0
+     *
+     * @param sql  A SQL statement that may contain one or more ? IN parameter placeholders
+     * @param autoGeneratedKeys  A flag indicating whether auto-generated keys
+     *  should be returned
+     *
+     * @return  A new PreparedStatement object, containing the pre-compiled
+     *  SQL statement, that will have the capability of returning auto-generated keys
+     *
+     * @exception SQLException  Feature not implemented for now.
+     */
+    public final PreparedStatement prepareStatement(
+            String sql,
+            int autoGeneratedKeys)
     throws SQLException
-	{
-		return prepareStatement(sql,
-			ResultSet.TYPE_FORWARD_ONLY,
-			ResultSet.CONCUR_READ_ONLY,
-			connectionHoldAbility,
-			autoGeneratedKeys,
-			null,
-			null);
-	}
+    {
+        return prepareStatement(sql,
+            ResultSet.TYPE_FORWARD_ONLY,
+            ResultSet.CONCUR_READ_ONLY,
+            connectionHoldAbility,
+            autoGeneratedKeys,
+            null,
+            null);
+    }
     
-	private PreparedStatement prepareStatement(String sql, int resultSetType,
-					int resultSetConcurrency, int resultSetHoldability,
-					int autoGeneratedKeys, int[] columnIndexes, String[] columnNames)
+    private PreparedStatement prepareStatement(String sql, int resultSetType,
+                    int resultSetConcurrency, int resultSetHoldability,
+                    int autoGeneratedKeys, int[] columnIndexes, String[] columnNames)
        throws SQLException
-	 {
-		synchronized (getConnectionSynchronization()) {
+     {
+        synchronized (getConnectionSynchronization()) {
                         setupContextStack();
-			try {
-			    return factory.newEmbedPreparedStatement(this, sql, false,
-											   setResultSetType(resultSetType),
-											   resultSetConcurrency,
-											   resultSetHoldability,
-											   autoGeneratedKeys,
-											   columnIndexes,
-											   columnNames);
-			} finally {
-			    restoreContextStack();
-			}
-		}
+            try {
+                return factory.newEmbedPreparedStatement(this, sql, false,
+                                               setResultSetType(resultSetType),
+                                               resultSetConcurrency,
+                                               resultSetHoldability,
+                                               autoGeneratedKeys,
+                                               columnIndexes,
+                                               columnNames);
+            } finally {
+                restoreContextStack();
+            }
+        }
      }
 
     /**
@@ -1229,13 +1242,13 @@ public abstract class EmbedConnection implements EngineConnection
      * pre-compiled SQL statement 
      * @exception SQLException if a database-access error occurs.
      */
-	public final CallableStatement prepareCall(String sql) 
-		throws SQLException 
-	{
-		return prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY,
-						   ResultSet.CONCUR_READ_ONLY,
-						   connectionHoldAbility);
-	}
+    public final CallableStatement prepareCall(String sql)
+        throws SQLException
+    {
+        return prepareCall(sql, ResultSet.TYPE_FORWARD_ONLY,
+                           ResultSet.CONCUR_READ_ONLY,
+                           connectionHoldAbility);
+    }
 
     /**
      * JDBC 2.0
@@ -1250,12 +1263,12 @@ public abstract class EmbedConnection implements EngineConnection
      * @exception SQLException if a database-access error occurs.
      */
     public final CallableStatement prepareCall(String sql, int resultSetType,
-				 int resultSetConcurrency)
-		throws SQLException 
-	{
-		return prepareCall(sql, resultSetType, resultSetConcurrency,
-						   connectionHoldAbility);
-	}
+                 int resultSetConcurrency)
+        throws SQLException
+    {
+        return prepareCall(sql, resultSetType, resultSetConcurrency,
+                           connectionHoldAbility);
+    }
 
     /**
      * JDBC 3.0
@@ -1273,27 +1286,27 @@ public abstract class EmbedConnection implements EngineConnection
      * @exception SQLException if a database-access error occurs.
      */
     public final CallableStatement prepareCall(String sql, int resultSetType, 
-				 int resultSetConcurrency, int resultSetHoldability)
-		throws SQLException 
-	{
-		checkIfClosed();
+                 int resultSetConcurrency, int resultSetHoldability)
+        throws SQLException
+    {
+        checkIfClosed();
 
-		synchronized (getConnectionSynchronization())
-		{
+        synchronized (getConnectionSynchronization())
+        {
             setupContextStack();
-			try 
-			{
-			    return factory.newEmbedCallableStatement(this, sql,
-											   setResultSetType(resultSetType),
-											   resultSetConcurrency,
-											   resultSetHoldability);
-			} 
-			finally 
-			{
-			    restoreContextStack();
-			}
-		}
-	}
+            try
+            {
+                return factory.newEmbedCallableStatement(this, sql,
+                                               setResultSetType(resultSetType),
+                                               resultSetConcurrency,
+                                               resultSetHoldability);
+            }
+            finally
+            {
+                restoreContextStack();
+            }
+        }
+    }
 
     /**
      * A driver may convert the JDBC sql grammar into its system's
@@ -1306,9 +1319,9 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public String nativeSQL(String sql) throws SQLException {
         checkIfClosed();
-		// we don't massage the strings at all, so this is easy:
-		return sql;
-	}
+        // we don't massage the strings at all, so this is easy:
+        return sql;
+    }
 
     /**
      * If a connection is in auto-commit mode, then all its SQL
@@ -1331,20 +1344,20 @@ public abstract class EmbedConnection implements EngineConnection
      * auto-commit.  
      * @exception SQLException if a database-access error occurs.
      */
-	public void setAutoCommit(boolean autoCommit) throws SQLException {
-		checkIfClosed();
+    public void setAutoCommit(boolean autoCommit) throws SQLException {
+        checkIfClosed();
 
-		// Is this a nested connection
-		if (rootConnection != this) {
-			if (autoCommit)
-				throw newSQLException(SQLState.NO_AUTO_COMMIT_ON);
-		}
+        // Is this a nested connection
+        if (rootConnection != this) {
+            if (autoCommit)
+                throw newSQLException(SQLState.NO_AUTO_COMMIT_ON);
+        }
 
-		if (this.autoCommit != autoCommit)
-			commit();
+        if (this.autoCommit != autoCommit)
+            commit();
 
-		this.autoCommit = autoCommit;
-	}
+        this.autoCommit = autoCommit;
+    }
 
     /**
      * Get the current auto-commit state.
@@ -1354,8 +1367,8 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public boolean getAutoCommit() throws SQLException {
         checkIfClosed();
-		return autoCommit;
-	}
+        return autoCommit;
+    }
 
     /**
      * Commit makes all changes made since the previous
@@ -1367,32 +1380,32 @@ public abstract class EmbedConnection implements EngineConnection
      * @see #setAutoCommit 
      */
     public void commit() throws SQLException {
-		synchronized (getConnectionSynchronization())
-		{
-			/*
-			** Note that the context stack is
-			** needed even for rollback & commit
-			*/
+        synchronized (getConnectionSynchronization())
+        {
+            /*
+            ** Note that the context stack is
+            ** needed even for rollback & commit
+            */
             setupContextStack();
 
-			try
-			{
-		    	getTR().commit();
-		    	clearLOBMapping();
+            try
+            {
+                getTR().commit();
+                clearLOBMapping();
                 InterruptStatus.restoreIntrFlagIfSeen(getLanguageConnection());
-			}
+            }
             catch (Throwable t)
-			{
-				throw handleException(t);
-			}
-			finally 
-			{
-				restoreContextStack();
-			}
+            {
+                throw handleException(t);
+            }
+            finally
+            {
+                restoreContextStack();
+            }
 
-			needCommit = false;
-		}
-	}
+            needCommit = false;
+        }
+    }
 
     /**
      * Rollback drops all changes made since the previous
@@ -1405,28 +1418,28 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public void rollback() throws SQLException {
 
-		synchronized (getConnectionSynchronization())
-		{
-			/*
-			** Note that the context stack is
-			** needed even for rollback & commit
-			*/
+        synchronized (getConnectionSynchronization())
+        {
+            /*
+            ** Note that the context stack is
+            ** needed even for rollback & commit
+            */
             setupContextStack();
-			try
-			{
-		    	getTR().rollback();
-		    	clearLOBMapping();
+            try
+            {
+                getTR().rollback();
+                clearLOBMapping();
                 InterruptStatus.restoreIntrFlagIfSeen(getLanguageConnection());
-			} catch (Throwable t) {
-				throw handleException(t);
-			}
-			finally 
-			{
-				restoreContextStack();
-			}
-			needCommit = false;
-		} 
-	}
+            } catch (Throwable t) {
+                throw handleException(t);
+            }
+            finally
+            {
+                restoreContextStack();
+            }
+            needCommit = false;
+        }
+    }
 
     /**
      * In some cases, it is desirable to immediately release a
@@ -1442,8 +1455,8 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public void close() throws SQLException {
         checkForTransactionInProgress();
-		close(exceptionClose);
-	}
+        close(exceptionClose);
+    }
 
     /**
      * Check if the transaction is active so that we cannot close down the
@@ -1464,61 +1477,61 @@ public abstract class EmbedConnection implements EngineConnection
         }
     }
 
-	// This inner close takes the exception and calls 
-	// the context manager to make the connection close.
-	// The exception must be a session severity exception.
-	//
-	// NOTE: This method is not part of JDBC specs.
-	//
+    // This inner close takes the exception and calls
+    // the context manager to make the connection close.
+    // The exception must be a session severity exception.
+    //
+    // NOTE: This method is not part of JDBC specs.
+    //
     protected void close(StandardException e) throws SQLException {
-		
-		synchronized(getConnectionSynchronization())
-		{
-			if (rootConnection == this)
-			{
-				/*
-				 * If it isn't active, it's already been closed.
-				 */
-				if (active || isAborting()) {
-					if (tr.isActive()) {
-						setupContextStack();
-						try {
-							tr.rollback();
+
+        synchronized(getConnectionSynchronization())
+        {
+            if (rootConnection == this)
+            {
+                /*
+                 * If it isn't active, it's already been closed.
+                 */
+                if (active || isAborting()) {
+                    if (tr.isActive()) {
+                        setupContextStack();
+                        try {
+                            tr.rollback();
                             InterruptStatus.
                                     restoreIntrFlagIfSeen(tr.getLcc());
-							
-							// Let go of lcc reference so it can be GC'ed after
-							// cleanupOnError, the tr will stay around until the
-							// rootConnection itself is GC'ed, which is dependent
-							// on how long the client program wants to hold on to
-							// the Connection object.
-							tr.clearLcc(); 
+
+                            // Let go of lcc reference so it can be GC'ed after
+                            // cleanupOnError, the tr will stay around until the
+                            // rootConnection itself is GC'ed, which is dependent
+                            // on how long the client program wants to hold on to
+                            // the Connection object.
+                            tr.clearLcc();
                             // DERBY-4856, assume database is not up
                             tr.cleanupOnError(e, false);
-							
-						} catch (Throwable t) {
-							throw handleException(t);
-						} finally {
-							restoreContextStack();
-						}
-					} else {
-						// DERBY-1947: If another connection has closed down
-						// the database, the transaction is not active, but
-						// the cleanup has not been done yet.
+
+                        } catch (Throwable t) {
+                            throw handleException(t);
+                        } finally {
+                            restoreContextStack();
+                        }
+                    } else {
+                        // DERBY-1947: If another connection has closed down
+                        // the database, the transaction is not active, but
+                        // the cleanup has not been done yet.
                         InterruptStatus.restoreIntrFlagIfSeen();
-						tr.clearLcc(); 
+                        tr.clearLcc();
                         // DERBY-4856, assume database is not up
                         tr.cleanupOnError(e, false);
-					}
-				}
-			}
+                    }
+                }
+            }
 
             aborting = false;
             
-			if (!isClosed())
-				setInactive();
-		}
-	}
+            if (!isClosed())
+                setInactive();
+        }
+    }
 
     /**
      * Tests to see if a Connection is closed.
@@ -1526,15 +1539,15 @@ public abstract class EmbedConnection implements EngineConnection
      * @return true if the connection is closed; false if it's still open
      */
     public final boolean isClosed() {
-		if (active) {
+        if (active) {
 
-			// I am attached, check the database state
-			if (getTR().isActive()) {
-				return false;
-			}
-		}
-		return true;
-	}
+            // I am attached, check the database state
+            if (getTR().isActive()) {
+                return false;
+            }
+        }
+        return true;
+    }
 
     /**
      * A Connection's database is able to provide information
@@ -1549,47 +1562,47 @@ public abstract class EmbedConnection implements EngineConnection
     public DatabaseMetaData getMetaData() throws SQLException {
         checkIfClosed();
 
-		if (dbMetadata == null) {
+        if (dbMetadata == null) {
 
- 			// There is a case where dbname can be null.
-			// Replication client of this method does not have a
-			// JDBC connection; therefore dbname is null and this
-			// is expected.
-			//
-			dbMetadata = factory.newEmbedDatabaseMetaData(this, getTR().getUrl());
-		}
-		return dbMetadata;
-	}
+             // There is a case where dbname can be null.
+            // Replication client of this method does not have a
+            // JDBC connection; therefore dbname is null and this
+            // is expected.
+            //
+            dbMetadata = factory.newEmbedDatabaseMetaData(this, getTR().getUrl());
+        }
+        return dbMetadata;
+    }
 
-	/**
-		JDBC 3.0
-	 * Retrieves the current holdability of ResultSet objects created using this
-	 * Connection object.
-	 *
-	 *
-	 * @return  The holdability, one of ResultSet.HOLD_CURSORS_OVER_COMMIT
-	 * or ResultSet.CLOSE_CURSORS_AT_COMMIT
-	 *
-	 */
-	public final int getHoldability() throws SQLException {
-		checkIfClosed();
-		return connectionHoldAbility;
-	}
+    /**
+        JDBC 3.0
+     * Retrieves the current holdability of ResultSet objects created using this
+     * Connection object.
+     *
+     *
+     * @return  The holdability, one of ResultSet.HOLD_CURSORS_OVER_COMMIT
+     * or ResultSet.CLOSE_CURSORS_AT_COMMIT
+     *
+     */
+    public final int getHoldability() throws SQLException {
+        checkIfClosed();
+        return connectionHoldAbility;
+    }
 
-	/**
-		JDBC 3.0
-	 * Changes the holdability of ResultSet objects created using this
-	 * Connection object to the given holdability.
-	 *
-	 *
-	 * @param holdability  A ResultSet holdability constant, one of ResultSet.HOLD_CURSORS_OVER_COMMIT
-	 * or ResultSet.CLOSE_CURSORS_AT_COMMIT
-	 *
-	 */
-	public final void setHoldability(int holdability) throws SQLException {
-		checkIfClosed();
-		connectionHoldAbility = holdability;
-	}
+    /**
+        JDBC 3.0
+     * Changes the holdability of ResultSet objects created using this
+     * Connection object to the given holdability.
+     *
+     *
+     * @param holdability  A ResultSet holdability constant, one of ResultSet.HOLD_CURSORS_OVER_COMMIT
+     * or ResultSet.CLOSE_CURSORS_AT_COMMIT
+     *
+     */
+    public final void setHoldability(int holdability) throws SQLException {
+        checkIfClosed();
+        connectionHoldAbility = holdability;
+    }
 
     /**
      * You can put a connection in read-only mode as a hint to enable 
@@ -1603,21 +1616,21 @@ public abstract class EmbedConnection implements EngineConnection
      * @exception SQLException if a database-access error occurs.
      */
     public final void setReadOnly(boolean readOnly) throws SQLException
-	{
-		synchronized(getConnectionSynchronization())
-		{
+    {
+        synchronized(getConnectionSynchronization())
+        {
                         setupContextStack();
-			try {
+            try {
                 LanguageConnectionContext lcc = getLanguageConnection();
                 lcc.setReadOnly(readOnly);
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
-			} catch (StandardException e) {
-				throw handleException(e);
-			} finally {
-				restoreContextStack();
-			}
-		}
-	}
+            } catch (StandardException e) {
+                throw handleException(e);
+            } finally {
+                restoreContextStack();
+            }
+        }
+    }
 
     /**
      * Tests to see if the connection is in read-only mode.
@@ -1626,14 +1639,14 @@ public abstract class EmbedConnection implements EngineConnection
      * @exception SQLException if a database-access error occurs.
      */
     public final boolean isReadOnly() throws SQLException
-	{
-		checkIfClosed();
-		try {
-			return getLanguageConnection().isReadOnly();
-		} catch (StandardException se) {
-			throw new SQLException(se);
-		}
-	}
+    {
+        checkIfClosed();
+        try {
+            return getLanguageConnection().isReadOnly();
+        } catch (StandardException se) {
+            throw new SQLException(se);
+        }
+    }
 
     /**
      * A sub-space of this Connection's database may be selected by setting a
@@ -1644,7 +1657,7 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public void setCatalog(String catalog) throws SQLException {
         checkIfClosed();
-		// silently ignoring this request like the javadoc said.
+        // silently ignoring this request like the javadoc said.
     }
 
     /**
@@ -1653,12 +1666,12 @@ public abstract class EmbedConnection implements EngineConnection
      * @return the current catalog name or null
      * @exception SQLException if a database-access error occurs.
      */
-	public String getCatalog() throws SQLException {
-		checkIfClosed();
-		// we do not have support for Catalog, just return null as
-		// the JDBC specs mentions then.
-		return null;
-	}
+    public String getCatalog() throws SQLException {
+        checkIfClosed();
+        // we do not have support for Catalog, just return null as
+        // the JDBC specs mentions then.
+        return null;
+    }
 
     /**
      * You can call this method to try to change the transaction
@@ -1677,46 +1690,46 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public void setTransactionIsolation(int level) throws SQLException {
 
-		if (level == getTransactionIsolation())
-			return;
+        if (level == getTransactionIsolation())
+            return;
 
-		// Convert the isolation level to the internal one
-		int iLevel;
-		switch (level)
-		{
-		case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
-			iLevel = ExecutionContext.READ_UNCOMMITTED_ISOLATION_LEVEL;
-			break;
+        // Convert the isolation level to the internal one
+        int iLevel;
+        switch (level)
+        {
+        case java.sql.Connection.TRANSACTION_READ_UNCOMMITTED:
+            iLevel = ExecutionContext.READ_UNCOMMITTED_ISOLATION_LEVEL;
+            break;
 
-		case java.sql.Connection.TRANSACTION_READ_COMMITTED:
-			iLevel = ExecutionContext.READ_COMMITTED_ISOLATION_LEVEL;
-			break;
+        case java.sql.Connection.TRANSACTION_READ_COMMITTED:
+            iLevel = ExecutionContext.READ_COMMITTED_ISOLATION_LEVEL;
+            break;
 
-		case java.sql.Connection.TRANSACTION_REPEATABLE_READ:
+        case java.sql.Connection.TRANSACTION_REPEATABLE_READ:
             iLevel = ExecutionContext.REPEATABLE_READ_ISOLATION_LEVEL;
             break;
 
-		case java.sql.Connection.TRANSACTION_SERIALIZABLE:
-			iLevel = ExecutionContext.SERIALIZABLE_ISOLATION_LEVEL;
-			break;
-		default:
-			throw newSQLException(SQLState.UNIMPLEMENTED_ISOLATION_LEVEL, level);
-		}
+        case java.sql.Connection.TRANSACTION_SERIALIZABLE:
+            iLevel = ExecutionContext.SERIALIZABLE_ISOLATION_LEVEL;
+            break;
+        default:
+            throw newSQLException(SQLState.UNIMPLEMENTED_ISOLATION_LEVEL, level);
+        }
 
-		synchronized(getConnectionSynchronization())
-		{
+        synchronized(getConnectionSynchronization())
+        {
             setupContextStack();
-			try {
+            try {
                 LanguageConnectionContext lcc = getLanguageConnection();
                 lcc.setIsolationLevel(iLevel);
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
-			} catch (StandardException e) {
-				throw handleException(e);
-			} finally {
-				restoreContextStack();
-			}
-		}
-	}
+            } catch (StandardException e) {
+                throw handleException(e);
+            } finally {
+                restoreContextStack();
+            }
+        }
+    }
 
 
     /**
@@ -1727,8 +1740,8 @@ public abstract class EmbedConnection implements EngineConnection
      */
     public final int getTransactionIsolation() throws SQLException {
         checkIfClosed();
-		return ExecutionContext.CS_TO_JDBC_ISOLATION_LEVEL_MAP[getLanguageConnection().getCurrentIsolationLevel()];
-	}
+        return ExecutionContext.CS_TO_JDBC_ISOLATION_LEVEL_MAP[getLanguageConnection().getCurrentIsolationLevel()];
+    }
 
     /**
      * The first warning reported by calls on this Connection is
@@ -1739,52 +1752,52 @@ public abstract class EmbedConnection implements EngineConnection
      *
      * @return the first SQLWarning or null 
      *
-	 * Synchronization note: Warnings are synchronized 
-	 * on nesting level
+     * Synchronization note: Warnings are synchronized
+     * on nesting level
      */
-	public final synchronized SQLWarning getWarnings() throws SQLException {
-		checkIfClosed();
-   		return topWarning;
-	}
+    public final synchronized SQLWarning getWarnings() throws SQLException {
+        checkIfClosed();
+           return topWarning;
+    }
 
     /**
      * After this call, getWarnings returns null until a new warning is
      * reported for this Connection.  
      *
-	 * Synchronization node: Warnings are synchonized 
-	 * on nesting level
+     * Synchronization node: Warnings are synchonized
+     * on nesting level
      */
     public final synchronized void clearWarnings() throws SQLException {
         checkIfClosed();
-		topWarning = null;
-	}
+        topWarning = null;
+    }
 
- 	/////////////////////////////////////////////////////////////////////////
-	//
-	//	JDBC 2.0	-	New public methods
-	//
-	/////////////////////////////////////////////////////////////////////////
+     /////////////////////////////////////////////////////////////////////////
+    //
+    //    JDBC 2.0    -    New public methods
+    //
+    /////////////////////////////////////////////////////////////////////////
 
     /**
      *
-	 * Get the type-map object associated with this connection.
-	 * By default, the map returned is empty.
-	 * JDBC 2.0 - java.util.Map requires JDK 1
+     * Get the type-map object associated with this connection.
+     * By default, the map returned is empty.
+     * JDBC 2.0 - java.util.Map requires JDK 1
      *
      */
     public java.util.Map getTypeMap() throws SQLException {
         checkIfClosed();
-		// just return an immuntable empty map
-		return java.util.Collections.EMPTY_MAP;
+        // just return an immuntable empty map
+        return java.util.Collections.EMPTY_MAP;
     }
 
     /** 
-	 * Install a type-map object as the default type-map for
-	 * this connection.
-	 * JDBC 2.0 - java.util.Map requires JDK 1
+     * Install a type-map object as the default type-map for
+     * this connection.
+     * JDBC 2.0 - java.util.Map requires JDK 1
      *
      * @exception SQLException Feature not implemented for now.
-	 */
+     */
     public final void setTypeMap(java.util.Map map) throws SQLException {
         checkIfClosed();
         if( map == null)
@@ -1794,48 +1807,48 @@ public abstract class EmbedConnection implements EngineConnection
             throw Util.notImplemented();
     }
 
-	/////////////////////////////////////////////////////////////////////////
-	//
-	//	Implementation specific methods	
-	//
-	/////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////
+    //
+    //    Implementation specific methods
+    //
+    /////////////////////////////////////////////////////////////////////////
 
-	/**
-		Add a warning to the current list of warnings, to follow
-		this note from Connection.getWarnings.
-		Note: Subsequent warnings will be chained to this SQLWarning. 
+    /**
+        Add a warning to the current list of warnings, to follow
+        this note from Connection.getWarnings.
+        Note: Subsequent warnings will be chained to this SQLWarning.
 
-		@see java.sql.Connection#getWarnings
-	*/
-	 public final synchronized void addWarning(SQLWarning newWarning) {
-		if (topWarning == null) {
-			topWarning = newWarning;
-			return;
-		}
+        @see java.sql.Connection#getWarnings
+    */
+     public final synchronized void addWarning(SQLWarning newWarning) {
+        if (topWarning == null) {
+            topWarning = newWarning;
+            return;
+        }
 
-		topWarning.setNextWarning(newWarning);
-	}
+        topWarning.setNextWarning(newWarning);
+    }
 
-	/**
-	 * Return the dbname for this connection.
-	 *
-	 * @return String	The dbname for this connection.
-	 */
-	public String getDBName()
-	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isClosed(), "connection is closed");
+    /**
+     * Return the dbname for this connection.
+     *
+     * @return String    The dbname for this connection.
+     */
+    public String getDBName()
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(!isClosed(), "connection is closed");
 
-		return getTR().getDBName();
-	}
+        return getTR().getDBName();
+    }
 
-	public final LanguageConnectionContext getLanguageConnection() {
+    public final LanguageConnectionContext getLanguageConnection() {
 
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isClosed() || isAborting(), "connection is closed");
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(!isClosed() || isAborting(), "connection is closed");
 
-		return getTR().getLcc();
-	}
+        return getTR().getLcc();
+    }
 
     /**
      * Raises an exception if the connection is closed.
@@ -1848,148 +1861,148 @@ public abstract class EmbedConnection implements EngineConnection
         }
     }
 
-	//EmbedConnection30 overrides this method so it can release the savepoints array if
-	//the exception severity is transaction level
-	SQLException handleException(Throwable thrownException)
-			throws SQLException
-	{
-		//assume in case of SQLException cleanup is 
-		//done already. This assumption is inline with
-		//TR's assumption. In case no rollback was 
-		//called lob objects will remain valid.
-		if (thrownException instanceof StandardException) {
-			if (((StandardException) thrownException)
-				.getSeverity() 
-				>= ExceptionSeverity.TRANSACTION_SEVERITY) {
-				clearLOBMapping();
-			}
-		}
+    //EmbedConnection30 overrides this method so it can release the savepoints array if
+    //the exception severity is transaction level
+    SQLException handleException(Throwable thrownException)
+            throws SQLException
+    {
+        //assume in case of SQLException cleanup is
+        //done already. This assumption is inline with
+        //TR's assumption. In case no rollback was
+        //called lob objects will remain valid.
+        if (thrownException instanceof StandardException) {
+            if (((StandardException) thrownException)
+                .getSeverity()
+                >= ExceptionSeverity.TRANSACTION_SEVERITY) {
+                clearLOBMapping();
+            }
+        }
 
-		/*
-		** By default, rollback the connection on if autocommit
-	 	** is on.
-		*/
-		return getTR().handleException(thrownException, 
-								  autoCommit,
-								  true // Rollback xact on auto commit
-								  );
-	}
+        /*
+        ** By default, rollback the connection on if autocommit
+         ** is on.
+        */
+        return getTR().handleException(thrownException,
+                                  autoCommit,
+                                  true // Rollback xact on auto commit
+                                  );
+    }
 
-	/**
-		Handle any type of Exception.
-		<UL>
-		<LI> Inform the contexts of the error
-		<LI> Throw an Util based upon the thrown exception.
-		</UL>
+    /**
+        Handle any type of Exception.
+        <UL>
+        <LI> Inform the contexts of the error
+        <LI> Throw an Util based upon the thrown exception.
+        </UL>
 
-		REMIND: now that we know all the exceptions from our driver
-		are Utils, would it make sense to shut down the system
-		for unknown SQLExceptions? At present, we do not.
+        REMIND: now that we know all the exceptions from our driver
+        are Utils, would it make sense to shut down the system
+        for unknown SQLExceptions? At present, we do not.
 
-		Because this is the last stop for exceptions,
-		it will catch anything that occurs in it and try
-		to cleanup before re-throwing them.
-	
-		@param thrownException the exception
-		@param rollbackOnAutoCommit rollback the xact on if autocommit is
-				on, otherwise rollback stmt but leave xact open (and
-				continue to hold on to locks).  Most of the time, this
-				will be true, excepting operations on result sets, like
-				getInt().
-	*/
-	final SQLException handleException(Throwable thrownException, 
-									   boolean rollbackOnAutoCommit) 
-			throws SQLException 
-	{
-		//assume in case of SQLException cleanup is 
-		//done already. This assumption is inline with
-		//TR's assumption. In case no rollback was 
-		//called lob objects will remain valid.
-		if (thrownException instanceof StandardException) {
-			if (((StandardException) thrownException)
-				.getSeverity() 
-				>= ExceptionSeverity.TRANSACTION_SEVERITY) {
-				clearLOBMapping();
-			}
-		}
-		return getTR().handleException(thrownException, autoCommit,
-								  rollbackOnAutoCommit); 
+        Because this is the last stop for exceptions,
+        it will catch anything that occurs in it and try
+        to cleanup before re-throwing them.
 
-	}
+        @param thrownException the exception
+        @param rollbackOnAutoCommit rollback the xact on if autocommit is
+                on, otherwise rollback stmt but leave xact open (and
+                continue to hold on to locks).  Most of the time, this
+                will be true, excepting operations on result sets, like
+                getInt().
+    */
+    final SQLException handleException(Throwable thrownException,
+                                       boolean rollbackOnAutoCommit)
+            throws SQLException
+    {
+        //assume in case of SQLException cleanup is
+        //done already. This assumption is inline with
+        //TR's assumption. In case no rollback was
+        //called lob objects will remain valid.
+        if (thrownException instanceof StandardException) {
+            if (((StandardException) thrownException)
+                .getSeverity()
+                >= ExceptionSeverity.TRANSACTION_SEVERITY) {
+                clearLOBMapping();
+            }
+        }
+        return getTR().handleException(thrownException, autoCommit,
+                                  rollbackOnAutoCommit);
 
-	/*
-	   This is called from the EmbedConnectionContext to
-	   close on errors.  We assume all handling of the connectin
-	   is dealt with via the context stack, and our only role
-	   is to mark ourself as closed.
-	 */
+    }
 
-	/**
-		Close the connection when processing errors, or when
-	 	closing a nested connection.
-		<p>
-		This only marks it as closed and frees up its resources;
-		any closing of the underlying connection or commit work
-		is assumed to be done elsewhere.
+    /*
+       This is called from the EmbedConnectionContext to
+       close on errors.  We assume all handling of the connectin
+       is dealt with via the context stack, and our only role
+       is to mark ourself as closed.
+     */
 
-		Called from EmbedConnectionContext's cleanup routine,	
-		and by proxy.close().
-	 */
+    /**
+        Close the connection when processing errors, or when
+         closing a nested connection.
+        <p>
+        This only marks it as closed and frees up its resources;
+        any closing of the underlying connection or commit work
+        is assumed to be done elsewhere.
 
-	public final void setInactive() {
+        Called from EmbedConnectionContext's cleanup routine,
+        and by proxy.close().
+     */
 
-		if (!active)
-			return;
-		// active = false
-		// tr = null !-> active = false
+    public final void setInactive() {
 
-		synchronized (getConnectionSynchronization()) {
-			active = false;
-			// tr = null; cleanupOnerror sets inactive but still needs tr to
-			// restore context later
-			dbMetadata = null;
-		}
-	}
+        if (!active)
+            return;
+        // active = false
+        // tr = null !-> active = false
 
-	/**
-		@exception Throwable	standard error policy
-	 */
-	protected void finalize() throws Throwable 
-	{
-		try {
-			// Only close root connections, since for nested
-			// connections, it is not strictly necessary and close()
-			// synchronizes on the root connection which can cause
-			// deadlock with the call to runFinalization from
-			// GenericPreparedStatement#prepareToInvalidate (see
-			// DERBY-1947) on SUN VMs.
-			if (rootConnection == this) {
-				close(exceptionClose);
-			}
-		}
-		finally {
-			super.finalize();
-		}
-	}
+        synchronized (getConnectionSynchronization()) {
+            active = false;
+            // tr = null; cleanupOnerror sets inactive but still needs tr to
+            // restore context later
+            dbMetadata = null;
+        }
+    }
 
-	/**
-	 * if auto commit is on, remember that we need to commit
-	 * the current statement.
-	 */
+    /**
+        @exception Throwable    standard error policy
+     */
+    protected void finalize() throws Throwable
+    {
+        try {
+            // Only close root connections, since for nested
+            // connections, it is not strictly necessary and close()
+            // synchronizes on the root connection which can cause
+            // deadlock with the call to runFinalization from
+            // GenericPreparedStatement#prepareToInvalidate (see
+            // DERBY-1947) on SUN VMs.
+            if (rootConnection == this) {
+                close(exceptionClose);
+            }
+        }
+        finally {
+            super.finalize();
+        }
+    }
+
+    /**
+     * if auto commit is on, remember that we need to commit
+     * the current statement.
+     */
     protected void needCommit() {
-		if (!needCommit) needCommit = true;
-	}
+        if (!needCommit) needCommit = true;
+    }
 
-	/**
-	 * if a commit is needed, perform it.
+    /**
+     * if a commit is needed, perform it.
      *
      * Must have connection synchonization and context set up already.
      *
-	 * @exception SQLException if commit returns error
-	 */
-	protected void commitIfNeeded() throws SQLException 
+     * @exception SQLException if commit returns error
+     */
+    protected void commitIfNeeded() throws SQLException
     {
-		if (autoCommit && needCommit) 
+        if (autoCommit && needCommit)
         {
             try
             {
@@ -2002,11 +2015,11 @@ public abstract class EmbedConnection implements EngineConnection
                 throw handleException(t);
             }
             needCommit = false;
-		}
-	}
+        }
+    }
 
-	/**
-	 * If in autocommit, then commit.
+    /**
+     * If in autocommit, then commit.
      * 
      * Used to force a commit after a result set closes in autocommit mode.
      * The needCommit mechanism does not work correctly as there are times
@@ -2018,11 +2031,11 @@ public abstract class EmbedConnection implements EngineConnection
      *
      * Must have connection synchonization and context set up already.
      *
-	 * @exception SQLException if commit returns error
-	 */
-	protected void commitIfAutoCommit() throws SQLException 
+     * @exception SQLException if commit returns error
+     */
+    protected void commitIfAutoCommit() throws SQLException
     {
-		if (autoCommit) 
+        if (autoCommit)
         {
             try
             {
@@ -2035,104 +2048,103 @@ public abstract class EmbedConnection implements EngineConnection
                 throw handleException(t);
             }
             needCommit = false;
-		}
-	}
+        }
+    }
 
 
-	final protected Object getConnectionSynchronization()
+    final protected Object getConnectionSynchronization()
   {
-		return rootConnection;
+        return rootConnection;
   }
 
-	/**
-		Install the context manager for this thread.  Check connection status here.
-	 	@exception SQLException if fails
-	 */
-	protected final void  setupContextStack() throws SQLException {
+    /**
+        Install the context manager for this thread.  Check connection status here.
+         @exception SQLException if fails
+     */
+    protected final void  setupContextStack() throws SQLException {
 
-		/*
-			Track this entry, then throw an exception
-			rather than doing the quiet return.  Need the
-			track before the throw because the backtrack
-			is in a finally block.
-		 */
+        /*
+            Track this entry, then throw an exception
+            rather than doing the quiet return.  Need the
+            track before the throw because the backtrack
+            is in a finally block.
+         */
 
-		if ( !isAborting()) { checkIfClosed(); }
+        if ( !isAborting()) { checkIfClosed(); }
 
-		getTR().setupContextStack();
+        getTR().setupContextStack();
 
-	}
+    }
 
-	protected final void restoreContextStack() throws SQLException {
+    protected final void restoreContextStack() throws SQLException {
 
-		if (SanityManager.DEBUG)
-		Util.ASSERT(this, (active) || getTR().getCsf() !=null, "No context service to do restore");
+        if (SanityManager.DEBUG)
+        Util.ASSERT(this, (active) || getTR().getCsf() !=null, "No context service to do restore");
 
-		TransactionResourceImpl tr = getTR();
+        TransactionResourceImpl tr = getTR();
 
-		//REMIND: someone is leaving an incorrect manager on when they
-		// are exiting the system in the nested case.
-//		if (SanityManager.DEBUG) {
-//			if (tr.getCsf() != null) {
-//				ContextManager cm1 = tr.getCsf().getCurrentContextManager();
-//				ContextManager cm2 = tr.getContextManager();
-//				// If the system has been shut down, cm1 can be null.
-//				// Otherwise, cm1 and cm2 should be identical.
-//				if (cm1 != cm2 && cm1 != null) {
-//					Util.ASSERT(this, (cm1 == cm2 || cm1 == null),
-//						"Current Context Manager not the one was expected: " +
-//						 cm1 + " " + cm2);
-//				}
-//			}
-//		}
+        //REMIND: someone is leaving an incorrect manager on when they
+        // are exiting the system in the nested case.
+//        if (SanityManager.DEBUG) {
+//            if (tr.getCsf() != null) {
+//                ContextManager cm1 = tr.getCsf().getCurrentContextManager();
+//                ContextManager cm2 = tr.getContextManager();
+//                // If the system has been shut down, cm1 can be null.
+//                // Otherwise, cm1 and cm2 should be identical.
+//                if (cm1 != cm2 && cm1 != null) {
+//                    Util.ASSERT(this, (cm1 == cm2 || cm1 == null),
+//                        "Current Context Manager not the one was expected: " +
+//                         cm1 + " " + cm2);
+//                }
+//            }
+//        }
 
-		tr.restoreContextStack();
-	}
+        tr.restoreContextStack();
+    }
 
-	/*
-	** Create database methods.
-	*/
+    /*
+    ** Create database methods.
+    */
 
-	/**
-		Create a new database.
-		@param dbname the database name
-		@param info the properties
+    /**
+        Create a new database.
+        @param dbname the database name
+        @param info the properties
 
-		@return	Database The newly created database or null.
+        @return    Database The newly created database or null.
 
-	 	@exception SQLException if fails to create database
-	*/
+         @exception SQLException if fails to create database
+    */
 
-	private Database createDatabase(String dbname, Properties info)
-		throws SQLException {
+    private InternalDatabase createDatabase(String dbname, Properties info)
+        throws SQLException {
 
-		info = filterProperties(info);
+        info = filterProperties(info);
 
-		// check for create database privileges
-		// DERBY-3495: uncomment to enable system privileges checks
-		//final String user = IdUtil.getUserNameFromURLProps(info);
-		//checkDatabaseCreatePrivileges(user, dbname);
+        // check for create database privileges
+        // DERBY-3495: uncomment to enable system privileges checks
+        //final String user = IdUtil.getUserNameFromURLProps(info);
+        //checkDatabaseCreatePrivileges(user, dbname);
+        try {
+            if (Monitor.createPersistentService(Property.DATABASE_MODULE, dbname, info) == null)
+            {
+                // service already exists, create a warning
+                addWarning(SQLWarningFactory.newSQLWarning(SQLState.DATABASE_EXISTS, dbname));
+            }
 
-		try {
-			if (Monitor.createPersistentService(Property.DATABASE_MODULE, dbname, info) == null) 
-			{
-				// service already exists, create a warning
-				addWarning(SQLWarningFactory.newSQLWarning(SQLState.DATABASE_EXISTS, dbname));
-			}
-
-		} catch (StandardException mse) {
+        } catch (StandardException mse) {
             throw Util.seeNextException(SQLState.CREATE_DATABASE_FAILED,
                                         new Object[] { dbname },
                                         handleException(mse));
-		}
+        }
 
-		// clear these values as some modules hang onto
-		// the properties set corresponding to service.properties
-		// and they shouldn't be interested in these JDBC attributes.
-		info.clear();
+        // clear these values as some modules hang onto
+        // the properties set corresponding to service.properties
+        // and they shouldn't be interested in these JDBC attributes.
+        info.clear();
 
-		return (Database) Monitor.findService(Property.DATABASE_MODULE, dbname);
-	}
+        return (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
+    }
 
     /**
      * Checks that a user has the system privileges to create a database.
@@ -2239,290 +2251,289 @@ public abstract class EmbedConnection implements EngineConnection
         return dbname; // the unmodified database name
     }
 
-	/**
-	 * Boot database.
-	 *
-	 * @param info boot properties
-	 *
-	 * @param softAuthenticationBoot If true, don't fail soft upgrade due
-	 * to missing features (phase one of two phased hard upgrade boot).
-	 *
-	 * @return false iff the monitor cannot handle a service
-	 * of the type indicated by the protocol within the name.
-	 * If that's the case then we are the wrong driver.
-	 *
-	 * @throws Throwable if anything else is wrong.
-	 */
+    /**
+     * Boot database.
+     *
+     * @param info boot properties
+     *
+     * @param softAuthenticationBoot If true, don't fail soft upgrade due
+     * to missing features (phase one of two phased hard upgrade boot).
+     *
+     * @return false iff the monitor cannot handle a service
+     * of the type indicated by the protocol within the name.
+     * If that's the case then we are the wrong driver.
+     *
+     * @throws Throwable if anything else is wrong.
+     */
 
-	private boolean bootDatabase(Properties info,
-								 boolean softAuthenticationBoot
-								 ) throws Throwable
-	{
-		String dbname = tr.getDBName();
+    private boolean bootDatabase(Properties info,
+                                 boolean softAuthenticationBoot
+                                 ) throws Throwable
+    {
+        String dbname = tr.getDBName();
 
-		// boot database now
-		try {
+        // boot database now
+        try {
+            info = filterProperties(info);
 
-			info = filterProperties(info);
+            String s = (String)info.get("isHBaseJVM");
+            isHBaseJVM.set(Boolean.parseBoolean(s));
 
-			String s = (String)info.get("isHBaseJVM");
-			isHBaseJVM.set(Boolean.parseBoolean(s));
+            if (softAuthenticationBoot) {
+                info.setProperty(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK,
+                                 "true");
+            } else {
+                info.remove(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK);
+            }
 
-			if (softAuthenticationBoot) {
-				info.setProperty(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK,
-								 "true");
-			} else {
-				info.remove(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK);
-			}
-			
-			// try to start the service if it doesn't already exist
-			if (!Monitor.startPersistentService(dbname, info)) {
-				// a false indicates the monitor cannot handle a service
-				// of the type indicated by the protocol within the name.
-				// If that's the case then we are the wrong driver
-				// so just return null.
-				return false;
-			}
+            // try to start the service if it doesn't already exist
+            if (!Monitor.startPersistentService(dbname, info)) {
+                // a false indicates the monitor cannot handle a service
+                // of the type indicated by the protocol within the name.
+                // If that's the case then we are the wrong driver
+                // so just return null.
+                return false;
+            }
 
-			// clear these values as some modules hang onto
-			// the properties set corresponding to service.properties
-			// and they shouldn't be interested in these JDBC attributes.
-			info.clear();
+            // clear these values as some modules hang onto
+            // the properties set corresponding to service.properties
+            // and they shouldn't be interested in these JDBC attributes.
+            info.clear();
 
-			Database database = (Database) Monitor.findService(Property.DATABASE_MODULE, dbname);
-			tr.setDatabase(database);
+            InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, dbname);
+            tr.setDatabase(database);
 
-		} catch (StandardException mse) {
+        } catch (StandardException mse) {
 
-			Throwable ne = mse.getCause();
-			SQLException nse;
+            Throwable ne = mse.getCause();
+            SQLException nse;
 
-			/*
-			  If there is a next exception, assume
-			  that the first one is just a redundant "see the
-			  next exception" message.
-			  if it is a BEI, treat it as a database exception.
-			  If there isn't a BEI, treat it as a java exception.
+            /*
+              If there is a next exception, assume
+              that the first one is just a redundant "see the
+              next exception" message.
+              if it is a BEI, treat it as a database exception.
+              If there isn't a BEI, treat it as a java exception.
 
-			  In general we probably want to walk the chain
-			  and return all of them, but empirically, this
-			  is all we need to do for now.
-			  */
-			if (ne instanceof StandardException)
-				nse = Util.generateCsSQLException((StandardException)ne);
-			else if (ne != null)
-				nse = Util.javaException(ne);
-			else
-				nse = Util.generateCsSQLException(mse);
+              In general we probably want to walk the chain
+              and return all of them, but empirically, this
+              is all we need to do for now.
+              */
+            if (ne instanceof StandardException)
+                nse = Util.generateCsSQLException((StandardException)ne);
+            else if (ne != null)
+                nse = Util.javaException(ne);
+            else
+                nse = Util.generateCsSQLException(mse);
 
             throw Util.seeNextException(SQLState.BOOT_DATABASE_FAILED,
                                         new Object[] { dbname, 
                                         (Object) this.getClass().getClassLoader() }, nse);
-		}
+        }
 
-		// If database exists, getDatabase() will return the database object.
-		// If any error occured while booting an existing database, an
-		// exception would have been thrown already.
-		return true;
+        // If database exists, getDatabase() will return the database object.
+        // If any error occured while booting an existing database, an
+        // exception would have been thrown already.
+        return true;
 
-	}
+    }
 
-	/*
-	 * Class interface methods used by database metadata to ensure
-	 * good relations with autocommit.
-	 */
+    /*
+     * Class interface methods used by database metadata to ensure
+     * good relations with autocommit.
+     */
 
     PreparedStatement prepareMetaDataStatement(String sql)
-	    throws SQLException {
-		synchronized (getConnectionSynchronization()) {
+        throws SQLException {
+        synchronized (getConnectionSynchronization()) {
                         setupContextStack();
-			PreparedStatement s = null;
-			try {
-			    s = factory.newEmbedPreparedStatement(this, sql, true,
-											  ResultSet.TYPE_FORWARD_ONLY,
-											  ResultSet.CONCUR_READ_ONLY,
-											  connectionHoldAbility,
-											  Statement.NO_GENERATED_KEYS,
-											  null,
-											  null);
-			} finally {
+            PreparedStatement s = null;
+            try {
+                s = factory.newEmbedPreparedStatement(this, sql, true,
+                                              ResultSet.TYPE_FORWARD_ONLY,
+                                              ResultSet.CONCUR_READ_ONLY,
+                                              connectionHoldAbility,
+                                              Statement.NO_GENERATED_KEYS,
+                                              null,
+                                              null);
+            } finally {
                 // Restore here, cf. comment in
                 // EmbedDatabaseMetaData#getPreparedQuery:
                 InterruptStatus.
                     restoreIntrFlagIfSeen(getLanguageConnection());
-			    restoreContextStack();
-			}
-			return s;
-		}
-	}
+                restoreContextStack();
+            }
+            return s;
+        }
+    }
 
-	public final InternalDriver getLocalDriver()
-	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isClosed(), "connection is closed");
+    public final InternalDriver getLocalDriver()
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(!isClosed(), "connection is closed");
 
-		return getTR().getDriver();
-	}
+        return getTR().getDriver();
+    }
 
-	/**
-		Return the context manager for this connection.
-	*/
-	public final ContextManager getContextManager() {
+    /**
+        Return the context manager for this connection.
+    */
+    public final ContextManager getContextManager() {
 
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isClosed(), "connection is closed");
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(!isClosed(), "connection is closed");
 
-		return getTR().getContextManager();
-	}
+        return getTR().getContextManager();
+    }
 
-	/**
-	 * Filter out properties from the passed in set of JDBC attributes
-	 * to remove any db.* properties. This is to ensure that setting
-	 * db.* properties does not work this way, it's not a defined way
-	 * to set such properties and could be a secuirty hole in allowing
-	 * remote connections to override system, application or database settings.
-	 * 
-	 * @return a new Properties set copied from the parameter but with no
-	 * db.* properties.
-	 */
-	private Properties filterProperties(Properties inputSet) {
-		Properties limited = new Properties();
+    /**
+     * Filter out properties from the passed in set of JDBC attributes
+     * to remove any db.* properties. This is to ensure that setting
+     * db.* properties does not work this way, it's not a defined way
+     * to set such properties and could be a secuirty hole in allowing
+     * remote connections to override system, application or database settings.
+     *
+     * @return a new Properties set copied from the parameter but with no
+     * db.* properties.
+     */
+    private Properties filterProperties(Properties inputSet) {
+        Properties limited = new Properties();
 
-		// filter out any db.* properties, only
-		// JDBC attributes can be set this way
-		for (java.util.Enumeration e = inputSet.propertyNames(); e.hasMoreElements(); ) {
+        // filter out any db.* properties, only
+        // JDBC attributes can be set this way
+        for (java.util.Enumeration e = inputSet.propertyNames(); e.hasMoreElements(); ) {
 
-			String key = (String) e.nextElement();
+            String key = (String) e.nextElement();
 
-			// we don't allow properties to be set this way
-			if (key.startsWith("derby."))
-				continue;
-			limited.put(key, inputSet.getProperty(key));
-		}
-		return limited;
-	}
+            // we don't allow properties to be set this way
+            if (key.startsWith("derby."))
+                continue;
+            limited.put(key, inputSet.getProperty(key));
+        }
+        return limited;
+    }
 
-	/*
-	** methods to be overridden by subimplementations wishing to insert
-	** their classes into the mix.
-	*/
+    /*
+    ** methods to be overridden by subimplementations wishing to insert
+    ** their classes into the mix.
+    */
 
-	protected Database getDatabase() 
-	{
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(!isClosed(), "connection is closed");
+    protected InternalDatabase getDatabase()
+    {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(!isClosed(), "connection is closed");
 
-		return getTR().getDatabase();
-	}
+        return getTR().getDatabase();
+    }
 
-	final protected TransactionResourceImpl getTR()
-	{
-		return rootConnection.tr;
-	}
+    final protected TransactionResourceImpl getTR()
+    {
+        return rootConnection.tr;
+    }
 
-	private EmbedConnectionContext pushConnectionContext(ContextManager cm) {
-		return new EmbedConnectionContext(cm, this);
-	}
+    private EmbedConnectionContext pushConnectionContext(ContextManager cm) {
+        return new EmbedConnectionContext(cm, this);
+    }
 
-	public final void setApplicationConnection(java.sql.Connection applicationConnection) {
-		this.applicationConnection = applicationConnection;
-	}
+    public final void setApplicationConnection(java.sql.Connection applicationConnection) {
+        this.applicationConnection = applicationConnection;
+    }
 
-	public final java.sql.Connection getApplicationConnection() {
-		return applicationConnection;
-	}
+    public final java.sql.Connection getApplicationConnection() {
+        return applicationConnection;
+    }
 
-	public void setDrdaID(String drdaID) {
-		getLanguageConnection().setDrdaID(drdaID);
-	}
+    public void setDrdaID(String drdaID) {
+        getLanguageConnection().setDrdaID(drdaID);
+    }
 
     /** @see EngineConnection#isInGlobalTransaction() */
     public boolean isInGlobalTransaction() {
-    	return false;
+        return false;
     }
 
-	/**
-		Reset the connection before it is returned from a PooledConnection
-		to a new application request (wrapped by a BrokeredConnection).
-		Examples of reset covered here is dropping session temporary tables
-		and reseting IDENTITY_VAL_LOCAL.
-		Most JDBC level reset is handled by calling standard java.sql.Connection
-		methods from EmbedPooledConnection.
-	 */
-	public void resetFromPool() throws SQLException {
-		synchronized (getConnectionSynchronization())
-		{
-			setupContextStack();
-			try {
+    /**
+        Reset the connection before it is returned from a PooledConnection
+        to a new application request (wrapped by a BrokeredConnection).
+        Examples of reset covered here is dropping session temporary tables
+        and reseting IDENTITY_VAL_LOCAL.
+        Most JDBC level reset is handled by calling standard java.sql.Connection
+        methods from EmbedPooledConnection.
+     */
+    public void resetFromPool() throws SQLException {
+        synchronized (getConnectionSynchronization())
+        {
+            setupContextStack();
+            try {
                 LanguageConnectionContext lcc = getLanguageConnection();
                 lcc.resetFromPool();
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
-			} catch (StandardException t) {
-				throw handleException(t);
-			}
-			finally
-			{
-				restoreContextStack();
-			}
-		}
-	}
+            } catch (StandardException t) {
+                throw handleException(t);
+            }
+            finally
+            {
+                restoreContextStack();
+            }
+        }
+    }
 
-	/*
-	** methods to be overridden by subimplementations wishing to insert
-	** their classes into the mix.
-	** The reason we need to override them is because we want to create a
-	** Local20/LocalStatment object (etc) rather than a Local/LocalStatment
-	** object (etc).
-	*/
+    /*
+    ** methods to be overridden by subimplementations wishing to insert
+    ** their classes into the mix.
+    ** The reason we need to override them is because we want to create a
+    ** Local20/LocalStatment object (etc) rather than a Local/LocalStatment
+    ** object (etc).
+    */
 
 
-	/*
-	** XA support
-	*/
+    /*
+    ** XA support
+    */
 
     /**
      * Do not use this method directly use XATransactionState.xa_prepare
      * instead because it also maintains/cancels the timout task which is
      * scheduled to cancel/rollback the global transaction.
      */
-	public final int xa_prepare() throws SQLException {
+    public final int xa_prepare() throws SQLException {
 
-		synchronized (getConnectionSynchronization())
-		{
+        synchronized (getConnectionSynchronization())
+        {
             setupContextStack();
-			try
-			{
+            try
+            {
                 LanguageConnectionContext lcc = getLanguageConnection();
-				XATransactionController tc = 
+                XATransactionController tc =
                     (XATransactionController)lcc.getTransactionExecute();
 
-				int ret = tc.xa_prepare();
+                int ret = tc.xa_prepare();
 
-				if (ret == XATransactionController.XA_RDONLY)
-				{
-					// On a prepare call, xa allows an optimization that if the
-					// transaction is read only, the RM can just go ahead and
-					// commit it.  So if store returns this read only status -
-					// meaning store has taken the liberty to commit already - we
-					// needs to turn around and call internalCommit (without
-					// committing the store again) to make sure the state is
-					// consistent.  Since the transaction is read only, there is
-					// probably not much that needs to be done.
+                if (ret == XATransactionController.XA_RDONLY)
+                {
+                    // On a prepare call, xa allows an optimization that if the
+                    // transaction is read only, the RM can just go ahead and
+                    // commit it.  So if store returns this read only status -
+                    // meaning store has taken the liberty to commit already - we
+                    // needs to turn around and call internalCommit (without
+                    // committing the store again) to make sure the state is
+                    // consistent.  Since the transaction is read only, there is
+                    // probably not much that needs to be done.
 
                     lcc.internalCommit(false /* don't commitStore again */);
-				}
+                }
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
-				return ret;
-			} catch (StandardException t)
-			{
-				throw handleException(t);
-			}
-			finally
-			{
-				restoreContextStack();
-			}
-		}
-	}
+                return ret;
+            } catch (StandardException t)
+            {
+                throw handleException(t);
+            }
+            finally
+            {
+                restoreContextStack();
+            }
+        }
+    }
 
 
     /**
@@ -2530,26 +2541,26 @@ public abstract class EmbedConnection implements EngineConnection
      * instead because it also maintains/cancels the timout task which is
      * scheduled to cancel/rollback the global transaction.
      */
-	public final void xa_commit(boolean onePhase) throws SQLException {
+    public final void xa_commit(boolean onePhase) throws SQLException {
 
-		synchronized (getConnectionSynchronization())
-		{
+        synchronized (getConnectionSynchronization())
+        {
             setupContextStack();
-			try
-			{
+            try
+            {
                 LanguageConnectionContext lcc = getLanguageConnection();
                 lcc.xaCommit(onePhase);
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
-			} catch (StandardException t)
-			{
-				throw handleException(t);
-			}
-			finally 
-			{
-				restoreContextStack();
-			}
-		}
-	}
+            } catch (StandardException t)
+            {
+                throw handleException(t);
+            }
+            finally
+            {
+                restoreContextStack();
+            }
+        }
+    }
 
 
     /**
@@ -2557,129 +2568,129 @@ public abstract class EmbedConnection implements EngineConnection
      * instead because it also maintains/cancels the timout task which is
      * scheduled to cancel/rollback the global transaction.
      */
-	public final void xa_rollback() throws SQLException {
-		synchronized (getConnectionSynchronization())
-		{
+    public final void xa_rollback() throws SQLException {
+        synchronized (getConnectionSynchronization())
+        {
             setupContextStack();
-			try
-			{
+            try
+            {
                 LanguageConnectionContext lcc = getLanguageConnection();
                 lcc.xaRollback();
                 InterruptStatus.restoreIntrFlagIfSeen(lcc);
-			} catch (StandardException t)
-			{
-				throw handleException(t);
-			}
-			finally 
-			{
-				restoreContextStack();
-			}
-		}
-	}
+            } catch (StandardException t)
+            {
+                throw handleException(t);
+            }
+            finally
+            {
+                restoreContextStack();
+            }
+        }
+    }
 
 
-	/**
-	 * returns false if there is an underlying transaction and that transaction
-	 * has done work.  True if there is no underlying transaction or that
-	 * underlying transaction is idle
-	 */
-	public final boolean transactionIsIdle()
-	{
-		return getTR().isIdle();
-	}
-	private int setResultSetType(int resultSetType) {
+    /**
+     * returns false if there is an underlying transaction and that transaction
+     * has done work.  True if there is no underlying transaction or that
+     * underlying transaction is idle
+     */
+    public final boolean transactionIsIdle()
+    {
+        return getTR().isIdle();
+    }
+    private int setResultSetType(int resultSetType) {
 
-		/* Add warning if scroll sensitive cursor
-		 * and downgrade to scroll insensitive cursor.
-		 */
-		if (resultSetType == ResultSet.TYPE_SCROLL_SENSITIVE)
-		{
-			addWarning(SQLWarningFactory.newSQLWarning(SQLState.NO_SCROLL_SENSITIVE_CURSORS));
-			resultSetType = ResultSet.TYPE_SCROLL_INSENSITIVE;
-		}
-		return resultSetType;
-	}
-	
+        /* Add warning if scroll sensitive cursor
+         * and downgrade to scroll insensitive cursor.
+         */
+        if (resultSetType == ResultSet.TYPE_SCROLL_SENSITIVE)
+        {
+            addWarning(SQLWarningFactory.newSQLWarning(SQLState.NO_SCROLL_SENSITIVE_CURSORS));
+            resultSetType = ResultSet.TYPE_SCROLL_INSENSITIVE;
+        }
+        return resultSetType;
+    }
 
-	/** 
-	 * Set the transaction isolation level that will be used for the 
-	 * next prepare.  Used by network server to implement DB2 style 
-	 * isolation levels.
-	 * @param level Isolation level to change to.  level is the DB2 level
-	 *               specified in the package names which happen to correspond
-	 *               to our internal levels. If 
-	 *               level == ExecutionContext.UNSPECIFIED_ISOLATION,
-	 *               the statement won't be prepared with an isolation level.
-	 * 
-	 * 
-	 */
-	public void setPrepareIsolation(int level) throws SQLException
-	{
-		if (level == getPrepareIsolation())
-			return;
 
-		switch (level)
-		{
-			case ExecutionContext.READ_UNCOMMITTED_ISOLATION_LEVEL:
-			case ExecutionContext.REPEATABLE_READ_ISOLATION_LEVEL:
-			case ExecutionContext.READ_COMMITTED_ISOLATION_LEVEL:
-			case ExecutionContext.SERIALIZABLE_ISOLATION_LEVEL:
-			case ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL:
-				break;
-			default:
-				throw Util.generateCsSQLException(
-															   SQLState.UNIMPLEMENTED_ISOLATION_LEVEL, level);
-		}
-		
-		synchronized(getConnectionSynchronization())
-		{
-			getLanguageConnection().setPrepareIsolationLevel(level);
-		}
-	}
+    /**
+     * Set the transaction isolation level that will be used for the
+     * next prepare.  Used by network server to implement DB2 style
+     * isolation levels.
+     * @param level Isolation level to change to.  level is the DB2 level
+     *               specified in the package names which happen to correspond
+     *               to our internal levels. If
+     *               level == ExecutionContext.UNSPECIFIED_ISOLATION,
+     *               the statement won't be prepared with an isolation level.
+     *
+     *
+     */
+    public void setPrepareIsolation(int level) throws SQLException
+    {
+        if (level == getPrepareIsolation())
+            return;
 
-	/**
-	 * Return prepare isolation 
-	 */
-	public int getPrepareIsolation()
-	{
-		return getLanguageConnection().getPrepareIsolationLevel();
-	}
+        switch (level)
+        {
+            case ExecutionContext.READ_UNCOMMITTED_ISOLATION_LEVEL:
+            case ExecutionContext.REPEATABLE_READ_ISOLATION_LEVEL:
+            case ExecutionContext.READ_COMMITTED_ISOLATION_LEVEL:
+            case ExecutionContext.SERIALIZABLE_ISOLATION_LEVEL:
+            case ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL:
+                break;
+            default:
+                throw Util.generateCsSQLException(
+                                                               SQLState.UNIMPLEMENTED_ISOLATION_LEVEL, level);
+        }
 
-	/**
-		Return a unique order number for a result set.
-		A unique value is only needed if the result set is
-		being created within procedure and thus must be using
-		a nested connection.
-	*/
-	final int getResultSetOrderId() {
+        synchronized(getConnectionSynchronization())
+        {
+            getLanguageConnection().setPrepareIsolationLevel(level);
+        }
+    }
 
-		if (this == rootConnection) {
-			return 0;
-		} else {
-			return rootConnection.resultSetId++;
-		}
-	}
+    /**
+     * Return prepare isolation
+     */
+    public int getPrepareIsolation()
+    {
+        return getLanguageConnection().getPrepareIsolationLevel();
+    }
+
+    /**
+        Return a unique order number for a result set.
+        A unique value is only needed if the result set is
+        being created within procedure and thus must be using
+        a nested connection.
+    */
+    final int getResultSetOrderId() {
+
+        if (this == rootConnection) {
+            return 0;
+        } else {
+            return rootConnection.resultSetId++;
+        }
+    }
 
     /** Get the exception factory for this connection. */
     public ExceptionFactory getExceptionFactory() {
         return Util.getExceptionFactory();
     }
 
-	protected SQLException newSQLException(String messageId) {
-		return Util.generateCsSQLException(messageId);
-	}
-	protected SQLException newSQLException(String messageId, Object arg1) {
-		return Util.generateCsSQLException(messageId, arg1);
-	}
-	protected SQLException newSQLException(String messageId, Object arg1, Object arg2) {
-		return Util.generateCsSQLException(messageId, arg1, arg2);
-	}
+    protected SQLException newSQLException(String messageId) {
+        return Util.generateCsSQLException(messageId);
+    }
+    protected SQLException newSQLException(String messageId, Object arg1) {
+        return Util.generateCsSQLException(messageId, arg1);
+    }
+    protected SQLException newSQLException(String messageId, Object arg1, Object arg2) {
+        return Util.generateCsSQLException(messageId, arg1, arg2);
+    }
 
-	/////////////////////////////////////////////////////////////////////////
-	//
-	//	OBJECT OVERLOADS
-	//
-	/////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////
+    //
+    //    OBJECT OVERLOADS
+    //
+    /////////////////////////////////////////////////////////////////////////
 
     /**
      * Get a String representation that uniquely identifies
@@ -2704,111 +2715,111 @@ public abstract class EmbedConnection implements EngineConnection
 
             connString = 
               this.getClass().getName() + "@" + this.hashCode() + " " +
-					  LanguageConnectionContext.xidStr +
+                      LanguageConnectionContext.xidStr +
                     lcc.getTransactionExecute().getTransactionIdString() + 
                     "), " +
-					  LanguageConnectionContext.lccStr +
+                      LanguageConnectionContext.lccStr +
                     Integer.toString(lcc.getInstanceNumber()) + "), " +
-					  LanguageConnectionContext.dbnameStr + lcc.getDbname() + "), " +
-					  LanguageConnectionContext.drdaStr + lcc.getDrdaID() + ") ";
+                      LanguageConnectionContext.dbnameStr + lcc.getDbname() + "), " +
+                      LanguageConnectionContext.drdaStr + lcc.getDrdaID() + ") ";
         }       
         
         return connString;
     }
 
 
-	/**
-	*
-	* Constructs an object that implements the <code>Clob</code> interface. The object
-	* returned initially contains no data.  The <code>setAsciiStream</code>,
-	* <code>setCharacterStream</code> and <code>setString</code> methods of
-	* the <code>Clob</code> interface may be used to add data to the <code>Clob</code>.
-	*
-	* @return An object that implements the <code>Clob</code> interface
-	* @throws SQLException if an object that implements the
-	* <code>Clob</code> interface can not be constructed, this method is
-	* called on a closed connection or a database access error occurs.
-	*
-	*/
-	public Clob createClob() throws SQLException {
-		checkIfClosed();
-		return new EmbedClob(this);
-	}
+    /**
+    *
+    * Constructs an object that implements the <code>Clob</code> interface. The object
+    * returned initially contains no data.  The <code>setAsciiStream</code>,
+    * <code>setCharacterStream</code> and <code>setString</code> methods of
+    * the <code>Clob</code> interface may be used to add data to the <code>Clob</code>.
+    *
+    * @return An object that implements the <code>Clob</code> interface
+    * @throws SQLException if an object that implements the
+    * <code>Clob</code> interface can not be constructed, this method is
+    * called on a closed connection or a database access error occurs.
+    *
+    */
+    public Clob createClob() throws SQLException {
+        checkIfClosed();
+        return new EmbedClob(this);
+    }
 
-	/**
-	*
-	* Constructs an object that implements the <code>Blob</code> interface. The object
-	* returned initially contains no data.  The <code>setBinaryStream</code> and
-	* <code>setBytes</code> methods of the <code>Blob</code> interface may be used to add data to
-	* the <code>Blob</code>.
-	*
-	* @return  An object that implements the <code>Blob</code> interface
-	* @throws SQLException if an object that implements the
-	* <code>Blob</code> interface can not be constructed, this method is
-	* called on a closed connection or a database access error occurs.
-	*
-	*/
-	public Blob createBlob() throws SQLException {
-		checkIfClosed();
-		return new EmbedBlob(new byte[0], this);
-	}
+    /**
+    *
+    * Constructs an object that implements the <code>Blob</code> interface. The object
+    * returned initially contains no data.  The <code>setBinaryStream</code> and
+    * <code>setBytes</code> methods of the <code>Blob</code> interface may be used to add data to
+    * the <code>Blob</code>.
+    *
+    * @return  An object that implements the <code>Blob</code> interface
+    * @throws SQLException if an object that implements the
+    * <code>Blob</code> interface can not be constructed, this method is
+    * called on a closed connection or a database access error occurs.
+    *
+    */
+    public Blob createBlob() throws SQLException {
+        checkIfClosed();
+        return new EmbedBlob(new byte[0], this);
+    }
 
-	/**
-	* Add the locator and the corresponding LOB object into the
-	* HashMap
-	*
-	* @param LOBReference The object which contains the LOB object that
-	*                     that is added to the HashMap.
-	* @return an integer that represents the locator that has been
-	*         allocated to this LOB.
-	*/
-	public int addLOBMapping(Object LOBReference) {
-		int loc = getIncLOBKey();
-		getlobHMObj().put(loc, LOBReference);
-		return loc;
-	}
+    /**
+    * Add the locator and the corresponding LOB object into the
+    * HashMap
+    *
+    * @param LOBReference The object which contains the LOB object that
+    *                     that is added to the HashMap.
+    * @return an integer that represents the locator that has been
+    *         allocated to this LOB.
+    */
+    public int addLOBMapping(Object LOBReference) {
+        int loc = getIncLOBKey();
+        getlobHMObj().put(loc, LOBReference);
+        return loc;
+    }
 
-	/**
-	* Remove the key(LOCATOR) from the hash table.
-	* @param key an integer that represents the locator that needs to be
-	*            removed from the table.
-	*/
-	public void removeLOBMapping(int key) {
-		getlobHMObj().remove(key);
-	}
+    /**
+    * Remove the key(LOCATOR) from the hash table.
+    * @param key an integer that represents the locator that needs to be
+    *            removed from the table.
+    */
+    public void removeLOBMapping(int key) {
+        getlobHMObj().remove(key);
+    }
 
-	/**
-	* Get the LOB reference corresponding to the locator.
-	* @param key the integer that represents the LOB locator value.
-	* @return the LOB Object corresponding to this locator.
-	*/
-	public Object getLOBMapping(int key) {
-		return getlobHMObj().get(key);
-	}
+    /**
+    * Get the LOB reference corresponding to the locator.
+    * @param key the integer that represents the LOB locator value.
+    * @return the LOB Object corresponding to this locator.
+    */
+    public Object getLOBMapping(int key) {
+        return getlobHMObj().get(key);
+    }
 
-	/**
-	* Clear the HashMap of all entries.
-	* Called when a commit or rollback of the transaction
-	* happens.
-	*/
-	public void clearLOBMapping() throws SQLException {
+    /**
+    * Clear the HashMap of all entries.
+    * Called when a commit or rollback of the transaction
+    * happens.
+    */
+    public void clearLOBMapping() throws SQLException {
 
-		//free all the lob resources in the HashMap
-		Map map = rootConnection.lobReferences;
-		if (map != null) {
+        //free all the lob resources in the HashMap
+        Map map = rootConnection.lobReferences;
+        if (map != null) {
             for (Object o : map.keySet()) {
                 ((EngineLOB) o).free();
             }
-			map.clear();
-		}
+            map.clear();
+        }
         if (rootConnection.lobHashMap != null) {
             rootConnection.lobHashMap.clear ();
         }
-		
-		synchronized (this) {   
+
+        synchronized (this) {
             // Try a bit harder to close all open files, as open file handles
             // can cause problems further down the road.
-			if (lobFiles != null) {       
+            if (lobFiles != null) {
                 SQLException firstException = null;
                 for (Object lobFile : lobFiles) {
                     try {
@@ -2824,18 +2835,18 @@ public abstract class EmbedConnection implements EngineConnection
                 if (firstException != null) {
                     throw firstException;
                 }
-			}
-		}
-	}
+            }
+        }
+    }
 
-	/**
-	* Return the current locator value/
+    /**
+    * Return the current locator value/
         * 0x800x values are not  valid values as they are used to indicate the BLOB 
         * is being sent by value, so we skip those values (DERBY-3243)
         * 
-	* @return an integer that represents the most recent locator value.
-	*/
-	private int getIncLOBKey() {
+    * @return an integer that represents the most recent locator value.
+    */
+    private int getIncLOBKey() {
                 int newKey = ++rootConnection.lobHMKey;
                 // Skip 0x8000, 0x8002, 0x8004, 0x8006, for DERBY-3243
                 // Earlier versions of the Derby Network Server (<10.3) didn't
@@ -2854,7 +2865,7 @@ public abstract class EmbedConnection implements EngineConnection
                 if (newKey == 0x80000000 || newKey == 0)
                     newKey = rootConnection.lobHMKey = 1;
                 return newKey;
-	}
+    }
 
     /**
      * Adds an entry of the lob in WeakHashMap. These entries are used
@@ -2868,16 +2879,16 @@ public abstract class EmbedConnection implements EngineConnection
         rootConnection.lobReferences.put (lobReference, null);
     }
 
-	/**
-	* Return the Hash Map in the root connection
-	* @return the HashMap that contains the locator to LOB object mapping
-	*/
-	private HashMap getlobHMObj() {
-		if (rootConnection.lobHashMap == null) {
-			rootConnection.lobHashMap = new HashMap();
-		}
-		return rootConnection.lobHashMap;
-	}
+    /**
+    * Return the Hash Map in the root connection
+    * @return the HashMap that contains the locator to LOB object mapping
+    */
+    private HashMap getlobHMObj() {
+        if (rootConnection.lobHashMap == null) {
+            rootConnection.lobHashMap = new HashMap();
+        }
+        return rootConnection.lobHashMap;
+    }
 
     /** Cancels the current running statement. */
     public void cancelRunningStatement() {
@@ -2896,30 +2907,30 @@ public abstract class EmbedConnection implements EngineConnection
     }
     
     
-	/**
-	 * Add a temporary lob file to the lobFiles set.
-	 * This will get closed at transaction end or removed as the lob is freed.
-	 * @param lobFile  LOBFile to add
-	 */
-	void addLobFile(LOBFile lobFile) {
-		synchronized (this) {
-			if (lobFiles == null)
-				lobFiles = new HashSet();
-			lobFiles.add(lobFile);
-		}
-	}
+    /**
+     * Add a temporary lob file to the lobFiles set.
+     * This will get closed at transaction end or removed as the lob is freed.
+     * @param lobFile  LOBFile to add
+     */
+    void addLobFile(LOBFile lobFile) {
+        synchronized (this) {
+            if (lobFiles == null)
+                lobFiles = new HashSet();
+            lobFiles.add(lobFile);
+        }
+    }
     
-	/**
-	 * Remove LOBFile from the lobFiles set. This will occur when the lob 
-	 * is freed or at transaction end if the lobFile was removed from the 
-	 * WeakHashMap but not finalized.
-	 * @param lobFile  LOBFile to remove.
-	 */
-	void removeLobFile(LOBFile lobFile) {
-		synchronized (this) {
-			lobFiles.remove(lobFile);
-		}
-	}
+    /**
+     * Remove LOBFile from the lobFiles set. This will occur when the lob
+     * is freed or at transaction end if the lobFile was removed from the
+     * WeakHashMap but not finalized.
+     * @param lobFile  LOBFile to remove.
+     */
+    void removeLobFile(LOBFile lobFile) {
+        synchronized (this) {
+            lobFiles.remove(lobFile);
+        }
+    }
 
     /** Return true if the connection is aborting */
     public  boolean isAborting() { return aborting; }
@@ -2941,27 +2952,27 @@ public abstract class EmbedConnection implements EngineConnection
      * Get the name of the current schema.
      */
     public String   getSchema() throws SQLException
-	{
-		checkIfClosed();
+    {
+        checkIfClosed();
 
-		synchronized(getConnectionSynchronization())
-		{
+        synchronized(getConnectionSynchronization())
+        {
             setupContextStack();
-			try {
+            try {
                 LanguageConnectionContext lcc = getLanguageConnection();
                 return lcc.getCurrentSchemaName();
-			} finally {
-				restoreContextStack();
-			}
-		}
-	}
+            } finally {
+                restoreContextStack();
+            }
+        }
+    }
 
     /**
      * Set the default schema for the Connection.
      */
     public void   setSchema(  String schemaName ) throws SQLException
-	{
-		checkIfClosed();
+    {
+        checkIfClosed();
 
         PreparedStatement   ps = null;
 
@@ -2974,13 +2985,13 @@ public abstract class EmbedConnection implements EngineConnection
         {
             if ( ps != null ) { ps.close(); }
         }
-	}
+    }
 
-	// Indicate whether the client whose connection this is
-	// supports reading of decimals with 38 digits of precision.
-	public void setClientSupportsDecimal38(boolean newVal) {
-    	    TransactionResourceImpl tr = getTR();
-	    if (tr != null)
-	        tr.setClientSupportsDecimal38(newVal);
-    	}
+    // Indicate whether the client whose connection this is
+    // supports reading of decimals with 38 digits of precision.
+    public void setClientSupportsDecimal38(boolean newVal) {
+            TransactionResourceImpl tr = getTR();
+        if (tr != null)
+            tr.setClientSupportsDecimal38(newVal);
+        }
 }

@@ -49,132 +49,133 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.catalog.UUID;
 
 /**
- *	This class describes actions that are ALWAYS performed for a
- *	CREATE SCHEMA Statement at Execution time.
+ *    This class describes actions that are ALWAYS performed for a
+ *    CREATE SCHEMA Statement at Execution time.
  *
  */
 
 class CreateSchemaConstantAction extends DDLConstantAction
 {
 
-	private final String					aid;	// authorization id
-	private final String					schemaName;
-	
-
-	// CONSTRUCTORS
-
-	/**
-	 * Make the ConstantAction for a CREATE SCHEMA statement.
-	 * When executed, will set the default schema to the
-	 * new schema if the setToDefault parameter is set to
-	 * true.
-	 *
-	 *  @param schemaName	Name of table.
-	 *  @param aid			Authorizaton id
-	 */
-	CreateSchemaConstantAction(
-								String			schemaName,
-								String			aid)
-	{
-		this.schemaName = schemaName;
-		this.aid = aid;
-	}
-
-	///////////////////////////////////////////////
-	//
-	// OBJECT SHADOWS
-	//
-	///////////////////////////////////////////////
-
-	public	String	toString()
-	{
-		// Do not put this under SanityManager.DEBUG - it is needed for
-		// error reporting.
-		return "CREATE SCHEMA " + schemaName;
-	}
-
-	// INTERFACE METHODS
+    private final String                    aid;    // authorization id
+    private final String                    schemaName;
 
 
-	/**
-	 *	This is the guts of the Execution-time logic for CREATE SCHEMA.
-	 *
-	 *	@see ConstantAction#executeConstantAction
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public void	executeConstantAction( Activation activation )
-						throws StandardException
-	{
-		TransactionController tc = activation.
-			getLanguageConnectionContext().getTransactionExecute();
+    // CONSTRUCTORS
 
-		executeConstantActionMinion(activation, tc);
-	}
+    /**
+     * Make the ConstantAction for a CREATE SCHEMA statement.
+     * When executed, will set the default schema to the
+     * new schema if the setToDefault parameter is set to
+     * true.
+     *
+     *  @param schemaName    Name of table.
+     *  @param aid            Authorizaton id
+     */
+    CreateSchemaConstantAction(
+                                String            schemaName,
+                                String            aid)
+    {
+        this.schemaName = schemaName;
+        this.aid = aid;
+    }
 
-	/**
-	 *	This is the guts of the Execution-time logic for CREATE SCHEMA.
-	 *  This is variant is used when we to pass in a tc other than the default
-	 *  used in executeConstantAction(Activation).
-	 *
-	 * @param activation current activation
-	 * @param tc transaction controller
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public void	executeConstantAction(Activation activation,
-									  TransactionController tc)
-			throws StandardException {
+    ///////////////////////////////////////////////
+    //
+    // OBJECT SHADOWS
+    //
+    ///////////////////////////////////////////////
 
-		executeConstantActionMinion(activation, tc);
-	}
+    public    String    toString()
+    {
+        // Do not put this under SanityManager.DEBUG - it is needed for
+        // error reporting.
+        return "CREATE SCHEMA " + schemaName;
+    }
 
-	private void executeConstantActionMinion(Activation activation,
-											 TransactionController tc)
-			throws StandardException {
+    // INTERFACE METHODS
 
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+    /**
+     *    This is the guts of the Execution-time logic for CREATE SCHEMA.
+     *
+     *    @see ConstantAction#executeConstantAction
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public void    executeConstantAction( Activation activation )
+                        throws StandardException
+    {
+        TransactionController tc = activation.
+            getLanguageConnectionContext().getTransactionExecute();
 
-		//if the schema descriptor is an in-memory schema, we donot throw schema already exists exception for it.
-		//This is to handle in-memory SESSION schema for temp tables
-		if ((sd != null) && (sd.getUUID() != null))
-		{
-			throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS, "Schema" , schemaName);
-		}
+        executeConstantActionMinion(activation, tc);
+    }
 
-		UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
+    /**
+     *    This is the guts of the Execution-time logic for CREATE SCHEMA.
+     *  This is variant is used when we to pass in a tc other than the default
+     *  used in executeConstantAction(Activation).
+     *
+     * @param activation current activation
+     * @param tc transaction controller
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public void    executeConstantAction(Activation activation,
+                                      TransactionController tc)
+            throws StandardException {
 
-		/*
-		** AID defaults to connection authorization if not
-		** specified in CREATE SCHEMA (if we had module
-	 	** authorizations, that would be the first check
-		** for default, then session aid).
-		*/
-		String thisAid = aid;
-		if (thisAid == null)
-		{
+        executeConstantActionMinion(activation, tc);
+    }
+
+    private void executeConstantActionMinion(Activation activation,
+                                             TransactionController tc)
+            throws StandardException {
+
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+
+        //if the schema descriptor is an in-memory schema, we donot throw schema already exists exception for it.
+        //This is to handle in-memory SESSION schema for temp tables
+        if ((sd != null) && (sd.getUUID() != null))
+        {
+            throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS, "Schema" , schemaName);
+        }
+
+        UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
+
+        /*
+        ** AID defaults to connection authorization if not
+        ** specified in CREATE SCHEMA (if we had module
+         ** authorizations, that would be the first check
+        ** for default, then session aid).
+        */
+        String thisAid = aid;
+        if (thisAid == null)
+        {
             thisAid = lcc.getCurrentUserId(activation);
-		}
+        }
 
-		/*
-		** Inform the data dictionary that we are about to write to it.
-		** There are several calls to data dictionary "get" methods here
-		** that might be done in "read" mode in the data dictionary, but
-		** it seemed safer to do this whole operation in "write" mode.
-		**
-		** We tell the data dictionary we're done writing at the end of
-		** the transaction.
-		*/
-		dd.startWriting(lcc);
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
+        dd.startWriting(lcc);
 
-		sd = ddg.newSchemaDescriptor(schemaName,
-									thisAid,
-									tmpSchemaId);
+        sd = ddg.newSchemaDescriptor(schemaName,
+                                    thisAid,
+                                    tmpSchemaId,
+                                    lcc.getDatabase().getId());
 
-		dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
-	}
+        dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
+    }
 }

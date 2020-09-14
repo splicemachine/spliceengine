@@ -47,99 +47,93 @@ import java.util.Properties;
 import java.util.Locale;
 
 /**
-	A description of an instance of a module.
+    A description of an instance of a module.
 */
 
 
 final class TopService {
 
-	/*
-	** Fields.
-	*/
+    /*
+    ** Fields.
+    */
 
-	/**
-		The idenity of this service, note that it may not be active yet.
-	*/
-	ProtocolKey key;
+    /**
+        The idenity of this service, note that it may not be active yet.
+    */
+    ProtocolKey key;
 
-	/**
-		The top module instance
-	*/
-	ModuleInstance topModule;
+    /**
+        The top module instance
+    */
+    ModuleInstance topModule;
 
-	/**
-		List of protocols.
-	*/
-	Hashtable		protocolTable;
+    /**
+        List of protocols.
+    */
+    Hashtable        protocolTable;
 
-	/**
-	*/
-	Vector		moduleInstances;
+    /**
+    */
+    Vector        moduleInstances;
 
-	/**
-	*/
-	BaseMonitor	monitor;
+    /**
+    */
+    BaseMonitor    monitor;
 
-	boolean inShutdown;
+    boolean inShutdown;
 
-	/**
-		The type of service this was created by. If null then this is a non-persistent service.
-	*/
-	PersistentService serviceType;
+    /**
+        The type of service this was created by. If null then this is a non-persistent service.
+    */
+    PersistentService serviceType;
 
-	Locale serviceLocale;
+    Locale serviceLocale;
 
-	/*
-	** Constructor
-	*/
+    /*
+    ** Constructor
+    */
 
 
-	TopService(BaseMonitor monitor) {
-		super();
-		this.monitor = monitor;
-		protocolTable = new Hashtable();
-		moduleInstances = new Vector(0, 5);
-	}
+    TopService(BaseMonitor monitor) {
+        super();
+        this.monitor = monitor;
+        protocolTable = new Hashtable();
+        moduleInstances = new Vector(0, 5);
+    }
 
-	TopService(BaseMonitor monitor, ProtocolKey key, PersistentService serviceType, Locale serviceLocale)
-	{
-		this(monitor);
+    TopService(BaseMonitor monitor, ProtocolKey key, PersistentService serviceType, Locale serviceLocale)
+    {
+        this(monitor);
 
-		this.key = key;
-		this.serviceType = serviceType;
-		this.serviceLocale = serviceLocale;
-	}
+        this.key = key;
+        this.serviceType = serviceType;
+        this.serviceLocale = serviceLocale;
+    }
 
-	void setTopModule(Object instance) {
-		synchronized (this) {
-            ModuleInstance module = findModuleInstance(instance);
-            if (module != null) {
-                topModule = module;
-                notifyAll();
+    synchronized void setTopModule(Object instance) {
+        ModuleInstance module = findModuleInstance(instance);
+        if (module != null) {
+            topModule = module;
+            notifyAll();
+        }
+
+            // now add an additional entry into the hashtable
+            // that maps the server name as seen by the user
+            // onto the top module. This allows modules to find their
+            // top most service moduel using the monitor.getServiceName() call,
+            // e.g. Monitor.findModule(ref, inferface, Monitor.getServiceName(ref));
+            if (getServiceType() != null) {
+                ProtocolKey userKey = new ProtocolKey(key.getFactoryInterface(),
+                    monitor.getServiceName(instance));
+                addToProtocol(userKey, topModule);
             }
+    }
 
-			// now add an additional entry into the hashtable
-			// that maps the server name as seen by the user
-			// onto the top module. This allows modules to find their
-			// top most service moduel using the monitor.getServiceName() call,
-			// e.g. Monitor.findModule(ref, inferface, Monitor.getServiceName(ref));
-			if (getServiceType() != null) {
-				ProtocolKey userKey = new ProtocolKey(key.getFactoryInterface(),
-					monitor.getServiceName(instance));
-				addToProtocol(userKey, topModule);
-			}
+    synchronized Object getService() {
+        return topModule.getInstance();
+    }
 
-		}
-	}
-
-	Object getService() {
-
-		return topModule.getInstance();
-	}
-
-	boolean isPotentialService(ProtocolKey otherKey) {
-
-
+    synchronized boolean isPotentialService(ProtocolKey otherKey) {
         String otherCanonicalName;
 
         if (serviceType == null)
@@ -159,70 +153,62 @@ final class TopService {
         if (topModule != null)
             return topModule.isTypeAndName(serviceType, key.getFactoryInterface(), otherCanonicalName);
 
-
         return otherKey.getFactoryInterface().isAssignableFrom(key.getFactoryInterface()) && serviceType.isSameService(key.getIdentifier(), otherCanonicalName);
-
     }
 
-	boolean isActiveService() {
-		synchronized (this) {
-			return (topModule != null);
-		}
-	}
+    synchronized boolean isActiveService() {
+            return (topModule != null);
+        }
 
-	boolean isActiveService(ProtocolKey otherKey) {
+    synchronized boolean isActiveService(ProtocolKey otherKey) {
+            if (inShutdown)
+                return false;
 
-		synchronized (this) {
-			if (inShutdown)
-				return false;
+            if (!isPotentialService(otherKey))
+                return false;
 
-			if (!isPotentialService(otherKey))
-				return false;
+            if (topModule != null) {
+                if (SanityManager.DEBUG) {
+                    SanityManager.ASSERT(topModule.isTypeAndName(serviceType,
+                        key.getFactoryInterface(), key.getIdentifier()));
+                }
 
-			if (topModule != null) {
-				if (SanityManager.DEBUG) {
-					SanityManager.ASSERT(topModule.isTypeAndName(serviceType,
-						key.getFactoryInterface(), key.getIdentifier()));
-				}
+                return true;
+            }
 
-				return true;
-			}
-
-			// now wait for topModule to be set
-			while (!inShutdown && (topModule == null)) {
-				try {
-					wait();
-				} catch (InterruptedException ioe) {
+            // now wait for topModule to be set
+            while (!inShutdown && (topModule == null)) {
+                try {
+                    wait();
+                } catch (InterruptedException ioe) {
                     InterruptStatus.setInterrupted();
-				}
-			}
+                }
+            }
 
-			return !inShutdown;
+            return !inShutdown;
+    }
 
-		}
-	}
+    /**
+        Find an module in the protocol table that supports the required protocol
+        name combination and can handle the properties.
 
-	/**
-		Find an module in the protocol table that supports the required protocol
-		name combination and can handle the properties.
+        Returns the instance of the module or null if one does not exist in
+        the protocol table.
+    */
+    synchronized Object findModule(ProtocolKey key, boolean findOnly, Properties properties) {
 
-		Returns the instance of the module or null if one does not exist in
-		the protocol table.
-	*/
-	synchronized Object findModule(ProtocolKey key, boolean findOnly, Properties properties) {
+        ModuleInstance module = (ModuleInstance) protocolTable.get(key);
 
-		ModuleInstance module = (ModuleInstance) protocolTable.get(key);
+        if (module == null)
+            return null;
 
-		if (module == null)
-			return null;
+        Object instance = module.getInstance();
 
-		Object instance = module.getInstance();
+        if (findOnly || BaseMonitor.canSupport(instance, properties))
+            return instance;
 
-		if (findOnly || BaseMonitor.canSupport(instance, properties))
-			return instance;
-
-		return null;
-	}
+        return null;
+    }
 
     /**
      * Find a {@code ModuleInstance} object whose {@code getInstance()} method
@@ -247,34 +233,34 @@ final class TopService {
         return null;
     }
 
-	/**
-		Boot a module, performs three steps.
+    /**
+        Boot a module, performs three steps.
 
-		<OL>
-		<LI> Look for an existing module in the protocol table
-		<LI> Look for a module in the implementation table that handles this protocol
-		<LI> Create an instance that handles this protocol.
-		</OL>
-	*/
-	Object bootModule(boolean create, Object service, ProtocolKey key, Properties properties) 
-		throws StandardException {
+        <OL>
+        <LI> Look for an existing module in the protocol table
+        <LI> Look for a module in the implementation table that handles this protocol
+        <LI> Create an instance that handles this protocol.
+        </OL>
+    */
+    Object bootModule(boolean create, Object service, ProtocolKey key, Properties properties)
+        throws StandardException {
 
-		synchronized (this) {
-			if (inShutdown)
-				throw StandardException.newException(SQLState.SHUTDOWN_DATABASE, getKey().getIdentifier());
-		}
+        synchronized (this) {
+            if (inShutdown)
+                throw StandardException.newException(SQLState.SHUTDOWN_DATABASE, getKey().getIdentifier());
+        }
 
-		//  see if this system already has a module that will work.
-		Object instance = findModule(key, false, properties);
-		if (instance != null)
-			return instance;
-		
-		if (monitor.reportOn) {
-			monitor.report("Booting Module   " + key.toString() + " create = " + create);
-		}
+        //  see if this system already has a module that will work.
+        Object instance = findModule(key, false, properties);
+        if (instance != null)
+            return instance;
 
-		// see if a running implementation will handle this protocol
-		synchronized (this) {
+        if (monitor.reportOn) {
+            monitor.report("Booting Module   " + key.toString() + " create = " + create);
+        }
+
+        // see if a running implementation will handle this protocol
+        synchronized (this) {
 
             for (int i = 0;; i++) {
                 final ModuleInstance module;
@@ -301,147 +287,152 @@ final class TopService {
                     continue;
                 }
 
-				if (!module.isTypeAndName((PersistentService) null, key.getFactoryInterface(), key.getIdentifier()))
-					continue;
+                if (!module.isTypeAndName((PersistentService) null, key.getFactoryInterface(), key.getIdentifier()))
+                    continue;
 
-				instance = module.getInstance();
-				if (!BaseMonitor.canSupport(instance, properties))
-					continue;
+                instance = module.getInstance();
+                if (!BaseMonitor.canSupport(instance, properties))
+                    continue;
 
-				// add it to the protocol table, if this returns false then we can't use
-				// this module, continue looking.
-				if (!addToProtocol(key, module))
-					continue;
+                // add it to the protocol table, if this returns false then we can't use
+                // this module, continue looking.
+                if (!addToProtocol(key, module))
+                    continue;
 
-				if (monitor.reportOn) {
-					monitor.report("Started Module   " + key.toString());
-					monitor.report("  Implementation " + instance.getClass().getName());
-				}
+                if (monitor.reportOn) {
+                    monitor.report("Started Module   " + key.toString());
+                    monitor.report("  Implementation " + instance.getClass().getName());
+                }
 
-				return instance;
-			}
-		}
+                return instance;
+            }
+        }
 
-		// try and load an instance that will support this protocol
-		instance = monitor.loadInstance(key.getFactoryInterface(), properties);
-		if (instance == null)
-		{
-			throw Monitor.missingImplementation(key.getFactoryInterface().getName());
-		}
-		ModuleInstance module = new ModuleInstance(instance, key.getIdentifier(), service,
-				topModule == null ? (Object) null : topModule.getInstance());
+        // try and load an instance that will support this protocol
+        instance = monitor.loadInstance(key.getFactoryInterface(), properties);
+        if (instance == null)
+        {
+            throw Monitor.missingImplementation(key.getFactoryInterface().getName());
+        }
+        Object top;
+        synchronized (this) {
+            top = topModule == null ? null : topModule.getInstance();
+        }
+        ModuleInstance module = new ModuleInstance(instance, key.getIdentifier(), service, top);
 
-		moduleInstances.add(module);
+        moduleInstances.add(module);
 
-		try {
-			BaseMonitor.boot(instance, create, properties);
-		} catch (StandardException se) {
-			moduleInstances.remove(module);
-			throw se;
-		}
+        if (properties == null)
+            properties = new Properties();
+        if (key.getIdentifier() != null)
+            properties.put(PersistentService.SERVICE_NAME, key.getIdentifier());
+
+        try {
+            BaseMonitor.boot(instance, create, properties);
+        } catch (StandardException se) {
+            moduleInstances.remove(module);
+            throw se;
+        }
 
         module.setBooted();
 
-		synchronized (this) {
+        synchronized (this) {
 
 
-			// add it to the protocol table, if this returns false then we can't use
-			// this module, shut it down.
-			if (addToProtocol(key, module)) {
+            // add it to the protocol table, if this returns false then we can't use
+            // this module, shut it down.
+            if (addToProtocol(key, module)) {
 
-				if (monitor.reportOn) {
-					monitor.report("Started Module   " + key.toString());
-					monitor.report("  Implementation " + module.getInstance().getClass().getName());
-				}
+                if (monitor.reportOn) {
+                    monitor.report("Started Module   " + key.toString());
+                    monitor.report("  Implementation " + module.getInstance().getClass().getName());
+                }
 
-				return module.getInstance();
-			}
+                return module.getInstance();
+            }
 
-			
-		}
-	
-		TopService.stop(instance);
-		moduleInstances.remove(module);
 
-		// if we reached here it's because someone else beat us adding the module, so use theirs.
-		return findModule(key, true, properties);
-	}
+        }
 
-	/**	
-		If the service is already beign shutdown we return false.
-	*/
-	boolean shutdown() {
+        TopService.stop(instance);
+        moduleInstances.remove(module);
 
-		synchronized (this) {
-			if (inShutdown)
-				return false;
+        // if we reached here it's because someone else beat us adding the module, so use theirs.
+        return findModule(key, true, properties);
+    }
 
-			inShutdown = true;
-			notifyAll();
-		}
+    /**
+        If the service is already beign shutdown we return false.
+    */
+    boolean shutdown() {
 
-		for (;;) {
+        synchronized (this) {
+            if (inShutdown)
+                return false;
 
-			ModuleInstance module;
+            inShutdown = true;
+            notifyAll();
+        }
 
-			synchronized (this) {
+        for (;;) {
 
-				if (moduleInstances.isEmpty())
-					return true;
+            ModuleInstance module;
 
-				module = (ModuleInstance) moduleInstances.get(0);
+            synchronized (this) {
 
-			}
-			
-			Object instance = module.getInstance();
-			TopService.stop(instance);
-			
-			synchronized (this) {
-				moduleInstances.remove(0);
-			}
-		}
-	}
+                if (moduleInstances.isEmpty())
+                    return true;
 
-	/**
-		Add a running module into the protocol hash table. Return true
-		if the module was added successfully, false if it couldn't
-		be added. In the latter case the module should be shutdown
-		if its reference count is 0.
-	*/
+                module = (ModuleInstance) moduleInstances.get(0);
 
-	private boolean addToProtocol(ProtocolKey key, ModuleInstance module) {
+            }
 
-		String identifier = module.getIdentifier();
+            Object instance = module.getInstance();
+            TopService.stop(instance);
 
-		synchronized (this) {
+            synchronized (this) {
+                moduleInstances.remove(0);
+            }
+        }
+    }
 
-			Object value = protocolTable.get(key);
-			if (value == null) {
+    /**
+        Add a running module into the protocol hash table. Return true
+        if the module was added successfully, false if it couldn't
+        be added. In the latter case the module should be shutdown
+        if its reference count is 0.
+    */
 
-				protocolTable.put(key, module);
-				return true;
-			}
+    private boolean addToProtocol(ProtocolKey key, ModuleInstance module) {
+        synchronized (this) {
 
-			return value == module;
+            Object value = protocolTable.get(key);
+            if (value == null) {
 
-		}
-	}
+                protocolTable.put(key, module);
+                return true;
+            }
 
-	boolean inService(Object instance) {
+            return value == module;
+
+        }
+    }
+
+    boolean inService(Object instance) {
         return findModuleInstance(instance) != null;
-	}
+    }
 
-	public ProtocolKey getKey() {
-		return key;
-	}
+    public ProtocolKey getKey() {
+        return key;
+    }
 
-	PersistentService getServiceType() {
-		return serviceType;
-	}
+    PersistentService getServiceType() {
+        return serviceType;
+    }
 
-	private static void stop(Object instance) {
-		if (instance instanceof ModuleControl) {
-			((ModuleControl) instance).stop();
-		}
-	}
+    private static void stop(Object instance) {
+        if (instance instanceof ModuleControl) {
+            ((ModuleControl) instance).stop();
+        }
+    }
 }

@@ -119,253 +119,253 @@ import java.util.*;
  * </p>
  */
 public abstract class AuthenticationServiceBase
-	implements AuthenticationService, ModuleControl, ModuleSupportable, PropertySetCallback {
+    implements AuthenticationService, ModuleControl, ModuleSupportable, PropertySetCallback {
 
-	protected UserAuthenticator authenticationScheme; 
+    protected UserAuthenticator authenticationScheme;
 
-	// required to retrieve service properties
-	private AccessFactory store;
+    // required to retrieve service properties
+    private AccessFactory store;
 
-	/**
-		Trace flag to trace authentication operations
-	*/
-	public static final String AuthenticationTrace =
-						SanityManager.DEBUG ? "AuthenticationTrace" : null;
+    /**
+        Trace flag to trace authentication operations
+    */
+    public static final String AuthenticationTrace =
+                        SanityManager.DEBUG ? "AuthenticationTrace" : null;
 
     /**
         Userid with Strong password substitute DRDA security mechanism
     */
     protected static final int SECMEC_USRSSBPWD = 8;
 
-	private static final String IMPERSONATION_ENABLED = "derby.authentication.impersonation.enabled";
-	private static final String IMPERSONATION_USERS = "derby.authentication.impersonation.users";
-	private static final String LDAP_GROUP_ATTR = "derby.authentication.ldap.mapGroupAttr";
+    private static final String IMPERSONATION_ENABLED = "derby.authentication.impersonation.enabled";
+    private static final String IMPERSONATION_USERS = "derby.authentication.impersonation.users";
+    private static final String LDAP_GROUP_ATTR = "derby.authentication.ldap.mapGroupAttr";
 
-	//
-	// constructor
-	//
-	public AuthenticationServiceBase() {
-	}
+    //
+    // constructor
+    //
+    public AuthenticationServiceBase() {
+    }
 
-	protected String impersonate(String userName, String proxyUser) {
-		if (!Boolean.parseBoolean(getProperty(IMPERSONATION_ENABLED))) {
-			 return null;
-		}
+    protected String impersonate(String userName, String proxyUser) {
+        if (!Boolean.parseBoolean(getProperty(IMPERSONATION_ENABLED))) {
+             return null;
+        }
 
-		String allPermissions = getProperty(IMPERSONATION_USERS);
+        String allPermissions = getProperty(IMPERSONATION_USERS);
 
-		Map<String, String> map = Splitter.on(';').withKeyValueSeparator("=").split(allPermissions);
-		String userPermissions = map.get(userName);
+        Map<String, String> map = Splitter.on(';').withKeyValueSeparator("=").split(allPermissions);
+        String userPermissions = map.get(userName);
 
-		if (userPermissions == null) {
-			return null;
-		}
+        if (userPermissions == null) {
+            return null;
+        }
 
-		Iterable<String> perms = Splitter.on(',').split(userPermissions);
-		for (String p : perms) {
-			if (p.equals("*") || p.equals(proxyUser))
-				return proxyUser;
-		}
+        Iterable<String> perms = Splitter.on(',').split(userPermissions);
+        for (String p : perms) {
+            if (p.equals("*") || p.equals(proxyUser))
+                return proxyUser;
+        }
 
-		return null;
-	}
+        return null;
+    }
 
-	protected String mapUserGroups(List<String> groupList) {
-		if (groupList == null || groupList.isEmpty())
-			return null;
+    protected String mapUserGroups(List<String> groupList) {
+        if (groupList == null || groupList.isEmpty())
+            return null;
 
-		String mapGroupAttrStr = getProperty(LDAP_GROUP_ATTR);
-		if (mapGroupAttrStr != null) {
-			HashMap<String, String> groupmap = parseGroupAttr(mapGroupAttrStr);
-			updateGroupList(groupList, groupmap);
-		}
-		return groupList.toString().replace("[", "")
-				.replace("]", "").replace(", ",",");
-	}
+        String mapGroupAttrStr = getProperty(LDAP_GROUP_ATTR);
+        if (mapGroupAttrStr != null) {
+            HashMap<String, String> groupmap = parseGroupAttr(mapGroupAttrStr);
+            updateGroupList(groupList, groupmap);
+        }
+        return groupList.toString().replace("[", "")
+                .replace("]", "").replace(", ",",");
+    }
 
-	/**
-	 * Parse and prepare hashmap of group mappings
-	 *
-	 * @param mapGroupAttrStr ldap group to splice user mapping string as provided
-	 * @return hashmap of ldap group to splice user map
-	 */
-	private HashMap<String,String> parseGroupAttr(String mapGroupAttrStr) {
-		HashMap<String,String> groupAttrMap = new HashMap<>();
-		String attrArr[] = mapGroupAttrStr.split(",");
-		for (String elem : attrArr) {
-			String mapAttr[] = elem.split("=");
-			if (mapAttr.length == 2) {
-				//add the mapping, but ignore the case for the cn from ldap
-				groupAttrMap.put(mapAttr[0].trim().toLowerCase(), mapAttr[1].trim());
-			}
-		}
-		return groupAttrMap;
-	}
+    /**
+     * Parse and prepare hashmap of group mappings
+     *
+     * @param mapGroupAttrStr ldap group to splice user mapping string as provided
+     * @return hashmap of ldap group to splice user map
+     */
+    private HashMap<String,String> parseGroupAttr(String mapGroupAttrStr) {
+        HashMap<String,String> groupAttrMap = new HashMap<>();
+        String attrArr[] = mapGroupAttrStr.split(",");
+        for (String elem : attrArr) {
+            String mapAttr[] = elem.split("=");
+            if (mapAttr.length == 2) {
+                //add the mapping, but ignore the case for the cn from ldap
+                groupAttrMap.put(mapAttr[0].trim().toLowerCase(), mapAttr[1].trim());
+            }
+        }
+        return groupAttrMap;
+    }
 
 
-	/**
-	 * Update the group list with the override property
-	 * @param grouplist list of ldap groups tobe updated
-	 * @param groupmap Map to override with
-	 */
-	private static void updateGroupList(List<String> grouplist, HashMap<String, String> groupmap) {
-		if (groupmap.isEmpty())
-			return;
+    /**
+     * Update the group list with the override property
+     * @param grouplist list of ldap groups tobe updated
+     * @param groupmap Map to override with
+     */
+    private static void updateGroupList(List<String> grouplist, HashMap<String, String> groupmap) {
+        if (groupmap.isEmpty())
+            return;
 
-		// Go through the grouplist and replace groupnames with the override name
-		for (int i = 0; i < grouplist.size(); i++) {
-			//ignore the case for the cn from ldap when looking up the mapped splice correspondent.
-			String mappedGroupName = groupmap.get(grouplist.get(i).toLowerCase());
-			if (mappedGroupName != null)
-				grouplist.set(i, mappedGroupName);
-		}
-	}
+        // Go through the grouplist and replace groupnames with the override name
+        for (int i = 0; i < grouplist.size(); i++) {
+            //ignore the case for the cn from ldap when looking up the mapped splice correspondent.
+            String mappedGroupName = groupmap.get(grouplist.get(i).toLowerCase());
+            if (mappedGroupName != null)
+                grouplist.set(i, mappedGroupName);
+        }
+    }
 
-	protected void setAuthenticationService(UserAuthenticator aScheme) {
-		// specialized class is the principal caller.
-		this.authenticationScheme = aScheme;
+    protected void setAuthenticationService(UserAuthenticator aScheme) {
+        // specialized class is the principal caller.
+        this.authenticationScheme = aScheme;
 
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(this.authenticationScheme != null, 
-				"There is no authentication scheme for that service!");
-		
-			if (SanityManager.DEBUG_ON(AuthenticationTrace)) {
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(this.authenticationScheme != null,
+                "There is no authentication scheme for that service!");
 
-				java.io.PrintWriter iDbgStream =
-					SanityManager.GET_DEBUG_STREAM();
+            if (SanityManager.DEBUG_ON(AuthenticationTrace)) {
 
-				iDbgStream.println("Authentication Service: [" +
-								this.toString() + "]");
-				iDbgStream.println("Authentication Scheme : [" +
-								this.authenticationScheme.toString() + "]");
-			}
-		}
-	}
+                java.io.PrintWriter iDbgStream =
+                    SanityManager.GET_DEBUG_STREAM();
 
-	/**
-	/*
-	** Methods of module control - To be overriden
-	*/
+                iDbgStream.println("Authentication Service: [" +
+                                this.toString() + "]");
+                iDbgStream.println("Authentication Scheme : [" +
+                                this.authenticationScheme.toString() + "]");
+            }
+        }
+    }
 
-	/**
-		Start this module.  In this case, nothing needs to be done.
-		@see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
+    /**
+    /*
+    ** Methods of module control - To be overriden
+    */
 
-		@exception StandardException upon failure to load/boot
-		the expected authentication service.
-	 */
-	 public void boot(boolean create, Properties properties)
-	  throws StandardException
-	 {
-			//
-			// we expect the Access factory to be available since we're
-			// at boot stage.
-			//
-			store = (AccessFactory)
-				Monitor.getServiceModule(this, AccessFactory.MODULE);
-			// register to be notified upon db properties changes
-			// _only_ if we're on a database context of course :)
+    /**
+        Start this module.  In this case, nothing needs to be done.
+        @see com.splicemachine.db.iapi.services.monitor.ModuleControl#boot
 
-			PropertyFactory pf = (PropertyFactory)
-				Monitor.getServiceModule(this, Module.PropertyFactory);
-			if (pf != null)
-				pf.addPropertySetNotification(this);
+        @exception StandardException upon failure to load/boot
+        the expected authentication service.
+     */
+     public void boot(boolean create, Properties properties)
+      throws StandardException
+     {
+            //
+            // we expect the Access factory to be available since we're
+            // at boot stage.
+            //
+            store = (AccessFactory)
+                Monitor.getServiceModule(this, AccessFactory.MODULE);
+            // register to be notified upon db properties changes
+            // _only_ if we're on a database context of course :)
 
-	 }
+            PropertyFactory pf = (PropertyFactory)
+                Monitor.getServiceModule(this, Module.PropertyFactory);
+            if (pf != null)
+                pf.addPropertySetNotification(this);
 
-	/**
-	 * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#stop
-	 */
-	public void stop() {
+     }
 
-		// nothing special to be done yet.
-	}
-	/*
-	** Methods of AuthenticationService
-	*/
+    /**
+     * @see com.splicemachine.db.iapi.services.monitor.ModuleControl#stop
+     */
+    public void stop() {
 
-	/**
-	 * Authenticate a User inside JBMS.T his is an overload method.
-	 *
-	 * We're passed-in a Properties object containing user credentials information
-	 * (as well as database name if user needs to be validated for a certain
-	 * database access).
-	 *
-	 * @see
-	 * com.splicemachine.db.iapi.jdbc.AuthenticationService#authenticate
-	 *
-	 *
-	 */
-	public String authenticate(String databaseName, Properties userInfo) throws java.sql.SQLException
-	{
-		if (userInfo == (Properties) null)
-			return null;
+        // nothing special to be done yet.
+    }
+    /*
+    ** Methods of AuthenticationService
+    */
 
-		String userName = userInfo.getProperty(Attribute.USERNAME_ATTR);
-		if ((userName != null) && userName.length() > Limits.MAX_IDENTIFIER_LENGTH) {
-			return null;
-		}
+    /**
+     * Authenticate a User inside JBMS.T his is an overload method.
+     *
+     * We're passed-in a Properties object containing user credentials information
+     * (as well as database name if user needs to be validated for a certain
+     * database access).
+     *
+     * @see
+     * com.splicemachine.db.iapi.jdbc.AuthenticationService#authenticate
+     *
+     *
+     */
+    public String authenticate(String databaseName, Properties userInfo) throws java.sql.SQLException
+    {
+        if (userInfo == (Properties) null)
+            return null;
 
-		if (SanityManager.DEBUG)
-		{
-			if (SanityManager.DEBUG_ON(AuthenticationTrace)) {
+        String userName = userInfo.getProperty(Attribute.USERNAME_ATTR);
+        if ((userName != null) && userName.length() > Limits.MAX_IDENTIFIER_LENGTH) {
+            return null;
+        }
 
-				java.io.PrintWriter iDbgStream =
-					SanityManager.GET_DEBUG_STREAM();
+        if (SanityManager.DEBUG)
+        {
+            if (SanityManager.DEBUG_ON(AuthenticationTrace)) {
 
-//				iDbgStream.println(
-//								" - Authentication request: user [" +
-//							    userName + "]"+ ", database [" +
-//							    databaseName + "]");
-				// The following will print the stack trace of the
-				// authentication request to the log.  
-				//Throwable t = new Throwable();
-				//istream.println("Authentication Request Stack trace:");
-				//t.printStackTrace(istream.getPrintWriter());
-			}
-		}
-		// Authenticated username maybe a groupname for LDAP
-		String authUser = this.authenticationScheme.authenticateUser(userName,
-						  userInfo.getProperty(Attribute.PASSWORD_ATTR),
-						  databaseName,
-						  userInfo
-						 );
-		return authUser;
-	}
+                java.io.PrintWriter iDbgStream =
+                    SanityManager.GET_DEBUG_STREAM();
+
+//                iDbgStream.println(
+//                                " - Authentication request: user [" +
+//                                userName + "]"+ ", database [" +
+//                                databaseName + "]");
+                // The following will print the stack trace of the
+                // authentication request to the log.
+                //Throwable t = new Throwable();
+                //istream.println("Authentication Request Stack trace:");
+                //t.printStackTrace(istream.getPrintWriter());
+            }
+        }
+        // Authenticated username maybe a groupname for LDAP
+        String authUser = this.authenticationScheme.authenticateUser(userName,
+                          userInfo.getProperty(Attribute.PASSWORD_ATTR),
+                          databaseName,
+                          userInfo
+                         );
+        return authUser;
+    }
 
     public  String  getSystemCredentialsDatabaseName()    { return null; }
 
-	/**
-	 * Returns a property if it was set at the database or
-	 * system level. Treated as SERVICE property by default.
-	 *
-	 * @return a property string value.
-	 **/
-	public String getProperty(String key) {
+    /**
+     * Returns a property if it was set at the database or
+     * system level. Treated as SERVICE property by default.
+     *
+     * @return a property string value.
+     **/
+    public String getProperty(String key) {
 
-		String propertyValue = null;
-		TransactionController tc = null;
+        String propertyValue = null;
+        TransactionController tc = null;
 
-		try {
+        try {
 
           tc = getTransaction();
 
-		  propertyValue =
-			PropertyUtil.getServiceProperty(tc,
-											key,
-											(String) null);
-		  if (tc != null) {
-			tc.commit();
-			tc = null;
-		  }
+          propertyValue =
+            PropertyUtil.getServiceProperty(tc,
+                                            key,
+                                            (String) null);
+          if (tc != null) {
+            tc.commit();
+            tc = null;
+          }
 
-		} catch (StandardException se) {
-			// Do nothing and just return
-		}
+        } catch (StandardException se) {
+            // Do nothing and just return
+        }
 
-		return propertyValue;
-	}
+        return propertyValue;
+    }
 
     /**
      * <p>
@@ -413,61 +413,61 @@ public abstract class AuthenticationServiceBase
         else { return Monitor.getServiceName( store ); }
     }
 
-	public String getDatabaseProperty(String key) {
+    public String getDatabaseProperty(String key) {
 
-		String propertyValue = null;
-		TransactionController tc = null;
+        String propertyValue = null;
+        TransactionController tc = null;
 
-		try {
+        try {
 
-		  if (store != null)
-			tc = store.getTransaction(
+          if (store != null)
+            tc = store.getTransaction(
                 ContextService.getFactory().getCurrentContextManager());
 
-		  propertyValue =
-			PropertyUtil.getDatabaseProperty(tc, key);
+          propertyValue =
+            PropertyUtil.getDatabaseProperty(tc, key);
 
-		  if (tc != null) {
-			tc.commit();
-			tc = null;
-		  }
+          if (tc != null) {
+            tc.commit();
+            tc = null;
+          }
 
-		} catch (StandardException se) {
-			// Do nothing and just return
-		}
+        } catch (StandardException se) {
+            // Do nothing and just return
+        }
 
-		return propertyValue;
-	}
+        return propertyValue;
+    }
 
-	public String getSystemProperty(String key) {
+    public String getSystemProperty(String key) {
 
-		boolean dbOnly = false;
-		dbOnly = Boolean.valueOf(
-				this.getDatabaseProperty(
-						Property.DATABASE_PROPERTIES_ONLY));
+        boolean dbOnly = false;
+        dbOnly = Boolean.valueOf(
+                this.getDatabaseProperty(
+                        Property.DATABASE_PROPERTIES_ONLY));
 
-		if (dbOnly)
-			return null;
+        if (dbOnly)
+            return null;
 
-		return PropertyUtil.getSystemProperty(key);
-	}
+        return PropertyUtil.getSystemProperty(key);
+    }
 
-	/*
-	** Methods of PropertySetCallback
-	*/
-	public void init(boolean dbOnly, Dictionary p) {
-		// not called yet ...
-	}
+    /*
+    ** Methods of PropertySetCallback
+    */
+    public void init(boolean dbOnly, Dictionary p) {
+        // not called yet ...
+    }
 
-	/**
-	  @see PropertySetCallback#validate
-	*/
-	public boolean validate(String key, Serializable value, Dictionary p)
+    /**
+      @see PropertySetCallback#validate
+    */
+    public boolean validate(String key, Serializable value, Dictionary p)
         throws StandardException
     {
 
         // user password properties need to be remapped. nothing else needs remapping.
-		if ( key.startsWith(Property.USER_PROPERTY_PREFIX) ) { return true; }
+        if ( key.startsWith(Property.USER_PROPERTY_PREFIX) ) { return true; }
 
         String      stringValue = (String) value;
         boolean     settingToNativeLocal = Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL.equals( stringValue );
@@ -526,7 +526,7 @@ public abstract class AuthenticationServiceBase
         }
         
         return false;
-	}
+    }
     /** Parse the value of the password lifetime property. Return null if it is bad. */
     protected   Long    parsePasswordLifetime( String passwordLifetimeString )
     {
@@ -549,117 +549,118 @@ public abstract class AuthenticationServiceBase
             } catch (Exception e) { return null; }
     }
     
-	/**
-	  @see PropertySetCallback#validate
-	*/
-	@Override
-	public Serviceable apply(String key,Serializable value,Dictionary p, TransactionController tc)
-	{
-		return null;
-	}
-	/**
-	  @see PropertySetCallback#map
-	  @exception StandardException Thrown on error.
-	*/
-	public Serializable map(String key, Serializable value, Dictionary p)
-		throws StandardException
-	{
-		// We only care for "derby.user." property changes
-		// at the moment.
-		if (!key.startsWith(Property.USER_PROPERTY_PREFIX)) return null;
-		// We do not hash 'db.user.<userName>' password if
-		// the configured authentication service is LDAP as the
-		// same property could be used to store LDAP user full DN (X500).
-		// In performing this check we only consider database properties
-		// not system, service or application properties.
+    /**
+      @see PropertySetCallback#validate
+    */
+    @Override
+    public Serviceable apply(String key,Serializable value,Dictionary p, TransactionController tc)
+    {
+        return null;
+    }
+    /**
+      @see PropertySetCallback#map
+      @exception StandardException Thrown on error.
+    */
+    public Serializable map(String key, Serializable value, Dictionary p)
+        throws StandardException
+    {
+        // We only care for "derby.user." property changes
+        // at the moment.
+        if (!key.startsWith(Property.USER_PROPERTY_PREFIX)) return null;
+        // We do not hash 'db.user.<userName>' password if
+        // the configured authentication service is LDAP as the
+        // same property could be used to store LDAP user full DN (X500).
+        // In performing this check we only consider database properties
+        // not system, service or application properties.
 
-		String authService =
-			(String)p.get(Property.AUTHENTICATION_PROVIDER_PARAMETER);
+        String authService =
+            (String)p.get(Property.AUTHENTICATION_PROVIDER_PARAMETER);
 
-		if ((authService != null) &&
-			 (StringUtil.SQLEqualsIgnoreCase(authService, Property.AUTHENTICATION_PROVIDER_LDAP)))
-			return null;
+        if ((authService != null) &&
+             (StringUtil.SQLEqualsIgnoreCase(authService, Property.AUTHENTICATION_PROVIDER_LDAP)))
+            return null;
 
-		// Ok, we can hash this password in the db
-		String userPassword = (String) value;
+        // Ok, we can hash this password in the db
+        String userPassword = (String) value;
 
-		if (userPassword != null) {
-			// hash (digest) the password
-			// the caller will retrieve the new value
+        if (userPassword != null) {
+            // hash (digest) the password
+            // the caller will retrieve the new value
             String userName =
                     key.substring(Property.USER_PROPERTY_PREFIX.length());
             userPassword =
                     hashUsingDefaultAlgorithm(userName, userPassword, p);
-		}
+        }
 
-		return userPassword;
-	}
+        return userPassword;
+    }
 
 
-	// Class implementation
+    // Class implementation
 
-	protected final boolean requireAuthentication(Properties properties) {
+    protected final boolean requireAuthentication(Properties properties) {
 
-		//
-		// we check if db.connection.requireAuthentication system
-		// property is set to true, otherwise we are the authentication
-		// service that should be run.
-		//
-		String requireAuthentication = PropertyUtil.getPropertyFromSet(
-					properties,
-					Property.REQUIRE_AUTHENTICATION_PARAMETER
-														);
-		if (Boolean.valueOf(requireAuthentication)) { return true; }
+        //
+        // we check if db.connection.requireAuthentication system
+        // property is set to true, otherwise we are the authentication
+        // service that should be run.
+        //
+        String requireAuthentication = PropertyUtil.getPropertyFromSet(
+                    properties,
+                    Property.REQUIRE_AUTHENTICATION_PARAMETER
+                                                        );
+        if (Boolean.valueOf(requireAuthentication)) { return true; }
 
         //
         // NATIVE authentication does not require that you set REQUIRE_AUTHENTICATION_PARAMETER.
         //
         return PropertyUtil.nativeAuthenticationEnabled( properties );
-	}
+    }
 
-	/**
+    /**
      * <p>
-	 * This method hashes a clear user password using a
-	 * Single Hash algorithm such as SHA-1 (SHA equivalent)
-	 * (it is a 160 bits digest)
+     * This method hashes a clear user password using a
+     * Single Hash algorithm such as SHA-1 (SHA equivalent)
+     * (it is a 160 bits digest)
      * </p>
-	 *
+     *
      * <p>
-	 * The digest is returned as an object string.
+     * The digest is returned as an object string.
      * </p>
      *
      * <p>
      * This method is only used by the SHA-1 authentication scheme.
      * </p>
-	 *
-	 * @param plainTxtUserPassword Plain text user password
-	 *
-	 * @return hashed user password (digest) as a String object
+     *
+     * @param plainTxtUserPassword Plain text user password
+     *
+     * @return hashed user password (digest) as a String object
      *         or {@code null} if the plaintext password is {@code null}
-	 */
-	protected String hashPasswordSHA1Scheme(String plainTxtUserPassword)
-	{
-		if (plainTxtUserPassword == null)
-			return null;
+     */
+    protected String hashPasswordSHA1Scheme(String plainTxtUserPassword)
+    {
+        if (plainTxtUserPassword == null)
+            return null;
 
-		MessageDigest algorithm = null;
-		try
-		{
-			algorithm = MessageDigest.getInstance("SHA-1");
-		} catch (NoSuchAlgorithmException nsae)
-		{
-					// Ignore as we checked already during service boot-up
-		}
+        MessageDigest algorithm = null;
+        try
+        {
+            algorithm = MessageDigest.getInstance("SHA-1");
+        } catch (NoSuchAlgorithmException nsae)
+        {
+                    // Ignore as we checked already during service boot-up
+        }
 
-		algorithm.reset();
-		byte[] bytePasswd = null;
+        assert algorithm != null;
+        algorithm.reset();
+        byte[] bytePasswd = null;
         bytePasswd = toHexByte(plainTxtUserPassword);
-		algorithm.update(bytePasswd);
-		byte[] hashedVal = algorithm.digest();
-		return (PasswordHasher.ID_PATTERN_SHA1_SCHEME +
+        algorithm.update(bytePasswd);
+        byte[] hashedVal = algorithm.digest();
+        return (PasswordHasher.ID_PATTERN_SHA1_SCHEME +
                 StringUtil.toHexString(hashedVal, 0, hashedVal.length));
 
-	}
+    }
 
     /**
      * <p>
@@ -792,7 +793,7 @@ public abstract class AuthenticationServiceBase
      * See PWDSSB - Strong Password Substitution Security Mechanism
      * (DRDA Vol.3 - P.650)
      *
-	 * @return a substituted password.
+     * @return a substituted password.
      */
     protected String substitutePassword(
                 String userName,
@@ -826,6 +827,7 @@ public abstract class AuthenticationServiceBase
         // Strong Password Substitution (USRSSBPWD) cannot be supported for
         // targets which can't access or decrypt passwords on their side.
         //
+        assert messageDigest != null;
         messageDigest.reset();
 
         byte[] bytePasswd = null;
@@ -897,49 +899,49 @@ public abstract class AuthenticationServiceBase
     }
 
 
-	/**
-	 * Create the DBO if it does not already exist in the local credentials database.
-	 * @param userName		The DBO user's name used to connect to JBMS system
-	 * @param userPassword	The DBO user's password used to connect to JBMS system
-	 * @param dd			data dictionary to store the user
-	 * @param tc			transaction for this operation
-	 * @throws StandardException
-	 * @throws SQLException
-	 */
-	protected void createDBOUserIfDoesNotExist(String userName, String userPassword, DataDictionary dd, TransactionController tc)
-			throws StandardException, SQLException {
-		// Check if the DBO already exists which may happen if the manual override for
-		// creation of the native credentials database is set.
-		if (dd.getUser(userName) == null) {
-			SystemProcedures.addUser( userName, userPassword, tc );
-			// Change the system schemas to be owned by the user.  This is needed for upgrading
-			// the Splice Machine 0.5 beta where the owner of the system schemas was APP.
-			// Splice Machine 1.0+ has the SPLICE user as the DBO of the system schemas.
-			SystemProcedures.updateSystemSchemaAuthorization(userName, tc);
-		}
-	}
+    /**
+     * Create the DBO if it does not already exist in the local credentials database.
+     * @param userName        The DBO user's name used to connect to JBMS system
+     * @param userPassword    The DBO user's password used to connect to JBMS system
+     * @param dd            data dictionary to store the user
+     * @param tc            transaction for this operation
+     * @throws StandardException
+     * @throws SQLException
+     */
+    protected void createDBOUserIfDoesNotExist(String userName, String userPassword, DataDictionary dd, TransactionController tc)
+            throws StandardException, SQLException {
+        // Check if the DBO already exists which may happen if the manual override for
+        // creation of the native credentials database is set.
+        if (dd.getUser(userName) == null) {
+            SystemProcedures.addUser( userName, userPassword, tc );
+            // Change the system schemas to be owned by the user.  This is needed for upgrading
+            // the Splice Machine 0.5 beta where the owner of the system schemas was APP.
+            // Splice Machine 1.0+ has the SPLICE user as the DBO of the system schemas.
+            SystemProcedures.updateSystemSchemaAuthorization(userName, tc);
+        }
+    }
 
-	/**
-	 * Create the default schema for the DBO if it does not already exist in the local credentials database.
-	 * @param userName		The DBO user's name used to connect to JBMS system
-	 * @param dd			data dictionary to store the DBO schema
-	 * @param tc			transaction for this operation
-	 * @throws StandardException
-	 * @throws SQLException
-	 */
-	protected void createDBOSchemaIfDoesNotExist(String userName, String userPassword, DataDictionary dd, TransactionController tc)
-			throws StandardException, SQLException {
-		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+    /**
+     * Create the default schema for the DBO if it does not already exist in the local credentials database.
+     * @param userName        The DBO user's name used to connect to JBMS system
+     * @param dd            data dictionary to store the DBO schema
+     * @param tc            transaction for this operation
+     * @throws StandardException
+     * @throws SQLException
+     */
+    protected void createDBOSchemaIfDoesNotExist(String userName, String userPassword, DataDictionary dd, TransactionController tc)
+            throws StandardException, SQLException {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-		// Check if the DBO schema already exists which may happen if the manual override for
-		// creation of the native credentials database is set.
-		SchemaDescriptor sd = dd.getSchemaDescriptor(userName, tc, false);
-		if (sd == null || sd.getUUID() == null) {
-			UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
-			dd.startWriting(lcc);
-			sd = ddg.newSchemaDescriptor(userName, userName, tmpSchemaId);
-			dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
-		}
-	}
+        // Check if the DBO schema already exists which may happen if the manual override for
+        // creation of the native credentials database is set.
+        SchemaDescriptor sd = dd.getSchemaDescriptor(userName, tc, false);
+        if (sd == null || sd.getUUID() == null) {
+            UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
+            dd.startWriting(lcc);
+            sd = ddg.newSchemaDescriptor(userName, userName, tmpSchemaId, lcc.getDatabase().getId());
+            dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
+        }
+    }
 }

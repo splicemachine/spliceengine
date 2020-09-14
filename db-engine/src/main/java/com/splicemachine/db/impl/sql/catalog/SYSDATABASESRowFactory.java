@@ -45,42 +45,41 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Factory for creating a SYSSCHEMAS row.
+ * Factory for creating a SYSDATABASES row.
  *
  *
  * @version 0.1
  */
 
-public class SYSSCHEMASRowFactory extends CatalogRowFactory
+public class SYSDATABASESRowFactory extends CatalogRowFactory
 {
-    public static    final    String    TABLENAME_STRING = "SYSSCHEMAS";
+    public static    final    String    TABLENAME_STRING = "SYSDATABASES";
 
-    public static final int SYSSCHEMAS_COLUMN_COUNT = 4;
+    public static final int SYSDATABASES_COLUMN_COUNT = 3;
     /* Column #s for sysinfo (1 based) */
-    public static final int SYSSCHEMAS_SCHEMAID = 1;
-    public static final int SYSSCHEMAS_SCHEMANAME = 2;
-    public static final int SYSSCHEMAS_SCHEMAAID = 3;
-    public static final int SYSSCHEMAS_DATABASEID = 4;
+    public static final int SYSDATABASES_DATABASEID = 1;
+    public static final int SYSDATABASES_DATABASENAME = 2;
+    public static final int SYSDATABASES_DATABASEAID = 3;
 
 
-    public static final int SYSSCHEMAS_INDEX1_ID = 0;
-    public static final int SYSSCHEMAS_INDEX2_ID = 1;
+    public static final int SYSDATABASES_INDEX1_ID = 0;
+    public static final int SYSDATABASES_INDEX2_ID = 1;
 
 
     private static final int[][] indexColumnPositions =
     {
-        {SYSSCHEMAS_SCHEMANAME},
-        {SYSSCHEMAS_SCHEMAID}
+        {SYSDATABASES_DATABASENAME},
+        {SYSDATABASES_DATABASEID}
     };
 
     private    static    final    boolean[]    uniqueness = null;
 
     private    static    final    String[]    uuids =
     {
-         "80000022-00d0-fd77-3ed8-000a0a0b1900"    // catalog UUID
-        ,"8000002a-00d0-fd77-3ed8-000a0a0b1900"    // heap UUID
-        ,"80000024-00d0-fd77-3ed8-000a0a0b1900"    // SYSSCHEMAS_INDEX1
-        ,"80000026-00d0-fd77-3ed8-000a0a0b1900"    // SYSSCHEMAS_INDEX2
+         "80000062-00d0-fd77-3ed8-000a0a0b1900"    // catalog UUID
+        ,"8000006a-00d0-fd77-3ed8-000a0a0b1900"    // heap UUID
+        ,"80000064-00d0-fd77-3ed8-000a0a0b1900"    // SYSDATABASES_INDEX1
+        ,"80000066-00d0-fd77-3ed8-000a0a0b1900"    // SYSDATABASES_INDEX2
     };
 
     /////////////////////////////////////////////////////////////////////////////
@@ -89,17 +88,17 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    SYSSCHEMASRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
+    SYSDATABASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
     {
         super(uuidf,ef,dvf, dd);
-        initInfo(SYSSCHEMAS_COLUMN_COUNT, TABLENAME_STRING,
+        initInfo(SYSDATABASES_COLUMN_COUNT, TABLENAME_STRING,
                 indexColumnPositions, uniqueness, uuids );
     }
 
-    SYSSCHEMASRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    SYSDATABASESRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
     {
         super(uuidf,ef,dvf);
-        initInfo(SYSSCHEMAS_COLUMN_COUNT, TABLENAME_STRING,
+        initInfo(SYSDATABASES_COLUMN_COUNT, TABLENAME_STRING,
                  indexColumnPositions, uniqueness, uuids );
     }
 
@@ -110,9 +109,9 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
     /////////////////////////////////////////////////////////////////////////////
 
   /**
-     * Make a SYSSCHEMAS row
+     * Make a SYSDATABASES row
      *
-     * @return    Row suitable for inserting into SYSSCHEMAS.
+     * @return    Row suitable for inserting into SYSDATABASES.
      *
      * @exception   StandardException thrown on failure
      */
@@ -131,45 +130,39 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
         if (td != null)
         {
-            if (!(td instanceof SchemaDescriptor))
-                throw new RuntimeException("Unexpected SchemaDescriptor " + td.getClass().getName());
+            if (!(td instanceof DatabaseDescriptor))
+                throw new RuntimeException("Unexpected DatabaseDescriptor " + td.getClass().getName());
 
-            SchemaDescriptor    schemaDescriptor = (SchemaDescriptor)td;
+            DatabaseDescriptor    databaseDescriptor = (DatabaseDescriptor)td;
 
-            name = schemaDescriptor.getSchemaName();
-            oid = schemaDescriptor.getUUID();
+            name = databaseDescriptor.getDatabaseName();
+            oid = databaseDescriptor.getUUID();
             if ( oid == null )
             {
                 oid = getUUIDFactory().createUUID();
-                schemaDescriptor.setUUID(oid);
+                databaseDescriptor.setUUID(oid);
             }
             uuid = oid.toString();
 
-            aid = schemaDescriptor.getAuthorizationId();
-
-            dbid = schemaDescriptor.getDatabaseId().toString(); //XXX create if null?
-
+            aid = databaseDescriptor.getAuthorizationId();
         }
 
         /* Build the row to insert */
-        row = getExecutionFactory().getValueRow(SYSSCHEMAS_COLUMN_COUNT);
-        setRowColumns(row, name, uuid, aid, dbid);
+        row = getExecutionFactory().getValueRow(SYSDATABASES_COLUMN_COUNT);
+        setRowColumns(row, name, uuid, aid);
 
         return row;
     }
 
-    public static void setRowColumns(ExecRow row, String name, String uuid, String aid, String dbid) {
-        /* 1st column is SCHEMAID */
+    public static void setRowColumns(ExecRow row, String name, String uuid, String aid) {
+        /* 1st column is DATABASEID */
         row.setColumn(1, new SQLChar(uuid));
 
-        /* 2nd column is SCHEMANAME */
+        /* 2nd column is DATABASENAME */
         row.setColumn(2, new SQLVarchar(name));
 
-        /* 3rd column is SCHEMAAID */
+        /* 3rd column is DATABASEAID */
         row.setColumn(3, new SQLVarchar(aid));
-
-        /* 4th column is DATABASEID*/
-        row.setColumn(4, new SQLChar(dbid));
     }
 
 
@@ -180,13 +173,13 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
     ///////////////////////////////////////////////////////////////////////////
 
     /**
-     * Make an  Tuple Descriptor out of a SYSSCHEMAS row
+     * Make an  Tuple Descriptor out of a SYSDATABASES row
      *
-     * @param row                     a SYSSCHEMAS row
+     * @param row                     a SYSDATABASES row
      * @param parentTupleDescriptor    unused
      * @param dd                     dataDictionary
      *
-     * @return    a  descriptor equivalent to a SYSSCHEMAS row
+     * @return    a  descriptor equivalent to a SYSDATABASES row
      *
      * @exception   StandardException thrown on failure
      */
@@ -197,7 +190,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
                     throws StandardException
     {
         DataValueDescriptor     col;
-        SchemaDescriptor        descriptor;
+        DatabaseDescriptor        descriptor;
         String                  name;
         UUID                    id;
         String                  aid;
@@ -207,16 +200,16 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
         if (SanityManager.DEBUG)
         {
-            SanityManager.ASSERT(row.nColumns() == SYSSCHEMAS_COLUMN_COUNT,
-                                 "Wrong number of columns for a SYSSCHEMAS row");
+            SanityManager.ASSERT(row.nColumns() == SYSDATABASES_COLUMN_COUNT,
+                                 "Wrong number of columns for a SYSDATABASES row");
         }
 
-        // first column is schemaid (UUID - char(36))
+        // first column is databaseid (UUID - char(36))
         col = row.getColumn(1);
         uuid = col.getString();
         id = getUUIDFactory().recreateUUID(uuid);
 
-        // second column is schemaname (varchar(128))
+        // second column is databasename (varchar(128))
         col = row.getColumn(2);
         name = col.getString();
 
@@ -224,11 +217,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
         col = row.getColumn(3);
         aid = col.getString();
 
-        // fourth column is databaseid (char(36))
-        col = row.getColumn(4);
-        dbid = getUUIDFactory().recreateUUID(col.getString());
-
-        descriptor = ddg.newSchemaDescriptor(name, aid, id, dbid);
+        descriptor = ddg.newDatabaseDescriptor(name, aid, id);
 
         return descriptor;
     }
@@ -243,10 +232,9 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
         throws StandardException
     {
             return new SystemColumn[] {
-                SystemColumnImpl.getUUIDColumn("SCHEMAID", false),
-                SystemColumnImpl.getIdentifierColumn("SCHEMANAME", false),
-                SystemColumnImpl.getIdentifierColumn("AUTHORIZATIONID", false),
-                SystemColumnImpl.getUUIDColumn("DATABASEID", false)
+                SystemColumnImpl.getUUIDColumn("DATABASEID", false),
+                SystemColumnImpl.getIdentifierColumn("DATABASENAME", false),
+                SystemColumnImpl.getIdentifierColumn("AUTHORIZATIONID", false)
             };
     }
 
@@ -256,59 +244,22 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
         List<ColumnDescriptor[]> cdsl = new ArrayList<>();
         cdsl.add(
             new ColumnDescriptor[]{
-                new ColumnDescriptor("SCHEMAID", 1, 1,
+                new ColumnDescriptor("DATABASEID", 1, 1,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR,  false,  36),
                         null, null, view, viewId, 0, 0, 0),
-                new ColumnDescriptor("SCHEMANAME", 2, 2,
+                new ColumnDescriptor("DATABASENAME", 2, 2,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,  false,  128),
                         null, null, view, viewId, 0, 0, 0),
                 new ColumnDescriptor("AUTHORIZATIONID", 3, 3,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,  false,  128),
-                        null, null, view, viewId, 0, 0, 0),
-                new ColumnDescriptor("DATABASEID", 4, 4,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
                         null, null, view, viewId, 0, 0, 0)
         });
         return cdsl;
     }
 
-    private static final String REGULAR_USER_SCHEMA =
-            "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P " +
-                    "WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' " +
-                    "and P.grantee in (select name from sysvw.sysallroles) \n" +
-                    "UNION ALL " +
-                    "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S " +
-                    "WHERE S.authorizationId " +
-                    "     in (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(1) as b (NAME VARCHAR(128)))";
+    // XXX create SYSDATABASEPERMS
 
-    private static final String SUPER_USER_SCHEMA =
-            "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S ";
-
-    private static final String PUBLIC_SCHEMA =
-            "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S where S.SCHEMANAME in ('SYSVW') ";
-
-    public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
-            SUPER_USER_SCHEMA +
-            "WHERE 'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128))) \n" +
-            "UNION ALL " +
-            REGULAR_USER_SCHEMA +
-            "UNION " +
-            PUBLIC_SCHEMA;
-
-    public static final String SYSSCHEMASVIEW_VIEW_SQL1 = "create view sysschemasView as \n" +
-            SUPER_USER_SCHEMA;
-
-
-    public static final String RANGER_USER_SCHEMA =
-            "select S.* from SYS.SYSSCHEMAS as S where S.SCHEMANAME in " +
-            "(select name from new com.splicemachine.derby.vti.SchemaFilterVTI() as b (NAME VARCHAR(128))) ";
-
-
-    public static final String SYSSCHEMASVIEW_VIEW_RANGER = "create view sysschemasView as \n" +
-            RANGER_USER_SCHEMA;
-
+    public static final String SYSDATABASES_VIEW_SQL = "create view sysdatabasesView as \n" +
+            "SELECT D.* " +
+                "FROM SYS.SYSDATABASES AS D ";
 }

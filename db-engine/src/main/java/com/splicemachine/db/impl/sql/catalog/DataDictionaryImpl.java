@@ -121,6 +121,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     protected SchemaDescriptor systemUtilSchemaDesc;
     protected SchemaDescriptor sysFunSchemaDesc;
     protected SchemaDescriptor sysViewSchemaDesc;
+    protected DatabaseDescriptor spliceDbDesc;
 
     /**
      * Dictionary version of the on-disk database
@@ -256,14 +257,19 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         startupParameters=startParams;
         uuidFactory=Monitor.getMonitor().getUUIDFactory();
         engineType=Monitor.getEngineType(startParams);
-        //Set the collation type of system schemas before we start loading 
-        //built-in schemas's SchemaDescriptor(s). This is because 
-        //SchemaDescriptor will look to DataDictionary to get the correct 
+        //Set the collation type of system schemas before we start loading
+        //built-in schemas's SchemaDescriptor(s). This is because
+        //SchemaDescriptor will look to DataDictionary to get the correct
         //collation type for themselves. We can't load SD for SESSION schema
         //just yet because we do not know the collation type for user schemas
         //yet. We will know the right collation for user schema little later
         //in this boot method.
         collationTypeOfSystemSchemas=StringDataValue.COLLATION_TYPE_UCS_BASIC;
+
+        /* Get AccessFactory in order to transaction stuff */
+        af=(AccessFactory)Monitor.findServiceModule(this,AccessFactory.MODULE);
+
+        getBuiltinSpliceDb();
         getBuiltinSystemSchemas();
 
         // REMIND: actually, we're supposed to get the DataValueFactory
@@ -349,6 +355,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID,
                     getBootParameter(startParams,CFG_SYSSCHEMAS_INDEX2_ID,true));
 
+            // SYSDATABASES
+            coreInfo[SYSDATABASES_CORE_NUM].setHeapConglomerate(
+                    getBootParameter(startParams, CFG_SYSDATABASES_ID, true));
+
+            coreInfo[SYSDATABASES_CORE_NUM].setIndexConglomerate(
+                    SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID,
+                    getBootParameter(startParams, CFG_SYSDATABASES_INDEX1_ID, true));
+
+            coreInfo[SYSDATABASES_CORE_NUM].setIndexConglomerate(
+                    SYSDATABASESRowFactory.SYSDATABASES_INDEX2_ID,
+                    getBootParameter(startParams, CFG_SYSDATABASES_INDEX2_ID, true));
         }
 
         dataDictionaryCache = new DataDictionaryCache(startParams,this);
@@ -357,9 +374,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         /* Get the object to coordinate cache transitions */
         cacheCoordinator=new ShExLockable();
-
-        /* Get AccessFactory in order to transaction stuff */
-        af=(AccessFactory)Monitor.findServiceModule(this,AccessFactory.MODULE);
 
         /* Get the lock factory */
         lockFactory=af.getLockFactory();
@@ -674,6 +688,19 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     }
 
+    private void getBuiltinSpliceDb() throws StandardException {
+        if (spliceDbDesc != null)
+            return;
+
+        ContextService.getFactory();
+        TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
+        UUID databaseID = (UUID) tc.getProperty(DataDictionary.DATABASE_ID);
+
+        spliceDbDesc = new DatabaseDescriptor(
+                this, DatabaseDescriptor.STD_DB_NAME, "PLACEHOLDER", // XXX replace placeholder
+                databaseID);
+    }
+
     public List<SchemaDescriptor> getAllSchemas(TransactionController tc) throws StandardException{
         List<SchemaDescriptor> lists =new ArrayList<>();
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
@@ -801,6 +828,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return defaultValue;
     }
 
+    /**
+     * Get the descriptor for the default splice database.
+     */
+    @Override
+    public DatabaseDescriptor getSpliceDatabaseDescriptor() {
+        return spliceDbDesc;
+    }
+
 
     /**
      * Get the descriptor for the system schema. Schema descriptors include
@@ -830,7 +865,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public SchemaDescriptor getSystemUtilSchemaDescriptor() throws StandardException{
-        return (systemUtilSchemaDesc);
+        return systemUtilSchemaDesc;
     }
 
     /**
@@ -892,6 +927,46 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
 
         return (ret_val);
+    }
+
+    @Override
+    public DatabaseDescriptor getDatabaseDescriptor(String dbName, TransactionController tc) throws StandardException {
+        return getDatabaseDescriptor(dbName, tc, true);
+    }
+
+    @Override
+    public DatabaseDescriptor getDatabaseDescriptor(String dbName, TransactionController tc, boolean raiseError) throws StandardException
+    {
+        /*
+         ** Check for SPLICEDB before going any further.
+         */
+
+        if(tc==null){
+            tc=getTransactionCompile();
+        }
+
+        if(getSpliceDatabaseDescriptor().getDatabaseName().equals(dbName)){
+            return getSpliceDatabaseDescriptor();
+        }
+
+        /*
+         ** Manual lookup
+         */
+
+        DatabaseDescriptor dd = dataDictionaryCache.databaseCacheFind(dbName);
+        if (dd!=null)
+            return dd;
+
+        dd = locateDatabaseRow(dbName,tc);
+
+        if (dd!=null)
+            dataDictionaryCache.databaseCacheAdd(dbName, dd);
+
+        if(dd==null && raiseError) {
+            throw StandardException.newException(SQLState.LANG_DATABASE_DOES_NOT_EXIST, dbName);
+        }else{
+            return dd;
+        }
     }
 
     /**
@@ -1002,6 +1077,39 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         null,
                         false,
                         isolationLevel,
+                        tc);
+    }
+
+    /**
+     * Get the target database by searching for a matching row
+     * in SYSDATABASES by database name.  Read only scan.
+     *
+     * @param dbName The name of the schema we're interested in.
+     *                   If schemaId is null, used to qual.
+     * @param tc         TransactionController.  If null, one
+     *                   is gotten off of the language connection context.
+     * @return The row for the schema
+     * @throws StandardException Thrown on error
+     */
+    public DatabaseDescriptor locateDatabaseRow(String dbName,TransactionController tc) throws StandardException{
+        DataValueDescriptor databaseNameOrderable;
+        TabInfoImpl ti=coreInfo[SYSDATABASES_CORE_NUM];
+
+        databaseNameOrderable=new SQLVarchar(dbName);
+
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,databaseNameOrderable);
+
+        return (DatabaseDescriptor)
+                getDescriptorViaIndex(
+                        SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID,
+                        keyRow,
+                        null,
+                        ti,
+                        null,
+                        null,
+                        false,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
                         tc);
     }
 
@@ -6503,6 +6611,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         coreInfo[SYSSCHEMAS_CORE_NUM].getIndexConglomerate(
                                 SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID)));
 
+        params.put(CFG_SYSDATABASES_ID,Long.toString(coreInfo[SYSDATABASES_CORE_NUM].getHeapConglomerate()));
+        params.put(CFG_SYSDATABASES_INDEX1_ID,
+                Long.toString(
+                        coreInfo[SYSDATABASES_CORE_NUM].getIndexConglomerate(
+                                SYSDATABASESRowFactory.SYSDATABASES_INDEX1_ID)));
+        params.put(CFG_SYSDATABASES_INDEX2_ID,
+                Long.toString(
+                        coreInfo[SYSDATABASES_CORE_NUM].getIndexConglomerate(
+                                SYSDATABASESRowFactory.SYSDATABASES_INDEX2_ID)));
+
         //Add the SYSIBM Schema
         sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID,tc);
 
@@ -6527,6 +6645,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 Thread.interrupted();
             }
         }
+
+        // Add the database table
+        addDescriptor(spliceDbDesc, null, SYSDATABASES_CATALOG_NUM, false, tc, false);
 
         //Add ths System Schema
         addDescriptor(systemSchemaDesc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
@@ -6566,11 +6687,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         //Add the SYSCS_UTIL Schema
         addSystemSchema(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,tc);
 
-        //Add the SPLICE schema
+        //Add the SPLICE schema //XXX Add this schema all the time, but probably not all the ones above for other DB
         SchemaDescriptor appSchemaDesc=new SchemaDescriptor(this,
                 SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME,
                 SchemaDescriptor.DEFAULT_USER_NAME,
                 uuidFactory.recreateUUID(SchemaDescriptor.DEFAULT_SCHEMA_UUID),
+                getSpliceDatabaseDescriptor().getUUID(),
                 false);
 
         addDescriptor(appSchemaDesc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
@@ -6591,7 +6713,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                              TransactionController tc) throws StandardException{
         // create the descriptor
         UUID oid=uuidFactory.recreateUUID(schema_uuid);
-        SchemaDescriptor schema_desc=new SchemaDescriptor(this,schema_name,authorizationDatabaseOwner,oid,true);
+        SchemaDescriptor schema_desc=new SchemaDescriptor(
+                this, schema_name, authorizationDatabaseOwner,
+                oid, getSpliceDatabaseDescriptor().getUUID(), true);
 
         // add it to the catalog.
         addDescriptor(schema_desc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
@@ -7330,6 +7454,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         lcoreInfo[SYSCOLUMNS_CORE_NUM]=new TabInfoImpl(new SYSCOLUMNSRowFactory(luuidFactory,exFactory,dvf,this));
         lcoreInfo[SYSCONGLOMERATES_CORE_NUM]=new TabInfoImpl(new SYSCONGLOMERATESRowFactory(luuidFactory,exFactory,dvf, this));
         lcoreInfo[SYSSCHEMAS_CORE_NUM]=new TabInfoImpl(new SYSSCHEMASRowFactory(luuidFactory,exFactory,dvf, this));
+        lcoreInfo[SYSDATABASES_CORE_NUM] = new TabInfoImpl(new SYSDATABASESRowFactory(luuidFactory, exFactory, dvf, this));
     }
 
     /**
@@ -8351,11 +8476,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     private SchemaDescriptor newSystemSchemaDesc(String name,String uuid){
-        return new SchemaDescriptor(this,name,authorizationDatabaseOwner,uuidFactory.recreateUUID(uuid),true);
+        return new SchemaDescriptor(
+                this, name, authorizationDatabaseOwner,
+                uuidFactory.recreateUUID(uuid), getSpliceDatabaseDescriptor().getUUID(), true);
     }
 
     private SchemaDescriptor newDeclaredGlobalTemporaryTablesSchemaDesc(String name){
-        return new SchemaDescriptor(this,name,authorizationDatabaseOwner,uuidFactory.createUUID(),false);
+        return new SchemaDescriptor(
+                this, name, authorizationDatabaseOwner,
+                uuidFactory.createUUID(), getSpliceDatabaseDescriptor().getUUID(), false);
     }
 
     /**

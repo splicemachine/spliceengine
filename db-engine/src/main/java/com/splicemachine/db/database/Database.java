@@ -56,14 +56,14 @@ import java.util.Locale;
 public interface Database
 {
 
-	/**
-	 * Tells whether the Database is configured as read-only, or the
-	 * Database was started in read-only mode.
-	 *
-	 * @return	TRUE means the Database is read-only, FALSE means it is
-	 *		not read-only.
-	 */
-	boolean		isReadOnly();
+    /**
+     * Tells whether the Database is configured as read-only, or the
+     * Database was started in read-only mode.
+     *
+     * @return    TRUE means the Database is read-only, FALSE means it is
+     *        not read-only.
+     */
+    boolean        isReadOnly();
 
     /**
      * Backup the database to a backup directory.  See online documentation
@@ -75,48 +75,47 @@ public interface Database
      *             operations in progress to finish.
      * @exception SQLException Thrown on error
      */
-	void backup(String backupDir, boolean wait)
+    void backup(String backupDir, boolean wait)
         throws SQLException;
 
     void restore(String restoreDir, boolean wait)
             throws SQLException;
 
-	/**
-	  * Freeze the database temporarily so a backup can be taken.
-	  * <P>Please see the Derby documentation on backup and restore.
-	  *
-	  * @exception SQLException Thrown on error
-	  */
-	void freeze() throws SQLException;
+    /**
+      * Freeze the database temporarily so a backup can be taken.
+      * <P>Please see the Derby documentation on backup and restore.
+      *
+      * @exception SQLException Thrown on error
+      */
+    void freeze() throws SQLException;
 
-	/**
-	  * Unfreeze the database after a backup has been taken.
-	  * <P>Please see the Derby documentation on backup and restore.
-	  *
-	  * @exception SQLException Thrown on error
-	  */
-	void unfreeze() throws SQLException;
+    /**
+      * Unfreeze the database after a backup has been taken.
+      * <P>Please see the Derby documentation on backup and restore.
+      *
+      * @exception SQLException Thrown on error
+      */
+    void unfreeze() throws SQLException;
 
-	/**
-	 * Checkpoints the database, that is, flushes all dirty data to disk.
-	 * Records a checkpoint in the transaction log, if there is a log.
-	 *
-	 * @exception SQLException Thrown on error
-	 */
-	void checkpoint() throws SQLException;
+    /**
+     * Checkpoints the database, that is, flushes all dirty data to disk.
+     * Records a checkpoint in the transaction log, if there is a log.
+     *
+     * @exception SQLException Thrown on error
+     */
+    void checkpoint() throws SQLException;
 
-	/**
-	 * Get the Locale for this database.
-	 */
-	Locale getLocale();
+    /**
+     * Get the Locale for this database.
+     */
+    Locale getLocale();
 
-	/**
-		Return the UUID of this database.
-		@deprecated No longer supported.
+    /**
+        Return the UUID of this database.
 
-	*/
-	UUID getId();
-}	
+    */
+    UUID getId();
+}
 
 
 
