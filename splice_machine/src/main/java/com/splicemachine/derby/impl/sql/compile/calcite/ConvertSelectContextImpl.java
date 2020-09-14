@@ -10,6 +10,8 @@ public class ConvertSelectContextImpl implements ConvertSelectContext {
     private SelectNode root;
     private RelNode relRoot;
     Map<Integer, Integer> startColPosMap = null;
+    private RelNode leftJoinSource;
+    private RelNode rightJoinSource;
 
     public ConvertSelectContextImpl(SelectNode selectNode) {
         root = selectNode;
@@ -31,5 +33,16 @@ public class ConvertSelectContextImpl implements ConvertSelectContext {
     public void setRelRoot(RelNode relRoot) {
         this.relRoot = relRoot;
     }
-
+    public RelNode getLeftJoinSource() {
+        return leftJoinSource;
+    }
+    public RelNode getRightJoinSource() {
+        return rightJoinSource;
+    }
+    public void setLeftJoinSource(RelNode source) {
+        leftJoinSource = source;
+    }
+    public void setRightJoinSource(RelNode source) {
+        rightJoinSource = source;
+    }
 }
