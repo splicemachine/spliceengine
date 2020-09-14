@@ -87,7 +87,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                          boolean oneRowScan,
                          double optimizerEstimatedRowCount,
                          double optimizerEstimatedCost,String tableVersion,
-                         boolean pin, int splits, String delimited, String escaped, String lines,
+                         boolean pin, int splits, CsvOptions csvOptions,
                          String storedAs, String location, int partitionRefItem, GeneratedMethod defaultRowFunc, int defaultValueMapItem
 
     ) throws StandardException{
@@ -100,7 +100,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         this.rowIdKey = rowIdKey;
         this.pin = pin;
         this.splits = splits;
-        this.csvOptions = new CsvOptions(delimited, escaped, lines);
+        this.csvOptions = csvOptions;
         this.storedAs = storedAs;
         this.location = location;
         this.partitionRefItem = partitionRefItem;

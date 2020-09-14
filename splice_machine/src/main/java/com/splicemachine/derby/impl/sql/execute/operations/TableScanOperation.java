@@ -42,6 +42,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -124,9 +125,7 @@ public class TableScanOperation extends ScanOperation{
      * @param optimizerEstimatedRowCount
      * @param optimizerEstimatedCost
      * @param tableVersion
-     * @param delimited
-     * @param escaped
-     * @param lines
+     * @param csvOptions
      * @param location
      * @param pin
      * @param storedAs
@@ -166,9 +165,7 @@ public class TableScanOperation extends ScanOperation{
                               String tableVersion,
                               boolean pin,
                               int splits,
-                              String delimited,
-                              String escaped,
-                              String lines,
+                              CsvOptions csvOptions,
                               String storedAs,
                               String location,
                               int partitionByRefItem,
@@ -178,7 +175,8 @@ public class TableScanOperation extends ScanOperation{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
-                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem);
+                pin,splits, csvOptions,
+                storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;

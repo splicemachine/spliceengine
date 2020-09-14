@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.system.CsvOptions;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -67,7 +68,7 @@ public class LastIndexKeyOperation extends ScanOperation {
             true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
 
         colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost,tableVersion,false,
-                0, null,null,null,null,null,-1,null,-1);
+                0, new CsvOptions(),null,null,-1,null,-1);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
         this.indexName = indexName;

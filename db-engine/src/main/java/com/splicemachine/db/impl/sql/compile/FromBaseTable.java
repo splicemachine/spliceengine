@@ -2386,9 +2386,7 @@ public class FromBaseTable extends FromTable {
                 tableDescriptor.getVersion(),
                 pin,
                 splits,
-                tableDescriptor.getDelimited(),
-                tableDescriptor.getEscaped(),
-                tableDescriptor.getLines(),
+                tableDescriptor.getCsvOptions(),
                 tableDescriptor.getStoredAs(),
                 tableDescriptor.getLocation(),
                 partitionReferenceItem

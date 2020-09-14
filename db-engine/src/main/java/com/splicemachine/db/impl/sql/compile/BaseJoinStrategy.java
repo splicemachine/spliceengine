@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.PropertyUtil;
+import com.splicemachine.system.CsvOptions;
 
 public abstract class BaseJoinStrategy implements JoinStrategy{
     public BaseJoinStrategy(){
@@ -127,9 +128,7 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
                                       int isolationLevel, String tableVersion,
                                       boolean pin,
                                       int splits,
-                                      String delimited,
-                                      String escaped,
-                                      String lines,
+                                      CsvOptions csvOptions,
                                       String storedAs,
                                       String location,
                                       int partitionReferenceItem
@@ -196,9 +195,9 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         mb.push(innerTable instanceof ResultSetNode ? ((ResultSetNode)innerTable).printExplainInformationForActivation() : "");
         mb.push(pin);
         mb.push(splits);
-        pushNullableString(mb,delimited);
-        pushNullableString(mb,escaped);
-        pushNullableString(mb,lines);
+        pushNullableString(mb,csvOptions.columnDelimiter);
+        pushNullableString(mb,csvOptions.escapeCharacter);
+        pushNullableString(mb,csvOptions.lineTerminator);
         pushNullableString(mb,storedAs);
         pushNullableString(mb,location);
         mb.push(partitionReferenceItem);

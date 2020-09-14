@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
@@ -144,9 +145,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             String tableVersion,
             boolean pin,
             int splits,
-            String delimited,
-            String escaped,
-            String lines,
+            CsvOptions csvOptions,
             String storedAs,
             String location,
             int partitionReferenceItem
@@ -216,9 +215,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                 tableVersion,
                 pin,
                 splits,
-                delimited,
-                escaped,
-                lines,
+                csvOptions,
                 storedAs,
                 location,
                 partitionReferenceItem

@@ -29,6 +29,7 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
+import com.splicemachine.system.CsvOptions;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -117,9 +118,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         double optimizerEstimatedCost, String tableVersion,
                                         boolean pin,
                                         int splits,
-                                        String delimited,
-                                        String escaped,
-                                        String lines,
+                                        CsvOptions csvOptions,
                                         String storedAs,
                                         String location,
                                         int partitionByRefItem,
@@ -159,9 +158,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             oneRowScan,
             optimizerEstimatedRowCount,
             optimizerEstimatedCost,tableVersion,pin,splits,
-                delimited,
-                escaped,
-                lines,
+                csvOptions,
                 storedAs,
                 location,
                 partitionByRefItem,

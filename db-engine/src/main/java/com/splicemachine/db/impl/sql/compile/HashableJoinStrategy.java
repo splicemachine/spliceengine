@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.system.CsvOptions;
 
 import java.util.Vector;
 
@@ -335,9 +336,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             int maxMemoryPerTable,
             boolean genInListVals, String tableVersion, boolean pin,
             int splits,
-            String delimited,
-            String escaped,
-            String lines,
+            CsvOptions csvOptions,
             String storedAs,
             String location,
             int partitionRefItem
@@ -385,7 +384,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         }
 
         fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,pin,
-            splits, delimited, escaped, lines, storedAs, location, partitionRefItem);
+            splits, csvOptions, storedAs, location, partitionRefItem);
         return numArgs;
     }
 

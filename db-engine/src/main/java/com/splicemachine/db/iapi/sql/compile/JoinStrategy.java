@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.system.CsvOptions;
 
 /**
  * A JoinStrategy represents a strategy like nested loop, hash join,
@@ -287,9 +288,7 @@ public interface JoinStrategy {
                     String tableVersion,
                     boolean pin,
                     int splits,
-                    String delimited,
-                    String escaped,
-                    String lines,
+                    CsvOptions csvOptions,
                     String storedAs,
                     String location,
                     int partitionRefItem)

@@ -30,6 +30,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
+import com.splicemachine.system.CsvOptions;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -112,9 +113,7 @@ public class DistinctScanOperation extends ScanOperation {
                                  String tableVersion,
                                  boolean pin,
                                  int splits,
-                                 String delimited,
-                                 String escaped,
-                                 String lines,
+                                 CsvOptions csvOptions,
                                  String storedAs,
                                  String location,
                                  int partitionByRefItem,
@@ -140,7 +139,7 @@ public class DistinctScanOperation extends ScanOperation {
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost,
                 tableVersion,
-                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem);
+                pin,splits,csvOptions,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
