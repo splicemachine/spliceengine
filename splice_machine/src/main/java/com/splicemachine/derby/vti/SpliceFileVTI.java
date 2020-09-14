@@ -140,7 +140,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
                 return textSet.flatMap(new FileFunction(
-                        new CsvOptions2(characterDelimiter, columnDelimiter, timeFormat, dateTimeFormat, timestampFormat),
+                        new CsvOptions2(columnDelimiter, characterDelimiter, timeFormat, dateTimeFormat, timestampFormat),
                         execRow, columnIndex, true, operationContext), true);
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);

@@ -86,9 +86,7 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        boolean onRollbackDeleteRows,
                                                        String withDataQueryString,
                                                        boolean isExternal,
-                                                       String delimited,
-                                                       String escaped,
-                                                       String lines,
+                                                       CsvOptions csvOptions,
                                                        String storedAs,
                                                        String location,
                                                        String compression,
@@ -96,19 +94,14 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                        boolean presplit,
                                                        boolean isLogicalKey,
                                                        String splitKeyPath,
-                                                       String splitColumnDelimiter,
-                                                       String splitCharacterDelimiter,
-                                                       String splitTimestampFormat,
-                                                       String splitDateFormat,
-                                                       String splitTimeFormat) {
+                                                       CsvOptions2 splitOptions) {
         SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
             schemaName, tableName, Arrays.toString(columnInfos),Arrays.toString(constantActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfos,
             constantActions,properties,createBehavior,lockGranularity,
             onCommitDeleteRows,onRollbackDeleteRows,withDataQueryString, isExternal,
                 storedAs,location, compression, mergeSchema,presplit,isLogicalKey,splitKeyPath,
-                new CsvOptions(delimited, escaped, lines),
-                new CsvOptions2(splitColumnDelimiter, splitCharacterDelimiter, splitTimestampFormat, splitDateFormat, splitTimeFormat) );
+                csvOptions, splitOptions );
     }
 
 

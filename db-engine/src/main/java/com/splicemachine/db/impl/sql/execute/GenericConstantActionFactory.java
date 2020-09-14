@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.TableName;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.system.CsvOptions2;
 
 import java.util.List;
@@ -328,9 +329,7 @@ public abstract class GenericConstantActionFactory {
         boolean            onRollbackDeleteRows,
         String          withDataQueryString,
         boolean isExternal,
-        String delimited,
-        String escaped,
-        String lines,
+        CsvOptions csvOptions,
         String storedAs,
         String location,
         String compression,
@@ -338,11 +337,7 @@ public abstract class GenericConstantActionFactory {
         boolean presplit,
         boolean isLogicalKey,
         String splitKeyPath,
-        String splitColumnDelimiter,
-        String splitCharacterDelimiter,
-        String splitTimestampFormat,
-        String splitDateFormat,
-        String splitTimeFormat
+        CsvOptions2 splitOptions
         );
 
     public abstract    ConstantAction    getPinTableConstantAction (

@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.system.CsvOptions;
+import com.splicemachine.system.CsvOptions2;
 
 import java.util.Properties;
 
@@ -75,21 +76,15 @@ public class CreateTableNode extends DDLStatementNode
     private String              queryString;
 	boolean             		  isExternal;
 	ResultColumnList			  partitionedResultColumns;
-	CharConstantNode              terminationChar;
-	CharConstantNode              escapedByChar;
-	CharConstantNode              linesTerminatedByChar;
+	CsvOptions                    csvOptions;
 	String              		  storageFormat;
-	CharConstantNode              location;
+	String                        location;
 	String              		  compression;
     boolean                       mergeSchema;
 	boolean                       presplit;
 	boolean                       isLogicalKey;
 	String                        splitKeyPath;
-	String                        splitColumnDelimiter;
-	String                        splitCharacterDelimiter;
-	String                        splitTimestampFormat;
-	String                        splitDateFormat;
-	String                        splitTimeFormat;
+	CsvOptions2                   splitOptions = new CsvOptions2();
 
 	/**
 	 * Initializer for a CreateTableNode for a base table
@@ -142,11 +137,10 @@ public class CreateTableNode extends DDLStatementNode
 		this.tableElementList = (TableElementList) tableElementList;
 		this.properties = (Properties) properties;
 		this.partitionedResultColumns = (ResultColumnList) partitionedResultColumns;
-		this.terminationChar = (CharConstantNode) terminationChar;
-		this.escapedByChar = (CharConstantNode) escapedByChar;
-		this.linesTerminatedByChar = (CharConstantNode) linesTerminatedByChar;
+		this.csvOptions = new CsvOptions( getCharConstantStr(terminationChar), getCharConstantStr(escapedByChar),
+				                          getCharConstantStr(linesTerminatedByChar));
 		this.storageFormat = (String) storageFormat;
-		this.location = (CharConstantNode) location;
+		this.location = getCharConstantStr(location);
 		this.compression = (String) compression;
 		this.mergeSchema = (Boolean)mergeSchema;
 	}
@@ -192,14 +186,17 @@ public class CreateTableNode extends DDLStatementNode
 		this.properties = (Properties) properties;
 		this.presplit = (Boolean) presplit;
 		this.isLogicalKey = (Boolean)isLogicalKey;
-        this.splitKeyPath = splitKeyPath!=null ? ((CharConstantNode)splitKeyPath).getString() : null;
-        this.splitColumnDelimiter = splitColumnDelimiter != null ? ((CharConstantNode)splitColumnDelimiter).getString() : null;
-		this.splitCharacterDelimiter = splitCharacterDelimiter != null ? ((CharConstantNode)splitCharacterDelimiter).getString() : null;
-		this.splitTimestampFormat = splitTimestampFormat != null ? ((CharConstantNode)splitTimestampFormat).getString() : null;
-		this.splitDateFormat = splitDateFormat != null ? ((CharConstantNode)splitDateFormat).getString() : null;
-		this.splitTimeFormat = splitTimeFormat != null ? ((CharConstantNode)splitTimeFormat).getString() : null;
+        this.splitKeyPath = getCharConstantStr(splitKeyPath);
+        splitOptions = new CsvOptions2( getCharConstantStr(splitColumnDelimiter),
+		                                getCharConstantStr(splitCharacterDelimiter),
+		                                getCharConstantStr(splitTimestampFormat),
+		                                getCharConstantStr(splitDateFormat),
+		                                getCharConstantStr(splitTimeFormat) );
 	}
 
+	private String getCharConstantStr(Object node) throws StandardException {
+		return node != null ? ((CharConstantNode)node).getString() : null;
+	}
 	/**
 	 * Initializer for a CreateTableNode for a global temporary table
 	 *
@@ -276,11 +273,10 @@ public class CreateTableNode extends DDLStatementNode
 		this.queryExpression = (ResultSetNode) queryExpression;
 		this.isExternal = (Boolean) isExternal;
 		this.partitionedResultColumns = (ResultColumnList) partitionedResultColumns;
-		this.terminationChar = (CharConstantNode) terminationChar;
-		this.escapedByChar = (CharConstantNode) escapedByChar;
-		this.linesTerminatedByChar = (CharConstantNode) linesTerminatedByChar;
+		this.csvOptions = new CsvOptions( getCharConstantStr(terminationChar), getCharConstantStr(escapedByChar),
+				getCharConstantStr(linesTerminatedByChar));
 		this.storageFormat = (String) storageFormat;
-		this.location = (CharConstantNode) location;
+		this.location = getCharConstantStr(location);
 	}
 
     public void setQueryString(String queryString) {
@@ -686,21 +682,15 @@ public class CreateTableNode extends DDLStatementNode
                     onRollbackDeleteRows,
                     queryString,
                     isExternal,
-                    terminationChar!=null?terminationChar.value.getString():null,
-                    escapedByChar!=null?escapedByChar.value.getString():null,
-                    linesTerminatedByChar!=null?linesTerminatedByChar.value.getString():null,
+					csvOptions,
                     storageFormat,
-                    location!=null?location.value.getString():null,
+                    location,
                     compression,
                     mergeSchema,
                     presplit,
                     isLogicalKey,
-                    splitKeyPath,
-                    splitColumnDelimiter,
-                    splitCharacterDelimiter,
-                    splitTimestampFormat,
-                    splitDateFormat,
-                    splitTimeFormat
+					splitKeyPath,
+					splitOptions
             ));
     }
 

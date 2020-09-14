@@ -1000,37 +1000,25 @@ public class ExternalTableIT extends SpliceUnitTest {
     @Test // DB-9682
     public void testReadTextMismatchSchema() throws Exception {
         String file = getResourceDirectory() + "test_external_text";
-        methodWatcher.executeUpdate(String.format("create external table external_t2 (col1 int, col2 varchar(20), col3 date, col4 date)" +
-                "ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'" +
-                " STORED AS TEXTFILE LOCATION '%s'", file));
-        try {
-            methodWatcher.executeQuery("select * from external_t2");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception (" + e.getMessage() + ")", EXTERNAL_TABLES_READ_FAILURE, e.getSQLState());
-            Assert.assertEquals( "wrong exception message",
-                    "External Table read failed with exception '4 attribute(s) defined but 3 present " +
-                            "in the external file : '" + file + "'. Suggested Schema is 'CREATE EXTERNAL TABLE T " +
-                            "(_c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x));'.'",
-                    e.getMessage() );
+        String formats[] = {
+                "(col1 int, col2 varchar(20), col3 date, col4 date)", // too much
+                "(col1 int, col2 varchar(20) )"};                     // to little
+        String numCols[] = {"4", "2"};
+        for (int i = 0; i < 2; i++)
+        {
+            try {
+                methodWatcher.executeUpdate(String.format("create external table external_t2 " + formats[i] +
+                        "ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'" +
+                        " STORED AS TEXTFILE LOCATION '%s'", file));
+                Assert.fail("Exception not thrown");
+            } catch (SQLException e) {
+                Assert.assertEquals("Wrong Exception (" + e.getMessage() + ")", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
+                Assert.assertEquals("wrong exception message",
+                        numCols[i] + " attribute(s) defined but 3 present " +
+                                "in the external file : '" + file + "'. Suggested Schema is 'CREATE EXTERNAL TABLE T " +
+                                "(_c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x));'.", e.getMessage());
+            }
         }
-        methodWatcher.execute("drop table external_t2");
-
-        methodWatcher.executeUpdate(String.format("create external table external_t3 (col1 int, col2 varchar(20) )" +
-                "ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'" +
-                " STORED AS TEXTFILE LOCATION '%s'", file));
-        try {
-            methodWatcher.executeQuery("select * from external_t3");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception (" + e.getMessage() + ")", EXTERNAL_TABLES_READ_FAILURE, e.getSQLState());
-            Assert.assertEquals( "wrong exception message",
-                    "External Table read failed with exception '2 attribute(s) defined but 3 present " +
-                            "in the external file : '" + file + "'. Suggested Schema is 'CREATE EXTERNAL TABLE T " +
-                            "(_c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x));'.'",
-                    e.getMessage() );
-        }
-        methodWatcher.execute("drop table external_t3");
     }
 
     @Test
