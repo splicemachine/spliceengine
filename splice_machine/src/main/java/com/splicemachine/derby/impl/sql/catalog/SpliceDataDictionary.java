@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
@@ -544,7 +545,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createTableColumnViewInSysIBM(tc);
 
         createTablesAndViewsInSysIBMADM(tc);
-        
+
         createAliasToTableSystemView(tc);
     }
 
@@ -603,9 +604,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber(),
                     databaseVersion.getSprintVersionNumber());
         }
-        if(create){
+        if(create || Boolean.TRUE.equals(EmbedConnection.isCreate.get())) {
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);
-            SpliceTransactionManager txnManager=(SpliceTransactionManager)af.getTransaction(ContextService.getFactory().getCurrentContextManager());
+            ContextService.getFactory();
+            SpliceTransactionManager txnManager=(SpliceTransactionManager)af.getTransaction(ContextService.getCurrentContextManager());
             ((SpliceTransaction)txnManager.getRawTransaction()).elevate(Bytes.toBytes("boot"));
             if(spliceSoftwareVersion!=null){
                 txnManager.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);

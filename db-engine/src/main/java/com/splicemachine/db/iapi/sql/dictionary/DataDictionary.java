@@ -263,7 +263,7 @@ public interface DataDictionary{
             "1", // SYSCONGLOMERATES
             "1", // SYSTABLES
             "1", // SYSCOLUMNS
-            "1", // SYSSCHEMAS //XXX change version
+            "1", // SYSSCHEMAS //XXX(arnaud multidb) change version
             "1", // SYSDATABASES
             "1", // SYSCONSTRAINTS
             "1", // SYSKEYS

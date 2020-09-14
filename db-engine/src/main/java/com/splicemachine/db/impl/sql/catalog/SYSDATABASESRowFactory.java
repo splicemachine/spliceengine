@@ -257,5 +257,5 @@ public class SYSDATABASESRowFactory extends CatalogRowFactory
         return cdsl;
     }
 
-    // XXX create SYSDATABASEPERMS
+    // XXX(arnaud multidb) create SYSDATABASEPERMS
 }

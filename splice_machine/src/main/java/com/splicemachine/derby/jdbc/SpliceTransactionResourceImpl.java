@@ -51,7 +51,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected LanguageConnectionContext lcc;
     protected String ipAddress;
 
-    public SpliceTransactionResourceImpl() throws SQLException{ // XXX Remove this one and properly pass the right DB
+    public SpliceTransactionResourceImpl() throws SQLException{ // XXX(arnaud multidb) Remove this one and properly pass the right DB
         this(DatabaseDescriptor.STD_DB_NAME);
     }
 
