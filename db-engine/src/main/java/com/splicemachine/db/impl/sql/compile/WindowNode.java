@@ -31,9 +31,9 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
+
+import java.util.List;
 
 /**
  * Superclass of window definition and window reference.
@@ -84,4 +84,9 @@ public abstract class WindowNode extends QueryTreeNode
     public abstract void bind(SelectNode selectNode) throws StandardException;
 
     public abstract List<OrderedColumn> getOverColumns();
+
+    public abstract OverClause getOverClause();
+
+    public abstract void setOverClause(OverClause overClause);
+
 }

@@ -51,9 +51,9 @@ import com.splicemachine.db.impl.load.Import;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
+import org.apache.log4j.Logger;
 import com.splicemachine.utils.StringUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.log4j.Logger;
 
 import java.security.AccessController;
 import java.security.Policy;

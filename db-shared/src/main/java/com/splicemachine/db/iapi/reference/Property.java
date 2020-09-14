@@ -1518,5 +1518,7 @@ public interface Property {
     String SPARK_RESULT_STREAMING_BATCH_SIZE = "sparkResultStreamingBatchSize";
 
     String CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN = "disableNLJPredicatePushDown";
+
+    String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
 }
 

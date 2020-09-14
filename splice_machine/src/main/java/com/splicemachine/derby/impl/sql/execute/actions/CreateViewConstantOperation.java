@@ -154,7 +154,7 @@ public class CreateViewConstantOperation extends DDLConstantOperation {
 		 * (Pass in row locking, even though meaningless for views.)
 		 */
 		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-		td = ddg.newTableDescriptor(tableName,sd,tableType,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+		td = ddg.newTableDescriptor(tableName,sd,tableType,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null);
 
 		dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
 		toid = td.getUUID();
