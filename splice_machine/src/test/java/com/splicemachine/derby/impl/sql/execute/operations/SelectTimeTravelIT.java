@@ -8,6 +8,7 @@ import org.junit.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 
 import static org.junit.Assert.fail;
 
@@ -23,11 +24,12 @@ public class SelectTimeTravelIT {
 
     private long getTxId() throws SQLException {
         long result = -1;
-        ResultSet rs =  watcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
-        Assert.assertTrue(rs.next());
-        result = rs.getLong(1);
-        Assert.assertFalse(rs.next());
-        return result;
+        try(ResultSet rs =  watcher.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()")) {
+            Assert.assertTrue(rs.next());
+            result = rs.getLong(1);
+            Assert.assertFalse(rs.next());
+            return result;
+        }
     }
 
     static int counter = 0;
@@ -48,16 +50,22 @@ public class SelectTimeTravelIT {
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 3");
 
         // check that data exists
-        ResultSet rs =  watcher.executeQuery("SELECT * FROM " + tbl + " ORDER BY a ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(2, rs.getInt(1));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(3, rs.getInt(1));
-        Assert.assertFalse(rs.next());
+        try(ResultSet rs =  watcher.executeQuery("SELECT * FROM " + tbl + " ORDER BY a ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(3, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
 
         // travel back in time
-        rs =  watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId + " ORDER BY a ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
-        Assert.assertFalse(rs.next());
+        try(ResultSet rs =  watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId + " ORDER BY a ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
     }
 
     @Test
@@ -77,21 +85,34 @@ public class SelectTimeTravelIT {
         watcher.executeUpdate("INSERT INTO " + tbl + " VALUES 300");
 
         // check that data exists
-        ResultSet rs =  watcher.executeQuery("SELECT * FROM " + tbl + " ORDER BY a ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(2, rs.getInt(1));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(3, rs.getInt(1));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(200, rs.getInt(1));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(300, rs.getInt(1));
-        Assert.assertFalse(rs.next());
+        try(ResultSet rs =  watcher.executeQuery("SELECT * FROM " + tbl + " ORDER BY a ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(3, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(200, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(300, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
 
         // 4. travel back in time
-        rs =  watcher.executeQuery("SELECT * FROM " + tbl + " L AS OF " + txId1 + ", "
-                + tbl + " R AS OF " + txId2 + " ORDER BY R.a ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1)); Assert.assertEquals(1, rs.getInt(2));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1)); Assert.assertEquals(2, rs.getInt(2));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1)); Assert.assertEquals(3, rs.getInt(2));
-        Assert.assertFalse(rs.next());
+        try(ResultSet rs =  watcher.executeQuery("SELECT * FROM " + tbl + " L AS OF " + txId1 + ", "
+                + tbl + " R AS OF " + txId2 + " ORDER BY R.a ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals(1, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals(2, rs.getInt(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals(3, rs.getInt(2));
+            Assert.assertFalse(rs.next());
+        }
     }
 
     @Test
@@ -107,9 +128,11 @@ public class SelectTimeTravelIT {
         String newTbl = generateTableName();
         watcher.executeUpdate("CREATE TABLE " + newTbl + " AS SELECT * FROM " + tbl + " AS OF " + txId);
 
-        ResultSet rs = watcher.executeQuery("SELECT * FROM " + newTbl);
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
-        Assert.assertFalse(rs.next());
+        try(ResultSet rs = watcher.executeQuery("SELECT * FROM " + newTbl)) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
     }
 
     @Test
@@ -124,12 +147,17 @@ public class SelectTimeTravelIT {
 
         watcher.executeUpdate("INSERT INTO " + tbl + " SELECT * FROM " + tbl + " AS OF " + txId);
 
-        ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " ORDER BY a ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1)); // added by time-travel
-        Assert.assertTrue(rs.next()); Assert.assertEquals(2, rs.getInt(1));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(3, rs.getInt(1));
-        Assert.assertFalse(rs.next());
+        try(ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " ORDER BY a ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1)); // added by time-travel
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(3, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
     }
 
     // this test should sync up with documentation
@@ -142,8 +170,9 @@ public class SelectTimeTravelIT {
         long txId = getTxId();
         watcher.executeUpdate("TRUNCATE TABLE " + tbl);
 
-        ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId);
-        Assert.assertFalse(rs.next()); // we don't get old rows back after truncate.
+        try(ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId)) {
+            Assert.assertFalse(rs.next()); // we don't get old rows back after truncate.
+        }
     }
 
     @Test
@@ -170,42 +199,79 @@ public class SelectTimeTravelIT {
         watcher.executeUpdate("INSERT INTO " + tblB + " VALUES (1, 'y')");
         watcher.executeUpdate("INSERT INTO " + tblB + " VALUES (2, 'z')");
 
-        ResultSet rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " INNER JOIN " + tblB +
-                " AS OF " + txIdB +" ON " + tblA + ".id = " + tblB + ".id");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(0, rs.getInt(1));Assert.assertEquals("a", rs.getString(2));
-        Assert.assertFalse(rs.next());
+        try (ResultSet rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " INNER JOIN " + tblB +
+                " AS OF " + txIdB + " ON " + tblA + ".id = " + tblB + ".id")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(0, rs.getInt(1));
+            Assert.assertEquals("a", rs.getString(2));
+            Assert.assertFalse(rs.next());
+        }
 
-        rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " FULL JOIN " + tblB +
-                " AS OF " + txIdB +" ON " + tblA + ".id = " + tblB + ".id ORDER BY i ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(0, rs.getInt(1));Assert.assertEquals("a", rs.getString(2));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(2, rs.getInt(1));rs.getString(2); Assert.assertTrue(rs.wasNull());
-        Assert.assertTrue(rs.next()); rs.getInt(1); Assert.assertTrue(rs.wasNull());Assert.assertEquals("b", rs.getString(2));
-        Assert.assertFalse(rs.next());
+        try (ResultSet rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " FULL JOIN " + tblB +
+                " AS OF " + txIdB + " ON " + tblA + ".id = " + tblB + ".id ORDER BY i ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(0, rs.getInt(1));
+            Assert.assertEquals("a", rs.getString(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            rs.getString(2);
+            Assert.assertTrue(rs.wasNull());
+            Assert.assertTrue(rs.next());
+            rs.getInt(1);
+            Assert.assertTrue(rs.wasNull());
+            Assert.assertEquals("b", rs.getString(2));
+            Assert.assertFalse(rs.next());
+        }
 
-        rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " LEFT OUTER JOIN " + tblB +
-                " AS OF " + txIdB +" ON " + tblA + ".id = " + tblB + ".id ORDER BY i ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(0, rs.getInt(1));Assert.assertEquals("a", rs.getString(2));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(2, rs.getInt(1));rs.getString(2); Assert.assertTrue(rs.wasNull());
-        Assert.assertFalse(rs.next());
 
-        rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " RIGHT OUTER JOIN " + tblB +
-                " AS OF " + txIdB +" ON " + tblA + ".id = " + tblB + ".id ORDER BY i ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(0, rs.getInt(1));Assert.assertEquals("a", rs.getString(2));
-        Assert.assertTrue(rs.next()); rs.getInt(1); Assert.assertTrue(rs.wasNull());Assert.assertEquals("b", rs.getString(2));
-        Assert.assertFalse(rs.next());
+        try (ResultSet rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " LEFT OUTER JOIN " + tblB +
+                " AS OF " + txIdB + " ON " + tblA + ".id = " + tblB + ".id ORDER BY i ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(0, rs.getInt(1));
+            Assert.assertEquals("a", rs.getString(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            rs.getString(2);
+            Assert.assertTrue(rs.wasNull());
+            Assert.assertFalse(rs.next());
+        }
 
-        rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " CROSS JOIN " + tblB +
-                " AS OF " + txIdB + " ORDER BY i,c ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(0, rs.getInt(1));Assert.assertEquals("a", rs.getString(2));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(0, rs.getInt(1));Assert.assertEquals("b", rs.getString(2));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(2, rs.getInt(1));Assert.assertEquals("a", rs.getString(2));
-        Assert.assertTrue(rs.next()); Assert.assertEquals(2, rs.getInt(1));Assert.assertEquals("b", rs.getString(2));
-        Assert.assertFalse(rs.next());
+        try (ResultSet rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " RIGHT OUTER JOIN " + tblB +
+                " AS OF " + txIdB + " ON " + tblA + ".id = " + tblB + ".id ORDER BY i ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(0, rs.getInt(1));
+            Assert.assertEquals("a", rs.getString(2));
+            Assert.assertTrue(rs.next());
+            rs.getInt(1);
+            Assert.assertTrue(rs.wasNull());
+            Assert.assertEquals("b", rs.getString(2));
+            Assert.assertFalse(rs.next());
+        }
 
-        rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " NATURAL JOIN " + tblB +
-                " AS OF " + txIdB + " ORDER BY i,c ASC");
-        Assert.assertTrue(rs.next()); Assert.assertEquals(0, rs.getInt(1));Assert.assertEquals("a", rs.getString(2));
-        Assert.assertFalse(rs.next());
+        try (ResultSet rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " CROSS JOIN " + tblB +
+                " AS OF " + txIdB + " ORDER BY i,c ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(0, rs.getInt(1));
+            Assert.assertEquals("a", rs.getString(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(0, rs.getInt(1));
+            Assert.assertEquals("b", rs.getString(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertEquals("a", rs.getString(2));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertEquals("b", rs.getString(2));
+            Assert.assertFalse(rs.next());
+        }
+
+        try (ResultSet rs = watcher.executeQuery("SELECT i,c FROM " + tblA + " AS OF " + txIdA + " NATURAL JOIN " + tblB +
+                " AS OF " + txIdB + " ORDER BY i,c ASC")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(0, rs.getInt(1));
+            Assert.assertEquals("a", rs.getString(2));
+            Assert.assertFalse(rs.next());
+        }
     }
 
     @Test
@@ -217,9 +283,12 @@ public class SelectTimeTravelIT {
         long txId = getTxId();
         watcher.executeUpdate("UPDATE " + tbl + " SET a=42");
 
-        ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId);
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
-        Assert.assertFalse(rs.next());
+        try(ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId)) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+
     }
 
     @Test
@@ -231,9 +300,11 @@ public class SelectTimeTravelIT {
         long txId = getTxId();
         watcher.executeUpdate("DELETE FROM " + tbl);
 
-        ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId);
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
-        Assert.assertFalse(rs.next());
+        try(ResultSet rs = watcher.executeQuery("SELECT * FROM " + tbl + " AS OF " + txId)){
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
     }
 
     @Test
@@ -249,9 +320,10 @@ public class SelectTimeTravelIT {
 
         // travel back in time
         String query = "SELECT * FROM " + tbl + " AS OF " + txId + " --splice-properties useSpark=true\n ORDER BY a ASC";
-        ResultSet rs =  watcher.executeQuery(query);
-        Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
-        Assert.assertFalse(rs.next());
+        try(ResultSet rs =  watcher.executeQuery(query)) {
+            Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
     }
 
     @Test
@@ -300,5 +372,44 @@ public class SelectTimeTravelIT {
             return;
         }
         fail("Expected: java.sql.SQLException: ERROR 42ZD2: Using time travel clause with common table expressions is not allowed");
+    }
+
+    @Test
+    public void testTimeTravelWithDistinctScanOperationWorks() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT, b1 INT, c1 INT, PRIMARY KEY (a1,b1))", someTable));
+
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES (1, 1, 1)", someTable));
+        long txIdA = getTxId();
+
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES (1000, 1000, 1000)", someTable));
+        try(ResultSet rs =  watcher.executeQuery(String.format("SELECT DISTINCT a1 FROM %s ORDER BY a1 ASC", someTable))) {
+            Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertTrue(rs.next()); Assert.assertEquals(1000, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+        try(ResultSet rs =  watcher.executeQuery(String.format("SELECT DISTINCT a1 FROM %s AS OF %d", someTable, txIdA))) {
+            Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testTimeTravelWithLastKeyTableScanOperationWorks() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT, b1 INT, c1 INT, PRIMARY KEY (a1,b1))", someTable));
+
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES (1, 1, 1)", someTable));
+        long txIdA = getTxId();
+
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES (1000, 1000, 1000)", someTable));
+        try(ResultSet rs =  watcher.executeQuery(String.format("SELECT MAX(a1) FROM %s", someTable))) {
+            Assert.assertTrue(rs.next()); Assert.assertEquals(1000, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+        try(ResultSet rs =  watcher.executeQuery(String.format("SELECT MAX(a1) FROM %s AS OF %d", someTable, txIdA))) {
+            Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
     }
 }
