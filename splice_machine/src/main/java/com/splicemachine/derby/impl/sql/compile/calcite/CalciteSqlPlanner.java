@@ -14,6 +14,7 @@ import com.splicemachine.derby.impl.sql.compile.calcite.reloperators.SpliceJoin;
 import com.splicemachine.derby.impl.sql.compile.calcite.reloperators.SpliceRelNode;
 import com.splicemachine.derby.impl.sql.compile.calcite.rules.SpliceConverterRule;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
+import org.apache.calcite.config.CalciteSystemProperty;
 import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
 import org.apache.calcite.plan.*;
@@ -21,6 +22,7 @@ import org.apache.calcite.plan.hep.HepProgram;
 import org.apache.calcite.plan.hep.HepProgramBuilder;
 import org.apache.calcite.plan.volcano.VolcanoPlanner;
 import org.apache.calcite.prepare.CalciteCatalogReader;
+import org.apache.calcite.rel.RelCollationTraitDef;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.metadata.DefaultRelMetadataProvider;
 import org.apache.calcite.rel.metadata.RelMetadataProvider;
@@ -69,6 +71,9 @@ public class CalciteSqlPlanner implements SqlPlanner {
         planner.setExecutor(executor);
         //planner.setExecutor(config.getExecutor());
         planner.addRelTraitDef(ConventionTraitDef.INSTANCE);
+        if (CalciteSystemProperty.ENABLE_COLLATION_TRAIT.value()) {
+            planner.addRelTraitDef(RelCollationTraitDef.INSTANCE);
+        }
         final RelOptCluster cluster = RelOptCluster.create(planner, rexBuilder);
 
         CalciteCatalogReader catalogReader =
@@ -167,7 +172,7 @@ public class CalciteSqlPlanner implements SqlPlanner {
         boolean getPlan = false;
         if (root instanceof SpliceJoin)
             getPlan = true;
-        if (getPlan) {
+        if (true) {
             root = relConverter.getValuesStmtForPlan(root);
             root = optimize(root, "Plan");
         }

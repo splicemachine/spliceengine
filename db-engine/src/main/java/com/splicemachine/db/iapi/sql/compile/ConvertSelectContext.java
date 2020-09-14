@@ -11,4 +11,8 @@ public interface ConvertSelectContext {
     RelNode getRelRoot();
     SelectNode getSelectRoot();
     void setRelRoot(RelNode root);
+    RelNode getLeftJoinSource();
+    RelNode getRightJoinSource();
+    void setLeftJoinSource(RelNode source);
+    void setRightJoinSource(RelNode source);
 }

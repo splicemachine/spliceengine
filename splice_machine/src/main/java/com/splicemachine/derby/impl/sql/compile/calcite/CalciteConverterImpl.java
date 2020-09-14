@@ -22,7 +22,6 @@ import org.apache.calcite.rel.logical.LogicalTableScan;
 import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.rel.type.RelDataTypeFactory;
 import org.apache.calcite.rex.RexNode;
-import org.apache.calcite.sql.JoinConditionType;
 import org.apache.calcite.sql.SqlOperator;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 import org.apache.calcite.sql.type.SqlTypeName;
@@ -91,23 +90,21 @@ public class CalciteConverterImpl implements CalciteConverter {
         }
     }
 
-    public RelNode convertFromList(ConvertSelectContext selectContext) {
+    public RelNode convertFromList(ConvertSelectContext selectContext) throws StandardException {
         Map<Integer, Integer> startColPos = new HashMap<>();
+        selectContext.setStartColPosMap(startColPos);
         SelectNode selectNode = selectContext.getSelectRoot();
         FromList fromList = selectNode.getFromList();
         RelNode root = null;
         int totalCols = 0;
         for (int i=0; i< fromList.size(); i++) {
             FromTable fromTable = (FromTable) fromList.elementAt(i);
-            RelNode oneTable = null;
-            if (fromTable instanceof FromBaseTable) {
-                oneTable = convertFromBaseTable((FromBaseTable)fromTable);
-                startColPos.put(fromTable.getTableNumber(), totalCols);
-                totalCols += oneTable.getRowType().getFieldCount();
+            assert fromTable.getTableNumber() >=0 : "tablenumber here should have been assigned as a non-negative number!";
+            startColPos.put(fromTable.getTableNumber(), totalCols);
+            RelNode oneTable = convertOneTable(fromTable, selectContext, startColPos);
 
-                // save the result columns corresponding to base column in SpliceContext
-                saveBaseColumns((FromBaseTable)fromTable);
-            }
+            totalCols += oneTable.getRowType().getFieldCount();
+
             if (root == null)
                 root = oneTable;
             else if (oneTable != null) {
@@ -123,9 +120,51 @@ public class CalciteConverterImpl implements CalciteConverter {
             }
         }
 
-        selectContext.setStartColPosMap(startColPos);
         selectContext.setRelRoot(root);
         return root;
+    }
+
+    public RelNode convertOneTable(FromTable fromTable, ConvertSelectContext selectContext, Map<Integer, Integer> startColPos) throws StandardException {
+        RelNode oneTable = null;
+        if (fromTable instanceof FromBaseTable) {
+            oneTable = convertFromBaseTable((FromBaseTable)fromTable);
+
+            // save the result columns corresponding to base column in SpliceContext
+            saveBaseColumns((FromBaseTable)fromTable);
+        } else if (fromTable instanceof JoinNode) {
+            FromTable leftTable = (FromTable)((JoinNode)fromTable).getLeftResultSet();
+            FromTable rightTable = (FromTable)((JoinNode)fromTable).getRightResultSet();
+            assert leftTable.getTableNumber() >=0 : "tablenumber here should have been assigned as a non-negative number!";
+            startColPos.put(leftTable.getTableNumber(), 0);
+            RelNode leftRel = convertOneTable((FromTable)((JoinNode) fromTable).getLeftResultSet(), selectContext, startColPos);
+            assert rightTable.getTableNumber() >=0 : "tablenumber here should have been assigned as a non-negative number!";
+            startColPos.put(rightTable.getTableNumber(), leftRel.getRowType().getFieldCount());
+            RelNode rightRel = convertOneTable((FromTable)((JoinNode) fromTable).getRightResultSet(), selectContext, startColPos);
+
+            JoinRelType convertedJoinType = JoinRelType.INNER;
+            if (fromTable instanceof HalfOuterJoinNode) {
+                if (((HalfOuterJoinNode) fromTable).isRightOuterJoin())
+                    convertedJoinType = JoinRelType.RIGHT;
+                else
+                    convertedJoinType = JoinRelType.LEFT;
+            } else if (fromTable instanceof FullOuterJoinNode) {
+                convertedJoinType = JoinRelType.FULL;
+            }
+
+            RexNode conditionExp;
+            // TODO calcite: handle natural join
+            selectContext.setLeftJoinSource(leftRel);
+            selectContext.setRightJoinSource(rightRel);
+            conditionExp = ((JoinNode)fromTable).getJoinClause().convertExpression(this, selectContext);
+            selectContext.setLeftJoinSource(null);
+            selectContext.setRightJoinSource(null);
+            oneTable = createJoin(
+                    leftRel,
+                    rightRel,
+                    conditionExp,
+                    convertedJoinType);
+        }
+        return oneTable;
     }
 
     public RelNode convertFromBaseTable(FromBaseTable fromBaseTable) {
@@ -178,11 +217,6 @@ public class CalciteConverterImpl implements CalciteConverter {
 
         selectContext.setRelRoot(relBuilder.project(fields.build()).build());
         return;
-    }
-
-
-    public RexNode convertJoinCondition(ConditionalNode joinCond, JoinConditionType type, RelNode left, RelNode right) {
-        return null;
     }
 
     public RexNode convertExpression(ValueNode node,

@@ -48,6 +48,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.util.JBitSet;
+import org.apache.calcite.rel.RelNode;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.rex.RexNode;
 
 import java.util.Collections;
@@ -1516,8 +1518,40 @@ public class ColumnReference extends ValueNode {
 
     @Override
     public RexNode convertExpression(CalciteConverter relConverter, ConvertSelectContext selectContext) throws StandardException {
+        assert selectContext != null : "selectContext is not expected to be null here in CollumnReference:convertExpression()!";
         // column number is 1-based, but calcite column pos is 0-based
-        int fieldPos = selectContext.getStartColPosMap().get(getTableNumber()) + getColumnNumber()-1;
-        return relConverter.getRelBuilder().field(1, 0, fieldPos);
+        // for column references in the WHERE clause condition that points to a table in JoinNode, the
+        // columnId may not be correct, as it was set when we bind the column reference to the base table
+        // result columns, later on in JoinNode.buildRCL(), these result columns have been promoted to
+        // be the result columns of the JoinNode on top of the ae table
+        // For example:  given t1(a1, b1), t2(a2, b2), and the query:
+        // select 1 from t1 left join t2 on a1=a2 where a2 is null;
+        // the column reference of a2 in "a2 is null" initially has column number of 1 when it is bound
+        // to the result column of the base table t2;
+        // when we call JoinNode.buildRCL(), the result column (a1, b1) from t1 and (a2, b2) from t2
+        // are promoted as the result column of the JoinNode, so ideally the column reference of t2.a2
+        // in "a2 is null" should reset its columnnumber to 3, which is the current position of a2 in
+        // the JoinNode's result columns, but this is not done
+        // so in the below code, we will just directly grab the virtual column id from the source of
+        // the column reference.
+        int inputOrdinal = getSource().getVirtualColumnId();
+        int fieldPos = selectContext.getStartColPosMap().get(getTableNumber()) + inputOrdinal - 1;
+        if (selectContext.getLeftJoinSource() == null) {
+            // single source that is already pushed on stack
+            return relConverter.getRelBuilder().field(1, 0, fieldPos);
+        } else {
+            RelNode leftSource = selectContext.getLeftJoinSource();
+            RelNode rightSource = selectContext.getRightJoinSource();
+            if (leftSource.getRowType().getFieldCount() < fieldPos) {
+                // the field belongs to the right table
+                final RelDataTypeField field = rightSource.getRowType().getFieldList().get(inputOrdinal-1);
+                return relConverter.getCluster().getRexBuilder()
+                        .makeInputRef(field.getType(), fieldPos);
+            } else {
+                final RelDataTypeField field = leftSource.getRowType().getFieldList().get(inputOrdinal-1);
+                return relConverter.getCluster().getRexBuilder()
+                        .makeInputRef(field.getType(), fieldPos);
+            }
+        }
     }
 }

@@ -566,6 +566,10 @@ public class JoinNode extends TableOperatorNode{
             }
         }
 
+        if (resultColumn != null) {
+            columnReference.setTableNumber(tableNumber);
+            columnReference.setColumnNumber(resultColumn.getColumnPosition());
+        }
         return resultColumn;
     }
 
@@ -2272,5 +2276,9 @@ public class JoinNode extends TableOperatorNode{
 
     public void resetOptimized() {
         optimized = false;
+    }
+
+    public ValueNode getJoinClause() {
+        return joinClause;
     }
 }
