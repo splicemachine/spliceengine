@@ -4729,7 +4729,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                 "        A.PRSN_KEY, " +
                 "         ROW_NUMBER() OVER (PARTITION BY A.PRSN_KEY ORDER BY " +
                 "MOST_RECENT_STAGING_DATE DESC) \"ROWNUM\", " +
-                "         LEAD(STAGE_NUM) OVER (PARTITION BY B.PRSN_KEY ORDER BY " +
+                "         LEAD(STAGE_NUM) OVER (PARTITION BY A.PRSN_KEY ORDER BY " +
                 "MOST_RECENT_STAGING_DATE DESC ) \"PREV_STAGE_NUM\" " +
                 "        from ( " +
                 "                select " +

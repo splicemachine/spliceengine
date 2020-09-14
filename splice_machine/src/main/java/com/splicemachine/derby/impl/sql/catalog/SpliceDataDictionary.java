@@ -234,7 +234,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor(viewName,
-                sd,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+                sd,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null);
         addDescriptor(view,sd,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti;
@@ -294,6 +294,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // create syscolumnsView
         createOneSystemView(tc, SYSCOLUMNS_CATALOG_NUM, "SYSCOLUMNSVIEW", 0, sysVWSchema, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
+
+        // create sysdatabasesView
+        createOneSystemView(tc, SYSDATABASES_CATALOG_NUM, "SYSDATABASESVIEW", 0, sysVWSchema, SYSDATABASESRowFactory.SYSDATABASES_VIEW_SQL);
 
         SpliceLogUtils.info(LOG, "Views in SYSVW created!");
     }
@@ -943,7 +946,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSTABLESTATISTICS",
-                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti = getNonCoreTI(SYSTABLESTATS_CATALOG_NUM);
@@ -966,7 +969,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         DataDescriptorGenerator ddg=getDataDescriptorGenerator();
         TableDescriptor view=ddg.newTableDescriptor("SYSCOLUMNSTATISTICS",
-                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false);
+                sysSchema,TableDescriptor.VIEW_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,null,null,null,null,null,null,false,false,null);
         addDescriptor(view,sysSchema,DataDictionary.SYSTABLES_CATALOG_NUM,false,tc,false);
         UUID viewId=view.getUUID();
         TabInfoImpl ti = getNonCoreTI(SYSCOLUMNSTATS_CATALOG_NUM);
@@ -1427,7 +1430,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void upgradeSysSchemaPermsForAccessSchemaPrivilege(TransactionController tc) throws StandardException {
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(SYSSCHEMAPERMSRowFactory.SCHEMANAME_STRING, sd, tc);
-        ColumnDescriptor cd = td.getColumnDescriptor("ACCESSPRIV");
+        ColumnDescriptor cd = td.getColumnDescriptor(SYSSCHEMAPERMSRowFactory.ACCESSPRIV_COL_NAME);
         if (cd == null) {
             tc.elevate("dictionary");
             dropTableDescriptor(td, sd, tc);
@@ -1640,6 +1643,53 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
             tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
 
+        }
+    }
+
+    public void addMinRetentionPeriodColumn(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TableDescriptor td = getTableDescriptor(SYSTABLESRowFactory.TABLENAME_STRING, sd, tc);
+        ColumnDescriptor cd = td.getColumnDescriptor(SYSTABLESRowFactory.MIN_RETENTION_PERIOD);
+        if (cd == null) { // needs updating
+            tc.elevate("dictionary");
+            dropTableDescriptor(td, sd, tc);
+            td.setColumnSequence(td.getColumnSequence() + 1);
+            // add the table descriptor with new name
+            addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+
+            ColumnDescriptor columnDescriptor;
+            UUID uuid = getUUIDFactory().createUUID();
+
+            // Add the column MIN_RETENTION_PERIOD
+            DataValueDescriptor storableDV = getDataValueFactory().getNullLong(null);
+            int colNumber = td.getNumberOfColumns() + 1;
+            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, 1);
+            tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
+
+            columnDescriptor = new ColumnDescriptor(SYSTABLESRowFactory.MIN_RETENTION_PERIOD, colNumber,
+                    colNumber, dtd, null, null, td, uuid, 0, 0, td.getColumnSequence());
+
+            addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc, false);
+
+            // now add the column to the table's column descriptor list.
+            td.getColumnDescriptorList().add(columnDescriptor);
+            updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+
+            SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.TABLENAME_STRING,
+                    SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
+
+            // now upgrade the views if necessary
+            TableDescriptor td1 = getTableDescriptor(SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, sysViewSchemaDesc, tc);
+            if(td1 != null) {
+                ViewDescriptor vd1 = getViewDescriptor(td1);
+                dropAllColumnDescriptors(td1.getUUID(), tc);
+                dropViewDescriptor(vd1, tc);
+                dropTableDescriptor(td1, sysViewSchemaDesc, tc);
+            }
+            createOneSystemView(tc, SYSTABLES_CATALOG_NUM, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, 0,
+                    sysViewSchemaDesc, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL);
+            SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME,
+                    SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
         }
     }
 }

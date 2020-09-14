@@ -63,92 +63,92 @@ import java.util.Properties;
 
 public interface InternalDatabase extends com.splicemachine.db.database.Database, LocaleFinder
 {
-    // this interface gets used on a module, so we name it:
-    // Note that doers not point to this class name, but instead to
-    // the public API for this class. This ensures that the name
-    // written in service.properties is not a obfuscated one.
+	// this interface gets used on a module, so we name it:
+	// Note that doers not point to this class name, but instead to
+	// the public API for this class. This ensures that the name
+	// written in service.properties is not a obfuscated one.
 
-    /**
+	/**
      * Sets up a connection to the Database, owned by the given user.
-     *
-     * The JDBC version of getConnection takes a URL. The purpose
-     * of the URL is to tell the driver where the database system is.
-     * By the time we get here, we have found the database system
-     * (that's how we're making this method call), so the URL is not
-     * necessary to establish the connection here. The driver should
-     * remember the URL that was used to establish the connection,
-     * so it can implement the DatabaseMetaData.getURL() method.
-     *
-     * @param user    The UserID of the user getting the connection
-     * @param drdaID    The drda id of the connection (from network server)
-     * @param dbname    The database name
-     *
-     * @return    A new LanguageConnectionContext
-     *
-     * @exception StandardException thrown if unable to create the connection.
-     */
-    public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
-                                                     String rdbIntTkn,
-                                                     DataSetProcessorType dataSetProcessorType,
-                                                     boolean skipStats,
-                                                     double defaultSelectivityFactor,
-                                                     String ipAddress,
-                                                     String defaultSchema,
-                                                     Properties sessionProperties
+	 *
+	 * The JDBC version of getConnection takes a URL. The purpose
+	 * of the URL is to tell the driver where the database system is.
+	 * By the time we get here, we have found the database system
+	 * (that's how we're making this method call), so the URL is not
+	 * necessary to establish the connection here. The driver should
+	 * remember the URL that was used to establish the connection,
+	 * so it can implement the DatabaseMetaData.getURL() method.
+	 *
+	 * @param user	The UserID of the user getting the connection
+	 * @param drdaID	The drda id of the connection (from network server)
+	 * @param dbname	The database name
+	 *
+	 * @return	A new LanguageConnectionContext
+	 *
+	 * @exception StandardException thrown if unable to create the connection.
+	 */
+	public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
+													 String rdbIntTkn,
+													 DataSetProcessorType dataSetProcessorType,
+													 boolean skipStats,
+													 double defaultSelectivityFactor,
+													 String ipAddress,
+													 String defaultSchema,
+													 Properties sessionProperties
                                                      ) throws StandardException;
 
-    /**
-      Push a DbContext onto the provided context stack. This conext will
-      shut down the database in case of a DatabaseException being
-      cleaned up.
-     */
-    void pushDbContext(ContextManager cm);
+	/**
+	  Push a DbContext onto the provided context stack. This conext will
+	  shut down the database in case of a DatabaseException being
+	  cleaned up.
+	 */
+	void pushDbContext(ContextManager cm);
 
-    /**
-        Is the database active (open).
-    */
-    boolean isActive();
+	/**
+		Is the database active (open).
+	*/
+	boolean isActive();
 
-    /**
-      */
-    int    getEngineType();
+	/**
+	  */
+	int	getEngineType();
 
-    /**
-     * This method returns the authentication service handle for the
-     * database.
-     *
-     * NOTE: There is always a Authentication Service per database
-     * and at the system level.
-     *
-     * @return    The authentication service handle for the database
-     * @exception StandardException Derby exception policy
-     */
-    AuthenticationService getAuthenticationService()
-        throws StandardException;
+	/**
+	 * This method returns the authentication service handle for the
+	 * database.
+	 *
+	 * NOTE: There is always a Authentication Service per database
+	 * and at the system level.
+	 *
+	 * @return	The authentication service handle for the database
+	 * @exception StandardException Derby exception policy
+	 */
+	AuthenticationService getAuthenticationService()
+		throws StandardException;
 
-    /**
-     * Get a Resource Adapter - only used by XA system.  There is one and only
-     * one resource adapter per Derby database.
-     *
-     * @return the resource Adapter for the database, null if no resource
-     * adapter is available for this database. Returned as an Object
-     * so that non-XA aggressive JVMs such as Chai don't get ClassNotFound.
-     * caller must cast result to ResourceAdapter.
-     *
-     */
-    Object getResourceAdapter();
+	/**
+	 * Get a Resource Adapter - only used by XA system.  There is one and only
+	 * one resource adapter per Derby database.
+	 *
+	 * @return the resource Adapter for the database, null if no resource
+	 * adapter is available for this database. Returned as an Object
+	 * so that non-XA aggressive JVMs such as Chai don't get ClassNotFound.
+	 * caller must cast result to ResourceAdapter.
+	 *
+	 */
+	Object getResourceAdapter();
 
-    /** Set the Locale that is returned by this LocaleFinder */
-    void    setLocale(Locale locale);
+	/** Set the Locale that is returned by this LocaleFinder */
+	void	setLocale(Locale locale);
 
     /**
      * Return the DataDictionary for this database, set up at boot time.
      */
-    DataDictionary getDataDictionary();
+	DataDictionary getDataDictionary();
 
-    long addJar(final InputStream is, JarUtil util) throws StandardException;
+	long addJar(final InputStream is, JarUtil util) throws StandardException;
 
-    void dropJar(JarUtil util) throws StandardException;
+	void dropJar(JarUtil util) throws StandardException;
 
-    long replaceJar(final InputStream is, JarUtil util) throws StandardException;
+	long replaceJar(final InputStream is, JarUtil util) throws StandardException;
 }
