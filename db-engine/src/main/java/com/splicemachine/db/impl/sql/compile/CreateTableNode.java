@@ -110,6 +110,8 @@ public class CreateTableNode extends DDLStatementNode
 			Object terminationChar,
 			Object escapedByChar,
 			Object linesTerminatedByChar,
+			Object timestampFormat,
+			Object dateFormat,
 			Object storageFormat,
 			Object location,
 			Object compression,
@@ -138,7 +140,9 @@ public class CreateTableNode extends DDLStatementNode
 		this.properties = (Properties) properties;
 		this.partitionedResultColumns = (ResultColumnList) partitionedResultColumns;
 		this.csvOptions = new CsvOptions( getCharConstantStr(terminationChar), getCharConstantStr(escapedByChar),
-				                          getCharConstantStr(linesTerminatedByChar));
+				                          getCharConstantStr(linesTerminatedByChar),
+                                          getCharConstantStr(timestampFormat),
+				                          getCharConstantStr(dateFormat));
 		this.storageFormat = (String) storageFormat;
 		this.location = getCharConstantStr(location);
 		this.compression = (String) compression;

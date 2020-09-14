@@ -841,8 +841,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         HashMap<String, String> options = new HashMap<String, String>();
 
         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-        String timestampFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ";
+        String timestampFormat = csvOptions.timestampFormat;
+        if( timestampFormat == null )
+            timestampFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ";
         options.put("timestampFormat", timestampFormat);
+
+        if( csvOptions.dateFormat != null )
+          options.put("dateFormat", csvOptions.dateFormat); // default yyyy-MM-dd
 
         String delimited = ImportUtils.unescape(csvOptions.columnDelimiter);
         String escaped = ImportUtils.unescape(csvOptions.escapeCharacter);

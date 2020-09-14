@@ -8,10 +8,26 @@ public class CsvOptions {
     public String columnDelimiter = null; // character used to separate columns in the CSV file (default = ,)
     public String escapeCharacter = null; // character used to escape string separators, e.g. "hello \"world\"!". default \
     public String lineTerminator = null;  // LINES DELIMITED BY
+    public String timestampFormat = null;
+    public String dateFormat = null;
     public CsvOptions() {}
     public CsvOptions(ObjectInput in) throws IOException {
         readExternal(in);
     }
+
+    public CsvOptions(String columnDelimiter,
+                      String escapeCharacter,
+                      String lineTerminator,
+                      String timestampFormat,
+                      String dateFormat)
+    {
+        this.columnDelimiter = columnDelimiter;
+        this.escapeCharacter = escapeCharacter;
+        this.lineTerminator = lineTerminator;
+        this.timestampFormat = timestampFormat;
+        this.dateFormat = dateFormat;
+    }
+
     public CsvOptions(String columnDelimiter,
                       String escapeCharacter,
                       String lineTerminator)
@@ -36,10 +52,14 @@ public class CsvOptions {
         writeEx(out, columnDelimiter);
         writeEx(out, escapeCharacter);
         writeEx(out, lineTerminator);
+        writeEx(out, timestampFormat);
+        writeEx(out, dateFormat);
     }
     public void readExternal(ObjectInput in) throws IOException {
         columnDelimiter = readExString(in);
         escapeCharacter = readExString(in);
         lineTerminator = readExString(in);
+        timestampFormat = readExString(in);
+        dateFormat = readExString(in);
     }
 }

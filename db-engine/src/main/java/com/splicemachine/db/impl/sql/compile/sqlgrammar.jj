@@ -12752,6 +12752,9 @@ tableDefinition() throws StandardException :
     ValueNode   splitTimestampFormat = null;
     ValueNode   splitDateFormat = null;
     ValueNode   splitTimeFormat = null;
+    ValueNode   timestampFormat = null;
+    ValueNode   dateFormat = null;
+
     Token ifTok = null;
     Token ifTok2 = null;
 }
@@ -12808,6 +12811,8 @@ tableDefinition() throws StandardException :
                 <ESCAPED> <BY> { escapedByChar=literal(); } ] ]
                 [<COMMA>]
                 [ <LINES> <TERMINATED> <BY> { linesTerminatedByChar=literal(); } ]
+                [<TIMESTAMPFORMAT> {timestampFormat = literal();}]
+                [<DATEFORMAT> {dateFormat = literal();}]
              ]
              [<COMMA>]
              [<STORED> <AS> storageFormat = storedAs() ]
@@ -12833,6 +12838,8 @@ tableDefinition() throws StandardException :
                                         terminationChar,
                                         escapedByChar,
                                         linesTerminatedByChar,
+                                        timestampFormat,
+                                        dateFormat,
                                         storageFormat,
                                         location,
                                         compression,
