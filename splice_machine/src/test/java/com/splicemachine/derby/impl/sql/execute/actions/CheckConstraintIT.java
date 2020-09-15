@@ -57,30 +57,25 @@ public class CheckConstraintIT extends SpliceUnitTest {
     private SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     private TestConnection conn;
-    private Boolean useOlap;
+    private String connectionString;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{true});
-        params.add(new Object[]{null});
-        //params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
-        //params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin"});
+        params.add(new Object[]{"jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true"});
         return params;
     }
 
-    public CheckConstraintIT(Boolean useOlap) {
-        this.useOlap = useOlap;
+    public CheckConstraintIT(String connecitonString) {
+        this.connectionString = connecitonString;
     }
 
     @Before
     public void setUp() throws Exception{
-        SpliceWatcher.ConnectionBuilder connBuilder = methodWatcher.connectionBuilder().create(true);
-        if (useOlap != null){
-            connBuilder.useOLAP(useOlap);
-        }
-        conn = connBuilder.build();
+        conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
         conn.setAutoCommit(false);
+        conn.setSchema(CLASS_NAME.toUpperCase());
     }
 
     @After

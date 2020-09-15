@@ -79,7 +79,7 @@ public class DecoderIT {
                 // Date format 'yyyy-MM-dd' will be converted to 'yyyy-M-d' internally, so should accept
                 // single-digit month and year.
                 PreparedStatement ps =
-                        SpliceNetConnection.getDefaultConnection().prepareStatement(
+                        SpliceNetConnection.getConnection().prepareStatement(
                                 String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,'yyyy-MM-dd',null,0,null,true,null)",
                                         SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME, csvLocation));
                 ResultSet rs = ps.executeQuery();
@@ -99,7 +99,7 @@ public class DecoderIT {
             super.starting(description);
             try {
                 PreparedStatement ps =
-                        SpliceNetConnection.getDefaultConnection().prepareStatement(
+                        SpliceNetConnection.getConnection().prepareStatement(
                                 String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,'yyyy-MM-dd',null,0,null,true,null)",
                                         SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME2, csvLocation2));
                 ResultSet rs = ps.executeQuery();
@@ -119,7 +119,7 @@ public class DecoderIT {
             super.starting(description);
             try {
                 PreparedStatement ps =
-                    SpliceNetConnection.getDefaultConnection().prepareStatement(
+                    SpliceNetConnection.getConnection().prepareStatement(
                         String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,'yyyy/MM/dd',null,0,null,true,null)",
                             SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME3, csvLocation3));
                 ResultSet rs = ps.executeQuery();
@@ -132,7 +132,7 @@ public class DecoderIT {
             }
             try {
                 PreparedStatement ps =
-                    SpliceNetConnection.getDefaultConnection().prepareStatement(
+                    SpliceNetConnection.getConnection().prepareStatement(
                         String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,'yy/MM/dd',null,0,null,true,null)",
                             SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME3, csvLocation4));
                 ResultSet rs = ps.executeQuery();
@@ -145,7 +145,7 @@ public class DecoderIT {
             }
             try {
                 PreparedStatement ps =
-                    SpliceNetConnection.getDefaultConnection().prepareStatement(
+                    SpliceNetConnection.getConnection().prepareStatement(
                         String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s', null, '%s', ',', null, null,'MM.dd.yyyy',null,0,null,true,null)",
                             SCHEMA_NAME, TransactionHeaderTable.TABLE_NAME3, csvLocation5));
                 ResultSet rs = ps.executeQuery();

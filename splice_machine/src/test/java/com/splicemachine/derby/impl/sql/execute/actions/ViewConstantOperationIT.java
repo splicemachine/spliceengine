@@ -393,7 +393,7 @@ public class ViewConstantOperationIT extends SpliceUnitTest {
         methodWatcher.execute(format("grant all privileges on schema %s to %s", tableSchema.schemaName, spliceUserWatcher1.userName));
         methodWatcher.execute(format("grant all privileges on schema %s to %s", viewSchema.schemaName, spliceUserWatcher1.userName));
 
-        TestConnection user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
+        TestConnection user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
 
         // create a view by user1
         user1Conn.execute(format("create view %s.emp_view_test as select * from %s.%s", viewSchema.schemaName, tableSchema.schemaName, EMP_NAME_TABLE));

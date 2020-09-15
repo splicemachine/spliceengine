@@ -54,7 +54,7 @@ public class SpliceTableWatcher extends TestWatcher {
         Connection connection = null;
         PreparedStatement ps = null;
         try {
-            connection = SpliceNetConnection.getDefaultConnection();
+            connection = SpliceNetConnection.getConnection();
             ps = connection.prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,null,null,null,1,null,true,'utf-8')");
             ps.setString(1,schemaName);
             ps.setString(2,tableName);
@@ -76,7 +76,7 @@ public class SpliceTableWatcher extends TestWatcher {
         Connection connection = null;
         PreparedStatement ps = null;
         try {
-            connection = SpliceNetConnection.getDefaultConnection();
+            connection = SpliceNetConnection.getConnection();
             ps = connection.prepareStatement("call SYSCS_UTIL.IMPORT_DATA (?, ?, null,?,',',null,?,null,null,0,null,true,null)");
             ps.setString(1,schemaName);
             ps.setString(2,tableName);
@@ -111,11 +111,7 @@ public class SpliceTableWatcher extends TestWatcher {
         Connection connection;
         synchronized(SpliceTableWatcher.class){
             try{
-                SpliceNetConnection.ConnectionBuilder connectionBuilder = SpliceNetConnection.newBuilder();
-                if (userName != null) {
-                    connectionBuilder.user(userName).password(password);
-                }
-                connection = connectionBuilder.build();
+                connection=(userName==null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
                 rs=connection.getMetaData().getTables(null,schemaName,tableName,null);
             }catch(Exception e){
                 throw new RuntimeException(e);

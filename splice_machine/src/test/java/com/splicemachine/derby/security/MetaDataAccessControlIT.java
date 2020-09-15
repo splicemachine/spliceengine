@@ -93,8 +93,6 @@ public class MetaDataAccessControlIT {
     protected static TestConnection user2Conn;
     protected static TestConnection user3Conn;
     protected static TestConnection user4Conn;
-    protected static TestConnection sparkUser1Conn;
-    protected static TestConnection sparkUser2Conn;
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -150,12 +148,10 @@ public class MetaDataAccessControlIT {
         adminConn.execute(format("CREATE ALIAS %s.AS1 for %s.%s", SCHEMA_A, SCHEMA_A, TABLE1));
 
         // create user connections
-        user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
-        user2Conn = spliceClassWatcher.connectionBuilder().user(USER2).password(PASSWORD2).build();
-        user3Conn = spliceClassWatcher.connectionBuilder().user(USER3).password(PASSWORD3).build();
-        user4Conn = spliceClassWatcher.connectionBuilder().user(USER4).password(PASSWORD4).build();
-        sparkUser1Conn = spliceClassWatcher.connectionBuilder().useOLAP(true).user(USER1).password(PASSWORD1).build();
-        sparkUser2Conn = spliceClassWatcher.connectionBuilder().useOLAP(true).user(USER2).password(PASSWORD2).build();
+        user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+        user2Conn = spliceClassWatcher.createConnection(USER2, PASSWORD2);
+        user3Conn = spliceClassWatcher.createConnection(USER3, PASSWORD3);
+        user4Conn = spliceClassWatcher.createConnection(USER4, PASSWORD4);
     }
 
     @AfterClass
@@ -164,8 +160,6 @@ public class MetaDataAccessControlIT {
         user2Conn.close();
         user3Conn.close();
         user4Conn.close();
-        sparkUser1Conn.close();
-        sparkUser2Conn.close();
 
         adminConn.execute(format("drop role %s", ROLE_A));
         adminConn.execute(format("drop role %s", ROLE_B));
@@ -326,7 +320,9 @@ public class MetaDataAccessControlIT {
 
     @Test
     public void testSYSALLROLESVIEWSparkPath() throws Exception {
-        try (ResultSet rs = sparkUser1Conn.query("select * from sysvw.sysallroles --splice-properties useSpark=true")) {
+
+        try (TestConnection user1SparkConn = spliceClassWatcher.createConnection(USER1, PASSWORD1, true)) {
+            ResultSet rs = user1SparkConn.query("select * from sysvw.sysallroles --splice-properties useSpark=true");
             String expected = "NAME              |\n" +
                     "--------------------------------\n" +
                     "METADATAACCESSCONTROLIT_ROLE_A |\n" +
@@ -339,33 +335,40 @@ public class MetaDataAccessControlIT {
                     "  METADATAACCESSCONTROLIT_TOM  |\n" +
                     "            PUBLIC             |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
         }
 
-        try (ResultSet rs = sparkUser2Conn.query("select * from sysvw.sysallroles")) {
+        try (TestConnection user2SparkConn = spliceClassWatcher.createConnection(USER2, PASSWORD2, true)) {
+            ResultSet rs = user2SparkConn.query("select * from sysvw.sysallroles");
             String expected = "NAME              |\n" +
                     "-------------------------------\n" +
                     "METADATAACCESSCONTROLIT_JERRY |\n" +
                     "           PUBLIC             |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
         }
     }
 
     @Test
     public void testShowSchemaWithAccessControlSparkPath() throws Exception {
-        try (ResultSet rs = sparkUser1Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')")) {
+        try (TestConnection user1SparkConn = spliceClassWatcher.createConnection(USER1, PASSWORD1, true)) {
+            ResultSet rs = user1SparkConn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')");
             String expected = "TABLE_SCHEM           | TABLE_CATALOG |\n" +
                     "-------------------------------------------------\n" +
                     "METADATAACCESSCONTROLITSCHEMA_A |     NULL      |\n" +
                     "METADATAACCESSCONTROLITSCHEMA_B |     NULL      |\n" +
                     "             SYSVW              |     NULL      |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
         }
 
-        try (ResultSet rs = sparkUser2Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')")) {
+        try (TestConnection user2SparkConn = spliceClassWatcher.createConnection(USER2, PASSWORD2, true)) {
+            ResultSet rs = user2SparkConn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')");
             String expected = "TABLE_SCHEM | TABLE_CATALOG |\n" +
                     "------------------------------\n" +
                     "    SYSVW    |     NULL      |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            rs.close();
         }
     }
 

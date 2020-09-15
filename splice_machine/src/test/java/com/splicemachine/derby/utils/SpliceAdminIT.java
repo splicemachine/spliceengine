@@ -486,7 +486,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         connection.execute("grant execute on procedure syscs_util.syscs_get_running_operations to testuser1");
 
         // User execute routine to populate cache
-        TestConnection userConnection = methodWatcher.connectionBuilder().user("testuser1").password("testuser1").build();
+        TestConnection userConnection = methodWatcher.createConnection("testuser1", "testuser1");
         userConnection.execute("call syscs_util.syscs_get_running_operations()");
 
         // Update system procedures
@@ -509,7 +509,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         connection.execute("grant execute on procedure syscs_util.syscs_get_running_operations to testuser2");
 
         // User execute routine to populate cache
-        TestConnection userConnection = methodWatcher.connectionBuilder().user("testuser2").password("testuser2").build();
+        TestConnection userConnection = methodWatcher.createConnection("testuser2", "testuser2");
         userConnection.execute("call syscs_util.syscs_get_running_operations()");
 
         // Update system procedures

@@ -124,7 +124,7 @@ public class BatchedOperationsIT {
 
     @Test
     public void testBatchedInserts() throws Exception {
-        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(useSpark).build()) {
+        try (TestConnection conn = methodWatcher.createConnection(useSpark)) {
             conn.setAutoCommit(false);
 
             // Insert 10 rows into a PK table in a single batch
@@ -182,7 +182,7 @@ public class BatchedOperationsIT {
     public void testMultiBatchedInserts() throws Exception {
         if (useSpark) return; // execution time is too long
 
-        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(useSpark).build()) {
+        try (TestConnection conn = methodWatcher.createConnection(useSpark)) {
             conn.setAutoCommit(false);
 
             // Insert 100 rows into a PK table in 10 batches
@@ -246,7 +246,7 @@ public class BatchedOperationsIT {
     @Ignore("DB-7961")
     public void testFailuresInBatchedInserts() throws Exception {
 
-        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(useSpark).build();
+        try (TestConnection conn = methodWatcher.createConnection(useSpark);
              Statement statement = conn.createStatement()) {
             conn.setAutoCommit(false);
 
@@ -290,7 +290,7 @@ public class BatchedOperationsIT {
 
     @Test
     public void testBatchedUpdates() throws Exception {
-        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(true).build();
+        try (TestConnection conn = methodWatcher.createConnection(useSpark);
              Statement statement = conn.createStatement()) {
             conn.setAutoCommit(false);
 
@@ -358,7 +358,7 @@ public class BatchedOperationsIT {
 
     @Test
     public void testBatchedDeletes() throws Exception {
-        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(useSpark).build();
+        try (TestConnection conn = methodWatcher.createConnection(useSpark);
              Statement statement = conn.createStatement()) {
             conn.setAutoCommit(false);
 

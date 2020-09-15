@@ -101,7 +101,7 @@ public class SpliceSequenceIT {
         try {methodWatcher.executeUpdate("drop sequence "+SEQUENCE + " restrict");} catch (Exception e) {}
         methodWatcher.executeUpdate("create sequence "+SEQUENCE);
         methodWatcher.executeUpdate(String.format("grant usage on SEQUENCE %s to %s",SEQUENCE,USER));
-        Connection connection = methodWatcher.connectionBuilder().user(USER).password(PASSWORD).build();
+        Connection connection = methodWatcher.createConnection(USER,PASSWORD);
         ResultSet rs = connection.prepareStatement("values (next value for "+SEQUENCE+")").executeQuery();
         assertTrue(rs.next());
         assertEquals(-2147483648,rs.getInt(1));
