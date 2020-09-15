@@ -26,7 +26,7 @@ package com.splicemachine.db.client.net;
 
 import com.splicemachine.db.client.ClientPooledConnection;
 import com.splicemachine.db.client.am.CallableStatement;
-import com.splicemachine.db.client.am.DatabaseMetaData;
+import com.splicemachine.db.client.am.ClientDatabaseMetaData;
 import com.splicemachine.db.client.am.PreparedStatement;
 import com.splicemachine.db.client.am.Statement;
 import com.splicemachine.db.client.am.*;
@@ -57,7 +57,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-public class NetConnection extends com.splicemachine.db.client.am.Connection {
+public class NetConnection extends ClientConnection {
     
     // Use this to get internationalized strings...
     protected static final MessageUtil msgutil = SqlException.getMessageUtil();
@@ -72,9 +72,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     //appropriate events.
     private final ClientPooledConnection pooledConnection_;
     private final boolean closeStatementsOnClose;
-
-    // For XA Transaction
-    protected int pendingEndXACallinfoOffset_ = -1;
 
     //-----------------------------state------------------------------------------
 
@@ -1310,7 +1307,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     }
 
 
-    protected DatabaseMetaData newDatabaseMetaData_() {
+    protected ClientDatabaseMetaData newDatabaseMetaData_() {
             return ClientDriver.getFactory().newNetDatabaseMetaData(netAgent_, this);
     }
 
@@ -1844,7 +1841,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
             (String collection,
              com.splicemachine.db.client.am.Agent agent,
              String databaseName) {
-        return new com.splicemachine.db.client.am.SectionManager(collection, agent, databaseName);
+        return new com.splicemachine.db.client.am.SectionManager(agent);
     }
 
     public boolean willAutoCommitGenerateFlow() {

@@ -16,8 +16,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
@@ -38,6 +40,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -55,6 +58,10 @@ public class ExplainOperation extends SpliceBaseOperation {
     private ExplainNode.SparkExplainKind sparkExplainKind;
 
     List<String> explainString = new ArrayList<>();
+    private int noStatsTablesRef;
+    private int noStatsColumnsRef;
+    private SQLVarchar[] noStatsTables;
+    private SQLVarchar[] noStatsColumns;
 
     /**
      *
@@ -84,7 +91,8 @@ public class ExplainOperation extends SpliceBaseOperation {
      * @throws StandardException
      */
     public ExplainOperation(SpliceOperation source, Activation activation,
-                            int resultSetNumber, String sparkExplainKind) throws StandardException {
+                            int resultSetNumber, String sparkExplainKind,
+                            int noStatsTablesRef, int noStatsColumnsRef) throws StandardException {
         super(activation, resultSetNumber, 0, 0);
         this.activation = activation;
         this.source = source;
@@ -99,6 +107,9 @@ public class ExplainOperation extends SpliceBaseOperation {
             this.sparkExplainKind = ExplainNode.SparkExplainKind.ANALYZED;
         else
             this.sparkExplainKind = ExplainNode.SparkExplainKind.NONE;
+
+        this.noStatsTablesRef = noStatsTablesRef;
+        this.noStatsColumnsRef = noStatsColumnsRef;
 
         init();
     }
@@ -118,11 +129,16 @@ public class ExplainOperation extends SpliceBaseOperation {
         currentTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
         if (source != null)
             source.init(context);
+
+        ExecPreparedStatement eps = activation.getPreparedStatement();
+        noStatsTables  = (SQLVarchar[]) ((FormatableArrayHolder)eps.getSavedObject(noStatsTablesRef)).getArray(SQLVarchar.class);
+        noStatsColumns = (SQLVarchar[]) ((FormatableArrayHolder)eps.getSavedObject(noStatsColumnsRef)).getArray(SQLVarchar.class);
     }
 
     @Override
     public void openCore() throws StandardException {
         getPlanInformation();
+        addNoStatsTablesAndColumns();
         if (sparkExplainKind == ExplainNode.SparkExplainKind.NONE) {
             // We always run explain on control
             openCore(EngineDriver.driver().processorFactory().localProcessor(activation, this));
@@ -190,6 +206,19 @@ public class ExplainOperation extends SpliceBaseOperation {
         }
     }
 
+    private void addNoStatsTablesAndColumns() {
+        if (noStatsTables.length > 0) {
+            explainString.add("Table statistics are missing or skipped for the following tables:");
+            explainString.add(
+                    Arrays.stream(noStatsTables).map(SQLVarchar::toString).collect(Collectors.joining(", ")));
+        }
+        if (noStatsColumns.length > 0) {
+            explainString.add("Column statistics are missing or skipped for the following columns:");
+            explainString.add(
+                    Arrays.stream(noStatsColumns).map(SQLVarchar::toString).collect(Collectors.joining(", ")));
+        }
+    }
+
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
@@ -242,6 +271,9 @@ public class ExplainOperation extends SpliceBaseOperation {
         out.writeUTF(sparkExplainKind.toString());
         if (!sparkExplainKind.equals(ExplainNode.SparkExplainKind.NONE))
             out.writeObject(source);
+
+        out.writeInt(noStatsTablesRef);
+        out.writeInt(noStatsColumnsRef);
     }
 
     @Override
@@ -265,5 +297,8 @@ public class ExplainOperation extends SpliceBaseOperation {
             this.sparkExplainKind = ExplainNode.SparkExplainKind.NONE;
         if (!sparkExplainKind.equals(ExplainNode.SparkExplainKind.NONE))
             source = (SpliceOperation)in.readObject();
+
+        noStatsTablesRef = in.readInt();
+        noStatsColumnsRef = in.readInt();
     }
 }

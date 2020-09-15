@@ -587,7 +587,7 @@ AppUI.out.println("SIZE="+l);
 		@exception ijException thrown on ij error
 	 */
 	public static void displayMulti(LocalizedOutput out, PreparedStatement ps,
-									ResultSet rs, Connection conn) throws SQLException, ijException {
+									ResultSet rs, Connection conn, boolean omitHeader) throws SQLException, ijException {
 
 		boolean autoCommited = false; // mark if autocommit in place
 		boolean exec = false; // mark the first time through
@@ -677,7 +677,7 @@ AppUI.out.println("SIZE="+l);
 			 */
 
 			ps.execute();
-			JDBCDisplayUtil.DisplayResults(out,ps,conn);
+			JDBCDisplayUtil.DisplayResults(out,ps,conn, omitHeader);
 
 			/*
 				5. clear the parameters
