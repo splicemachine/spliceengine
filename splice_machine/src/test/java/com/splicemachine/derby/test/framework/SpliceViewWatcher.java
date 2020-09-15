@@ -62,7 +62,11 @@ public class SpliceViewWatcher extends TestWatcher {
         Statement statement = null;
         ResultSet rs = null;
         try {
-            connection = userName==null?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
+            SpliceNetConnection.ConnectionBuilder connectionBuilder = SpliceNetConnection.newBuilder();
+            if (userName != null) {
+                connectionBuilder.user(userName).password(password);
+            }
+            connection = connectionBuilder.build();
             rs = connection.getMetaData().getTables(null, schemaName, viewName, null);
             if (rs.next()) {
                 executeDrop(schemaName, viewName);
@@ -93,7 +97,7 @@ public class SpliceViewWatcher extends TestWatcher {
         Connection connection = null;
         Statement statement = null;
         try {
-            connection = SpliceNetConnection.getConnection();
+            connection = SpliceNetConnection.getDefaultConnection();
             statement = connection.createStatement();
             statement.execute("drop view " + schemaName.toUpperCase() + "." + viewName.toUpperCase());
             connection.commit();

@@ -883,9 +883,7 @@ public class UpportIT extends SpliceUnitTest {
     }
 
     private static TestConnection createConnection() throws Exception {
-        Connection baseConn = SpliceNetConnection.getConnectionAs(
-                SpliceNetConnection.DEFAULT_USER,
-                SpliceNetConnection.DEFAULT_USER_PASSWORD);
+        Connection baseConn = SpliceNetConnection.getDefaultConnection();
         TestConnection conn = new TestConnection(baseConn);
         conn.setSchema(schema.schemaName);
         return conn;
