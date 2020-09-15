@@ -32,7 +32,7 @@
 package com.splicemachine.db.impl.sql.conn;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ContextId;
@@ -143,7 +143,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private DataSetProcessorType type;
 
     private final String ipAddress;
-    private Database db;
+    private InternalDatabase db;
 
     private final int instanceNumber;
     private String drdaID;
@@ -352,7 +352,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             TransactionController tranCtrl,
             LanguageFactory lf,
             LanguageConnectionFactory lcf,
-            Database db,
+            InternalDatabase db,
             String userName,
             List<String> groupuserlist,
             int instanceNumber,
@@ -2700,7 +2700,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public Database getDatabase(){
+    public InternalDatabase getDatabase(){
         return db;
     }
 

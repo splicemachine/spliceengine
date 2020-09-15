@@ -19,7 +19,6 @@ import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
 
-import com.splicemachine.db.client.am.Connection;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -29,9 +28,7 @@ import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
-import org.junit.Ignore;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.SpliceNetConnection;
