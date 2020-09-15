@@ -40,7 +40,7 @@ public class TestConnectionPool{
 
         public ConnectionHolder(String user,String pwd) throws SQLException{
             this.user=user;
-            this.conn = new TestConnection(SpliceNetConnection.newBuilder().user(user).password(pwd).build());
+            this.conn = new TestConnection(SpliceNetConnection.getConnectionAs(user,pwd));
         }
 
         public boolean matches(String user){

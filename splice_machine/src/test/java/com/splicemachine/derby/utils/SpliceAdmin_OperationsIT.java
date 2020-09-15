@@ -287,7 +287,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     @Test
     public void testOtherUsersCantKillOperation() throws Exception {
         TestConnection connection1 = methodWatcher.getOrCreateConnection();
-        TestConnection connection2 = methodWatcher.connectionBuilder().user(USER_NAME).password(USER_NAME).build();
+        TestConnection connection2 = methodWatcher.createConnection(USER_NAME, USER_NAME);
 
 
         String sql= "select * from "+bigTableWatcher;
@@ -352,7 +352,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
 
     @Test
     public void testDbOwnerCanKillOperation() throws Exception {
-        TestConnection connection1 = methodWatcher.connectionBuilder().user(USER_NAME).password(USER_NAME).build();
+        TestConnection connection1 = methodWatcher.createConnection(USER_NAME, USER_NAME);
         TestConnection connection2 = methodWatcher.getOrCreateConnection();
 
 

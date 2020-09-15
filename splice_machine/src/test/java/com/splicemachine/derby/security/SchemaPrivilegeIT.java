@@ -126,17 +126,19 @@ public class SchemaPrivilegeIT {
 
     @Before
     public  void setUpClass() throws Exception {
+        String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true";
+
         adminConn = spliceClassWatcherAdmin.createConnection();
-        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
-        user2Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER2).password(PASSWORD2).build();
-        user3Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER3).password(PASSWORD3).build();
+        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        user2Conn = spliceClassWatcherAdmin.createConnection(USER2, PASSWORD2);
+        user3Conn = spliceClassWatcherAdmin.createConnection(USER3, PASSWORD3);
         adminConn.execute( format("insert into %s.%s values ( 1, 2, 3)", SCHEMA1, TABLE ) );
         adminConn.execute( format("insert into %s.%s values ( 1, 2, 3)", SCHEMA1, TABLE2 ) );
         user3Conn.execute( format("insert into %s.%s values ( 1, 2, 3)", SECOND_SCHEMA, TABLE ) );
         user3Conn.execute(format("insert into %s.%s values ( 4, 5, 6)", THIRD_SCHEMA, TABLE3 ));
-        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER1).password(PASSWORD1).build();
-        user2Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER2).password(PASSWORD2).build();
-        user3Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER3).password(PASSWORD3).build();
+        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        user2Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER2, PASSWORD2);
+        user3Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER3, PASSWORD3);
     }
 
     @Test

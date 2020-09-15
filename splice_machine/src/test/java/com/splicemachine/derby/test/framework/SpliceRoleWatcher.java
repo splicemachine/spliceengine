@@ -25,61 +25,61 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 public class SpliceRoleWatcher extends TestWatcher {
-    private static final Logger LOG = Logger.getLogger(SpliceRoleWatcher.class);
-    protected String roleName;
-    public SpliceRoleWatcher(String roleName) {
-        this.roleName = roleName;
-    }
+	private static final Logger LOG = Logger.getLogger(SpliceRoleWatcher.class);
+	protected String roleName;
+	public SpliceRoleWatcher(String roleName) {
+		this.roleName = roleName;		
+	}
 
-
-    @Override
-    protected void starting(Description description) {
-        LOG.trace("Starting");
-        executeDrop(roleName.toUpperCase());
-        Connection connection = null;
-        Statement statement = null;
-        ResultSet rs = null;
-        try {
-            connection = SpliceNetConnection.getDefaultConnection();
-            statement = connection.createStatement();
-            statement.execute(String.format("create role %s",roleName));
-            connection.commit();
-        } catch (Exception e) {
-            LOG.error("Role statement is invalid ");
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        } finally {
-            DbUtils.closeQuietly(rs);
-            DbUtils.closeQuietly(statement);
-            DbUtils.commitAndCloseQuietly(connection);
-        }
-        super.starting(description);
-    }
-    @Override
-    protected void finished(Description description) {
-        LOG.trace("finished");
-    }
-
-    public static void executeDrop(String roleName) {
-        LOG.trace("ExecuteDrop");
-        Connection connection = null;
-        PreparedStatement statement = null;
-        try {
-            connection = SpliceNetConnection.getDefaultConnection();
-            statement = connection.prepareStatement("select roleid from sys.sysroles where roleid = ?");
-            statement.setString(1, roleName);
-            ResultSet rs = statement.executeQuery();
-            if (rs.next())
-                connection.createStatement().execute(String.format("drop role %s",roleName));
-            connection.commit();
-        } catch (Exception e) {
-            LOG.error("error Dropping " + e.getMessage());
-            e.printStackTrace();
-            throw new RuntimeException(e);
-        } finally {
-            DbUtils.closeQuietly(statement);
-            DbUtils.commitAndCloseQuietly(connection);
-        }
-    }
-
+	
+	@Override
+	protected void starting(Description description) {
+		LOG.trace("Starting");
+		executeDrop(roleName.toUpperCase());
+		Connection connection = null;
+		Statement statement = null;
+		ResultSet rs = null;
+		try {
+			connection = SpliceNetConnection.getConnection();
+			statement = connection.createStatement();
+			statement.execute(String.format("create role %s",roleName));
+			connection.commit();
+		} catch (Exception e) {
+			LOG.error("Role statement is invalid ");
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		} finally {
+			DbUtils.closeQuietly(rs);
+			DbUtils.closeQuietly(statement);
+			DbUtils.commitAndCloseQuietly(connection);
+		}
+		super.starting(description);
+	}
+	@Override
+	protected void finished(Description description) {
+		LOG.trace("finished");
+	}
+	
+	public static void executeDrop(String roleName) {
+		LOG.trace("ExecuteDrop");
+		Connection connection = null;
+		PreparedStatement statement = null;
+		try {
+			connection = SpliceNetConnection.getConnection();
+			statement = connection.prepareStatement("select roleid from sys.sysroles where roleid = ?");
+			statement.setString(1, roleName);
+			ResultSet rs = statement.executeQuery();
+			if (rs.next())
+				connection.createStatement().execute(String.format("drop role %s",roleName));
+			connection.commit();
+		} catch (Exception e) {
+			LOG.error("error Dropping " + e.getMessage());
+			e.printStackTrace();
+			throw new RuntimeException(e);
+		} finally {
+			DbUtils.closeQuietly(statement);
+			DbUtils.commitAndCloseQuietly(connection);
+		}
+	}
+	
 }

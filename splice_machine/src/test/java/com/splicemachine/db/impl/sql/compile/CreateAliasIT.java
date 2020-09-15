@@ -1,7 +1,9 @@
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.derby.test.framework.SpliceNetConnection.ConnectionBuilder;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -23,6 +25,8 @@ public class CreateAliasIT extends SpliceUnitTest {
     private static final String SCHEMA_NAME = CreateAliasIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
     private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+
+    String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true";
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
@@ -89,7 +93,7 @@ public class CreateAliasIT extends SpliceUnitTest {
         // step 1: create alias on RS0
         methodWatcher.executeUpdate("create alias a4 for t1");
         // step 2: select on RS1 to populate the cache
-        TestConnection rs1Conn = spliceClassWatcher.connectionBuilder().user("splice").password("admin").port(1528).create(true).build();
+        TestConnection rs1Conn = spliceClassWatcher.createConnection(remoteURLTemplate, "splice", "admin");
         rs1Conn.query("select c1 from a4");
         rs1Conn.commit();
 

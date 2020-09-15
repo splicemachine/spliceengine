@@ -66,7 +66,7 @@ public class SpliceUserWatcher extends TestWatcher {
         Connection connection = null;
         PreparedStatement statement = null;
         try {
-            connection = SpliceNetConnection.getDefaultConnection();
+            connection = SpliceNetConnection.getConnection();
             statement = connection.prepareStatement("call syscs_util.syscs_create_user(?,?)");
             statement.setString(1, userName);
             statement.setString(2, password);
@@ -85,7 +85,7 @@ public class SpliceUserWatcher extends TestWatcher {
         Connection connection = null;
         PreparedStatement statement = null;
         try {
-            connection = SpliceNetConnection.getDefaultConnection();
+            connection = SpliceNetConnection.getConnection();
             statement = connection.prepareStatement("select username from sys.sysusers where username = ?");
             statement.setString(1, userName.toUpperCase());
             ResultSet rs = statement.executeQuery();
@@ -111,7 +111,7 @@ public class SpliceUserWatcher extends TestWatcher {
     }
 
     public void dropSchema(String userName) {
-        try (Connection connection = SpliceNetConnection.getDefaultConnection()) {
+        try (Connection connection = SpliceNetConnection.getConnection()) {
 //            connection.setAutoCommit(false);
 
             SchemaDAO schemaDAO = new SchemaDAO(connection);

@@ -34,7 +34,7 @@ public class AuthenticationIT {
 
     @BeforeClass
     public static void setup() throws SQLException {
-        Statement s = SpliceNetConnection.getDefaultConnection().createStatement();
+        Statement s = SpliceNetConnection.getConnection().createStatement();
         s.execute("call SYSCS_UTIL.SYSCS_CREATE_USER('dgf','dgf')");
         s.execute("call SYSCS_UTIL.SYSCS_CREATE_USER('jy','jy')");
         s.execute("call SYSCS_UTIL.SYSCS_CREATE_USER('tom','tom')");
@@ -42,7 +42,7 @@ public class AuthenticationIT {
 
     @AfterClass
     public static void cleanup() throws SQLException {
-        Statement s = SpliceNetConnection.getDefaultConnection().createStatement();
+        Statement s = SpliceNetConnection.getConnection().createStatement();
         s.execute("call SYSCS_UTIL.SYSCS_DROP_USER('dgf')");
         s.execute("call SYSCS_UTIL.SYSCS_DROP_USER('jy')");
         s.execute("call SYSCS_UTIL.SYSCS_DROP_USER('tom')");
@@ -50,12 +50,12 @@ public class AuthenticationIT {
 
     @Test
     public void valid() throws SQLException {
-        SpliceNetConnection.newBuilder().user(AUTH_IT_USER).password(AUTH_IT_PASS).build();
+        SpliceNetConnection.getConnectionAs(AUTH_IT_USER, AUTH_IT_PASS);
     }
 
     @Test
     public void validUsernameIsNotCaseSensitive() throws SQLException {
-        SpliceNetConnection.newBuilder().user(AUTH_IT_USER.toUpperCase()).password(AUTH_IT_PASS).build();
+        SpliceNetConnection.getConnectionAs(AUTH_IT_USER.toUpperCase(), AUTH_IT_PASS);
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -64,27 +64,27 @@ public class AuthenticationIT {
 
     @Test(expected = SQLNonTransientConnectionException.class)
     public void badPassword() throws SQLException {
-        SpliceNetConnection.newBuilder().user(AUTH_IT_USER).password("bad_password").build();
+        SpliceNetConnection.getConnectionAs(AUTH_IT_USER, "bad_password");
     }
 
     @Test(expected = SQLNonTransientConnectionException.class)
     public void badPasswordExtraCharAtStart() throws SQLException {
-        SpliceNetConnection.newBuilder().user(AUTH_IT_USER).password("a" + AUTH_IT_PASS).build();
+        SpliceNetConnection.getConnectionAs(AUTH_IT_USER, "a" + AUTH_IT_PASS);
     }
 
     @Test(expected = SQLNonTransientConnectionException.class)
     public void badPasswordExtraCharAtEnd() throws SQLException {
-        SpliceNetConnection.newBuilder().user(AUTH_IT_USER).password(AUTH_IT_PASS + "a").build();
+        SpliceNetConnection.getConnectionAs(AUTH_IT_USER, AUTH_IT_PASS + "a");
     }
 
     @Test(expected = SQLNonTransientConnectionException.class)
     public void badPasswordCase() throws SQLException {
-        SpliceNetConnection.newBuilder().user(AUTH_IT_USER).password(AUTH_IT_PASS.toUpperCase()).build();
+        SpliceNetConnection.getConnectionAs(AUTH_IT_USER, AUTH_IT_PASS.toUpperCase());
     }
 
     @Test(expected = SQLNonTransientConnectionException.class)
     public void badPasswordZeroLength() throws SQLException {
-        SpliceNetConnection.newBuilder().user(AUTH_IT_USER).password("").build();
+        SpliceNetConnection.getConnectionAs(AUTH_IT_USER, "");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -93,7 +93,7 @@ public class AuthenticationIT {
 
     @Test(expected = SQLNonTransientConnectionException.class)
     public void badUsername() throws SQLException {
-        SpliceNetConnection.newBuilder().user("bad_username").password(AUTH_IT_PASS).build();
+        SpliceNetConnection.getConnectionAs("bad_username", AUTH_IT_PASS);
     }
 
 

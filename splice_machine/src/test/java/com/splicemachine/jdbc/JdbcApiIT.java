@@ -101,7 +101,10 @@ public class JdbcApiIT {
 
     @Test
     public void testUrlWithSchema() throws Exception {
-        try (Connection connection = SpliceNetConnection.newBuilder().schema(CLASS_NAME).build()) {
+        String url = "jdbc:splice://localhost:1527/splicedb;schema=" + CLASS_NAME;
+        try (Connection connection = SpliceNetConnection.getConnectionAs(url,
+                SpliceNetConnection.DEFAULT_USER,
+                SpliceNetConnection.DEFAULT_USER_PASSWORD)) {
             try (Statement statement = connection.createStatement()) {
                 statement.executeQuery("select * from a");
             }
@@ -110,7 +113,10 @@ public class JdbcApiIT {
 
     @Test
     public void testUrlWithNonExistSchema() throws Exception {
-         try (Connection connection = SpliceNetConnection.newBuilder().schema("nonexist").build()) {
+        String url = "jdbc:splice://localhost:1527/splicedb;schema=nonexist";
+         try (Connection connection = SpliceNetConnection.getConnectionAs(url,
+                SpliceNetConnection.DEFAULT_USER,
+                SpliceNetConnection.DEFAULT_USER_PASSWORD)) {
              Assert.fail("Connect to non exist schema should fail");
          } catch (SQLException e) {
              Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(),

@@ -129,7 +129,7 @@ public class AnalyzeTableIT {
         String message = null;
         String expected = null;
         try {
-            Connection connection = methodWatcher.connectionBuilder().user("analyzeuser").password("passwd").build();
+            Connection connection = methodWatcher.createConnection("analyzeuser", "passwd");
             Statement statement = connection.createStatement();
             statement.execute("analyze table AnalyzeTableIT.T2");
         }
@@ -148,7 +148,7 @@ public class AnalyzeTableIT {
         String message = null;
         String expected = null;
         try {
-            Connection connection = methodWatcher.connectionBuilder().user("analyzeuser").password("passwd").build();
+            Connection connection = methodWatcher.createConnection("analyzeuser", "passwd");
             Statement statement = connection.createStatement();
             statement.execute("analyze schema AnalyzeTableIT");
         }
