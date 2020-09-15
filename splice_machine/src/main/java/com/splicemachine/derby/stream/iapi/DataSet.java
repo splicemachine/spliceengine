@@ -336,11 +336,8 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      * Write text file to the Hadoop compliant location.
      *
-     * @param location
-     * @param context
-     * @return
      */
-    DataSet<ExecRow> writeTextFile(String location, CsvOptions csvOptions,
+    DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
                                    OperationContext context) throws StandardException;
 
     /**
