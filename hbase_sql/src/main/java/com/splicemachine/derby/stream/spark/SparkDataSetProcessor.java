@@ -47,6 +47,7 @@ import com.splicemachine.mrio.api.core.SMTextInputFormat;
 import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.IndentedString;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -428,7 +429,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
+    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException {
         StructType schema = null;
         Configuration conf = HConfiguration.unwrapDelegate();
         FileSystem fs = null;
@@ -500,7 +501,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                 .orc(location);
                     } else if (storedAs.toLowerCase().equals("t")) {
                         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                        dataset = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location);
+                        dataset = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(location);
                     } else {
                         throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
                     }
@@ -781,7 +782,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             Dataset<Row> table = null;
             try {
                 HashMap<String, String> options = new HashMap<String, String>();
-
                 // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
                 options.put("timestampFormat","yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
 
@@ -824,6 +824,32 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
+    }
+
+    /**
+     * @param csvOptions
+     * @return spark dataframereader options, see
+     *         https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html#csv-scala.collection.Seq-
+     * @throws IOException
+     */
+    public static HashMap<String, String> getCsvOptions(CsvOptions csvOptions) throws IOException {
+        HashMap<String, String> options = new HashMap<String, String>();
+
+        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+        String timestampFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ";
+        options.put("timestampFormat", timestampFormat);
+
+        String delimited = ImportUtils.unescape(csvOptions.columnDelimiter);
+        String escaped = ImportUtils.unescape(csvOptions.escapeCharacter);
+        String lines = ImportUtils.unescape(csvOptions.lineTerminator);
+
+        if (delimited != null) // default ,
+            options.put("sep", delimited);
+        if (escaped != null)
+            options.put("escape", escaped); // default \
+        if( lines != null ) // default \n
+            options.put("lineSep", lines);
+        return options;
     }
 
     /// check that we don't access a column that's not there with baseColumnMap

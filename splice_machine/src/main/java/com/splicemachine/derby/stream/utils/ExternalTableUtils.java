@@ -39,7 +39,6 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -198,7 +197,7 @@ public class ExternalTableUtils {
 
     private static StructType getDataSchema(DataSetProcessor dsp, StructType tableSchema, int[] partitionColumnMap,
                                      String location, String storeAs, boolean mergeSchema) throws StandardException {
-        StructType dataSchema =dsp.getExternalFileSchema(storeAs, location, mergeSchema);
+        StructType dataSchema =dsp.getExternalFileSchema(storeAs, location, mergeSchema, null);
         tableSchema =  ExternalTableUtils.supportAvroDateType(tableSchema, storeAs);
         if (dataSchema != null) {
             ExternalTableUtils.checkSchema(tableSchema, dataSchema, partitionColumnMap, location);
