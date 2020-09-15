@@ -76,6 +76,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
     /* Is this the ResultColumnList for an index row? */
     protected boolean indexRow;
     protected long conglomerateId;
+    protected boolean fromExprIndex=false;
 
     int orderBySelect=0; // the number of result columns pulled up
     // from ORDERBY list
@@ -1616,6 +1617,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             newList.addResultColumn(newResultColumn);
         }
         newList.copyOrderBySelect(this);
+        newList.setFromExprIndex(this.isFromExprIndex());
         return newList;
     }
 
@@ -3966,6 +3968,12 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         return isExpressableInSparkSQL;
     }
 
+    public boolean isFromExprIndex() {
+        return fromExprIndex;
+    }
 
+    public void setFromExprIndex(boolean fromExprIndex) {
+        this.fromExprIndex = fromExprIndex;
+    }
 
 }

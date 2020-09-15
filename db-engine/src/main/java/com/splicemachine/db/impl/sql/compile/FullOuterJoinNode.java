@@ -44,6 +44,7 @@ import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by yxia on 11/26/19.
@@ -113,14 +114,16 @@ public class FullOuterJoinNode extends JoinNode {
      * @param numTables Number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
+     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
+                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
         ResultSetNode newTreeTop;
 
-        newTreeTop=super.preprocess(numTables,gbl,fromList);
+        newTreeTop=super.preprocess(numTables,gbl,fromList, exprMap);
 
         return newTreeTop;
     }

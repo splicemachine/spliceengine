@@ -337,4 +337,11 @@ public class GroupByList extends OrderedColumnList{
                     groupingCol.getColumnExpression().preprocess(numTables,fromList,whereSubquerys,wherePredicates));
         }
     }
+
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+        for (int i = 0; i < size(); i++) {
+            GroupByColumn gbc = (GroupByColumn) elementAt(i);
+            gbc.setColumnExpression(gbc.getColumnExpression().replaceIndexExpression(childRCL));
+        }
+    }
 }

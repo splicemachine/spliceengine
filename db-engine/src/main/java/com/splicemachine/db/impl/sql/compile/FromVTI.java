@@ -917,6 +917,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * @param gbl                The group by list, if any
      * @param fromList            The from list, if any
      *
+     * @param exprMap
      * @return ResultSetNode at top of preprocessed tree.
      *
      * @exception StandardException        Thrown on error
@@ -924,7 +925,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
-                                    FromList fromList)
+                                    FromList fromList,
+                                    Map<Integer, List<ValueNode>> exprMap)
             throws StandardException
     {
         methodCall.preprocess(

@@ -679,14 +679,16 @@ public class JoinNode extends TableOperatorNode{
      * @param numTables Number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
+     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables,GroupByList gbl,FromList fromList) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
+                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
         ResultSetNode newTreeTop;
 
-        newTreeTop=super.preprocess(numTables,gbl,fromList);
+        newTreeTop=super.preprocess(numTables,gbl,fromList, exprMap);
 
         // delay preprocess of the join clause for flattenable inner join nodes
         // till after the flattening of JoinNode.

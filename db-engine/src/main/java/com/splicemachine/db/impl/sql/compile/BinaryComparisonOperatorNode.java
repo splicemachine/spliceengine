@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.sql.Types;
 import java.util.List;
+import java.util.Map;
 
 /**
  * This node is the superclass  for all binary comparison operators, such as =,
@@ -494,5 +495,45 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		}
 
 		return this;
+	}
+
+	@Override
+	public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+		boolean receiverReplaced = receiver == null;
+		boolean leftReplaced  = leftOperand == null;
+		boolean rightReplaced = rightOperand == null;
+		for (ResultColumn childRC : childRCL) {
+			if (receiverReplaced && leftReplaced && rightReplaced)
+				break;
+			ValueNode indexExpr = childRC.getIndexExpression();
+			if (indexExpr.equals(receiver)) {
+				receiver = childRC.getColumnReference(receiver);
+				receiverReplaced = true;
+			}
+			if (indexExpr.equals(leftOperand)) {
+				leftOperand = childRC.getColumnReference(leftOperand);
+				leftReplaced = true;
+			}
+			if (indexExpr.equals(rightOperand)) {
+				rightOperand = childRC.getColumnReference(rightOperand);
+				rightReplaced = true;
+			}
+		}
+		return this;
+	}
+
+	@Override
+	public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+		boolean result = true;
+		if (receiver != null) {
+			result = receiver.collectExpressions(exprMap);
+		}
+		if (leftOperand != null) {
+			result = result && leftOperand.collectExpressions(exprMap);
+		}
+		if (rightOperand != null) {
+			result = result && rightOperand.collectExpressions(exprMap);
+		}
+		return result;
 	}
 }

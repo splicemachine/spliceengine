@@ -672,6 +672,7 @@ public class GroupByNode extends SingleChildResultSetNode{
         /*
         ** Get the new PR, put above the GroupBy.
         */
+        boolean isFromExprIndex = resultColumns.isFromExprIndex();
         ResultColumnList rclNew=(ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
         int sz=resultColumns.size();
@@ -681,6 +682,7 @@ public class GroupByNode extends SingleChildResultSetNode{
                 rclNew.addElement(rc);
             }
         }
+        rclNew.setFromExprIndex(isFromExprIndex);
 
         // if any columns in the source RCL were generated for an order by
         // remember it in the new RCL as well. After the sort is done it will
@@ -704,12 +706,13 @@ public class GroupByNode extends SingleChildResultSetNode{
         */
         childResult.setResultColumns((ResultColumnList)
                 getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,getContextManager()));
+        childResult.getResultColumns().setFromExprIndex(isFromExprIndex);
 
         /*
         ** Set the group by RCL to be empty
         */
         resultColumns=(ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST,getContextManager());
-
+        resultColumns.setFromExprIndex(isFromExprIndex);
     }
 
     /**

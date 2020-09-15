@@ -616,4 +616,13 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
          */
         return false;
     }
+
+    public void replaceIndexExpressions(ResultSetNode child) throws StandardException {
+        ResultColumnList childRCL = child.getResultColumns();
+        for (int i = 0; i < size(); i++) {
+            OrderByColumn obc = (OrderByColumn) elementAt(i);
+            obc.setColumnExpression(obc.getColumnExpression().replaceIndexExpression(childRCL));
+        }
+        bindOrderByColumns(child);
+    }
 }

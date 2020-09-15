@@ -45,6 +45,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.BitSet;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A Predicate represents a top level predicate.
@@ -1457,5 +1458,21 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     public void setMatchIndexExpression(boolean matchIndexExpression) {
         this.matchIndexExpression = matchIndexExpression;
+    }
+
+    public void replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        ValueNode op = getAndNode().getLeftOperand();
+        if (op == null)
+            return;
+
+        op.replaceIndexExpression(childRCL);
+    }
+
+    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+        ValueNode op = getAndNode().getLeftOperand();
+        if (op == null)
+            return true;
+
+        return op.collectExpressions(exprMap);
     }
 }

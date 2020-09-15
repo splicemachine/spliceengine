@@ -846,11 +846,13 @@ public class SelectNode extends ResultSetNode{
      * @param numTables The number of tables in the DML Statement
      * @param gbl       The outer group by list, if any
      * @param fl        The from list, if any
+     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables,GroupByList gbl,FromList fl) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fl,
+                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
         ResultSetNode newTop=this;
 
         /* Put the expression trees in conjunctive normal form.
@@ -889,7 +891,8 @@ public class SelectNode extends ResultSetNode{
          * ProjectRestrictNode. If it is a FromBaseTable, then we will generate
          * the ProjectRestrictNode above it.
          */
-        fromList.preprocess(numTables,groupByList,whereClause);
+        fromList.preprocess(numTables,groupByList,whereClause,
+                exprMap == null ? collectExpression() : exprMap);
 
         /* selectSubquerys is always allocated at bind() time */
         assert selectSubquerys!=null: "selectSubquerys is expected to be non-null";
@@ -1220,6 +1223,30 @@ public class SelectNode extends ResultSetNode{
         boolean eliminateSort=false;
         ResultSetNode prnRSN;
 
+        // replace index expressions in select list with column references referencing child result set
+        // only happen when best access path is an expression-based covering index
+        ResultColumnList childResultColumns = ((ResultSetNode)fromList.elementAt(0)).getResultColumns();
+        if (childResultColumns.isFromExprIndex()) {
+            for (ResultColumn rc : resultColumns) {
+                rc.setExpression(rc.getExpression().replaceIndexExpression(childResultColumns));
+                /*
+                for (int i = 0; i < childResultColumns.size(); i++) {
+                    ValueNode indexExpr = childResultColumns.getResultColumn(i + 1).getIndexExpression();
+                    if (rc.getExpression().equals(indexExpr)) {
+                        rc.expression = (ValueNode) getNodeFactory().getNode(
+                                C_NodeTypes.VIRTUAL_COLUMN_NODE,
+                                fromList.elementAt(0),
+                                childResultColumns.elementAt(i),
+                                ReuseFactory.getInteger(i + 1),
+                                getContextManager());
+                        rc.setIndexExpression(indexExpr);
+                    }
+                }
+                */
+            }
+            resultColumns.setFromExprIndex(true);
+        }
+
         prnRSN=(ResultSetNode)getNodeFactory().getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
                 fromList.elementAt(0),    /* Child ResultSet */
@@ -1253,6 +1280,28 @@ public class SelectNode extends ResultSetNode{
         ** block.
         */
         if(((selectAggregates!=null) && (!selectAggregates.isEmpty())) || (groupByList!=null)){
+            if (childResultColumns.isFromExprIndex()) {
+                if (groupByList != null) {
+                    groupByList.replaceIndexExpressions(childResultColumns);
+                }
+                if (havingClause != null) {
+                    for (ResultColumn childRC : childResultColumns) {
+                        IndexExpressionReplacementVisitor ierv =
+                                new IndexExpressionReplacementVisitor(childRC, null);
+                        havingClause.accept(ierv);
+                    }
+                }
+                if (havingAggregates != null) {
+                    for (AggregateNode havingAggr : havingAggregates) {
+                        havingAggr.replaceIndexExpression(childResultColumns);
+                    }
+                }
+                if (selectAggregates != null) {
+                    for (AggregateNode selectAggr : selectAggregates) {
+                        selectAggr.replaceIndexExpression(childResultColumns);
+                    }
+                }
+            }
 
             List<AggregateNode> aggs=selectAggregates;
             if(havingAggregates!=null && !havingAggregates.isEmpty()){
@@ -1368,6 +1417,9 @@ public class SelectNode extends ResultSetNode{
          */
 
         if(orderByList!=null){
+            if (childResultColumns.isFromExprIndex()) {
+                orderByList.replaceIndexExpressions((ResultSetNode) fromList.elementAt(0));
+            }
             // Need to remove sort reduction if you are aggregating (hash)
             if(orderByList.isSortNeeded()
                     || (((selectAggregates!=null) && (!selectAggregates.isEmpty())) || (groupByList!=null))){
@@ -2853,4 +2905,54 @@ public class SelectNode extends ResultSetNode{
         }
         return collected;
     }
+
+    private Map<Integer, List<ValueNode>> collectExpression() {
+        HashMap<Integer, List<ValueNode>> result = new HashMap<>();
+        boolean proceed = true;
+
+        if (groupByList != null) {
+            for (int i = 0; i < groupByList.size(); i++) {
+                proceed = proceed && groupByList.getGroupByColumn(i).getColumnExpression().collectSingleExpression(result);
+            }
+        }
+
+        if (orderByList != null) {
+            for (int i = 0; i < orderByList.size(); i++) {
+                proceed = proceed && orderByList.getOrderByColumn(i).getColumnExpression().collectSingleExpression(result);
+            }
+        }
+
+        if (whereClause != null) {
+            whereClause.collectExpressions(result);
+        }
+
+        if (havingClause != null) {
+            havingClause.collectExpressions(result);
+        }
+
+        if (selectAggregates != null) {
+            for (AggregateNode selectAggregate : selectAggregates) {
+                selectAggregate.collectExpressions(result);
+            }
+        }
+
+        if (havingAggregates != null) {
+            for (AggregateNode havingAggregate : havingAggregates) {
+                havingAggregate.collectExpressions(result);
+            }
+        }
+
+        // no need to check whereAggregates, should be empty
+
+        for (ResultColumn rc : resultColumns) {
+            proceed = proceed && rc.getExpression().collectSingleExpression(result);
+        }
+
+        if (!proceed) {
+            result.clear();
+        }
+        return result;
+    }
+
+
 }

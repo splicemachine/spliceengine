@@ -31,21 +31,21 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -53,10 +53,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Map;
 
 /**
  * A TernaryOperatorNode represents a built-in ternary operators.
@@ -1465,4 +1463,44 @@ public class TernaryOperatorNode extends OperatorNode
     public boolean isLeading()  {return trimType == StringDataValue.LEADING;}
     public boolean isTrailing() {return trimType == StringDataValue.TRAILING;}
     public boolean isBoth()     {return trimType == StringDataValue.BOTH;}
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        boolean receiverReplaced = receiver == null;
+        boolean leftReplaced  = leftOperand == null;
+        boolean rightReplaced = rightOperand == null;
+        for (ResultColumn childRC : childRCL) {
+            if (receiverReplaced && leftReplaced && rightReplaced)
+                break;
+            ValueNode indexExpr = childRC.getIndexExpression();
+            if (indexExpr.equals(receiver)) {
+                receiver = childRC.getColumnReference(receiver);
+                receiverReplaced = true;
+            }
+            if (indexExpr.equals(leftOperand)) {
+                leftOperand = childRC.getColumnReference(leftOperand);
+                leftReplaced = true;
+            }
+            if (indexExpr.equals(rightOperand)) {
+                rightOperand = childRC.getColumnReference(rightOperand);
+                rightReplaced = true;
+            }
+        }
+        return this;
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+        boolean result = true;
+        if (receiver != null) {
+            result = receiver.collectExpressions(exprMap);
+        }
+        if (leftOperand != null) {
+            result = result && leftOperand.collectExpressions(exprMap);
+        }
+        if (rightOperand != null) {
+            result = result && rightOperand.collectExpressions(exprMap);
+        }
+        return result;
+    }
 }

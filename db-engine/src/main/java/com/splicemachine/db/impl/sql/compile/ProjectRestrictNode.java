@@ -809,6 +809,17 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
         accessPathModified=true;
 
+        if (childResult.getResultColumns().isFromExprIndex()) {
+            /* We get a shallow copy of the ResultColumnList and its
+             * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+             */
+            resultColumns = childResult.getResultColumns().copyListAndObjects();
+            resultColumns.genVirtualColumnNodes(childResult, childResult.getResultColumns());
+            if (restrictionList != null) {
+                restrictionList.replaceIndexExpression(childResult.getResultColumns());
+            }
+        }
+
         /*
         ** Replace this PRN with a HTN if a hash join
         ** is being done at this node.  (hash join on a scan
@@ -1073,12 +1084,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * @param numTables Number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
+     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
-        childResult=childResult.preprocess(numTables,gbl,fromList);
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
+                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+        childResult=childResult.preprocess(numTables,gbl,fromList, exprMap);
 
         /* Build the referenced table map */
         referencedTableMap=(JBitSet)childResult.getReferencedTableMap().clone();

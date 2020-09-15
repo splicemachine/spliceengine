@@ -1504,4 +1504,134 @@ public class IndexIT extends SpliceUnitTest{
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
+
+    @Test
+    public void testCoveringExpressionBasedIndex() throws Exception {
+        String tableName = "TEST_COVERING_EXPR_INDEX";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('foo', 0), ('bar', 1)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), mod(i, 2) + 1)", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 2)", tableName));
+
+        /* test select list and where clause */
+
+        String query = format("select upper(c), mod(i,2)+1 from %s --splice-properties index=%s_IDX\n where upper(c) = 'BAR'", tableName, tableName);
+
+        /* check plan */
+        try(ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup"));     // no base row retrieving
+            Assert.assertFalse(explainPlanText.contains("ProjectRestrict")); // no final upper(c) computation
+        }
+
+        /* check result */
+        String expected = "1  | 2 |\n" +
+                "---------\n" +
+                "BAR | 2 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        /* test group by and having clause */
+
+        query = format("select upper(c) from %s --splice-properties index=%s_IDX\n group by upper(c) having upper(c) > 'BAN'", tableName, tableName);
+
+        /* check plan */
+        try(ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup"));  // no base row retrieving
+            Assert.assertTrue(explainPlanText.contains("GroupBy"));
+            Assert.assertFalse(explainPlanText.contains("upper"));        // ProjectRestrict is needed because of having, but no need to compute upper()
+        }
+
+        /* check result */
+        expected = "1  |\n" +
+                "-----\n" +
+                "BAR |\n" +
+                "FOO |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        /* test order by clause */
+
+        query = format("select upper(c) from %s --splice-properties index=%s_IDX\n order by upper(c)", tableName, tableName);
+
+        /* check plan */
+        try(ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup"));  // no base row retrieving
+            Assert.assertTrue(explainPlanText.contains("OrderBy"));
+            Assert.assertFalse(explainPlanText.contains("upper"));
+        }
+
+        /* check result */
+        expected = "1  |\n" +
+                "-----\n" +
+                "ABC |\n" +
+                "BAR |\n" +
+                "FOO |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testCoveringExpressionBasedIndexWithAggregates() throws Exception {
+        String tableName = "TEST_COVERING_EXPR_INDEX_AGGR";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2), ('ghi', 30, 3.3), ('xyz', 40, 3.3)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), mod(i, 2), d)", tableName, tableName));
+
+        /* test aggregates with group by */
+
+        String query = format("select d, sum(mod(i,2)) from %s --splice-properties index=%s_IDX\n group by d having sum(mod(i,2)) > 0", tableName, tableName);
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+            Assert.assertFalse(explainPlanText.contains("mod"));
+        }
+
+        /* check result */
+        String expected = "D  | 2 |\n" +
+                "---------\n" +
+                "1.1 | 1 |\n" +
+                "2.2 | 1 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        /* test scalar aggregates */
+
+        query = format("select max(d), sum(mod(i,2)) from %s --splice-properties index=%s_IDX\n", tableName, tableName);
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+            Assert.assertFalse(explainPlanText.contains("mod"));
+        }
+
+        /* check result */
+        expected = "1  | 2 |\n" +
+                "---------\n" +
+                "3.3 | 2 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
 }

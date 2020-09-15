@@ -32,16 +32,15 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-
 import java.util.List;
+import java.util.Map;
 
 abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 {
@@ -227,5 +226,45 @@ abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 
 		return leftType.getNullabilityType(
 					leftType.isNullable() || rightType.isNullable());
+	}
+
+	@Override
+	public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+		boolean receiverReplaced = receiver == null;
+		boolean leftReplaced  = leftOperand == null;
+		boolean rightReplaced = rightOperand == null;
+		for (ResultColumn childRC : childRCL) {
+			if (receiverReplaced && leftReplaced && rightReplaced)
+				break;
+			ValueNode indexExpr = childRC.getIndexExpression();
+			if (indexExpr.equals(receiver)) {
+				receiver = childRC.getColumnReference(receiver);
+				receiverReplaced = true;
+			}
+			if (indexExpr.equals(leftOperand)) {
+				leftOperand = childRC.getColumnReference(leftOperand);
+				leftReplaced = true;
+			}
+			if (indexExpr.equals(rightOperand)) {
+				rightOperand = childRC.getColumnReference(rightOperand);
+				rightReplaced = true;
+			}
+		}
+		return this;
+	}
+
+	@Override
+	public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+		boolean result = true;
+		if (receiver != null) {
+			result = receiver.collectExpressions(exprMap);
+		}
+		if (leftOperand != null) {
+			result = result && leftOperand.collectExpressions(exprMap);
+		}
+		if (rightOperand != null) {
+			result = result && rightOperand.collectExpressions(exprMap);
+		}
+		return result;
 	}
 }

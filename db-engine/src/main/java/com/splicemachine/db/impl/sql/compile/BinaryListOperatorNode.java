@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static com.splicemachine.db.shared.common.sanity.SanityManager.THROWASSERT;
 
@@ -471,5 +472,25 @@ public abstract class BinaryListOperatorNode extends ValueNode{
 
     public void setOuterJoinLevel(int level) {
         outerJoinLevel = level;
+    }
+
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        ValueNodeList newList = (ValueNodeList) getNodeFactory().getNode(
+                C_NodeTypes.VALUE_NODE_LIST,
+                getContextManager());
+        for (Object leftItem : leftOperandList) {
+            newList.addValueNode(((ValueNode) leftItem).replaceIndexExpression(childRCL));
+        }
+        leftOperandList = newList;
+        return this;
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+        boolean result = true;
+        for (Object leftItem : leftOperandList) {
+            result = result && ((ValueNode) leftItem).collectExpressions(exprMap);
+        }
+        return result;
     }
 }

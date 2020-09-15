@@ -137,6 +137,9 @@ public class ResultColumn extends ValueNode
     /* virtualColumnId is the ResultColumn's position (1-based) within the ResultSet */
     private int        virtualColumnId;
 
+    /* whether this result column comes from an expression-based index column */
+    private ValueNode indexExpression = null;
+
     /**
      * Different types of initializer parameters indicate different
      * types of initialization. Parameters may be:
@@ -1639,6 +1642,7 @@ public class ResultColumn extends ValueNode
         }
 
         newResultColumn.fromLeftChild = this.fromLeftChild;
+        newResultColumn.indexExpression = this.indexExpression;
         return newResultColumn;
     }
 
@@ -1912,7 +1916,14 @@ public class ResultColumn extends ValueNode
     public int getTableNumber() {
         ResultColumn other = this;
         while (true) {
-            if (other.expression instanceof ColumnReference)
+            if (other.indexExpression != null) {
+                // an index expression has at least one column reference and all column
+                // references must refer to the same table
+                List<ColumnReference> crList = other.getHashableJoinColumnReference();
+                assert(!crList.isEmpty());
+                return crList.get(0).getTableNumber();
+            }
+            else if (other.expression instanceof ColumnReference)
                 return ((ColumnReference) other.expression).getTableNumber();
             else if (other.expression instanceof VirtualColumnNode) {
                 VirtualColumnNode vcn = (VirtualColumnNode) other.expression;
@@ -2095,6 +2106,43 @@ public class ResultColumn extends ValueNode
 
     public boolean isFromLeftChild() {
         return fromLeftChild;
+    }
+
+    public ValueNode getIndexExpression() {
+        return indexExpression;
+    }
+
+    public void setIndexExpression(ValueNode indexExpression) {
+        this.indexExpression = indexExpression;
+    }
+
+    /**
+     * Get a ColumnReference node referring to this ResultColumn. This method should be used only in
+     * case of replacing an index expression.
+     * @param originalExpr Original expression to be replaced. originalExpr.equals(getIndexExpression()) should always be true.
+     * @return A column reference referring to this ResultColumn.
+     */
+    public ColumnReference getColumnReference(ValueNode originalExpr) throws StandardException {
+        List<ColumnReference> origCRs = originalExpr.getHashableJoinColumnReference();
+        assert !origCRs.isEmpty();
+        ColumnReference origCR = origCRs.get(0);
+
+        ColumnReference cr = (ColumnReference) getNodeFactory().getNode(
+                C_NodeTypes.COLUMN_REFERENCE,
+                getColumnName(),
+                getTableNameObject(),
+                getContextManager()
+        );
+        cr.setSource(this);
+        cr.setTableNumber(getTableNumber());
+        cr.setColumnNumber(getColumnPosition());
+        cr.columnName = this.name;
+        cr.setType(getTypeServices());
+        cr.setOuterJoinLevel(origCR.getOuterJoinLevel());
+        cr.setNestingLevel(origCR.getNestingLevel());
+        cr.setSourceLevel(origCR.getSourceLevel());
+
+        return cr;
     }
 }
 

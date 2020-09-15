@@ -49,9 +49,10 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * A ValueNode is an abstract class for all nodes that can represent data
@@ -1444,6 +1445,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     protected abstract boolean isEquivalent(ValueNode other)
         throws StandardException;
 
+    @Override
     public boolean equals(Object o) {
 
         boolean result;
@@ -1511,5 +1513,69 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
     public void setOuterJoinLevel(int level) {
         return;
+    }
+
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        // by default, try replace this whole subtree
+        for (ResultColumn childRC : childRCL) {
+            if (this.equals(childRC.getIndexExpression())) {
+                return childRC.getColumnReference(this);
+            }
+        }
+        return this;
+    }
+
+    // constants used by getReferencedTableNumber
+    protected final static int NOT_FOUND = -1;
+    protected final static int MULTIPLE  = -2;
+
+    protected int getReferencedTableNumber() {
+        if (isConstantOrParameterTreeNode()) {
+            return NOT_FOUND;
+        }
+
+        int refTableNumber = NOT_FOUND;
+        List<ColumnReference> crList = getHashableJoinColumnReference();
+        if (crList != null) {
+            for (ColumnReference cr : crList) {
+                if (cr.getTableNumber() != refTableNumber) {
+                    if (refTableNumber == NOT_FOUND)
+                        refTableNumber = cr.getTableNumber();
+                    else
+                        return MULTIPLE;
+                }
+            }
+        }
+        return refTableNumber;
+    }
+
+    public boolean collectSingleExpression(Map<Integer, List<ValueNode>> map) {
+        if (this instanceof AggregateNode || this instanceof SubqueryNode) {
+            return true;
+        }
+
+        int tableNumber = getReferencedTableNumber();
+        if (tableNumber == ValueNode.MULTIPLE) {
+            return false;
+        }
+
+        if (tableNumber != ValueNode.NOT_FOUND) {
+            if (map.containsKey(tableNumber)) {
+                List<ValueNode> exprList = map.get(tableNumber);
+                if (!exprList.contains(this)) {
+                    exprList.add(this);
+                }
+            } else {
+                List<ValueNode> values = new ArrayList<>();
+                values.add(this);
+                map.put(tableNumber, values);
+            }
+        }
+        return true;
+    }
+
+    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+        // by default, take this whole subtree as an expression
+        return collectSingleExpression(exprMap);
     }
 }

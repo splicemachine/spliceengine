@@ -151,7 +151,7 @@ public abstract class DMLStatementNode extends StatementNode {
         int maximalPossibleTableCount = getCompilerContext().getNumTables() + numOfWhereSubqueries;
         getCompilerContext().setMaximalPossibleTableCount(maximalPossibleTableCount);
 
-        resultSet = resultSet.preprocess(maximalPossibleTableCount, null, null);
+        resultSet = resultSet.preprocess(maximalPossibleTableCount, null, null, null);
         // Evaluate expressions with constant operands here to simplify the
         // query tree and to reduce the runtime cost. Do it before optimize()
         // since the simpler tree may have more accurate information for

@@ -588,7 +588,7 @@ public class SubqueryNode extends ValueNode{
         boolean flattenable;
         ValueNode topNode=this;
 
-        resultSet=resultSet.preprocess(numTables,null,null);
+        resultSet=resultSet.preprocess(numTables,null,null, null);
         if(leftOperand!=null){
             leftOperand=leftOperand.preprocess(numTables,outerFromList,outerSubqueryList,outerPredicateList);
         }

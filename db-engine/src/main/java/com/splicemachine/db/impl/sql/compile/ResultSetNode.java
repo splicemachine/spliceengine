@@ -50,10 +50,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A ResultSetNode represents a result set, that is, a set of rows.  It is
@@ -537,11 +534,13 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @param numTables The number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
+     * @param exprMap
      * @return ResultSetNode at top of preprocessed tree.
      * @throws StandardException Thrown on error
      */
 
-    public ResultSetNode preprocess(int numTables,GroupByList gbl,FromList fromList) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
+                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
         if(SanityManager.DEBUG)
             SanityManager.THROWASSERT(
                     "preprocess() not expected to be called for "+getClass().toString());

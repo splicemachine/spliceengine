@@ -912,6 +912,7 @@ public class UnaryOperatorNode extends OperatorNode
 
     @Override
     public boolean isConstantOrParameterTreeNode() {
-        return operand.isConstantOrParameterTreeNode();
+        // for count(*), operand is null
+        return operand != null && operand.isConstantOrParameterTreeNode();
     }
 }

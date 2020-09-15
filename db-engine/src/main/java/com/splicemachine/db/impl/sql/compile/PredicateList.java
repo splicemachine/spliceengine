@@ -651,7 +651,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     // Set table number of all column references in the given index expression AST to the current table.
     // We don't need to bind the index expressions for types, but we do need table number to be correct
     // since two different index on different tables could have the same index expression text.
-    private static void setTableNumber(ValueNode ast, Optimizable optTable) throws StandardException {
+    public static void setTableNumber(ValueNode ast, Optimizable optTable) throws StandardException {
         CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
         ast.accept(cnv);
         List<ColumnReference> crList = cnv.getList();
@@ -4676,6 +4676,20 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return canSupportExcludedColumns;
     }
 
+    public void replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        for(int i = 0; i < size(); i++) {
+            Predicate pred = elementAt(i);
+            pred.replaceIndexExpression(childRCL);
+        }
+    }
 
+    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+        boolean result = true;
+        for(int i = 0; i < size(); i++) {
+            Predicate pred = elementAt(i);
+            result = result && pred.collectExpressions(exprMap);
+        }
+        return result;
+    }
 
 }
