@@ -65,7 +65,7 @@ public abstract class ResultSet implements java.sql.ResultSet,
     //   That is, the state data is set by the constructor and never changes.
 
     // Alias for statement_.connection
-    public final Connection connection_;
+    public final ClientConnection connection_;
 
     //----------------------------- constants ------------------------------------
 

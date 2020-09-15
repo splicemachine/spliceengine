@@ -32,7 +32,7 @@
 package com.splicemachine.db.catalog;
 
 /**
-	
+
   * A Dependable is an in-memory representation of an object managed
   *	by the Dependency System.
   * 
@@ -51,7 +51,7 @@ package com.splicemachine.db.catalog;
 public interface Dependable
 {
 	/*
-	  *	Universe of known Dependables. 
+	  *	Universe of known Dependables.
 	  */
 
 	String ALIAS						= "Alias";
@@ -118,7 +118,7 @@ public interface Dependable
 
 	/**
 	  * Get the unique class id for the Dependable.
-	  *	Every Dependable belongs to a class of Dependables. 
+	  *	Every Dependable belongs to a class of Dependables.
 	  *
 	  *	@return	type of this Dependable.
 	  */

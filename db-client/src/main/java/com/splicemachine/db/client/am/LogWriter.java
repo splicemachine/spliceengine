@@ -25,15 +25,14 @@
 
 package com.splicemachine.db.client.am;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.PrintWriter;
-import java.security.PrivilegedExceptionAction;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.security.PrivilegedAction;
 import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.security.AccessController;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.naming.NamingException;
 import javax.naming.RefAddr;
@@ -221,7 +220,7 @@ public class LogWriter {
         if (instance == null) // this prevents NPE from instance.getClass() used below
         {
             return null;
-        } else if (instance instanceof Connection && loggingEnabled(ClientDataSource.TRACE_CONNECTION_CALLS)) {
+        } else if (instance instanceof ClientConnection && loggingEnabled(ClientDataSource.TRACE_CONNECTION_CALLS)) {
             return "Connection";
         } else if (instance instanceof ResultSet && loggingEnabled(ClientDataSource.TRACE_RESULT_SET_CALLS)) {
             return "ResultSet";
@@ -243,9 +242,9 @@ public class LogWriter {
             return "Clob";
         }
         // Not yet externalizing dbmd catalog call tracing, except for trace_all
-        else if (instance instanceof DatabaseMetaData && loggingEnabled(ClientDataSource.TRACE_ALL)) // add a trace level for dbmd ??
+        else if (instance instanceof ClientDatabaseMetaData && loggingEnabled(ClientDataSource.TRACE_ALL)) // add a trace level for dbmd ??
         {
-            return "DatabaseMetaData";
+            return "ClientDatabaseMetaData";
         }
         // we don't use instanceof javax.transaction.XAResource to avoid dependency on j2ee.jar
         else if (loggingEnabled(ClientDataSource.TRACE_XA_CALLS) &&
@@ -348,14 +347,14 @@ public class LogWriter {
         traceExit(instance, methodName, returnValue);
     }
 
-    public void traceExit(Object instance, String methodName, DatabaseMetaData returnValue) {
+    public void traceExit(Object instance, String methodName, ClientDatabaseMetaData returnValue) {
         if (traceSuspended()) {
             return;
         }
         traceExit(instance, methodName, "DatabaseMetaData@" + Integer.toHexString(returnValue.hashCode()));
     }
 
-    public void traceExit(Object instance, String methodName, Connection returnValue) {
+    public void traceExit(Object instance, String methodName, ClientConnection returnValue) {
         if (traceSuspended()) {
             return;
         }
@@ -1038,7 +1037,7 @@ public class LogWriter {
         }
     }
 
-    public void traceConnectExit(Connection connection) {
+    public void traceConnectExit(ClientConnection connection) {
         if (traceSuspended()) {
             return;
         }
@@ -1047,7 +1046,7 @@ public class LogWriter {
         }
     }
 
-    public void traceConnectResetExit(Connection connection) {
+    public void traceConnectResetExit(ClientConnection connection) {
         if (traceSuspended()) {
             return;
         }
@@ -1119,7 +1118,7 @@ public class LogWriter {
     }
 
     // Specialized by NetLogWriter.traceConnectsExit()
-    public void traceConnectsExit(Connection c) {
+    public void traceConnectsExit(ClientConnection c) {
         if (traceSuspended()) {
             return;
         }
@@ -1141,7 +1140,7 @@ public class LogWriter {
         }
     }
 
-    public void traceConnectsResetExit(com.splicemachine.db.client.am.Connection c) {
+    public void traceConnectsResetExit(ClientConnection c) {
         if (traceSuspended()) {
             return;
         }
@@ -1222,31 +1221,38 @@ public class LogWriter {
     }
 
     public static java.io.PrintWriter getPrintWriter(final String fileName, final boolean fileAppend) throws SqlException {
-    	java.io.PrintWriter printWriter = null;
-    	//Using an anonymous class to deal with the PrintWriter because the  
-    	//method java.security.AccessController.doPrivileged requires an 
-    	//instance of a class(which implements 
-    	//java.security.PrivilegedExceptionAction). Since getPrintWriter method
-    	//is static, we can't simply pass "this" to doPrivileged method and 
-    	//have LogWriter implement PrivilegedExceptionAction.
-    	//To get around the static nature of method getPrintWriter, have an
-    	//anonymous class implement PrivilegedExceptionAction. That class will 
-    	//do the work related to PrintWriter in it's run method and return 
-    	//PrintWriter object.
-        try {
-    	printWriter = (java.io.PrintWriter)AccessController.doPrivileged(
-                (PrivilegedExceptionAction) () -> {
+        java.io.PrintWriter printWriter = null;
+        //Using an anonymous class to deal with the PrintWriter because the
+        //method java.security.AccessController.doPrivileged requires an
+        //instance of a class(which implements
+        //java.security.PrivilegedExceptionAction). Since getPrintWriter method
+        //is static, we can't simply pass "this" to doPrivileged method and
+        //have LogWriter implement PrivilegedExceptionAction.
+        //To get around the static nature of method getPrintWriter, have an
+        //anonymous class implement PrivilegedExceptionAction. That class will
+        //do the work related to PrintWriter in it's run method and return
+        //PrintWriter object.
+        AtomicReference<IOException> exception = new AtomicReference<>();
+        printWriter = AccessController.doPrivileged(
+            (PrivilegedAction<PrintWriter>) () -> {
+                try {
                     String fileCanonicalPath = new File(fileName).getCanonicalPath();
                     return new PrintWriter(
-                            new BufferedOutputStream(
-                                    new FileOutputStream(
-                                            fileCanonicalPath, fileAppend), 4096), true);
-                });
-        } catch (java.security.PrivilegedActionException pae) {
-            throw new SqlException(null, 
-                new ClientMessageId(SQLState.UNABLE_TO_OPEN_FILE),
-                new Object[] { fileName, pae.getMessage() },
-                pae);
+                        new OutputStreamWriter(
+                            new FileOutputStream(fileCanonicalPath, fileAppend),
+                                StandardCharsets.UTF_8.name()
+                        ),
+                        true);
+                } catch (IOException e) {
+                    exception.set(e);
+                    return null;
+                }
+            });
+        if (printWriter == null) {
+            throw new SqlException(null,
+                    new ClientMessageId(SQLState.UNABLE_TO_OPEN_FILE),
+                    new Object[]{fileName, exception.get().getMessage()},
+                    exception.get());
         }
         return printWriter;
     }
@@ -1275,7 +1281,7 @@ public class LogWriter {
                 }
                 
                 if(value != null)
-                	properties.setProperty(propertyKey, value);
+                    properties.setProperty(propertyKey, value);
             }
         } catch (NamingException e) {
             throw new SqlException(this, 

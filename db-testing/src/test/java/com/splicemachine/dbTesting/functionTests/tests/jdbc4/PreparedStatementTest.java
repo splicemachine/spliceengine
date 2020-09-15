@@ -421,7 +421,7 @@ public class PreparedStatementTest extends BaseJDBCTestCase {
        available on the EmbeddedServer. So instead the workaround adopted
        is 
 
-       a) store a Clob or Blob in Database. 
+       a) store a Clob or Blob in Database.
        b) Retrieve it from the database.
        c) store it back using setClob or setBlob
 

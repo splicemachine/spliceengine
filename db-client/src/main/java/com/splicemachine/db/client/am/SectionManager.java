@@ -32,7 +32,6 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 
 
 public class SectionManager {
-    String collection_;
     Agent agent_;
 
     // Cursor holdability attributes used as package cluster indices.
@@ -84,14 +83,10 @@ public class SectionManager {
     // a ResultSet is scrollable.  If so, exception is thrown.
     private java.util.Hashtable positionedUpdateCursorNameToResultSet_ = new java.util.Hashtable();
 
-    String databaseName;
-
     int maxNumSections_ = 32768;
 
-    public SectionManager(String collection, Agent agent, String databaseName) {
-        collection_ = collection;
+    public SectionManager(Agent agent) {
         agent_ = agent;
-        this.databaseName = databaseName;
         freeSectionsNonHold_ = new java.util.Stack();
         freeSectionsHold_ = new java.util.Stack();
     }
@@ -125,8 +120,8 @@ public class SectionManager {
             return getSection(freeSectionsNonHold_, packageNameWithNoHold__, cursorNamePrefixWithNoHold__, resultSetHoldability);
         } else {
             throw new SqlException(agent_.logWriter_,
-                new ClientMessageId(SQLState.UNSUPPORTED_HOLDABILITY_PROPERTY), 
-                new Integer(resultSetHoldability));
+                new ClientMessageId(SQLState.UNSUPPORTED_HOLDABILITY_PROPERTY),
+                    resultSetHoldability);
         }
     }
 
@@ -158,7 +153,7 @@ public class SectionManager {
     // Get a section for a jdbc 2 positioned update/delete for the corresponding query.
     // A positioned update section must come from the same package as its query section.
     Section getPositionedUpdateSection(Section querySection) throws SqlException {
-        Connection connection = agent_.connection_;
+        ClientConnection connection = agent_.connection_;
         return getDynamicSection(connection.holdability());
     }
 
