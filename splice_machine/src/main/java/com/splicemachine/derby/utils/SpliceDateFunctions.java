@@ -45,20 +45,20 @@ public class SpliceDateFunctions {
             .put("sunday", 1).put("monday", 2).put("tuesday", 3).put("wednesday", 4).put("thursday", 5)
             .put("friday", 6).put("saturday", 7).build();
 
-    public static Date ADD_MONTHS(Date source, int numOfMonths) {
-        if (source == null) return null;
+    public static Date ADD_MONTHS(Date source, Integer numOfMonths) {
+        if (source == null || numOfMonths == null) return null;
         DateTime dt = new DateTime(source);
         return new Date(dt.plusMonths(numOfMonths).getMillis());
     }
 
-    public static Date ADD_DAYS(Date source, int numOfDays) {
-        if (source == null) return null;
+    public static Date ADD_DAYS(Date source, Integer numOfDays) {
+        if (source == null || numOfDays == null) return null;
         DateTime dt = new DateTime(source);
         return new Date(dt.plusDays(numOfDays).getMillis());
     }
 
-    public static Date ADD_YEARS(Date source, int numOfYears) {
-        if (source == null) return null;
+    public static Date ADD_YEARS(Date source, Integer numOfYears) {
+        if (source == null || numOfYears == null) return null;
         DateTime dt = new DateTime(source);
         return new Date(dt.plusYears(numOfYears).getMillis());
     }

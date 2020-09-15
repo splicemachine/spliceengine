@@ -1927,15 +1927,25 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
     }
 
     @Override
-    public NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber, String sparkExplainKind) throws StandardException {
+    public NoPutResultSet getExplainResultSet(ResultSet source, Activation activation,
+                                              int resultSetNumber, String sparkExplainKind,
+                                              int noStatsTablesRef, int noStatsColumnsRef) throws StandardException {
         ConvertedResultSet opSet = (ConvertedResultSet)source;
-        return new ExplainOperation(opSet.getOperation(), activation, resultSetNumber, sparkExplainKind);
+        return new ExplainOperation(
+                opSet.getOperation(), activation,
+                resultSetNumber, sparkExplainKind,
+                noStatsTablesRef, noStatsColumnsRef);
     }
 
     @Override
-    public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber, String sparkExplainKind) throws StandardException {
+    public NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation,
+                                              int resultSetNumber, String sparkExplainKind,
+                                              int noStatsTablesRef, int noStatsColumnsRef) throws StandardException {
         ConvertedResultSet opSet = (ConvertedResultSet)source;
-        return new ExplainOperation(opSet.getOperation(), activation, resultSetNumber, sparkExplainKind);
+        return new ExplainOperation(
+                opSet.getOperation(), activation,
+                resultSetNumber, sparkExplainKind,
+                noStatsTablesRef, noStatsColumnsRef);
     }
 
 
