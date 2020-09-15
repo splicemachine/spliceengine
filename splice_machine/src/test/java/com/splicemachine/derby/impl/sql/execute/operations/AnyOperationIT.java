@@ -108,4 +108,18 @@ public class AnyOperationIT {
         assertEquals(Sets.newHashSet(false), Sets.newHashSet(resultBooleanList));
     }
 
+    @Test
+    public void testNonCorrelatedSubqueryWithExcept() throws Exception {
+        String sqlText = "select * from t2 where a2 in (\n" +
+                "select a1 from t1\n" +
+                "except \n" +
+                "values 2)";
+        String expected = "A2 |B2 |\n" +
+                "--------\n" +
+                " 1 | 1 |";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String resultString = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
+        }
+    }
 }
