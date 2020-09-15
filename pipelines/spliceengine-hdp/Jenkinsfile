@@ -1,0 +1,65 @@
+@Library('jenkins-shared-library')_
+
+def releases = ["hdp3.1.0"]
+def stages = [failFast: true]
+
+for (int i = 0; i < releases.size(); i++) {
+    def platform = releases[i] //alias the loop variable to refer it in the closure
+    stages["""Deploy: ${platform}"""] = {
+        node('splice-standalone'){
+            stage("Checkout") {
+                // Get some code from a GitHub repository
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'refs/heads/master']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+                ])
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'refs/heads/master']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
+                ])
+            }
+            stage("Deploy") {
+                dir('spliceengine'){
+                    sh '''
+                    mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -DskipTests
+                    cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_USER/${ARTIFACT_USER}/" ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_PASS/${ARTIFACT_PASSWORD}/" ~/.m2/settings.xml
+                    '''
+                    sh """mvn -B --fail-at-end install -Pcore,${platform},ee,hdp_service -DskipTests"""
+                }
+            }
+        }
+    }
+}
+
+
+node('splice-standalone'){
+    def artifact_values  = [
+        [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+    ]
+    try{
+        stage("Deploy"){
+                parallel stages
+        }
+    } catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+
+    } finally {
+        archiveArtifacts artifacts: '**,spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
+        // success or failure, always send notifications
+        notifyBuild(currentBuild.result)
+    }
+}

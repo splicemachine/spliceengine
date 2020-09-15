@@ -1,0 +1,57 @@
+node('splice-standalone'){
+    def artifact_values  = [
+        [$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_USER', vaultKey: 'user'],
+            [$class: 'VaultSecretValue', envVar: 'ARTIFACT_PASSWORD', vaultKey: 'pass']]]
+    ]
+    try{
+        stage('Checkout') {
+                // Get some code from a GitHub repository
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'refs/heads/master']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+                ])
+                checkout([  
+                    $class: 'GitSCM', 
+                    branches: [[name: 'refs/heads/master']], 
+                    doGenerateSubmoduleConfigurations: false, 
+                    extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
+                    submoduleCfg: [], 
+                    userRemoteConfigs: [[credentialsId: '88647ede-744a-444b-8c08-8313cc137944', url: 'https://github.com/splicemachine/spliceengine.git']]
+                ])
+        }
+        stage("Deploy Core"){
+                // Run Maven on a Unix agent.
+                dir('spliceengine'){
+                    sh '''
+                    mvn -Dmaven.test.failure.ignore=true -B -e --fail-at-end clean install -Pcore -DskipTests
+                    cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
+                    sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
+                    mvn -B -e --fail-at-end install -Pcore
+                    '''
+                }
+        }
+        stage("Deploy EE Core"){
+                // Run Maven on a Unix agent.
+                dir('spliceengine-ee'){
+                    sh '''
+                    mvn -B -e --fail-at-end install -Pcore
+                    '''
+                }
+        }
+    } catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+
+    } finally {
+        archiveArtifacts artifacts: 'spliceengine/platform_it/target/*.log, spliceengine/target/platform_it/*log.*, spliceengine/platform_it/*.log, spliceengine/platform_it/*log.*, spliceengine/platform_it/target/SpliceTestYarnPlatform/**/*, spliceengine/mem_sql/target/*.log', allowEmptyArchive: true
+        // success or failure, always send notifications
+        notifyBuild(currentBuild.result)
+    }
+}
