@@ -1693,6 +1693,28 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testCsvPartitioning() throws Exception {
+        String tablePath = getExternalResourceDirectory() + "test_csv_partitioned";
+        // Create an external table stored as text
+        methodWatcher.executeUpdate( "CREATE EXTERNAL TABLE TEST_CSV_PART (t1 varchar(30), t2 varchar(30)) \n" +
+                "PARTITIONED BY (t1) STORED AS TEXTFILE\n" +
+                "location '" + tablePath + "'");
+        Assert.assertEquals( methodWatcher.executeUpdate(
+                "insert into TEST_CSV_PART VALUES (1, 'a'), (2, 'b'), (3, 'c')"), 3);
+
+        ResultSet rs = methodWatcher.executeQuery("select * from TEST_CSV_PART");
+        Assert.assertEquals("T1 |T2 |\n" +
+                "--------\n" +
+                " a | 1 |\n" +
+                " b | 2 |\n" +
+                " c | 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        Assert.assertEquals( "a\n", concatAllCsvFiles(new File(tablePath + "/T1=1")) );
+        Assert.assertEquals( "b\n", concatAllCsvFiles(new File(tablePath + "/T1=2")) );
+        Assert.assertEquals( "c\n", concatAllCsvFiles(new File(tablePath + "/T1=3")) );
+    }
+
+    @Test
     public void testUsingExsitingCsvFile() throws Exception {
 
         // Create an external table stored as text

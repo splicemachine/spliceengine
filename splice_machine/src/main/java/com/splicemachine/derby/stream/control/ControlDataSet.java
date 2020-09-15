@@ -636,7 +636,7 @@ public class ControlDataSet<V> implements DataSet<V> {
      * Not Supported
      */
     @Override
-    public DataSet<ExecRow> writeTextFile(String location, CsvOptions csvOptions, OperationContext context) {
+    public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write text files");
     }
 
