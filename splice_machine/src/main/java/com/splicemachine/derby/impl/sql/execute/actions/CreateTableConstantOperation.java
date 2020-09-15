@@ -239,16 +239,18 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          */
         TransactionController tc = lcc.getTransactionExecute();
 
-        ExecRow template;TableDescriptor td;ColumnDescriptor columnDescriptor;// setup for create conglomerate call:
+        // setup for create conglomerate call:
         //   o create row template to tell the store what type of rows this
         //     table holds.
+        ExecRow template = createRowTemplate(lcc);
+
         //   o create array of collation id's to tell collation id of each
         //     column in table.
-        template = RowUtil.getEmptyValueRow(columnInfo.length, lcc);
+        int[] collation_ids = createCollationIds();
 
-
-        int[] collation_ids = new int[columnInfo.length];
-
+        //
+        // create pkColumnNames and columnOrdering
+        //
         List<String> pkColumnNames = null;
         ColumnOrdering[] columnOrdering = null;
         if (constraintActions != null) {
@@ -261,22 +263,11 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 }
             }
         }
-
         for (int ix = 0; ix < columnInfo.length; ix++) {
             ColumnInfo col_info = columnInfo[ix];
             if (pkColumnNames != null && pkColumnNames.contains(col_info.name)) {
                 columnOrdering[pkColumnNames.indexOf(col_info.name)] = new IndexColumnOrder(ix);
             }
-            // Get a template value for each column
-            if (col_info.defaultValue != null) {
-            /* If there is a default value, use it, otherwise use null */
-                template.setColumn(ix + 1, col_info.defaultValue);
-            }
-            else {
-                template.setColumn(ix + 1, col_info.dataType.getNull());
-            }
-            // get collation info for each column.
-            collation_ids[ix] = col_info.dataType.getCollationType();
         }
 
         /*
@@ -328,8 +319,128 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         //
         // Create a new table descriptor.
         //
+        TableDescriptor td;
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        td = createTableDescriptor(activation, lcc, dd, tc, sd, ddg);
 
+        /*
+         * NOTE: We must write the columns out to the system
+         * tables before any of the conglomerates, including
+         * the heap, since we read the columns before the
+         * conglomerates when building a TableDescriptor.
+         * This will hopefully reduce the probability of
+         * a deadlock involving those system tables.
+         */
+
+        // for each column, stuff system.column
+        int index = 1;
+        ColumnDescriptor[] cdlArray = createColumnDescriptorArray(dd, td, pkColumnNames, index);
+
+        dd.addDescriptorArray(cdlArray, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM,
+                false, tc);
+
+        // now add the column descriptors to the table.
+        ColumnDescriptorList cdl = td.getColumnDescriptorList();
+        Collections.addAll(cdl, cdlArray);
+
+        /*
+         * Create a conglomerate desciptor with the conglomId filled in and
+         * add it.
+         *
+         * RESOLVE: Get information from the conglomerate descriptor which
+         *          was provided.
+         */
+        ConglomerateDescriptor cgd = getTableConglomerateDescriptor(td, conglomId, sd, ddg);
+        dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
+
+        // add the newly added conglomerate to the table descriptor
+        ConglomerateDescriptorList conglomList = td.getConglomerateDescriptorList();
+        conglomList.add(cgd);
+
+        /* Create any constraints */
+        createConstraints(activation);
+
+        /*
+         * Add dependencies. These can arise if a generated column depends
+         * on a user created function.
+         */
+        for (ColumnInfo aColumnInfo : columnInfo) {
+            addColumnDependencies(lcc, dd, td, aColumnInfo);
+        }
+
+        // The table itself can depend on the user defined types of its columns.
+        adjustUDTDependencies(activation, columnInfo, false );
+
+        if ( tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
+            lcc.addDeclaredGlobalTempTable(td);
+        }
+
+        /*
+         * Indicate that the CREATE TABLE statement itself depends on the
+         * table it is creating. Normally such statement dependencies are
+         * added during compilation, but here we have a bootstrapping issue
+         * because the table doesn't exist until the CREATE TABLE statement
+         * has been executed, so we had to defer the creation of this
+         * dependency until now. (DERBY-4479)
+         */
+        dd.getDependencyManager().addDependency(activation.getPreparedStatement(), td, lcc.getContextManager());
+
+        /*
+         * Notify the DDL mechanism that a table is being created.
+         *
+         * In previous versions of Splice we would not use this mechanism: after all, the other servers
+         *  don't really need to know that a table has been created, right?
+         *
+         *  The problem is that we rely on this mechanism to tell us when our data dictionary caches are to be
+         *  invalidated; If we don't invalidate the caches on commit or rollback, we can get bleed-over
+         *  where the table appears to exist even though it was rolled back (see CreateTableTransactionIT for some
+         *  Integration tests around this).
+         *
+         *  To keep things simple we piggy-back on the existing DDL mechanism to ensure that our caches
+         *  get cleared on commit/rollback. If this proves too expensive, then a custom local-memory-only trigger
+         *  mechanism can be written for this and CREATE_SCHEMA
+         */
+        long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
+        DDLMessage.DDLChange change =DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build();
+
+        tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
+
+        // is this an external file ?
+        if(storedAs != null) {
+            externalTablesCreate(activation, txnId);
+        }
+    }
+
+    private int[] createCollationIds() {
+        int[] collation_ids = new int[columnInfo.length];
+        for (int ix = 0; ix < columnInfo.length; ix++) {
+            ColumnInfo col_info = columnInfo[ix];
+            // get collation info for each column.
+            collation_ids[ix] = col_info.dataType.getCollationType();
+        }
+        return collation_ids;
+    }
+
+    private ExecRow createRowTemplate(LanguageConnectionContext lcc) throws StandardException {
+        ExecRow template = RowUtil.getEmptyValueRow(columnInfo.length, lcc);
+
+        for (int ix = 0; ix < columnInfo.length; ix++) {
+            ColumnInfo col_info = columnInfo[ix];
+            // Get a template value for each column
+            if (col_info.defaultValue != null) {
+                /* If there is a default value, use it, otherwise use null */
+                template.setColumn(ix + 1, col_info.defaultValue);
+            } else {
+                template.setColumn(ix + 1, col_info.dataType.getNull());
+            }
+        }
+        return template;
+    }
+
+    private TableDescriptor createTableDescriptor(Activation activation, LanguageConnectionContext lcc,
+                                                  DataDictionary dd, TransactionController tc, SchemaDescriptor sd,
+                                                  DataDescriptorGenerator ddg) throws StandardException {
+        TableDescriptor td;
         if ( tableType != TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
             td = ddg.newTableDescriptor(tableName, sd, tableType, lockGranularity,columnInfo.length,
                     delimited,
@@ -355,20 +466,86 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
+        return td;
+    }
 
-        /*
-         * NOTE: We must write the columns out to the system
-         * tables before any of the conglomerates, including
-         * the heap, since we read the columns before the
-         * conglomerates when building a TableDescriptor.
-         * This will hopefully reduce the probability of
-         * a deadlock involving those system tables.
-         */
+    /**
+     * get the partitions, and send a command to create an external empty file
+     */
+    private void externalTablesCreate(Activation activation, long txnId) throws StandardException {
 
-        // for each column, stuff system.column
-        int index = 1;
+        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        int[] partitionby = activation.getDDLTableDescriptor().getPartitionBy();
+        String jobGroup = userId + " <" + txnId + ">";
+        try {
 
+            // test constraint only if the external file exits
+            DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
+            FileInfo fileInfo = fileSystem.getInfo(location);
+            if (!fileInfo.exists() || fileInfo.isEmptyDirectory()) {
+                // need to create the external file if the location provided is empty
+                String pathToParent = location.substring(0, location.lastIndexOf("/"));
+                ImportUtils.validateWritable(pathToParent, false);
+                EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited,
+                        escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
+
+            } else if (!fileInfo.isDirectory()) {
+                throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
+            } else if (storedAs.compareToIgnoreCase("t") != 0) {
+                Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
+                        submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
+                GetSchemaExternalResult result = null;
+                SConfiguration config = EngineDriver.driver().getConfiguration();
+                while (result == null) {
+                    try {
+                        result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
+                        Thread.currentThread().interrupt();
+                        throw new IOException(e);
+                    } catch (ExecutionException e) {
+                        throw Exceptions.rawIOException(e.getCause());
+                    } catch (TimeoutException e) {
+                        /*
+                         * A TimeoutException just means that tickTime expired. That's okay, we just stick our
+                         * head up and make sure that the client is still operating
+                         */
+                    }
+                }
+                StructType externalSchema = result.getSchema();
+                checkSchema(externalSchema, activation);
+            }
+        } catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    private void createConstraints(Activation activation) throws StandardException {
+        if (constraintActions != null) {
+            /*
+             * Do everything but FK constraints first,
+             * then FK constraints on 2nd pass.
+             */
+            for (ConstraintConstantOperation constraintAction : constraintActions) {
+                // skip fks
+                if (!((CreateConstraintConstantOperation) constraintAction).isForeignKeyConstraint()) {
+                    constraintAction.executeConstantAction(activation);
+                }
+            }
+
+            for (ConstraintConstantOperation constraintAction : constraintActions) {
+                // only foreign keys
+                if (((CreateConstraintConstantOperation) constraintAction).isForeignKeyConstraint()) {
+                    constraintAction.executeConstantAction(activation);
+                }
+            }
+        }
+    }
+
+    private ColumnDescriptor[] createColumnDescriptorArray(DataDictionary dd, TableDescriptor td,
+                                                           List<String> pkColumnNames, int index) {
         ColumnDescriptor[] cdlArray = new ColumnDescriptor[columnInfo.length];
+        ColumnDescriptor columnDescriptor;
         for (int ix = 0; ix < columnInfo.length; ix++) {
             UUID defaultUUID = columnInfo[ix].newDefaultUUID;
             /*
@@ -420,144 +597,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
 
             cdlArray[ix] = columnDescriptor;
         }
-
-        dd.addDescriptorArray(cdlArray, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM,
-                false, tc);
-
-        // now add the column descriptors to the table.
-        ColumnDescriptorList cdl = td.getColumnDescriptorList();
-        Collections.addAll(cdl, cdlArray);
-
-        /*
-         * Create a conglomerate desciptor with the conglomId filled in and
-         * add it.
-         *
-         * RESOLVE: Get information from the conglomerate descriptor which
-         *          was provided.
-         */
-        ConglomerateDescriptor cgd = getTableConglomerateDescriptor(td, conglomId, sd, ddg);
-        dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc, false);
-
-        // add the newly added conglomerate to the table descriptor
-        ConglomerateDescriptorList conglomList = td.getConglomerateDescriptorList();
-        conglomList.add(cgd);
-
-		    /* Create any constraints */
-        if (constraintActions != null) {
-            /*
-             * Do everything but FK constraints first,
-             * then FK constraints on 2nd pass.
-             */
-            for (ConstraintConstantOperation constraintAction : constraintActions) {
-                // skip fks
-                if (!((CreateConstraintConstantOperation) constraintAction).isForeignKeyConstraint()) {
-                    constraintAction.executeConstantAction(activation);
-                }
-            }
-
-            for (ConstraintConstantOperation constraintAction : constraintActions) {
-                // only foreign keys
-                if (((CreateConstraintConstantOperation) constraintAction).isForeignKeyConstraint()) {
-                    constraintAction.executeConstantAction(activation);
-                }
-            }
-        }
-
-        /*
-         * Add dependencies. These can arise if a generated column depends
-         * on a user created function.
-         */
-        for (ColumnInfo aColumnInfo : columnInfo) {
-            addColumnDependencies(lcc, dd, td, aColumnInfo);
-        }
-
-        // The table itself can depend on the user defined types of its columns.
-        adjustUDTDependencies(activation, columnInfo, false );
-
-        if ( tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
-            lcc.addDeclaredGlobalTempTable(td);
-        }
-
-        /*
-         * Indicate that the CREATE TABLE statement itself depends on the
-         * table it is creating. Normally such statement dependencies are
-         * added during compilation, but here we have a bootstrapping issue
-         * because the table doesn't exist until the CREATE TABLE statement
-         * has been executed, so we had to defer the creation of this
-         * dependency until now. (DERBY-4479)
-         */
-        dd.getDependencyManager().addDependency(activation.getPreparedStatement(), td, lcc.getContextManager());
-
-        /*
-         * Notify the DDL mechanism that a table is being created.
-         *
-         * In previous versions of Splice we would not use this mechanism: after all, the other servers
-         *  don't really need to know that a table has been created, right?
-         *
-         *  The problem is that we rely on this mechanism to tell us when our data dictionary caches are to be
-         *  invalidated; If we don't invalidate the caches on commit or rollback, we can get bleed-over
-         *  where the table appears to exist even though it was rolled back (see CreateTableTransactionIT for some
-         *  Integration tests around this).
-         *
-         *  To keep things simple we piggy-back on the existing DDL mechanism to ensure that our caches
-         *  get cleared on commit/rollback. If this proves too expensive, then a custom local-memory-only trigger
-         *  mechanism can be written for this and CREATE_SCHEMA
-         */
-        long txnId = ((SpliceTransactionManager)tc).getRawTransaction().getActiveStateTxn().getTxnId();
-        DDLMessage.DDLChange change =DDLMessage.DDLChange.newBuilder().setDdlChangeType(DDLMessage.DDLChangeType.CREATE_TABLE).setTxnId(txnId).build();
-
-        tc.prepareDataDictionaryChange(DDLDriver.driver().ddlController().notifyMetadataChange(change));
-
-        // is this an external file ?
-        // if yes get the partitions, and send a command to create an external empty file
-        String userId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-        int[] partitionby = activation.getDDLTableDescriptor().getPartitionBy();
-        String jobGroup = userId + " <" +txnId +">";
-        try {
-            if(storedAs != null){
-                // test constraint only if the external file exits
-                DistributedFileSystem fileSystem = SIDriver.driver().getFileSystem(location);
-                FileInfo fileInfo = fileSystem.getInfo(location);
-                if( !fileInfo.exists() || fileInfo.isEmptyDirectory() ) {
-                    // need to create the external file if the location provided is empty
-                    String pathToParent = location.substring(0, location.lastIndexOf("/"));
-                    ImportUtils.validateWritable(pathToParent, false);
-                    EngineDriver.driver().getOlapClient().execute(new DistributedCreateExternalTableJob(delimited,
-                            escaped, lines, storedAs, location, compression, partitionby, jobGroup, columnInfo));
-
-                }
-                else if( !fileInfo.isDirectory() ) {
-                    throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
-                }
-                else if( storedAs.compareToIgnoreCase("t") != 0 ) {
-                    Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
-                            submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema));
-                    GetSchemaExternalResult result = null;
-                    SConfiguration config = EngineDriver.driver().getConfiguration();
-                    while (result == null) {
-                        try {
-                            result = futureResult.get(config.getOlapClientTickTime(), TimeUnit.MILLISECONDS);
-                        } catch (InterruptedException e) {
-                            //we were interrupted processing, so we're shutting down. Nothing to be done, just die gracefully
-                            Thread.currentThread().interrupt();
-                            throw new IOException(e);
-                        } catch (ExecutionException e) {
-                            throw Exceptions.rawIOException(e.getCause());
-                        } catch (TimeoutException e) {
-                        /*
-                         * A TimeoutException just means that tickTime expired. That's okay, we just stick our
-                         * head up and make sure that the client is still operating
-                         */
-                        }
-                    }
-                    StructType externalSchema = result.getSchema();
-                    checkSchema(externalSchema, activation);
-                }
-
-            }
-        } catch (Exception e) {
-            throw StandardException.plainWrapException(e);
-        }
+        return cdlArray;
     }
 
     private void checkSchema(StructType externalSchema, Activation activation) throws StandardException {
