@@ -43,6 +43,8 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
+import static com.splicemachine.EngineDriver.isMemPlatform;
+
 /**
  * Created by jleach on 6/9/15.
  */
@@ -53,6 +55,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
     protected SpliceOperation rightSide;
     private PeekingIterator<ExecRow> leftPeekingIterator;
     private Iterator<ExecRow> mergeJoinIterator;
+    private static final boolean IS_MEM_PLATFORM = isMemPlatform();
 
     public AbstractMergeJoinFlatMapFunction() {
         super();
@@ -206,7 +209,8 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             ExecRow scanStartOverride;
             boolean firstTime = true;
 
-            ((BaseActivation)joinOperation.getActivation()).setKeyRows(getKeyRows());
+            if (!IS_MEM_PLATFORM)
+                ((BaseActivation)joinOperation.getActivation()).setKeyRows(getKeyRows());
 
             /* To see if we can further restrict the scan of the right table by overiding the scan
                startPosition with the actual values of the left key if it is greater than the
