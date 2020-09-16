@@ -45,7 +45,8 @@ import static org.junit.Assert.fail;
  */
 @SuppressFBWarnings(value={ "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", // for File.mkdir and File.delete
                             "VA_FORMAT_STRING_USES_NEWLINE", // should replace \n with %n when using String.format
-                            "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE" // possible with a MultiAutoClose class, but long
+                            "OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", // possible with a MultiAutoClose class, but long
+                            "SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE", // intentional
                           },
                     justification = ".")
 public class ExternalTableIT extends SpliceUnitTest {
@@ -996,19 +997,24 @@ public class ExternalTableIT extends SpliceUnitTest {
     @Test // DB-9682
     public void testReadTextMismatchSchema() throws Exception {
         String file = getResourceDirectory() + "test_external_text";
-        methodWatcher.executeUpdate(String.format("create external table external_t2 (col1 int, col2 varchar(20), col3 date, col4 date)" +
-                "ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'" +
-                " STORED AS TEXTFILE LOCATION '%s'", file));
-        try {
-            methodWatcher.executeQuery("select * from external_t2");
-            Assert.fail("Exception not thrown");
-        } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception (" + e.getMessage() + ")", EXTERNAL_TABLES_READ_FAILURE, e.getSQLState());
-            Assert.assertEquals( "wrong exception message",
-                    "External Table read failed with exception '4 attribute(s) defined but 3 present " +
-                            "in the external file : '" + file + "'. Suggested Schema is 'CREATE EXTERNAL TABLE T " +
-                            "(_c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x));'.'",
-                    e.getMessage() );
+        String formats[] = {
+                "(col1 int, col2 varchar(20), col3 date, col4 date)", // too much
+                "(col1 int, col2 varchar(20) )"};                     // to little
+        String numCols[] = {"4", "2"};
+        for (int i = 0; i < 2; i++)
+        {
+            try {
+                methodWatcher.executeUpdate(String.format("create external table external_t2 " + formats[i] +
+                        "ROW FORMAT DELIMITED FIELDS TERMINATED BY '|' ESCAPED BY '\\\\' LINES TERMINATED BY '\\n'" +
+                        " STORED AS TEXTFILE LOCATION '%s'", file));
+                Assert.fail("Exception not thrown");
+            } catch (SQLException e) {
+                Assert.assertEquals("Wrong Exception (" + e.getMessage() + ")", INCONSISTENT_NUMBER_OF_ATTRIBUTE, e.getSQLState());
+                Assert.assertEquals("wrong exception message",
+                        numCols[i] + " attribute(s) defined but 3 present " +
+                                "in the external file : '" + file + "'. Suggested Schema is 'CREATE EXTERNAL TABLE T " +
+                                "(_c0 CHAR/VARCHAR(x), _c1 CHAR/VARCHAR(x), _c2 CHAR/VARCHAR(x));'.", e.getMessage());
+            }
         }
     }
 
@@ -1065,23 +1071,24 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     @Test
-    public void validateReadParquetFromEmptyDirectory() throws Exception {
-        String path = getExternalResourceDirectory()+"parquet_empty";
-        methodWatcher.executeUpdate(String.format("create external table parquet_empty (col1 int, col2 varchar(24))" +
-                " STORED AS PARQUET LOCATION '%s'", getExternalResourceDirectory()+"parquet_empty"));
-        ResultSet rs = methodWatcher.executeQuery("select * from parquet_empty");
-        Assert.assertTrue(new File(path).exists());
-        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
-    }
+    public void testReadEmptyFile() throws Exception {
+        for( String fileFormat : new String[]{"ORC", "PARQUET", "AVRO", "TEXTFILE"}) {
+            String tablePath = getExternalResourceDirectory() + "test_empty_" + fileFormat;
+            String name = "TEST_EMPTY_" + fileFormat;
 
-    @Test
-    public void validateReadAvroFromEmptyDirectory() throws Exception {
-        String path = getExternalResourceDirectory()+"avro_empty";
-        methodWatcher.executeUpdate(String.format("create external table avro_empty (col1 int, col2 varchar(24))" +
-                " STORED AS AVRO LOCATION '%s'", getExternalResourceDirectory()+"avro_empty"));
-        ResultSet rs = methodWatcher.executeQuery("select * from avro_empty");
-        Assert.assertTrue(new File(path).exists());
-        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            // this will create an empty file in the path
+            methodWatcher.executeUpdate("CREATE EXTERNAL TABLE " + name + " (t1 varchar(30), t2 varchar(30)) \n" +
+                    "STORED AS TEXTFILE location '" + tablePath + "'");
+
+            ResultSet rs = methodWatcher.executeQuery("select * from " + name );
+            Assert.assertTrue(new File(tablePath).exists());
+            Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+            methodWatcher.execute("drop table " + name );
+            // make sure we can open that table again and not get a "0 attributes in file" error for CSV
+            methodWatcher.executeUpdate("CREATE EXTERNAL TABLE " + name + " (t1 varchar(30), t2 varchar(30)) \n" +
+                    "STORED AS TEXTFILE location '" + tablePath + "'");
+        }
     }
 
     @Test
@@ -1137,17 +1144,6 @@ public class ExternalTableIT extends SpliceUnitTest {
         Assert.assertEquals("COL1 |COL2 |\n" +
                 "------------\n" +
                 "  1  |test |", TestUtils.FormattedResult.ResultFactory.toString(rs));
-    }
-
-    @Test
-    public void validateReadORCFromEmptyDirectory() throws Exception {
-        String path = getExternalResourceDirectory()+"orc_empty";
-        methodWatcher.executeUpdate(String.format("create external table orc_empty (col1 int, col2 varchar(24))" +
-                " STORED AS ORC LOCATION '%s'", path));
-        Assert.assertTrue(new File(path).exists());
-        ResultSet rs = methodWatcher.executeQuery("select * from orc_empty");
-
-        Assert.assertEquals("",TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test

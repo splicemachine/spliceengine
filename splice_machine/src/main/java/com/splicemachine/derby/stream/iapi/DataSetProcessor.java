@@ -24,6 +24,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.system.CsvOptions;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
@@ -183,9 +184,10 @@ public interface DataSetProcessor {
      * Splice Machine implement natively the Spark interface so we use this to the constraint check.
      * @param storedAs
      * @param location
+     * @param csvOptions
      * @return
      */
-    StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException;
+    StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException;
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because

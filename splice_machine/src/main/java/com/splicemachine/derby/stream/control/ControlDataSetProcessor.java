@@ -39,6 +39,7 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.system.CsvOptions;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
@@ -375,9 +376,9 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
+    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return proc.getExternalFileSchema(storedAs,location,mergeSchema);
+        return proc.getExternalFileSchema(storedAs,location,mergeSchema, csvOptions);
     }
 
     @Override
