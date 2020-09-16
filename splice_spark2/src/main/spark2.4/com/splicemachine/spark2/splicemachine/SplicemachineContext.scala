@@ -544,11 +544,15 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       new com.splicemachine.derby.vti.KafkaVTI('$topicName') 
       as SpliceDatasetVTI ($schStr, PTN_NSDS INTEGER, TM_NSDS BIGINT)"""
   }
+  
+  private[this] def log(msg: String): Unit = {
+    Holder.log.info(msg)
+    println(s"${java.time.Instant.now} $msg")
+  }
 
   def insert_streaming(topicName: String, retries: Int = 0): Unit =
     try {
-      Holder.log.info("SMC.inss prepare sql")
-      println(s"${java.time.Instant.now} SMC.inss prepare sql")
+      log("SMC.inss prepare sql")
 //      val colList = columnList(schema) + ",PTN_NSDS,TM_NSDS"
 ////        val sProps = spliceProperties.map({ case (k, v) => k + "=" + v }).fold("--splice-properties useSpark=true")(_ + ", " + _)
 //      val sqlText = "insert into " + schemaTableName + " (" + colList + ") " /*+ sProps*/ + "\nselect " + colList + " from " +
@@ -556,14 +560,15 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //        "as SpliceDatasetVTI (" + schemaString(schema) + ", PTN_NSDS INTEGER, TM_NSDS BIGINT" + ")"
       
       val sqlText = insertSql(topicName)
-
-      Holder.log.info(s"SMC.inss sql $sqlText")
-      println( s"SMC.inss sql $sqlText" )
-      Holder.log.info("SMC.inss executeUpdate")
-      println(s"${java.time.Instant.now} SMC.inss executeUpdate")
+      log(s"SMC.inss sql $sqlText")
+      
+      log( s"SMC.inss topicCount preex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
+      
+      log("SMC.inss executeUpdate")
       executeUpdate(sqlText)
-      Holder.log.info("SMC.inss done")
-      println(s"${java.time.Instant.now} SMC.inss done")
+      log("SMC.inss done")
+
+      log( s"SMC.inss topicCount postex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
     } catch {
       case e: java.sql.SQLNonTransientConnectionException => 
         if( retries < 2 ) {
@@ -574,7 +579,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     }
   
   def newTopic_streaming(): String = {
-    println(s"${java.time.Instant.now} SMC.nit get topic name")
+    log("SMC.nit get topic name")
     kafkaTopics.create()
   }
   
@@ -640,10 +645,17 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
           ))
           msgCount += 1
         }
+
+//        producer.send( new ProducerRecord(
+//          topicName,
+//          partition,
+//          partition,
+//          new ValueRow.Message(null, msgCount, msgCount)
+//        ))
         
         insAccum.add(msgCount)
 
-        println(s"SMC.sendData $partition records $msgCount")
+        println(s"SMC.sendData t $topicName p $partition records $msgCount")
         
         producer.close
 
@@ -653,7 +665,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /** Convert org.apache.spark.sql.Row to Externalizable. */
-  def externalizable(row: Row, schema: StructType, partition: Int): ValueRow = {
+  def externalizable(row: Row, schema: StructType, partition: Int/*, msgCount: Int*/): ValueRow = {
     val valRow = new ValueRow(row.length + 2)
     for (i <- 1 to row.length) {  // convert each column of the row
       val fieldDef = schema(i-1)
@@ -669,6 +681,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     valRow.setColumn( row.length + 1 , new SQLInteger(partition) )
     valRow.setColumn( row.length + 2 , new SQLLongint(sendDataTimestamp) )
     valRow
+//    new ValueRow.Message(valRow, msgCount, -1);
   }
 
   def spliceType(sparkType: DataType, row: Row, i: Int): Option[com.splicemachine.db.iapi.types.DataType] = {

@@ -16,6 +16,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+//import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportKafkaOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -61,7 +62,8 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
 
     @Override
     public Iterator<ExecRow> call(Integer partition) throws Exception {
-        LOG.info("KRF.call p"+partition );
+        String id = topicName.substring(0,5)+":"+partition.toString();
+        LOG.info( id+" KRF.call p "+partition );
         Properties props = new Properties();
 
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -88,18 +90,22 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
             Predicate<ConsumerRecords<Integer, Externalizable>> noRecords = records ->
                 records == null || records.isEmpty();
             
+            long kafkaRcdCount = KafkaUtils.messageCount(bootstrapServers, topicName, partition);
+            long totalCount = 0L;
+            int maxRetries = 10;
+            int retries = 0;
+            
             private ConsumerRecords<Integer, Externalizable> kafkaRecords(int maxAttempts) throws TaskKilledException {
                 int attempt = 1;
                 ConsumerRecords<Integer, Externalizable> records = null;
                 do {
                     records = consumer.poll(java.time.Duration.ofMillis(500));
                     if (TaskContext.get().isInterrupted()) {
+                        LOG.warn( id+" KRF.call kafkaRecords Spark TaskContext Interrupted");
                         consumer.close();
                         throw new TaskKilledException();
                     }
                 } while( noRecords.test(records) && attempt++ < maxAttempts );
-
-                LOG.info("KRF.call p"+partition+" records "+records.count() );
                 
                 return records;
             }
@@ -107,9 +113,21 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
             private boolean hasMoreRecords(int maxAttempts) throws TaskKilledException {
                 ConsumerRecords<Integer, Externalizable> records = kafkaRecords(maxAttempts);
                 if( noRecords.test(records) ) {
+                    kafkaRcdCount = KafkaUtils.messageCount(bootstrapServers, topicName, partition);
+                    if( totalCount < kafkaRcdCount && retries < maxRetries ) {
+                        retries++;
+                        LOG.warn( id+" KRF.call Missed rcds, got "+totalCount+" of "+kafkaRcdCount+" retry "+retries );
+                        return hasMoreRecords(maxAttempts);
+                    }
+                    LOG.info( id+" KRF.call p "+partition+" t "+topicName+" expected "+kafkaRcdCount );
                     consumer.close();
                     return false;
                 } else {
+                    int ct = records.count();
+                    totalCount += ct;
+                    LOG.info( id+" KRF.call p "+partition+" t "+topicName+" records "+ct );
+                    //LOG.info( id+" KRF.call p "+partition+" t "+topicName+" progress "+totalCount+" "+kafkaRcdCount );
+                    
                     it = records.iterator();
                     return it.hasNext();
                 }
@@ -130,6 +148,7 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
 
             @Override
             public ExecRow next() {
+                //return ((ValueRow.Message)it.next().value()).vr();
                 return (ExecRow)it.next().value();
             }
         };
