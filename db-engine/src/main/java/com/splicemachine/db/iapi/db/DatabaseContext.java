@@ -39,5 +39,5 @@ import com.splicemachine.db.iapi.services.context.Context;
   */
 public interface DatabaseContext extends Context {
 	String CONTEXT_ID = "Database";
-	Database getDatabase();
+	InternalDatabase getDatabase();
 }
