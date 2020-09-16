@@ -32,21 +32,15 @@
 package com.splicemachine.db.impl.tools.ij;
 
 import com.splicemachine.db.iapi.services.info.ProductGenusNames;
-import com.splicemachine.db.iapi.tools.i18n.*;
+import com.splicemachine.db.iapi.tools.i18n.ForkOutputStream;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedInput;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.*;
-import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.StringReader;
 import java.sql.*;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.text.SimpleDateFormat;
 import java.util.Hashtable;
 import java.util.List;
@@ -60,13 +54,33 @@ import java.util.Stack;
 @SuppressFBWarnings(value = "NM_CLASS_NAMING_CONVENTION", justification = "DB-9772")
 public class utilMain implements java.security.PrivilegedAction {
 
-    private StatementFinder[] commandGrabber;
+    /*
+        In the goodness of time, this could be an ij property
+     */
+    public static final int BUFFEREDFILESIZE = 2048;
+    private static boolean showPromptClock = false;
+    private final int numConnections;
+    /**
+     * True if to display the error code when
+     * displaying a SQLException.
+     */
+    private final boolean showErrorCode;
+    /**
+     * Value of the system property ij.execptionTrace
+     */
+    private final String ijExceptionTrace;
     UCode_CharStream charStream;
     ijTokenManager ijTokMgr;
     ij ijParser;
     ConnectionEnv[] connEnv;
+    /*
+     * command can be redirected, so we stack up command
+     * grabbers as needed.
+     */
+    Stack oldGrabbers = new Stack();
+    LocalizedResource langUtil = LocalizedResource.getInstance();
+    private StatementFinder[] commandGrabber;
     private int currCE;
-    private final int numConnections;
     private boolean fileInput;
     private boolean initialFileInput;
     private boolean firstRun = true;
@@ -75,31 +89,8 @@ public class utilMain implements java.security.PrivilegedAction {
     private boolean doSpool = false;
     private boolean omitHeader = false;
     private String logFileName = null;
-    /**
-     * True if to display the error code when
-     * displaying a SQLException.
-     */
-    private final boolean showErrorCode;
+    private char terminator = StatementFinder.SEMICOLON;
 
-    /**
-     * Value of the system property ij.execptionTrace
-     */
-    private final String ijExceptionTrace;
-
-    /*
-        In the goodness of time, this could be an ij property
-     */
-    public static final int BUFFEREDFILESIZE = 2048;
-
-    private static boolean showPromptClock = false;
-
-    /*
-     * command can be redirected, so we stack up command
-     * grabbers as needed.
-     */
-    Stack oldGrabbers = new Stack();
-
-    LocalizedResource langUtil = LocalizedResource.getInstance();
     /**
      * Set up the test to run with 'numConnections' connections/users.
      *
@@ -163,7 +154,7 @@ public class utilMain implements java.security.PrivilegedAction {
         connEnv = new ConnectionEnv[numConnections];
 
         for (int ictr = 0; ictr < numConnections; ictr++) {
-            commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out);
+            commandGrabber[ictr] = new StatementFinder(langUtil.getNewInput(System.in), out, this.terminator);
             connEnv[ictr] = new ConnectionEnv(ictr, (numConnections > 1), (numConnections == 1));
         }
 
@@ -175,8 +166,29 @@ public class utilMain implements java.security.PrivilegedAction {
     }
 
     /**
+     * REMIND: eventually this might be part of StatementFinder,
+     * used at each carriage return to show that it is still "live"
+     * when it is reading multi-line input.
+     */
+    static void doPrompt(boolean newStatement, LocalizedOutput out, String tag) {
+        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZZZZ");
+
+        String clock = showPromptClock ? " " + sdf.format(new Timestamp(System.currentTimeMillis())) : "";
+
+        if (newStatement) {
+            out.print("splice" + clock + "> ");
+        } else {
+            out.print(clock + "> ");
+        }
+        out.flush();
+    }
+
+    public static void setPromptClock(boolean showPromptClock) {
+        utilMain.showPromptClock = showPromptClock;
+    }
+
+    /**
      * Initialize the connections from the environment.
-     *
      */
     public void initFromEnvironment() {
         ijParser.initFromEnvironment();
@@ -195,7 +207,6 @@ public class utilMain implements java.security.PrivilegedAction {
             }
         }
     }
-
 
     /**
      * run ij over the specified input, sending output to the
@@ -286,10 +297,9 @@ public class utilMain implements java.security.PrivilegedAction {
                 ijParser.setConnection(connEnv[currCE], (numConnections > 1));
             } catch (Throwable t) {
                 //do nothing
-                }
+            }
 
             connEnv[currCE].doPrompt(true, out);
-            ijResult result = null;
             try {
                 command = null;
                 out.flush();
@@ -341,10 +351,10 @@ public class utilMain implements java.security.PrivilegedAction {
                         beginTime = System.currentTimeMillis();
                     }
 
-                    result = ijParser.ijStatement();
+                    ijResult result = ijParser.ijStatement();
 
-                    if(!(result instanceof ijShellConfigResult)) {
-                        displayResult(out,result,connEnv[currCE].getConnection());
+                    if (!(result instanceof ijShellConfigResult)) {
+                        displayResult(out, result, connEnv[currCE].getConnection());
 
                         // if something went wrong, an SQLException or ijException was thrown.
                         // we can keep going to the next statement on those (see catches below).
@@ -364,31 +374,25 @@ public class utilMain implements java.security.PrivilegedAction {
                     }
                 }
 
-                } catch (ParseException e) {
+            } catch (ParseException e) {
+                scriptErrorCount += doCatch(command) ? 0 : 1;
+            } catch (TokenMgrError e) {
+                if (command != null)
                     scriptErrorCount += doCatch(command) ? 0 : 1;
-                } catch (TokenMgrError e) {
-                    if (command != null)
-                        scriptErrorCount += doCatch(command) ? 0 : 1;
-                } catch (SQLException e) {
-                    scriptErrorCount++;
-                    // SQL exception occurred in ij's actions; print and continue
-                    // unless it is considered fatal.
-                    handleSQLException(out, e);
-                } catch (ijException e) {
-                    scriptErrorCount++;
-                    // exception occurred in ij's actions; print and continue
-                    out.println(langUtil.getTextMessage("IJ_IjErro0",e.getMessage()));
-                    doTrace(e);
-                } catch (Throwable e) {
-                    scriptErrorCount++;
-                    out.println(langUtil.getTextMessage("IJ_JavaErro0",e.toString()));
-                    doTrace(e);
-                }
-                finally{
-                    try {
-                        if(result != null) result.closeStatement();
-                    } catch (SQLException e) {
-                }
+            } catch (SQLException e) {
+                scriptErrorCount++;
+                // SQL exception occurred in ij's actions; print and continue
+                // unless it is considered fatal.
+                handleSQLException(out, e);
+            } catch (ijException e) {
+                scriptErrorCount++;
+                // exception occurred in ij's actions; print and continue
+                out.println(langUtil.getTextMessage("IJ_IjErro0", e.getMessage()));
+                doTrace(e);
+            } catch (Throwable e) {
+                scriptErrorCount++;
+                out.println(langUtil.getTextMessage("IJ_JavaErro0", e.toString()));
+                doTrace(e);
             }
 
             /* Go to the next connection/user, if there is one */
@@ -402,6 +406,7 @@ public class utilMain implements java.security.PrivilegedAction {
      * Perform cleanup after a script has been run.
      * Close the input streams if required and shutdown
      * db on an exit.
+     *
      * @param in
      */
     private void cleanupGo(LocalizedInput[] in) {
@@ -474,7 +479,7 @@ public class utilMain implements java.security.PrivilegedAction {
                 }
             } else if (result.isMulti()) {
                 try {
-                    util.displayMulti(out, (PreparedStatement)result.getStatement(), result.getResultSet(), connEnv[currCE].getConnection(), omitHeader);
+                    util.displayMulti(out, (PreparedStatement) result.getStatement(), result.getResultSet(), connEnv[currCE].getConnection(), omitHeader);
                 } catch (SQLException se) {
                     result.closeStatement();
                     throw se;
@@ -586,26 +591,22 @@ public class utilMain implements java.security.PrivilegedAction {
             if ("42X01".equals(sqlState))
                 syntaxErrorOccurred = true;
             /*
-            ** If we are to throw errors, then throw the exceptions
-            ** that aren't in the ignoreErrors list.  If
-            ** the ignoreErrors list is null we don't throw
-            ** any errors.
-            */
-            if (ignoreErrors != null)
-            {
+             ** If we are to throw errors, then throw the exceptions
+             ** that aren't in the ignoreErrors list.  If
+             ** the ignoreErrors list is null we don't throw
+             ** any errors.
+             */
+            if (ignoreErrors != null) {
                 if ((sqlState != null) &&
-                    (ignoreErrors.get(sqlState) != null))
-                {
+                        (ignoreErrors.get(sqlState) != null)) {
                     continue;
-                }
-                else
-                {
+                } else {
                     fatalException = e;
                 }
             }
-            String st1 = JDBCDisplayUtil.mapNull(e.getSQLState(),langUtil.getTextMessage("IJ_NoSqls"), true);
-            String st2 = JDBCDisplayUtil.mapNull(e.getMessage(),langUtil.getTextMessage("IJ_NoMess"));
-            out.println(langUtil.getTextMessage("IJ_Erro012",  st1, st2, errorCode));
+            String st1 = JDBCDisplayUtil.mapNull(e.getSQLState(), langUtil.getTextMessage("IJ_NoSqls"), true);
+            String st2 = JDBCDisplayUtil.mapNull(e.getMessage(), langUtil.getTextMessage("IJ_NoMess"));
+            out.println(langUtil.getTextMessage("IJ_Erro012", st1, st2, errorCode));
             doTrace(e);
         }
         if (fatalException != null) {
@@ -636,7 +637,8 @@ public class utilMain implements java.security.PrivilegedAction {
         // if the file was opened, move to use it for input.
         oldGrabbers.push(commandGrabber[currCE]);
         commandGrabber[currCE] =
-                new StatementFinder(langUtil.getNewInput(new BufferedInputStream(newFile, BUFFEREDFILESIZE)), null);
+                new StatementFinder(langUtil.getNewInput(new BufferedInputStream(newFile, BUFFEREDFILESIZE)), null,
+                        this.terminator);
         fileInput = true;
     }
 
@@ -645,28 +647,9 @@ public class utilMain implements java.security.PrivilegedAction {
         if (is == null) throw ijException.resourceNotFound();
         oldGrabbers.push(commandGrabber[currCE]);
         commandGrabber[currCE] =
-                new StatementFinder(langUtil.getNewEncodedInput(new BufferedInputStream(is, BUFFEREDFILESIZE), "UTF8"), null);
+                new StatementFinder(langUtil.getNewEncodedInput(new BufferedInputStream(is, BUFFEREDFILESIZE), "UTF8"), null,
+                        this.terminator);
         fileInput = true;
-    }
-
-    /**
-     * REMIND: eventually this might be part of StatementFinder,
-     * used at each carriage return to show that it is still "live"
-     * when it is reading multi-line input.
-     */
-     static void doPrompt(boolean newStatement, LocalizedOutput out, String tag)
-     {
-        final SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ssZZZZ");
-
-        String clock = showPromptClock ? " " + sdf.format(new Timestamp(System.currentTimeMillis())) : "";
-
-        if (newStatement) {
-            out.print("splice" + clock + "> ");
-        }
-        else {
-            out.print(clock + "> ");
-        }
-        out.flush();
     }
 
     /**
@@ -812,10 +795,6 @@ public class utilMain implements java.security.PrivilegedAction {
         return getClass().getResourceAsStream(ProductGenusNames.TOOLS_INFO);
     }
 
-    public static void setPromptClock(boolean showPromptClock) {
-        utilMain.showPromptClock = showPromptClock;
-    }
-
     @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", justification = "Intentional, we don't care if the file already exists")
     public void startSpooling(String path) throws IOException {
         try {
@@ -860,5 +839,14 @@ public class utilMain implements java.security.PrivilegedAction {
 
     public void setOmitHeader(boolean omitHeader) {
         this.omitHeader = omitHeader;
+    }
+
+    public void setTerminator(String terminator) {
+        if (terminator.length() != 1 || !StatementFinder.isValidTerminator(terminator.charAt(0))) {
+            out.println(langUtil.getTextMessage("IJ_TerminatorInvalid", terminator));
+            return;
+        }
+        this.terminator = terminator.charAt(0);
+        commandGrabber[currCE].setTerminator(this.terminator);
     }
 }
