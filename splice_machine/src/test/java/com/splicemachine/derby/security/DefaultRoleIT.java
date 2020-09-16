@@ -15,6 +15,7 @@ package com.splicemachine.derby.security;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.derby.test.framework.SpliceNetConnection.ConnectionBuilder;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import org.junit.*;
@@ -129,8 +130,6 @@ public class DefaultRoleIT {
     private String selectQuery3      = format("select a3 from %s.%s", SCHEMA3, TABLE3);
     private String selectQuery4      = format("select a4 from %s.%s", SCHEMA4, TABLE4);
     private String selectQuery5      = format("select a5 from %s.%s", SCHEMA5, TABLE5);
-    String localURLTemplate = "jdbc:splice://localhost:1527/splicedb;create=true";
-    String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb;create=true";
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -195,7 +194,7 @@ public class DefaultRoleIT {
         expected = "1              |\n" +
                 "------------------------------\n" +
                 "\"ADMIN2\", \"ADMIN3\", \"ADMIN1\" |";
-        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
         ps = user1Conn.prepareStatement("values current_role");
         rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -205,7 +204,7 @@ public class DefaultRoleIT {
         testPrivileges(user1Conn, new boolean[] {false, false, false, true, true});
 
         // 4. check current_role(remote) and privilege/permisssion
-        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER1).password(PASSWORD1).build();
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -247,7 +246,7 @@ public class DefaultRoleIT {
         expected = "1    |\n" +
                 "----------\n" +
                 "\"ADMIN1\" |";
-        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
         ps = user1Conn.prepareStatement("values current_role");
         rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -257,7 +256,7 @@ public class DefaultRoleIT {
         testPrivileges(user1Conn, new boolean[] {false, true, true, true, true});
 
         // 4. check current_role(remote) and privilege/permisssion
-        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER1).password(PASSWORD1).build();
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -283,7 +282,7 @@ public class DefaultRoleIT {
         String expected = "1              |\n" +
                 "------------------------------\n" +
                 "\"ADMIN2\", \"ADMIN3\", \"ADMIN1\" |";
-        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
         PreparedStatement ps = user1Conn.prepareStatement("values current_role");
         ResultSet rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -308,7 +307,7 @@ public class DefaultRoleIT {
         rs.close();
 
         // 4. check current_role(remote) and privilege/permisssion
-        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER1).password(PASSWORD1).build();
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -334,7 +333,7 @@ public class DefaultRoleIT {
         String expected = "1              |\n" +
                 "------------------------------\n" +
                 "\"ADMIN2\", \"ADMIN3\", \"ADMIN1\" |";
-        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
         PreparedStatement ps = user1Conn.prepareStatement("values current_role");
         ResultSet rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -348,7 +347,7 @@ public class DefaultRoleIT {
         adminConn.execute(format(grantRoleToUserNotAsDefault, ROLE2, USER1));
 
         // 4. In new connection, we should see role4 in current_role, also role2 will be removed from current_role
-        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
 
         expected = "1              |\n" +
                 "------------------------------\n" +
@@ -361,7 +360,7 @@ public class DefaultRoleIT {
         testPrivileges(user1Conn, new boolean[] {false, true, false, false, true});
 
         // 4. check current_role(remote) and privilege/permisssion
-        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER1).password(PASSWORD1).build();
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -387,7 +386,7 @@ public class DefaultRoleIT {
         String expected = "1              |\n" +
                 "------------------------------\n" +
                 "\"ADMIN2\", \"ADMIN3\", \"ADMIN1\" |";
-        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
         PreparedStatement ps = user1Conn.prepareStatement("values current_role");
         ResultSet rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -425,7 +424,7 @@ public class DefaultRoleIT {
         testPrivileges(user1Conn, new boolean[] {true, true, true, true, true});
 
         // 4: remote connection current_role is not change
-        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER1).password(PASSWORD1).build();
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -451,7 +450,7 @@ public class DefaultRoleIT {
         String expected = "1              |\n" +
                 "------------------------------\n" +
                 "\"ADMIN2\", \"ADMIN3\", \"ADMIN1\" |";
-        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
         PreparedStatement ps = user1Conn.prepareStatement("values current_role");
         ResultSet rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -462,7 +461,7 @@ public class DefaultRoleIT {
         testPrivileges(user1Conn, new boolean[] {false, false, false, true, true});
 
         // remote connection should behave the same
-        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).create(true).user(USER1).password(PASSWORD1).build();
         ps = user1Conn2.prepareStatement("values current_role");
         rs = ps.executeQuery();
         assertEqualDefaultRoleSet(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
