@@ -114,7 +114,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
         this.opType = (Integer) opType;
     }
 
-    private int getOpType()
+    public int getOpType()
     {
         return opType;
     }
