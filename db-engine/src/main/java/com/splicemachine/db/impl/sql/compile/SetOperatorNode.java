@@ -51,7 +51,7 @@ import java.util.HashMap;
  *
  */
 
-abstract class SetOperatorNode extends TableOperatorNode
+public abstract class SetOperatorNode extends TableOperatorNode
 {
     /**
     ** Tells whether to eliminate duplicate rows.  all == TRUE means do
@@ -1163,5 +1163,9 @@ abstract class SetOperatorNode extends TableOperatorNode
         }
 
         return this;
+    }
+
+    public boolean isAll() {
+        return all;
     }
 }

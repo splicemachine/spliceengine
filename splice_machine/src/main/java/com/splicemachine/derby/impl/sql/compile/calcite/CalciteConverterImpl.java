@@ -30,6 +30,7 @@ import org.apache.calcite.util.Util;
 
 import java.util.*;
 
+import static com.splicemachine.db.impl.sql.compile.IntersectOrExceptNode.INTERSECT_OP;
 import static org.apache.calcite.util.Static.RESOURCE;
 
 /**
@@ -61,6 +62,8 @@ public class CalciteConverterImpl implements CalciteConverter {
             return convertSelect((SelectNode)resultSetNode);
         else if (resultSetNode instanceof RowResultSetNode)
             return convertRowResultSet((RowResultSetNode)resultSetNode);
+        else if (resultSetNode instanceof SetOperatorNode)
+            return convertSetOperation((SetOperatorNode)resultSetNode);
         return null;
     }
 
@@ -279,6 +282,35 @@ public class CalciteConverterImpl implements CalciteConverter {
             return relBuilder.values(new String[]{"dummy"}, new Integer[]{0})
                     .project(fields.build())
                     .build();
+        }
+    }
+
+    public RelNode convertSetOperation(SetOperatorNode setOperatorNode) throws StandardException {
+        RelNode leftChild;
+        RelNode rightChild;
+        //convert left
+        ResultSetNode leftSet = setOperatorNode.getLeftResultSet();
+        if (leftSet instanceof SelectNode)
+            leftChild = convertSelect((SelectNode)leftSet);
+        else // set operation
+            leftChild = convertSetOperation((SetOperatorNode)leftSet);
+
+        ResultSetNode rightSet = setOperatorNode.getRightResultSet();
+        if (rightSet instanceof SelectNode)
+            rightChild = convertSelect((SelectNode)rightSet);
+        else // set operation
+            rightChild = convertSetOperation((SetOperatorNode)rightSet);
+
+        relBuilder.push(leftChild);
+        relBuilder.push(rightChild);
+        if (setOperatorNode instanceof IntersectOrExceptNode) {
+            if (((IntersectOrExceptNode)setOperatorNode).getOpType() == INTERSECT_OP) {
+                return relBuilder.intersect(false).build();
+            } else {
+                return relBuilder.minus(false).build();
+            }
+        } else { //UNION
+            return relBuilder.union(setOperatorNode.isAll()).build();
         }
     }
 

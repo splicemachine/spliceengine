@@ -22,7 +22,10 @@ abstract public class SpliceConverterRule extends ConverterRule {
             SpliceFilterRule.INSTANCE,
             SpliceJoinRule.INSTANCE,
             SpliceTableScanRule.INSTANCE,
-            SpliceValuesRule.INSTANCE
+            SpliceValuesRule.INSTANCE,
+            SpliceUnionRule.INSTANCE,
+            SpliceIntersectRule.INSTANCE,
+            SpliceMinusRule.INSTANCE
     };
 
     SpliceConverterRule(Class<? extends RelNode> clazz, RelTrait in,
@@ -107,6 +110,48 @@ abstract public class SpliceConverterRule extends ConverterRule {
             final LogicalValues values = (LogicalValues) rel;
             final RelTraitSet traitSet = values.getTraitSet().replace(out);
             return new SpliceValues(values.getCluster(), values.getRowType(), values.getTuples(), traitSet);
+        }
+    }
+
+    private static class SpliceUnionRule extends SpliceConverterRule {
+        private static final SpliceUnionRule INSTANCE = new SpliceUnionRule();
+
+        private SpliceUnionRule() {
+            super(LogicalUnion.class, Convention.NONE, SpliceRelNode.CONVENTION, "SpliceUnionRule");
+        }
+
+        public RelNode convert(RelNode rel) {
+            final LogicalUnion union = (LogicalUnion) rel;
+            final RelTraitSet traitSet = union.getTraitSet().replace(out);
+            return new SpliceUnion(union.getCluster(), traitSet, convertList(union.getInputs(), out), union.all);
+        }
+    }
+
+    private static class SpliceIntersectRule extends SpliceConverterRule {
+        private static final SpliceIntersectRule INSTANCE = new SpliceIntersectRule();
+
+        private SpliceIntersectRule() {
+            super(LogicalIntersect.class, Convention.NONE, SpliceRelNode.CONVENTION, "SpliceIntersectRule");
+        }
+
+        public RelNode convert(RelNode rel) {
+            final LogicalIntersect intersect = (LogicalIntersect) rel;
+            final RelTraitSet traitSet = intersect.getTraitSet().replace(out);
+            return new SpliceIntersect(intersect.getCluster(), traitSet, convertList(intersect.getInputs(), out), intersect.all);
+        }
+    }
+
+    private static class SpliceMinusRule extends SpliceConverterRule {
+        private static final SpliceMinusRule INSTANCE = new SpliceMinusRule();
+
+        private SpliceMinusRule() {
+            super(LogicalMinus.class, Convention.NONE, SpliceRelNode.CONVENTION, "SpliceMinusRule");
+        }
+
+        public RelNode convert(RelNode rel) {
+            final LogicalMinus minus = (LogicalMinus) rel;
+            final RelTraitSet traitSet = minus.getTraitSet().replace(out);
+            return new SpliceMinus(minus.getCluster(), traitSet, convertList(minus.getInputs(), out), minus.all);
         }
     }
 }
