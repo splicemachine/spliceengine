@@ -239,7 +239,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         DataValueDescriptor dvd=rowTemplate.cloneColumn(columnPosition);
         dvd.setValue(nextIdentityColumnValue);
         synchronized (this) {
-            this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
             if (increment > 0) {
                 if (nextIdentityColumnValue > nextIncrement)
                     nextIncrement = nextIdentityColumnValue;
@@ -255,7 +254,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
     @Override
     public void close() throws StandardException{
         super.close();
-        this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
     }
 
     private boolean isSingleRowResultSet(){

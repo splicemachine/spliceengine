@@ -562,20 +562,6 @@ public interface LanguageConnectionContext extends Context {
     boolean isInitialDefaultSchema(String schemaName);
 
     /**
-     * Get the identity column value most recently generated.
-     *
-     * @return the generated identity column value
-     */
-    Long getIdentityValue();
-
-    /**
-     * Set the field of most recently generated identity column value.
-     *
-     * @param val the generated identity column value
-     */
-    void setIdentityValue(long val);
-
-    /**
      * Verify that there are no activations with open result sets
      * on the specified prepared statement.
      *

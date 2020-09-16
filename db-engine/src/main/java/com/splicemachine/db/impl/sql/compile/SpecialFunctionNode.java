@@ -68,7 +68,6 @@ import java.util.List;
      <LI> SYSTEM_USER
      <LI> CURRENT SCHEMA
      <LI> CURRENT ISOLATION
-     <LI> IDENTITY_VAL_LOCAL
      <LI> CURRENT SESSION_PROPERTY
      <LI> CURRENT SERVER
 
@@ -201,12 +200,6 @@ public class SpecialFunctionNode extends ValueNode
             //SQL_IDENTIFIER. In Derby's case, that will mean, the collation of
             //these functions will be UCS_BASIC. The collation derivation will
             //be implicit. (set by default)
-            break;
-        case C_NodeTypes.IDENTITY_VAL_NODE:
-            sqlName = "IDENTITY_VAL_LOCAL";
-            methodName = "getIdentityValue";
-            methodType = "java.lang.Long";
-            dtd = DataTypeDescriptor.getSQLDataTypeDescriptor("java.math.BigDecimal", 31, 0, true, 31);
             break;
 
         case C_NodeTypes.CURRENT_ISOLATION_NODE:

@@ -302,8 +302,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      * whether to allow updates or not.
      */
     private boolean autoincrementUpdate;
-    private long identityVal;   //support IDENTITY_VAL_LOCAL function
-    private boolean identityNotNull;    //frugal programmer
 
     // cache of ai being handled in memory (bulk insert + alter table).
     private HashMap<String, AutoincrementCounter> autoincrementCacheHashtable;
@@ -904,9 +902,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void resetFromPool() throws StandardException{
         interruptedException=null;
-
-        // Reset IDENTITY_VAL_LOCAL
-        identityNotNull=false;
 
         // drop all temp tables.
         dropAllDeclaredGlobalTempTables();
@@ -2237,27 +2232,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if(schemaName.equals(sd.getSchemaName())){
             top.setDefaultSchema(defaultSchema);
         }
-    }
-
-    /**
-     * Get the identity column value most recently generated.
-     *
-     * @return the generated identity column value
-     */
-    @Override
-    public Long getIdentityValue(){
-        return identityNotNull?identityVal:null;
-    }
-
-    /**
-     * Set the field of most recently generated identity column value.
-     *
-     * @param val the generated identity column value
-     */
-    @Override
-    public void setIdentityValue(long val){
-        identityVal=val;
-        identityNotNull=true;
     }
 
     /**

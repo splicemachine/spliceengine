@@ -45,7 +45,7 @@ public interface C_NodeTypes
     int CURRENT_ROW_LOCATION_NODE = 2;
     int GROUP_BY_LIST = 3;
     int CURRENT_ISOLATION_NODE = 4;
-    int IDENTITY_VAL_NODE = 5;
+//    int IDENTITY_VAL_NODE = 5; // deprecated
     int CURRENT_SCHEMA_NODE = 6;
     int ORDER_BY_LIST = 7;
     int PREDICATE_LIST = 8;

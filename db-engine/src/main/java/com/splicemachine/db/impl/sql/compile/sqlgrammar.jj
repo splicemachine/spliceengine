@@ -3039,7 +3039,6 @@ TOKEN [IGNORE_CASE] :
 |   <GROUPING: "grouping">
 |   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
-|    <IDENTITY_VAL_LOCAL: "identity_val_local">
 |    <IGNORE: "ignore">
 |    <INCREMENT: "increment">
 |    <INITIAL: "initial">
@@ -7753,13 +7752,6 @@ numericValueFunction() throws StandardException :
     <MOD> value = modFunction()
     {
         return value;
-    }
-|
-    <IDENTITY_VAL_LOCAL> <LEFT_PAREN> <RIGHT_PAREN>
-    {
-        return (ValueNode) nodeFactory.getNode(
-                        C_NodeTypes.IDENTITY_VAL_NODE,
-                        getContextManager());
     }
 }
 
@@ -18048,7 +18040,6 @@ nonReservedKeyword()  :
     |    tok = <GREATEST>
     |    tok = <GROUPING>
     |    tok = <HFILE>
-    |    tok = <IDENTITY_VAL_LOCAL>
     |    tok = <IGNORE>
     |    tok = <INCREMENT>
     |    tok = <INDEX>

@@ -87,16 +87,6 @@ public class SpliceSequenceIT {
     }
 
     @Test
-    @Ignore
-    public void testIdentityValLocal() throws Exception{
-        methodWatcher.executeUpdate(String.format("create table t1(c1 int generated always as identity, c2 int)"));
-        methodWatcher.executeUpdate(String.format("insert into t1(c2) values (8)"));
-        methodWatcher.executeUpdate(String.format("insert into t1(c2) values (IDENTITY_VAL_LOCAL())"));
-
-
-    }
-
-    @Test
     public void testGrantPrivileges() throws Exception {
         try {methodWatcher.executeUpdate("drop sequence "+SEQUENCE + " restrict");} catch (Exception e) {}
         methodWatcher.executeUpdate("create sequence "+SEQUENCE);
