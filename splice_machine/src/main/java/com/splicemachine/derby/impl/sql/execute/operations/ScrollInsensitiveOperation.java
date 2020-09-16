@@ -23,12 +23,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.RowChanger;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.impl.sql.execute.CursorActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.ScrollInsensitiveFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -80,25 +78,15 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
 public class ScrollInsensitiveOperation extends SpliceBaseOperation {
     private static Logger LOG = Logger.getLogger(ScrollInsensitiveOperation.class);
-	protected int sourceRowWidth;
 	protected SpliceOperation source;
-	protected boolean scrollable;
-    protected boolean keepAfterCommit;
-    private int maxRows;
-    protected StatementContext statementContext;
-    private int positionInSource;
+	protected StatementContext statementContext;
     private int currentPosition;
-    private int lastPosition;
-    private	boolean seenLast;
-    private	boolean beforeFirst = true;
-    private	boolean afterLast;
 
 
     /* Reference to the target result set. Target is used for updatable result
     * sets in order to keep the target result set on the same row as the
     * ScrollInsensitiveResultSet.
      */
-    private CursorResultSet target;
 
     protected static final String NAME = ScrollInsensitiveOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -118,16 +106,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 			  double optimizerEstimatedRowCount,
 			  double optimizerEstimatedCost) throws StandardException {
 		super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-        this.keepAfterCommit = activation.getResultSetHoldability();
-        this.maxRows = activation.getMaxRows();
-		this.sourceRowWidth = sourceRowWidth;
-		this.source = source;
-		this.scrollable = scrollable;
-        if (isForUpdate()) {
-            target = ((CursorActivation)activation).getTargetResultSet();
-        } else {
-            target = null;
-        }
+        this.source = source;
 	}
 
     @Override
@@ -141,11 +120,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		if (LOG.isTraceEnabled())
 			LOG.trace("readExternal");
 		super.readExternal(in);
-		sourceRowWidth = in.readInt();
-		scrollable = in.readBoolean();
-        keepAfterCommit = in.readBoolean();
-        maxRows = in.readInt();
-        source = (SpliceOperation)in.readObject();
+		source = (SpliceOperation)in.readObject();
 	}
 
 	@Override
@@ -153,11 +128,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		if (LOG.isTraceEnabled())
 			LOG.trace("writeExternal");
 		super.writeExternal(out);
-		out.writeInt(sourceRowWidth);
-		out.writeBoolean(scrollable);
-        out.writeBoolean(keepAfterCommit);
-        out.writeInt(maxRows);
-        out.writeObject(source);
+		out.writeObject(source);
 	}
 
 	@Override
@@ -218,8 +189,6 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
     public ExecRow	setBeforeFirstRow() {
         currentPosition = 0;
-        beforeFirst = true;
-        afterLast = false;
         currentRow = null;
         return null;
     }
