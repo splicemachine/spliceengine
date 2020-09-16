@@ -26,8 +26,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -72,20 +70,6 @@ public class UnionOperation extends SpliceBaseOperation {
 				this.leftResultSet = leftResultSet;
 				this.rightResultSet = rightResultSet;
 				init();
-		}
-
-		@Override
-		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				super.readExternal(in);
-				leftResultSet = (SpliceOperation)in.readObject();
-				rightResultSet = (SpliceOperation)in.readObject();
-		}
-
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				super.writeExternal(out);
-				out.writeObject(leftResultSet);
-				out.writeObject(rightResultSet);
 		}
 
 		@Override
