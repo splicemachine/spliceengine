@@ -234,12 +234,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         long nextIdentityColumnValue;
         assert activation!=null && spliceSequences!=null:"activation or sequences are null";
         nextIdentityColumnValue=((BaseActivation)activation).ignoreSequence()?-1:spliceSequences[columnPosition-1].getNext();
-        this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
         if(rowTemplate==null)
             rowTemplate=getExecRowDefinition();
         DataValueDescriptor dvd=rowTemplate.cloneColumn(columnPosition);
         dvd.setValue(nextIdentityColumnValue);
         synchronized (this) {
+            this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
             if (increment > 0) {
                 if (nextIdentityColumnValue > nextIncrement)
                     nextIncrement = nextIdentityColumnValue;
@@ -411,7 +411,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 else if (storedAs.toLowerCase().equals("t"))
                     return set.writeTextFile(location, new CsvOptions(delimited, escaped, lines), operationContext);
                 else
-                    new RuntimeException("storedAs type not supported -> " + storedAs);
+                    throw new RuntimeException("storedAs type not supported -> " + storedAs);
             }
             InsertDataSetWriterBuilder writerBuilder = null;
             if (bulkImportDirectory!=null && bulkImportDirectory.compareToIgnoreCase("NULL") !=0) {
