@@ -14,12 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.window.function;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -28,6 +22,12 @@ import com.splicemachine.db.iapi.sql.execute.WindowFunction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Base class for all window functions. Contains frame "chucking" mechanism for
@@ -75,6 +75,10 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
     }
 
     public DataValueDescriptor[] remove() throws StandardException{
+        // for window frame like ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING, it is possible that the rows in chunks
+        // run out before the rows in BaseFromBuffer, so we could enter here with first being null already
+        if (first == null)
+            return null;
 
         DataValueDescriptor[] dvd = first.remove();
         if (first.consumed()) {
@@ -205,6 +209,10 @@ public abstract class SpliceGenericWindowFunction implements WindowFunction {
 
         public DataValueDescriptor[] get(int i) {
             return values[i];
+        }
+
+        public boolean isEmpty() {
+            return last == 0;
         }
 
         private boolean consumed () {

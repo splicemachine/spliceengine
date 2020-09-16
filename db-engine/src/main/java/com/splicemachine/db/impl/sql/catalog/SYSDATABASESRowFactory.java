@@ -258,4 +258,8 @@ public class SYSDATABASESRowFactory extends CatalogRowFactory
     }
 
     // XXX(arnaud multidb) create SYSDATABASEPERMS
+
+    public static final String SYSDATABASES_VIEW_SQL = "create view sysdatabasesView as \n" +
+            "SELECT D.* " +
+                "FROM SYS.SYSDATABASES AS D ";
 }

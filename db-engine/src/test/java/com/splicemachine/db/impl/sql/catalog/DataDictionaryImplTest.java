@@ -129,7 +129,7 @@ public class DataDictionaryImplTest {
         UUID schemaUuid = new BasicUUID("8000000d-00d0-fd77-3ed8-000a0a0b1900"), tableUuid = new BasicUUID("08264012-014b-c29b-a826-000003009390");
         UUID dbUuid = dataDictionary.getSpliceDatabaseDescriptor().getUUID();
         SchemaDescriptor sd = new SchemaDescriptor(dataDictionary, "SYS", "SPLICE", schemaUuid, dbUuid, true);
-        TableDescriptor td = new TableDescriptor(dataDictionary, "SYSTABLESTATS", sd, 1, 'R', -1, null, null, null, null, null, null, false, false);
+        TableDescriptor td = new TableDescriptor(dataDictionary, "SYSTABLESTATS", sd, 1, 'R', -1, null, null, null, null, null, null, false, false,null);
         td.setUUID(new BasicUUID("08264012-014b-c29b-a826-000003009390"));
         td.setVersion("4.0");
         td.getColumnDescriptorList().add(new ColumnDescriptor("CONGLOMERATEID", 1 , 1 , new DataTypeDescriptor(TypeId.BIGINT_ID, true), null, null, tableUuid, null, 0, 0, 0, true,1, (byte) 0));
