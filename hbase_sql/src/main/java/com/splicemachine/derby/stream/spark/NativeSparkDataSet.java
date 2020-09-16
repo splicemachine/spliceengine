@@ -59,10 +59,14 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.sql.*;
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder;
+import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
+import scala.Function1;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -1105,6 +1109,20 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return (JavaRDD<V>) dataSet.javaRDD().map(new RowToLocatedRowFunction(context));
     }
 
+    class CountingFunction implements MapFunction<Row, Row>
+    {
+        OperationContext<?> operationContext;
+        CountingFunction(OperationContext<?> operationContext)
+        {
+            this.operationContext = operationContext;
+        }
+        @Override
+        public Row call(Row row) throws Exception {
+            operationContext.recordWrite();
+            return row;
+        }
+    }
+
     @Override
     public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
                                              int[] partitionBy,
@@ -1128,6 +1146,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
         }
+
+        insertDF = insertDF.map(new CountingFunction(context), RowEncoder.apply(tableSchema));
+
         insertDF.write().option(SPARK_COMPRESSION_OPTION,compression)
                 .partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
                 .mode(SaveMode.Append).parquet(location);
@@ -1181,6 +1202,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
         }
+        insertDF = insertDF.map(new CountingFunction(context), RowEncoder.apply(tableSchema));
         return insertDF.write().partitionBy(partitionByCols);
     }
 
