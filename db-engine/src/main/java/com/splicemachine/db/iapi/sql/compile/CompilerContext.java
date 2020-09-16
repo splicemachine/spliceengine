@@ -483,12 +483,12 @@ public interface CompilerContext extends Context
      * @param conglomerateDescriptor    The conglomerate for which to get a StoreCostController.
      * @param skipStats do not fetch the stats from dictionary if true
      * @param defaultRowCount it only take effect when skipStats is true, and forces the fake stats' rowcount to be the specified value
-     *
+     * @param requestedSplits The requested number of input splits, if run on Spark.
      * @return    The appropriate StoreCostController.
      *
      * @exception StandardException        Thrown on error
      */
-    StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipStats, long defaultRowCount) throws StandardException;
+    StoreCostController getStoreCostController(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipStats, long defaultRowCount, int requestedSplits) throws StandardException;
 
     /**
      * Get a SortCostController.

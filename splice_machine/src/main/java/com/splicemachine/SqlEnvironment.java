@@ -65,7 +65,7 @@ public interface SqlEnvironment{
 
     boolean isMemPlatform();
 
-    int getMaxExecutors();
+    int getMaxExecutorCores();
 
     int getNumSplits(long tableSize);
 }

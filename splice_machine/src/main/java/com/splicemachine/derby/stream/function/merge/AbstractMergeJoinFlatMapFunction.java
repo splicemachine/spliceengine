@@ -25,10 +25,12 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
+import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
+import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Preconditions;
@@ -56,6 +58,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
     private PeekingIterator<ExecRow> leftPeekingIterator;
     private Iterator<ExecRow> mergeJoinIterator;
     private static final boolean IS_MEM_PLATFORM = isMemPlatform();
+    private final SIDriver driver = SIDriver.driver();
 
     public AbstractMergeJoinFlatMapFunction() {
         super();
@@ -160,8 +163,10 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                 initRightScan();
                 rightSide = joinOperation.getRightOperation();
                 rightSide.reset();
-                DataSetProcessor dsp =EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide);
+                //DataSetProcessor dsp =EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide);
                 //DataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor(); // msirek-temp
+                DataSetProcessor dsp =EngineDriver.driver().processorFactory().chooseProcessor(getOperation().getActivation(), rightSide);
+                //DataSetProcessor dsp = new ControlDataSetProcessor(driver.getTxnSupplier(), driver.getTransactor(), driver.getOperationFactory());
                 rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
                     @Override
                     public ExecRow apply(@Nullable ExecRow locatedRow) {
@@ -349,7 +354,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             ArrayList<Pair<ExecRow, ExecRow>> rightKeyRows = new ArrayList<>();
             ExecRow newStartKey = new ValueRow(numKeyColumns);
             ExecRow previousStartKey = null;
-            Pair<ExecRow, ExecRow> previousKeyPair = null, newKeyPair;
+            Pair<ExecRow, ExecRow> previousKeyPair = null, newKeyPair = null;
 
             List<ExecRow> bufferList = getBufferList();
             int lastItem = bufferList.size()-1;

@@ -138,7 +138,7 @@ public class SelectivityUtil {
                 if (!isTheRightJoinPredicate(p, predicateType))
                     continue;
 
-                selectivity = Math.min(selectivity, p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType));
+                selectivity *= p.joinSelectivity(innerTable, innerCD, innerRowCount, outerRowCount, selectivityJoinType);
             }
         }
 

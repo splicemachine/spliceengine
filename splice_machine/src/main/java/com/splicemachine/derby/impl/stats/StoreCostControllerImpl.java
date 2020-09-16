@@ -83,14 +83,16 @@ public class StoreCostControllerImpl implements StoreCostController {
     private boolean isSampleStats;
     private double sampleFraction;
     private boolean isMergedStats;
+    private int requestedSplits;
 
     // The number of parallel Spark tasks that would run concurrently
     // to access this table.
     private int parallelism = 1;
 
 
-    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount) throws StandardException {
+    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount, int requestedSplits) throws StandardException {
         SConfiguration config = EngineDriver.driver().getConfiguration();
+        this.requestedSplits = requestedSplits;
         openLatency = config.getFallbackOpencloseLatency();
         closeLatency = config.getFallbackOpencloseLatency();
         fallbackNullFraction = config.getFallbackNullFraction();
@@ -188,7 +190,10 @@ public class StoreCostControllerImpl implements StoreCostController {
         if (isMemPlatform())
             parallelism = 1;
         else {
-            parallelism = EngineDriver.getNumSplits(tableSize);
+            if (requestedSplits > 0)
+                parallelism = requestedSplits;
+            else
+                parallelism = EngineDriver.getNumSplits(tableSize);
             if (parallelism > getMaxExecutors())
                 parallelism = getMaxExecutors();
         }

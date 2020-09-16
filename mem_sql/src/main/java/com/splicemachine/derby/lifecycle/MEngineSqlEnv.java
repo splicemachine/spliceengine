@@ -136,7 +136,7 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     public boolean isMemPlatform() { return true; }
 
     @Override
-    public int getMaxExecutors() {
+    public int getMaxExecutorCores() {
         return 1;
     }
 

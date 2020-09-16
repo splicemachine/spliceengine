@@ -3223,11 +3223,11 @@ public class FromBaseTable extends FromTable {
         if (skipStats) {
             if (!getCompilerContext().skipStats(this.getTableNumber()))
                 getCompilerContext().getSkipStatsTableList().add(this.getTableNumber());
-            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount);
+            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount, splits);
         }
         else {
             return getCompilerContext().getStoreCostController(td, cd,
-                    getCompilerContext().skipStats(this.getTableNumber()), 0);
+                    getCompilerContext().skipStats(this.getTableNumber()), 0, splits);
         }
     }
 

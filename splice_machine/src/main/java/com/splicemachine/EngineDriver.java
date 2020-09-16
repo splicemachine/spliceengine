@@ -20,8 +20,6 @@ import java.util.concurrent.*;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServiceDiscovery;
-import com.splicemachine.db.iapi.services.authorization.AuthorizationFactory;
-import com.splicemachine.db.iapi.services.authorization.AuthorizationFactoryService;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
 import com.splicemachine.derby.iapi.sql.PropertyManager;
 import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
@@ -61,7 +59,7 @@ public class EngineDriver{
 
     public static boolean isMemPlatform() { return (INSTANCE.environment.isMemPlatform()); }
 
-    public static int getMaxExecutors() { return (INSTANCE.environment.getMaxExecutors()); }
+    public static int getMaxExecutors() { return (INSTANCE.environment.getMaxExecutorCores()); }
 
     // Given a table size in bytes, return the number of splits Spark
     // will use to read from the table, given the current Splice configuration.

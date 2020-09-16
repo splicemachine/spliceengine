@@ -1260,7 +1260,7 @@ public interface TransactionController
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount) throws StandardException;
+    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount, int requestedSplits) throws StandardException;
 
     /**
      * Return a string with debug information about opened congloms/scans/sorts.
