@@ -2268,26 +2268,41 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testBroadcastJoinOrcTablesOnSpark() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table l (col1 int)" +
-                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"left"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into l values 1, 2, 3" ));
-        methodWatcher.executeUpdate(String.format("create external table r (col1 int)" +
-                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"right"));
-        int insertCount2 = methodWatcher.executeUpdate(String.format("insert into r values 1,2,3"));
+    public void testJoin() throws Exception {
+        for( String fileFormat : fileFormats ) {
+            String name = "testJoin_" + fileFormat + "_";
+            String tablePath = getExternalResourceDirectory() + name;
+            methodWatcher.executeUpdate(String.format("create external table l (col1 int)" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath + "left"));
+            int insertCount = methodWatcher.executeUpdate(String.format("insert into l values 1, 2, 3"));
+            methodWatcher.executeUpdate(String.format("create external table r (col1 int)" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath + "right"));
+            int insertCount2 = methodWatcher.executeUpdate(String.format("insert into r values 1,2,3"));
+            Assert.assertEquals("insertCount is wrong", 3, insertCount);
+            Assert.assertEquals("insertCount is wrong", 3, insertCount2);
 
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        Assert.assertEquals("insertCount is wrong",3,insertCount2);
+            // test for SPLICE-1850
+            ResultSet rs = methodWatcher.executeQuery("select * from \n" +
+                    "l --splice-properties useSpark=true\n" +
+                    ", r --splice-properties joinStrategy=broadcast\n" +
+                    "where l.col1=r.col1");
+            Assert.assertEquals("COL1 |COL1 |\n" +
+                    "------------\n" +
+                    "  1  |  1  |\n" +
+                    "  2  |  2  |\n" +
+                    "  3  |  3  |", TestUtils.FormattedResult.ResultFactory.toString(rs));
 
-        ResultSet rs = methodWatcher.executeQuery("select * from \n" +
-                "l --splice-properties useSpark=true\n" +
-                ", r --splice-properties joinStrategy=broadcast\n" +
-                "where l.col1=r.col1");
-        Assert.assertEquals("COL1 |COL1 |\n" +
-                "------------\n" +
-                "  1  |  1  |\n" +
-                "  2  |  2  |\n" +
-                "  3  |  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            methodWatcher.executeUpdate(String.format("create external table joined (col1 int, col2 int)" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath + "joined"));
+
+            // test for DB-9770
+            // using cross join will go over NativeSparkDataSet instead of SparkDataSet
+            int insertCountJoin = methodWatcher.executeUpdate(String.format("insert into joined (select a.col1,b.col1 from l a, l b)"));
+            Assert.assertEquals("insertCount for cross join is wrong", 9, insertCountJoin);
+            methodWatcher.execute("DROP TABLE l");
+            methodWatcher.execute("DROP TABLE r");
+            methodWatcher.execute("DROP TABLE joined");
+        }
     }
 
     @Ignore
