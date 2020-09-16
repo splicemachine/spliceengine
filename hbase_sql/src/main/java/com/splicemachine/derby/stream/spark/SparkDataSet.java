@@ -834,9 +834,8 @@ public class SparkDataSet<V> implements DataSet<V> {
     {
         StructType tableSchema = generateTableSchema( context );
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
+                rdd.map(new LocatedRowToRowFunction()),
                 tableSchema);
-
         return new NativeSparkDataSet<>(insertDF, context);
     }
 
