@@ -31,24 +31,25 @@
 
 package com.splicemachine.db.impl.tools.ij;
 
-import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedInput;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedOutput;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.util.ArrayList;
 
 /**
  * StatementGrabber looks through an input stream for
  * the next JSQL statement.  A statement is considered to
- * be any tokens up to the next semicolon or EOF.
+ * be any tokens up to the next user-defined terminator or EOF.
  * <p>
  * Semicolons inside comments, strings, and delimited identifiers
  * are not considered to be statement terminators but to be
  * part of those tokens.
  * <p>
- *  Comments currently recognized include the SQL comment,
- *  which begins with "--" and ends at the next EOL, and nested
- *  bracketed comments.
+ * Comments currently recognized include the SQL comment,
+ * which begins with "--" and ends at the next EOL, and nested
+ * bracketed comments.
  * <p>
  * Strings and delimited identifiers are permitted to contain
  * newlines; the actual IJ or JSQL parsers will report errors when
@@ -56,11 +57,69 @@ import java.io.Reader;
  * <p>
  * There are no escaped characters, i.e. "\n" is considered to
  * be two characters, '\' and 'n'.
- *
  */
-
 public class StatementFinder {
 
+    // state variables
+    private static final int IN_STATEMENT = 0;
+    private static final int IN_STRING = 1;
+    private static final int IN_SQLCOMMENT = 2;
+    private static final int END_OF_STATEMENT = 3;
+    private static final int END_OF_INPUT = 4;
+    // special state-changing characters
+    private static final char MINUS = '-';
+    private static final char SINGLEQUOTE = '\'';
+    private static final char DOUBLEQUOTE = '\"';
+    public static final char SEMICOLON = ';';
+    private static final char NEWLINE = '\n';
+    private static final char RETURN = '\r';
+    private static final char SPACE = ' ';
+    private static final char TAB = '\t';
+    private static final char FORMFEED = '\f';
+    private static final char SLASH = '/';
+    private static final char ASTERISK = '*';
+    private static final char LITTLE_A = 'a';
+    private static final char LITTLE_T = 't';
+    private static final char LITTLE_O = 'o';
+    private static final char LITTLE_M = 'm';
+    private static final char LITTLE_I = 'i';
+    private static final char LITTLE_C = 'c';
+    private static final char LITTLE_E = 'e';
+    private static final char LITTLE_N = 'n';
+    private static final char LITTLE_D = 'd';
+    private static final char BIG_A = 'A';
+    private static final char BIG_T = 'T';
+    private static final char BIG_O = 'O';
+    private static final char BIG_M = 'M';
+    private static final char BIG_I = 'I';
+    private static final char BIG_C = 'C';
+    private static final char BIG_E = 'E';
+    private static final char BIG_N = 'N';
+    private static final char BIG_D = 'D';
+    // state variables
+    private static final int NOT_IN_BEGIN_BLOCK = 0;
+    private static final int IN_BEGIN_BLOCK = 1;
+    private static final int IN_BEGIN_BLOCK_SEMICOLON_SEEN = 2;
+    // trigger parsing state
+    private static final int WHITESPACE_SEEN = 0;
+    private static final int E_SEEN = 1;
+    private static final int EN_SEEN = 2;
+    private static final int A_SEEN = 3;
+    private static final int AT_SEEN = 4;
+    private static final int ATO_SEEN = 5;
+    private static final int ATOM_SEEN = 6;
+    private static final int ATOMI_SEEN = 7;
+    private static final int NOTHING_SEEN = 8;
+    private static final ArrayList<Character> DISALLOWED_TERMINATORS = new ArrayList<Character>() {{
+        add(',');
+        add('\'');
+        add('"');
+        add('(');
+        add(')');
+        add(' ');
+        add('_');
+    }};
+    private char terminator;
     private Reader source;
     private StringBuffer statement = new StringBuffer();
     private int state;
@@ -71,68 +130,6 @@ public class StatementFinder {
     private LocalizedOutput promptwriter;
     private boolean doPrompt;
     private boolean continuedStatement;
-
-    // state variables
-    private static final int IN_STATEMENT = 0;
-    private static final int IN_STRING = 1;
-    private static final int IN_SQLCOMMENT = 2;
-    private static final int END_OF_STATEMENT = 3;
-    private static final int END_OF_INPUT = 4;
-
-    // special state-changing characters
-    private static final char MINUS = '-';
-    private static final char SINGLEQUOTE = '\'';
-    private static final char DOUBLEQUOTE = '\"';
-    private static final char SEMICOLON = ';';
-    private static final char NEWLINE = '\n';
-    private static final char RETURN = '\r';
-    private static final char SPACE = ' ';
-    private static final char TAB = '\t';
-    private static final char FORMFEED = '\f';
-    private static final char SLASH = '/';
-    private static final char ASTERISK = '*';
-
-
-    private static final char LITTLE_A = 'a';
-    private static final char LITTLE_T = 't';
-    private static final char LITTLE_O = 'o';
-    private static final char LITTLE_M = 'm';
-    private static final char LITTLE_I = 'i';
-    private static final char LITTLE_C = 'c';
-
-    private static final char LITTLE_E = 'e';
-    private static final char LITTLE_N = 'n';
-    private static final char LITTLE_D = 'd';
-
-    private static final char BIG_A = 'A';
-    private static final char BIG_T = 'T';
-    private static final char BIG_O = 'O';
-    private static final char BIG_M = 'M';
-    private static final char BIG_I = 'I';
-    private static final char BIG_C = 'C';
-
-    private static final char BIG_E = 'E';
-    private static final char BIG_N = 'N';
-    private static final char BIG_D = 'D';
-
-
-    // state variables
-    private static final int NOT_IN_BEGIN_BLOCK = 0;
-    private static final int IN_BEGIN_BLOCK = 1;
-    private static final int IN_BEGIN_BLOCK_SEMICOLON_SEEN = 2;
-
-    // trigger parsing state
-        private static final int WHITESPACE_SEEN = 0;
-        private static final int E_SEEN = 1;
-        private static final int EN_SEEN = 2;
-
-        private static final int A_SEEN = 3;
-        private static final int AT_SEEN = 4;
-    private static final int ATO_SEEN = 5;
-    private static final int ATOM_SEEN = 6;
-    private static final int ATOMI_SEEN = 7;
-        private static final int NOTHING_SEEN = 8;
-
 
     /**
      * The constructor does not assume the stream is data input
@@ -147,14 +144,15 @@ public class StatementFinder {
      *                   continuation prompts ("> ") to. If null,
      *                   no such prompts will be written.
      */
-    public StatementFinder(LocalizedInput s, LocalizedOutput promptDest) {
+    public StatementFinder(LocalizedInput s, LocalizedOutput promptDest, char terminator) {
         source = s;
-        if(promptDest != null && s.isStandardInput()) {
+        if (promptDest != null && s.isStandardInput()) {
             promptwriter = promptDest;
             doPrompt = true;
         } else {
             doPrompt = false;
         }
+        setTerminator(terminator);
     }
 
     /**
@@ -211,7 +209,7 @@ public class StatementFinder {
             return null;
         }
         if (whiteSpace(nextChar)) {
-            while (whiteSpace(peekChar()) && ! peekEOF());
+            while (whiteSpace(peekChar()) && !peekEOF()) ;
             if (peekEOF()) {
                 state = END_OF_INPUT;
                 return null;
@@ -228,9 +226,9 @@ public class StatementFinder {
             }
 
             if (!(nextChar == MINUS))
-                continuedStatement=true;
+                continuedStatement = true;
 
-            switch(nextChar) {
+            switch (nextChar) {
                 case SPACE:
                 case TAB:
                 case FORMFEED:
@@ -311,38 +309,43 @@ public class StatementFinder {
                     readString(nextChar);
                     triggerParseState = NOTHING_SEEN;
                     break;
-                case SEMICOLON:
-                    if (triggerState == NOT_IN_BEGIN_BLOCK || peekChar() == SEMICOLON) {
-                        haveSemi = true;
-                        state = END_OF_STATEMENT;
-                        continuedStatement = false;
-                    }
-                    if (triggerState == IN_BEGIN_BLOCK)
-                        triggerState = IN_BEGIN_BLOCK_SEMICOLON_SEEN;
-                    triggerParseState = WHITESPACE_SEEN;
-                    break;
                 case NEWLINE:
                 case RETURN:
-                    if(doPrompt) {
+                    if (doPrompt) {
                         utilMain.doPrompt(false, promptwriter, "");
                         /* If the next character is a newline as well,
                            we swallow it to avoid double prompting on
                            Windows. */
-                        if(nextChar == RETURN && peekChar() == NEWLINE) {
+                        if (nextChar == RETURN && peekChar() == NEWLINE) {
                             readChar();
                         }
                     }
                     triggerParseState = WHITESPACE_SEEN;
                     break;
+                case SEMICOLON:
+                    if (triggerState == IN_BEGIN_BLOCK) {
+                        triggerState = IN_BEGIN_BLOCK_SEMICOLON_SEEN;
+                        break;
+                    } // intentional fallthrough, backward-compatible behavior of sqlshell, it is able to understand
+                      // trigger with nested statements having semicolon separator.
                 default:
-                    triggerParseState = NOTHING_SEEN;
-                    // keep going, just a normal character
+                    if(terminator == nextChar) {
+                        if (triggerState == NOT_IN_BEGIN_BLOCK || peekChar() == terminator) {
+                            haveSemi = true;
+                            state = END_OF_STATEMENT;
+                            continuedStatement = false;
+                        }
+                        triggerParseState = WHITESPACE_SEEN;
+                    } else {
+                        // keep going, just a normal character
+                        triggerParseState = NOTHING_SEEN;
+                    }
                     break;
             }
         }
 
         if (haveSemi)
-            statement.setLength(statement.length()-1);
+            statement.setLength(statement.length() - 1);
         return statement.toString();
     }
 
@@ -373,8 +376,7 @@ public class StatementFinder {
         if (peekEOF()) return;
 
         // if nextChar is not an asterisk, then not a comment.
-        if (nextChar != ASTERISK)
-        {
+        if (nextChar != ASTERISK) {
             continuedStatement = true;
             return;
         }
@@ -439,9 +441,8 @@ public class StatementFinder {
 
         // if nextChar is not a minus, it was just a normal minus,
         // nothing special to do
-        if (nextChar != commentChar)
-        {
-            continuedStatement=true;
+        if (nextChar != commentChar) {
+            continuedStatement = true;
             return;
         }
 
@@ -461,7 +462,7 @@ public class StatementFinder {
                 case RETURN:
                     readChar(); // okay to process the character
                     state = IN_STATEMENT;
-                    if (doPrompt){
+                    if (doPrompt) {
                         // If we had previously already started a statement,
                         // add the prompt.
                         // Otherwise, consider this a single line comment,
@@ -473,11 +474,11 @@ public class StatementFinder {
 
                         /* If the next character is a NEWLINE, we process
                          *  it as well to account for Windows CRLFs. */
-                        if(nextChar == RETURN && peekChar() == NEWLINE) {
+                        if (nextChar == RETURN && peekChar() == NEWLINE) {
                             readChar();
                         }
                     }
-                return;
+                    return;
                 default:
                     readChar(); // process the character, still in comment
                     break;
@@ -568,12 +569,29 @@ public class StatementFinder {
             // understand whether the stream is ascii or something else.
             cInt = source.read();
             peekEOF = (cInt == -1);
-            if (!peekEOF) c = (char)cInt;
+            if (!peekEOF) c = (char) cInt;
         } catch (IOException ie) {
             throw ijException.iOException(ie);
         }
 
         peekChar = c;
         return c;
+    }
+
+    public void setTerminator(char terminator) {
+        assert isValidTerminator(terminator);
+        this.terminator = terminator;
+    }
+
+    private static boolean isAsciiLetter(char c) {
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    }
+
+    public static boolean isValidTerminator(char terminator) {
+        return !isAsciiLetter(terminator) && !DISALLOWED_TERMINATORS.contains(terminator);
+    }
+
+    public char getTerminator() {
+        return terminator;
     }
 }
