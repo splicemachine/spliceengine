@@ -32,7 +32,7 @@
 package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -818,7 +818,7 @@ public interface LanguageConnectionContext extends Context {
     /**
       Returns the Database of this connection.
      */
-    Database getDatabase();
+    InternalDatabase getDatabase();
 
     /**
      * Returns true if isolation level has been set using JDBC/SQL.
