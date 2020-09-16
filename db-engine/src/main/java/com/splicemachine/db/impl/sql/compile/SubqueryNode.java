@@ -1386,6 +1386,209 @@ public class SubqueryNode extends ValueNode{
             mbex.pushThis();
             mbex.callMethod(VMOpcode.INVOKEVIRTUAL,null,mb.getName(),subqueryTypeString,0);
         }
+
+        generateSubqueryResultSet(expressionBuilder);
+    }
+
+    public void generateSubqueryResultSet(ExpressionClassBuilder expressionBuilder) throws StandardException {
+        CompilerContext cc=getCompilerContext();
+        String resultSetString;
+
+        ///////////////////////////////////////////////////////////////////////////
+        //
+        //    Subqueries should not appear in Filter expressions. We should get here
+        //    only if we're compiling a query. That means that our class builder
+        //    is an activation builder. If we ever allow subqueries in filters, we'll
+        //    have to revisit this code.
+        //
+        ///////////////////////////////////////////////////////////////////////////
+
+        if(SanityManager.DEBUG){
+            SanityManager.ASSERT(expressionBuilder instanceof ActivationClassBuilder,
+                    "Expecting an ActivationClassBuilder");
+        }
+
+        ActivationClassBuilder acb=(ActivationClassBuilder)expressionBuilder;
+        /* Reuse generated code, where possible */
+
+        /* Generate the appropriate (Any or Once) ResultSet */
+        if(subqueryType==EXPRESSION_SUBQUERY){
+            resultSetString="getOnceResultSet";
+        }else{
+            resultSetString="getAnyResultSet";
+        }
+
+        // Get cost estimate for underlying subquery
+        CostEstimate costEstimate=resultSet.getFinalCostEstimate(false);
+
+        /* Generate a new method.  It's only used within the other
+         * exprFuns, so it could be private. but since we don't
+         * generate the right bytecodes to invoke private methods,
+         * we just make it protected.  This generated class won't
+         * have any subclasses, certainly! (nat 12/97)
+         */
+        MethodBuilder mb = acb.newGeneratedFun(ClassName.ResultSet, Modifier.PRIVATE);
+        mb.addThrownException(ClassName.StandardException);
+
+        mb.pushThis(); // instance
+        mb.push("materializedResultSet");
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfClosed", "void", 1);
+
+        /* Declare the field to hold the suquery's ResultSet tree */
+        LocalField rsFieldLF=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
+
+        ResultSetNode subNode=null;
+
+        if(!isMaterializable()){
+            MethodBuilder executeMB=acb.getExecuteMethod();
+            if(pushedNewPredicate && (!hasCorrelatedCRs())){
+                if(resultSetNumber==-1){
+                    resultSetNumber=cc.getNextResultSetNumber();
+                }
+                /* We try to materialize the subquery if it can fit in the memory.  We
+                 * evaluate the subquery first.  If the result set fits in the memory,
+                 * we replace the resultset with in-memory cache of row result sets.
+                 * We do this trick by replacing the child result with a new node --
+                 * MaterializeSubqueryNode, which refers to the field that holds the
+                 * possibly materialized subquery.  This may have big performance
+                 * improvement.  See beetle 4373.
+                 */
+                if(SanityManager.DEBUG){
+                    SanityManager.ASSERT(resultSet instanceof ProjectRestrictNode,
+                            "resultSet expected to be a ProjectRestrictNode!");
+                }
+                subNode=((ProjectRestrictNode)resultSet).getChildResult();
+                LocalField subRS=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
+
+                ResultSetNode materialSubNode=new MaterializeSubqueryNode(subRS);
+
+                // Propagate the resultSet's cost estimate to the new node.
+                materialSubNode.costEstimate=resultSet.getFinalCostEstimate(false);
+
+                ((ProjectRestrictNode)resultSet).setChildResult(materialSubNode);
+
+                // add materialize...() call to execute() method
+                subNode.generate(acb, executeMB);
+                executeMB.setField(subRS);
+
+                acb.pushThisAsActivation(executeMB);
+                executeMB.getField(subRS);
+                executeMB.push(resultSetNumber);
+                executeMB.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "materializeResultSetIfPossible",ClassName.NoPutResultSet,2);
+                executeMB.setField(subRS);
+            }
+
+            executeMB.pushNull(ClassName.NoPutResultSet);
+            executeMB.setField(rsFieldLF);
+
+            // now we fill in the body of the conditional
+            mb.getField(rsFieldLF);
+            mb.conditionalIfNull();
+        }
+
+        acb.pushGetResultSetFactoryExpression(mb);
+
+        // start of args
+        int nargs;
+
+        /* Inside here is where subquery could already have been materialized. 4373
+         */
+        resultSet.generate(acb,mb);
+
+        /* Get the next ResultSet #, so that we can number the subquery's
+         * empty row ResultColumnList and Once/Any ResultSet.
+         */
+        int subqResultSetNumber=cc.getNextResultSetNumber();
+
+        /* We will be reusing the RCL from the subquery's ResultSet for the
+         * empty row function.  We need to reset the resultSetNumber in the
+         * RCL, before we generate that function.  Now that we've called
+         * generate() on the subquery's ResultSet, we can reset that
+         * resultSetNumber.
+         */
+        resultSet.getResultColumns().setResultSetNumber(subqResultSetNumber);
+
+        /* Generate code for empty row */
+        resultSet.getResultColumns().generateNulls(acb,mb);
+
+        /*
+         *    arg1: suqueryExpress - Expression for subquery's
+         *          ResultSet
+         *  arg2: Activation
+         *  arg3: Method to generate Row with null(s) if subquery
+         *          Result Set is empty
+         */
+        if(subqueryType==EXPRESSION_SUBQUERY){
+            /*  arg4: int - whether or not cardinality check is required
+             *                DO_CARDINALITY_CHECK - required
+             *                NO_CARDINALITY_CHECK - not required
+             *                UNIQUE_CARDINALITY_CHECK - verify single
+             *                                            unique value
+             */
+            mb.push(getCardinalityCheck());
+            nargs=8;
+
+        }else{
+            nargs=7;
+        }
+
+        mb.push(subqResultSetNumber);
+        mb.push(subqueryNumber);
+        mb.push(pointOfAttachment);
+        mb.push(costEstimate.rowCount());
+        mb.push(costEstimate.getEstimatedCost());
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,resultSetString,ClassName.NoPutResultSet,nargs);
+
+        /* Fill in the body of the method
+         * generates the following.
+         * (NOTE: the close() method only generated for
+         * materialized subqueries.  All other subqueries
+         * closed by top result set in the query.):
+         *
+         *    NoPutResultSet    rsFieldX;
+         *    {
+         *        <Datatype interface> col;
+         *        ExecRow r;
+         *        rsFieldX = (rsFieldX == null) ? outerRSCall() : rsFieldX; // <== NONmaterialized specific
+         *        rsFieldX.openCore();
+         *        r = rsFieldX.getNextRowCore();
+         *        col = (<Datatype interface>) r.getColumn(1);
+         *        return col;
+         *    }
+         *
+         * MATERIALIZED:
+         *    NoPutResultSet    rsFieldX;
+         *    {
+         *        <Datatype interface> col;
+         *        ExecRow r;
+         *        rsFieldX = outerRSCall();
+         *        rsFieldX.openCore();
+         *        r = rsFieldX.getNextRowCore();
+         *        col = (<Datatype interface>) r.getColumn(1);
+         *        rsFieldX.close();                                // <== materialized specific
+         *        return col;
+         *    }
+         * and adds it to exprFun
+         */
+
+        if(!isMaterializable()){
+            /* put it back
+             */
+            if(pushedNewPredicate && (!hasCorrelatedCRs()))
+                ((ProjectRestrictNode)resultSet).setChildResult(subNode);
+
+            // now we fill in the body of the conditional
+            mb.startElseCode();
+            mb.getField(rsFieldLF);
+            mb.completeConditional();
+        }
+
+        mb.setField(rsFieldLF);
+        mb.getField(rsFieldLF);
+        mb.methodReturn();
+        mb.complete();
+        acb.addSubqueryResultSet(mb);
     }
 
     /**
