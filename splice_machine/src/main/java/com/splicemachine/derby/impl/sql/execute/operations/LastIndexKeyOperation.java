@@ -29,8 +29,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -90,25 +88,6 @@ public class LastIndexKeyOperation extends ScanOperation {
     @Override
     public List<SpliceOperation> getSubOperations() {
         return Collections.emptyList();
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        tableName = in.readUTF();
-        if (in.readBoolean())
-            indexName = in.readUTF();
-        tableVersion = GenericColumnDescriptor.readNullableUTF(in);
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeUTF(tableName);
-        out.writeBoolean(indexName != null);
-        if (indexName != null)
-            out.writeUTF(indexName);
-        GenericColumnDescriptor.writeNullableUTF(out, tableVersion);
     }
 
     @Override

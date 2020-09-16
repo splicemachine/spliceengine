@@ -33,8 +33,6 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  *
@@ -114,21 +112,6 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         this(s, isInSortedOrder, aggregateItem, a, ra, maxRowSize, resultSetNumber,
                 optimizerEstimatedRowCount, optimizerEstimatedCost, isRollup, nativeSparkMode,
                 new DerbyGroupedAggregateContext(orderingItem, groupingIdColPosition, groupingIdArrayItem));
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-                                                    ClassNotFoundException {
-        super.readExternal(in);
-        isRollup = in.readBoolean();
-        groupedAggregateContext = (GroupedAggregateContext) in.readObject();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeBoolean(isRollup);
-        out.writeObject(groupedAggregateContext);
     }
 
     @Override
