@@ -32,8 +32,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -152,40 +150,6 @@ public class DistinctScanOperation extends ScanOperation {
 
     /**
      *
-     * Serde
-     *
-     * @param in
-     * @throws IOException
-     * @throws ClassNotFoundException
-     */
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        tableName = in.readUTF();
-        if(in.readBoolean())
-            indexName = in.readUTF();
-        hashKeyItem = in.readInt();
-    }
-
-    /**
-     *
-     * Serde
-     *
-     * @param out
-     * @throws IOException
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeUTF(tableName);
-        out.writeBoolean(indexName!=null);
-        if(indexName!=null)
-            out.writeUTF(indexName);
-        out.writeInt(hashKeyItem);
-    }
-
-    /**
-     *
      * Initialization after creation or serialization.
      *
      * @param context
@@ -255,10 +219,6 @@ public class DistinctScanOperation extends ScanOperation {
 
         dsp.prependSpliceExplainString(this.explainPlan);
         assert currentTemplate != null: "Current Template Cannot Be Null";
-        int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
-        for (int i = 0; i< currentTemplate.nColumns(); i++) {
-            execRowTypeFormatIds[i] = currentTemplate.getColumn(i+1).getTypeFormatId();
-        }
         FormatableBitSet cols = scanInformation.getAccessedColumns();
         int[] colMap;
         if(cols!=null){
