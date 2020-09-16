@@ -1515,6 +1515,7 @@ TOKEN [IGNORE_CASE] :
 | <CLOCK: "clock">
 | <WITHOUT: "WITHOUT">
 | <HEADER: "HEADER">
+| <TERMINATOR: "TERMINATOR">
 }
 
 TOKEN :
@@ -1853,7 +1854,7 @@ throws SQLException, IOException
 | r=RelativeStatement()
 | r=RemoveStatement()
 | r=RunStatement()
-| r=SetConnectionStatement()
+| r=SetStatement()
 | r=ShowStatement()
 | r=WaitForStatement()
 | r=XA_DataSourceStatement()
@@ -2222,30 +2223,41 @@ throws SQLException
     }
 }
 
+ijResult SetStatement() throws SQLException
+:
+{}
+{
+    <SET>
+    {
+        return HandleSetStatement();
+    }
+}
 
-/**
- * SetConnectionStatement is SET CONNECTION ident
- * <p>
- * Moves to the named session, if it exists. If it doesn't
- * exist, remains on the current session and returns an error.
- */
-ijResult
-SetConnectionStatement()
-throws SQLException
+ijResult HandleSetStatement() throws SQLException
 :
 {
-    String t;
+    String id;
+    Token t;
 }
 {
-    <SET> <CONNECTION> t=identifier()
+    // SetConnectionStatement is SET CONNECTION ident
+    // Moves to the named session, if it exists. If it doesn't
+    // exist, remains on the current session and returns an error.
+    <CONNECTION> id=identifier()
     {
-        if (!currentConnEnv.haveSession(t)) {
-            throw ijException.noSuchConnection(t);
+        if (!currentConnEnv.haveSession(id)) {
+            throw ijException.noSuchConnection(id);
         }
-        currentConnEnv.setCurrentSession(t);
+        currentConnEnv.setCurrentSession(id);
         theConnection = currentConnEnv.getConnection();
         return new ijConnectionResult(theConnection);
     }
+|
+   <TERMINATOR> t=<STRING>
+   {
+       utilInstance.setTerminator(stringValue(t.image));
+       return new ijShellConfigResult();
+   }
 }
 
 /**
@@ -4412,6 +4424,7 @@ keyword() :
 | tok = <SPOOL>
 | tok = <STOP>
 | tok = <CLEAR>
+| tok = <TERMINATOR>
 )
     {
 
