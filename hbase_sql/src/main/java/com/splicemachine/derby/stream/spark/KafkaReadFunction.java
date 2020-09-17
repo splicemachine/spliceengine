@@ -16,7 +16,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-//import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportKafkaOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -41,7 +41,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.function.Predicate;
 
-class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Integer, ExecRow> {
+public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Integer, ExecRow> {
     private String topicName;
     private String bootstrapServers;
 
@@ -86,11 +86,13 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
 
         return new Iterator<ExecRow>() {
             Iterator<ConsumerRecord<Integer, Externalizable>> it = null;
+            ExecRow record = null;
+            boolean endOfBatch = false;
             
             Predicate<ConsumerRecords<Integer, Externalizable>> noRecords = records ->
                 records == null || records.isEmpty();
             
-            long kafkaRcdCount = KafkaUtils.messageCount(bootstrapServers, topicName, partition);
+            //long kafkaRcdCount = KafkaUtils.messageCount(bootstrapServers, topicName, partition);
             long totalCount = 0L;
             int maxRetries = 10;
             int retries = 0;
@@ -113,14 +115,15 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
             private boolean hasMoreRecords(int maxAttempts) throws TaskKilledException {
                 ConsumerRecords<Integer, Externalizable> records = kafkaRecords(maxAttempts);
                 if( noRecords.test(records) ) {
-                    kafkaRcdCount = KafkaUtils.messageCount(bootstrapServers, topicName, partition);
-                    if( totalCount < kafkaRcdCount && retries < maxRetries ) {
+//                    if( totalCount < kafkaRcdCount && retries < maxRetries ) {
+                    if( retries < maxRetries ) {
                         retries++;
-                        LOG.warn( id+" KRF.call Missed rcds, got "+totalCount+" of "+kafkaRcdCount+" retry "+retries );
+                        LOG.warn( id+" KRF.call Missed rcds, got "+totalCount+" retry "+retries );
                         return hasMoreRecords(maxAttempts);
                     }
-                    LOG.info( id+" KRF.call p "+partition+" t "+topicName+" expected "+kafkaRcdCount );
-                    consumer.close();
+                    //LOG.info( id+" KRF.call p "+partition+" t "+topicName+" expected "+kafkaRcdCount );
+                    //consumer.close();
+                    LOG.error( id+" KRF.call Didn't get full batch after "+retries+" retries, got "+totalCount+" records" );
                     return false;
                 } else {
                     int ct = records.count();
@@ -129,27 +132,42 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
                     //LOG.info( id+" KRF.call p "+partition+" t "+topicName+" progress "+totalCount+" "+kafkaRcdCount );
                     
                     it = records.iterator();
-                    return it.hasNext();
+                    return hasNext(it);
                 }
+            }
+            
+            private boolean hasNext(Iterator<ConsumerRecord<Integer, Externalizable>> it) {
+                boolean more = false;
+                if( it != null && it.hasNext() ) {
+                    Message m = (Message)it.next().value();
+                    endOfBatch = m.last();
+                    record = m.vr();
+                    more = true;
+                }
+                return more;
             }
 
             @Override
             public boolean hasNext() {
-                if (it == null) {
-                    return hasMoreRecords(2);
-                }
-                if (it.hasNext()) {
-                    return true;
-                }
-                else {
-                    return hasMoreRecords(1);
+                try {
+                    if (hasNext(it)) {
+                        return true;
+                    } else if (!endOfBatch) {
+                        return hasMoreRecords(1);
+                    } else {
+                        return false;
+                    }
+                } finally {
+                    if (endOfBatch) {
+                        consumer.close();
+                    }
                 }
             }
 
             @Override
             public ExecRow next() {
-                //return ((ValueRow.Message)it.next().value()).vr();
-                return (ExecRow)it.next().value();
+                return record;
+//                return (ExecRow)it.next().value();
             }
         };
     }
@@ -164,5 +182,44 @@ class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Inte
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         topicName = in.readUTF();
         bootstrapServers = in.readUTF();
+    }
+
+    public static class Message implements Externalizable {
+
+        static final long serialVersionUID = 20200917L;
+        
+        private ValueRow vr = new ValueRow();
+        private long id = -1;
+        private long max = -1;
+        
+        public Message() {}
+
+        public Message(ValueRow vr, long id, long max) {
+            this.vr = vr;
+            this.id = id;
+            this.max = max;
+        }
+
+        public ValueRow vr()    { return vr; }
+        public long id()        { return id; }
+        public long max()       { return max; }
+        
+        public boolean last()   { return id == max; }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            vr.writeExternal(out);
+            //out.writeObject(vr);
+            out.writeLong(id);
+            out.writeLong(max);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            vr.readExternal(in);
+            //vr = (ValueRow)in.readObject();
+            id = in.readLong();
+            max = in.readLong();
+        }
     }
 }
