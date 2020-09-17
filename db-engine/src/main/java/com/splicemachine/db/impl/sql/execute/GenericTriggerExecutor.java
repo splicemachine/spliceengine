@@ -112,7 +112,7 @@ public abstract class GenericTriggerExecutor {
     private SPSDescriptor getWhenClause() throws StandardException {
         if (!whenClauseRetrieved) {
             whenClauseRetrieved = true;
-            whenClause = triggerd.getWhenClauseSPS(lcc);
+            whenClause = triggerd.getWhenClauseSPS(lcc, tec.getSpsCache());
         }
         return whenClause;
     }
@@ -120,7 +120,7 @@ public abstract class GenericTriggerExecutor {
     private SPSDescriptor getAction(int index) throws StandardException {
         if (!actionRetrievedList.get(index)) {
             actionRetrievedList.set(index, true);
-            actionList.set(index, triggerd.getActionSPS(lcc, index));
+            actionList.set(index, triggerd.getActionSPS(lcc, index, tec.getSpsCache()));
         }
         return actionList.get(index);
     }

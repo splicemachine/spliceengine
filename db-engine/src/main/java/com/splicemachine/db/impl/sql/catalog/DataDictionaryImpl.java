@@ -11119,4 +11119,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         getTransactionCompile());
         return result != null;
     }
+
+    @Override
+    public boolean useTxnAwareCache() {
+        return false;
+    }
+
 }
