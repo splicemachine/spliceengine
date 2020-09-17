@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.transactions;
+package com.splicemachine.hbase;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
