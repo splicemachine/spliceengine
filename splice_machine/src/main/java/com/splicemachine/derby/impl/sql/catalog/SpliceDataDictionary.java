@@ -1669,11 +1669,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT, 1);
             tc.addColumnToConglomerate(td.getHeapConglomerateId(), colNumber, storableDV, dtd.getCollationType());
 
-            try {
-                Thread.sleep(10000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             columnDescriptor = new ColumnDescriptor(SYSTABLESRowFactory.MIN_RETENTION_PERIOD, colNumber,
                     colNumber, dtd, null, null, td, uuid, 0, 0, td.getColumnSequence());
 
