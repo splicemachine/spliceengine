@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.types.SQLDate
 import com.splicemachine.db.iapi.types.SQLDecimal
 import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.stream.spark.ExternalizableSerializer
+import com.splicemachine.derby.stream.spark.KafkaReadFunction
 import com.splicemachine.nsds.kafka.{KafkaTopics, KafkaUtils}
 import org.apache.log4j.Logger
 import org.apache.spark.TaskContext
@@ -635,22 +636,46 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //        val sendDataTimestamp = System.currentTimeMillis
 //        println(s"SMC.sendData ts $sendDataTimestamp")
         
-        while( itr.hasNext ) {
+        var row = if( itr.hasNext ) { Some(itr.next) } else None
+        
+        def send(last: Boolean = false): Unit = {
+          msgCount += 1
           producer.send( new ProducerRecord(
             topicName,
             partition,
             partition,
-//            r.nextInt(insertTopicPartitions),
-            externalizable(itr.next, schema, partition)
+            //r.nextInt(insertTopicPartitions),
+            new KafkaReadFunction.Message(
+              externalizable(row.get, schema, partition),
+              msgCount,
+              if(last) { msgCount } else -1
+            )
           ))
-          msgCount += 1
         }
+        
+        while( itr.hasNext ) {
+//          msgCount += 1
+//          producer.send( new ProducerRecord(
+//            topicName,
+//            partition,
+//            partition,
+////            r.nextInt(insertTopicPartitions),
+//            new KafkaReadFunction.Message(
+//              externalizable(row.get, schema, partition),
+//              msgCount,
+//              -1
+//            )
+//          ))
+          send()
+          row = Some(itr.next)
+        }
+        row.foreach( r => send(true) )
 
 //        producer.send( new ProducerRecord(
 //          topicName,
 //          partition,
 //          partition,
-//          new ValueRow.Message(null, msgCount, msgCount)
+//          new KafkaReadFunction.Message(new ValueRow(), msgCount, msgCount)
 //        ))
         
         insAccum.add(msgCount)
@@ -665,7 +690,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   }
 
   /** Convert org.apache.spark.sql.Row to Externalizable. */
-  def externalizable(row: Row, schema: StructType, partition: Int/*, msgCount: Int*/): ValueRow = {
+  def externalizable(row: Row, schema: StructType, partition: Int): ValueRow = {
     val valRow = new ValueRow(row.length + 2)
     for (i <- 1 to row.length) {  // convert each column of the row
       val fieldDef = schema(i-1)
@@ -681,7 +706,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     valRow.setColumn( row.length + 1 , new SQLInteger(partition) )
     valRow.setColumn( row.length + 2 , new SQLLongint(sendDataTimestamp) )
     valRow
-//    new ValueRow.Message(valRow, msgCount, -1);
   }
 
   def spliceType(sparkType: DataType, row: Row, i: Int): Option[com.splicemachine.db.iapi.types.DataType] = {
