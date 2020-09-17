@@ -28,6 +28,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -1691,5 +1692,51 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME,
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
         }
+    }
+
+    public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
+        faultInTabInfo(ti);
+
+        FormatableBitSet columnToReadSet=new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
+        FormatableBitSet columnToUpdateSet=new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
+        for(int i=0;i<SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT;i++){
+            // we do not want to read the saved serialized plan
+            if (i+1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME) {
+                columnToReadSet.set(i);
+            }
+            columnToUpdateSet.set(i);
+        }
+        /* Set up a couple of row templates for fetching CHARS */
+        DataValueDescriptor[] rowTemplate = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
+        DataValueDescriptor[] replaceRow= new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
+
+        /* Scan the entire heap */
+        ScanController sc=
+                tc.openScan(
+                        ti.getHeapConglomerate(),
+                        false,
+                        TransactionController.OPENMODE_FORUPDATE,
+                        TransactionController.MODE_TABLE,
+                        TransactionController.ISOLATION_REPEATABLE_READ,
+                        columnToReadSet,
+                        null,
+                        ScanController.NA,
+                        null,
+                        null,
+                        ScanController.NA);
+
+        while(sc.fetchNext(rowTemplate)){
+            /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
+            for (int i=0; i<rowTemplate.length; i++) {
+                if (i+1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME)
+                    if(replaceRow[i] == null) {
+                        replaceRow[i] = new SQLLongvarchar("NULL");
+                    }
+            }
+            sc.replace(replaceRow,columnToUpdateSet);
+        }
+        sc.close();
     }
 }
