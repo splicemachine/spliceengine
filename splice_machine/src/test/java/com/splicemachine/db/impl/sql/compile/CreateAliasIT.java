@@ -1,9 +1,6 @@
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -93,9 +90,9 @@ public class CreateAliasIT extends SpliceUnitTest {
         // step 1: create alias on RS0
         methodWatcher.executeUpdate("create alias a4 for t1");
         // step 2: select on RS1 to populate the cache
-        try(TestConnection rs1Conn = spliceClassWatcher.createConnection(remoteURLTemplate, "splice", "admin")) {
-            rs1Conn.query("select c1 from a4");
-            rs1Conn.commit();
+        try(TestConnection rs1Conn = spliceClassWatcher.connectionBuilder().user("splice").password("admin").port(1528).create(true).build()) {
+        rs1Conn.query("select c1 from a4");
+        rs1Conn.commit();
 
             // step 3: drop the alias on RS0
             methodWatcher.executeUpdate("drop alias a4");

@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 
@@ -57,6 +58,7 @@ import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.fromStri
  * It used for all system aggregates as well as user defined aggregates.
  */
 
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class AggregateNode extends UnaryOperatorNode {
     protected boolean distinct;
 

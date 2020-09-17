@@ -7205,7 +7205,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         columnCount=columnList.length;
         td=ddg.newTableDescriptor(name,sd,TableDescriptor.SYSTEM_TABLE_TYPE,TableDescriptor.ROW_LOCK_GRANULARITY,-1,
-                null,null,null,null,null,null,false,false,null);
+                null,null,null,null,null,null,false,false,
+                getSystablesMinRetentionPeriod());
         td.setUUID(crf.getCanonicalTableUUID());
         addDescriptor(td,sd,SYSTABLES_CATALOG_NUM,false,tc,false);
         toid=td.getUUID();

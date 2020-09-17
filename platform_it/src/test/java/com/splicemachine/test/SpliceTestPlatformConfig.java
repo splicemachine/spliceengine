@@ -28,6 +28,7 @@ import com.amazonaws.auth.profile.ProfileCredentialsProvider;
 import com.splicemachine.access.configuration.OlapConfigurations;
 import com.splicemachine.compactions.SpliceDefaultCompactionPolicy;
 import com.splicemachine.compactions.SpliceDefaultCompactor;
+import com.splicemachine.compactions.SpliceDefaultFlusher;
 import com.splicemachine.derby.hbase.SpliceIndexEndpoint;
 import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import org.apache.commons.collections.ListUtils;
@@ -45,6 +46,8 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
 import org.apache.hadoop.hbase.regionserver.DefaultStoreEngine;
+import org.apache.hadoop.hbase.regionserver.DefaultStoreFlusher;
+import org.apache.hadoop.hbase.regionserver.RpcSchedulerFactory;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionPolicy;
 import org.apache.hadoop.hbase.regionserver.compactions.Compactor;
 
@@ -198,6 +201,7 @@ class SpliceTestPlatformConfig {
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTOR_CLASS_KEY, SpliceDefaultCompactor.class, Compactor.class);
        // config.setClass(ConsistencyControlUtils.MVCC_IMPL, SIMultiVersionConsistencyControl.class, ConsistencyControl.class);
         config.setClass(DefaultStoreEngine.DEFAULT_COMPACTION_POLICY_CLASS_KEY, SpliceDefaultCompactionPolicy.class, CompactionPolicy.class);
+        config.setClass(DefaultStoreEngine.DEFAULT_STORE_FLUSHER_CLASS_KEY, SpliceDefaultFlusher.class, DefaultStoreFlusher.class);
         config.setStrings(OlapConfigurations.OLAP_LOG4J_CONFIG, olapLog4jConfig);
 
 

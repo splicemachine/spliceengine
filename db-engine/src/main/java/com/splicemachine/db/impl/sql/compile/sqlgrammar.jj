@@ -9440,7 +9440,6 @@ newInvocation() throws StandardException :
                                        C_NodeTypes.NEW_INVOCATION_NODE,
                                        javaClassName,
                                        parameterList,
-                                       lastTokenDelimitedIdentifier,
                                        getContextManager());
 
         /*
@@ -9508,7 +9507,6 @@ vtiTableConstruct() throws StandardException :
             vtiTableName,  // TableName
             null,          // TableDescriptor
             parameterList,
-            lastTokenDelimitedIdentifier,
             getContextManager());
 
         if ( newNode.isBuiltinVTI() ) { invocationNode = newNode; }

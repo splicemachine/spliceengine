@@ -55,6 +55,7 @@ import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -68,8 +69,9 @@ import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
+@SuppressFBWarnings(value = {"IS2_INCONSISTENT_SYNC", "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD"}, justification = "FIXME: DB-10223")
 public class GenericStatement implements Statement{
-    protected static AtomicInteger jsonIncrement;
+    static AtomicInteger jsonIncrement;
     protected int actualJsonIncrement = -1;
     private static final Logger JSON_TREE_LOG = Logger.getLogger(JsonTreeBuilderVisitor.class);
 
@@ -102,85 +104,66 @@ public class GenericStatement implements Statement{
     }
 
     public PreparedStatement prepare(LanguageConnectionContext lcc) throws StandardException{
-		/*
-		** Note: don't reset state since this might be
-		** a recompilation of an already prepared statement.
-		*/
+        /*
+        ** Note: don't reset state since this might be
+        ** a recompilation of an already prepared statement.
+        */
         return prepare(lcc,false);
     }
 
     public PreparedStatement prepare(LanguageConnectionContext lcc,boolean forMetaData) throws StandardException{
-		/*
-		** Note: don't reset state since this might be
-		** a recompilation of an already prepared statement.
-		*/
+        /*
+        ** Note: don't reset state since this might be
+        ** a recompilation of an already prepared statement.
+        */
 
         final int depth=lcc.getStatementDepth();
-        String prevErrorId=null;
-        while(true){
-            boolean recompile=false;
-            try{
-                return prepMinion(lcc,true,null,null,forMetaData);
-            }catch(StandardException se){
-                // There is a chance that we didn't see the invalidation
-                // request from a DDL operation in another thread because
-                // the statement wasn't registered as a dependent until
-                // after the invalidation had been completed. Assume that's
-                // what has happened if we see a conglomerate does not exist
-                // error, and force a retry even if the statement hasn't been
-                // invalidated.
-                if(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST.equals(se.getMessageId())){
-                    // STORE_CONGLOMERATE_DOES_NOT_EXIST has exactly one
-                    // argument: the conglomerate id
-                    String conglomId=String.valueOf(se.getArguments()[0]);
-
-                    // Request a recompile of the statement if a conglomerate
-                    // disappears while we are compiling it. But if we have
-                    // already retried once because the same conglomerate was
-                    // missing, there's probably no hope that yet another retry
-                    // will help, so let's break out instead of potentially
-                    // looping infinitely.
-                    if(!conglomId.equals(prevErrorId)){
-                        recompile=true;
-                    }
-
-                    prevErrorId=conglomId;
+        boolean recompile=false;
+        try{
+            return prepMinion(lcc,true,null,null,forMetaData);
+        } catch(StandardException se){
+            // There is a chance that we didn't see the invalidation
+            // request from a DDL operation in another thread because
+            // the statement wasn't registered as a dependent until
+            // after the invalidation had been completed. Assume that's
+            // what has happened if we see a conglomerate does not exist
+            // error, and force a retry even if the statement hasn't been
+            // invalidated.
+            if(SQLState.STORE_CONGLOMERATE_DOES_NOT_EXIST.equals(se.getMessageId())){
+                // Request a recompile of the statement
+                recompile=true;
+            }
+            throw se;
+        }finally{
+            // Check if the statement was invalidated while it was
+            // compiled. If so, the newly compiled plan may not be
+            // up to date anymore, so we recompile the statement
+            // if this happens. Note that this is checked in a finally
+            // block, so we also retry if an exception was thrown. The
+            // exception was probably thrown because of the changes
+            // that invalidated the statement. If not, recompiling
+            // will also fail, and the exception will be exposed to
+            // the caller.
+            //
+            // invalidatedWhileCompiling and isValid are protected by
+            // synchronization on the prepared statement.
+            synchronized(preparedStmt){
+                if(recompile || preparedStmt.invalidatedWhileCompiling){
+                    preparedStmt.isValid=false;
+                    preparedStmt.invalidatedWhileCompiling=false;
+                    recompile=true;
                 }
-                throw se;
-            }finally{
-                // Check if the statement was invalidated while it was
-                // compiled. If so, the newly compiled plan may not be
-                // up to date anymore, so we recompile the statement
-                // if this happens. Note that this is checked in a finally
-                // block, so we also retry if an exception was thrown. The
-                // exception was probably thrown because of the changes
-                // that invalidated the statement. If not, recompiling
-                // will also fail, and the exception will be exposed to
-                // the caller.
-                //
-                // invalidatedWhileCompiling and isValid are protected by
-                // synchronization on the prepared statement.
-                synchronized(preparedStmt){
-                    if(recompile || preparedStmt.invalidatedWhileCompiling){
-                        preparedStmt.isValid=false;
-                        preparedStmt.invalidatedWhileCompiling=false;
-                        recompile=true;
-                    }
-                }
+            }
 
-                if(recompile){
-                    // A new statement context is pushed while compiling.
-                    // Typically, this context is popped by an error
-                    // handler at a higher level. But since we retry the
-                    // compilation, the error handler won't be invoked, so
-                    // the stack must be reset to its original state first.
-                    while(lcc.getStatementDepth()>depth){
-                        lcc.popStatementContext(
-                                lcc.getStatementContext(),null);
-                    }
-
-                    // Don't return yet. The statement was invalidated, so
-                    // we must retry the compilation.
+            if(recompile){
+                // A new statement context is pushed while compiling.
+                // Typically, this context is popped by an error
+                // handler at a higher level. But since we retry the
+                // compilation, the error handler won't be invoked, so
+                // the stack must be reset to its original state first.
+                while(lcc.getStatementDepth()>depth){
+                    lcc.popStatementContext(
+                            lcc.getStatementContext(),null);
                 }
             }
         }
@@ -301,9 +284,9 @@ public class GenericStatement implements Statement{
             lcc.setOptimizerTraceOutput(getSource()+"\n");
 
         timestamps[0]=getCurrentTimeMillis(lcc);
-		/* beginTimestamp only meaningful if beginTime is meaningful.
-		 * beginTime is meaningful if STATISTICS TIMING is ON.
-		 */
+        /* beginTimestamp only meaningful if beginTime is meaningful.
+         * beginTime is meaningful if STATISTICS TIMING is ON.
+         */
         if(timestamps[0]!=0){
             beginTimestamp=new Timestamp(timestamps[0]);
         }
@@ -313,23 +296,23 @@ public class GenericStatement implements Statement{
          */
         prepareIsolationLevel=lcc.getPrepareIsolationLevel();
 
-		/* a note on statement caching:
-		 *
-		 * A GenericPreparedStatement (GPS) is only added it to the cache if the
-		 * parameter cacheMe is set to TRUE when the GPS is created.
-		 *
-		 * Earlier only CacheStatement (CS) looked in the statement cache for a
-		 * prepared statement when prepare was called. Now the functionality
-		 * of CS has been folded into GenericStatement (GS). So we search the
-		 * cache for an existing PreparedStatement only when cacheMe is TRUE.
-		 * i.e if the user calls prepare with cacheMe set to TRUE:
-		 * then we
-		 *         a) look for the prepared statement in the cache.
-		 *         b) add the prepared statement to the cache.
-		 *
-		 * In cases where the statement cache has been disabled (by setting the
-		 * relevant Derby property) then the value of cacheMe is irrelevant.
-		 */
+        /* a note on statement caching:
+         *
+         * A GenericPreparedStatement (GPS) is only added it to the cache if the
+         * parameter cacheMe is set to TRUE when the GPS is created.
+         *
+         * Earlier only CacheStatement (CS) looked in the statement cache for a
+         * prepared statement when prepare was called. Now the functionality
+         * of CS has been folded into GenericStatement (GS). So we search the
+         * cache for an existing PreparedStatement only when cacheMe is TRUE.
+         * i.e if the user calls prepare with cacheMe set to TRUE:
+         * then we
+         *         a) look for the prepared statement in the cache.
+         *         b) add the prepared statement to the cache.
+         *
+         * In cases where the statement cache has been disabled (by setting the
+         * relevant Derby property) then the value of cacheMe is irrelevant.
+         */
         boolean foundInCache=false;
         sessionPropertyValues = lcc.getCurrentSessionPropertyDelimited();
         if (lcc.getIgnoreCommentOptEnabled()) {
@@ -410,26 +393,26 @@ public class GenericStatement implements Statement{
         }
 
         try{
-			/*
-			** For stored prepared statements, we want all
-			** errors, etc in the context of the underlying
-			** EXECUTE STATEMENT statement, so don't push/pop
-			** another statement context unless we don't have
-			** one.  We won't have one if it is an internal
-			** SPS (e.g. jdbcmetadata).
-			*/
+            /*
+            ** For stored prepared statements, we want all
+            ** errors, etc in the context of the underlying
+            ** EXECUTE STATEMENT statement, so don't push/pop
+            ** another statement context unless we don't have
+            ** one.  We won't have one if it is an internal
+            ** SPS (e.g. jdbcmetadata).
+            */
             if(!preparedStmt.isStorable() || lcc.getStatementDepth()==0){
                 // since this is for compilation only, set atomic
                 // param to true and timeout param to 0
                 statementContext=lcc.pushStatementContext(true,isForReadOnly,getSource(), null,false,0L);
             }
 
-			/*
-			** RESOLVE: we may ultimately wish to pass in
-			** whether we are a jdbc metadata query or not to
-			** get the CompilerContext to make the createDependency()
-			** call a noop.
-			*/
+            /*
+            ** RESOLVE: we may ultimately wish to pass in
+            ** whether we are a jdbc metadata query or not to
+            ** get the CompilerContext to make the createDependency()
+            ** call a noop.
+            */
             CompilerContext cc=lcc.pushCompilerContext(compilationSchema);
 
             if(prepareIsolationLevel!=ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL){
@@ -447,7 +430,7 @@ public class GenericStatement implements Statement{
             /* get the selectivity estimation property so that we know what strategy to use to estimate selectivity */
             String selectivityEstimationString = PropertyUtil.getServiceProperty(lcc.getTransactionCompile(),
                     Property.SELECTIVITY_ESTIMATION_INCLUDING_SKEWED);
-            Boolean selectivityEstimationIncludingSkewedDefault = Boolean.valueOf(selectivityEstimationString);
+            Boolean selectivityEstimationIncludingSkewedDefault = Boolean.parseBoolean(selectivityEstimationString);
 
             cc.setSelectivityEstimationIncludingSkewedDefault(selectivityEstimationIncludingSkewedDefault);
 
@@ -458,7 +441,7 @@ public class GenericStatement implements Statement{
             Boolean projectionPruningOptimizationDisabled = false;
             try {
                 if (projectionPruningOptimizationString != null)
-                    projectionPruningOptimizationDisabled = Boolean.valueOf(projectionPruningOptimizationString);
+                    projectionPruningOptimizationDisabled = Boolean.parseBoolean(projectionPruningOptimizationString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -472,7 +455,7 @@ public class GenericStatement implements Statement{
             int maxMulticolumnProbeValues = CompilerContext.DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
             try {
                 if (maxMulticolumnProbeValuesString != null)
-                    maxMulticolumnProbeValues = Integer.valueOf(maxMulticolumnProbeValuesString);
+                    maxMulticolumnProbeValues = Integer.parseInt(maxMulticolumnProbeValuesString);
             }
             catch (Exception e) {
                 // If the property value failed to convert to an int, don't throw an error,
@@ -484,7 +467,7 @@ public class GenericStatement implements Statement{
             boolean multicolumnInlistProbeOnSparkEnabled = CompilerContext.DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
             try {
                 if (multicolumnInlistProbeOnSparkEnabledString != null)
-                    multicolumnInlistProbeOnSparkEnabled = Boolean.valueOf(multicolumnInlistProbeOnSparkEnabledString);
+                    multicolumnInlistProbeOnSparkEnabled = Boolean.parseBoolean(multicolumnInlistProbeOnSparkEnabledString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -495,7 +478,7 @@ public class GenericStatement implements Statement{
             boolean convertMultiColumnDNFPredicatesToInList = CompilerContext.DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
             try {
                 if (convertMultiColumnDNFPredicatesToInListString != null)
-                    convertMultiColumnDNFPredicatesToInList = Boolean.valueOf(convertMultiColumnDNFPredicatesToInListString);
+                    convertMultiColumnDNFPredicatesToInList = Boolean.parseBoolean(convertMultiColumnDNFPredicatesToInListString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -508,7 +491,7 @@ public class GenericStatement implements Statement{
             try {
                 if (disablePredicateSimplificationString != null)
                     disablePredicateSimplification =
-                        Boolean.valueOf(disablePredicateSimplificationString);
+                        Boolean.parseBoolean(disablePredicateSimplificationString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -541,7 +524,7 @@ public class GenericStatement implements Statement{
             try {
                 if (allowOverflowSensitiveNativeSparkExpressionsString != null)
                     allowOverflowSensitiveNativeSparkExpressions =
-                        Boolean.valueOf(allowOverflowSensitiveNativeSparkExpressionsString);
+                        Boolean.parseBoolean(allowOverflowSensitiveNativeSparkExpressionsString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -553,7 +536,7 @@ public class GenericStatement implements Statement{
             int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
             try {
                 if (currentTimestampPrecisionString != null)
-                    currentTimestampPrecision = Integer.valueOf(currentTimestampPrecisionString);
+                    currentTimestampPrecision = Integer.parseInt(currentTimestampPrecisionString);
                     if (currentTimestampPrecision < 0)
                         currentTimestampPrecision = 0;
                     if (currentTimestampPrecision > 9)
@@ -569,8 +552,7 @@ public class GenericStatement implements Statement{
             boolean outerJoinFlatteningDisabled = CompilerContext.DEFAULT_OUTERJOIN_FLATTENING_DISABLED;
             try {
                 if (outerJoinFlatteningDisabledString != null)
-                    outerJoinFlatteningDisabled =
-                            Boolean.valueOf(outerJoinFlatteningDisabledString);
+                    outerJoinFlatteningDisabled = Boolean.parseBoolean(outerJoinFlatteningDisabledString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -598,7 +580,7 @@ public class GenericStatement implements Statement{
             try {
                 if (ssqFlatteningForUpdateDisabledString != null)
                     ssqFlatteningForUpdateDisabled =
-                            Boolean.valueOf(ssqFlatteningForUpdateDisabledString);
+                            Boolean.parseBoolean(ssqFlatteningForUpdateDisabledString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -666,7 +648,7 @@ public class GenericStatement implements Statement{
              * Otherwise we would just erase the DDL's invalidation when
              * we mark it valid.
              */
-            Timestamp endTimestamp = generate(lcc, timestamps, cc, qt);
+            generate(lcc, timestamps, cc, qt);
 
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
@@ -906,6 +888,7 @@ public class GenericStatement implements Statement{
      *
      * View using ast-visualization.html
      */
+    @SuppressFBWarnings(value = "LI_LAZY_INIT_STATIC", justification = "used only for development")
     private void saveTree(Visitable queryTree, CompilationPhase phase) throws StandardException {
         if (JSON_TREE_LOG.isTraceEnabled()) {
             JSON_TREE_LOG.warn("JSON AST logging is enabled");

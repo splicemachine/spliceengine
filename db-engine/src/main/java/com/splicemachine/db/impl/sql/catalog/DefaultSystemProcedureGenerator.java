@@ -106,38 +106,38 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
      * with tools to debug and repair databases and data dictionaries.
      *
-     * @param schemaName	name of the system schema
-     * @param procName		name of the system stored procedure
-     * @param tc			TransactionController to use
-     * @param newlyCreatedRoutines	set of newly created routines
+     * @param schemaName    name of the system schema
+     * @param procName        name of the system stored procedure
+     * @param tc            TransactionController to use
+     * @param newlyCreatedRoutines    set of newly created routines
      * @throws StandardException
      */
     public final void createProcedure(
-    	String schemaName,
-    	String procName,
-    	TransactionController tc,
-    	HashSet newlyCreatedRoutines) throws StandardException {
+        String schemaName,
+        String procName,
+        TransactionController tc,
+        HashSet newlyCreatedRoutines) throws StandardException {
 
-    	if (schemaName == null || procName == null) {
-    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
-    	}
+        if (schemaName == null || procName == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+        }
 
-    	// Upper the case since Derby is case sensitive by default.
-    	schemaName = schemaName.toUpperCase();
-    	procName = procName.toUpperCase();
+        // Upper the case since Derby is case sensitive by default.
+        schemaName = schemaName.toUpperCase();
+        procName = procName.toUpperCase();
 
-    	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
-    	UUID schemaId = sd.getUUID();
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        UUID schemaId = sd.getUUID();
 
-    	// Do not check for an existing procedure.  We want stuff to blow up.
+        // Do not check for an existing procedure.  We want stuff to blow up.
 
-    	// Find the definition of the procedure and create it.
-    	Procedure procedure = findProcedure(schemaId, procName, tc);
-    	if (procedure == null) {
-    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
-    	} else {
-    		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc).getAliasInfo().getMethodName());
-    	}
+        // Find the definition of the procedure and create it.
+        Procedure procedure = findProcedure(schemaId, procName, tc);
+        if (procedure == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+        } else {
+            newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc).getAliasInfo().getMethodName());
+        }
     }
 
     /**
@@ -146,129 +146,128 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      * This method is currently not used, but will be used when Splice Machine has a SYS_DEBUG schema available
      * with tools to debug and repair databases and data dictionaries.
      *
-     * @param schemaName	name of the system schema
-     * @param procName		name of the system stored procedure
-     * @param tc			TransactionController to use
-     * @param newlyCreatedRoutines	set of newly created routines
+     * @param schemaName    name of the system schema
+     * @param procName        name of the system stored procedure
+     * @param tc            TransactionController to use
+     * @param newlyCreatedRoutines    set of newly created routines
      * @throws StandardException
      */
     public final void dropProcedure(
-    	String schemaName,
-    	String procName,
-    	TransactionController tc,
-    	HashSet newlyCreatedRoutines) throws StandardException {
+        String schemaName,
+        String procName,
+        TransactionController tc,
+        HashSet newlyCreatedRoutines) throws StandardException {
 
-    	if (schemaName == null || procName == null) {
-    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
-    	}
+        if (schemaName == null || procName == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+        }
 
-    	// Upper the case since Derby is case sensitive by default.
-    	schemaName = schemaName.toUpperCase();
-    	procName = procName.toUpperCase();
+        // Upper the case since Derby is case sensitive by default.
+        schemaName = schemaName.toUpperCase();
+        procName = procName.toUpperCase();
 
-    	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
-    	UUID schemaId = sd.getUUID();
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        UUID schemaId = sd.getUUID();
 
-    	// Check for existing procedure
-    	String schemaIdStr = schemaId.toString();
-    	AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
-    	if (ad != null) {  // Drop the procedure if it already exists.
-    		dictionary.dropAliasDescriptor(ad, tc);
-    	}
+        // Check for existing procedure
+        String schemaIdStr = schemaId.toString();
+        AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        if (ad != null) {  // Drop the procedure if it already exists.
+            dictionary.dropAliasDescriptor(ad, tc);
+        }
     }
 
     /**
-	 * Creates or updates a system stored procedure. If the system stored procedure
-	 * already exists in the data dictionary, the stored procedure will be dropped
-	 * and then created again. This includes functions implemented as
-	 * stored procedures.
-	 * 
-	 * @param schemaName           the schema where the procedure does and/or will reside
-	 * @param procName             the procedure to create or update
-	 * @param tc                   the xact
-	 * @param newlyCreatedRoutines set of newly created procedures
-	 * @throws StandardException
-	 */
+     * Creates or updates a system stored procedure. If the system stored procedure
+     * already exists in the data dictionary, the stored procedure will be dropped
+     * and then created again. This includes functions implemented as
+     * stored procedures.
+     *
+     * @param schemaName           the schema where the procedure does and/or will reside
+     * @param procName             the procedure to create or update
+     * @param tc                   the xact
+     * @param newlyCreatedRoutines set of newly created procedures
+     * @throws StandardException
+     */
     public final void createOrUpdateProcedure(
-    		String schemaName,
-    		String procName,
-    		TransactionController tc,
-    		HashSet newlyCreatedRoutines) throws StandardException {
+            String schemaName,
+            String procName,
+            TransactionController tc,
+            HashSet newlyCreatedRoutines) throws StandardException {
 
-    	if (schemaName == null || procName == null) {
-    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
-    	}
+        if (schemaName == null || procName == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+        }
 
-    	// Upper the case since Derby is case sensitive by default.
-    	schemaName = schemaName.toUpperCase();
-    	procName = procName.toUpperCase();
+        // Upper the case since Derby is case sensitive by default.
+        schemaName = schemaName.toUpperCase();
+        procName = procName.toUpperCase();
 
-    	// Delete the procedure from SYSALIASES if it already exists.
-    	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
-    	UUID schemaId = sd.getUUID();
+        // Delete the procedure from SYSALIASES if it already exists.
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        UUID schemaId = sd.getUUID();
 
-       	// Check for existing procedure
-    	String schemaIdStr = schemaId.toString();
-    	AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
-    	if (ad == null) {
-    		// If not found check for existing function
-        	ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
-    	}
+           // Check for existing procedure
+        String schemaIdStr = schemaId.toString();
+        AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
+        if (ad == null) {
+            // If not found check for existing function
+            ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
+        }
 
-		List<RoutinePermsDescriptor> permsList = new ArrayList<> ();
+        List<RoutinePermsDescriptor> permsList = new ArrayList<> ();
 
-    	if (ad != null) {
-			dictionary.getRoutinePermissions(ad.getUUID(), permsList);
-    		// Drop the procedure if it already exists.
-    		dictionary.dropAliasDescriptor(ad, tc);
-    	}
+        if (ad != null) {
+            dictionary.getRoutinePermissions(ad.getUUID(), permsList);
+            // Drop the procedure if it already exists.
+            dictionary.dropAliasDescriptor(ad, tc);
+        }
 
-    	// Find the definition of the procedure and create it.
-    	Procedure procedure = findProcedure(schemaId, procName, tc);
-    	if (procedure == null) {
-    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
-    	} else {
-    		AliasDescriptor newAliasDescriptor = procedure.createSystemProcedure(schemaId, dictionary, tc);
-    		newlyCreatedRoutines.add(newAliasDescriptor.getAliasInfo().getMethodName());
+        // Find the definition of the procedure and create it.
+        Procedure procedure = findProcedure(schemaId, procName, tc);
+        if (procedure == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
+        } else {
+            AliasDescriptor newAliasDescriptor = procedure.createSystemProcedure(schemaId, dictionary, tc);
+            newlyCreatedRoutines.add(newAliasDescriptor.getAliasInfo().getMethodName());
 
-    		// drop permission with old aliasInfo and re-populate with the new AliasInfo
-			for (RoutinePermsDescriptor perm : permsList) {
-				//remove perm from SYS.SYSROUTINEPERMS
-				dictionary.addRemovePermissionsDescriptor(false, perm, perm.getGrantee(), tc);
-				//update perm with new routineUUID
-				RoutinePermsDescriptor newPerm = new RoutinePermsDescriptor(dictionary, perm.getGrantee(), perm.getGrantor(), newAliasDescriptor.getUUID(), perm.getHasExecutePermission());
-				// add a new perm row with updated UUID of the system procedure
-				dictionary.addRemovePermissionsDescriptor(true, newPerm, newPerm.getGrantee(), tc);
-			}
-    	}
+            // drop permission with old aliasInfo and re-populate with the new AliasInfo
+            for (RoutinePermsDescriptor perm : permsList) {
+                //remove perm from SYS.SYSROUTINEPERMS
+                dictionary.addRemovePermissionsDescriptor(false, perm, perm.getGrantee(), tc);
+                //update perm with new routineUUID
+                RoutinePermsDescriptor newPerm = new RoutinePermsDescriptor(dictionary, perm.getGrantee(), perm.getGrantor(), newAliasDescriptor.getUUID(), perm.getHasExecutePermission());
+                // add a new perm row with updated UUID of the system procedure
+                dictionary.addRemovePermissionsDescriptor(true, newPerm, newPerm.getGrantee(), tc);
+            }
+        }
     }
 
     /**
-	 * Create or update all system stored procedures.  If the system stored procedure already exists in the data dictionary,
-	 * the stored procedure will be dropped and then created again.
-	 * 
-	 * @param schemaName           the schema where the procedures do and/or will reside
-	 * @param tc                   the xact
-	 * @param newlyCreatedRoutines set of newly created procedures
-	 * @throws StandardException
-	 */
+     * Create or update all system stored procedures.  If the system stored procedure already exists in the data dictionary,
+     * the stored procedure will be dropped and then created again.
+     *
+     * @param schemaName           the schema where the procedures do and/or will reside
+     * @param tc                   the xact
+     * @param newlyCreatedRoutines set of newly created procedures
+     * @throws StandardException
+     */
     public final void createOrUpdateAllProcedures(
-    		String schemaName,
-    		TransactionController tc,
-    		HashSet newlyCreatedRoutines) throws StandardException {
+            String schemaName,
+            TransactionController tc,
+            HashSet newlyCreatedRoutines) throws StandardException {
 
-    	if (schemaName == null) {
-    		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "SCHEMA", (schemaName));
-    	}
+        if (schemaName == null) {
+            throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "SCHEMA", (String) null);
+        }
 
-    	List procedureList = findProceduresForSchema(schemaName, tc);
-    	if (procedureList == null) {
-    		throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, "SCHEMA", (schemaName));
-    	}
-        for (Object n : procedureList) {
-            if (n instanceof Procedure) {
-                Procedure procedure = (Procedure) n;
-                createOrUpdateProcedure(schemaName, procedure.getName(), tc, newlyCreatedRoutines);
+        List<Procedure> procedureList = findProceduresForSchema(schemaName, tc);
+        if (procedureList == null) {
+            throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, "SCHEMA", (schemaName));
+        }
+        for (Procedure p : procedureList) {
+            if (p != null) {
+                createOrUpdateProcedure(schemaName, p.getName(), tc, newlyCreatedRoutines);
             }
         }
     }
@@ -281,19 +280,16 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      * @return            the system stored procedure if found, otherwise, null is returned
      * @throws StandardException
      */
-    protected List findProceduresForSchema(String schemaName, TransactionController tc) throws StandardException {
+    protected List<Procedure> findProceduresForSchema(String schemaName, TransactionController tc) throws StandardException {
 
-    	if (schemaName == null || tc == null) {
-    		return null;
-    	}
+        if (schemaName == null || tc == null) {
+            return null;
+        }
 
-    	SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
-    	UUID schemaId = sd.getUUID();
-    	Map/*<UUID, List<Procedure>>*/ procedureMap = getProcedures(dictionary, tc);
-    	if (procedureMap == null) {
-    		return null;
-    	}
-    	return ((List) procedureMap.get(schemaId));
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        UUID schemaId = sd.getUUID();
+        Map<UUID, List<Procedure>> procedureMap = getProcedures(dictionary, tc);
+        return procedureMap.get(schemaId);
     }
 
     /**
@@ -307,17 +303,14 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
      */
     protected Procedure findProcedure(UUID schemaId, String procName, TransactionController tc) throws StandardException {
 
-    	if (schemaId == null || procName == null || tc == null) {
-    		return null;
-    	}
-    	Map/*<UUID, List<Procedure>>*/ procedureMap = getProcedures(dictionary, tc);
-    	if (procedureMap == null) {
-    		return null;
-    	}
-    	List procedureList = (List) procedureMap.get(schemaId);
-    	if (procedureList == null) {
-    		return null;
-    	}
+        if (schemaId == null || procName == null || tc == null) {
+            return null;
+        }
+        Map<UUID, List<Procedure>> procedureMap = getProcedures(dictionary, tc);
+        List procedureList = procedureMap.get(schemaId);
+        if (procedureList == null) {
+            return null;
+        }
 
         for (Object n : procedureList) {
             if (n instanceof Procedure) {
@@ -327,11 +320,11 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 }
             }
         }
-    	return null;
+        return null;
     }
 
-    protected Map/*<UUID,List<Procedure>>*/ getProcedures(DataDictionary dictionary,TransactionController tc) throws StandardException {
-        Map/*<UUID,Procedure>*/ procedures = new HashMap/*<UUID,Procedure>*/();
+    protected Map<UUID,List<Procedure>> getProcedures(DataDictionary dictionary,TransactionController tc) throws StandardException {
+        Map<UUID, List<Procedure>> procedures = new HashMap<>();
 
         // SYSIBM schema
         UUID sysIbmUUID = dictionary.getSysIBMSchemaDescriptor().getUUID();
@@ -363,98 +356,98 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         // No op at Derby layer. See Splice override.
     }
     
-    private static final List<Procedure> sysCsProcedures =new ArrayList<>(Arrays.asList(new Procedure[]{
-			Procedure.newBuilder().name("SYSCS_SET_DATABASE_PROPERTY").numOutputParams(0).numResultSets(0)
-					.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.catalog("KEY")
-					.varchar("VALUE",Limits.DB2_VARCHAR_MAXWIDTH).build()
-			,
-			Procedure.newBuilder().name("SYSCS_GET_DATABASE_PROPERTY").numOutputParams(0).numResultSets(0)
-					.sqlControl(RoutineAliasInfo.READS_SQL_DATA)
-					.returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.DB2_VARCHAR_MAXWIDTH))
-					.isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.catalog("KEY").build()
-			,
-			Procedure.newBuilder().name("SYSCS_EMPTY_STATEMENT_CACHE")
-					.numOutputParams(0).numResultSets(0).sqlControl(RoutineAliasInfo.NO_SQL)
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_CREATE_USER")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.catalog("userName")
-					.varchar("password",32672)
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_SET_USER_ACCESS")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.varchar("userName",32672)
-					.varchar("connectionpermission",32672)
-					.build()
-			,
+    private static final List<Procedure> sysCsProcedures = new ArrayList<>(Arrays.asList(
+            Procedure.newBuilder().name("SYSCS_SET_DATABASE_PROPERTY").numOutputParams(0).numResultSets(0)
+                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("KEY")
+                    .varchar("VALUE",Limits.DB2_VARCHAR_MAXWIDTH).build()
+            ,
+            Procedure.newBuilder().name("SYSCS_GET_DATABASE_PROPERTY").numOutputParams(0).numResultSets(0)
+                    .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
+                    .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.DB2_VARCHAR_MAXWIDTH))
+                    .isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("KEY").build()
+            ,
+            Procedure.newBuilder().name("SYSCS_EMPTY_STATEMENT_CACHE")
+                    .numOutputParams(0).numResultSets(0).sqlControl(RoutineAliasInfo.NO_SQL)
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_CREATE_USER")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("userName")
+                    .varchar("password",32672)
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_SET_USER_ACCESS")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("userName",32672)
+                    .varchar("connectionpermission",32672)
+                    .build()
+            ,
 
-			Procedure.newBuilder().name("SYSCS_RELOAD_SECURITY_POLICY")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_RESET_PASSWORD")
-					.numResultSets(0).numOutputParams(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.catalog("userName")
-					.varchar("password",32672)
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_MODIFY_PASSWORD")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.varchar("password",32672)
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_DROP_USER")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.catalog("userName")
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_PEEK_AT_SEQUENCE")
-					.numOutputParams(0).numResultSets(0).readsSqlData()
-					.returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-					.isDeterministic(false).ownerClass(SYSTEM_PROCEDURES)
-					.catalog("schemaName")
-					.catalog("sequenceName")
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_INVALIDATE_STORED_STATEMENTS")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_UPDATE_METADATA_STORED_STATEMENTS")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.build()
-			,
-				/*
+            Procedure.newBuilder().name("SYSCS_RELOAD_SECURITY_POLICY")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_RESET_PASSWORD")
+                    .numResultSets(0).numOutputParams(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("userName")
+                    .varchar("password",32672)
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_MODIFY_PASSWORD")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("password",32672)
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_DROP_USER")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("userName")
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_PEEK_AT_SEQUENCE")
+                    .numOutputParams(0).numResultSets(0).readsSqlData()
+                    .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("schemaName")
+                    .catalog("sequenceName")
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_INVALIDATE_STORED_STATEMENTS")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .build()
+            ,
+            Procedure.newBuilder().name("SYSCS_UPDATE_METADATA_STORED_STATEMENTS")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .build()
+            ,
+                /*
                  * PLEASE NOTE:
                  * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
                  * with tools to debug and repair databases and data dictionaries.
@@ -467,11 +460,11 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 //                .catalog("procName")
 //                .build()
 //                ,
-                /*
-                 * PLEASE NOTE:
-                 * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
-                 * with tools to debug and repair databases and data dictionaries.
-                 */
+            /*
+             * PLEASE NOTE:
+             * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
+             * with tools to debug and repair databases and data dictionaries.
+             */
 //                Procedure.newBuilder().name("SYSCS_DROP_SYSTEM_PROCEDURE")
 //                .numOutputParams(0).numResultSets(0).modifiesSql()
 //                .returnType(null).isDeterministic(false)
@@ -480,43 +473,41 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 //                .catalog("procName")
 //                .build()
 //                ,
-			Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.varchar("directory",32672)
-					.build()
-			,
-			Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE")
-					.numOutputParams(0).numResultSets(0).modifiesSql()
-					.returnType(null).isDeterministic(false)
-					.ownerClass(SYSTEM_PROCEDURES)
-					.varchar("directory",32672)
-					.build()
-	}));
-
-    private static final List/*<Procedure>*/ sqlJProcedures = Arrays.asList(new Procedure[]{
-    		Procedure.newBuilder().name("INSTALL_JAR").numOutputParams(0).numResultSets(0)
-            	.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-            	.ownerClass(SYSTEM_PROCEDURES)
-            	.varchar("URL",256)
-            	.catalog("JAR")
-            	.integer("DEPLOY").build()
+            Procedure.newBuilder().name("SYSCS_BACKUP_DATABASE")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("directory",32672)
+                    .build()
             ,
-            Procedure.newBuilder().name("REPLACE_JAR").numOutputParams(0).numResultSets(0)
+            Procedure.newBuilder().name("SYSCS_RESTORE_DATABASE")
+                    .numOutputParams(0).numResultSets(0).modifiesSql()
+                    .returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("directory",32672)
+                    .build()));
+
+    private static final List<Procedure> sqlJProcedures = Arrays.asList(
+            Procedure.newBuilder().name("INSTALL_JAR").numOutputParams(0).numResultSets(0)
                 .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
                 .ownerClass(SYSTEM_PROCEDURES)
                 .varchar("URL",256)
-                .catalog("JAR").build()
+                .catalog("JAR")
+                .integer("DEPLOY").build()
+            ,
+            Procedure.newBuilder().name("REPLACE_JAR").numOutputParams(0).numResultSets(0)
+                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("URL",256)
+                    .catalog("JAR").build()
             ,
             Procedure.newBuilder().name("REMOVE_JAR").numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("JAR")
-                .integer("UNDEPLOY").build()
-    });
+                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("JAR")
+                    .integer("UNDEPLOY").build());
 
-    private static final List/*<Procedure>*/ sysIbmProcedures = Arrays.asList(new Procedure[]{
+    private static final List<Procedure> sysIbmProcedures = Arrays.asList(
             Procedure.newBuilder().name("SQLCAMESSAGE").numOutputParams(2).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
                     .ownerClass(SYSTEM_PROCEDURES)
@@ -649,127 +640,125 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .ownerClass(SYSTEM_PROCEDURES).build()
             ,
             Procedure.newBuilder().name("SQLFUNCTIONS").numOutputParams(0).numResultSets(1)
-                .readsSqlData().returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("CATALOGNAME")
-                .catalog("SCHEMANAME")
-                .catalog("FUNCNAME")
-                .varchar("OPTIONS",4000).build()
+                    .readsSqlData().returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("CATALOGNAME")
+                    .catalog("SCHEMANAME")
+                    .catalog("FUNCNAME")
+                    .varchar("OPTIONS",4000).build()
             ,
             Procedure.newBuilder().name("SQLFUNCTIONPARAMS").numOutputParams(0).numResultSets(1)
-                .readsSqlData().returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("CATALOGNAME")
-                .catalog("SCHEMANAME")
-                .catalog("FUNCNAME")
-                .catalog("PARAMNAME")
-                .varchar("OPTIONS",4000).build()
+                    .readsSqlData().returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .catalog("CATALOGNAME")
+                    .catalog("SCHEMANAME")
+                    .catalog("FUNCNAME")
+                    .catalog("PARAMNAME")
+                    .varchar("OPTIONS",4000).build()
             ,
             Procedure.newBuilder().name("CLOBCREATELOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(TypeDescriptor.INTEGER).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE).build()
+                    .containsSql().returnType(TypeDescriptor.INTEGER).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE).build()
             ,
             Procedure.newBuilder().name("CLOBRELEASELOCATOR").numResultSets(0).numOutputParams(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR").build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR").build()
             ,
             Procedure.newBuilder().name("CLOBGETPROSITIONFROMSTRING").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .varchar("SEARCHSTR",Limits.DB2_VARCHAR_MAXWIDTH)
-                .bigint("POS").build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .varchar("SEARCHSTR",Limits.DB2_VARCHAR_MAXWIDTH)
+                    .bigint("POS").build()
             ,
             Procedure.newBuilder().name("CLOBGETPOSITIONFROMLOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .integer("SEARCHLOCATOR")
-                .integer("POS").build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .integer("SEARCHLOCATOR")
+                    .integer("POS").build()
             ,
             Procedure.newBuilder().name("CLOBGETLENGTH").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR").build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR").build()
             ,
             Procedure.newBuilder().name("CLOBGETSUBSTRING").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.MAX_CLOB_RETURN_LEN))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .integer("LEN").build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR,Limits.MAX_CLOB_RETURN_LEN))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .integer("LEN").build()
             ,
             Procedure.newBuilder().name("CLOBSETSTRING").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .integer("LEN")
-                .varchar("REPLACESTR",Limits.DB2_VARCHAR_MAXWIDTH).build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .integer("LEN")
+                    .varchar("REPLACESTR",Limits.DB2_VARCHAR_MAXWIDTH).build()
             ,
             Procedure.newBuilder().name("CLOBTRUNCATE").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("LEN").build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("LEN").build()
             ,
             Procedure.newBuilder().name("BLOBCREATELOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(TypeDescriptor.INTEGER).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .build()
+                    .containsSql().returnType(TypeDescriptor.INTEGER).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBRELEASELOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBGETPOSITIONFROMBYTES").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-            .ownerClass(LOB_STORED_PROCEDURE).isDeterministic(false)
-                .integer("LOCATOR")
-                .arg("SEARCHBYTES",DataTypeDescriptor.getCatalogType(Types.VARBINARY))
-                .bigint("POS")
-                .build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .ownerClass(LOB_STORED_PROCEDURE).isDeterministic(false)
+                    .integer("LOCATOR")
+                    .arg("SEARCHBYTES",DataTypeDescriptor.getCatalogType(Types.VARBINARY))
+                    .bigint("POS")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBGETPOSITIONFROMLOCATOR").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .integer("SEARCHLOCATOR")
-                .bigint("POS")
-                .build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .integer("SEARCHLOCATOR")
+                    .bigint("POS")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBGETLENGTH").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBGETBYTES").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.VARBINARY,Limits.MAX_BLOB_RETURN_LEN))
-                .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .integer("LEN")
-                .build()
+                    .containsSql().returnType(DataTypeDescriptor.getCatalogType(Types.VARBINARY,Limits.MAX_BLOB_RETURN_LEN))
+                    .isDeterministic(false).ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .integer("LEN")
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBSETBYTES").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .integer("LEN")
-                .arg("REPLACEBYTES",DataTypeDescriptor.getCatalogType(Types.VARBINARY))
-                .build()
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .integer("LEN")
+                    .arg("REPLACEBYTES",DataTypeDescriptor.getCatalogType(Types.VARBINARY))
+                    .build()
             ,
             Procedure.newBuilder().name("BLOBTRUNCATE").numOutputParams(0).numResultSets(0)
-                .containsSql().returnType(null).isDeterministic(false)
-                .ownerClass(LOB_STORED_PROCEDURE)
-                .integer("LOCATOR")
-                .bigint("POS")
-                .build()
-
-    });
+                    .containsSql().returnType(null).isDeterministic(false)
+                    .ownerClass(LOB_STORED_PROCEDURE)
+                    .integer("LOCATOR")
+                    .bigint("POS")
+                    .build());
 }
