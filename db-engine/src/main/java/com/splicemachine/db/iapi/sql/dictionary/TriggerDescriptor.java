@@ -341,6 +341,9 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             if (localCache != null && sps != null)
                 localCache.put(spsId, sps);
         }
+
+        assert sps != null : "sps should not be null";
+
         // lcc.commitNestedTransaction();
 
         //We need to regenerate the trigger action sql if

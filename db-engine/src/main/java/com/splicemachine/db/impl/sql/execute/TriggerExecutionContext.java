@@ -778,8 +778,10 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                 } catch (Exception e) {
                 }
             }
+            
+            resultSetVector.clear();
         }
-        resultSetVector.clear();
+
 
         /*
         ** We should have already closed our underlying
