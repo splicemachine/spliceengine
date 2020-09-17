@@ -46,43 +46,29 @@ public class GetNearestTransactionIT {
             .around(table);
 
     private static TestConnection conn;
-    private static TestConnection connACOff;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
         conn = classWatcher.getOrCreateConnection();
-        connACOff = classWatcher.createConnection();
-        connACOff.setAutoCommit(false);
     }
 
     long resultOf(String query, TestConnection conn) throws SQLException {
-        ResultSet rs = conn.query(query);
-        Assert.assertTrue(rs.next());
-        long result = rs.getLong(1);
-        Assert.assertFalse(rs.wasNull());
-        Assert.assertFalse(rs.next());
-        return result;
+        try(ResultSet rs = conn.query(query)) {
+            Assert.assertTrue(rs.next());
+            long result = rs.getLong(1);
+            Assert.assertFalse(rs.wasNull());
+            Assert.assertFalse(rs.next());
+            return result;
+        }
     }
 
     @Test
     public void GetNearestTransactionBeforeFirstTransactionReturnsNull() throws Exception {
-        ResultSet rs = conn.query("VALUES get_nearest_Transaction(TIMESTAMPADD(SQL_TSI_MONTH, -10, CURRENT_TIMESTAMP ))");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(0, rs.getLong(1));
-        Assert.assertTrue(rs.wasNull());
-        Assert.assertFalse(rs.next());
-    }
-
-    @Test
-    public void GetNearestTransactionWorksCorrectlyWithAutoCommit() throws Exception {
-        try {
-            long result1 = resultOf("VALUES get_nearest_Transaction(CURRENT_TIMESTAMP)", connACOff);
-            long result2 = resultOf("VALUES get_nearest_Transaction(CURRENT_TIMESTAMP)", connACOff);
-            Assert.assertEquals(result1, result2);
-        } finally {
-            try {
-                connACOff.execute("ROLLBACK");
-            } catch (Exception e) { /*nothing*/ }
+        try(ResultSet rs = conn.query("VALUES get_nearest_Transaction(TIMESTAMPADD(SQL_TSI_MONTH, -10, CURRENT_TIMESTAMP ))")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(0, rs.getLong(1));
+            Assert.assertTrue(rs.wasNull());
+            Assert.assertFalse(rs.next());
         }
     }
 
