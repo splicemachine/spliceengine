@@ -52,7 +52,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
-import splice.com.google.common.cache.CacheBuilder;
+import org.spark_project.guava.cache.CacheBuilder;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -778,8 +778,10 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                 } catch (Exception e) {
                 }
             }
+            
+            resultSetVector.clear();
         }
-        resultSetVector.clear();
+
 
         /*
         ** We should have already closed our underlying

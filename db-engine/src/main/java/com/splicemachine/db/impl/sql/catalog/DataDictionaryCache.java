@@ -493,21 +493,6 @@ public class DataDictionaryCache {
         conglomerateCache.invalidateAll();
         conglomerateDescriptorCache.invalidateAll();
         aliasDescriptorCache.invalidateAll();
-    }
-
-    public void clearTableCache(){
-        oidTdCache.invalidateAll();
-        nameTdCache.invalidateAll();
-        partitionStatisticsCache.invalidateAll();
-        schemaCache.invalidateAll();
-        oidSchemaCache.invalidateAll();
-        sequenceGeneratorCache.invalidateAll();
-        permissionsCache.invalidateAll();
-        statementCache.invalidateAll();
-        roleCache.invalidateAll();
-        defaultRoleCache.invalidateAll();
-        roleGrantCache.invalidateAll();
-        tokenCache.invalidateAll();
         txnAwareConglomerateCache.invalidateAll();
     }
 
