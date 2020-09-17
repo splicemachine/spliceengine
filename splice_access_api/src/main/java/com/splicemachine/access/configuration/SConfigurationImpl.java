@@ -189,6 +189,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long transactionKeepAliveInterval;
     private final  long transactionTimeout;
     private final boolean ignoreMissingTxns;
+    private final long systablesMinRetentionPeriod;
 
     // SQLConfiguration
     private final  boolean debugDumpBindTree;
@@ -752,6 +753,10 @@ public final class SConfigurationImpl implements SConfiguration {
     public boolean getIgnoreMissingTxns() {
         return ignoreMissingTxns;
     }
+    @Override
+    public long getSystablesMinRetentionPeriod() {
+        return systablesMinRetentionPeriod;
+    }
 
     // SQLConfiguration
     @Override
@@ -1113,6 +1118,7 @@ public final class SConfigurationImpl implements SConfiguration {
         bulkImportTasksPerRegion = builder.bulkImportTasksPerRegion;
         regionToLoadPerTask = builder.regionToLoadPerTask;
         ignoreMissingTxns = builder.ignoreMissingTxns;
+        systablesMinRetentionPeriod = builder.systablesMinRetentionPeriod;
         maxCheckTableErrors = builder.maxCheckTableErrors;
         rollForwardQueueSize = builder.rollForwardQueueSize;
         rollForwardFirstWait = builder.rollForwardFirstWait;

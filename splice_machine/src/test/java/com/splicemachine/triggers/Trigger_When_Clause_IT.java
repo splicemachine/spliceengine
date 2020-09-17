@@ -149,12 +149,10 @@ public class Trigger_When_Clause_IT extends SpliceUnitTest {
         conn.setAutoCommit(false);
         conn.setSchema(SCHEMA.toUpperCase());
 
-        c1 = classWatcher.createConnection("U1", "U1");
-        c2 = classWatcher.createConnection("U2", "U2");
+        c1 = classWatcher.connectionBuilder().user("U1").password("U1").build();
+        c2 = classWatcher.connectionBuilder().user("U2").password("U2").build();
         c1.setAutoCommit(false);
-        c1.setSchema(SCHEMA.toUpperCase());
         c2.setAutoCommit(false);
-        c2.setSchema(SCHEMA.toUpperCase());
     }
 
     @After

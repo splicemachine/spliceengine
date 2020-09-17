@@ -53,100 +53,100 @@ import java.util.List;
 public class StatementSchemaPermission extends StatementPermission
 {
 
-	protected UUID schemaUUID;
-	/**
-	 * The schema name 
-	 */
-	private String schemaName;
-	/**
-	 * Authorization id
-	 */
-	private String aid;
-	/**	 
-	 * One of Authorizer.CREATE_SCHEMA_PRIV, MODIFY_SCHEMA_PRIV,  
-	 * DROP_SCHEMA_PRIV, etc.
-	 */
-	protected int privType;
+    protected UUID schemaUUID;
+    /**
+     * The schema name
+     */
+    private String schemaName;
+    /**
+     * Authorization id
+     */
+    private String aid;
+    /**
+     * One of Authorizer.CREATE_SCHEMA_PRIV, MODIFY_SCHEMA_PRIV,
+     * DROP_SCHEMA_PRIV, etc.
+     */
+    protected int privType;
 
 
-	public StatementSchemaPermission(UUID schemaUUID ,   int privType)
-	{
-		this.schemaUUID = schemaUUID;
-		this.privType	= privType;
-	}
+    public StatementSchemaPermission(UUID schemaUUID ,   int privType)
+    {
+        this.schemaUUID = schemaUUID;
+        this.privType    = privType;
+    }
 
-	public StatementSchemaPermission(String schemaName, String aid, int privType)
-	{
-		this.schemaName = schemaName;
-		this.aid 	= aid;
-		this.privType	= privType;
-	}
+    public StatementSchemaPermission(String schemaName, String aid, int privType)
+    {
+        this.schemaName = schemaName;
+        this.aid     = aid;
+        this.privType    = privType;
+    }
 
-	/**
-	 * @see StatementPermission#check
-	 */
-	public void check( LanguageConnectionContext lcc,
-					   boolean forGrant,
-					   Activation activation) throws StandardException
-	{
-		DataDictionary dd =	lcc.getDataDictionary();
-		TransactionController tc = lcc.getTransactionExecute();
+    /**
+     * @see StatementPermission#check
+     */
+    public void check( LanguageConnectionContext lcc,
+                       boolean forGrant,
+                       Activation activation) throws StandardException
+    {
+        DataDictionary dd =    lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
         String currentUserId = lcc.getCurrentUserId(activation);
-		List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
+        List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
 
-		SchemaDescriptor sd;
-		switch ( privType )
-		{
-			case Authorizer.ACCESS_PRIV:
-				/* for access priv, all the permissions set schemaUUID instead of schemaName */
-				sd = dd.getSchemaDescriptor(schemaUUID, tc);
-				if (sd == null)
-					return;
-
-				// if current user is owner, it can access the schema
-				if (currentUserId.equals(sd.getAuthorizationId()) ||
-						currentGroupuserlist != null && currentGroupuserlist.contains(sd.getAuthorizationId()))
-					return;
-
-				if (!hasPermissionOnSchema(lcc, dd, activation, forGrant))
-					throw StandardException.newException(
-							SQLState.LANG_SCHEMA_DOES_NOT_EXIST,
-							sd.getSchemaName());
-				break;
-			case Authorizer.MODIFY_SCHEMA_PRIV:
-				sd = dd.getSchemaDescriptor(schemaName, tc, false);
-				if (sd == null)
-					return;
-
-				// if current user is owner, it can modify the schema
-                if (currentUserId.equals(sd.getAuthorizationId()) ||
-						currentGroupuserlist != null && currentGroupuserlist.contains(sd.getAuthorizationId()))
+        SchemaDescriptor sd;
+        switch ( privType )
+        {
+            case Authorizer.ACCESS_PRIV:
+                /* for access priv, all the permissions set schemaUUID instead of schemaName */
+                sd = dd.getSchemaDescriptor(schemaUUID, tc);
+                if (sd == null)
                     return;
 
-				schemaUUID = sd.getUUID();
-				if (!hasPermissionOnSchema(lcc, dd, activation, forGrant))
-					throw StandardException.newException(
-							SQLState.AUTH_NO_ACCESS_NOT_OWNER,
-							currentUserId,
-							schemaName);
+                // if current user is owner, it can access the schema
+                if (currentUserId.equals(sd.getAuthorizationId()) ||
+                        currentGroupuserlist != null && currentGroupuserlist.contains(sd.getAuthorizationId()))
+                    return;
+
+                if (!hasPermissionOnSchema(lcc, dd, activation, forGrant))
+                    throw StandardException.newException(
+                            SQLState.LANG_SCHEMA_DOES_NOT_EXIST,
+                            sd.getSchemaName());
+                break;
+            case Authorizer.MODIFY_SCHEMA_PRIV:
+                sd = dd.getSchemaDescriptor(schemaName, tc, false);
+                if (sd == null)
+                    return;
+
+                // if current user is owner, it can modify the schema
+                if (currentUserId.equals(sd.getAuthorizationId()) ||
+                        currentGroupuserlist != null && currentGroupuserlist.contains(sd.getAuthorizationId()))
+                    return;
+
+                schemaUUID = sd.getUUID();
+                if (!hasPermissionOnSchema(lcc, dd, activation, forGrant))
+                    throw StandardException.newException(
+                            SQLState.AUTH_NO_ACCESS_NOT_OWNER,
+                            currentUserId,
+                            schemaName);
 
                 break;
-			case Authorizer.DROP_SCHEMA_PRIV:
-				sd = dd.getSchemaDescriptor(schemaName, tc, false);
-				// If schema hasn't been created already, no need to check
-				// for drop schema, an exception will be thrown if the schema 
-				// does not exists.
-				if (sd == null)
-					return;
+            case Authorizer.DROP_SCHEMA_PRIV:
+                sd = dd.getSchemaDescriptor(schemaName, tc, false);
+                // If schema hasn't been created already, no need to check
+                // for drop schema, an exception will be thrown if the schema
+                // does not exists.
+                if (sd == null)
+                    return;
 
                 if (!currentUserId.equals(sd.getAuthorizationId()))
-					throw StandardException.newException(
+                    throw StandardException.newException(
                         SQLState.AUTH_NO_ACCESS_NOT_OWNER,
                         currentUserId,
                         schemaName);
-				break;
-			
-			case Authorizer.CREATE_SCHEMA_PRIV:
+                break;
+
+            case Authorizer.CREATE_SCHEMA_PRIV:
                 // Non-DBA Users can only create schemas that match their
                 // currentUserId Also allow only DBA to set currentUserId to
                 // another user Note that for DBA, check interface wouldn't be
@@ -158,228 +158,231 @@ public class StatementSchemaPermission extends StatementPermission
                         SQLState.AUTH_NOT_DATABASE_OWNER,
                         currentUserId,
                         schemaName);
-				break;
-			
-			default:
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.THROWASSERT(
-							"Unexpected value (" + privType + ") for privType");
-				}
-				break;
-		}
-	}
+                break;
 
-	protected boolean hasPermissionOnSchema(LanguageConnectionContext lcc,
+            default:
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.THROWASSERT(
+                            "Unexpected value (" + privType + ") for privType");
+                }
+                break;
+        }
+    }
+
+    protected boolean hasPermissionOnSchema(LanguageConnectionContext lcc,
                                         DataDictionary dd,
                                         Activation activation,
                                         boolean forGrant) throws StandardException {
         String currentUserId = lcc.getCurrentUserId(activation);
         ExecPreparedStatement ps = activation.getPreparedStatement();
-		List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
+        List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
 
         int authorization = oneAuthHasPermissionOnSchema(dd, Authorizer.PUBLIC_AUTHORIZATION_ID, forGrant);
 
         if(authorization == NONE || authorization == UNAUTHORIZED )
             authorization = oneAuthHasPermissionOnSchema(dd, currentUserId, forGrant);
-		if((authorization == NONE || authorization == UNAUTHORIZED) && currentGroupuserlist != null ) {
-			for (String currentGroupuser : currentGroupuserlist) {
-				authorization = oneAuthHasPermissionOnSchema(dd, currentGroupuser, forGrant);
-				if (authorization == AUTHORIZED)
-					break;
-			}
-		}
+        if((authorization == NONE || authorization == UNAUTHORIZED) && currentGroupuserlist != null ) {
+            for (String currentGroupuser : currentGroupuserlist) {
+                authorization = oneAuthHasPermissionOnSchema(dd, currentGroupuser, forGrant);
+                if (authorization == AUTHORIZED)
+                    break;
+            }
+        }
 
         if (authorization == NONE ||
-			// for access check, if a role grants the access privilege,
-			// we would like treat it as the user has the access privilege
-			authorization == UNAUTHORIZED && privType == Authorizer.ACCESS_PRIV) {
+            // for access check, if a role grants the access privilege,
+            // we would like treat it as the user has the access privilege
+            authorization == UNAUTHORIZED && privType == Authorizer.ACCESS_PRIV) {
             // Since no permission exists for the current user or PUBLIC,
             // check if a permission exists for the current role (if set).
-			List<String> currentRoles = lcc.getCurrentRoles(activation);
-			List<String> rolesToRemove = new ArrayList<>();
-			for (String role : currentRoles) {
-				// Check that role is still granted to current user or
-				// to PUBLIC: A revoked role which is current for this
-				// session, is lazily set to none when it is attempted
-				// used.
-				RoleGrantDescriptor rd = dd.getRoleGrantDescriptor
-						(role, currentUserId);
+            List<String> currentRoles = lcc.getCurrentRoles(activation);
+            List<String> rolesToRemove = new ArrayList<>();
+            for (String role : currentRoles) {
+                // Check that role is still granted to current user or
+                // to PUBLIC: A revoked role which is current for this
+                // session, is lazily set to none when it is attempted
+                // used.
+                RoleGrantDescriptor rd = dd.getRoleGrantDescriptor
+                        (role, currentUserId);
 
-				if (rd == null) {
-					rd = dd.getRoleGrantDescriptor(
-							role,
-							Authorizer.PUBLIC_AUTHORIZATION_ID);
-				}
-				if (rd == null && currentGroupuserlist != null) {
-					for (String currentGroupuser : currentGroupuserlist) {
-						rd = dd.getRoleGrantDescriptor(role, currentGroupuser);
-						if (rd != null)
-							break;
-					}
-				}
+                if (rd == null) {
+                    rd = dd.getRoleGrantDescriptor(
+                            role,
+                            Authorizer.PUBLIC_AUTHORIZATION_ID);
+                }
+                if (rd == null && currentGroupuserlist != null) {
+                    for (String currentGroupuser : currentGroupuserlist) {
+                        rd = dd.getRoleGrantDescriptor(role, currentGroupuser);
+                        if (rd != null)
+                            break;
+                    }
+                }
 
-				if (rd == null) {
-					// We have lost the right to set this role, so we can't
-					// make use of any permission granted to it or its
-					// ancestors.
-					rolesToRemove.add(role);
-				} else {
-					// The current role is OK, so we can make use of
-					// any permission granted to it.
-					//
-					// Look at the current role and, if necessary, the
-					// transitive closure of roles granted to current role to
-					// see if permission has been granted to any of the
-					// applicable roles.
+                if (rd == null) {
+                    // We have lost the right to set this role, so we can't
+                    // make use of any permission granted to it or its
+                    // ancestors.
+                    rolesToRemove.add(role);
+                } else {
+                    // The current role is OK, so we can make use of
+                    // any permission granted to it.
+                    //
+                    // Look at the current role and, if necessary, the
+                    // transitive closure of roles granted to current role to
+                    // see if permission has been granted to any of the
+                    // applicable roles.
 
-					RoleClosureIterator rci =
-							dd.createRoleClosureIterator
-									(activation.getTransactionController(),
-											role, true /* inverse relation*/);
+                    RoleClosureIterator rci =
+                            dd.createRoleClosureIterator
+                                    (activation.getTransactionController(),
+                                            role, true /* inverse relation*/);
 
-					String r;
+                    String r;
 
-					while ((authorization != AUTHORIZED) && (r = rci.next()) != null) {
-						authorization = oneAuthHasPermissionOnSchema
-								(dd, r, forGrant);
-					}
+                    while ((authorization != AUTHORIZED) && (r = rci.next()) != null) {
+                        authorization = oneAuthHasPermissionOnSchema
+                                (dd, r, forGrant);
+                    }
 
-					if (authorization == AUTHORIZED) {
-						// Also add a dependency on the role (qua provider), so
-						// that if role is no longer available to the current
-						// user (e.g. grant is revoked, role is dropped,
-						// another role has been set), we are able to
-						// invalidate the ps or activation (the latter is used
-						// if the current role changes).
-						DependencyManager dm = dd.getDependencyManager();
-						RoleGrantDescriptor rgd =
-								dd.getRoleDefinitionDescriptor(role);
-						ContextManager cm = lcc.getContextManager();
+                    if (authorization == AUTHORIZED) {
+                        // Also add a dependency on the role (qua provider), so
+                        // that if role is no longer available to the current
+                        // user (e.g. grant is revoked, role is dropped,
+                        // another role has been set), we are able to
+                        // invalidate the ps or activation (the latter is used
+                        // if the current role changes).
+                        DependencyManager dm = dd.getDependencyManager();
+                        RoleGrantDescriptor rgd =
+                                dd.getRoleDefinitionDescriptor(role);
+                        ContextManager cm = lcc.getContextManager();
 
-						dm.addDependency(ps, rgd, cm);
-						dm.addDependency(activation, rgd, cm);
-						break;
-					}
-				}
-			}
-			lcc.removeRoles(activation, rolesToRemove);
+                        dm.addDependency(ps, rgd, cm);
+                        dm.addDependency(activation, rgd, cm);
+                        break;
+                    }
+                }
+            }
+            lcc.removeRoles(activation, rolesToRemove);
         }
         return authorization == AUTHORIZED;
     }
 
-	protected int oneAuthHasPermissionOnSchema(DataDictionary dd, String authorizationId, boolean forGrant)
-			throws StandardException
-	{
-		SchemaPermsDescriptor perms = dd.getSchemaPermissions( schemaUUID, authorizationId);
-		if( perms == null)
-			return NONE;
+    protected int oneAuthHasPermissionOnSchema(DataDictionary dd, String authorizationId, boolean forGrant)
+            throws StandardException
+    {
+        SchemaPermsDescriptor perms = dd.getSchemaPermissions( schemaUUID, authorizationId);
+        if( perms == null)
+            return NONE;
 
-		String priv = null;
+        String priv = null;
 
-		switch( privType)
-		{
-			case Authorizer.SELECT_PRIV:
-			case Authorizer.MIN_SELECT_PRIV:
-				priv = perms.getSelectPriv();
-				break;
-			case Authorizer.UPDATE_PRIV:
-				priv = perms.getUpdatePriv();
-				break;
-			case Authorizer.REFERENCES_PRIV:
-				priv = perms.getReferencesPriv();
-				break;
-			case Authorizer.INSERT_PRIV:
-				priv = perms.getInsertPriv();
-				break;
-			case Authorizer.DELETE_PRIV:
-				priv = perms.getDeletePriv();
-				break;
-			case Authorizer.TRIGGER_PRIV:
-				priv = perms.getTriggerPriv();
-				break;
-			case Authorizer.MODIFY_SCHEMA_PRIV:
-				priv = perms.getModifyPriv();
-				break;
-			case Authorizer.ACCESS_PRIV:
-				priv = perms.getAccessPriv();
-		}
+        switch( privType)
+        {
+            case Authorizer.SELECT_PRIV:
+            case Authorizer.MIN_SELECT_PRIV:
+                priv = perms.getSelectPriv();
+                break;
+            case Authorizer.UPDATE_PRIV:
+                priv = perms.getUpdatePriv();
+                break;
+            case Authorizer.REFERENCES_PRIV:
+                priv = perms.getReferencesPriv();
+                break;
+            case Authorizer.INSERT_PRIV:
+                priv = perms.getInsertPriv();
+                break;
+            case Authorizer.DELETE_PRIV:
+                priv = perms.getDeletePriv();
+                break;
+            case Authorizer.TRIGGER_PRIV:
+                priv = perms.getTriggerPriv();
+                break;
+            case Authorizer.MODIFY_SCHEMA_PRIV:
+                priv = perms.getModifyPriv();
+                break;
+            case Authorizer.ACCESS_PRIV:
+                priv = perms.getAccessPriv();
+                break;
+            default:
+                break;
+        }
 
-		return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ?  AUTHORIZED : UNAUTHORIZED;
-	} // end of hasPermissionOnTable
+        return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ?  AUTHORIZED : UNAUTHORIZED;
+    } // end of hasPermissionOnTable
 
-	/**
-	 * Schema level permission is never required as list of privileges required
-	 * for triggers/constraints/views and hence we don't do any work here, but
-	 * simply return null
-	 * 
-	 * @see StatementPermission#check
-	 */
-	public PermissionsDescriptor getPermissionDescriptor(String authid, DataDictionary dd)
-	throws StandardException
-	{
-		return null;
-	}
+    /**
+     * Schema level permission is never required as list of privileges required
+     * for triggers/constraints/views and hence we don't do any work here, but
+     * simply return null
+     *
+     * @see StatementPermission#check
+     */
+    public PermissionsDescriptor getPermissionDescriptor(String authid, DataDictionary dd)
+    throws StandardException
+    {
+        return null;
+    }
 
     private String getPrivName( )
-	{
-		switch(privType) {
-		case Authorizer.CREATE_SCHEMA_PRIV:
-			return "CREATE_SCHEMA";
-		case Authorizer.MODIFY_SCHEMA_PRIV:
-			return "MODIFY_SCHEMA";
-		case Authorizer.DROP_SCHEMA_PRIV:
-			return "DROP_SCHEMA";
-		case Authorizer.ACCESS_PRIV:
-			return "ACCESS_SCHEMA";
+    {
+        switch(privType) {
+        case Authorizer.CREATE_SCHEMA_PRIV:
+            return "CREATE_SCHEMA";
+        case Authorizer.MODIFY_SCHEMA_PRIV:
+            return "MODIFY_SCHEMA";
+        case Authorizer.DROP_SCHEMA_PRIV:
+            return "DROP_SCHEMA";
+        case Authorizer.ACCESS_PRIV:
+            return "ACCESS_SCHEMA";
         default:
             return "?";
         }
     }
 
-	public UUID getSchemaUUID() {
-		return schemaUUID;
-	}
+    public UUID getSchemaUUID() {
+        return schemaUUID;
+    }
 
-	public int getPrivType() {
-		return privType;
-	}
+    public int getPrivType() {
+        return privType;
+    }
 
 
-	public String toString() {
-		return "StatementSchemaPermission: " + schemaName + " UUID: " + schemaUUID + " owner:" +
-			aid + " privName:" + getPrivName();
-	}
+    public String toString() {
+        return "StatementSchemaPermission: " + schemaName + " UUID: " + schemaUUID + " owner:" +
+            aid + " privName:" + getPrivName();
+    }
 
-	@Override
-	public Type getType() {
-		return Type.SCHEMA;
-	}
+    @Override
+    public Type getType() {
+        return Type.SCHEMA;
+    }
 
-	public String getSchemaName() {
-		return schemaName;
-	}
+    public String getSchemaName() {
+        return schemaName;
+    }
 
-	public boolean equals( Object obj)
-	{
-		if( obj == null)
-			return false;
-		if( getClass().equals( obj.getClass()))
-		{
-			StatementSchemaPermission other = (StatementSchemaPermission) obj;
-			return privType == other.privType && (schemaUUID !=null && other.schemaUUID != null && schemaUUID.equals(other.schemaUUID));
-		}
-		return false;
-	}
+    public boolean equals( Object obj)
+    {
+        if( obj == null)
+            return false;
+        if( getClass().equals( obj.getClass()))
+        {
+            StatementSchemaPermission other = (StatementSchemaPermission) obj;
+            return privType == other.privType && (schemaUUID !=null && other.schemaUUID != null && schemaUUID.equals(other.schemaUUID));
+        }
+        return false;
+    }
 
-	/**
-	 * Return hash code for this instance
-	 *
-	 * @return	Hashcode
-	 *
-	 */
-	public int hashCode()
-	{
-		return privType + (schemaUUID!=null?schemaUUID.hashCode():0);
-	}
+    /**
+     * Return hash code for this instance
+     *
+     * @return    Hashcode
+     *
+     */
+    public int hashCode()
+    {
+        return privType + (schemaUUID!=null?schemaUUID.hashCode():0);
+    }
 }
