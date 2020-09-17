@@ -787,25 +787,14 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, CsvOptions csvOptions, int[] baseColumnMap,
                                       OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
                                                 boolean useSample, double sampleFraction) throws StandardException {
         assert baseColumnMap != null:"baseColumnMap Null";
         try {
             Dataset<Row> table = null;
             try {
-                HashMap<String, String> options = new HashMap<String, String>();
-                // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                options.put("timestampFormat","yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
-
-                characterDelimiter = ImportUtils.unescape(characterDelimiter);
-                columnDelimiter = ImportUtils.unescape(columnDelimiter);
-                if (characterDelimiter!=null)
-                    options.put("escape", characterDelimiter);
-                if (columnDelimiter != null)
-                    options.put("sep", columnDelimiter);
-
-                table = SpliceSpark.getSession().read().options(options).csv(location);
+                table = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(location);
                 if (table.schema().fields().length == 0)
                     return getEmpty();
             } catch (Exception e) {
@@ -839,22 +828,32 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         }
     }
 
+    static String unescape(String type, String in) throws StandardException {
+        try{
+            return ImportUtils.unescape(in);
+        }
+        catch( IOException e)
+        {
+            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, e, type + ". " + e.getMessage());
+        }
+    }
+
     /**
      * @param csvOptions
      * @return spark dataframereader options, see
      *         https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html#csv-scala.collection.Seq-
      * @throws IOException
      */
-    public static HashMap<String, String> getCsvOptions(CsvOptions csvOptions) throws IOException {
+    public static HashMap<String, String> getCsvOptions(CsvOptions csvOptions) throws StandardException {
         HashMap<String, String> options = new HashMap<String, String>();
 
         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
         String timestampFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ";
         options.put("timestampFormat", timestampFormat);
 
-        String delimited = ImportUtils.unescape(csvOptions.columnDelimiter);
-        String escaped = ImportUtils.unescape(csvOptions.escapeCharacter);
-        String lines = ImportUtils.unescape(csvOptions.lineTerminator);
+        String delimited = unescape("TERMINATED BY", csvOptions.columnDelimiter);
+        String escaped = unescape( "ESCAPED BY", csvOptions.escapeCharacter);
+        String lines = unescape( "LINES SEPARATED BY", csvOptions.lineTerminator);
 
         if (delimited != null) // default ,
             options.put("sep", delimited);
