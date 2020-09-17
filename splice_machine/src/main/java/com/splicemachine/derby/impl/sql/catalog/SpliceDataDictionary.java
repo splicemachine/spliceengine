@@ -1581,7 +1581,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
-        SchemaDescriptor sd = getSystemSchemaDescriptor();
         TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
         faultInTabInfo(ti);
 
