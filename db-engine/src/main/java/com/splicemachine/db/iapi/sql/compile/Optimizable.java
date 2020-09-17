@@ -36,6 +36,8 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.ResultColumnList;
+
 import java.util.Properties;
 
 /**
@@ -453,5 +455,8 @@ public interface Optimizable {
     }
 
     default void setHasJoinPredicatePushedDownFromOuter(boolean value) {
+    }
+
+    default void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
     }
 }

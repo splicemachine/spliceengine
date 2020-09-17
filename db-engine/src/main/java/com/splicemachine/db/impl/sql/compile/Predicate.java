@@ -62,6 +62,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      */
     int equivalenceClass=-1;
     // indexPosition of -1 is used by rowId, so use -2 to indicate that it has been set
+    // indexPosition is set and used per table, it could be set to a different value in each pass
     int indexPosition=-2;
     protected boolean startKey;
     protected boolean stopKey;
@@ -1461,11 +1462,13 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     public void replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
-        ValueNode op = getAndNode().getLeftOperand();
-        if (op == null)
-            return;
+        if (childRCL != null) {
+            ValueNode op = getAndNode().getLeftOperand();
+            if (op == null)
+                return;
 
-        op.replaceIndexExpression(childRCL);
+            andNode.leftOperand = op.replaceIndexExpression(childRCL);
+        }
     }
 
     public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {

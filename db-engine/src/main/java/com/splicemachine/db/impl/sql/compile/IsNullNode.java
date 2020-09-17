@@ -254,6 +254,16 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
 		return cr!=null;
 	}
 
+	@Override
+	public boolean optimizableEqualityNode(Optimizable optTable,
+										   ValueNode indexExpr,
+										   boolean isNullOkay) {
+		if (!isNullNode() || !isNullOkay)
+			return false;
+
+		return indexExpr.equals(operand);
+	}
+
     /**
      *
      * The cardinality of a isNull UnaryOperator.  Always 2.
@@ -265,5 +275,11 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
         return Math.min(2L, numberOfRows);
     }
 
-
+    @Override
+	public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+		if (operand != null) {
+			operand = operand.replaceIndexExpression(childRCL);
+		}
+		return this;
+	}
 }

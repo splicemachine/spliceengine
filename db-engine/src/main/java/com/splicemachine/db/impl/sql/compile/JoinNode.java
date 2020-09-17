@@ -2275,4 +2275,6 @@ public class JoinNode extends TableOperatorNode{
     public void resetOptimized() {
         optimized = false;
     }
+
+    public ValueNode getJoinClause() { return joinClause; }
 }

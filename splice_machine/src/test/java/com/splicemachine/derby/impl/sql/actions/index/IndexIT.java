@@ -602,7 +602,7 @@ public class IndexIT extends SpliceUnitTest{
         ResultSet resultSet=methodWatcher.executeQuery(""+
                 "select pa.pid\n"+
                 "from PERSON_ADDRESS pa --SPLICE-PROPERTIES index=pa_idx\n"+
-                "join ADDRESS a         --SPLICE-PROPERTIES index=a_idx\n"+
+                "join ADDRESS a         --SPLICE-PROPERTIES index=a_idx, joinStrategy=broadcast\n"+
                 "  on pa.addr_id=a.addr_id\n"+
                 "where a.std_state_provence in ('IA', 'FL', 'NY')");
 
@@ -1514,7 +1514,9 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), mod(i, 2) + 1)", tableName, tableName));
         methodWatcher.executeUpdate(format("insert into %s values ('abc', 2)", tableName));
 
-        /* test select list and where clause */
+        ///////////////////////////////////////
+        // test select list and where clause //
+        ///////////////////////////////////////
 
         String query = format("select upper(c), mod(i,2)+1 from %s --splice-properties index=%s_IDX\n where upper(c) = 'BAR'", tableName, tableName);
 
@@ -1535,7 +1537,9 @@ public class IndexIT extends SpliceUnitTest{
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
 
-        /* test group by and having clause */
+        ///////////////////////////////////////
+        // test group by and having clause   //
+        ///////////////////////////////////////
 
         query = format("select upper(c) from %s --splice-properties index=%s_IDX\n group by upper(c) having upper(c) > 'BAN'", tableName, tableName);
 
@@ -1558,7 +1562,9 @@ public class IndexIT extends SpliceUnitTest{
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
 
-        /* test order by clause */
+        ///////////////////////////////////////
+        // test order by clause              //
+        ///////////////////////////////////////
 
         query = format("select upper(c) from %s --splice-properties index=%s_IDX\n order by upper(c)", tableName, tableName);
 
@@ -1591,7 +1597,9 @@ public class IndexIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), mod(i, 2), d)", tableName, tableName));
 
-        /* test aggregates with group by */
+        ///////////////////////////////////////
+        // test aggregates with group by     //
+        ///////////////////////////////////////
 
         String query = format("select d, sum(mod(i,2)) from %s --splice-properties index=%s_IDX\n group by d having sum(mod(i,2)) > 0", tableName, tableName);
 
@@ -1613,7 +1621,9 @@ public class IndexIT extends SpliceUnitTest{
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
 
-        /* test scalar aggregates */
+        ///////////////////////////////////////
+        // test scalar aggregates            //
+        ///////////////////////////////////////
 
         query = format("select max(d), sum(mod(i,2)) from %s --splice-properties index=%s_IDX\n", tableName, tableName);
 
@@ -1631,6 +1641,214 @@ public class IndexIT extends SpliceUnitTest{
                 "3.3 | 2 |";
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testJoinOverTwoCompoundExpressionBasedIndexes() throws Exception {
+        methodWatcher.executeUpdate("CREATE TABLE PERSON_ADDRESS_1 (PID INTEGER, ADDR_ID INTEGER)");
+        methodWatcher.executeUpdate("CREATE TABLE ADDRESS_1 (ADDR_ID INTEGER, STD_STATE_PROVENCE VARCHAR(30))");
+        methodWatcher.executeUpdate("CREATE INDEX pa_idx_1 ON PERSON_ADDRESS_1 (pid, max(addr_id, 300))");
+        methodWatcher.executeUpdate("CREATE INDEX a_idx_1 ON ADDRESS_1 (lower(std_state_provence), abs(addr_id))");
+        methodWatcher.executeUpdate("INSERT INTO PERSON_ADDRESS_1 VALUES (10, 100),(20, 200),(30,300),(40, 400),(50,500)");
+        methodWatcher.executeUpdate("INSERT INTO ADDRESS_1 VALUES (100, 'MO'),(200, 'IA'),(300,'NY'),(400,'FL'),(500,'AL')");
+
+        ///////////////////
+        // both covering //
+        ///////////////////
+
+        String query = "select pa.pid, lower(a.std_state_provence)\n"+
+                " from PERSON_ADDRESS_1 pa --SPLICE-PROPERTIES index=pa_idx_1\n"+
+                " join ADDRESS_1 a         --SPLICE-PROPERTIES index=a_idx_1 %s\n"+
+                "  on max(pa.addr_id, 300) = abs(a.addr_id)\n"+
+                " where lower(a.std_state_provence) in ('ia', 'fl', 'al')";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + format(query, ""))) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            Assert.assertTrue(explainPlanText.contains("MultiProbeIndexScan[A_IDX_1")); // in-list for ADDRESS_1
+            Assert.assertTrue(explainPlanText.contains("IndexScan[PA_IDX_1"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        String expected = "PID | 2 |\n" +
+                "----------\n" +
+                " 40  |fl |\n" +
+                " 50  |al |";
+
+        testJoinStrategy(query, "", expected);  // optimizer's choice
+        testJoinStrategy(query, "nestedloop", expected);
+        testJoinStrategy(query, "broadcast", expected);
+        testJoinStrategy(query, "cross, useSpark=true", expected);  // on spark
+        // merge and sortmerge are not feasible
+
+        ///////////////////////////////
+        // only pa_idx_1 is covering //
+        ///////////////////////////////
+
+        query = "select pa.pid, a.std_state_provence\n"+
+                " from PERSON_ADDRESS_1 pa --SPLICE-PROPERTIES index=pa_idx_1\n"+
+                " join ADDRESS_1 a         --SPLICE-PROPERTIES index=a_idx_1 %s\n"+
+                "  on max(pa.addr_id, 300) = abs(a.addr_id)\n"+
+                " where lower(a.std_state_provence) in ('ia', 'fl', 'al')";
+
+        /* check plan */
+        String[] expectedOps = new String[] {
+                "IndexScan[PA_IDX_1",
+                "IndexLookup",                 // base row retrieving for ADDRESS_1
+                "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
+        };
+        rowContainsQuery(new int[]{6,8,9}, "explain " + format(query, ""), methodWatcher, expectedOps);
+
+        /* check result */
+        expected = "PID |STD_STATE_PROVENCE |\n" +
+                "--------------------------\n" +
+                " 40  |        FL         |\n" +
+                " 50  |        AL         |";
+        testJoinStrategy(query, "", expected);  // optimizer's choice
+
+        ///////////////////////////////
+        // only a_idx_1 is covering  //
+        ///////////////////////////////
+
+        query = "select pa.pid + 1, abs(a.addr_id)\n"+
+                " from PERSON_ADDRESS_1 pa --SPLICE-PROPERTIES index=pa_idx_1\n"+
+                " join ADDRESS_1 a         --SPLICE-PROPERTIES index=a_idx_1 %s\n"+
+                "  on max(pa.addr_id, 300) = abs(a.addr_id)\n"+
+                " where lower(a.std_state_provence) in ('ia', 'fl', 'al')";
+
+        /* check plan */
+        expectedOps = new String[] {
+                "IndexLookup",                 // base row retrieving for ADDRESS_1
+                "IndexScan[PA_IDX_1",
+                "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
+        };
+        rowContainsQuery(new int[]{5,6,7}, "explain " + format(query, ""), methodWatcher, expectedOps);
+
+        /* check result */
+        expected = "1 | 2  |\n" +
+                "---------\n" +
+                "41 |400 |\n" +
+                "51 |500 |";
+        testJoinStrategy(query, "", expected);  // optimizer's choice
+
+        //////////////////////////
+        // neither is covering  //
+        //////////////////////////
+
+        query = "select *\n"+
+                " from PERSON_ADDRESS_1 pa --SPLICE-PROPERTIES index=pa_idx_1\n"+
+                " join ADDRESS_1 a         --SPLICE-PROPERTIES index=a_idx_1 %s\n"+
+                "  on max(pa.addr_id, 300) = abs(a.addr_id)\n"+
+                " where lower(a.std_state_provence) in ('ia', 'fl', 'al')";
+
+        /* check plan */
+        expectedOps = new String[] {
+                "IndexLookup",                 // base row retrieving for ADDRESS_1
+                "IndexScan[PA_IDX_1",
+                "IndexLookup",                 // base row retrieving for PERSON_ADDRESS_1
+                "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
+        };
+        rowContainsQuery(new int[]{5,6,7,8}, "explain " + format(query, ""), methodWatcher, expectedOps);
+
+        /* check result */
+        expected = "PID | ADDR_ID | ADDR_ID |STD_STATE_PROVENCE |\n" +
+                "----------------------------------------------\n" +
+                " 40  |   400   |   400   |        FL         |\n" +
+                " 50  |   500   |   500   |        AL         |";
+        testJoinStrategy(query, "", expected);  // optimizer's choice
+    }
+
+    private void testJoinStrategy(String queryFormat, String joinStrategy, String expected) throws Exception {
+        String query = format(queryFormat, joinStrategy.isEmpty() ? "" : ", joinStrategy=" + joinStrategy);
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testCoveringExpressionBasedIndexSubquery() throws Exception {
+        methodWatcher.executeUpdate("create table TEST_SUBQ_A(a1 int, a2 int)");
+        methodWatcher.executeUpdate("create table TEST_SUBQ_B(b1 int, b2 int)");
+        methodWatcher.executeUpdate("insert into TEST_SUBQ_A values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
+        methodWatcher.executeUpdate("insert into TEST_SUBQ_B values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50)");
+        methodWatcher.executeUpdate("create index TEST_SUBQ_A_IDX on TEST_SUBQ_A(a1 * 3, a2)");
+        methodWatcher.executeUpdate("create index TEST_SUBQ_B_IDX on TEST_SUBQ_B(b1 * 3, ln(b2+1))");
+
+        ///////////////////////////////////////
+        // subquery can be flattened to join //
+        ///////////////////////////////////////
+
+        // uncorrelated
+        String query = "select a1 * 3, a2 from " +
+                " TEST_SUBQ_A --SPLICE-PROPERTIES index=TEST_SUBQ_A_IDX\n" +
+                " where a1 * 3 in " +
+                "  (select b1 * 3 from TEST_SUBQ_B --SPLICE-PROPERTIES index=TEST_SUBQ_B_IDX\n" +
+                "   where ln(b2 + 1) > 3.2)";
+
+        // Don't really care about result order, let it be how ResultFactory.toString() sorts.
+        String expected = "1 |A2 |\n" +
+                "--------\n" +
+                "12 |40 |\n" +
+                "15 |50 |\n" +
+                " 9 |30 |";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // correlated
+        query = "select a2 from TEST_SUBQ_A --SPLICE-PROPERTIES index=TEST_SUBQ_A_IDX\n" +
+                " where a2 > (select sum(b1*3) from TEST_SUBQ_B --SPLICE-PROPERTIES index=TEST_SUBQ_B_IDX\n" +
+                "              where ln(b2+1) < a1 * 3)";
+
+        expected = "A2 |\n" +
+                "----\n" +
+                "10 |";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // SSQ
+        query = "select b1 * 3, (select distinct a2 from TEST_SUBQ_A --SPLICE-PROPERTIES index=TEST_SUBQ_A_IDX\n" +
+                " where a1*3 > ln(b2+1) and a1 * 3 < 6) from TEST_SUBQ_B --SPLICE-PROPERTIES index=TEST_SUBQ_B_IDX\n" +
+                " where b1 * 3 between 3 and 6";
+
+        expected = "1 |  2  |\n" +
+                "----------\n" +
+                " 3 | 10  |\n" +
+                " 3 | 10  |\n" +
+                " 6 |NULL |\n" +
+                " 6 |NULL |";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        //////////////////////////////////
+        // subquery cannot be flattened //
+        //////////////////////////////////
+
+        query = "select a1 * 3, a2 from " +
+                " TEST_SUBQ_A --SPLICE-PROPERTIES index=TEST_SUBQ_A_IDX\n" +
+                " where a1 * 3 between 0 and 3 or a1 * 3 in " +
+                "  (select b1 * 3 from TEST_SUBQ_B --SPLICE-PROPERTIES index=TEST_SUBQ_B_IDX\n" +
+                "   where ln(b2 + 1) > 3.2)";
+
+        // Don't really care about result order, let it be how ResultFactory.toString() sorts.
+        expected = "1 |A2 |\n" +
+                "--------\n" +
+                " 0 | 0 |\n" +
+                "12 |40 |\n" +
+                "15 |50 |\n" +
+                " 3 |10 |\n" +
+                " 9 |30 |";
+
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }

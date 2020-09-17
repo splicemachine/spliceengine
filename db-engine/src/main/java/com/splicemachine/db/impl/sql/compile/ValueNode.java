@@ -1365,7 +1365,15 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     public boolean optimizableEqualityNode(Optimizable optTable,
                                            int columnNumber,
                                            boolean isNullOkay)
-        throws StandardException
+            throws StandardException
+    {
+        return false;
+    }
+
+    public boolean optimizableEqualityNode(Optimizable optTable,
+                                           ValueNode indexExpr,
+                                           boolean isNullOkay)
+            throws StandardException
     {
         return false;
     }
@@ -1517,9 +1525,11 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
     public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
         // by default, try replace this whole subtree
-        for (ResultColumn childRC : childRCL) {
-            if (this.equals(childRC.getIndexExpression())) {
-                return childRC.getColumnReference(this);
+        if (childRCL != null) {
+            for (ResultColumn childRC : childRCL) {
+                if (this.equals(childRC.getIndexExpression())) {
+                    return childRC.getColumnReference(this);
+                }
             }
         }
         return this;

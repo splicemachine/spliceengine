@@ -1895,6 +1895,11 @@ public class FromBaseTable extends FromTable {
                     forUpdate());
             resultColumns.setFromExprIndex(isOnExpression);
 
+            if (isOnExpression) {
+                // for expressions from outer tables, replace them later
+                replaceIndexExpressions(resultColumns);
+            }
+
             return this;
         }
 
@@ -2061,6 +2066,7 @@ public class FromBaseTable extends FromTable {
                         getContextManager());
 
         if (irg.isOnExpression()) {
+            assert !oldColumns.isEmpty();
             LanguageConnectionContext lcc = getLanguageConnectionContext();
             CompilerContext newCC = lcc.pushCompilerContext();
             Parser p = newCC.getParser();
@@ -2080,7 +2086,7 @@ public class FromBaseTable extends FromTable {
                 rc.setIndexExpression(exprAst);
                 rc.setReferenced();
                 rc.setVirtualColumnId(i + 1);  // virtual column IDs are 1-based
-                rc.setName(idxCD.getConglomerateName() + "_" + rc.getColumnPosition());
+                rc.setName(idxCD.getConglomerateName() + "_col" + rc.getColumnPosition());
                 newCols.addResultColumn(rc);
             }
             lcc.popCompilerContext(newCC);
@@ -3719,5 +3725,18 @@ public class FromBaseTable extends FromTable {
 
     public List<Integer> getNoStatsColumnIds() {
         return new ArrayList<>(usedNoStatsColumnIds);
+    }
+
+    @Override
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+        if (storeRestrictionList != null) {
+            storeRestrictionList.replaceIndexExpression(childRCL);
+        }
+        if (nonStoreRestrictionList != null) {
+            nonStoreRestrictionList.replaceIndexExpression(childRCL);
+        }
+        if (requalificationRestrictionList != null) {
+            requalificationRestrictionList.replaceIndexExpression(childRCL);
+        }
     }
 }

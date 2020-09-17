@@ -31,14 +31,12 @@
 
 package com.splicemachine.db.iapi.sql.compile;
 
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
 
 /**
  * OptimizablePredicateList provides services for optimizing a table in a query.
@@ -177,6 +175,18 @@ public interface OptimizablePredicateList {
 	 * @exception StandardException		Thrown on error
 	 */
 	boolean hasOptimizableEquijoin(Optimizable optTable, int columnNumber) throws StandardException;
+
+	/**
+	 * Is there an optimizable equijoin on the specified expression?
+	 *
+	 * @param optTable		The optimizable the expression refers to.
+	 * @param expr			The expression itself.
+	 *
+	 * @return Whether or not there is an optimizable equijoin on the specified expression.
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	boolean hasOptimizableEquijoin(Optimizable optTable, ValueNode expr) throws StandardException;
 									
 
 	/**
@@ -190,6 +200,18 @@ public interface OptimizablePredicateList {
 	 * @exception StandardException		Thrown on error
 	 */
 	void putOptimizableEqualityPredicateFirst(Optimizable optTable, int columnNumber) throws StandardException;
+
+	/**
+	 * Find the optimizable equality predicate on the specified expression and make
+	 * it the first predicate in this list.  This is useful for hash joins where
+	 * Qualifier[0] is assumed to be on the hash key.
+	 *
+	 * @param optTable		The optimizable the expression refers to.
+	 * @param expr			The expression itself.
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	void putOptimizableEqualityPredicateFirst(Optimizable optTable, ValueNode expr) throws StandardException;
 
 	/**
 	 * Transfer the predicates whose referenced set is contained by the

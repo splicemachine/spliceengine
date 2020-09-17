@@ -39,10 +39,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -2701,5 +2698,12 @@ public class SubqueryNode extends ValueNode{
         } else {
             return OnceResultSet.DO_CARDINALITY_CHECK;
         }
+    }
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        assert resultSet instanceof Optimizable;
+        ((Optimizable) resultSet).replaceIndexExpressions(childRCL);
+        return this;
     }
 }

@@ -1229,22 +1229,12 @@ public class SelectNode extends ResultSetNode{
         if (childResultColumns.isFromExprIndex()) {
             for (ResultColumn rc : resultColumns) {
                 rc.setExpression(rc.getExpression().replaceIndexExpression(childResultColumns));
-                /*
-                for (int i = 0; i < childResultColumns.size(); i++) {
-                    ValueNode indexExpr = childResultColumns.getResultColumn(i + 1).getIndexExpression();
-                    if (rc.getExpression().equals(indexExpr)) {
-                        rc.expression = (ValueNode) getNodeFactory().getNode(
-                                C_NodeTypes.VIRTUAL_COLUMN_NODE,
-                                fromList.elementAt(0),
-                                childResultColumns.elementAt(i),
-                                ReuseFactory.getInteger(i + 1),
-                                getContextManager());
-                        rc.setIndexExpression(indexExpr);
-                    }
-                }
-                */
             }
             resultColumns.setFromExprIndex(true);
+
+            if (wherePredicates != null) {
+                wherePredicates.replaceIndexExpression(childResultColumns);
+            }
         }
 
         prnRSN=(ResultSetNode)getNodeFactory().getNode(
@@ -1924,6 +1914,19 @@ public class SelectNode extends ResultSetNode{
             rightRCList.genVirtualColumnNodes(rightResultSet,rightResultSet.resultColumns);
             rightRCList.adjustVirtualColumnIds(leftRCList.size());
 
+            /* At this point, the right side may still have join predicates pushed down to it but refer
+             * to outer index expressions. If the outer result set chose a covering expression-based
+             * index access path, all outer index expressions used in inner result set should be replaced
+             * here because the outer result columns are updated during modifyAccessPath(). If we don't
+             * replace these index expressions, they refer to the outdated result columns which will not
+             * get any result set number assigned later.
+             * Index expressions refer to the inner table are already replaced during modifying inner
+             * table's access path.
+             */
+            if (leftRCList.isFromExprIndex() && rightResultSet instanceof Optimizable) {
+                ((Optimizable)rightResultSet).replaceIndexExpressions(leftResultSet.getResultColumns());
+            }
+
 //            if(leftBaseTable != null && rightBaseTable != null){
 //                int size = rightBaseTable.restrictionList.size();
 //
@@ -1940,6 +1943,9 @@ public class SelectNode extends ResultSetNode{
 
             /* Concatenate the 2 ResultColumnLists */
             leftRCList.nondestructiveAppend(rightRCList);
+            if (rightRCList.isFromExprIndex()) {
+                leftRCList.setFromExprIndex(true);
+            }
 
             /* Now we're finally ready to generate the JoinNode and have it
              * replace the 1st 2 entries in the FromList.
@@ -2941,8 +2947,16 @@ public class SelectNode extends ResultSetNode{
                 havingAggregate.collectExpressions(result);
             }
         }
-
         // no need to check whereAggregates, should be empty
+
+        for (QueryTreeNode fromItem : fromList) {
+            if (fromItem instanceof JoinNode) {
+                ValueNode joinClause = ((JoinNode) fromItem).getJoinClause();
+                if (joinClause != null) {
+                    joinClause.collectExpressions(result);
+                }
+            }
+        }
 
         for (ResultColumn rc : resultColumns) {
             proceed = proceed && rc.getExpression().collectSingleExpression(result);

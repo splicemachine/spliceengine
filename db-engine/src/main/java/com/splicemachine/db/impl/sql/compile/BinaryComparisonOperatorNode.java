@@ -499,25 +499,17 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 
 	@Override
 	public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
-		boolean receiverReplaced = receiver == null;
-		boolean leftReplaced  = leftOperand == null;
-		boolean rightReplaced = rightOperand == null;
-		for (ResultColumn childRC : childRCL) {
-			if (receiverReplaced && leftReplaced && rightReplaced)
-				break;
-			ValueNode indexExpr = childRC.getIndexExpression();
-			if (indexExpr.equals(receiver)) {
-				receiver = childRC.getColumnReference(receiver);
-				receiverReplaced = true;
-			}
-			if (indexExpr.equals(leftOperand)) {
-				leftOperand = childRC.getColumnReference(leftOperand);
-				leftReplaced = true;
-			}
-			if (indexExpr.equals(rightOperand)) {
-				rightOperand = childRC.getColumnReference(rightOperand);
-				rightReplaced = true;
-			}
+		if (childRCL == null) {
+			return this;
+		}
+		if (receiver != null) {
+			receiver = receiver.replaceIndexExpression(childRCL);
+		}
+		if (leftOperand != null) {
+			leftOperand = leftOperand.replaceIndexExpression(childRCL);
+		}
+		if (rightOperand != null) {
+			rightOperand = rightOperand.replaceIndexExpression(childRCL);
 		}
 		return this;
 	}

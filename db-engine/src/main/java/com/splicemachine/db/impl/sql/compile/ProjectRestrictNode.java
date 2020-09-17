@@ -2080,4 +2080,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
         return hasJoinPredicatePushedDownFromOuter;
     }
+
+    @Override
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+        if (restrictionList != null) {
+            restrictionList.replaceIndexExpression(childRCL);
+        }
+        if (childResult instanceof Optimizable) {
+            ((Optimizable)childResult).replaceIndexExpressions(childRCL);
+        }
+    }
 }
