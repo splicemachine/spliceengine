@@ -2853,7 +2853,6 @@ TOKEN [IGNORE_CASE] :
 |    <FULL: "full">
 |    <FUNCTION: "function">
 |    <GET: "get">
-|    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
 |    <GLOBAL: "global">
 |    <GO: "go">
 |    <GOTO: "goto">
@@ -3037,6 +3036,7 @@ TOKEN [IGNORE_CASE] :
 |   <EXTRACT: "extract">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
+|    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
 |   <GROUPING: "grouping">
 |   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
@@ -17818,7 +17818,6 @@ reservedKeyword() :
 |    tok = <FUNCTION>
 |    tok = <GET>
 |    tok = <GET_CURRENT_CONNECTION>
-|    tok = <GET_NEAREST_TRANSACTION>
 |    tok = <GLOBAL>
 |    tok = <GO>
 |    tok = <GOTO>
@@ -18060,6 +18059,7 @@ nonReservedKeyword()  :
     |    tok = <FORTRAN>
     |    tok = <FRACTION>
     |    tok = <GENERATED>
+    |    tok = <GET_NEAREST_TRANSACTION>
     |    tok = <GREATEST>
     |    tok = <GROUPING>
     |    tok = <HFILE>
