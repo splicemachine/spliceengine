@@ -66,123 +66,123 @@ import java.util.List;
  */
 public abstract class DDLConstantAction implements ConstantAction
 {
-	/**
-	 * Get the schema descriptor for the schemaid.
-	 *
-	 * @param dd the data dictionary
-	 * @param schemaId the schema id
-	 * @param statementType string describing type of statement for error
-	 *	reporting.  e.g. "ALTER STATEMENT"
-	 *
-	 * @return the schema descriptor
-	 *
-	 * @exception StandardException if schema is system schema
-	 */
-	static SchemaDescriptor getAndCheckSchemaDescriptor(
-						DataDictionary		dd,
-						UUID				schemaId,
-						String				statementType)
-		throws StandardException
-	{
-		return dd.getSchemaDescriptor(schemaId, null);
-	}
+    /**
+     * Get the schema descriptor for the schemaid.
+     *
+     * @param dd the data dictionary
+     * @param schemaId the schema id
+     * @param statementType string describing type of statement for error
+     *    reporting.  e.g. "ALTER STATEMENT"
+     *
+     * @return the schema descriptor
+     *
+     * @exception StandardException if schema is system schema
+     */
+    static SchemaDescriptor getAndCheckSchemaDescriptor(
+                        DataDictionary        dd,
+                        UUID                schemaId,
+                        String                statementType)
+        throws StandardException
+    {
+        return dd.getSchemaDescriptor(schemaId, null);
+    }
 
-	/**
-	 * Get the schema descriptor in the creation of an object in
-	   the passed in schema.
-	 *
-	 * @param dd the data dictionary
-	 * @param activation activation
-	 * @param schemaName name of the schema
-	 *
-	 * @return the schema descriptor
-	 *
-	 * @exception StandardException if the schema does not exist
-	 */
-	public static SchemaDescriptor getSchemaDescriptorForCreate(
-						DataDictionary		dd,
-						Activation activation,
-						String schemaName)
-		throws StandardException
-	{
-		TransactionController tc = activation.
-			getLanguageConnectionContext().getTransactionExecute();
+    /**
+     * Get the schema descriptor in the creation of an object in
+       the passed in schema.
+     *
+     * @param dd the data dictionary
+     * @param activation activation
+     * @param schemaName name of the schema
+     *
+     * @return the schema descriptor
+     *
+     * @exception StandardException if the schema does not exist
+     */
+    public static SchemaDescriptor getSchemaDescriptorForCreate(
+                        DataDictionary        dd,
+                        Activation activation,
+                        String schemaName)
+        throws StandardException
+    {
+        TransactionController tc = activation.
+            getLanguageConnectionContext().getTransactionExecute();
 
-		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, false);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, false);
 
-		if (sd == null || sd.getUUID() == null) {
-			CreateSchemaConstantAction csca
-				= new CreateSchemaConstantAction(schemaName, (String) null);
+        if (sd == null || sd.getUUID() == null) {
+            CreateSchemaConstantAction csca
+                = new CreateSchemaConstantAction(schemaName, (String) null);
 
-			if (activation.getLanguageConnectionContext().
-					isInitialDefaultSchema(schemaName)) {
-				// DERBY-48: This operation creates the user's initial
-				// default schema and we don't want to hold a lock for
-				// SYSSCHEMAS for the duration of the user transaction
-				// since connection attempts may block, so we perform
-				// the creation in a nested transaction (if possible)
-				// so we can commit at once and release locks.
-				executeCAPreferSubTrans(csca, tc, activation);
-			} else {
-				// create the schema in the user transaction
-				try {
-					csca.executeConstantAction(activation);
-				} catch (StandardException se) {
-					if (se.getMessageId()
-							.equals(SQLState.LANG_OBJECT_ALREADY_EXISTS)) {
-						// Ignore "Schema already exists". Another thread has
-						// probably created it after we checked for it
-					} else {
-						throw se;
-					}
-				}
-			}
-
-
-			sd = dd.getSchemaDescriptor(schemaName, tc, true);
-		}
-
-		return sd;
-	}
+            if (activation.getLanguageConnectionContext().
+                    isInitialDefaultSchema(schemaName)) {
+                // DERBY-48: This operation creates the user's initial
+                // default schema and we don't want to hold a lock for
+                // SYSSCHEMAS for the duration of the user transaction
+                // since connection attempts may block, so we perform
+                // the creation in a nested transaction (if possible)
+                // so we can commit at once and release locks.
+                executeCAPreferSubTrans(csca, tc, activation);
+            } else {
+                // create the schema in the user transaction
+                try {
+                    csca.executeConstantAction(activation);
+                } catch (StandardException se) {
+                    if (se.getMessageId()
+                            .equals(SQLState.LANG_OBJECT_ALREADY_EXISTS)) {
+                        // Ignore "Schema already exists". Another thread has
+                        // probably created it after we checked for it
+                    } else {
+                        throw se;
+                    }
+                }
+            }
 
 
-	private static void executeCAPreferSubTrans
-		(CreateSchemaConstantAction csca,
-		 TransactionController tc,
-		 Activation activation) throws StandardException {
+            sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        }
 
-		TransactionController useTc    = null;
-		TransactionController nestedTc = null;
+        return sd;
+    }
 
-		try {
-			nestedTc = tc.startNestedUserTransaction(false, true);
-			useTc = nestedTc;
-		} catch (StandardException e) {
-			if (SanityManager.DEBUG) {
-				SanityManager.THROWASSERT(
-					"Unexpected: not able to start nested transaction " +
-					"to auto-create schema", e);
-			}
-			useTc = tc;
-		}
 
-		// Try max twice: if nested transaction times out, try
-		// again in the outer transaction because it may be a
-		// self-lock, that is, the outer transaction may hold some
-		// lock(s) that make the nested transaction attempt to set
-		// a write lock time out.  Trying it again in the outer
-		// transaction will then succeed. If the reason is some
-		// other transaction barring us, trying again in the outer
-		// transaction will possibly time out again.
-		//
-		// Also, if creating a nested transaction failed, only try
-		// once in the outer transaction.
-		while (true) {
-			try {
-				csca.executeConstantAction(activation, useTc);
-			} catch (StandardException se) {
+    private static void executeCAPreferSubTrans
+        (CreateSchemaConstantAction csca,
+         TransactionController tc,
+         Activation activation) throws StandardException {
 
-				if (se.isLockTimeout()) {
+        TransactionController useTc    = null;
+        TransactionController nestedTc = null;
+
+        try {
+            nestedTc = tc.startNestedUserTransaction(false, true);
+            useTc = nestedTc;
+        } catch (StandardException e) {
+            if (SanityManager.DEBUG) {
+                SanityManager.THROWASSERT(
+                    "Unexpected: not able to start nested transaction " +
+                    "to auto-create schema", e);
+            }
+            useTc = tc;
+        }
+
+        // Try max twice: if nested transaction times out, try
+        // again in the outer transaction because it may be a
+        // self-lock, that is, the outer transaction may hold some
+        // lock(s) that make the nested transaction attempt to set
+        // a write lock time out.  Trying it again in the outer
+        // transaction will then succeed. If the reason is some
+        // other transaction barring us, trying again in the outer
+        // transaction will possibly time out again.
+        //
+        // Also, if creating a nested transaction failed, only try
+        // once in the outer transaction.
+        while (true) {
+            try {
+                csca.executeConstantAction(activation, useTc);
+            } catch (StandardException se) {
+
+                if (se.isLockTimeout()) {
                     // We don't test for SQLState.DEADLOCK because if it is a
                     // deadlock, it may be better to expose it.  Just go ahead
                     // and throw it.
@@ -203,141 +203,141 @@ public abstract class DDLConstantAction implements ConstantAction
                         }
                     }
 
-				} else if (se.getMessageId()
-							   .equals(SQLState.LANG_OBJECT_ALREADY_EXISTS)) {
-					// Ignore "Schema already exists". Another thread has
-					// probably created it after we checked for it
-					break;
-				}
+                } else if (se.getMessageId()
+                               .equals(SQLState.LANG_OBJECT_ALREADY_EXISTS)) {
+                    // Ignore "Schema already exists". Another thread has
+                    // probably created it after we checked for it
+                    break;
+                }
 
-				// We got an non-expected exception, either in
-				// the nested transaction or in the outer
-				// transaction; we had better pass that on
-				if (useTc == nestedTc) {
-					nestedTc.destroy();
-				}
+                // We got an non-expected exception, either in
+                // the nested transaction or in the outer
+                // transaction; we had better pass that on
+                if (useTc == nestedTc) {
+                    nestedTc.destroy();
+                }
 
-				throw se;
-			}
-			break;
-		}
+                throw se;
+            }
+            break;
+        }
 
-		// We either succeeded or got LANG_OBJECT_ALREADY_EXISTS.
-		// Clean up if we did this in a nested transaction.
-		if (useTc == nestedTc) {
-			nestedTc.commit();
-			nestedTc.destroy();
-		}
-	}
+        // We either succeeded or got LANG_OBJECT_ALREADY_EXISTS.
+        // Clean up if we did this in a nested transaction.
+        if (useTc == nestedTc) {
+            nestedTc.commit();
+            nestedTc.destroy();
+        }
+    }
 
 
-	/**
-	 * Lock the table in exclusive or share mode to prevent deadlocks.
-	 *
-	 * @param tc						The TransactionController
-	 * @param heapConglomerateNumber	The conglomerate number for the heap.
-	 * @param exclusiveMode				Whether or not to lock the table in exclusive mode.
-	 *
-	 * @exception StandardException if schema is system schema
-	 */
-	final void lockTableForDDL(TransactionController tc,
-						 long heapConglomerateNumber, boolean exclusiveMode)
-		throws StandardException
-	{
-		ConglomerateController cc;
+    /**
+     * Lock the table in exclusive or share mode to prevent deadlocks.
+     *
+     * @param tc                        The TransactionController
+     * @param heapConglomerateNumber    The conglomerate number for the heap.
+     * @param exclusiveMode                Whether or not to lock the table in exclusive mode.
+     *
+     * @exception StandardException if schema is system schema
+     */
+    final void lockTableForDDL(TransactionController tc,
+                         long heapConglomerateNumber, boolean exclusiveMode)
+        throws StandardException
+    {
+        ConglomerateController cc;
 
-		cc = tc.openConglomerate(
-					heapConglomerateNumber,
+        cc = tc.openConglomerate(
+                    heapConglomerateNumber,
                     false,
-					(exclusiveMode) ?
-						(TransactionController.OPENMODE_FORUPDATE | 
-							TransactionController.OPENMODE_FOR_LOCK_ONLY) :
-						TransactionController.OPENMODE_FOR_LOCK_ONLY,
-			        TransactionController.MODE_TABLE,
+                    (exclusiveMode) ?
+                        (TransactionController.OPENMODE_FORUPDATE |
+                            TransactionController.OPENMODE_FOR_LOCK_ONLY) :
+                        TransactionController.OPENMODE_FOR_LOCK_ONLY,
+                    TransactionController.MODE_TABLE,
                     TransactionController.ISOLATION_SERIALIZABLE);
-		cc.close();
-	}
+        cc.close();
+    }
 
-	protected String constructToString(
-						String				statementType,
-						String              objectName)
-	{
-		// Do not put this under SanityManager.DEBUG - it is needed for
-		// error reporting.
+    protected String constructToString(
+                        String                statementType,
+                        String              objectName)
+    {
+        // Do not put this under SanityManager.DEBUG - it is needed for
+        // error reporting.
 
-		return statementType + objectName;
-	}
-	
-	
-	/**
-	 *	This method saves dependencies of constraints on privileges in the  
-	 *  dependency system. It gets called by CreateConstraintConstantAction.
-	 *  Views and triggers and constraints run with definer's privileges. If 
-	 *  one of the required privileges is revoked from the definer, the 
-	 *  dependent view/trigger/constraint on that privilege will be dropped 
-	 *  automatically. In order to implement this behavior, we need to save 
-	 *  view/trigger/constraint dependencies on required privileges in the 
-	 *  dependency system. Following method accomplishes that part of the 
-	 *  equation for constraints only. The dependency collection for 
-	 *  constraints is not same as for views and triggers and hence 
-	 *  constraints are handled by this special method.
-	 *
-	 * 	Views and triggers can depend on many different kind of privileges
-	 *  where as constraints only depend on REFERENCES privilege on a table
-	 *  (FOREIGN KEY constraints) or EXECUTE privileges on one or more
-	 *  functions (CHECK constraints).
-	 *
-	 *  Another difference is only one view or trigger can be defined by a
-	 *  sql statement and hence all the dependencies collected for the sql
-	 *  statement apply to the view or trigger in question. As for constraints,
-	 *  one sql statement can defined multiple constraints and hence the 
-	 *  all the privileges required by the statement are not necessarily
-	 *  required by all the constraints defined by that sql statement. We need
-	 *  to identify right privileges for right constraints for a given sql
-	 *  statement. Because of these differences between constraints and views
-	 *  (and triggers), there are 2 different methods in this class to save
-	 *  their privileges in the dependency system.
-	 *
-	 *  For each required privilege, we now register a dependency on a role if
-	 *  that role was required to find an applicable privilege.
-	 *   
-	 *  @param activation The execution environment for this constant action.
-	 *  @param dependent Make this object depend on required privileges
-	 *  @param refTableUUID Make sure we are looking for REFERENCES privilege 
-	 * 		for right table
-	 *  @param providers set of providers for this constraint
-	 * @exception StandardException		Thrown on failure
-	 */
-	protected void storeConstraintDependenciesOnPrivileges(
-		Activation activation,
-		Dependent dependent,
-		UUID refTableUUID,
-		ProviderInfo[] providers)
-			throws StandardException
-	{
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		DependencyManager dm = dd.getDependencyManager();
-		String dbo = dd.getAuthorizationDatabaseOwner();
+        return statementType + objectName;
+    }
+
+
+    /**
+     *    This method saves dependencies of constraints on privileges in the
+     *  dependency system. It gets called by CreateConstraintConstantAction.
+     *  Views and triggers and constraints run with definer's privileges. If
+     *  one of the required privileges is revoked from the definer, the
+     *  dependent view/trigger/constraint on that privilege will be dropped
+     *  automatically. In order to implement this behavior, we need to save
+     *  view/trigger/constraint dependencies on required privileges in the
+     *  dependency system. Following method accomplishes that part of the
+     *  equation for constraints only. The dependency collection for
+     *  constraints is not same as for views and triggers and hence
+     *  constraints are handled by this special method.
+     *
+     *     Views and triggers can depend on many different kind of privileges
+     *  where as constraints only depend on REFERENCES privilege on a table
+     *  (FOREIGN KEY constraints) or EXECUTE privileges on one or more
+     *  functions (CHECK constraints).
+     *
+     *  Another difference is only one view or trigger can be defined by a
+     *  sql statement and hence all the dependencies collected for the sql
+     *  statement apply to the view or trigger in question. As for constraints,
+     *  one sql statement can defined multiple constraints and hence the
+     *  all the privileges required by the statement are not necessarily
+     *  required by all the constraints defined by that sql statement. We need
+     *  to identify right privileges for right constraints for a given sql
+     *  statement. Because of these differences between constraints and views
+     *  (and triggers), there are 2 different methods in this class to save
+     *  their privileges in the dependency system.
+     *
+     *  For each required privilege, we now register a dependency on a role if
+     *  that role was required to find an applicable privilege.
+     *
+     *  @param activation The execution environment for this constant action.
+     *  @param dependent Make this object depend on required privileges
+     *  @param refTableUUID Make sure we are looking for REFERENCES privilege
+     *         for right table
+     *  @param providers set of providers for this constraint
+     * @exception StandardException        Thrown on failure
+     */
+    protected void storeConstraintDependenciesOnPrivileges(
+        Activation activation,
+        Dependent dependent,
+        UUID refTableUUID,
+        ProviderInfo[] providers)
+            throws StandardException
+    {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
+        String dbo = dd.getAuthorizationDatabaseOwner();
         String currentUser = lcc.getCurrentUserId(activation);
         List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-		SettableBoolean roleDepAdded = new SettableBoolean();
+        SettableBoolean roleDepAdded = new SettableBoolean();
 
-		//If the Database Owner is creating this constraint, then no need to 
-		//collect any privilege dependencies because the Database Owner can   
-		//access any objects without any restrictions
+        //If the Database Owner is creating this constraint, then no need to
+        //collect any privilege dependencies because the Database Owner can
+        //access any objects without any restrictions
         if (! (currentUser.equals(dbo) || (groupuserlist != null && groupuserlist.contains(dbo))))
-		{
-			PermissionsDescriptor permDesc;
-			// Now, it is time to add into dependency system the FOREIGN
-			// constraint's dependency on REFERENCES privilege, or, if it is a
-			// CHECK constraint, any EXECUTE or USAGE privileges. If the REFERENCES is
-			// revoked from the constraint owner, the constraint will get
-			// dropped automatically.
-			List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
+        {
+            PermissionsDescriptor permDesc;
+            // Now, it is time to add into dependency system the FOREIGN
+            // constraint's dependency on REFERENCES privilege, or, if it is a
+            // CHECK constraint, any EXECUTE or USAGE privileges. If the REFERENCES is
+            // revoked from the constraint owner, the constraint will get
+            // dropped automatically.
+            List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
 
-			if (requiredPermissionsList != null && ! requiredPermissionsList.isEmpty())
-			{
+            if (requiredPermissionsList != null && ! requiredPermissionsList.isEmpty())
+            {
                 for (Object aRequiredPermissionsList : requiredPermissionsList) {
                     StatementPermission statPerm = (StatementPermission) aRequiredPermissionsList;
                     //First check if we are dealing with a Table or
@@ -482,174 +482,174 @@ public abstract class DDLConstantAction implements ConstantAction
                         // referenced in the constraint, so continue looking.
                     }
                 }
-			}
-		}
-		
-	}	
+            }
+        }
+
+    }
 
 
-	/**
-	 * We have determined that the statement permission described by statPerm
-	 * is not granted to the current user nor to PUBLIC, so it must be granted
-	 * to the current role or one of the roles inherited by the current
-	 * role. Find the relevant permission descriptor and return it.
-	 *
-	 * @return the permission descriptor that yielded the privilege
-	 */
-	private static PermissionsDescriptor findRoleUsage
-		(Activation activation,
-		 StatementPermission statPerm) throws StandardException {
+    /**
+     * We have determined that the statement permission described by statPerm
+     * is not granted to the current user nor to PUBLIC, so it must be granted
+     * to the current role or one of the roles inherited by the current
+     * role. Find the relevant permission descriptor and return it.
+     *
+     * @return the permission descriptor that yielded the privilege
+     */
+    private static PermissionsDescriptor findRoleUsage
+        (Activation activation,
+         StatementPermission statPerm) throws StandardException {
 
-		LanguageConnectionContext lcc =
-			activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		List<String> roleList = lcc.getCurrentRoles(activation);
-		RoleGrantDescriptor rootGrant = null;
+        LanguageConnectionContext lcc =
+            activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        List<String> roleList = lcc.getCurrentRoles(activation);
+        RoleGrantDescriptor rootGrant = null;
 
         String currentUser = lcc.getCurrentUserId(activation);
-		PermissionsDescriptor permDesc = null;
+        PermissionsDescriptor permDesc = null;
 
-		for (String role : roleList) {
-			if (SanityManager.DEBUG) {
-				SanityManager.ASSERT(
-						role != null,
-						"Unexpected: current role is null");
-			}
+        for (String role : roleList) {
+            if (SanityManager.DEBUG) {
+                SanityManager.ASSERT(
+                        role != null,
+                        "Unexpected: current role is null");
+            }
 
-			// determine how we got to be able use this role
-			rootGrant =
-					dd.getRoleGrantDescriptor(role, currentUser);
+            // determine how we got to be able use this role
+            rootGrant =
+                    dd.getRoleGrantDescriptor(role, currentUser);
 
-			if (rootGrant == null) {
-				rootGrant = dd.getRoleGrantDescriptor(
-						role,
-						Authorizer.PUBLIC_AUTHORIZATION_ID);
-			}
+            if (rootGrant == null) {
+                rootGrant = dd.getRoleGrantDescriptor(
+                        role,
+                        Authorizer.PUBLIC_AUTHORIZATION_ID);
+            }
 
-			// If not found in current role, get transitive
-			// closure of roles granted to current role and
-			// iterate over it to see if permission has
-			// been granted to any of the roles the current
-			// role inherits.
-			RoleClosureIterator rci =
-					dd.createRoleClosureIterator
-							(activation.getTransactionController(),
-									role, true /* inverse relation*/);
+            // If not found in current role, get transitive
+            // closure of roles granted to current role and
+            // iterate over it to see if permission has
+            // been granted to any of the roles the current
+            // role inherits.
+            RoleClosureIterator rci =
+                    dd.createRoleClosureIterator
+                            (activation.getTransactionController(),
+                                    role, true /* inverse relation*/);
 
-			String graphGrant;
-			while (permDesc == null &&
-					(graphGrant = rci.next()) != null) {
-				permDesc =
-						statPerm.getPermissionDescriptor
-								(graphGrant, dd);
-			}
-			if (permDesc != null)
-				break;
-		}
+            String graphGrant;
+            while (permDesc == null &&
+                    (graphGrant = rci.next()) != null) {
+                permDesc =
+                        statPerm.getPermissionDescriptor
+                                (graphGrant, dd);
+            }
+            if (permDesc != null)
+                break;
+        }
 
-		if (SanityManager.DEBUG) {
-			SanityManager.ASSERT(
-				permDesc != null,
-				"Unexpected: Permission needs to be found via role");
-		}
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(
+                permDesc != null,
+                "Unexpected: Permission needs to be found via role");
+        }
 
-		return permDesc;
-	}
+        return permDesc;
+    }
 
 
-	/**
-	 * The statement permission needed for dependent has been found to rely on
-	 * the current roles. If not already done, register the dependency so that
-	 * if the current roles (or any of the roles it inherits) are revoked (or
-	 * dropped), we can invalidate dependent.
-	 *
-	 * @param activation the current activation
-	 * @param dependent the view, constraint or trigger that is dependent on the
-	 *        current role for some privilege.
-	 * @param roleDepAdded keeps track of whether a dependeny on the
-	 *        current role has aleady been registered.
-	 */
-	private static void trackRoleDependency(Activation activation,
-											Dependent dependent,
-											SettableBoolean roleDepAdded)
-			throws StandardException {
+    /**
+     * The statement permission needed for dependent has been found to rely on
+     * the current roles. If not already done, register the dependency so that
+     * if the current roles (or any of the roles it inherits) are revoked (or
+     * dropped), we can invalidate dependent.
+     *
+     * @param activation the current activation
+     * @param dependent the view, constraint or trigger that is dependent on the
+     *        current role for some privilege.
+     * @param roleDepAdded keeps track of whether a dependeny on the
+     *        current role has aleady been registered.
+     */
+    private static void trackRoleDependency(Activation activation,
+                                            Dependent dependent,
+                                            SettableBoolean roleDepAdded)
+            throws StandardException {
 
-		// We only register the dependency once, lest
-		// we get duplicates in SYSDEPENDS (duplicates
-		// are not healthy..invalidating more than once
-		// fails for triggers at least).
-		if (!roleDepAdded.get()) {
-			LanguageConnectionContext lcc =
-				activation.getLanguageConnectionContext();
-			DataDictionary dd = lcc.getDataDictionary();
-			DependencyManager dm = dd.getDependencyManager();
+        // We only register the dependency once, lest
+        // we get duplicates in SYSDEPENDS (duplicates
+        // are not healthy..invalidating more than once
+        // fails for triggers at least).
+        if (!roleDepAdded.get()) {
+            LanguageConnectionContext lcc =
+                activation.getLanguageConnectionContext();
+            DataDictionary dd = lcc.getDataDictionary();
+            DependencyManager dm = dd.getDependencyManager();
 
-			List<String> roleList = lcc.getCurrentRoles(activation);
-			for (String role: roleList) {
-				RoleGrantDescriptor rgd =
-						dd.getRoleDefinitionDescriptor(role);
+            List<String> roleList = lcc.getCurrentRoles(activation);
+            for (String role: roleList) {
+                RoleGrantDescriptor rgd =
+                        dd.getRoleDefinitionDescriptor(role);
 
-				dm.addDependency
-						(dependent, rgd,
-								lcc.getContextManager());
-			}
-			roleDepAdded.set(true);
-		}
-	}
+                dm.addDependency
+                        (dependent, rgd,
+                                lcc.getContextManager());
+            }
+            roleDepAdded.set(true);
+        }
+    }
 
-	/**
-	 *	This method saves dependencies of views and triggers on privileges in  
-	 *  the dependency system. It gets called by CreateViewConstantAction
-	 *  and CreateTriggerConstantAction. Views and triggers and constraints
-	 *  run with definer's privileges. If one of the required privileges is
-	 *  revoked from the definer, the dependent view/trigger/constraint on
-	 *  that privilege will be dropped automatically. In order to implement 
-	 *  this behavior, we need to save view/trigger/constraint dependencies 
-	 *  on required privileges in the dependency system. Following method 
-	 *  accomplishes that part of the equation for views and triggers. The
-	 *  dependency collection for constraints is not same as for views and
-	 *  triggers and hence constraints are not covered by this method.
-	 *  Views and triggers can depend on many different kind of privileges
-	 *  where as constraints only depend on REFERENCES privilege on a table.
-	 *  Another difference is only one view or trigger can be defined by a
-	 *  sql statement and hence all the dependencies collected for the sql
-	 *  statement apply to the view or trigger in question. As for constraints,
-	 *  one sql statement can defined multiple constraints and hence the 
-	 *  all the privileges required by the statement are not necessarily
-	 *  required by all the constraints defined by that sql statement. We need
-	 *  to identify right privileges for right constraints for a given sql
-	 *  statement. Because of these differences between constraints and views
-	 *  (and triggers), there are 2 different methods in this class to save
-	 *  their privileges in the dependency system.
-	 *
-	 *  For each required privilege, we now register of a dependency on a role
-	 *  if that role was required to find an applicable privilege.
-	 *
-	 *  @param activation The execution environment for this constant action.
-	 *  @param dependent Make this object depend on required privileges
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	protected void storeViewTriggerDependenciesOnPrivileges(
-			Activation activation, Dependent dependent)
-	throws StandardException
-	{
-		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-		DataDictionary dd = lcc.getDataDictionary();
-		DependencyManager dm = dd.getDependencyManager();
-		String dbo = dd.getAuthorizationDatabaseOwner();
+    /**
+     *    This method saves dependencies of views and triggers on privileges in
+     *  the dependency system. It gets called by CreateViewConstantAction
+     *  and CreateTriggerConstantAction. Views and triggers and constraints
+     *  run with definer's privileges. If one of the required privileges is
+     *  revoked from the definer, the dependent view/trigger/constraint on
+     *  that privilege will be dropped automatically. In order to implement
+     *  this behavior, we need to save view/trigger/constraint dependencies
+     *  on required privileges in the dependency system. Following method
+     *  accomplishes that part of the equation for views and triggers. The
+     *  dependency collection for constraints is not same as for views and
+     *  triggers and hence constraints are not covered by this method.
+     *  Views and triggers can depend on many different kind of privileges
+     *  where as constraints only depend on REFERENCES privilege on a table.
+     *  Another difference is only one view or trigger can be defined by a
+     *  sql statement and hence all the dependencies collected for the sql
+     *  statement apply to the view or trigger in question. As for constraints,
+     *  one sql statement can defined multiple constraints and hence the
+     *  all the privileges required by the statement are not necessarily
+     *  required by all the constraints defined by that sql statement. We need
+     *  to identify right privileges for right constraints for a given sql
+     *  statement. Because of these differences between constraints and views
+     *  (and triggers), there are 2 different methods in this class to save
+     *  their privileges in the dependency system.
+     *
+     *  For each required privilege, we now register of a dependency on a role
+     *  if that role was required to find an applicable privilege.
+     *
+     *  @param activation The execution environment for this constant action.
+     *  @param dependent Make this object depend on required privileges
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    protected void storeViewTriggerDependenciesOnPrivileges(
+            Activation activation, Dependent dependent)
+    throws StandardException
+    {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
+        String dbo = dd.getAuthorizationDatabaseOwner();
         String currentUser = lcc.getCurrentUserId(activation);
-		SettableBoolean roleDepAdded = new SettableBoolean();
+        SettableBoolean roleDepAdded = new SettableBoolean();
 
-		// If the Database Owner is creating this view/trigger, then no need to
-		// collect any privilege dependencies because the Database Owner can
-		// access any objects without any restrictions.
+        // If the Database Owner is creating this view/trigger, then no need to
+        // collect any privilege dependencies because the Database Owner can
+        // access any objects without any restrictions.
         if (! currentUser.equals(dbo))
-		{
-			PermissionsDescriptor permDesc;
-			List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
-			if (requiredPermissionsList != null && ! requiredPermissionsList.isEmpty())
-			{
+        {
+            PermissionsDescriptor permDesc;
+            List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
+            if (requiredPermissionsList != null && ! requiredPermissionsList.isEmpty())
+            {
                 for (Object aRequiredPermissionsList : requiredPermissionsList) {
                     StatementPermission statPerm = (StatementPermission) aRequiredPermissionsList;
                     //The schema ownership permission just needs to be checked
@@ -765,22 +765,22 @@ public abstract class DDLConstantAction implements ConstantAction
                         }
                     }
                 }
-			}
-		}
-	}
+            }
+        }
+    }
 
-	private boolean inProviderSet(ProviderInfo[] providers, UUID routineId) {
-		if (providers == null) {
-			return false;
-		}
+    private boolean inProviderSet(ProviderInfo[] providers, UUID routineId) {
+        if (providers == null) {
+            return false;
+        }
 
         for (ProviderInfo provider : providers) {
             if (provider.getObjectId().equals(routineId)) {
                 return true;
             }
         }
-		return false;
-	}
+        return false;
+    }
 
     /**
      * Add dependencies of a column on providers. These can arise if a generated column depends
@@ -801,7 +801,6 @@ public abstract class DDLConstantAction implements ConstantAction
         {
             DependencyManager   dm = dd.getDependencyManager();
             ContextManager      cm = lcc.getContextManager();
-            int                         providerCount = providers.length;
             ColumnDescriptor    cd = td.getColumnDescriptor( ci.name );
             DefaultDescriptor   defDesc = cd.getDefaultDescriptor( dd );
 
@@ -832,7 +831,7 @@ public abstract class DDLConstantAction implements ConstantAction
     {
         if ( (!dropWholeTable) && (columnInfos == null) ) { return; }
 
-		TransactionController tc = lcc.getTransactionExecute();
+        TransactionController tc = lcc.getTransactionExecute();
 
         int changedColumnCount = columnInfos == null ? 0 : columnInfos.length;
         HashMap addUdtMap = new HashMap();
@@ -932,7 +931,7 @@ public abstract class DDLConstantAction implements ConstantAction
         // again, nothing to do if there are no columns of udt type
         if ( (addUdtMap.isEmpty()) && (dropUdtMap.isEmpty()) ) { return; }
 
-		TransactionController tc = lcc.getTransactionExecute();
+        TransactionController tc = lcc.getTransactionExecute();
         DependencyManager     dm = dd.getDependencyManager();
         ContextManager        cm = lcc.getContextManager();
 
@@ -970,8 +969,8 @@ public abstract class DDLConstantAction implements ConstantAction
          )
         throws StandardException
     {
-    	RoutineAliasInfo      routineInfo = null;
-    	AggregateAliasInfo  aggInfo = null;
+        RoutineAliasInfo      routineInfo = null;
+        AggregateAliasInfo  aggInfo = null;
         // nothing to do if this is not a routine
         switch ( ad.getAliasType() )
         {
@@ -979,15 +978,15 @@ public abstract class DDLConstantAction implements ConstantAction
         aggInfo = (AggregateAliasInfo) ad.getAliasInfo();
         break;
 
-		case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
-		case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR:
-		routineInfo = (RoutineAliasInfo) ad.getAliasInfo();
+        case AliasInfo.ALIAS_TYPE_PROCEDURE_AS_CHAR:
+        case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR:
+        routineInfo = (RoutineAliasInfo) ad.getAliasInfo();
             break;
 
         default: return;
         }
         
-		TransactionController tc = lcc.getTransactionExecute();
+        TransactionController tc = lcc.getTransactionExecute();
         
         HashMap               addUdtMap = new HashMap();
         HashMap               dropUdtMap = new HashMap();
@@ -1023,7 +1022,6 @@ public abstract class DDLConstantAction implements ConstantAction
         new TypeDescriptor[] { aggInfo.getForType() } : routineInfo.getParameterTypes();
         if ( paramTypes != null )
         {
-            int paramCount = paramTypes.length;
             for (TypeDescriptor paramType1 : paramTypes) {
                 AliasDescriptor paramType = dd.getAliasDescriptorForUDT
                         (tc, DataTypeDescriptor.getType(paramType1));
@@ -1037,23 +1035,23 @@ public abstract class DDLConstantAction implements ConstantAction
         adjustUDTDependencies( lcc, dd, ad, addUdtMap, dropUdtMap );
     }
     
-	/**
-	 * Mutable Boolean wrapper, initially false
-	 */
-	private class SettableBoolean {
-		boolean value;
+    /**
+     * Mutable Boolean wrapper, initially false
+     */
+    private static class SettableBoolean {
+        boolean value;
 
-		SettableBoolean() {
-			value = false;
-		}
+        SettableBoolean() {
+            value = false;
+        }
 
-		void set(boolean b) {
-			value = b;
-		}
+        void set(boolean b) {
+            value = b;
+        }
 
-		boolean get() {
-			return value;
-		}
-	}
+        boolean get() {
+            return value;
+        }
+    }
 }
 

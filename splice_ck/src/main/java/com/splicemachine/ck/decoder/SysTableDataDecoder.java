@@ -28,7 +28,7 @@ public class SysTableDataDecoder extends UserDataDecoder {
         ExecRow er = new ValueRow(SYSTABLESRowFactory.SYSTABLES_COLUMN_COUNT);
         SYSTABLESRowFactory.setRowColumns(er, null, null, null, null,
                 null, null, -1, null, null, null,
-                null, null, null, false, false);
+                null, null, null, false, false, null);
         SerializerMap serializerMap = new V1SerializerMap(false);
         return new Pair<>(er, serializerMap.getSerializers(er));
     }

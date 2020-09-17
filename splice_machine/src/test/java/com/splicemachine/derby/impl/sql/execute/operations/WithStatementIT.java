@@ -13,14 +13,17 @@
  */
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+
 import java.sql.ResultSet;
+import java.sql.SQLException;
+
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
@@ -41,41 +44,79 @@ import static org.junit.Assert.assertEquals;
  *
  */
 public class WithStatementIT extends SpliceUnitTest {
-        private static final String SCHEMA = WithStatementIT.class.getSimpleName().toUpperCase();
-        private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
+    private static final String SCHEMA = WithStatementIT.class.getSimpleName().toUpperCase();
+    private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
 
-        @ClassRule
-        public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    protected static final String TEST_USER = "test_" + SCHEMA;
+    protected static final String TEST_PASSWORD = "ajkglja233";
+    protected static final String TEST_ROLE = "read_only";
 
-        @Rule
-        public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+    protected static TestConnection testUserConn;
 
-        @BeforeClass
-        public static void createSharedTables() throws Exception {
-            TestConnection connection = spliceClassWatcher.getOrCreateConnection();
-            new TableCreator(connection)
-                    .withCreate("create table FOO (col1 int primary key, col2 int)")
-                    .withInsert("insert into FOO values(?,?)")
-                    .withRows(rows(row(1, 1), row(2, 1), row(3, 1), row(4, 1), row(5, 1))).create();
+    @ClassRule
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    private static SpliceUserWatcher testUserWatcher = new SpliceUserWatcher(TEST_USER, TEST_PASSWORD);
+    private static SpliceRoleWatcher testRoleWatcher = new SpliceRoleWatcher(TEST_ROLE);
 
-            new TableCreator(connection)
-                    .withCreate("create table FOO2 (col1 int primary key, col2 int)")
-                    .withInsert("insert into FOO2 values(?,?)")
-                    .withRows(rows(row(1, 5), row(3, 7), row(5, 9))).create();
+    @ClassRule
+    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
+            .around(testUserWatcher)
+            .around(testRoleWatcher);
 
-            new TableCreator(connection)
-                    .withCreate("create table FOO3 (col1 int primary key, col2 int)")
-                    .withInsert("insert into FOO3 values(?,?)")
-                    .withRows(rows(row(1, 5), row(3, 7))).create();
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
-            new TableCreator(connection)
-                    .withCreate("create table t10 (i int)")
-                    .withInsert("insert into t10 values (?)")
-                    .withRows(rows(row(1),row(2),row(3),row(4),row(5))).create();
-            new TableCreator(connection)
-                    .withCreate("create table t11 (i int)").create();
+    @BeforeClass
+    public static void createSharedTables() throws Exception {
+        TestConnection connection = spliceClassWatcher.getOrCreateConnection();
+        new TableCreator(connection)
+                .withCreate("create table FOO (col1 int primary key, col2 int)")
+                .withInsert("insert into FOO values(?,?)")
+                .withRows(rows(row(1, 1), row(2, 1), row(3, 1), row(4, 1), row(5, 1))).create();
 
+        new TableCreator(connection)
+                .withCreate("create table FOO2 (col1 int primary key, col2 int)")
+                .withInsert("insert into FOO2 values(?,?)")
+                .withRows(rows(row(1, 5), row(3, 7), row(5, 9))).create();
+
+        new TableCreator(connection)
+                .withCreate("create table FOO3 (col1 int primary key, col2 int)")
+                .withInsert("insert into FOO3 values(?,?)")
+                .withRows(rows(row(1, 5), row(3, 7))).create();
+
+        new TableCreator(connection)
+                .withCreate("create table t10 (i int)")
+                .withInsert("insert into t10 values (?)")
+                .withRows(rows(row(1),row(2),row(3),row(4),row(5))).create();
+        new TableCreator(connection)
+                .withCreate("create table t11 (i int)").create();
+        new TableCreator(connection)
+                .withCreate("create table t12 (i int)").create();
+
+        testUserConn = spliceClassWatcher.connectionBuilder().user(TEST_USER).password(TEST_PASSWORD).build();
+
+        connection.createStatement().execute(format("grant access,select on schema %s to %s", SCHEMA, TEST_USER));
+    }
+
+    private static class CreateDynamicViewTask implements Runnable {
+        private final TestConnection connection;
+        private final String viewName;
+
+        public CreateDynamicViewTask(TestConnection connection, String viewName) {
+            this.connection = connection;
+            this.viewName = viewName;
         }
+
+        @Override
+        public void run() {
+            try {
+                connection.createStatement().executeQuery(
+                        format("with %s as (select * from t12) select * from %s", viewName, viewName));
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
 
     @Test
     public void testSimpleWithStatementWithAggregate() throws Exception {
@@ -209,5 +250,44 @@ public class WithStatementIT extends SpliceUnitTest {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    @Test
+    public void testWithInSchemaNotSufficientPrivilege() throws Exception {
+        methodWatcher.executeUpdate("insert into t12 values (1)");
+        String expected = "I |\n" +
+                "----\n" +
+                " 1 |";
 
+        // user with enough privilege, dynamic view in SESSION schema
+        try (ResultSet rs = methodWatcher.executeQuery("with dt as (select * from t12) select * from dt")) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        // user with enough privilege, dynamic view in current schema
+        try (ResultSet rs = methodWatcher.executeQuery(format("with %s.dt as (select * from t12) select * from dt", SCHEMA))) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        try (ResultSet rs = testUserConn.createStatement().executeQuery("values current schema")) {
+            String expectedSchema = "1        |\n" +
+                    "-----------------\n" +
+                    "WITHSTATEMENTIT |";
+            assertEquals(expectedSchema, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // user with no write privilege, dynamic view in SESSION schema
+        try (ResultSet rs = testUserConn.createStatement().executeQuery(format("with dt as (select * from t12) select * from dt"))) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        // user with no write privilege, dynamic view in current schema
+        assertFailed(testUserConn, format("with %s.dt as (select * from t12) select * from dt", SCHEMA), SQLState.AUTH_NO_ACCESS_NOT_OWNER);
+    }
+
+    @Test
+    public void testConcurrentDynamicViewCreationWithTheSameName() throws Exception {
+        Thread t1 = new Thread(new CreateDynamicViewTask(spliceClassWatcher.getOrCreateConnection(), "dt"));
+        Thread t2 = new Thread(new CreateDynamicViewTask(testUserConn, "dt"));
+        t1.start();
+        t2.start();
+        t1.join();
+        t2.join();
+    }
 }

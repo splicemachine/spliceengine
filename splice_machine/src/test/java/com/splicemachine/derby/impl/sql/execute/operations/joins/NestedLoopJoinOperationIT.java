@@ -488,7 +488,7 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
                     ->  Union(n=14,totalCost=16.336,outputRows=18,outputHeapSize=60 B,partitions=2)
                       ->  ProjectRestrict(n=11,totalCost=12.296,outputRows=16,outputHeapSize=56 B,partitions=1)
                         ->  BroadcastJoin(n=9,totalCost=12.296,outputRows=16,outputHeapSize=56 B,partitions=1,preds=[(X.A4[9:2] = Y.A4[9:1])])
-                          ->  TableScan[T4(1712)](n=7,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=56 B,partitions=1,preds=[(T3.A3[1:1] = S.A4[7:1])])
+                          ->  TableScan[T4(1712)](n=7,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=56 B,partitions=1,preds=[(T3.A3[1:1] = X.A4[7:1])])
                           ->  TableScan[T4(1712)](n=5,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
                       ->  TableScan[T4(1712)](n=2,totalCost=4.04,scannedRows=20,outputRows=2,outputHeapSize=4 B,partitions=1,preds=[(T3.A3[1:1] = T4.A4[2:1])])
                 ->  ProjectRestrict(n=1,totalCost=4.04,outputRows=10,outputHeapSize=20 B,partitions=1,preds=[like(B3[0:2], %) ])
@@ -497,7 +497,7 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
          */
         rowContainsQuery(new int[]{9, 10, 11, 12}, "explain " + sql, methodWatcher,
                 new String[]{"BroadcastJoin", "preds=[(X.A4[9:2] = Y.A4[9:1])]"},
-                new String[]{"TableScan[T4", "preds=[(T3.A3[1:1] = S.A4[7:1])]"},
+                new String[]{"TableScan[T4", "preds=[(T3.A3[1:1] = X.A4[7:1])]"},
                 new String[]{"TableScan[T4"},
                 new String[]{"TableScan[T4", "preds=[(T3.A3[1:1] = T4.A4[2:1])]"});
 

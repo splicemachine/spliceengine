@@ -349,7 +349,7 @@ public class ConstraintConstantOperationIT {
         conn.execute(format("GRANT %s TO %s", ROLE2, USER1));
 
         // step 2: create child table with PK-FK constraint using the privileges from the role
-        TestConnection user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+        TestConnection user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
         user1Conn.execute(format("create table %1$s.child (a2 int, b2 int, c2 int, constraint it_fkCons foreign key (a2) references %1$s.%2$s(empId))", SCHEMA, EMP_PRIV_TABLE_NAME));
 
         // step 3: check sys.sysdepends, there should only be one entry corresponding to the FK dependency on PK
@@ -373,7 +373,7 @@ public class ConstraintConstantOperationIT {
         conn.execute(format("GRANT ALL PRIVILEGES ON SCHEMA %s TO %s", SCHEMA, USER1));
 
         // step 2: create child table with PK-FK constraint using the privileges from the role
-        user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+        user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
         user1Conn.execute(format("create table %1$s.child (a2 int, b2 int, c2 int, constraint it_fkCons foreign key (a2) references %1$s.%2$s(empId))", SCHEMA, EMP_PRIV_TABLE_NAME));
 
         // step 3: check sys.sysdepends, there should only be one entry corresponding to the FK dependency on PK
@@ -427,7 +427,7 @@ public class ConstraintConstantOperationIT {
         conn.execute(format("GRANT %s TO %s", ROLE4, USER2));
 
         // step 3: create child table with check constraint using the privileges from the role
-        TestConnection user2Conn = spliceClassWatcher.createConnection(USER2, PASSWORD1);
+        TestConnection user2Conn = spliceClassWatcher.connectionBuilder().user(USER2).password(PASSWORD1).build();
         user2Conn.execute(format("create table %s.tt(a1 int, b1 varchar(30), c1 int, constraint IT_check_cons1 CHECK(splice.word_limiter(b1, 5) > 'ABC'))", USER2));
 
         // step 4: check sys.sysdepends, check constraint should depend on only one role

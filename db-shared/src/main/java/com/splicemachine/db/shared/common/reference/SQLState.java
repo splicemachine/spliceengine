@@ -846,6 +846,7 @@ public interface SQLState {
 	String LANG_TABLE_REQUIRES_COLUMN_NAMES                            = "42909";
 	String LANG_DELETE_RULE_VIOLATION		   					       = "42915";
 	String LANG_SYNONYM_CIRCULAR   		   					           = "42916";
+	String LANG_INVALID_INDEX_EXPRESSION                               = "429BX";  // DB2 compatible code
 	String LANG_SYNTAX_ERROR                                           = "42X01";
 	String LANG_LEXICAL_ERROR                                          = "42X02";
 	String LANG_AMBIGUOUS_COLUMN_NAME                                  = "42X03";
@@ -1383,6 +1384,7 @@ public interface SQLState {
 
 	// INTERNAL EXCEPTIONS
 	String LANG_UNABLE_TO_GENERATE                                     = "42Z50";
+	String LANG_UNABLE_TO_LOAD_GENERATE_CODE                           = "42Z51";
 	String LANG_UNAVAILABLE_ACTIVATION_NEED                            = "42Z53";
 	String LANG_PARSE_ONLY                                             = "42Z54.U";
 	String LANG_STOP_AFTER_PARSING                                     = "42Z55.U";

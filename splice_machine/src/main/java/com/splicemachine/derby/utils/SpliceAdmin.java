@@ -1090,6 +1090,23 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return sqlConglomsInSchema;
     }
 
+    private static final String sqlGetTablesInSchema= "SELECT TABLEID FROM SYSVW.SYSTABLESVIEW WHERE SCHEMAID = ?";
+
+    private static List<TableDescriptor> getTablesInSchema(DataDictionary dataDictionary,
+                                                           Connection connection,
+                                                           String schemaId) throws SQLException, StandardException {
+        try(PreparedStatement statement = connection.prepareStatement(sqlGetTablesInSchema)) {
+            statement.setString(1, schemaId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                List<TableDescriptor> tableDescriptors = new ArrayList<>();
+                while (resultSet.next()) {
+                    tableDescriptors.add(dataDictionary.getTableDescriptor(new BasicUUID(resultSet.getString(1))));
+                }
+                return tableDescriptors;
+            }
+        }
+    }
+
     public static String getSqlConglomsInTable(){
         return sqlConglomsInTable;
     }
@@ -1413,9 +1430,63 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         boolean b = "TRUE".compareToIgnoreCase(enable) == 0;
+        if(td.minRetainedPeriod() > 0) {
+            SpliceLogUtils.warn(LOG, "setting purge deleted rows on table %s which min retention period " +
+                    "set to non-negative value, this could lead to incorrect time travel query results", td.getName());
+        }
         td.setPurgeDeletedRows(b);
         dd.dropTableDescriptor(td, sd, tc);
         dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+    }
+
+    /**
+     * Sets the minimum retention period for a table, or a set of tables in a schema.
+     *
+     * @param schemaName Name of the schema.
+     * @param tableName Name of the table, if NULL, then `retentionPeriod` will be set for all tables in `schema`.
+     * @param retentionPeriod Retention period (in seconds).
+     * @throws StandardException If table or schema does not exist.
+     * @throws SQLException is table name or schema name is not valid.
+     */
+    public static void SET_MIN_RETENTION_PERIOD(String schemaName, String tableName, long retentionPeriod) throws StandardException, SQLException {
+        // if schemaName was null => get the current schema.
+        schemaName = EngineUtils.validateSchema(schemaName);
+        // if tableName is null => set min. retention period for all tables in schemaName.
+        tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
+        if(retentionPeriod < 0) {
+            throw StandardException.newException(SQLState.LANG_INVALID_VALUE_RANGE, retentionPeriod, "non-negative number");
+        }
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc = lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        if (sd == null) {
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+        }
+        List<TableDescriptor> affectedTables = new ArrayList<>();
+        if (tableName != null) {
+            TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+            if (td == null) {
+                throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
+            }
+            affectedTables.add(td);
+        } else { // set for all tables in schema
+            affectedTables.addAll(getTablesInSchema(dd, getDefaultConn(), sd.getUUID().toString()));
+        }
+        dd.startWriting(lcc);
+        for(TableDescriptor td : affectedTables) {
+            DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(), (BasicUUID) td.getUUID());
+            DependencyManager dm = dd.getDependencyManager();
+            dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
+            tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+            if(td.purgeDeletedRows()) {
+                SpliceLogUtils.warn(LOG, "setting minimum retention period on table %s which has purge deleted " +
+                        "rows set to true, this could lead to incorrect time travel query results", td.getName());
+            }
+            td.setMinRetainedPeriod(retentionPeriod);
+            dd.dropTableDescriptor(td, sd, tc);
+            dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
+        }
     }
 
     /**

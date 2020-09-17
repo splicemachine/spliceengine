@@ -1,0 +1,228 @@
+def parcel_url = ""
+def folder_name = ""
+def scmVars = ""
+def BUILD_USER_EMAIL="build@splicemachine.com"
+String[] clusters = ["aks-dev1","aks-dev2","aks-dev3","aks-dev4","aks-dev5","aks-dev6","aks-dev7","aks-dev8"]
+def vaultSecrets = [
+[$class: 'VaultSecret', path: "secret/azure/service_principals/8777b2db-3764-422b-a302-7aefb352399f", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'secret_app_id', vaultKey: 'app_id'],
+    [$class: 'VaultSecretValue', envVar: 'secret_subscription_id', vaultKey: 'subscription_id'],
+    [$class: 'VaultSecretValue', envVar: 'secret_object_id', vaultKey: 'object_id'],
+    [$class: 'VaultSecretValue', envVar: 'secret_secret', vaultKey: 'secret'],
+    [$class: 'VaultSecretValue', envVar: 'secret_tenant', vaultKey: 'tenant']]],
+[$class: 'VaultSecret', path: "secret/aws/service_accounts/jenkins-build", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'secret_key_id', vaultKey: 'access_key_id'],
+    [$class: 'VaultSecretValue', envVar: 'secret_key', vaultKey: 'access_key']]],
+[$class: 'VaultSecret', path: "secret/aws/jenkins/colo_jenkins", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'jenkins_user', vaultKey: 'user'],
+    [$class: 'VaultSecretValue', envVar: 'jenkins_pass', vaultKey: 'pass']]],
+[$class: 'VaultSecret', path: "secret/aws/jenkins/slack", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'bot_token', vaultKey: 'oauth']]],
+[$class: 'VaultSecret', path: "secret/aws/jenkins/splicemachine", secretValues: [
+    [$class: 'VaultSecretValue', envVar: 'aws_splice_access', vaultKey: 'access'],
+    [$class: 'VaultSecretValue', envVar: 'aws_splice_secret', vaultKey: 'secret']]]
+]
+
+
+node('splice-standalone'){
+    def region = "us-east-1"
+    stage('Checkout Spliceengine') {
+        // Get some code from a GitHub repository
+        scmVars = checkout scm
+        checkout([  
+            $class: 'GitSCM', 
+            branches: [[name: 'refs/heads/'+scmVars.GIT_BRANCH]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
+            submoduleCfg: [], 
+            userRemoteConfigs: [[credentialsId: 'cloudspliceci_ssh', url: 'https://github.com/splicemachine/spliceengine.git']]
+        ])
+        checkout([  
+            $class: 'GitSCM', 
+            branches: [[name: 'refs/heads/'+scmVars.GIT_BRANCH]], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
+            submoduleCfg: [], 
+            userRemoteConfigs: [[credentialsId: 'cloudspliceci_ssh', url: 'https://github.com/splicemachine/spliceengine-ee.git']]
+        ])
+    }
+    stage('Login') {
+        wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
+        sh "aws configure set aws_access_key_id $aws_splice_access"
+        sh "aws configure set aws_secret_access_key $aws_splice_secret"
+        sh "aws configure set region $region"
+        }
+    }
+    stage("Build/Test"){
+        // Run Maven on a Unix agent.
+        dir('spliceengine'){
+            sh "mvn -Dmaven.test.failure.ignore=true -q -B -e --fail-at-end clean install -Pcore,cdh6.3.0,ee,parcel -DskipTests"
+            parcel_url = sh(script:"aws s3 sync assembly/target/parcels/ s3://splice-snapshots/dev//master/ --acl public-read --no-progress | grep el7 | cut -d ' ' -f 4-100 | cut -c 6- | awk '{\$1=\$1};1' | xargs echo -n", returnStdout: true)
+            folder_name = sh(script:"echo '${parcel_url}' | cut -d/ -f 5 | cut -d- -f-3 | awk '{\$1=\$1};1' | xargs echo -n", returnStdout: true)
+            parcel_url="https://s3.amazonaws.com/${parcel_url}"
+        }
+    }
+    stage("Docker Build Dev"){
+        echo "${parcel_url}"
+        echo "${folder_name}"
+        build job: '../PDImageBuilds/pd-hbase-spark-docker-build/master', parameters: [
+                [$class: 'StringParameterValue', name: 'ParcelLocationAndName', value: parcel_url],
+                [$class: 'StringParameterValue', name: 'ExtractedFolderName', value: folder_name],
+                [$class: 'StringParameterValue', name: 'DockerTag', value: scmVars.GIT_BRANCH]
+            ]
+    }
+    stage('Checkout dbaas-infrastructure') {
+        // Get some code from a GitHub repository
+        checkout([  
+            $class: 'GitSCM', 
+            branches: [[name: 'refs/heads/master']], 
+            doGenerateSubmoduleConfigurations: false, 
+            extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'dbaas-infrastructure']], 
+            submoduleCfg: [], 
+            userRemoteConfigs: [[credentialsId: 'cloudspliceci_ssh', url: 'https://github.com/splicemachine/dbaas-infrastructure.git']]
+        ])
+    }
+    stage("Setup New Splice Image Tags"){
+        dir("dbaas-infrastructure"){
+            sh "sed -i 's/repository:\\ splicemachine\\/sm_k8_spark-3.0.0:.*/repository:\\ splicemachine\\/sm_k8_spark-3.0.0:master/' kubernetes/charts/splice/values.yaml"
+            sh "sed -i 's/repository:\\ splicemachine\\/sm_k8_hbase-3.0.0:.*/repository:\\ splicemachine\\/sm_k8_hbase-3.0.0:master/' kubernetes/charts/splice/values.yaml"
+        }
+    }
+}
+node('splice-standalone'){
+    try{
+    stage('Login') {
+    wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
+        sh "az login --service-principal --username $secret_app_id --password $secret_secret --tenant $secret_tenant"
+        sh "aws configure set aws_access_key_id $secret_key_id"
+        sh "aws configure set aws_secret_access_key $secret_key"
+        }
+    }
+    stage('Select Avaliable Cluster') {
+        def unavailable = sh (script:"az aks list | grep 'resourceGroup\": \"aks-' | cut -d '\"' -f 4", returnStdout: true).split()
+        clusters = clusters - unavailable
+        target_cluster = clusters[Math.abs( new Random().nextInt() % (0 - clusters.size()) )]
+    }
+
+    stage('Create Cluster') {
+        build job: '../Kubernetes/KubernetesDeploy/azure/master', parameters: [
+            [$class: 'StringParameterValue', name: 'action', value: "create"],
+            [$class: 'StringParameterValue', name: 'environment', value: target_cluster]
+        ]
+    }
+    stage('Create Splice-DB') {
+        dir ('dbaas-infrastructure/kubernetes/') {
+            sh "ls"
+            sh "az aks get-credentials --resource-group ${target_cluster} --name ${target_cluster}"
+            sh "helm init --client-only"
+            sh "kubectl get pods -A"
+            sh "./create-splice-operator.sh ${target_cluster} az default"
+            sh "kubectl get splicedbclusters"
+            sh "kubectl get po -n test"
+        }
+    }
+    stage('Run Integration Tests') {
+        wrap([$class: 'VaultBuildWrapper', vaultSecrets: vaultSecrets]) {
+            dir ('dbaas-infrastructure/kubernetes/') {
+                checkSpliceDB()
+                def jdbc_ip = sh (script:"kubectl get svc -A | grep 'LoadBalancer.*1527' | awk '{\$1=\$1};1' | cut -d \" \" -f 5 | xargs echo -n", returnStdout: true)
+                if ( jdbc_ip == "") {
+                    throw exception("JDBC URL not found/initialized")
+                }
+                sh "helm install --name integration-test charts/integration-tests --namespace test --set jdbc_url='jdbc:splice://$jdbc_ip:1527/splicedb;ssl=basic;password=admin;' --set splice_release='$scmVars.GIT_BRANCH' --set artifact_user='$jenkins_user' --set artifact_password='$jenkins_pass'"
+                sh "sleep 5m"
+                sh "kubectl logs -l job-name=integration-tests --follow -n test"
+                sh "touch it.log"
+                sh "kubectl logs -l job-name=integration-tests --tail=10000 -n test >> it.log"
+                try {
+                    def failures = sh (script:"cat it.log | grep 'FAILURE!'", returnStdout: true)
+                    if (!failures.isEmpty()){
+                        currentBuild.result = 'FAILED'
+                        currentStage.result = 'FAILURE'
+                    } else {
+                        currentBuild.result = 'SUCCESS'
+                    }
+                } catch (Exception e) {
+                    currentBuild.result = 'FAILED'
+                    currentStage.result = 'FAILURE'
+                }
+                def log_file = sh (script:"kubectl logs -l job-name=integration-tests --tail=2000 -n default | grep maven.out | cut -c 112-300", returnStdout: true)
+                }
+            }
+        }
+    } 
+    catch (any) {
+        // if there was an exception thrown, the build failed
+        currentBuild.result = "FAILED"
+        throw any
+
+    } finally {
+        stage('Delete Cluster') {
+            build job: '../Kubernetes/KubernetesDeploy/azure/master', parameters: [
+                [$class: 'StringParameterValue', name: 'action', value: "destroy"],
+                [$class: 'StringParameterValue', name: 'environment', value: target_cluster],
+                [$class: 'StringParameterValue', name: 'destroy_confirmation', value: target_cluster]
+            ]
+            }
+        }
+        notifyBuild(currentBuild.result)
+}
+
+//scheck for external IP to show and if ingress is accepting connections
+def checkSpliceDB() {
+    sh '''wget http://sourceforge.net/projects/netcat/files/netcat/0.7.1/netcat-0.7.1.tar.gz
+    tar -xzvf netcat-0.7.1.tar.gz
+    cd netcat-0.7.1
+    ls
+    ./configure
+    make
+    cd ..
+    '''
+    def check = 1
+    def counter = 0
+    def jdbc_ip = sh (script:"kubectl get svc -A | grep 'LoadBalancer.*1527' | awk '{\$1=\$1};1' | cut -d \" \" -f 5 | xargs echo -n", returnStdout: true)
+    while ( jdbc_ip == "" || jdbc_ip == "<pending>") {
+        sh "sleep 10s"
+        jdbc_ip = sh (script:"kubectl get svc -A | grep 'LoadBalancer.*1527' | awk '{\$1=\$1};1' | cut -d \" \" -f 5 | xargs echo -n", returnStdout: true)
+    }
+    echo "${jdbc_ip}"
+    while (check != 0) {
+        try{
+            sh """
+            ls
+            ./netcat-0.7.1/src/netcat -vz ${jdbc_ip} 1527
+            """
+            check = sh (script:"echo \$? | xargs echo -n", returnStdout: true)
+            echo "${check}"
+            // while loop condition known to not break, so add a conditional break
+            if (check == "0"){
+                break;
+            }
+        }
+        catch (Exception e) {
+            sh "sleep 10s"
+        }
+    }
+}
+
+
+def notifyBuild(String buildStatus = 'STARTED') {
+    // Build status of null means successful.
+    buildStatus =  buildStatus ?: 'SUCCESS'
+    // Override default values based on build status.
+    if (buildStatus == 'STARTED' || buildStatus == 'INPUT') {
+        color = 'YELLOW'
+        colorCode = '#FFFF00'
+    } else if (buildStatus == 'CREATING' || buildStatus == 'DESTROYING'){
+        color = 'BLUE'
+        colorCode = '#0000FF'
+    } else if (buildStatus == 'SUCCESS') {
+        color = 'GREEN'
+        colorCode = '#00FF00'
+    } else if (buildStatus == 'FAILED'){
+        color = 'RED'
+        colorCode = '#FF0000'
+    } else {
+        echo "End of pipeline"
+    }
+}

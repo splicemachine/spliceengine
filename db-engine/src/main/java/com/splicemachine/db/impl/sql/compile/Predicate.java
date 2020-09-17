@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.BitSet;
 import java.util.Hashtable;
@@ -262,6 +263,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 
     /* Comparable interface */
+    @SuppressFBWarnings(value = "EQ_COMPARETO_USE_OBJECT_EQUALS", justification = "Intentional")
     @Override
     public int compareTo(Predicate otherPred){
 		/* Not all operators are "equal". If the predicates are on the
@@ -544,7 +546,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 		 * transitive search clause.
 		 */
         //noinspection UnnecessaryBoxing
-        Integer i=new Integer(ro.getOperator());
+        Integer i=Integer.valueOf(ro.getOperator());
         //noinspection unchecked
         searchClauseHT.put(i,i);
     }
@@ -700,9 +702,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         super.acceptChildren(v);
         // Don't replace the top-level AND.
         if(andNode!=null){
-            AndNode origNode = andNode;
             if (v instanceof PredicateSimplificationVisitor) {
-                Visitable dummynode = andNode.accept(v, this);
+                andNode.accept(v, this);
             }
             else
                 andNode=(AndNode)andNode.accept(v, this);
@@ -745,9 +746,18 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * pushed into subqueries.
      */
     protected boolean pushableToSubqueries() throws StandardException{
-        if(!isJoinPredicate())
+        if(!isJoinPredicate(false))
             return false;
 
+        // isJoinPredicate() only treats BinaryRelationalOperatorNode as JoinPredicate, so when we get it
+        // it has to be of this type
+        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+
+        /* getScopedOperand() currently only expecting ColumnReferences, so return false if they are not */
+        if (!(opNode.getLeftOperand() instanceof ColumnReference) ||
+                !(opNode.getRightOperand() instanceof ColumnReference)) {
+            return false;
+        }
         if (isFullJoinPredicate())
             return false;
 
@@ -761,8 +771,6 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         // such column references, but it's not clear whether that's
         // always a safe option; further investigation required.
 
-        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
-
         JBitSet tNums=new JBitSet(getReferencedSet().size());
         BaseTableNumbersVisitor btnVis=new BaseTableNumbersVisitor(tNums);
         opNode.getLeftOperand().accept(btnVis);
@@ -775,6 +783,10 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     }
 
+    public boolean isJoinPredicate(){
+        return isJoinPredicate(true);
+    }
+
     /**
      * Is this predicate a join predicate?  In order to be so,
      * it must be a binary relational operator node that has
@@ -782,7 +794,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      *
      * @return Whether or not this is a join predicate.
      */
-    public boolean isJoinPredicate(){
+    public boolean isJoinPredicate(boolean checkScope){
         // If the predicate isn't a binary relational operator,
         // then it's not a join predicate.
         if(!(getAndNode().getLeftOperand() instanceof BinaryRelationalOperatorNode)){
@@ -812,7 +824,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         // If both sides are column references AND they point to different
         // tables, then this is a join pred.
-        return (isColumnReferenceOnLeft && isColumnReferenceOnRight && leftTableNumber!=rightTableNumber);
+        // Scoped predicates are nestedloop join predicate that are pushed down, if checkScope is true,
+        // we should no longer treat them as join condition, but single table condition instead
+        return (isColumnReferenceOnLeft &&
+                isColumnReferenceOnRight &&
+                leftTableNumber!=rightTableNumber) &&
+                (!checkScope  || !isScopedForPush());
     }
 
     public void markFullJoinPredicate(boolean isForFullJoin) {
@@ -889,6 +906,41 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             return this;
         }
 
+        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+
+        // Create a new op node with left and right operands that point
+        // to the received result set's columns as appropriate.
+        ValueNode newLeftOpNode = opNode.getScopedOperand(
+                BinaryRelationalOperatorNode.LEFT,
+                parentRSNsTables,
+                childRSN,
+                whichRC);
+        ValueNode newRightOpNode = opNode.getScopedOperand(
+                BinaryRelationalOperatorNode.RIGHT,
+                parentRSNsTables,
+                childRSN,
+                whichRC);
+
+        // for a scoped predicate, one side of the operand needs to be scoped,
+        // see function Predicate.isScopedToSourceResultSet(). Currently we cannot scope
+        // the operand if its souce is either a constant or expression, aggregation, we
+        // may end up with no scoped operand for either side. So return here without doing
+        // useless work further
+        if ((!(newLeftOpNode instanceof ColumnReference) ||
+                !((ColumnReference)newLeftOpNode).isScoped()) &&
+             (!(newRightOpNode instanceof ColumnReference) ||
+                     !((ColumnReference)newRightOpNode).isScoped()))
+            return this;
+
+        BinaryRelationalOperatorNode newOpNode=(BinaryRelationalOperatorNode)getNodeFactory().getNode(
+                opNode.getNodeType(),
+                newLeftOpNode,
+                newRightOpNode,
+                getContextManager());
+
+        // Bind the new op node.
+        newOpNode.bindComparisonOperator();
+
         // The predicate must have an AndNode in CNF, so we
         // need to create an AndNode representing:
         //    <scoped_bin_rel_op> AND TRUE
@@ -896,27 +948,6 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         ValueNode trueNode=(ValueNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
                 Boolean.TRUE,
                 getContextManager());
-
-        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
-
-        // Create a new op node with left and right operands that point
-        // to the received result set's columns as appropriate.
-        BinaryRelationalOperatorNode newOpNode=(BinaryRelationalOperatorNode)getNodeFactory().getNode(
-                opNode.getNodeType(),
-                opNode.getScopedOperand(
-                        BinaryRelationalOperatorNode.LEFT,
-                        parentRSNsTables,
-                        childRSN,
-                        whichRC),
-                opNode.getScopedOperand(
-                        BinaryRelationalOperatorNode.RIGHT,
-                        parentRSNsTables,
-                        childRSN,
-                        whichRC),
-                getContextManager());
-
-        // Bind the new op node.
-        newOpNode.bindComparisonOperator();
 
         // Create and bind a new AND node in CNF form,
         // i.e. "<newOpNode> AND TRUE".

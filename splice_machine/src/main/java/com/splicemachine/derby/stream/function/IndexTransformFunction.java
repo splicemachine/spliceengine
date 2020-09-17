@@ -14,9 +14,11 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -28,6 +30,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.Collections;
 import java.util.List;
 
@@ -77,8 +80,29 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         if (!initialized)
             init(execRow);
         ExecRow misMatchedRow = execRow;
-        for (int i = 0; i<projectedMapping.length;i++) {
-            indexRow.setColumn(i+1,misMatchedRow.getColumn(projectedMapping[i]+1));
+        int numIndexExprs = transformer.getNumIndexExprs();
+        if (numIndexExprs <= 0) {
+            for (int i = 0; i < projectedMapping.length; i++) {
+                indexRow.setColumn(i + 1, misMatchedRow.getColumn(projectedMapping[i] + 1));
+            }
+        } else {
+            int maxNumCols = transformer.getMaxBaseColumnPosition();
+            ExecRow expandedRow = new ValueRow(maxNumCols);
+            int[] usedBaseColumns = getIndexColsToMainColMapList().stream().mapToInt(i->i).toArray();
+            BitSet bitSet = new BitSet();
+            for (int ubc : usedBaseColumns) {
+                bitSet.set(ubc);
+            }
+            for (int expandedRowIndex = 1, baseRowIndex = 1; expandedRowIndex <= maxNumCols; expandedRowIndex++) {
+                if (bitSet.get(expandedRowIndex)) {
+                    expandedRow.setColumn(expandedRowIndex, misMatchedRow.getColumn(baseRowIndex));
+                    baseRowIndex++;
+                }
+            }
+            for (int i = 0; i < numIndexExprs; i++) {
+                BaseExecutableIndexExpression execExpr = transformer.getExecutableIndexExpression(i);
+                execExpr.runExpression(expandedRow, indexRow);
+            }
         }
         if (isSystemTable) {
             indexRow.setColumn(indexRow.nColumns(), new HBaseRowLocation(misMatchedRow.getKey()));
@@ -95,10 +119,11 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
         return kvPair;
     }
 
-    private void init(ExecRow execRow) {
+    private void init(ExecRow execRow) throws StandardException {
         transformer = new IndexTransformer(tentativeIndex);
         initialized = true;
-        indexRow = new ValueRow(!isSystemTable ? projectedMapping.length : projectedMapping.length+1);
+        int numIndexColumns = tentativeIndex.getIndex().getDescColumnsCount();
+        indexRow = new ValueRow(!isSystemTable ? numIndexColumns : numIndexColumns+1);
     }
 
     @Override
@@ -125,7 +150,6 @@ public class IndexTransformFunction <Op extends SpliceOperation> extends SpliceF
     }
 
     public List<Integer> getIndexColsToMainColMapList() {
-        List<Integer> indexColsToMainColMapList = tentativeIndex.getIndex().getIndexColsToMainColMapList();
-        return indexColsToMainColMapList;
+        return tentativeIndex.getIndex().getIndexColsToMainColMapList();
     }
 }

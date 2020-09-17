@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.utils;
 
-import java.io.File;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,13 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import com.splicemachine.db.client.am.Connection;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import org.apache.commons.dbutils.DbUtils;
-import org.apache.commons.io.FileUtils;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -490,7 +486,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         connection.execute("grant execute on procedure syscs_util.syscs_get_running_operations to testuser1");
 
         // User execute routine to populate cache
-        TestConnection userConnection = methodWatcher.createConnection("testuser1", "testuser1");
+        TestConnection userConnection = methodWatcher.connectionBuilder().user("testuser1").password("testuser1").build();
         userConnection.execute("call syscs_util.syscs_get_running_operations()");
 
         // Update system procedures
@@ -513,7 +509,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
         connection.execute("grant execute on procedure syscs_util.syscs_get_running_operations to testuser2");
 
         // User execute routine to populate cache
-        TestConnection userConnection = methodWatcher.createConnection("testuser2", "testuser2");
+        TestConnection userConnection = methodWatcher.connectionBuilder().user("testuser2").password("testuser2").build();
         userConnection.execute("call syscs_util.syscs_get_running_operations()");
 
         // Update system procedures

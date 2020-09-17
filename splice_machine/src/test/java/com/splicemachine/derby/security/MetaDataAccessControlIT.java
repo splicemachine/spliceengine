@@ -31,6 +31,7 @@ public class MetaDataAccessControlIT {
     private static final String SCHEMA_C = CLASS_NAME + "SCHEMA_C";
     private static final String SCHEMA_F = CLASS_NAME + "SCHEMA_F";
     private static final String SCHEMA_Z = CLASS_NAME + "SCHEMA_Z";
+    private static final String SCHEMA_Y = CLASS_NAME + "SCHEMA_Y";
 
 
     private static final String TABLE1 = "T1";
@@ -41,6 +42,10 @@ public class MetaDataAccessControlIT {
     protected static final String PASSWORD1 = "tom";
     protected static final String USER2 = CLASS_NAME + "_JERRY";
     protected static final String PASSWORD2 = "jerry";
+    protected static final String USER3 = CLASS_NAME + "_GEORGE";
+    protected static final String PASSWORD3 = "george";
+    protected static final String USER4 = CLASS_NAME + "_COSMO";
+    protected static final String PASSWORD4 = "cosmo";
 
     protected static final String ROLE_A = CLASS_NAME + "_ROLE_A";
     protected static final String ROLE_B = CLASS_NAME + "_ROLE_B";
@@ -52,11 +57,14 @@ public class MetaDataAccessControlIT {
 
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     private static SpliceUserWatcher spliceUserWatcher2 = new SpliceUserWatcher(USER2, PASSWORD2);
+    private static SpliceUserWatcher spliceUserWatcher3 = new SpliceUserWatcher(USER3, PASSWORD3);
+    private static SpliceUserWatcher spliceUserWatcher4 = new SpliceUserWatcher(USER4, PASSWORD4);
     private static SpliceSchemaWatcher  spliceSchemaWatcherA = new SpliceSchemaWatcher(SCHEMA_A);
     private static SpliceSchemaWatcher  spliceSchemaWatcherB = new SpliceSchemaWatcher(SCHEMA_B);
     private static SpliceSchemaWatcher  spliceSchemaWatcherC = new SpliceSchemaWatcher(SCHEMA_C);
     private static SpliceSchemaWatcher  spliceSchemaWatcherF = new SpliceSchemaWatcher(SCHEMA_F);
     private static SpliceSchemaWatcher  spliceSchemaWatcherZ = new SpliceSchemaWatcher(SCHEMA_Z);
+    private static SpliceSchemaWatcher  spliceSchemaWatcherY = new SpliceSchemaWatcher(SCHEMA_Y);
     private static SpliceTableWatcher  tableWatcher1 = new SpliceTableWatcher(TABLE1, SCHEMA_A,"(a1 int, b1 int, c1 int)" );
     private static SpliceIndexWatcher  indexWatcher1 = new SpliceIndexWatcher(TABLE1, SCHEMA_A, "IDX_T1", SCHEMA_A, "(b1, c1)");
     private static SpliceTableWatcher  tableWatcher2 = new SpliceTableWatcher(TABLE2, SCHEMA_B,"(a2 int, b2 int, c2 int)" );
@@ -67,11 +75,14 @@ public class MetaDataAccessControlIT {
             RuleChain.outerRule(spliceClassWatcher)
                     .around(spliceUserWatcher1)
                     .around(spliceUserWatcher2)
+                    .around(spliceUserWatcher3)
+                    .around(spliceUserWatcher4)
                     .around(spliceSchemaWatcherA)
                     .around(spliceSchemaWatcherB)
                     .around(spliceSchemaWatcherC)
                     .around(spliceSchemaWatcherF)
                     .around(spliceSchemaWatcherZ)
+                    .around(spliceSchemaWatcherY)
                     .around(tableWatcher1)
                     .around(indexWatcher1)
                     .around(tableWatcher2)
@@ -80,6 +91,10 @@ public class MetaDataAccessControlIT {
     protected static TestConnection adminConn;
     protected static TestConnection user1Conn;
     protected static TestConnection user2Conn;
+    protected static TestConnection user3Conn;
+    protected static TestConnection user4Conn;
+    protected static TestConnection sparkUser1Conn;
+    protected static TestConnection sparkUser2Conn;
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -110,6 +125,7 @@ public class MetaDataAccessControlIT {
         // grant schema privileges
         adminConn.execute(format("grant access, select, insert on schema %s to %s", SCHEMA_A, ROLE_A));
         adminConn.execute(format("grant access on schema %s to %s", SCHEMA_B, ROLE_B));
+        adminConn.execute(format("grant access on schema %s to %s", SCHEMA_Y, USER4));
 
         // grant table privileges
         adminConn.execute(format("grant insert on %s.%s to %s", SCHEMA_B, TABLE2, USER1));
@@ -134,28 +150,37 @@ public class MetaDataAccessControlIT {
         adminConn.execute(format("CREATE ALIAS %s.AS1 for %s.%s", SCHEMA_A, SCHEMA_A, TABLE1));
 
         // create user connections
-        user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
-
-        user2Conn = spliceClassWatcher.createConnection(USER2, PASSWORD2);
-
+        user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
+        user2Conn = spliceClassWatcher.connectionBuilder().user(USER2).password(PASSWORD2).build();
+        user3Conn = spliceClassWatcher.connectionBuilder().user(USER3).password(PASSWORD3).build();
+        user4Conn = spliceClassWatcher.connectionBuilder().user(USER4).password(PASSWORD4).build();
+        sparkUser1Conn = spliceClassWatcher.connectionBuilder().useOLAP(true).user(USER1).password(PASSWORD1).build();
+        sparkUser2Conn = spliceClassWatcher.connectionBuilder().useOLAP(true).user(USER2).password(PASSWORD2).build();
     }
 
     @AfterClass
     public static void tearDown() throws Exception {
-        adminConn.close();
         user1Conn.close();
         user2Conn.close();
+        user3Conn.close();
+        user4Conn.close();
+        sparkUser1Conn.close();
+        sparkUser2Conn.close();
 
-        spliceClassWatcher.execute(format("drop role %s", ROLE_A));
-        spliceClassWatcher.execute(format("drop role %s", ROLE_B));
-        spliceClassWatcher.execute(format("drop role %s", ROLE_C));
-        spliceClassWatcher.execute(format("drop role %s", ROLE_D));
-        spliceClassWatcher.execute(format("drop role %s", ROLE_E));
-        spliceClassWatcher.execute(format("drop role %s", ROLE_F));
-        spliceClassWatcher.execute(format("drop role %s", ROLE_G));
+        adminConn.execute(format("drop role %s", ROLE_A));
+        adminConn.execute(format("drop role %s", ROLE_B));
+        adminConn.execute(format("drop role %s", ROLE_C));
+        adminConn.execute(format("drop role %s", ROLE_D));
+        adminConn.execute(format("drop role %s", ROLE_E));
+        adminConn.execute(format("drop role %s", ROLE_F));
+        adminConn.execute(format("drop role %s", ROLE_G));
 
-        spliceClassWatcher.execute(format("call syscs_util.syscs_drop_user('%s')", USER1));
-        spliceClassWatcher.execute(format("call syscs_util.syscs_drop_user('%s')", USER2));
+        adminConn.execute(format("call syscs_util.syscs_drop_user('%s')", USER1));
+        adminConn.execute(format("call syscs_util.syscs_drop_user('%s')", USER2));
+        adminConn.execute(format("call syscs_util.syscs_drop_user('%s')", USER3));
+        adminConn.execute(format("call syscs_util.syscs_drop_user('%s')", USER4));
+
+        adminConn.close();
     }
 
     @Test
@@ -301,9 +326,7 @@ public class MetaDataAccessControlIT {
 
     @Test
     public void testSYSALLROLESVIEWSparkPath() throws Exception {
-
-        try (TestConnection user1SparkConn = spliceClassWatcher.createConnection(USER1, PASSWORD1, true)) {
-            ResultSet rs = user1SparkConn.query("select * from sysvw.sysallroles --splice-properties useSpark=true");
+        try (ResultSet rs = sparkUser1Conn.query("select * from sysvw.sysallroles --splice-properties useSpark=true")) {
             String expected = "NAME              |\n" +
                     "--------------------------------\n" +
                     "METADATAACCESSCONTROLIT_ROLE_A |\n" +
@@ -316,40 +339,33 @@ public class MetaDataAccessControlIT {
                     "  METADATAACCESSCONTROLIT_TOM  |\n" +
                     "            PUBLIC             |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
         }
 
-        try (TestConnection user2SparkConn = spliceClassWatcher.createConnection(USER2, PASSWORD2, true)) {
-            ResultSet rs = user2SparkConn.query("select * from sysvw.sysallroles");
+        try (ResultSet rs = sparkUser2Conn.query("select * from sysvw.sysallroles")) {
             String expected = "NAME              |\n" +
                     "-------------------------------\n" +
                     "METADATAACCESSCONTROLIT_JERRY |\n" +
                     "           PUBLIC             |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
         }
     }
 
     @Test
     public void testShowSchemaWithAccessControlSparkPath() throws Exception {
-        try (TestConnection user1SparkConn = spliceClassWatcher.createConnection(USER1, PASSWORD1, true)) {
-            ResultSet rs = user1SparkConn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')");
+        try (ResultSet rs = sparkUser1Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')")) {
             String expected = "TABLE_SCHEM           | TABLE_CATALOG |\n" +
                     "-------------------------------------------------\n" +
                     "METADATAACCESSCONTROLITSCHEMA_A |     NULL      |\n" +
                     "METADATAACCESSCONTROLITSCHEMA_B |     NULL      |\n" +
                     "             SYSVW              |     NULL      |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
         }
 
-        try (TestConnection user2SparkConn = spliceClassWatcher.createConnection(USER2, PASSWORD2, true)) {
-            ResultSet rs = user2SparkConn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')");
+        try (ResultSet rs = sparkUser2Conn.query("call SYSIBM.SQLTABLES(null,null,null,null,'GETSCHEMAS=2')")) {
             String expected = "TABLE_SCHEM | TABLE_CATALOG |\n" +
                     "------------------------------\n" +
                     "    SYSVW    |     NULL      |";
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-            rs.close();
         }
     }
 
@@ -372,6 +388,7 @@ public class MetaDataAccessControlIT {
                 " where grantee like '%METADATAACCESSCONTROLIT%'");
         expected = "GRANTEE            | GRANTOR |SELECTPRIV |DELETEPRIV |INSERTPRIV |ACCESSPRIV |          SCHEMANAME            |\n" +
                 "---------------------------------------------------------------------------------------------------------------------------\n" +
+                " METADATAACCESSCONTROLIT_COSMO | SPLICE  |     N     |     N     |     N     |     y     |METADATAACCESSCONTROLITSCHEMA_Y |\n" +
                 "METADATAACCESSCONTROLIT_ROLE_A | SPLICE  |     y     |     N     |     y     |     y     |METADATAACCESSCONTROLITSCHEMA_A |\n" +
                 "METADATAACCESSCONTROLIT_ROLE_B | SPLICE  |     N     |     N     |     N     |     y     |METADATAACCESSCONTROLITSCHEMA_B |";
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -485,6 +502,22 @@ public class MetaDataAccessControlIT {
             user1Conn.execute(format("call syscs_util.syscs_split_table_or_index_at_points('%s', '%s', 'IDX_T1', '\\x94')", SCHEMA_A, TABLE1));
         } catch (Exception e) {
             Assert.fail("Split table should not fail, but fail with exception "+ e.getMessage());
+        }
+    }
+
+    @Test
+    public void setSchemaFailsIfNoAccessIsGrantedToIt() throws Exception {
+        try {
+            user3Conn.execute(format("set schema %s", SCHEMA_Y));
+            Assert.fail("expected exception to be thrown but none was");
+        } catch(Exception e) {
+            Assert.assertEquals(format("Schema '%s' does not exist", SCHEMA_Y), e.getMessage());
+        }
+        // however, giving proper permissions grants the user access to schema.
+        try {
+            user4Conn.execute(format("set schema %s", SCHEMA_Y));
+        } catch (Exception e) {
+            Assert.fail("No exception should have been thrown");
         }
     }
 }
