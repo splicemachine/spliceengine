@@ -1577,4 +1577,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         SpliceLogUtils.info(LOG, "System View SYSALIASTOTABLEVIEW created in SYSVW!");
     }
+
+    @Override
+    public boolean useTxnAwareCache() {
+        return !SpliceClient.isRegionServer;
+    }
 }

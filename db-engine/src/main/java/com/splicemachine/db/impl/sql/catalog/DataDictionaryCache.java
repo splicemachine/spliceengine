@@ -75,6 +75,7 @@ public class DataDictionaryCache {
     private ManagedCache<Long,List<PartitionStatisticsDescriptor>> partitionStatisticsCache;
     private ManagedCache<UUID, SPSDescriptor> storedPreparedStatementCache;
     private ManagedCache<Long,Conglomerate> conglomerateCache;
+    private ManagedCache<Pair<Long, Long>, Conglomerate> txnAwareConglomerateCache;
     private ManagedCache<Long,ConglomerateDescriptor> conglomerateDescriptorCache;
     private ManagedCache<GenericStatement,GenericStorablePreparedStatement> statementCache;
     private ManagedCache<String,SchemaDescriptor> schemaCache;
@@ -88,7 +89,7 @@ public class DataDictionaryCache {
     private DataDictionary dd;
     public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
-            "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache"};
+            "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache", "txnAwareConglomerateCache"};
 
     private int getCacheSize(Properties startParams, String propertyName, int defaultValue) throws StandardException {
         String value = startParams.getProperty(propertyName);
@@ -157,6 +158,8 @@ public class DataDictionaryCache {
         partitionStatisticsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
                 .maximumSize(partstatCacheSize).build(), partstatCacheSize);
         conglomerateCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
+                .maximumSize(conglomerateCacheSize).build(), conglomerateCacheSize);
+        txnAwareConglomerateCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
                 .maximumSize(conglomerateCacheSize).build(), conglomerateCacheSize);
         conglomerateDescriptorCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats()
                 .maximumSize(conglomerateDescriptorCacheSize).build(), conglomerateDescriptorCacheSize);
@@ -340,9 +343,16 @@ public class DataDictionaryCache {
     }
 
     public Conglomerate conglomerateCacheFind(TransactionController xactMgr,Long conglomId) throws StandardException {
-        if (!dd.canReadCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER)
+        if (!dd.canReadCache(xactMgr) && conglomId>=DataDictionary.FIRST_USER_TABLE_NUMBER) {
             // Use cache even if dd says we can't as long as it's a system table (conglomID is < FIRST_USER_TABLE_NUMBER)
+            if (dd.useTxnAwareCache()) {
+                long txnId = xactMgr.getActiveStateTxId();
+                if (txnId == -1)
+                    return null;
+                return txnAwareConglomerateCacheFind(new Pair(txnId,conglomId));
+            }
             return null;
+        }
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheFind " + conglomId);
         return conglomerateCache.getIfPresent(conglomId);
@@ -353,8 +363,16 @@ public class DataDictionaryCache {
     }
 
     public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate,TransactionController xactMgr) throws StandardException {
-        if (!dd.canWriteCache(xactMgr))
+        if (!dd.canWriteCache(xactMgr)) {
+            if (dd.useTxnAwareCache()) {
+                long txnId = xactMgr.getActiveStateTxId();
+                if (txnId == -1)
+                    return;
+                txnAwareConglomerateCache.put(new Pair(txnId, conglomId), conglomerate);
+            }
+
             return;
+        }
         if (LOG.isDebugEnabled())
             LOG.debug("conglomerateCacheAdd " + conglomId + " : " + conglomerate);
         conglomerateCache.put(conglomId,conglomerate);
@@ -362,6 +380,18 @@ public class DataDictionaryCache {
 
     public void conglomerateCacheAdd(Long conglomId, Conglomerate conglomerate) throws StandardException {
         conglomerateCacheAdd(conglomId, conglomerate,null);
+    }
+
+    public Conglomerate txnAwareConglomerateCacheFind(Pair<Long,Long> pair) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("txnAwareConglomerateCacheFind " + pair.getFirst() + " : " + pair.getSecond());
+        return txnAwareConglomerateCache.getIfPresent(pair);
+    }
+
+    public void txnAwareConglomerateCacheAdd(Pair<Long, Long> pair, Conglomerate conglomerate) throws StandardException {
+        if (LOG.isDebugEnabled())
+            LOG.debug("txnAwareConglomerateCacheAdd: " + pair + " : " + conglomerate);
+        txnAwareConglomerateCache.put(pair,conglomerate);
     }
 
     public void conglomerateCacheRemove(Long conglomId) throws StandardException {
@@ -478,6 +508,7 @@ public class DataDictionaryCache {
         defaultRoleCache.invalidateAll();
         roleGrantCache.invalidateAll();
         tokenCache.invalidateAll();
+        txnAwareConglomerateCache.invalidateAll();
     }
 
     public void clearAliasCache() {

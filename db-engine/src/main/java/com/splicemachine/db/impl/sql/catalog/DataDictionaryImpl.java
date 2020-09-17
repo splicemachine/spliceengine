@@ -10868,4 +10868,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             dataDictionaryCache.tokenCacheAdd(token, result);
         return result;
     }
+
+    @Override
+    public boolean useTxnAwareCache() {
+        return false;
+    }
 }

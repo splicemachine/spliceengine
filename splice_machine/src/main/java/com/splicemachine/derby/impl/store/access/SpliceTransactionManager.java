@@ -1876,4 +1876,9 @@ public class SpliceTransactionManager implements XATransactionController,
         cc.close();
     }
 
+    public long getActiveStateTxId() {
+        if(rawtran!=null)
+            return getRawTransaction().getActiveStateTxn().getTxnId();
+        return -1;
+    }
 }

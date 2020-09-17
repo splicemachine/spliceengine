@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -242,7 +243,7 @@ public class TriggerHandler {
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
-                    null, SIDriver.driver().getExecutorService(), withContext, heapList);
+                    null, SIDriver.driver().getExecutorService(), withContext, heapList, !SpliceClient.isRegionServer);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;
