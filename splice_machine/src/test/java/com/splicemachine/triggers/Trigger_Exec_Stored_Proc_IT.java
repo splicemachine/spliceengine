@@ -146,12 +146,12 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
 
         classWatcher.executeUpdate("drop table if exists t_out");
         classWatcher.executeUpdate("create table t_out(id int, col2 char(10), col3 varchar(50), tm_time timestamp)");
-        classWatcher.executeUpdate("drop table if exists t_master");
-        classWatcher.executeUpdate("create table t_master(id int, col2 char(10), col3 varchar(50), tm_time timestamp)");
-        classWatcher.executeUpdate("drop table if exists t_slave");
-        classWatcher.executeUpdate("create table t_slave(id int, description varchar(10),tm_time timestamp)");
-        classWatcher.executeUpdate("drop table if exists t_slave2");
-        classWatcher.executeUpdate("create table t_slave2(id int, description varchar(10),tm_time timestamp)");
+        classWatcher.executeUpdate("drop table if exists t_first");
+        classWatcher.executeUpdate("create table t_first(id int, col2 char(10), col3 varchar(50), tm_time timestamp)");
+        classWatcher.executeUpdate("drop table if exists t_second");
+        classWatcher.executeUpdate("create table t_second(id int, description varchar(10),tm_time timestamp)");
+        classWatcher.executeUpdate("drop table if exists t_second2");
+        classWatcher.executeUpdate("create table t_second2(id int, description varchar(10),tm_time timestamp)");
 
         Connection conn = new TestConnection(DriverManager.getConnection(connectionString, new Properties()));
         conn.setSchema(SCHEMA.toUpperCase());
@@ -416,20 +416,20 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @Test @Ignore("DB-3424: Executing trigger action insert thru a stored proc (disallowed directly) causes infinite recursion.")
     public void testExecSQLRecursion() throws Exception {
 
-        methodWatcher.executeUpdate("insert into t_master values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
-        methodWatcher.executeUpdate("insert into t_slave values (99, 'trigger01', CURRENT_TIMESTAMP)");
-        methodWatcher.executeUpdate("insert into t_slave2 values (22, 'trigger02', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_first values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_second values (99, 'trigger01', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_second2 values (22, 'trigger02', CURRENT_TIMESTAMP)");
 
-        createTrigger(tb.named("TriggerMaster01").before().insert().on("t_master")
+        createTrigger(tb.named("TriggerMaster01").before().insert().on("t_first")
                         .statement().then(String.format("CALL proc_exec_sql('%s')",
-                  "insert into "+SCHEMA+".t_master select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave")));
+                  "insert into "+SCHEMA+".t_first select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_second")));
 
-        createTrigger(tb.named("TriggerMaster02").before().insert().on("t_master")
+        createTrigger(tb.named("TriggerMaster02").before().insert().on("t_first")
                         .statement().then(String.format("CALL proc_exec_sql('%s')",
-                  "insert into "+SCHEMA+".t_master select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave2")));
+                  "insert into "+SCHEMA+".t_first select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_second2")));
 
         // never returns...
-        methodWatcher.executeUpdate("insert into "+SCHEMA+".t_master values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into "+SCHEMA+".t_first values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
 
         triggerDAO.drop("TriggerMaster01");
         triggerDAO.drop("TriggerMaster02");
@@ -441,33 +441,33 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     @Test
     public void testExecSQL() throws Exception {
 
-        methodWatcher.executeUpdate("insert into t_master values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
-        methodWatcher.executeUpdate("insert into t_slave values (22, 'trigger01', CURRENT_TIMESTAMP)");
-        methodWatcher.executeUpdate("insert into t_slave2 values (99, 'trigger02', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_first values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_second values (22, 'trigger01', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_second2 values (99, 'trigger02', CURRENT_TIMESTAMP)");
 
-        createTrigger(tb.named("TriggerMaster01").before().insert().on("t_master")
+        createTrigger(tb.named("TriggerMaster01").before().insert().on("t_first")
                         .statement().then(String.format("CALL proc_exec_sql('%s')",
-                  "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave")));
+                  "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_second")));
 
-        createTrigger(tb.named("TriggerMaster02").before().insert().on("t_master")
+        createTrigger(tb.named("TriggerMaster02").before().insert().on("t_first")
                         .statement().then(String.format("CALL proc_exec_sql('%s')",
-                  "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave2")));
+                  "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_second2")));
 
-        methodWatcher.executeUpdate("insert into " + SCHEMA + ".t_master values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into " + SCHEMA + ".t_first values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
 
-//        String query = "select * from t_master";
+//        String query = "select * from t_first";
 //        ResultSet rs = methodWatcher.executeQuery(query);
 //        TestUtils.printResult(query, rs, System.out);
 //        query = "select * from t_out";
 //        rs = methodWatcher.executeQuery(query);
 //        TestUtils.printResult(query, rs, System.out);
 
-        ResultSet rs = methodWatcher.executeQuery("select * from t_master");
+        ResultSet rs = methodWatcher.executeQuery("select * from t_first");
         int count = 0;
         while (rs.next()) {
             ++count;
         }
-        Assert.assertEquals("Expected 2 rows in t_master", 2, count);
+        Assert.assertEquals("Expected 2 rows in t_first", 2, count);
 
         rs = methodWatcher.executeQuery("select * from t_out order by id");
         Timestamp t1 = null;
