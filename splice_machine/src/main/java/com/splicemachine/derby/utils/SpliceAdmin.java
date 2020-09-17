@@ -1430,6 +1430,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         boolean b = "TRUE".compareToIgnoreCase(enable) == 0;
+        if(td.minRetainedPeriod() > 0) {
+            SpliceLogUtils.warn(LOG, "setting purge deleted rows on table %s which min retention period " +
+                    "set to non-negative value, this could lead to incorrect time travel query results", td.getName());
+        }
         td.setPurgeDeletedRows(b);
         dd.dropTableDescriptor(td, sd, tc);
         dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
@@ -1452,7 +1456,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
         if(retentionPeriod < 0) {
             throw StandardException.newException(SQLState.LANG_INVALID_VALUE_RANGE, retentionPeriod, "non-negative number");
         }
-
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
@@ -1476,7 +1479,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
             DependencyManager dm = dd.getDependencyManager();
             dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-            td.setMinRetainedVersions(retentionPeriod);
+            if(td.purgeDeletedRows()) {
+                SpliceLogUtils.warn(LOG, "setting minimum retention period on table %s which has purge deleted " +
+                        "rows set to true, this could lead to incorrect time travel query results", td.getName());
+            }
+            td.setMinRetainedPeriod(retentionPeriod);
             dd.dropTableDescriptor(td, sd, tc);
             dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
         }
