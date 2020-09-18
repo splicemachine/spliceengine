@@ -1476,7 +1476,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             DependencyManager dm = dd.getDependencyManager();
             dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
             tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-            td.setMinRetainedPeriod(retentionPeriod);
+            td.setMinRetainedVersions(retentionPeriod);
             dd.dropTableDescriptor(td, sd, tc);
             dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
         }

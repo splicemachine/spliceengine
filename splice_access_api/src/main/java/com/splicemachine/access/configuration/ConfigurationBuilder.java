@@ -44,7 +44,6 @@ public class ConfigurationBuilder {
     public long transactionKeepAliveInterval;
     public long transactionTimeout;
     public boolean ignoreMissingTxns;
-    public long systablesMinRetentionPeriod;
 
     // OperationConfiguration
     public int sequenceBlockSize;
