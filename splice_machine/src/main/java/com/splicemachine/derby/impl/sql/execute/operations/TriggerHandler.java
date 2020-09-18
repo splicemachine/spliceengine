@@ -85,8 +85,6 @@ public class TriggerHandler {
     private Activation activation;
     private TriggerRowHolderImpl triggerRowHolder;
     private boolean isSpark;
-    private TxnView txn;
-    private byte[] token;
 
     private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
 
@@ -127,7 +125,6 @@ public class TriggerHandler {
     }
 
     public void setTxn(TxnView txn) {
-        this.txn = txn;
         if (triggerRowHolder != null)
             triggerRowHolder.setTxn(txn);
     }
@@ -162,8 +159,6 @@ public class TriggerHandler {
 
     public void initTriggerRowHolders(boolean isSpark, TxnView txn, byte[] token, long ConglomID) throws StandardException {
         this.isSpark = isSpark;
-        this.txn = txn;
-        this.token = token;
         Properties properties = new Properties();
         if (hasStatementTriggerWithReferencingClause) {
             // Use the smaller of ControlExecutionRowLimit or 1000000 to determine when to switch to spark execution.

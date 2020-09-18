@@ -442,7 +442,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         operate(new BaseAdminProcedures.JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<ManagedCacheMBean> managedCaches = JMXUtils.getManagedCache(connections, DataDictionaryCache.cacheNames);
+                List<ManagedCacheMBean> managedCaches = JMXUtils.getManagedCache(connections, DataDictionaryCache.getCacheNames());
                 ExecRow template = buildExecRow(MANAGED_CACHE_COLUMNS);
                 List<ExecRow> rows = Lists.newArrayListWithExpectedSize(managedCaches.size());
                 int i=0;
@@ -452,7 +452,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     DataValueDescriptor[] dvds = template.getRowArray();
                     try{
                         dvds[0].setValue(connections.get(j).getFirst());
-                        dvds[1].setValue(DataDictionaryCache.cacheNames[i%DataDictionaryCache.cacheNames.length]);
+                        dvds[1].setValue(DataDictionaryCache.getCacheNames().get(i%DataDictionaryCache.getCacheNames().size()));
                         dvds[2].setValue(ex.getSize());
                         dvds[3].setValue(ex.getMissCount());
                         dvds[4].setValue(ex.getMissRate());
@@ -463,7 +463,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     }
                     rows.add(template.getClone());
                     i++;
-                    j = i >= DataDictionaryCache.cacheNames.length?1:0;
+                    j = i >= DataDictionaryCache.getCacheNames().size()?1:0;
                 }
 
                 EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();

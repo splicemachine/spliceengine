@@ -31,7 +31,6 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import org.spark_project.guava.base.Optional;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -48,6 +47,7 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
+import org.spark_project.guava.base.Optional;
 import org.spark_project.guava.cache.CacheBuilder;
 import org.spark_project.guava.cache.RemovalListener;
 import org.spark_project.guava.cache.RemovalNotification;
@@ -57,6 +57,7 @@ import javax.management.MBeanServer;
 import javax.management.MXBean;
 import javax.management.ObjectName;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -87,9 +88,13 @@ public class DataDictionaryCache {
     private ManagedCache<ByteSlice,TokenDescriptor> tokenCache;
     private ManagedCache<String, Optional<String>> propertyCache;
     private DataDictionary dd;
-    public static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
+    private static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
             "tokenCache", "propertyCache", "conglomerateDescriptorCache", "oldSchemaCache", "txnAwareConglomerateCache"};
+
+    public static List<String> getCacheNames() {
+        return Collections.unmodifiableList(Arrays.asList(cacheNames));
+    }
 
     private int getCacheSize(Properties startParams, String propertyName, int defaultValue) throws StandardException {
         String value = startParams.getProperty(propertyName);

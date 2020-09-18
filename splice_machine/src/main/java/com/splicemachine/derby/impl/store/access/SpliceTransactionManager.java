@@ -551,14 +551,8 @@ public class SpliceTransactionManager implements XATransactionController,
         // Create the conglomerate
         // RESOLVE (mikem) - eventually segmentid's will be passed into here
         // in the properties. For now just use 0.]
-        long conglomid;
-        if ((temporaryFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY) {
-            conglomid = accessmanager.getNextConglomId(cfactory
-                    .getConglomerateFactoryId());
-        } else {
-            conglomid = accessmanager.getNextConglomId(cfactory
-                    .getConglomerateFactoryId());
-        }
+        long conglomid = accessmanager.getNextConglomId(cfactory
+                .getConglomerateFactoryId());
 
         // call the factory to actually create the conglomerate.
         Conglomerate conglom = cfactory.createConglomerate(isExternal,this,
@@ -1293,10 +1287,7 @@ public class SpliceTransactionManager implements XATransactionController,
     @Override
     public boolean isElevated(){
         BaseSpliceTransaction rawTransaction=getRawTransaction();
-        assert rawTransaction instanceof BaseSpliceTransaction:
-                "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction -> " + rawTransaction;
-        BaseSpliceTransaction txn=(BaseSpliceTransaction)rawTransaction;
-        return txn.allowsWrites();
+        return rawTransaction.allowsWrites();
     }
 
     /**************************************************************************

@@ -14,6 +14,21 @@
 
 package com.splicemachine.hbase.jmx;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
+import com.splicemachine.derby.management.StatementManagement;
+import com.splicemachine.derby.utils.DatabasePropertyManagement;
+import com.splicemachine.hbase.JMXThreadPool;
+import com.splicemachine.pipeline.PipelineDriver;
+import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
+import com.splicemachine.timestamp.api.TimestampClientStatistics;
+import com.splicemachine.timestamp.api.TimestampOracleStatistics;
+import com.splicemachine.utils.Pair;
+import com.splicemachine.utils.logging.Logging;
+import org.spark_project.guava.collect.Lists;
+
 import javax.management.JMX;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
@@ -22,29 +37,7 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.db.impl.sql.catalog.ManagedCache;
-import com.splicemachine.db.impl.sql.catalog.ManagedCacheMBean;
-import com.splicemachine.db.impl.sql.catalog.TotalManagedCache;
-import com.splicemachine.hbase.JMXThreadPool;
-import org.spark_project.guava.collect.Lists;
-
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.DatabaseVersion;
-import com.splicemachine.derby.management.StatementManagement;
-import com.splicemachine.derby.utils.DatabasePropertyManagement;
-import com.splicemachine.pipeline.PipelineDriver;
-import com.splicemachine.pipeline.threadpool.ThreadPoolStatus;
-import com.splicemachine.timestamp.api.TimestampClientStatistics;
-import com.splicemachine.timestamp.api.TimestampOracleStatistics;
-import com.splicemachine.utils.Pair;
-import com.splicemachine.utils.logging.Logging;
+import java.util.*;
 
 public class JMXUtils {
 
@@ -112,18 +105,17 @@ public class JMXUtils {
         }
         return jmxThreadList;
     }
-    public static List<ManagedCacheMBean> getManagedCache(List<Pair<String,JMXConnector>> mbscArray, String [] mc) throws MalformedObjectNameException, IOException {
+    public static List<ManagedCacheMBean> getManagedCache(List<Pair<String,JMXConnector>> mbscArray, List<String> mc) throws MalformedObjectNameException, IOException {
         List<ManagedCacheMBean> managedCache =new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
-            for(int i = 0; i < mc.length; i++) {
-                managedCache.add(getNewMBeanProxy(mbsc.getSecond(), MANAGED_CACHE + mc[i], ManagedCacheMBean.class));
+            for(String s : mc) {
+                managedCache.add(getNewMBeanProxy(mbsc.getSecond(), MANAGED_CACHE + s, ManagedCacheMBean.class));
             }
         }
         return managedCache;
     }
     public static List<ManagedCacheMBean> getTotalManagedCache(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
         List<ManagedCacheMBean> managedCache = new ArrayList<>();
-        List<ManagedCache> mc = new ArrayList<>();
         for (Pair<String,JMXConnector> mbsc: mbscArray) {
             managedCache.add(getNewMBeanProxy(mbsc.getSecond(),TOTAL_MANAGED_CACHE, ManagedCacheMBean.class));
         }
