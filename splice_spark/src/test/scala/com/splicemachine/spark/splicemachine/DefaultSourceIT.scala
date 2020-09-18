@@ -163,7 +163,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     val conn = JdbcUtils.createConnectionFactory(internalJDBCOptions)()
     conn.createStatement().execute(s"create table $schema.T(id INTEGER NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), c1 double, c2 double, c3 double, primary key(id))")
     conn.createStatement().execute(s"insert into $schema.T(c1,c2,c3) values (100, 100, 100), (200, 200, 200), (300, 300, 300), (400, 400, 400)");
-    for (i <- 0 to 20) {
+    for (i <- 0 to 18) {
       conn.createStatement().execute(s"insert into $schema.T(c1,c2,c3) select c1,c2,c3 from $schema.t")
     }
     conn.createStatement().execute(s"create table $schema.T2(id int, c1 double, c2 double, c3 double, primary key(id))")
@@ -179,7 +179,7 @@ class DefaultSourceIT extends FunSuite with TestContext with BeforeAndAfter with
     )
     splicemachineContext.splitAndInsert(df, schema+"."+"T2", 0.001)
     val newDF = sqlContext.read.options(options2).splicemachine
-    assert(newDF.count == 8388608)
+    assert(newDF.count == 2097152)
   }
 
   test("insertion using RDD") {
