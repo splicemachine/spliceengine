@@ -35,10 +35,7 @@ import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Properties;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Predicate;
 
 public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Integer, ExecRow> {
@@ -86,8 +83,11 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
 
         return new Iterator<ExecRow>() {
             Iterator<ConsumerRecord<Integer, Externalizable>> it = null;
-            ExecRow record = null;
-            boolean endOfBatch = false;
+            //ExecRow record = null;
+            //boolean endOfBatch = false;
+            //Set<Long> recvdMsgIds = new HashSet<>();
+            //long maxMsgId = -1;
+            Message prevMessage = new Message();
             
             Predicate<ConsumerRecords<Integer, Externalizable>> noRecords = records ->
                 records == null || records.isEmpty();
@@ -104,7 +104,7 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
                     records = consumer.poll(java.time.Duration.ofMillis(500));
                     if (TaskContext.get().isInterrupted()) {
                         LOG.warn( id+" KRF.call kafkaRecords Spark TaskContext Interrupted");
-                        consumer.close();
+                        //consumer.close();
                         throw new TaskKilledException();
                     }
                 } while( noRecords.test(records) && attempt++ < maxAttempts );
@@ -116,58 +116,55 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
                 ConsumerRecords<Integer, Externalizable> records = kafkaRecords(maxAttempts);
                 if( noRecords.test(records) ) {
 //                    if( totalCount < kafkaRcdCount && retries < maxRetries ) {
-                    if( retries < maxRetries ) {
+                    if( !prevMessage.last() && retries < maxRetries ) {
                         retries++;
                         LOG.warn( id+" KRF.call Missed rcds, got "+totalCount+" retry "+retries );
                         return hasMoreRecords(maxAttempts);
                     }
                     //LOG.info( id+" KRF.call p "+partition+" t "+topicName+" expected "+kafkaRcdCount );
                     //consumer.close();
-                    LOG.error( id+" KRF.call Didn't get full batch after "+retries+" retries, got "+totalCount+" records" );
+                    if( !prevMessage.last() ) {
+                        LOG.error(id + " KRF.call Didn't get full batch after " + retries + " retries, got " + totalCount + " records");
+                    }
                     return false;
                 } else {
                     int ct = records.count();
                     totalCount += ct;
                     LOG.info( id+" KRF.call p "+partition+" t "+topicName+" records "+ct );
                     //LOG.info( id+" KRF.call p "+partition+" t "+topicName+" progress "+totalCount+" "+kafkaRcdCount );
+                    retries = 0;
                     
                     it = records.iterator();
-                    return hasNext(it);
+                    return it.hasNext();
                 }
             }
             
-            private boolean hasNext(Iterator<ConsumerRecord<Integer, Externalizable>> it) {
+            @Override
+            public boolean hasNext() {
                 boolean more = false;
-                if( it != null && it.hasNext() ) {
-                    Message m = (Message)it.next().value();
-                    endOfBatch = m.last();
-                    record = m.vr();
+                
+                if (it != null && it.hasNext()) {
                     more = true;
+                } else {
+                    more = hasMoreRecords(1);
                 }
+
+                if (!more) {
+                    consumer.close();
+                }
+
                 return more;
             }
 
             @Override
-            public boolean hasNext() {
-                try {
-                    if (hasNext(it)) {
-                        return true;
-                    } else if (!endOfBatch) {
-                        return hasMoreRecords(1);
-                    } else {
-                        return false;
-                    }
-                } finally {
-                    if (endOfBatch) {
-                        consumer.close();
-                    }
-                }
-            }
-
-            @Override
             public ExecRow next() {
-                return record;
-//                return (ExecRow)it.next().value();
+                Message m = (Message)it.next().value();
+                prevMessage = m;
+                //long max = m.max();
+                //maxMsgId = max > maxMsgId ? max : maxMsgId;
+                //recvdMsgIds.add( m.id() );
+                //endOfBatch = maxMsgId > -1 && recvdMsgIds.size() >= maxMsgId;
+                return m.vr();
             }
         };
     }
@@ -186,8 +183,6 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
 
     public static class Message implements Externalizable {
 
-        static final long serialVersionUID = 20200917L;
-        
         private ValueRow vr = new ValueRow();
         private long id = -1;
         private long max = -1;
@@ -204,7 +199,7 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
         public long id()        { return id; }
         public long max()       { return max; }
         
-        public boolean last()   { return id == max; }
+        public boolean last()   { return id == max && max > -1; }
 
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
