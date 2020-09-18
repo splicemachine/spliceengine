@@ -271,7 +271,6 @@ public class FromBaseTable extends FromTable {
                     && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
                 return false;
             }
-            return currentConglomerateDescriptor.getIndexDescriptor().getExprBytecode().length <= 0;
         }
         return true;
     }

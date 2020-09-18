@@ -74,7 +74,6 @@ import com.splicemachine.db.impl.sql.compile.FromSubquery;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
-import com.splicemachine.db.impl.sql.compile.IndexExpression;
 import com.splicemachine.db.impl.sql.compile.JavaToSQLValueNode;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.MethodCallNode;
@@ -11320,40 +11319,29 @@ columnNameItem(ResultColumnList columnList) throws StandardException :
  * <A NAME="indexColumnList">indexColumnList</A>
  */
 void
-indexColumnList(Vector columnList, Token beginToken) throws StandardException :
+indexColumnList(Vector columnList) throws StandardException :
+{}
 {
-    Token commaToken = null;
-}
-{
-    indexColumnItem(columnList, beginToken) ( commaToken = <COMMA> indexColumnItem(columnList, commaToken) ) *
+    indexColumnItem(columnList) ( <COMMA> indexColumnItem(columnList) ) *
 }
 
 /*
  * <A NAME="indexColumnItem">indexColumnItem</A>
  */
 void
-indexColumnItem(Vector columnList, Token beginToken) throws StandardException :
+indexColumnItem(Vector columnList) throws StandardException :
 {
-    ValueNode expr;
-    Token ascToken = null;
-    Token descToken = null;
-    Token endToken = null;
+    String        columnName;
 }
 {
-    expr = valueExpression() [ascToken = <ASC> | descToken = <DESC>]
+    /* identifier never ends with a space; appending a space meaning desc */
+    columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) [<ASC> | <DESC> {columnName = columnName + ' ';}]
     {
-        endToken = getToken(0);
-        int endOffset = endToken.endOffset;
-        if (ascToken != null || descToken != null) {
-            endOffset = endToken.beginOffset - 1;
-        }
-
-        columnList.addElement(
-            new IndexExpression(
-                StringUtil.slice(statementSQLText, beginToken.endOffset + 1, endOffset, false),
-                expr,
-                (descToken == null)  // default is ASC
-            ));
+        /*
+        ** Store the column names for the index columns in the
+        ** index column list.
+        */
+        columnList.addElement(columnName);
     }
 }
 
@@ -13106,7 +13094,6 @@ indexDefinition() throws StandardException :
     Boolean     preSplit = Boolean.FALSE;
     Vector        indexColumnList = new Vector();
     Boolean     isLogicalKey = Boolean.TRUE;
-    Token       beginToken = null;
 }
 {
     /*
@@ -13115,7 +13102,7 @@ indexDefinition() throws StandardException :
     */
     [ unique = unique() ] <INDEX>
         indexName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-                beginToken = <LEFT_PAREN> indexColumnList(indexColumnList, beginToken) <RIGHT_PAREN>
+                <LEFT_PAREN> indexColumnList(indexColumnList) <RIGHT_PAREN>
         [ properties = propertyList(false) <CHECK_PROPERTIES>]
         [ <EXCLUDE>
             [ <NULL> <KEYS> { excludeNulls = true;} ]

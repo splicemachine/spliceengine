@@ -14,7 +14,7 @@
 
 package com.splicemachine.pipeline;
 
-import com.splicemachine.db.iapi.error.StandardException;
+import java.io.IOException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
@@ -24,9 +24,6 @@ import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import java.io.IOException;
 
 /**
  * Creates WriteHandlers that intercept writes to base tables and send transformed writes to corresponding index tables.
@@ -51,12 +48,7 @@ class IndexFactory implements LocalWriteFactory{
 
     @Override
     public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        IndexTransformer transformer;
-        try {
-            transformer = new IndexTransformer(tentativeIndex);
-        } catch (StandardException e) {
-            throw new IOException(e.getCause());
-        }
+        IndexTransformer transformer = new IndexTransformer(tentativeIndex);
         IndexWriteHandler writeHandler = new IndexWriteHandler(keepState, expectedWrites, transformer);
         if (txn == null) {
             ctx.addLast(writeHandler);
@@ -87,7 +79,6 @@ class IndexFactory implements LocalWriteFactory{
     }
 
     @Override
-    @SuppressFBWarnings(value = "EQ_CHECK_FOR_OPERAND_NOT_COMPATIBLE_WITH_THIS", justification = "intended")
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o instanceof IndexFactory) {

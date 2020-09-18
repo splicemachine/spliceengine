@@ -20,9 +20,7 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
@@ -280,9 +278,7 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor, DataValueDescriptor defaultValue)
-            throws StandardException
-    {
+    public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor, DataValueDescriptor defaultValue) {
         byte [] defaultValuesBytes = null;
         if (defaultValue!=null) {
             defaultValuesBytes = SerializationUtils.serialize(defaultValue);
@@ -293,8 +289,7 @@ public class ProtoUtil {
                 .setUniqueWithDuplicateNulls(indexDescriptor.isUniqueWithDuplicateNulls())
                 .setUnique(indexDescriptor.isUnique())
                 .setExcludeDefaults(indexDescriptor.excludeDefaults())
-                .setExcludeNulls(indexDescriptor.excludeNulls())
-                .setNumExprs(indexDescriptor.getExprBytecode().length);
+                .setExcludeNulls(indexDescriptor.excludeNulls());
         if (defaultValuesBytes != null)
             builder.setDefaultValues(ByteString.copyFrom(defaultValuesBytes));
         for(int i=0;i<ascColumns.length;i++){
@@ -304,19 +299,6 @@ public class ProtoUtil {
         int[] backingArray=indexDescriptor.baseColumnPositions();
         for(int i=0;i<backingArray.length;i++){
             builder = builder.addIndexColsToMainColMap(backingArray[i]);
-        }
-
-        ByteArray[] bytecodeArray = indexDescriptor.getExprBytecode();
-        for (ByteArray bc : bytecodeArray) {
-            builder = builder.addBytecodeExprs(ByteString.copyFrom(bc.getArray(), bc.getOffset(), bc.getLength()));
-        }
-        String[] classNames = indexDescriptor.getGeneratedClassNames();
-        for (String cn : classNames) {
-            builder = builder.addGeneratedClassNames(cn);
-        }
-        DataTypeDescriptor[] indexColumnTypes = indexDescriptor.getIndexColumnTypes();
-        for (DataTypeDescriptor dtd : indexColumnTypes) {
-            builder = builder.addIndexColumnFormatIds(dtd.getNull().getTypeFormatId());
         }
         return builder.build();
     }
@@ -343,7 +325,6 @@ public class ProtoUtil {
         return DDLChange.newBuilder().setTentativeIndex(TentativeIndex.newBuilder()
                 .setIndex(createIndex(indexConglomerate, indexDescriptor,defaultValues))
                 .setTable(createTable(baseConglomerate,td,lcc))
-                .setTxnId(txnId)
                 .build())
                 .setTxnId(txnId)
                 .setDdlChangeType(DDLChangeType.CREATE_INDEX)
@@ -356,7 +337,6 @@ public class ProtoUtil {
         return TentativeIndex.newBuilder()
                 .setIndex(createIndex(indexConglomerate,indexDescriptor,defaultValue))
                 .setTable(createTable(baseConglomerate,td,lcc))
-                .setTxnId(((SpliceTransactionManager)lcc.getTransactionExecute()).getActiveStateTxn().getTxnId())
                 .build();
     }
 
