@@ -47,7 +47,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.ScanSetBuilder;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructType;
@@ -113,10 +112,8 @@ public class StatisticsOperation extends SpliceBaseOperation {
                 int[] zeroBased = Arrays.stream(builder.getColumnPositionMap()).map((int x) -> x - 1).toArray();
                 StructType schema = ExternalTableUtils.getSchema(activation, builder.getBaseTableConglomId());
                 String storedAs = scanSetBuilder.getStoredAs();
-                if (storedAs.equals("T")) {
-                    CsvOptions csvOptions = new CsvOptions(builder.getDelimited(), builder.getEscaped(), builder.getLines());
-                    statsDataSet = dsp.readTextFile(null, builder.getLocation(), csvOptions, zeroBased, operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
-                }
+                if (storedAs.equals("T"))
+                    statsDataSet = dsp.readTextFile(null, builder.getLocation(), builder.getEscaped(), builder.getDelimited(), zeroBased, operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("P"))
                     statsDataSet = dsp.readParquetFile(schema, zeroBased, builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("A"))
