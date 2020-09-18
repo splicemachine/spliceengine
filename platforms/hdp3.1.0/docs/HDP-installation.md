@@ -187,7 +187,6 @@ Note:
 | hbase.hstore.compaction.min.size                      | 136314880                                                                                                 |
 | hbase.hstore.defaultengine.compactionpolicy.class     | com.splicemachine.compactions.SpliceDefaultCompactionPolicy                                               |
 | hbase.hstore.defaultengine.compactor.class            | com.splicemachine.compactions.SpliceDefaultCompactor                                                      |
-| hbase.hstore.defaultengine.storeflusher.class         | com.splicemachine.compactions.SpliceDefaultFlusher                                                        |
 | hbase.htable.threads.max                              | 96                                                                                                        |
 | hbase.ipc.warn.response.size                          | -1                                                                                                        |
 | hbase.ipc.warn.response.time                          | -1                                                                                                        |

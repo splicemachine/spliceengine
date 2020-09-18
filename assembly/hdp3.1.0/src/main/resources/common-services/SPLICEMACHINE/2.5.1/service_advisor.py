@@ -196,7 +196,6 @@ class SPLICEMACHINE251ServiceAdvisor(service_advisor.ServiceAdvisor):
         "hbase.hstore.compaction.min" : "3",
         "hbase.hstore.defaultengine.compactionpolicy.class" : "com.splicemachine.compactions.SpliceDefaultCompactionPolicy",
         "hbase.hstore.defaultengine.compactor.class" : "com.splicemachine.compactions.SpliceDefaultCompactor",
-        "hbase.hstore.defaultengine.storeflusher.class" : "com.splicemachine.compactions.SpliceDefaultFlusher",
         "hbase.coprocessor.region.classes" : "org.apache.hadoop.hbase.security.access.SecureBulkLoadEndpoint,com.splicemachine.hbase.MemstoreAwareObserver,com.splicemachine.derby.hbase.SpliceIndexObserver,com.splicemachine.derby.hbase.SpliceIndexEndpoint,com.splicemachine.hbase.RegionSizeEndpoint,com.splicemachine.si.data.hbase.coprocessor.TxnLifecycleEndpoint,com.splicemachine.si.data.hbase.coprocessor.SIObserver,com.splicemachine.hbase.BackupEndpointObserver",
         "hbase.htable.threads.max" : "96",
         "hbase.ipc.warn.response.size" : "-1",

@@ -228,8 +228,6 @@ public interface SConfiguration {
 
     boolean getIgnoreMissingTxns();
 
-    long getSystablesMinRetentionPeriod();
-
     // Olap configurations
 
     int getOlapClientWaitTime();
