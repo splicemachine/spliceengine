@@ -25,7 +25,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
-import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -157,10 +156,20 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             }
             Iterator<ExecRow> rightIterator;
 
-            if (bufferedRowList.isEmpty())
+            ArrayList<Pair<ExecRow, ExecRow>> keyRows = null;
+
+            // The mem platform doesn't support the HBase MultiRangeRowFilter.
+            if (!IS_MEM_PLATFORM) {
+                keyRows = getKeyRows();
+                ((BaseActivation) joinOperation.getActivation()).setKeyRows(keyRows);
+            }
+
+            // If there are no join keys to look up in the right table,
+            // don't even read the right table.
+            if (!IS_MEM_PLATFORM && keyRows == null)
                 rightIterator = Collections.emptyIterator();
             else {
-                initRightScan();
+                initRightScanForMemPlatform();
                 rightSide = joinOperation.getRightOperation();
                 rightSide.reset();
                 //DataSetProcessor dsp =EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide);
@@ -206,7 +215,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                 ((AbstractMergeJoinIterator)mergeJoinIterator).reInitRightRS(Iterators.peekingIterator(rightIterator));
         }
 
-        protected void initRightScan() throws StandardException{
+        protected void initRightScanForMemPlatform() throws StandardException{
             ExecRow firstHashRow = joinOperation.getKeyRow(peek());
             ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
             int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
@@ -214,14 +223,16 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             ExecRow scanStartOverride;
             boolean firstTime = true;
 
-            if (!IS_MEM_PLATFORM)
-                ((BaseActivation)joinOperation.getActivation()).setKeyRows(getKeyRows());
-
             /* To see if we can further restrict the scan of the right table by overiding the scan
                startPosition with the actual values of the left key if it is greater than the
                right startPosition.  If the left key is longer than the right startPosition, then
                expand the scan startPosition by the extra key columns from the left.
              */
+
+            // The HBase/Spark platform uses getKeyRows() to find start/stop keys
+            // and lookup keys, so there is no need to calculate start/stop keys twice.
+            if (!IS_MEM_PLATFORM)
+                return;
 
             // this is 0-based array, the column positions in the array are also 0-based.
             int[] colToBaseTableMap = ((MergeJoinOperation)joinOperation).getRightHashKeyToBaseTableMap();
@@ -388,7 +399,12 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                     newStartKey = new ValueRow(numKeyColumns);
                 }
             }
-            return rightKeyRows;
+            // Returning a null list lets us avoid more
+            // isEmpty() checks later on.
+            if (rightKeyRows.isEmpty())
+                return null;
+            else
+                return rightKeyRows;
         }
     }
 

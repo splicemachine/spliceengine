@@ -248,8 +248,14 @@ public class SelectivityUtil {
     }
 
     public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
+                                                        CostEstimate outerCostEstimate) {
+
+        return getTotalPerPartitionRemoteCost(innerCostEstimate,
+                                              outerCostEstimate, 1.0);
+    }
+    public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
                                                         CostEstimate outerCostEstimate,
-                                                        double totalOutputRows){
+                                                        double innerTableScaleFactor){
 
         // Join costing is done on a per parallel task basis, so remote costs
         // for a JoinOperation are calculated this way too, to make the units consistent.
@@ -259,18 +265,14 @@ public class SelectivityUtil {
         if (numParallelTasks <= 0)
             numParallelTasks = 1;
         return getTotalRemoteCost(outerCostEstimate.remoteCost(),
-                                  innerCostEstimate.remoteCost(),
-                outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows)/numParallelTasks;
+                                  innerCostEstimate.remoteCost() * innerTableScaleFactor)/numParallelTasks;
     }
 
     private static double getTotalRemoteCost(double outerRemoteCost,
-                                             double innerRemoteCost,
-                                             double outerRowCount,
-                                             double innerRowCount,
-                                             double totalOutputRows){
-        return totalOutputRows*(
-                (innerRemoteCost/(innerRowCount<1.0d?1.0d:innerRowCount)) +
-                        (outerRemoteCost/(outerRowCount<1.0d?1.0d:outerRowCount)));
+                                             double innerRemoteCost){
+        // Remote cost is not a joining cost, so remove totalOutputRows
+        // from the formula.
+        return innerRemoteCost + outerRemoteCost;
     }
 
     public static double getTotalRows(Double joinSelectivity, double outerRowCount, double innerRowCount) {

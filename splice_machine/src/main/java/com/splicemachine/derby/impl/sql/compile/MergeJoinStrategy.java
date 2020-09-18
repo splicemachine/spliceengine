@@ -143,10 +143,13 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
          * totalOutputRows: the number of final output rows, this is the result after applying any restrictive conditions, e.g., the inequality join conditions, conditions not on index columns.
          * totalJoinedRows is always equal or larger than totalOutputRows */
         double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
-        double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows);
+
+        double innerTableScaleFactor = Math.min(1.0, joinSelectivity * outerCost.rowCount());
+
+        double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows, innerTableScaleFactor);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, totalOutputRows);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, innerTableScaleFactor);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
@@ -165,18 +168,19 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
      * @return
      */
 
-    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty, double numOfJoinedRows) {
+    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, boolean outerTableEmpty, double numOfJoinedRows, double innerTableScaleFactor) {
         SConfiguration config = EngineDriver.driver().getConfiguration();
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
 
         assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
-        double innerRemoteCost = innerCost.getRemoteCostPerPartition() * innerCost.getParallelism();
+        double innerRemoteCost = innerCost.getRemoteCostPerPartition() * innerTableScaleFactor *
+                                 innerCost.getParallelism();
         if (outerTableEmpty) {
             return (outerCost.getLocalCostPerPartition())+innerCost.getOpenCost()+innerCost.getCloseCost();
         }
         else
-            return outerCost.getLocalCostPerPartition()+innerCost.getLocalCostPerPartition()+
+            return outerCost.getLocalCostPerPartition()+innerCost.getLocalCostPerPartition() * innerTableScaleFactor +
                 innerRemoteCost/outerCost.getParallelism() +
                 innerCost.getOpenCost()+innerCost.getCloseCost()
                         + joiningRowCost/outerCost.getParallelism();
