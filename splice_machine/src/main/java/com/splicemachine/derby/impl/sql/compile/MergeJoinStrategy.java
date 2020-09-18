@@ -149,7 +149,8 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows, innerTableScaleFactor);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, innerTableScaleFactor);
+        double remoteCostPerPartition =
+               SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer, innerTableScaleFactor);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowOrdering(outerCost.getRowOrdering());

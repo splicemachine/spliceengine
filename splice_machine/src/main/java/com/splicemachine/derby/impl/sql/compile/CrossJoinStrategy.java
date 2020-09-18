@@ -244,7 +244,7 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         double joinCost = crossJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
         innerCost.setLocalCost(joinCost);
         innerCost.setLocalCostPerPartition(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
         innerCost.setRemoteCost(remoteCostPerPartition);
         innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
         innerCost.setRowCount(totalOutputRows);

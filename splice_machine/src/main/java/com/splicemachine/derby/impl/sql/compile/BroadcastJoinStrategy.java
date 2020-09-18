@@ -156,7 +156,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
             double joinCost = broadcastJoinStrategyLocalCost(innerCost, outerCost, totalJoinedRows);
             innerCost.setLocalCost(joinCost);
             innerCost.setLocalCostPerPartition(joinCost);
-            double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost);
+            double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost, outerCost, optimizer);
             innerCost.setRemoteCost(remoteCostPerPartition);
             innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
             innerCost.setRowOrdering(outerCost.getRowOrdering());

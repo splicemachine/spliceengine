@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
@@ -248,13 +249,16 @@ public class SelectivityUtil {
     }
 
     public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
-                                                        CostEstimate outerCostEstimate) {
+                                                        CostEstimate outerCostEstimate,
+                                                        Optimizer    optimizer) {
 
         return getTotalPerPartitionRemoteCost(innerCostEstimate,
-                                              outerCostEstimate, 1.0);
+                                              outerCostEstimate,
+                                              optimizer, 1.0);
     }
     public static double getTotalPerPartitionRemoteCost(CostEstimate innerCostEstimate,
                                                         CostEstimate outerCostEstimate,
+                                                        Optimizer    optimizer,
                                                         double innerTableScaleFactor){
 
         // Join costing is done on a per parallel task basis, so remote costs
@@ -264,8 +268,13 @@ public class SelectivityUtil {
         int numParallelTasks = outerCostEstimate.getParallelism();
         if (numParallelTasks <= 0)
             numParallelTasks = 1;
-        return getTotalRemoteCost(outerCostEstimate.remoteCost(),
-                                  innerCostEstimate.remoteCost() * innerTableScaleFactor)/numParallelTasks;
+        double remoteCost =
+            getTotalRemoteCost(outerCostEstimate.remoteCost(),
+                               innerCostEstimate.remoteCost() * innerTableScaleFactor)/numParallelTasks;
+        double sparkOverhead = optimizer.isForSpark() ? 20000.0 : 0.0;
+        double totalRemoteCost = remoteCost + sparkOverhead;
+        return totalRemoteCost;
+
     }
 
     private static double getTotalRemoteCost(double outerRemoteCost,
@@ -276,9 +285,15 @@ public class SelectivityUtil {
     }
 
     public static double getTotalRows(Double joinSelectivity, double outerRowCount, double innerRowCount) {
-        return joinSelectivity*
+        double rowsInSmallerTable = Math.min(outerRowCount, innerRowCount);
+        double totalRows =  joinSelectivity*
                 (outerRowCount<1.0d?1.0d:outerRowCount)*
                 (innerRowCount<1.0d?1.0d:innerRowCount);
+
+        // Be safe and don't underestimate the number of join rows.
+        if (totalRows < rowsInSmallerTable)
+            totalRows = rowsInSmallerTable;
+        return totalRows;
     }
 
 }

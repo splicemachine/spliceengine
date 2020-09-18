@@ -34,6 +34,8 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -45,6 +47,7 @@ public class CollectNodesVisitor implements Visitor {
     private Vector nodeList;
     private Class nodeClass;
     private Class skipOverClass;
+    private List<Class> nodeClasses;
 
     /**
      * Construct a visitor
@@ -65,6 +68,15 @@ public class CollectNodesVisitor implements Visitor {
     public CollectNodesVisitor(Class nodeClass, Class skipOverClass) {
         this(nodeClass);
         this.skipOverClass = skipOverClass;
+    }
+
+    // Add a class to the list of nodes to scan for.
+    public void addClass(Class nodeClass) {
+        if (nodeClasses == null) {
+            nodeClasses = new ArrayList<>();
+            nodeClasses.add(this.nodeClass);
+        }
+        nodeClasses.add(nodeClass);
     }
 
     @Override
@@ -90,7 +102,16 @@ public class CollectNodesVisitor implements Visitor {
      */
     @Override
     public Visitable visit(Visitable node, QueryTreeNode parent) {
-        if (nodeClass.isInstance(node)) {
+        if (nodeClasses != null) {
+
+            for (Class nclass:nodeClasses) {
+                if (nclass.isInstance(node)) {
+                    nodeList.add(node);
+                    break;
+                }
+            }
+        }
+        else if (nodeClass.isInstance(node)) {
             nodeList.add(node);
         }
         return node;
