@@ -263,7 +263,7 @@ public abstract class StatementNode extends QueryTreeNode{
         MethodBuilder executeMethod=generatingClass.getExecuteMethod();
 
         MethodBuilder mbWorker=generatingClass.getClassBuilder().newMethodBuilder(
-                Modifier.PRIVATE,
+                Modifier.PUBLIC,
                 ClassName.ResultSet,
                 "fillResultSet");
         mbWorker.addThrownException(ClassName.StandardException);

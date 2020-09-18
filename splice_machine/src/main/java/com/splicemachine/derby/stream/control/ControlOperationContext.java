@@ -20,6 +20,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
@@ -100,19 +101,27 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             activationHolder = (ActivationHolder)in.readObject();
+            activationHolder.reinitialize(null);
             int rsn = in.readInt();
+
             op = (Op)activationHolder.getOperationsMap().get(rsn);
             badRecordsRecorder = (BadRecordsRecorder) in.readObject();
             txn = activationHolder.getTxn();
+            ResultSet rs = null;
             try {
                 activation = activationHolder.getActivation();
+                rs = activation.fillResultSet();
                 context = SpliceOperationContext.newContext(activation);
+                if (op == null) {
+                    int i = 0;
+                    i++;
+                }
                 op.init(context);
                 readExternalInContext(in);
             } catch (Exception e) {
                 SpliceLogUtils.logAndThrowRuntime(LOG, e);
             } finally {
-                if (!getOperation().isOlapServer())
+                if (op == null || op.isOlapServer())
                     activationHolder.close();
             }
         }

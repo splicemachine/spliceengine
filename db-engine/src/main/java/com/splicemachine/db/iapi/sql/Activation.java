@@ -648,4 +648,8 @@ public interface Activation extends Dependent
     boolean isSubStatement();
 
     void setSubStatement(boolean newValue);
+
+    default ResultSet fillResultSet() throws StandardException{
+        return null;
+    }
 }

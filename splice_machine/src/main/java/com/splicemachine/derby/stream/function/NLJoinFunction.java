@@ -18,6 +18,7 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.ExceptionUtil;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
@@ -157,6 +158,7 @@ public abstract class NLJoinFunction <Op extends SpliceOperation, From, To> exte
                 OperationContext context = operationContextList.isEmpty() ? null : operationContextList.remove(0);
                 Supplier<OperationContext> supplier = context != null ? () -> context : () -> {
                     try {
+                        ResultSet rs = operationContext.getActivation().fillResultSet();
                         OperationContext ctx = operationContext.getClone();
                         allContexts.add(ctx);
                         if(isClosed)

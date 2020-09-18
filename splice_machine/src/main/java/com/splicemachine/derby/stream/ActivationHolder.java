@@ -27,6 +27,7 @@ import com.splicemachine.db.impl.jdbc.EmbedConnectionContext;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.serialization.SpliceObserverInstructions;
@@ -70,7 +71,7 @@ public class ActivationHolder implements Externalizable {
     private String currentUser;
     private List<String> groupUsers = null;
     private ManagedCache<String, Optional<String>> propertyCache = null;
-
+    private boolean serializeOperationList;
     public ActivationHolder() {
 
     }
@@ -78,6 +79,19 @@ public class ActivationHolder implements Externalizable {
     public ActivationHolder(Activation activation, SpliceOperation operation) {
         this.activation = activation;
         this.initialized = true;
+        initOperation(activation, operation);
+
+        try {
+            txn = operation != null ? operation.getCurrentTransaction() : getTransaction(activation);
+        } catch (StandardException e) {
+            LOG.warn("Exception getting transaction from " + operation + ", falling back to activation");
+            txn = getTransaction(activation);
+        }
+        this.currentUser = activation.getLanguageConnectionContext().getCurrentUserId(activation);
+        this.groupUsers = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
+    }
+
+    private void initOperation(Activation activation, SpliceOperation operation) {
         addSubOperations(operationsMap, operation);
         addSubOperations(operationsMap, (SpliceOperation) activation.getResultSet());
         if(activation.getResultSet()!=null){
@@ -86,6 +100,7 @@ public class ActivationHolder implements Externalizable {
         if (operation instanceof StatisticsOperation) {
             // special case for StatisticsOperation
             operationsList.add(operation);
+            serializeOperationList = true;
         }
 
         for (Field field : activation.getClass().getDeclaredFields()) {
@@ -108,14 +123,6 @@ public class ActivationHolder implements Externalizable {
                 throw new RuntimeException(e);
             }
         }
-        try {
-            txn = operation != null ? operation.getCurrentTransaction() : getTransaction(activation);
-        } catch (StandardException e) {
-            LOG.warn("Exception getting transaction from " + operation + ", falling back to activation");
-            txn = getTransaction(activation);
-        }
-        this.currentUser = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-        this.groupUsers = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
     }
 
     public void newTxnResource() throws StandardException{
@@ -178,8 +185,11 @@ public class ActivationHolder implements Externalizable {
         if(soi==null){
             soi = SpliceObserverInstructions.create(this);
         }
-        out.writeObject(operationsList);
         out.writeObject(soi);
+        out.writeBoolean(serializeOperationList );
+        if (serializeOperationList) {
+            out.writeObject(operationsList);
+        }
         SIDriver.driver().getOperationFactory().writeTxnStack(txn,out);
         if (currentUser != null) {
             out.writeBoolean(true);
@@ -215,7 +225,8 @@ public class ActivationHolder implements Externalizable {
             activation = soi.getActivation(this, txnResource.getLcc());
             activation.getLanguageConnectionContext().setCurrentUser(activation, currentUser);
             activation.getLanguageConnectionContext().setCurrentGroupUser(activation, groupUsers);
-
+            SpliceOperation operation = (SpliceOperation)activation.fillResultSet();
+            initOperation(activation, operation);
             // Push internal connection to the current context manager
             EmbedConnection internalConnection = (EmbedConnection)EngineDriver.driver().getInternalConnection();
             new EmbedConnectionContext(ContextService.getService().getCurrentContextManager(), internalConnection);
@@ -233,12 +244,15 @@ public class ActivationHolder implements Externalizable {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        operationsList = (List<SpliceOperation>) in.readObject();
         operationsMap = Maps.newHashMap();
-        for (SpliceOperation so : operationsList) {
-            addSubOperations(operationsMap, so);
-        }
         soi = (SpliceObserverInstructions) in.readObject();
+        serializeOperationList = in.readBoolean();
+        if (serializeOperationList) {
+            operationsList = (List<SpliceOperation>) in.readObject();
+            for (SpliceOperation so : operationsList) {
+                addSubOperations(operationsMap, so);
+            }
+        }
         txn = SIDriver.driver().getOperationFactory().readTxnStack(in);
         if (in.readBoolean()) {
             currentUser = (String)in.readObject();

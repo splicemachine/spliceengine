@@ -60,7 +60,7 @@ public class QueryJob implements Callable<Void>{
         }
 
         ActivationHolder ah = queryRequest.ah;
-        SpliceOperation root = ah.getOperationsMap().get(queryRequest.rootResultSetNumber);
+
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         DataSet<ExecRow> dataset;
         OperationContext<SpliceOperation> context;
@@ -72,6 +72,7 @@ public class QueryJob implements Callable<Void>{
                 resetSession = true;
             }
             ah.reinitialize(null);
+            SpliceOperation root = ah.getOperationsMap().get(queryRequest.rootResultSetNumber);
             Activation activation = ah.getActivation();
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
