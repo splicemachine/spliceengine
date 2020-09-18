@@ -380,7 +380,7 @@ public class DataDictionaryCache {
                 long txnId = xactMgr.getActiveStateTxId();
                 if (txnId == -1)
                     return;
-                txnAwareConglomerateCache.put(new Pair(txnId, conglomId), conglomerate);
+                txnAwareConglomerateCacheAdd(new Pair(txnId, conglomId), conglomerate);
             }
 
             return;
@@ -396,7 +396,7 @@ public class DataDictionaryCache {
 
     public Conglomerate txnAwareConglomerateCacheFind(Pair<Long,Long> pair) throws StandardException {
         if (LOG.isDebugEnabled())
-            LOG.debug("txnAwareConglomerateCacheFind " + pair.getFirst() + " : " + pair.getSecond());
+            LOG.debug("txnAwareConglomerateCacheFind: " + pair);
         return txnAwareConglomerateCache.getIfPresent(pair);
     }
 
@@ -738,7 +738,7 @@ public class DataDictionaryCache {
         try{
             ManagedCache [] mc = new ManagedCache[] {oidTdCache, nameTdCache, spsNameCache, sequenceGeneratorCache, permissionsCache, partitionStatisticsCache, storedPreparedStatementCache,
                     conglomerateCache, statementCache, schemaCache, aliasDescriptorCache, roleCache, defaultRoleCache, roleGrantCache, tokenCache, propertyCache, conglomerateDescriptorCache,
-                    oidSchemaCache, catalogVersionCache};
+                    oidSchemaCache, catalogVersionCache, txnAwareConglomerateCache};
             //Passing in objects from mc array and names of objects from cacheNames array (static above)
             for(int i = 0; i < mc.length; i++){
                 ObjectName cacheName = new ObjectName("com.splicemachine.db.impl.sql.catalog:type="+cacheNames[i]);
