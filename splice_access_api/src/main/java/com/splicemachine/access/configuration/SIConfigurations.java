@@ -53,12 +53,6 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String IGNORE_MISSING_TXN = "splice.ignore.missing.transactions";
     private static final boolean DEFAULT_IGNORE_MISSING_TXN=false;
 
-    /**
-     * The default minimum retention period for system tables in seconds.
-     */
-    public static final String SYS_TABLES_RETENTION_PERIOD = "splice.sys.tables.retention.period";
-    private static final long DEFAULT_SYS_TABLES_RETENTION_PERIOD=7*24*3600;
-
     /*
      * We use lock-striping to manage concurrent modifications/reads to the Transaction table. That is,
      * each Transaction is grouped into a bucket, and in order to read or modify that transaction, you must
@@ -176,8 +170,6 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
 
         builder.ignoreMissingTxns = configurationSource.getBoolean(IGNORE_MISSING_TXN, DEFAULT_IGNORE_MISSING_TXN);
-
-        builder.systablesMinRetentionPeriod = configurationSource.getLong(SYS_TABLES_RETENTION_PERIOD, DEFAULT_SYS_TABLES_RETENTION_PERIOD);
 
         builder.flushResolutionShare = configurationSource.getDouble(FLUSH_RESOLUTION_SHARE, DEFAULT_FLUSH_RESOLUTION_SHARE, 0, 1);
 
