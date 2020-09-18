@@ -1111,25 +1111,18 @@ public class ColumnReference extends ValueNode {
 
         if (SanityManager.DEBUG)
         {
-            if (!(acb instanceof ExecutableIndexExpressionClassBuilder) && sourceResultSetNumber < 0)
+            if (sourceResultSetNumber < 0)
             {
                 SanityManager.THROWASSERT("sourceResultSetNumber expected to be >= 0 for " + getTableName() + "." + getColumnName());
             }
         }
 
-        /*
-         * For select statements:
-         * The ColumnReference is from an immediately underlying ResultSet.
+        /* The ColumnReference is from an immediately underlying ResultSet.
          * The Row for that ResultSet is Activation.row[sourceResultSetNumber],
          * where sourceResultSetNumber is the resultSetNumber for that ResultSet.
          *
          * The generated java is the expression:
          *    (<interface>) this.row[sourceResultSetNumber].getColumn(#columnId);
-         *
-         * For expression-based index creation:
-         * The ColumnReference refers to a column in the input base table ExecRow.
-         * The generated java expression is:
-         *    (<interface>) baseRow.getColumn(#columnId);
          *
          * where <interface> is the appropriate Datatype protocol interface
          * for the type of the column.

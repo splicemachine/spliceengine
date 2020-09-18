@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import org.junit.Test;
 
 /**
  * @author Jeff Cunningham
@@ -47,8 +48,6 @@ public class CustomerTable extends SpliceTableWatcher {
         "  c_since)";
     public static final String INDEX_ORDER_DEF_ASC = "(c_last ASC,c_first,c_credit_lim)";
     public static final String INDEX_ORDER_DEF_DESC = "(c_last DESC,c_first,c_credit_lim)";
-
-    public static final String EXPR_INDEX_DEF = "(upper(c_last),lower(c_first),(c_w_id + 2) * 4,c_d_id)";
 
     private static String PK = "PRIMARY KEY (c_w_id,c_d_id,c_id)";
 

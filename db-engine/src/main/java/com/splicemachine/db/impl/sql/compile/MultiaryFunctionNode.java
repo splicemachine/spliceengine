@@ -232,13 +232,8 @@ public abstract class MultiaryFunctionNode extends ValueNode
                 }
                 setArrayMethod = currentConstMethod;
             } else {
-                if (nonConstantMethod == null) {
-                    if (acb instanceof ExecutableIndexExpressionClassBuilder) {
-                        nonConstantMethod = acb.newGeneratedFun("void", Modifier.PROTECTED, new String[]{ClassName.ExecRow});
-                    } else {
-                        nonConstantMethod = acb.newGeneratedFun("void", Modifier.PROTECTED);
-                    }
-                }
+                if (nonConstantMethod == null)
+                    nonConstantMethod = acb.newGeneratedFun("void", Modifier.PROTECTED);
                 setArrayMethod = nonConstantMethod;
 
             }
@@ -259,12 +254,7 @@ public abstract class MultiaryFunctionNode extends ValueNode
             nonConstantMethod.methodReturn();
             nonConstantMethod.complete();
             mb.pushThis();
-            if (acb instanceof ExecutableIndexExpressionClassBuilder) {
-                mb.getParameter(0);
-                mb.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, nonConstantMethod.getName(), "void", 1);
-            } else {
-                mb.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, nonConstantMethod.getName(), "void", 0);
-            }
+            mb.callMethod(VMOpcode.INVOKEVIRTUAL, (String) null, nonConstantMethod.getName(), "void", 0);
         }
 
         /*

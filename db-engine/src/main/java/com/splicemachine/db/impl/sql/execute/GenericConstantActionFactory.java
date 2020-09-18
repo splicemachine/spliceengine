@@ -42,10 +42,12 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.compile.TableName;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
 
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.Properties;
 
@@ -158,31 +160,31 @@ public abstract class GenericConstantActionFactory {
      *
      *  @param constraintName    Constraint name.
      *  @param constraintType    Constraint type.
-     *  @param forCreateTable    True if for a CREATE TABLE
-     *  @param tableName         Table name.
-     *  @param tableId           UUID of table.
+     *  @param forCreateTable   True if for a CREATE TABLE
+     *  @param tableName        Table name.
+     *    @param tableId            UUID of table.
      *  @param schemaName        Schema that table lives in.
-     *  @param columnNames       String[] for column names
-     *  @param indexAction       IndexConstantAction for constraint (if necessary)
+     *  @param columnNames        String[] for column names
+     *  @param indexAction        IndexConstantAction for constraint (if necessary)
      *  @param constraintText    Text for check constraint
-     *  @param enabled           Should the constraint be created as enabled
+     *    @param enabled            Should the constraint be created as enabled
      *                            (enabled == true), or disabled (enabled == false).
-     *  @param otherConstraint   The referenced constraint, if a foreign key constraint
-     *  @param providerInfo      Information on all the Providers
+     *    @param otherConstraint    The referenced constraint, if a foreign key constraint
+     *  @param providerInfo Information on all the Providers
      */
-    public abstract ConstantAction getCreateConstraintConstantAction(
-        String         constraintName,
-        int            constraintType,
-        boolean        forCreateTable,
-        String         tableName,
-        UUID           tableId,
-        String         schemaName,
-        String[]       columnNames,
+    public abstract    ConstantAction getCreateConstraintConstantAction(
+        String                constraintName,
+        int                    constraintType,
+        boolean             forCreateTable,
+        String                tableName,
+        UUID                tableId,
+        String                schemaName,
+        String[]            columnNames,
         ConstantAction indexAction,
-        String         constraintText,
-        boolean        enabled,
-        ConstraintInfo otherConstraint,
-        ProviderInfo[] providerInfo
+        String                constraintText,
+        boolean                enabled,
+        ConstraintInfo        otherConstraint,
+        ProviderInfo[]        providerInfo
     );
 
 
@@ -190,56 +192,52 @@ public abstract class GenericConstantActionFactory {
      *     Make the ConstantAction for a CREATE INDEX statement.
      * 
      * @param forCreateTable Executed as part of a CREATE TABLE
-     * @param unique            True means it will be a unique index
+     * @param unique        True means it will be a unique index
      * @param uniqueWithDuplicateNulls  True means index check and disallow
      *                                  any duplicate key if key has no 
      *                                  column with a null value.  If any 
      *                                  column in the key has a null value,
      *                                  no checking is done and insert will
      *                                  always succeed.
-     * @param indexType         The type of index (BTREE, for example)
-     * @param schemaName        The schema that table (and index) lives in.
-     * @param indexName         Name of the index
-     * @param tableName         Name of table the index will be on
-     * @param tableId           UUID of table.
-     * @param columnNames       Names of the columns in the index, in order
-     * @param isAscending       Array of booleans telling asc/desc on each column
-     * @param isConstraint      TRUE if index is backing up a constraint, else FALSE
-     * @param conglomerateUUID  ID of conglomerate
-     * @param properties        The optional properties list associated with the index.
+     * @param indexType    The type of index (BTREE, for example)
+     * @param schemaName            the schema that table (and index) lives in.
+     * @param indexName    Name of the index
+     * @param tableName    Name of table the index will be on
+     * @param tableId        UUID of table.
+     * @param columnNames    Names of the columns in the index, in order
+     * @param isAscending    Array of booleans telling asc/desc on each column
+     * @param isConstraint    TRUE if index is backing up a constraint, else FALSE
+     * @param conglomerateUUID    ID of conglomerate
+     * @param properties    The optional properties list associated with the index.
      */
-    public abstract ConstantAction getCreateIndexConstantAction
+    public abstract    ConstantAction    getCreateIndexConstantAction
     (
-        boolean              forCreateTable,
-        boolean              unique,
-        boolean              uniqueWithDuplicateNulls,
-        String               indexType,
-        String               schemaName,
-        String               indexName,
-        String               tableName,
-        UUID                 tableId,
-        String[]             columnNames,
-        DataTypeDescriptor[] indexColumnTypes,
-        boolean[]            isAscending,
-        boolean              isConstraint,
-        UUID                 conglomerateUUID,
-        boolean              excludeNulls,
-        boolean              excludeDefaults,
-        boolean              preSplit,
-        boolean              isLogicalKey,
-        boolean              sampling,
-        double               sampleFraction,
-        String               splitKeyPath,
-        String               hfilePath,
-        String               columnDelimiter,
-        String               characterDelimiter,
-        String               timestampFormat,
-        String               dateFormat,
-        String               timeFormat,
-        String[]             exprTexts,
-        ByteArray[]          exprBytecode,
-        String[]             generatedClassNames,
-        Properties           properties
+        boolean         forCreateTable,
+        boolean            unique,
+        boolean            uniqueWithDuplicateNulls,
+        String            indexType,
+        String            schemaName,
+        String            indexName,
+        String            tableName,
+        UUID            tableId,
+        String[]        columnNames,
+        boolean[]        isAscending,
+        boolean            isConstraint,
+        UUID            conglomerateUUID,
+        boolean            excludeNulls,
+        boolean         excludeDefaults,
+        boolean         preSplit,
+        boolean         isLogicalKey,
+        boolean         sampling,
+        double          sampleFraction,
+        String          splitKeyPath,
+        String          hfilePath,
+        String          columnDelimiter,
+        String          characterDelimiter,
+        String          timestampFormat,
+        String          dateFormat,
+        String          timeFormat,
+        Properties        properties
     );
 
 

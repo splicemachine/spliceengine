@@ -34,29 +34,28 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.ClassBuilder;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.compiler.JavaFactory;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
-import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.ExpressionClassBuilderInterface;
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
-import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
-
-import java.io.Serializable;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import java.lang.reflect.Modifier;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
+import java.io.Serializable;
 
 /**
  * ExpressionClassBuilder
@@ -863,14 +862,6 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 		// PUSHCOMPILER - WASCACHED
 		mb.pushThis();
 		mb.upCast(ClassName.Activation);
-	}
-
-	/**
-	 * Get a "this" expression declared as a BaseExecutableIndexExpression.
-	 */
-	void pushThisAsBaseExecIndexExpr(MethodBuilder mb) {
-		mb.pushThis();
-		mb.upCast(ClassName.BaseExecutableIndexExpression);
 	}
 
 	/**

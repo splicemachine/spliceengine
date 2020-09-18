@@ -41,7 +41,6 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.ClassName;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 
@@ -53,7 +52,7 @@ import java.util.List;
  * This node represents a unary DB2 compatible length operator
  *
  */
-@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE")
+
 public final class DB2LengthOperatorNode extends UnaryOperatorNode
 {
     
@@ -136,7 +135,7 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
         /* Allocate an object for re-use to hold the result of the operator */
         LocalField field = acb.newFieldDeclaration(Modifier.PRIVATE, resultTypeName);
         mb.getField(field);
-        mb.callMethod(VMOpcode.INVOKEVIRTUAL, null, methodName, resultTypeName, 3);
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, methodName, resultTypeName, 3);
 
         /*
         ** Store the result of the method call in the field, so we can re-use

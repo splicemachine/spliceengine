@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
-import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -164,33 +163,29 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
      * for a constraint declared in a CREATE TABLE
      * statement that requires a backing index.
      */
-    private boolean              forCreateTable;
-    private boolean              unique;
-    private boolean              uniqueWithDuplicateNulls;
-    private String               indexType;
-    private String[]             columnNames;
-    private DataTypeDescriptor[] indexColumnTypes;
-    private boolean[]            isAscending;
-    private boolean              isConstraint;
-    private UUID                 conglomerateUUID;
-    private Properties           properties;
-    private ExecRow              indexTemplateRow;
-    private boolean              excludeNulls;
-    private boolean              excludeDefaults;
-    private boolean              preSplit;
-    private boolean              isLogicalKey;
-    private boolean              sampling;
-    private double               sampleFraction;
-    private String               splitKeyPath;
-    private String               hfilePath;
-    private String               columnDelimiter;
-    private String               characterDelimiter;
-    private String               timestampFormat;
-    private String               dateFormat;
-    private String               timeFormat;
-    private String[]             exprTexts;
-    private ByteArray[]          exprBytecode;
-    private String[]             generatedClassNames;
+    private boolean         forCreateTable;
+    private boolean			unique;
+    private boolean			uniqueWithDuplicateNulls;
+    private String			indexType;
+    private String[]		columnNames;
+    private boolean[]		isAscending;
+    private boolean			isConstraint;
+    private UUID			conglomerateUUID;
+    private Properties		properties;
+    private ExecRow         indexTemplateRow;
+    private boolean         excludeNulls;
+    private boolean         excludeDefaults;
+    private boolean         preSplit;
+    private boolean         isLogicalKey;
+    private boolean         sampling;
+    private double          sampleFraction;
+    private String          splitKeyPath;
+    private String          hfilePath;
+    private String          columnDelimiter;
+    private String          characterDelimiter;
+    private String          timestampFormat;
+    private String          dateFormat;
+    private String          timeFormat;
 
     /** Conglomerate number for the conglomerate created by this
      * constant action; -1L if this constant action has not been
@@ -216,66 +211,62 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
     // CONSTRUCTORS
     public CreateIndexConstantOperation(){}
     /**
-     *     Make the ConstantAction to create an index.
+     * 	Make the ConstantAction to create an index.
      *
      * @param forCreateTable                Being executed within a CREATE TABLE
-     *                                       statement
-     * @param unique                        True means it will be a unique index
+     *                                      statement
+     * @param unique		                True means it will be a unique index
      * @param uniqueWithDuplicateNulls      True means index check and disallow
-     *                                       any duplicate key if key has no
-     *                                       column with a null value.  If any
-     *                                       column in the key has a null value,
-     *                                       no checking is done and insert will
-     *                                       always succeed.
-     * @param indexType                     type of index (BTREE, for example)
-     * @param schemaName                    schema that table (and index)
-     *                                       lives in.
-     * @param indexName                     Name of the index
-     * @param tableName                     Name of table the index will be on
-     * @param tableId                       UUID of table
-     * @param columnNames                   Names of the columns in the index,
-     *                                       in order
-     * @param isAscending                   Array of booleans telling asc/desc
-     *                                       on each column
-     * @param isConstraint                  TRUE if index is backing up a
-     *                                       constraint, else FALSE
-     * @param conglomerateUUID              ID of conglomerate
-     * @param properties                    The optional properties list
-     *                                       associated with the index.
+     *                                      any duplicate key if key has no
+     *                                      column with a null value.  If any
+     *                                      column in the key has a null value,
+     *                                      no checking is done and insert will
+     *                                      always succeed.
+     * @param indexType	                    type of index (BTREE, for example)
+     * @param schemaName	                schema that table (and index)
+     *                                      lives in.
+     * @param indexName	                    Name of the index
+     * @param tableName	                    Name of table the index will be on
+     * @param tableId		                UUID of table
+     * @param columnNames	                Names of the columns in the index,
+     *                                      in order
+     * @param isAscending	                Array of booleans telling asc/desc
+     *                                      on each column
+     * @param isConstraint	                TRUE if index is backing up a
+     *                                      constraint, else FALSE
+     * @param conglomerateUUID	            ID of conglomerate
+     * @param properties	                The optional properties list
+     *                                      associated with the index.
      */
 
     @SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
     public CreateIndexConstantOperation(
-            boolean              forCreateTable,
-            boolean              unique,
-            boolean              uniqueWithDuplicateNulls,
-            String               indexType,
-            String               schemaName,
-            String               indexName,
-            String               tableName,
-            UUID                 tableId,
-            String[]             columnNames,
-            DataTypeDescriptor[] indexColumnTypes,
-            boolean[]            isAscending,
-            boolean              isConstraint,
-            UUID                 conglomerateUUID,
-            boolean              excludeNulls,
-            boolean              excludeDefaults,
-            boolean              preSplit,
-            boolean              isLogicalKey,
-            boolean              sampling,
-            double               sampleFraction,
-            String               splitKeyPath,
-            String               hfilePath,
-            String               columnDelimiter,
-            String               characterDelimiter,
-            String               timestampFormat,
-            String               dateFormat,
-            String               timeFormat,
-            String[]             exprTexts,
-            ByteArray[]          exprBytecode,
-            String[]             generatedClassNames,
-            Properties           properties) {
+            boolean         forCreateTable,
+            boolean			unique,
+            boolean			uniqueWithDuplicateNulls,
+            String			indexType,
+            String			schemaName,
+            String			indexName,
+            String			tableName,
+            UUID			tableId,
+            String[]		columnNames,
+            boolean[]		isAscending,
+            boolean			isConstraint,
+            UUID			conglomerateUUID,
+            boolean 		excludeNulls,
+            boolean			excludeDefaults,
+            boolean         preSplit,
+            boolean         isLogicalKey,
+            boolean         sampling,
+            double          sampleFraction,
+            String          splitKeyPath,
+            String          hfilePath,
+            String          columnDelimiter,
+            String          characterDelimiter,
+            String          timestampFormat,
+            String          dateFormat,
+            String          timeFormat,
+            Properties		properties) {
         super(tableId, indexName, tableName, schemaName);
         SpliceLogUtils.trace(LOG, "CreateIndexConstantOperation for table %s.%s with index named %s for columns %s",schemaName,tableName,indexName,Arrays.toString(columnNames));
         this.forCreateTable             = forCreateTable;
@@ -283,7 +274,6 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.uniqueWithDuplicateNulls   = uniqueWithDuplicateNulls;
         this.indexType                  = indexType;
         this.columnNames                = columnNames;
-        this.indexColumnTypes           = indexColumnTypes;
         this.isAscending                = isAscending;
         this.isConstraint               = isConstraint;
         this.conglomerateUUID           = conglomerateUUID;
@@ -303,9 +293,6 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         this.timestampFormat            = timestampFormat;
         this.dateFormat                 = dateFormat;
         this.timeFormat                 = timeFormat;
-        this.exprTexts                  = exprTexts;
-        this.exprBytecode               = exprBytecode;
-        this.generatedClassNames        = generatedClassNames;
     }
 
     /**
@@ -543,12 +530,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                             new IndexRowGenerator(
                                     indexType, unique, uniqueWithDuplicateNulls,
                                     baseColumnPositions,
-                                    indexColumnTypes,
                                     isAscending,
-                                    baseColumnPositions.length,excludeNulls,excludeDefaults,
-                                    exprTexts,
-                                    exprBytecode,
-                                    generatedClassNames);
+                                    baseColumnPositions.length,excludeNulls,excludeDefaults);
 
                     //DERBY-655 and DERBY-1343
                     // Sharing indexes will have unique logical conglomerate UUIDs.
@@ -588,7 +571,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             }
 
             long heapConglomerateId = td.getHeapConglomerateId();
-            Properties indexProperties = getIndexProperties(heapConglomerateId);
+            Properties indexProperties = getIndexProperties(baseColumnPositions, heapConglomerateId);
             indexRowGenerator = getIndexRowGenerator(baseColumnPositions, indexRowGenerator, shareExisting);
 
             // Create the FormatableBitSet for mapping the partial to full base row
@@ -712,21 +695,17 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     unique,
                     uniqueWithDuplicateNulls,
                     baseColumnPositions,
-                    indexColumnTypes,
                     isAscending,
                     baseColumnPositions.length,
                     excludeNulls,
-                    excludeDefaults,
-                    exprTexts,
-                    exprBytecode,
-                    generatedClassNames);
+                    excludeDefaults);
         }
         return existingGenerator;
     }
 
-    private ColumnOrdering[] getColumnOrderings(int numIndexColumns) {
+    private ColumnOrdering[] getColumnOrderings(int[] baseColumnPositions) {
         ColumnOrdering[] order;
-        int numColumnOrderings = numIndexColumns;
+        int numColumnOrderings = baseColumnPositions.length;
         if(!unique)
             numColumnOrderings++;
 
@@ -765,7 +744,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             return cgd.getConglomerateNumber();
     }
 
-    private Properties getIndexProperties(long heapConglomerateId) throws StandardException {
+    private Properties getIndexProperties(int[] baseColumnPositions, long heapConglomerateId) throws StandardException {
         /*
          * Describe the properties of the index to the store using Properties
          *
@@ -788,8 +767,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
         // The number of uniqueness columns must include the RowLocation
         // if the user did not specify a unique index.
         indexProperties.put("nUniqueColumns",
-                Integer.toString(unique ? isAscending.length :
-                        isAscending.length + 1));
+                Integer.toString(unique ? baseColumnPositions.length :
+                        baseColumnPositions.length + 1));
 
         if (uniqueWithDuplicateNulls) {
             // Derby made the distinction between "unique" and "uniqueWithDuplicateNulls"
@@ -803,9 +782,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
             unique = true;
         }
         // By convention, the row location column is the last column
-        indexProperties.put("rowLocationColumn", Integer.toString(isAscending.length));
+        indexProperties.put("rowLocationColumn", Integer.toString(baseColumnPositions.length));
 
-        indexProperties.put("nKeyFields",Integer.toString(isAscending.length + 1));
+        indexProperties.put("nKeyFields",Integer.toString(baseColumnPositions.length + 1));
         return indexProperties;
     }
 
@@ -849,7 +828,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              * sort.
              */
             conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
-                    getColumnOrderings(isAscending.length), indexRowGenerator.getColumnCollationIds(
+                    getColumnOrderings(indexRowGenerator.baseColumnPositions()), indexRowGenerator.getColumnCollationIds(
                             td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys);
 
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
