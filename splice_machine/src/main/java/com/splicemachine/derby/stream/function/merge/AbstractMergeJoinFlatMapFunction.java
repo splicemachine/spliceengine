@@ -23,6 +23,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
@@ -35,6 +36,7 @@ import org.spark_project.guava.base.Function;
 import org.spark_project.guava.base.Preconditions;
 import org.spark_project.guava.collect.Iterators;
 import org.spark_project.guava.collect.PeekingIterator;
+import scala.reflect.internal.pickling.UnPickler;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;
@@ -158,10 +160,10 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
 
             ArrayList<Pair<ExecRow, ExecRow>> keyRows = null;
 
-            boolean skipRightSideRead = false;
+                boolean skipRightSideRead = false;
 
             // The mem platform doesn't support the HBase MultiRangeRowFilter.
-            if (!IS_MEM_PLATFORM) {
+            if (!IS_MEM_PLATFORM) {   // msirek-temp
                 keyRows = getKeyRows();
                 ((BaseActivation) joinOperation.getActivation()).setKeyRows(keyRows);
                 skipRightSideRead = (keyRows == null);
@@ -220,11 +222,6 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         }
 
         protected boolean initRightScanForMemPlatform() throws StandardException{
-
-            // The HBase/Spark platform uses getKeyRows() to find start/stop keys
-            // and lookup keys, so there is no need to calculate start/stop keys twice.
-            if (!IS_MEM_PLATFORM || !bufferHasNextRow())
-                return false;
 
             ExecRow firstHashRow = joinOperation.getKeyRow(peek());
             ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
@@ -343,6 +340,18 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         // If a right key row were to have a null value in any column,
         // it is not added to the list.
         protected ArrayList<Pair<ExecRow, ExecRow>>  getKeyRows() throws StandardException {
+            SpliceOperation rightOp = joinOperation.getRightOperation();
+            while (rightOp instanceof ProjectRestrictOperation)
+                rightOp = ((ProjectRestrictOperation)rightOp).getSource();
+
+            if (!(rightOp instanceof ScanOperation))
+                throw StandardException.newException("Unexpected right operation of merge join.");
+
+            ScanOperation rightScanOp = (ScanOperation)rightOp;
+            ExecRow startKey = rightScanOp.getStartPosition();
+            if (startKey != null && !rightScanOp.sameStartStopPosition())
+                throw StandardException.newException("Right table of merge join has a range start key.");
+
             int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
             int[] rightHashKeys = joinOperation.getRightHashKeys();
             int[] colToBaseTableMap = ((MergeJoinOperation)joinOperation).getRightHashKeyToBaseTableMap();
@@ -350,7 +359,11 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             int[] rightToLeftKeyMap = new int[columnOrdering.length];
 
             int numKeyColumns = 0;
-            for (int i = 0; i < columnOrdering.length; i++) {
+            int numFixedKeyColumns = 0;
+            if (startKey != null)
+                numKeyColumns = numFixedKeyColumns = startKey.nColumns();
+
+            for (int i = numFixedKeyColumns; i < columnOrdering.length; i++) {
                 int keyColumnBaseTablePosition = columnOrdering[i];
                 int j = 0;
                 boolean foundKeyColumn = false;
@@ -376,12 +389,16 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             List<ExecRow> bufferList = getBufferList();
             int lastItem = bufferList.size()-1;
             ExecRow row, previousRow = null;
+            int firstItem = (numFixedKeyColumns == numKeyColumns) ? lastItem : 0;
 
-            for (int rowIndex = 0; rowIndex <= lastItem; rowIndex++) {
+            for (int rowIndex = firstItem; rowIndex <= lastItem; rowIndex++) {
                 row = joinOperation.getKeyRow(bufferList.get(rowIndex));
 
                 boolean addRow = true;
-                for (int i = 0; i < numKeyColumns; i++) {
+                for (int i = 0; i < numFixedKeyColumns; i++) {
+                    newStartKey.setColumn(i + 1, startKey.getColumn(i + 1));
+                }
+                for (int i = numFixedKeyColumns; i < numKeyColumns; i++) {
                     int j = rightToLeftKeyMap[i];
                     if (isNullDataValue(row.getColumn(j + 1))) {
                         addRow = false;

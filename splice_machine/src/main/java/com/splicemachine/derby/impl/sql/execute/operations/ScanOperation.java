@@ -395,6 +395,10 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return scanInformation.getStartPosition();
     }
 
+    public boolean sameStartStopPosition() {
+        return scanInformation.getSameStartStopPosition();
+    }
+
     public String getTableVersion(){
         return tableVersion;
     }
