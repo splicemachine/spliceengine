@@ -3507,15 +3507,18 @@ public class FromBaseTable extends FromTable {
         // we need to check not only the number of row scanned, but also the number of output rows for the
         // join result
         assert dataSetProcessorType.isDefaultControl();
-        boolean isMergeJoin = accessPath.getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.MERGE;
 
         // Only a subset of the right table rows of a merge join are accessed,
         // so don't use getScannedBaseTableRows for Spark determination in this case.
-        if (accessPath != null &&
-                ((!isMergeJoin && accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold) ||
+        if (accessPath != null) {
+            boolean isMergeJoin = accessPath.getJoinStrategy().getJoinStrategyType() ==
+                                                JoinStrategy.JoinStrategyType.MERGE;
+            if (((!isMergeJoin && accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold) ||
                  accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
-            return DataSetProcessorType.COST_SUGGESTED_SPARK;
+                return DataSetProcessorType.COST_SUGGESTED_SPARK;
+            }
         }
+
         return dataSetProcessorType;
     }
 
