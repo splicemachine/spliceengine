@@ -49,7 +49,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
 
     @Override
     protected void starting(Description description) {
-        try (Connection connection = SpliceNetConnection.getConnection()){
+        try (Connection connection = SpliceNetConnection.getDefaultConnection()){
 //            connection.setAutoCommit(false);
 
             SchemaDAO schemaDAO = new SchemaDAO(connection);
@@ -86,7 +86,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
     }
 
     private static void cleanup() {
-        try (Connection connection = SpliceNetConnection.getConnection()) {
+        try (Connection connection = SpliceNetConnection.getDefaultConnection()) {
             connection.setAutoCommit(true);
             while (true) {
                 sync.acquire();
@@ -116,7 +116,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
             }
         }
 
-        try (Connection connection = SpliceNetConnection.getConnection()) {
+        try (Connection connection = SpliceNetConnection.getDefaultConnection()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.drop(schemaName);
 
@@ -136,7 +136,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
     }
 
     public void cleanSchemaObjects() throws RuntimeException {
-        try (Connection connection = SpliceNetConnection.getConnection()) {
+        try (Connection connection = SpliceNetConnection.getDefaultConnection()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.cleanSchemaObjects(schemaName, null, null);
 

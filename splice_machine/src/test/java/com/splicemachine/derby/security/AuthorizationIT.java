@@ -73,9 +73,9 @@ public class AuthorizationIT {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
-        user2Conn = spliceClassWatcher.createConnection(USER2, PASSWORD2);
-        user3Conn = spliceClassWatcher.createConnection(USER3, PASSWORD3);
+        user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
+        user2Conn = spliceClassWatcher.connectionBuilder().user(USER2).password(PASSWORD2).build();
+        user3Conn = spliceClassWatcher.connectionBuilder().user(USER3).password(PASSWORD3).build();
 
         user1Conn.createStatement().executeUpdate("create table STAFF " +
                 "(EMPNUM   VARCHAR(3) NOT NULL, " +
