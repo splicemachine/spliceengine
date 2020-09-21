@@ -344,11 +344,11 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, CsvOptions csvOptions, int[] baseColumnMap,
                                                 OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
                                                 boolean useSample, double sampleFraction) throws StandardException{
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return new ControlDataSet(proc.readTextFile(op,location,characterDelimiter,columnDelimiter,baseColumnMap, context, qualifiers, probeValue, execRow, useSample, sampleFraction).toLocalIterator());
+        return new ControlDataSet(proc.readTextFile(op,location,csvOptions,baseColumnMap, context, qualifiers, probeValue, execRow, useSample, sampleFraction).toLocalIterator());
     }
 
     @Override
