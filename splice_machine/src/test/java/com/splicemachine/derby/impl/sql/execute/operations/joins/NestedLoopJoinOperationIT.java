@@ -519,4 +519,34 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    @Test
+    public void testNLJWithValuesOnTheLeft() throws Exception {
+                /* test control path */
+        String sql = "select * from (values (1,5)) ctx(c1,c3) inner join t1 --splice-properties useDefaultRowCount=3000\n" +
+                "on ctx.c1=t1.a1";
+        String expected = "C1 |C3 |A1 |B1 |C1 |\n" +
+                "--------------------\n" +
+                " 1 | 5 | 1 | 1 | 1 |";
+
+        /* check the plan using nestedloop join with values on the left
+        Plan
+        ----
+        Cursor(n=7,rows=300,updateMode=READ_ONLY (1),engine=OLTP (default))
+          ->  ScrollInsensitive(n=7,totalCost=18.916,outputRows=300,outputHeapSize=900 B,partitions=1)
+            ->  NestedLoopJoin(n=4,totalCost=11.908,outputRows=300,outputHeapSize=900 B,partitions=1)
+              ->  TableScan[T1(1888)](n=2,totalCost=4.6,scannedRows=300,outputRows=300,outputHeapSize=900 B,partitions=1,preds=[(CTX.SQLCol1[1:1] = T1.A1[2:1])])
+              ->  Values(n=0,totalCost=0,outputRows=1,outputHeapSize=0 B,partitions=1)
+         */
+
+        rowContainsQuery(new int[]{3, 4, 5}, "explain " + sql, methodWatcher,
+                new String[]{"NestedLoopJoin"},
+                new String[]{"TableScan[T1", "preds=[(CTX.SQLCol1[1:1] = T1.A1[2:1])]"},
+                new String[]{"Values", "outputRows=1"});
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
 }
