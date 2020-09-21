@@ -191,10 +191,12 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             ((BaseActivation)joinOperation.getActivation()).setKeyRows(null);
             if (mergeJoinIterator == null) {
                 leftSide = joinOperation.getLeftOperation();
-                mergeJoinIterator = createMergeJoinIterator(this,
-                Iterators.peekingIterator(rightIterator),
-                joinOperation.getLeftHashKeys(), joinOperation.getRightHashKeys(),
-                joinOperation, operationContext);
+                mergeJoinIterator =
+                    createMergeJoinIterator(this,
+                                            Iterators.peekingIterator(rightIterator),
+                                            joinOperation.getLeftHashKeys(),
+                                            joinOperation.getRightHashKeys(),
+                                            joinOperation, operationContext);
                 ((AbstractMergeJoinIterator) mergeJoinIterator).registerCloseable(new Closeable() {
                     @Override
                     public void close() throws IOException {
@@ -339,7 +341,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
 //            while (rightOp instanceof ProjectRestrictOperation)
 //                rightOp = ((ProjectRestrictOperation)rightOp).getSource();  // msirek-temp
 
-            ExecRow startKey = rightOp.getStartPosition();
+            ExecRow startKey = rightOp.getStartPosition().getClone();
             if (startKey != null && startKey.length() == 0)
                 throw StandardException.newException("Unexpected 0 length start key in merge join.");
             ExecRow stopKey = null;
@@ -386,10 +388,6 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             if (numKeyColumns == 0)
                 return null;
 
-            if (startKey != null && numFixedKeyColumns != numKeyColumns &&
-                !sameStartStopPosition && stopKey != null)
-                throw StandardException.newException("Right table of merge join has an unsupported range start key.");
-
             ArrayList<Pair<ExecRow, ExecRow>> rightKeyRows = new ArrayList<>();
             ExecRow newStartKey = new ValueRow(numKeyColumns);
 
@@ -399,6 +397,8 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             int lastItem = bufferList.size()-1;
             ExecRow row, previousRow = null;
             int firstItem = (numFixedKeyColumns != 0 && !sameStartStopPosition) ? lastItem : 0;
+            if (firstItem < 0)
+                firstItem = 0;
 
             for (int rowIndex = firstItem; rowIndex <= lastItem; rowIndex++) {
                 row = joinOperation.getKeyRow(bufferList.get(rowIndex));
