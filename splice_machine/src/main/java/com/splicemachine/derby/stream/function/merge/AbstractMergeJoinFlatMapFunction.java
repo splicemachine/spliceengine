@@ -341,7 +341,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
 //            while (rightOp instanceof ProjectRestrictOperation)
 //                rightOp = ((ProjectRestrictOperation)rightOp).getSource();  // msirek-temp
 
-            ExecRow startKey = rightOp.getStartPosition().getClone();
+            ExecRow startKey = rightOp.getStartPosition();
             if (startKey != null && startKey.length() == 0)
                 throw StandardException.newException("Unexpected 0 length start key in merge join.");
             ExecRow stopKey = null;
@@ -370,6 +370,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             if (startKey != null)
                 numKeyColumns = numFixedKeyColumns = startKey.nColumns();
 
+            boolean needsAllJoinKeys = false;
             for (int i = numFixedKeyColumns; i < columnOrdering.length; i++) {
                 int keyColumnBaseTablePosition = columnOrdering[i];
                 int j = 0;
@@ -379,6 +380,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                     if (colToBaseTableMap[j] == keyColumnBaseTablePosition) {
                         rightToLeftKeyMap[i] = j;
                         foundKeyColumn = true;
+                        needsAllJoinKeys = true;
                     }
                 }
                 if (!foundKeyColumn)
@@ -388,6 +390,27 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             if (numKeyColumns == 0)
                 return null;
 
+            // Try to replace range conditions with equality if possible.
+            if (numFixedKeyColumns > 0 && !sameStartStopPosition)
+            for (int i = numFixedKeyColumns-1; i >= 0; i--) {
+                int keyColumnBaseTablePosition = columnOrdering[i];
+                int j = 0;
+                boolean foundKeyColumn = false;
+                for (; j < rightHashKeys.length; j++) {
+                    // both columnOrdering and colToBaseTableMap are 0-based
+                    if (colToBaseTableMap[j] == keyColumnBaseTablePosition) {
+                        rightToLeftKeyMap[i] = j;
+                        foundKeyColumn = true;
+                        needsAllJoinKeys = true;
+                        numFixedKeyColumns--;
+                    }
+                }
+                if (!foundKeyColumn)
+                    break;
+            }
+            if (numFixedKeyColumns == 0)
+                useStopKey = false;
+
             ArrayList<Pair<ExecRow, ExecRow>> rightKeyRows = new ArrayList<>();
             ExecRow newStartKey = new ValueRow(numKeyColumns);
 
@@ -396,7 +419,12 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             List<ExecRow> bufferList = getBufferList();
             int lastItem = bufferList.size()-1;
             ExecRow row, previousRow = null;
-            int firstItem = (numFixedKeyColumns != 0 && !sameStartStopPosition) ? lastItem : 0;
+            int firstItem = 0;
+            boolean useFixedStartKey = false;
+            if (numFixedKeyColumns != 0 && !sameStartStopPosition && !needsAllJoinKeys) {
+                firstItem = lastItem;
+                useFixedStartKey = true;
+            }
             if (firstItem < 0)
                 firstItem = 0;
 
@@ -410,8 +438,10 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                 for (int i = numFixedKeyColumns; i < numKeyColumns; i++) {
                     int j = rightToLeftKeyMap[i];
                     if (isNullDataValue(row.getColumn(j + 1))) {
-                        addRow = false;
-                        break;
+                        if (!useFixedStartKey) {
+                            addRow = false;
+                            break;
+                        }
                     }
                     else
                         newStartKey.setColumn(i + 1, row.getColumn(j + 1));
