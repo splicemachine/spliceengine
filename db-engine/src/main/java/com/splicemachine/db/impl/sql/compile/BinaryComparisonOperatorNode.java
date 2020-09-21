@@ -270,23 +270,21 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 	public void bindComparisonOperator()
 			throws StandardException
 	{
-		boolean				nullableResult;
-
+		boolean nullableResult;
 
 		/*
 		** Can the types be compared to each other?  If not, throw an
 		** exception.
 		*/
 
-        boolean cmp = leftOperand.getTypeServices().comparable( rightOperand.getTypeServices() );
+		boolean cmp = leftOperand.getTypeServices().comparable( rightOperand.getTypeServices() );
 		// Bypass the comparable check if this is a rewrite from the 
 		// optimizer.  We will assume Mr. Optimizer knows what he is doing.
-          if (!cmp && !forQueryRewrite) {
-			throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE, 
+		if (!cmp && !forQueryRewrite) {
+			throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
 					leftOperand.getTypeServices().getSQLTypeNameWithCollation() ,
 					rightOperand.getTypeServices().getSQLTypeNameWithCollation());
-				
-		  }
+		}
 
 		
 		/*
