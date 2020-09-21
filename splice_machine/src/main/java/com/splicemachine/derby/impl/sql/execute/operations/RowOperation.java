@@ -231,16 +231,6 @@ public class RowOperation extends SpliceBaseOperation{
         return null;
     }
 
-    /**
-     * This is not used in positioned update and delete,
-     * so just return a null.
-     *
-     * @return a null.
-     * @see CursorResultSet
-     */
-    public ExecRow getCurrentRow(){
-        return null;
-    }
 
     /**
      *

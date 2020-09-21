@@ -34,7 +34,9 @@ public class RowOperationFunction extends SpliceFunction<RowOperation,ExecRow,Ex
     @Override
     public ExecRow call(ExecRow o) throws Exception {
         RowOperation rowOp = operationContext.getOperation();
-        return rowOp.getRow();
+        ExecRow valueRow = rowOp.getRow();
+        rowOp.setCurrentRow(valueRow);
+        return valueRow;
     }
 
 }
