@@ -44,145 +44,144 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 /**
  * A LockTableNode is the root of a QueryTree that represents a LOCK TABLE command:
- *	LOCK TABLE <TableName> IN SHARE/EXCLUSIVE MODE
+ *    LOCK TABLE <TableName> IN SHARE/EXCLUSIVE MODE
  *
  */
 
 public class LockTableNode extends MiscellaneousStatementNode
 {
-	private TableName	tableName;
-	private boolean		exclusiveMode;
-	private long		conglomerateNumber;
-	private TableDescriptor			lockTableDescriptor;
+    private TableName    tableName;
+    private boolean        exclusiveMode;
+    private long        conglomerateNumber;
+    private TableDescriptor            lockTableDescriptor;
 
-	/**
-	 * Initializer for LockTableNode
-	 *
-	 * @param tableName		The table to lock
-	 * @param exclusiveMode	boolean, whether or not to get an exclusive lock.
-	 */
-	public void init(Object tableName, Object exclusiveMode)
-	{
-		this.tableName = (TableName) tableName;
-		this.exclusiveMode = (Boolean) exclusiveMode;
-	}
+    /**
+     * Initializer for LockTableNode
+     *
+     * @param tableName        The table to lock
+     * @param exclusiveMode    boolean, whether or not to get an exclusive lock.
+     */
+    public void init(Object tableName, Object exclusiveMode)
+    {
+        this.tableName = (TableName) tableName;
+        this.exclusiveMode = (Boolean) exclusiveMode;
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return "tableName: " + tableName + "\n" +
-				"exclusiveMode: " + exclusiveMode + "\n" +
-				"conglomerateNumber: " + conglomerateNumber + "\n" +
-				super.toString();
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return "tableName: " + tableName + "\n" +
+                "exclusiveMode: " + exclusiveMode + "\n" +
+                "conglomerateNumber: " + conglomerateNumber + "\n" +
+                super.toString();
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	public String statementToString()
-	{
-		return "LOCK TABLE";
-	}
+    public String statementToString()
+    {
+        return "LOCK TABLE";
+    }
 
-	/**
-	 * Bind this LockTableNode.  This means looking up the table,
-	 * verifying it exists and getting the heap conglomerate number.
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Bind this LockTableNode.  This means looking up the table,
+     * verifying it exists and getting the heap conglomerate number.
+     *
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-	public void bindStatement() throws StandardException
-	{
-		CompilerContext			cc = getCompilerContext();
-		ConglomerateDescriptor	cd;
-		DataDictionary			dd = getDataDictionary();
-		SchemaDescriptor		sd;
+    public void bindStatement() throws StandardException
+    {
+        CompilerContext            cc = getCompilerContext();
+        ConglomerateDescriptor    cd;
+        SchemaDescriptor        sd;
 
-		String schemaName = tableName.getSchemaName();
-		sd = getSchemaDescriptor(schemaName);
+        String schemaName = tableName.getSchemaName();
+        sd = getSchemaDescriptor(schemaName);
 
-		// Users are not allowed to lock system tables
-		if (sd.isSystemSchema())
-		{
-			throw StandardException.newException(SQLState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA, 
-							statementToString(), schemaName);
-		}
+        // Users are not allowed to lock system tables
+        if (sd.isSystemSchema())
+        {
+            throw StandardException.newException(SQLState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA,
+                            statementToString(), schemaName);
+        }
 
-		lockTableDescriptor = getTableDescriptor(tableName.getTableName(), sd);
+        lockTableDescriptor = getTableDescriptor(tableName.getTableName(), sd);
 
-		if (lockTableDescriptor == null)
-		{
-			// Check if the reference is for a synonym.
-			TableName synonymTab = resolveTableToSynonym(tableName);
-			if (synonymTab == null)
-				throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, tableName.toString());
-			tableName = synonymTab;
-			sd = getSchemaDescriptor(tableName.getSchemaName());
+        if (lockTableDescriptor == null)
+        {
+            // Check if the reference is for a synonym.
+            TableName synonymTab = resolveTableToSynonym(tableName);
+            if (synonymTab == null)
+                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, tableName.toString());
+            tableName = synonymTab;
+            sd = getSchemaDescriptor(tableName.getSchemaName());
 
-			lockTableDescriptor = getTableDescriptor(synonymTab.getTableName(), sd);
-			if (lockTableDescriptor == null)
-				throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, tableName.toString());
-		}
+            lockTableDescriptor = getTableDescriptor(synonymTab.getTableName(), sd);
+            if (lockTableDescriptor == null)
+                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, tableName.toString());
+        }
 
-		//throw an exception if user is attempting to lock a temporary table
-		if (lockTableDescriptor.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
-		{
-				throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE);
-		}
+        //throw an exception if user is attempting to lock a temporary table
+        if (lockTableDescriptor.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
+        {
+                throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE);
+        }
 
-		conglomerateNumber = lockTableDescriptor.getHeapConglomerateId();
+        conglomerateNumber = lockTableDescriptor.getHeapConglomerateId();
 
-		/* Get the base conglomerate descriptor */
-		cd = lockTableDescriptor.getConglomerateDescriptor(conglomerateNumber);
+        /* Get the base conglomerate descriptor */
+        cd = lockTableDescriptor.getConglomerateDescriptor(conglomerateNumber);
 
-		/* Statement is dependent on the TableDescriptor and ConglomerateDescriptor */
-		cc.createDependency(lockTableDescriptor);
-		cc.createDependency(cd);
+        /* Statement is dependent on the TableDescriptor and ConglomerateDescriptor */
+        cc.createDependency(lockTableDescriptor);
+        cc.createDependency(cd);
 
-		if (isPrivilegeCollectionRequired())
-		{
-			// need SELECT privilege to perform lock table statement.
-			cc.pushCurrentPrivType(Authorizer.SELECT_PRIV);
-			cc.addRequiredTablePriv(lockTableDescriptor);
-			cc.popCurrentPrivType();
-		}
-	}
+        if (isPrivilegeCollectionRequired())
+        {
+            // need SELECT privilege to perform lock table statement.
+            cc.pushCurrentPrivType(Authorizer.SELECT_PRIV);
+            cc.addRequiredTablePriv(lockTableDescriptor);
+            cc.popCurrentPrivType();
+        }
+    }
 
-	/**
-	 * Return true if the node references SESSION schema tables (temporary or permanent)
-	 *
-	 * @return	true if references SESSION schema tables, else false
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean referencesSessionSchema()
-		throws StandardException
-	{
-		//If lock table is on a SESSION schema table, then return true. 
-		return isSessionSchema(lockTableDescriptor.getSchemaName());
-	}
+    /**
+     * Return true if the node references SESSION schema tables (temporary or permanent)
+     *
+     * @return    true if references SESSION schema tables, else false
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public boolean referencesSessionSchema()
+        throws StandardException
+    {
+        //If lock table is on a SESSION schema table, then return true.
+        return isSessionSchema(lockTableDescriptor.getSchemaName());
+    }
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		return getGenericConstantActionFactory().getLockTableConstantAction(
-						tableName.getFullTableName(),
-						conglomerateNumber,
-						exclusiveMode);
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        return getGenericConstantActionFactory().getLockTableConstantAction(
+                        tableName.getFullTableName(),
+                        conglomerateNumber,
+                        exclusiveMode);
+    }
 }
