@@ -2289,15 +2289,15 @@ public class ExternalTableIT extends SpliceUnitTest {
             methodWatcher.executeUpdate(String.format("create external table r (col1 int)" +
                     " STORED AS " + fileFormat + " LOCATION '%s'", tablePath + "right"));
             int insertCount2 = methodWatcher.executeUpdate(String.format("insert into r values 1,2,3"));
-            Assert.assertEquals("insertCount is wrong", 3, insertCount);
-            Assert.assertEquals("insertCount is wrong", 3, insertCount2);
+            Assert.assertEquals("insertCount is wrong " + fileFormat, 3, insertCount);
+            Assert.assertEquals("insertCount is wrong " + fileFormat, 3, insertCount2);
 
             // test for SPLICE-1850
             ResultSet rs = methodWatcher.executeQuery("select * from \n" +
                     "l --splice-properties useSpark=true\n" +
                     ", r --splice-properties joinStrategy=broadcast\n" +
                     "where l.col1=r.col1");
-            Assert.assertEquals("COL1 |COL1 |\n" +
+            Assert.assertEquals( fileFormat, "COL1 |COL1 |\n" +
                     "------------\n" +
                     "  1  |  1  |\n" +
                     "  2  |  2  |\n" +
@@ -2309,7 +2309,7 @@ public class ExternalTableIT extends SpliceUnitTest {
             // test for DB-9770
             // using cross join will go over NativeSparkDataSet instead of SparkDataSet
             int insertCountJoin = methodWatcher.executeUpdate(String.format("insert into joined (select a.col1,b.col1 from l a, l b)"));
-            Assert.assertEquals("insertCount for cross join is wrong", 9, insertCountJoin);
+            Assert.assertEquals("insertCount for cross join is wrong " + fileFormat, 9, insertCountJoin);
             methodWatcher.execute("DROP TABLE l");
             methodWatcher.execute("DROP TABLE r");
             methodWatcher.execute("DROP TABLE joined");
@@ -2457,7 +2457,7 @@ public class ExternalTableIT extends SpliceUnitTest {
     public void testOrcColumnName() throws Exception {
         String tablePath = getExternalResourceDirectory()+"orc_colname";
         methodWatcher.execute(String.format("create external table t_orc (col1 int, col2 varchar(5))" +
-                " STORED AS ORC LOCATION '%s'", tablePath));
+                " STORED AS PARQUET LOCATION '%s'", tablePath));
         methodWatcher.execute("insert into t_orc values (3, 'C')");
         SparkSession spark = SparkSession.builder()
                 .master("local")
@@ -2465,7 +2465,7 @@ public class ExternalTableIT extends SpliceUnitTest {
                 .getOrCreate();
         Dataset dataset = spark
                 .read()
-                .orc(tablePath);
+                .parquet(tablePath);
         String actual = dataset.schema().toString();
         String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
         Assert.assertEquals(actual, expected, actual);
