@@ -395,7 +395,13 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return scanInformation.getStartPosition();
     }
 
-    public boolean sameStartStopPosition() {
+    @Override
+    public ExecIndexRow getStopPosition() throws StandardException{
+        return scanInformation.getStopPosition();
+    }
+
+    @Override
+    public boolean getSameStartStopPosition() {
         return scanInformation.getSameStartStopPosition();
     }
 

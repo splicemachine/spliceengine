@@ -74,6 +74,8 @@ public interface ScanInformation<T> {
 
     ExecIndexRow getStartPosition() throws StandardException;
 
+    ExecIndexRow getStopPosition() throws StandardException;
+
     ExecRow getDefaultRow() throws StandardException;
 
     FormatableBitSet getDefaultValueMap() throws StandardException;

@@ -90,7 +90,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
     public MultiProbeDerbyScanInformation() { }
 
 		@Override
-		protected ExecIndexRow getStopPosition() throws StandardException {
+		public ExecIndexRow getStopPosition() throws StandardException {
 				ExecIndexRow stopPosition = sameStartStopPosition?super.getStartPosition():super.getStopPosition();
 				if (stopPosition != null) {
 					if (probeValue instanceof ListDataType) {

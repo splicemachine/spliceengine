@@ -412,7 +412,9 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         }
         return scanQualifiers;
     }
-    protected ExecIndexRow getStopPosition() throws StandardException {
+
+    @Override
+    public ExecIndexRow getStopPosition() throws StandardException {
         if (sameStartStopPosition)
             return null;
         if (stopKeyGetter == null && stopKeyGetterMethodName != null)

@@ -290,9 +290,6 @@ public class SelectivityUtil {
                 (outerRowCount<1.0d?1.0d:outerRowCount)*
                 (innerRowCount<1.0d?1.0d:innerRowCount);
 
-        // Be safe and don't underestimate the number of join rows.
-        if (totalRows < rowsInSmallerTable)
-            totalRows = rowsInSmallerTable;
         return totalRows;
     }
 

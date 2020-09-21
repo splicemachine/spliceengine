@@ -361,13 +361,20 @@ public class Scans extends SpliceUtils {
         if (stopKey != null)
             scan.stopKey(stopKey);
 
-        DataValueDescriptor[] startKeyDVDs, stopKeyDVDs;
+        DataValueDescriptor[] startKeyDVDs = null, stopKeyDVDs = null;
 
         if (keyRows != null && !isMemPlatform()) {
             List<Pair<byte [], byte []>> keys = new ArrayList<>();
             for (Pair<ExecRow, ExecRow> keyRow : keyRows) {
-                startKeyDVDs = keyRow.getFirst().getClone().getRowArray();
-                stopKeyDVDs = keyRow.getSecond().getClone().getRowArray();
+                if (keyRow.getFirst() != null)
+                    startKeyDVDs = keyRow.getFirst().getClone().getRowArray();
+                else
+                    startKeyDVDs = null;
+
+                if (keyRow.getSecond() != null)
+                    stopKeyDVDs = keyRow.getSecond().getClone().getRowArray();
+                else
+                    stopKeyDVDs = null;
                 startStopKeys =
                   buildStartAndStopKeys(startKeyDVDs, ScanController.GE,
                                         stopKeyDVDs, null,
