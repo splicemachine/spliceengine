@@ -55,20 +55,22 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.scheduler.*;
 import org.apache.spark.sql.*;
-import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
+import scala.collection.JavaConverters;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 import static com.splicemachine.derby.stream.spark.SparkDataSetProcessor.getCsvOptions;
@@ -1114,20 +1116,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return (JavaRDD<V>) dataSet.javaRDD().map(new RowToLocatedRowFunction(context));
     }
 
-    class CountingFunction implements MapFunction<Row, Row>
-    {
-        OperationContext<?> operationContext;
-        CountingFunction(OperationContext<?> operationContext)
-        {
-            this.operationContext = operationContext;
-        }
-        @Override
-        public Row call(Row row) throws Exception {
-            operationContext.recordWrite();
-            return row;
-        }
-    }
-
     private DataSet<ExecRow> getRowsWritten(OperationContext context) {
         ValueRow valueRow = new ValueRow(1);
         valueRow.setColumn(1, new SQLLongint(context.getRecordsWritten()));
@@ -1138,37 +1126,85 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location,
                                              String compression, OperationContext context) throws StandardException {
-        getDataFrameWriter(partitionBy, context)
-                .option(SPARK_COMPRESSION_OPTION,compression)
-                .parquet(location);
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(partitionBy, context)
+                    .option(SPARK_COMPRESSION_OPTION, compression)
+                    .parquet(location);
+        }
+
         return getRowsWritten(context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeAvroFile(DataSetProcessor dsp, int[] partitionBy, String location,
                                           String compression, OperationContext context) throws StandardException {
-        compression = SparkDataSet.getAvroCompression(compression);
-        getDataFrameWriter(partitionBy, context)
-                .option(SPARK_COMPRESSION_OPTION,compression)
-                .format("com.databricks.spark.avro").save(location);
+        try( CountingListener counter = new CountingListener(context) ) {
+            compression = SparkDataSet.getAvroCompression(compression);
+            getDataFrameWriter(partitionBy, context)
+                    .option(SPARK_COMPRESSION_OPTION, compression)
+                    .format("com.databricks.spark.avro").save(location);
+        }
         return getRowsWritten(context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
                                           OperationContext context) throws StandardException {
-        getDataFrameWriter(partitionBy, context)
-                .options(getCsvOptions(csvOptions))
-                .csv(location);
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(partitionBy, context)
+                    .options(getCsvOptions(csvOptions))
+                    .csv(location);
+        }
         return getRowsWritten(context);
     }
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                     OperationContext context) throws StandardException {
-        getDataFrameWriter(partitionBy, context)
-                .option(SPARK_COMPRESSION_OPTION,compression)
-                .orc(location);
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(partitionBy, context)
+                    .option(SPARK_COMPRESSION_OPTION, compression)
+                    .orc(location);
+        }
         return getRowsWritten(context);
+    }
+
+    class CountingListener extends SparkListener implements AutoCloseable
+    {
+        OperationContext context;
+        SparkContext sc;
+        String uuid;
+        List<Integer> stageIdsToWatch;
+
+        public CountingListener(OperationContext context) {
+            this( context, UUID.randomUUID().toString() );
+        }
+        public CountingListener(OperationContext context, String uuid) {
+            sc = SpliceSpark.getSession().sparkContext();
+            sc.getLocalProperties().setProperty("operation-uuid", uuid);
+            sc.addSparkListener(this);
+            this.context = context;
+            this.uuid = uuid;
+        }
+
+        public void onJobStart(SparkListenerJobStart jobStart) {
+            if ( !jobStart.properties().getProperty("operation-uuid", "").equals(uuid) ) {
+                return;
+            }
+
+            List<StageInfo> stageInfos = JavaConverters.seqAsJavaListConverter(jobStart.stageInfos()).asJava();
+            stageIdsToWatch = stageInfos.stream().map(s -> s.stageId()).collect(Collectors.toList());
+        }
+
+        @Override
+        public void onTaskEnd(SparkListenerTaskEnd taskEnd) {
+            if( stageIdsToWatch != null && stageIdsToWatch.contains( taskEnd.stageId() ))
+                context.recordPipelineWrites( taskEnd.taskMetrics().outputMetrics().recordsWritten() );
+        }
+
+        @Override
+        public void close() {
+            sc.removeSparkListener(this);
+        }
     }
 
     private DataFrameWriter getDataFrameWriter(int[] partitionBy, OperationContext context) throws StandardException {
@@ -1190,7 +1226,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
         }
-        insertDF = insertDF.map(new CountingFunction(context), RowEncoder.apply(tableSchema));
         return insertDF.write().partitionBy(partitionByCols).mode(SaveMode.Append);
     }
 
