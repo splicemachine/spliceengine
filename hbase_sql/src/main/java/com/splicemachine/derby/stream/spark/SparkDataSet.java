@@ -54,7 +54,6 @@ import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
-import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.codec.binary.Base64;
@@ -878,14 +877,15 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
+    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter,
+                                                int[] baseColumnMap,
                                                 OperationContext context) throws StandardException {
 
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                 context.getOperation().schema());
 
-        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(partitionBy, location, csvOptions, context);
+        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context);
     }
 
     @Override @SuppressWarnings({ "unchecked", "rawtypes" })
