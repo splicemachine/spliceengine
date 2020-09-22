@@ -2,20 +2,11 @@
 
 properties([
     parameters([
-        gitParameter(branch: '',
-                     branchFilter: 'origin/(.*)',
-                     defaultValue: 'master',
-                     description: '',
-                     name: 'BRANCH',
-                     quickFilterEnabled: false,
-                     selectedValue: 'NONE',
-                     sortMode: 'NONE',
-                     tagFilter: '*',
-                     type: 'PT_BRANCH'),
-        choice(name: 'PLATFORM', 
-                choices: ['cdh6.3.0', 'hdp.3.1.0', 'cdh5.16.1'], 
-                description: ''
-                )
+        stringParam(
+         defaultValue: "${ghprbPullId}",
+         description: 'Pull ID',
+         name: 'pr_id'
+       )
     ]),
 ])
 
@@ -38,7 +29,7 @@ node('spliceengine'){
                 // Get some code from a GitHub repository
                 checkout([  
                     $class: 'GitSCM', 
-                    branches: [[name: """refs/heads/${params.BRANCH}"""]], 
+                    branches: [[name: """refs/heads/${ghprbSourceBranch}"""]], 
                     doGenerateSubmoduleConfigurations: false, 
                     extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine-ee']], 
                     submoduleCfg: [], 
@@ -46,7 +37,7 @@ node('spliceengine'){
                 ])
                 checkout([  
                     $class: 'GitSCM', 
-                    branches: [[name: """refs/heads/${params.BRANCH}"""]], 
+                    branches: [[name: """refs/heads/${ghprbSourceBranch}"""]], 
                     doGenerateSubmoduleConfigurations: false, 
                     extensions: [[$class: 'RelativeTargetDirectory', relativeTargetDir: 'spliceengine']], 
                     submoduleCfg: [], 
@@ -58,51 +49,47 @@ node('spliceengine'){
             wrap([$class: 'VaultBuildWrapper', vaultSecrets: artifact_values]) {
                 dir('spliceengine'){
                     sh """
-                    export shortbranch="\$(echo ${params.BRANCH} | awk -F/ '{print $NF}')"
-                    echo "Git branch ${params.BRANCH} short name is ${shortbranch}"
+                    export platform=\$(echo "$ghprbCommentBody" | cut -d "@" -f2)
+                    export shortbranch="\$(echo ${ghprbSourceBranch} | awk -F/ '{print \$NF}')"
+                    echo "Git branch ${ghprbSourceBranch} short name is \${shortbranch}"
                     export srcver="\$(mvn org.apache.maven.plugins:maven-help-plugin:2.1.1:evaluate -Dexpression=project.version 2>&1 | egrep -v '(^\\[|Download(ed|ing):)' | grep '^[0-9]' | head -1)"
-                    echo "Maven project version is ${srcver}"
-                    export newsrcver="${srcver}-${BUILD_NUMBER}-${shortbranch}"
-                    echo "New Maven version is ${newsrcver}"
-                    echo "Using Maven versions plugin and in-line sed to set version to ${newsrcver}" 
-                    mvn versions:set -DnewVersion="${newsrcver}" -Pcore,${params.PLATFORM},ee -l /dev/null
+                    echo "Maven project version is \${srcver}"
+                    export newsrcver="\${srcver}-${BUILD_NUMBER}-\${shortbranch}"
+                    echo "New Maven version is \${newsrcver}"
+                    echo "Using Maven versions plugin and in-line sed to set version to \${newsrcver}" 
+                    mvn versions:set -DnewVersion="\${newsrcver}" -Pcore,\${platform},ee -l /dev/null
                     mvn versions:commit
-                    popd 
                     echo "Saving branch and version info to branch.env"
-                    echo "export shortbranch=${shortbranch}" > branch.env
-                    echo "export srcver=${srcver}" >> branch.env
-                    echo "export newsrcver=${newsrcver}" >> branch.env
-                    echo "${newsrcver}" > version.txt
+                    echo "export shortbranch=\${shortbranch}" > branch.env
+                    echo "export srcver=\${srcver}" >> branch.env
+                    echo "export newsrcver=\${newsrcver}" >> branch.env
+                    echo "\${newsrcver}" > version.txt
                     mvn -B -e --fail-at-end clean -DskipTests
                     cp pipelines/spot-bugs/template/settings.xml ~/.m2/settings.xml
                     sed  -i "s/REPLACE_USER/$ARTIFACT_USER/" ~/.m2/settings.xml
                     sed  -i "s/REPLACE_PASS/$ARTIFACT_PASSWORD/" ~/.m2/settings.xml
 
-                    export platform=$ghprbCommentBody
-                    platform="\$( sed 's/\\n//g' <<<"${params.PLATFORM}" )"
-                    platform="\$( sed 's/\\r//g' <<<"${params.PLATFORM}" )"
-
-                    if [[ ${params.PLATFORM} =~ ^mem ]] ; then
+                    if [[ "\$platform" =~ ^mem ]] ; then
                         profiles="core,mem"
-                    elif [[ ${params.PLATFORM} =~ ^cdh ]] ; then
-                        profiles="mem,core,${params.PLATFORM},ee,parcel"
-                    elif [[ ${params.PLATFORM} =~ ^hdp ]] ; then
-                        profiles="mem,core,${params.PLATFORM},ee,hdp_service"
-                    elif [[ ${params.PLATFORM} =~ ^hdp ]] ; then
-                        profiles="mem,core,${params.PLATFORM},ee,hdp_service"
+                    elif [[ "\$platform" =~ ^cdh ]] ; then
+                        profiles="mem,core,\$platform,ee,parcel"
+                    elif [[ "\$platform" =~ ^hdp ]] ; then
+                        profiles="mem,core,\$platform,ee,hdp_service"
+                    elif [[ "\$platform" =~ ^hdp ]] ; then
+                        profiles="mem,core,\$platform,ee,hdp_service"
                     else
-                        profiles=mem,"core,${params.PLATFORM},ee,installer"
+                        profiles="mem,core,\${platform},ee,installer"
                     fi
 
-                    echo "building ${profiles} for ${params.PLATFORM}"
+                    echo "building \${profiles} for \$platform"
 
                     MAVEN_OPTS="-Xms64m -XX:MinHeapFreeRatio=10 -XX:MaxHeapFreeRatio=30 -Dorg.slf4j.simpleLogger.showDateTime=true -Dorg.slf4j.simpleLogger.dateTimeFormat=YYYY-MM-dd|HH:mm:ss,SSS"
 
                     mvn \
                     -B \
-                    -f spliceengine/pom.xml \
-                    -P${profiles} \
-                    -D${params.PLATFORM} \
+                    -f pom.xml \
+                    -P\$profiles \
+                    -D\$platform \
                     -Djenkins.build.number=${BUILD_NUMBER} \
                     -Dexcluded.categories=com.splicemachine.test.SlowTest \
                     -Dmaven.test.redirectTestOutputToFile=true \
