@@ -29,7 +29,6 @@ public class GetSchemaExternalJob implements Callable<Void> {
     private final DistributedGetSchemaExternalJob request;
     private final OlapStatus jobStatus;
 
-
     public GetSchemaExternalJob(DistributedGetSchemaExternalJob request, OlapStatus jobStatus) {
         this.request = request;
         this.jobStatus = jobStatus;
@@ -49,7 +48,8 @@ public class GetSchemaExternalJob implements Callable<Void> {
         dsp.setSchedulerPool("admin");
         dsp.setJobGroup(request.getJobGroup(), "");
 
-        StructType externalSchema = dsp.getExternalFileSchema(request.getStoredAs(), request.getLocation(), request.mergeSchema());
+        StructType externalSchema = dsp.getExternalFileSchema(request.getStoredAs(), request.getLocation(),
+                request.mergeSchema(), request.getCsvOptions() );
         jobStatus.markCompleted(new GetSchemaExternalResult(externalSchema));
         return null;
     }

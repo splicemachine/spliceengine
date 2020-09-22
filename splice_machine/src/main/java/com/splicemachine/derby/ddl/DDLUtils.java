@@ -1096,7 +1096,6 @@ public class DDLUtils {
             // remove role grant cache
             String roleName = change.getGrantRevokeRole().getRoleName();
             String granteeName = change.getGrantRevokeRole().getGranteeName();
-            String grantorName = change.getGrantRevokeRole().getGrantorName();
             dd.getDataDictionaryCache().roleGrantCacheRemove(new Pair<>(roleName, granteeName));
         } catch (Exception e) {
             e.printStackTrace();

@@ -17,6 +17,7 @@ package com.splicemachine.procedures.external;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
+import com.splicemachine.system.CsvOptions;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -33,6 +34,7 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
     private String storedAs;
     private String jobGroup;
     private boolean mergeSchema;
+    private CsvOptions csvOptions;
 
     public DistributedGetSchemaExternalJob() {
     }
@@ -40,11 +42,13 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
     public DistributedGetSchemaExternalJob(String location,
                                            String jobGroup,
                                            String storedAs,
-                                           boolean mergeSchema) {
+                                           boolean mergeSchema,
+                                           CsvOptions csvOptions) {
         this.storedAs = storedAs;
         this.location = location;
         this.jobGroup = jobGroup;
         this.mergeSchema = mergeSchema;
+        this.csvOptions = csvOptions;
     }
 
     @Override
@@ -70,6 +74,7 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
 
         out.writeUTF(jobGroup);
         out.writeBoolean(mergeSchema);
+        csvOptions.writeExternal(out);
     }
 
     @Override
@@ -79,6 +84,7 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
         location    = in.readBoolean()?in.readUTF():null;
         jobGroup    = in.readUTF();
         mergeSchema = in.readBoolean();
+        csvOptions  = new CsvOptions(in);
     }
 
 
@@ -93,4 +99,6 @@ public class DistributedGetSchemaExternalJob extends DistributedJob implements E
     public String getStoredAs(){ return storedAs; }
 
     public boolean mergeSchema() {return mergeSchema;}
+
+    public CsvOptions getCsvOptions() { return csvOptions; }
 }
