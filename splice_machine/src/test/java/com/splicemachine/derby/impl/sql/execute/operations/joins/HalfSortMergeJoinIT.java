@@ -14,8 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import splice.com.google.common.collect.Lists;
-import splice.com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
@@ -25,14 +23,11 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Arrays;
 import java.util.List;
 
-import static com.splicemachine.homeless.TestUtils.o;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.fail;
@@ -57,7 +52,7 @@ public class HalfSortMergeJoinIT extends SpliceUnitTest {
     protected static final String A_IDX = "A_IDX";
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     protected static SpliceTableWatcher fooTable = new SpliceTableWatcher(FOO, CLASS_NAME,
             "(col1 int, col2 int, primary key (col1))");

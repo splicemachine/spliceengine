@@ -27,7 +27,7 @@ import org.junit.rules.TestRule;
  */
 public class LimitOffsetVisitorIT extends SpliceUnitTest {
     public static final String CLASS_NAME = LimitOffsetVisitorIT.class.getSimpleName().toUpperCase();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE_1 = "A";
     public static final String TABLE_2 = "B";

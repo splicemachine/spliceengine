@@ -32,7 +32,7 @@ public class HashNestedLoopJoinIT {
     private static final String CLASS_NAME = HashNestedLoopJoinIT.class.getSimpleName().toUpperCase();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @Rule
     public SpliceWatcher watcher = new SpliceWatcher(CLASS_NAME);

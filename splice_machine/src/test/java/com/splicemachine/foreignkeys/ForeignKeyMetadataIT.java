@@ -30,7 +30,7 @@ import java.sql.*;
  */
 public class ForeignKeyMetadataIT{
     private static final String CLASS_NAME = ForeignKeyMetadataIT.class.getSimpleName().toUpperCase();
-    @ClassRule public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    @ClassRule public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     public static final String SCHEMA = spliceSchemaWatcher.schemaName;
 
     private RuledConnection conn = new RuledConnection(null,true);

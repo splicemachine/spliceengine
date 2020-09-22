@@ -34,7 +34,7 @@ import static org.junit.Assert.assertNotNull;
 public class CaseSensitiveImportIT {
     public static final String CLASS_NAME= CaseSensitiveImportIT.class.getSimpleName().toUpperCase();
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     public static final String SCHEMA_NAME = spliceSchemaWatcher.schemaName;
 
     private static File BADDIR;

@@ -35,7 +35,7 @@ import org.junit.rules.TestRule;
 public class CompoundNonUniqueIndexImportIT extends AbstractIndexTest{
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static String CLASS_NAME = CompoundNonUniqueIndexImportIT.class.getSimpleName().toUpperCase();
-    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static SpliceTableWatcher twoCtgColumns                          = new SpliceTableWatcher("TWO_CTG",               spliceSchemaWatcher.schemaName,tableSchema);
     private static SpliceTableWatcher twoCtgColumnsAfter                     = new SpliceTableWatcher("TWO_CTG_AFTER",         spliceSchemaWatcher.schemaName,tableSchema);

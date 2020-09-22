@@ -50,7 +50,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = MultiGroupGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME = "A";
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(uname varchar(40),fruit varchar(40),bushels int)");
 
 	private static String EMP_2 = "EMP2";

@@ -18,7 +18,6 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
-import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
 import org.apache.commons.lang3.StringUtils;
@@ -47,7 +46,7 @@ public class Trigger_Create_IT {
     private static final String SCHEMA = Trigger_Create_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);

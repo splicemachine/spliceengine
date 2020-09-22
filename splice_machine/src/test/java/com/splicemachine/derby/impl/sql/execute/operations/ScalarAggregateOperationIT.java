@@ -34,7 +34,7 @@ public class ScalarAggregateOperationIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     private static final Logger LOG = Logger.getLogger(ScalarAggregateOperationIT.class);
     public static final String TABLE_NAME = "T";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME, CLASS_NAME, "(username varchar(40),i int)");
     protected static SpliceTableWatcher nullTableWatcher = new SpliceTableWatcher("NT", CLASS_NAME, "(a int,b int)");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("EMPTY_TABLE", CLASS_NAME, "(oid int, catalog varchar(40), score int, brand char(40))");

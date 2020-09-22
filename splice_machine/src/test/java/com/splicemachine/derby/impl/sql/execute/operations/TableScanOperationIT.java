@@ -48,7 +48,7 @@ public class TableScanOperationIT{
     private static final String TABLE_NAME="A";
     private static final String TABLE_NAME2="AB";
 
-    private static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA);
+    private static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(null, SCHEMA);
     private static SpliceTableWatcher spliceTableWatcher=new SpliceTableWatcher(TABLE_NAME,SCHEMA,"(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float,sf decimal(5))");
     private static SpliceTableWatcher spliceTableWatcher2=new SpliceTableWatcher(TABLE_NAME2,SCHEMA,"(si varchar(40),sa character varying(40),sc varchar(40),sd1 int, sd2 smallint, sd3 bigint, se1 float, se2 double, se3 decimal(4,2), se4 REAL)");
     private static SpliceTableWatcher spliceTableWatcher4=new SpliceTableWatcher("T1",SCHEMA,"(c1 int, c2 int)");

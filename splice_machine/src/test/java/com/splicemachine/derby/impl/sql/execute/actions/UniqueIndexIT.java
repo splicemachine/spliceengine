@@ -55,7 +55,7 @@ public class UniqueIndexIT extends SpliceUnitTest{
 
     @ClassRule
     public static TestRule chain=RuleChain.outerRule(new SpliceWatcher())
-            .around(new SpliceSchemaWatcher(CLASS_NAME))
+            .around(new SpliceSchemaWatcher(null, CLASS_NAME))
             .around(new SpliceTableWatcher(TABLE_A,CLASS_NAME,"(name varchar(40), val int)"))
             .around(new SpliceTableWatcher(TABLE_B,CLASS_NAME,"(name varchar(40), val int)"))
             .around(new SpliceTableWatcher(TABLE_C,CLASS_NAME,"(name varchar(40), val int)"))

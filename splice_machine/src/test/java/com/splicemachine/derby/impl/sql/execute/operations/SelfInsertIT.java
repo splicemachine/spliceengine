@@ -38,7 +38,7 @@ import java.util.Random;
 public class SelfInsertIT{
     private static SpliceWatcher classWatcher = new SpliceWatcher();
 
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(SelfInsertIT.class.getSimpleName().toUpperCase());
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, SelfInsertIT.class.getSimpleName().toUpperCase());
 
     private static final SpliceTableWatcher splitTable = new SpliceTableWatcher("splice",schema.schemaName,"(a int, b bigint, c varchar(2000)) --SPLICE-PROPERTIES partitionSize=16\n");
     private static final SpliceTableWatcher pt = new SpliceTableWatcher("pt",schema.schemaName,"(a int)");

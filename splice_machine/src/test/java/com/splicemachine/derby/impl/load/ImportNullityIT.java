@@ -35,7 +35,7 @@ public class ImportNullityIT{
 
     @ClassRule
     public static final SpliceSchemaWatcher schemaWatcher =
-            new SpliceSchemaWatcher(SCHEMA_NAME);
+            new SpliceSchemaWatcher(null, SCHEMA_NAME);
 
     private final TableRule withDefault = new TableRule(conn,"T","(a varchar(10),b varchar(10),c varchar(20) NOT NULL default 'nullDefault')");
 

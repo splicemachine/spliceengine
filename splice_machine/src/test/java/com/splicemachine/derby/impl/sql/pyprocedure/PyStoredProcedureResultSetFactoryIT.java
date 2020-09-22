@@ -19,7 +19,7 @@ import java.util.Queue;
 public class PyStoredProcedureResultSetFactoryIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = PyStoredProcedureResultSetFactoryIT.class.getSimpleName().toUpperCase();
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
     private static final String SCHEMA_NAME = CLASS_NAME;
 
     @ClassRule

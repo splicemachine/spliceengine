@@ -15,17 +15,12 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
-import org.apache.commons.io.FileUtils;
-import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -37,29 +32,12 @@ import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
-import splice.com.google.common.collect.Maps;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.sql.Blob;
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLDataException;
-import java.sql.SQLWarning;
 import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 
-import static com.splicemachine.derby.test.framework.SpliceUnitTest.getBaseDirectory;
-import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
 import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -75,7 +53,7 @@ public class BatchedOperationsIT {
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     protected static SpliceTableWatcher spliceTableSource = new SpliceTableWatcher("source", SCHEMA, "(i int)");
     protected static SpliceTableWatcher spliceTablePK = new SpliceTableWatcher("tpk", SCHEMA, "(col1 int primary key, col2 int)");

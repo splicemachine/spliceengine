@@ -50,7 +50,7 @@ public class FullOuterJoinIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(FullOuterJoinIT.class);
     public static final String CLASS_NAME = FullOuterJoinIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {

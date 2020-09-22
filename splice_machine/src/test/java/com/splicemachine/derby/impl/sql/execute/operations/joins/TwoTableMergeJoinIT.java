@@ -37,7 +37,7 @@ import java.util.List;
  *         Date: 5/6/15
  */
 public class TwoTableMergeJoinIT{
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(TwoTableMergeJoinIT.class.getSimpleName().toUpperCase());
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, TwoTableMergeJoinIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher a= new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c1 int, c2 int,c3 int,c4 int, primary key (c1,c2,c3))");
     public static final SpliceTableWatcher b= new SpliceTableWatcher("B",schemaWatcher.schemaName,"(c2 int,c3 int,c4 int, primary key (c3,c2))");

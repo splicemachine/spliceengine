@@ -61,7 +61,7 @@ public class GroupByOrderByIT {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
-    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(GroupByOrderByIT.class.getSimpleName());
+    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, GroupByOrderByIT.class.getSimpleName());
     protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("WORKS",schemaWatcher.schemaName,
             "(EMPNUM VARCHAR(3) NOT NULL, PNUM VARCHAR(3) NOT NULL,HOURS DECIMAL(5))");
 

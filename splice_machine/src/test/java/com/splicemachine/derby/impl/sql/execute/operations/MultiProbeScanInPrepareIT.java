@@ -38,7 +38,7 @@ import static org.junit.Assert.assertEquals;
 public class MultiProbeScanInPrepareIT extends SpliceUnitTest {
     public static final String CLASS_NAME = MultiProbeScanInPrepareIT.class.getSimpleName();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {

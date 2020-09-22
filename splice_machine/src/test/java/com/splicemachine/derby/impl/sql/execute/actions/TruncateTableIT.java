@@ -35,7 +35,7 @@ public class TruncateTableIT extends SpliceUnitTest {
 
     public static String CLASS_NAME = TruncateTableIT.class.getSimpleName().toUpperCase();
 
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int, primary key (a, b))");
 

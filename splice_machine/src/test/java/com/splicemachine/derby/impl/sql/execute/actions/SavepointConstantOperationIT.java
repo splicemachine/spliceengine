@@ -25,8 +25,6 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -45,7 +43,7 @@ public class SavepointConstantOperationIT {
     public static final String CLASS_NAME = SavepointConstantOperationIT.class.getSimpleName().toUpperCase();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);

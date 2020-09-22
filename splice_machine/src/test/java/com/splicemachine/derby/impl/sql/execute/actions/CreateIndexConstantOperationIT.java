@@ -45,7 +45,7 @@ public class CreateIndexConstantOperationIT extends SpliceUnitTest {
     public static final String TABLE_NAME_7 = "G";
     public static final String TABLE_NAME_8 = "H";
     public static final String TABLE_NAME_9 = "T1";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     private static final String WRITE_WRITE_CONFLICT="SE014";
 
     private static String tableDef = "(TaskId INT NOT NULL, empId Varchar(3) NOT NULL, StartedAt INT NOT NULL, FinishedAt INT NOT NULL)";

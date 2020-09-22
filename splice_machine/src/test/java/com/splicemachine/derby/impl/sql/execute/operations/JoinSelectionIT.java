@@ -38,7 +38,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
 
     public static final String CLASS_NAME = JoinSelectionIT.class.getSimpleName().toUpperCase();
     public static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("PERSON",CLASS_NAME,"(pid int NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), i int)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("RP_BC_14_1",CLASS_NAME,"(pid int NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), i int)");
     public static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("T",CLASS_NAME,"(i int)");

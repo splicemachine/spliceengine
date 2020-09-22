@@ -68,7 +68,7 @@ public class ProjectionPruningIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(ProjectionPruningIT.class);
     public static final String CLASS_NAME = ProjectionPruningIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {

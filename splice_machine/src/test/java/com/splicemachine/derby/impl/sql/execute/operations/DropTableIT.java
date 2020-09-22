@@ -39,7 +39,7 @@ public class DropTableIT {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = DropTableIT.class.getSimpleName().toUpperCase();
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

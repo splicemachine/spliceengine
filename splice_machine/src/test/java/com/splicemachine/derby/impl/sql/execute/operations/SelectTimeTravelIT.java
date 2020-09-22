@@ -19,7 +19,7 @@ public class SelectTimeTravelIT {
     public static SpliceWatcher watcher = new SpliceWatcher(SCHEMA);
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     private long getTxId() throws SQLException {
         long result = -1;

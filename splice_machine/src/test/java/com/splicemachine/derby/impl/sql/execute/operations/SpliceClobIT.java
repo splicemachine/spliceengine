@@ -19,7 +19,7 @@ import java.sql.ResultSet;
 public class SpliceClobIT extends SpliceUnitTest {
     private static final String CLASS_NAME = SpliceClobIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     private static TestConnection conn;
 
     @ClassRule
