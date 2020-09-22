@@ -610,9 +610,12 @@ public class SYSCOLUMNSRowFactory extends CatalogRowFactory {
             "        t.tableid\n" +
             "from sys.syscolumns c,\n" +
             "     sys.systables t,\n" +
-            "     sys.sysschemas s\n" +
+            "     sys.sysschemas s,\n" +
+            "     sys.sysdatabases d\n" +
             "where c.referenceid = t.tableid and\n" +
-            "      t.schemaid = s.schemaid\n" +
+            "      t.schemaid = s.schemaid and\n" +
+            "      s.databaseid = d.databaseid and\n" +
+            SYSSCHEMASRowFactory.FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS +
             ") col\n" +
             "left join (\n" +
             "select cons.tableid,\n" +

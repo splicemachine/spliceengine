@@ -691,8 +691,10 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             "from (\n" +
             "      select T.tablename, T.tableid, T.tabletype, S.schemaname\n" +
             "      from\n" +
-            "      sys.systables T, sys.sysschemas S\n" +
-            "      where T.schemaid=S.schemaid) T\n" +
+            "      sys.systables T, sys.sysschemas S, sys.sysdatabases D\n" +
+            "      where T.schemaid=S.schemaid and d.databaseid = s.databaseid and \n" +
+            SYSSCHEMASRowFactory.FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS +
+            "     ) T\n" +
             "left join -- compute number of columns in a table\n" +
             "(select C.referenceid, count(*) as COLCOUNT\n" +
             "      from sys.syscolumns C group by 1) C on T.tableid = C.referenceid\n" +
