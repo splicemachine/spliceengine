@@ -17,7 +17,6 @@ package com.splicemachine.derby.utils;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 
-import com.splicemachine.test.SerialTest;
 import org.apache.commons.dbutils.DbUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -35,7 +34,7 @@ public class TimestampAdminIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = TimestampAdminIT.class.getSimpleName().toUpperCase();
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).

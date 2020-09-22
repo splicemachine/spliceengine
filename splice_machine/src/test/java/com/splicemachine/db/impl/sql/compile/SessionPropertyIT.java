@@ -58,7 +58,7 @@ public class SessionPropertyIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(SessionPropertyIT.class);
     public static final String CLASS_NAME = SessionPropertyIT.class.getSimpleName().toUpperCase();
     protected final static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected final static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected final static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

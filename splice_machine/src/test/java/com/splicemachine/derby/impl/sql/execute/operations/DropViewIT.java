@@ -40,7 +40,7 @@ public class DropViewIT {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = DropViewIT.class.getSimpleName().toUpperCase();
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     protected static SpliceTableWatcher TABLE_1 = new SpliceTableWatcher("TABLE_1", schema.schemaName, "(COL1 int)");
 

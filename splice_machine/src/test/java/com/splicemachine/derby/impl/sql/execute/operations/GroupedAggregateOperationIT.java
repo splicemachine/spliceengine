@@ -36,7 +36,7 @@ import com.splicemachine.homeless.TestUtils;
 public class GroupedAggregateOperationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = GroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
     public static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("OMS_LOG",CLASS_NAME,"(swh_date date, i integer)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("T8",CLASS_NAME,"(c1 int, c2 int)");
     public static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("A1",CLASS_NAME,"(c1 varchar(10), c2 numeric(15,0))");  // JIRA 1859

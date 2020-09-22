@@ -34,7 +34,7 @@ import java.sql.SQLException;
 public class CompoundUniqueIndexTest extends AbstractIndexTest {
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static String CLASS_NAME = CompoundUniqueIndexTest.class.getSimpleName().toUpperCase();
-    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static SpliceTableWatcher twoCtgColumns                          = new SpliceTableWatcher("TWO_CONTIGUOUS",               spliceSchemaWatcher.schemaName,tableSchema);
     private static SpliceTableWatcher twoCtgColumnsAfter                     = new SpliceTableWatcher("TWO_CONTIGUOUS_AFTER",         spliceSchemaWatcher.schemaName,tableSchema);

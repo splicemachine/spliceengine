@@ -43,7 +43,7 @@ public class PrimaryKeyIT {
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     @BeforeClass
     public static void insertTestData() throws Exception {

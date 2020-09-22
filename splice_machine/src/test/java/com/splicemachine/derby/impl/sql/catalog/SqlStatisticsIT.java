@@ -17,15 +17,12 @@ package com.splicemachine.derby.impl.sql.catalog;
 import java.sql.CallableStatement;
 import java.sql.ResultSet;
 
-import com.splicemachine.test.SerialTest;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -47,7 +44,7 @@ public class SqlStatisticsIT extends SpliceUnitTest {
 	private static Logger LOG = Logger.getLogger(SqlStatisticsIT.class);
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 	private static final String TABLE_NAME_1 = CLASS_NAME + "_T1";
 	private static final String TABLE_NAME_2 = CLASS_NAME + "_T2";
 	private static final String INDEX_NAME_1 = "IDX_" + TABLE_NAME_1 + "_C1";

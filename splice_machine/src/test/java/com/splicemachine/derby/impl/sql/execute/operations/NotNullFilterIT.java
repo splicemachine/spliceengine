@@ -37,7 +37,7 @@ public class NotNullFilterIT {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
-    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(NotNullFilterIT.class.getSimpleName());
+    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, NotNullFilterIT.class.getSimpleName());
     protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,
             "(i int, s smallint, c varchar(30), vc varchar(30), b bigint)");
 

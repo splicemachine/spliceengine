@@ -37,7 +37,7 @@ public class ImportBinaryValueIT extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = ImportBinaryValueIT.class.getSimpleName().toUpperCase();
-    protected static SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     protected static SpliceTableWatcher blobTale = new SpliceTableWatcher("BLOB_TABLE", schema.schemaName, "(VAL1 BLOB)");
 

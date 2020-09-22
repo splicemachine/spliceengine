@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -26,7 +25,6 @@ import org.junit.rules.TestRule;
 
 import java.io.File;
 import java.sql.*;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -36,7 +34,7 @@ import static org.junit.Assert.*;
 public class CreateTableIT extends SpliceUnitTest {
     public static final String CLASS_NAME = CreateTableIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

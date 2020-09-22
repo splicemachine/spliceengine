@@ -68,7 +68,7 @@ public class ThreeTableEquiJoinIT {
 
     private static final String CLASS_NAME=ThreeTableEquiJoinIT.class.getSimpleName();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
-    private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)

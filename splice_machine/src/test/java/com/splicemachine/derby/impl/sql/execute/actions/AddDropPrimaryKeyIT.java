@@ -21,7 +21,7 @@ import static org.junit.Assert.assertEquals;
  */
 public class AddDropPrimaryKeyIT extends SpliceUnitTest {
     public  static final String CLASS_NAME = AddDropPrimaryKeyIT.class.getSimpleName().toUpperCase();
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     private static final SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
     @ClassRule

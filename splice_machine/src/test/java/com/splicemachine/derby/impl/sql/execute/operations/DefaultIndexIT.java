@@ -33,7 +33,7 @@ public class DefaultIndexIT extends SpliceUnitTest{
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String CLASS_NAME = DefaultIndexIT.class.getSimpleName().toUpperCase();
 
-    protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static SpliceTableWatcher BLANK_TABLE = new SpliceTableWatcher("BLANK_TABLE", schemaWatcher.schemaName,"(i varchar(10) default '', j varchar(10))");
     private static SpliceTableWatcher NULL_TABLE = new SpliceTableWatcher("NULL_TABLE", schemaWatcher.schemaName,"(i varchar(10), j varchar(10))");

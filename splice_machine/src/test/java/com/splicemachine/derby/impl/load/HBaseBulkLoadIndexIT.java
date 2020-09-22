@@ -59,7 +59,7 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);

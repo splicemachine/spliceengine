@@ -42,7 +42,7 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 	public static final String TABLE_NAME_1 = "A";
 	private static Logger LOG = Logger.getLogger(DistinctGroupedAggregateOperationIT.class);
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(oid int, quantity int)");
 	
 	@ClassRule 

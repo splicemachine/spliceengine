@@ -48,7 +48,7 @@ public class SpliceAdminIT extends SpliceUnitTest{
     public static final String CLASS_NAME = SpliceAdminIT.class.getSimpleName().toUpperCase();
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
     protected static SpliceTableWatcher dictionaryDeletes = new SpliceTableWatcher("dict",CLASS_NAME,"(a int)");
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).

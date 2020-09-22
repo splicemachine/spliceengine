@@ -41,7 +41,7 @@ public class ViewIT {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
-    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(ViewIT.class.getSimpleName());
+    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, ViewIT.class.getSimpleName());
 
     protected static SpliceTableWatcher baseTableWatcher = new SpliceTableWatcher("t1",schemaWatcher.schemaName,"(a int, b int)");
 

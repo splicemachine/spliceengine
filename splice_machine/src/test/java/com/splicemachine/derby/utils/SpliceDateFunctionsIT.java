@@ -39,7 +39,7 @@ public class SpliceDateFunctionsIT {
     private static final String CLASS_NAME = SpliceDateFunctionsIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     // Table for ADD_MONTHS/DAYS/YEARS testing.
     private static final SpliceTableWatcher tableWatcherA = new SpliceTableWatcher(

@@ -37,7 +37,7 @@ public class ViewsInSysIbmIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(ViewsInSysIbmIT.class);
     public static final String CLASS_NAME = ViewsInSysIbmIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     static File tempDir;
 

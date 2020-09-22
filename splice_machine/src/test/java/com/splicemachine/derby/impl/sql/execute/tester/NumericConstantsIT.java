@@ -16,7 +16,6 @@ package com.splicemachine.derby.impl.sql.execute.tester;
 
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -40,7 +39,7 @@ public class NumericConstantsIT {
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(new SpliceSchemaWatcher(CLASS_NAME))
+            .around(new SpliceSchemaWatcher(null, CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/NumericConstantsIT.sql", CLASS_NAME));
 
     @Rule

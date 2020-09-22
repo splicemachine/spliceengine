@@ -55,7 +55,7 @@ public class TimeTableScanIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_1 = "A";
 	public static final String TABLE_NAME_2 = "B";
 	
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(id varchar(40),ts timestamp, value float,date date)");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(i int, s smallint)");
 	

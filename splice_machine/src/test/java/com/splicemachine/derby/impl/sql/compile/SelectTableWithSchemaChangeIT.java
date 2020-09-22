@@ -32,7 +32,7 @@ public class SelectTableWithSchemaChangeIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String CLASS_NAME = SelectTableWithSchemaChangeIT.class.getSimpleName().toUpperCase();
 
-    protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     private static SpliceTableWatcher T3 = new SpliceTableWatcher("T3", schemaWatcher.schemaName,"(a3 int, b3 int, c3 int, d3 int)");
     private static SpliceIndexWatcher IX_T3 = new SpliceIndexWatcher(T3.tableName, schemaWatcher.schemaName, "IX_T3", schemaWatcher.schemaName, "(b3)", false, false, false);
     @Rule

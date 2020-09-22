@@ -71,7 +71,7 @@ public class TableConstantOperationIT extends SpliceUnitTest {
     public static final String EMP_NAME_PRIV_VIEW = "emp_name_priv";
     public static final String EMP_NAME_PRIV_VIEW2 = "emp_name_priv2";
 
-    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static String eNameDef = "(id int not null primary key, fname varchar(8) not null, lname varchar(10) not null)";
     private static String ePrivDef = "(id int not null primary key, dob varchar(10) not null, ssn varchar(12) not null)";

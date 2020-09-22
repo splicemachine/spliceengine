@@ -42,7 +42,7 @@ public class IndexRowToBaseRowOperationIT extends SpliceUnitTest {
 
     private static final String CLASSNAME = IndexRowToBaseRowOperationIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASSNAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASSNAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASSNAME);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDER_FACT", CLASSNAME,"(i int)");
 	
 	@ClassRule 

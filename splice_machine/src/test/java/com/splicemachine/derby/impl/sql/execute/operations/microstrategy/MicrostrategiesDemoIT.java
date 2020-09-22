@@ -41,7 +41,7 @@ public class MicrostrategiesDemoIT extends SpliceUnitTest {
 	public static final String CLASS_NAME = MicrostrategiesDemoIT.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME_1 = "CUSTOMER";
 	public static final String TABLE_NAME_2 = "ORDER_LINE";	
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 	protected static SpliceCustomerTable spliceTableWatcher1 = new SpliceCustomerTable(TABLE_NAME_1,CLASS_NAME) {
 		@Override
 		protected void starting(Description description) {

@@ -45,7 +45,7 @@ public class MsOrderDetailIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = MsOrderDetailIT.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME = "A";
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 	protected static SpliceOrderLineTable spliceTableWatcher = new SpliceOrderLineTable(TABLE_NAME,CLASS_NAME); 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

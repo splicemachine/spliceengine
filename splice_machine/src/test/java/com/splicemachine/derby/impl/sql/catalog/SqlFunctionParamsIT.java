@@ -20,7 +20,6 @@ import java.sql.Types;
 
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -41,7 +40,7 @@ public class SqlFunctionParamsIT extends SpliceUnitTest {
 	public static final String CLASS_NAME = SqlFunctionParamsIT.class.getSimpleName().toUpperCase();
 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
 	@ClassRule
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

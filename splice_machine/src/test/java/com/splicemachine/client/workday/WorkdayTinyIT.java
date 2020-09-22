@@ -39,7 +39,7 @@ public class WorkdayTinyIT extends SpliceUnitTest {
     private static final String SCHEMA_NAME = WorkdayTinyIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
     protected static OmsLogTable omsLogTableWatcher = new OmsLogTable(OmsLogTable.TABLE_NAME,SCHEMA_NAME) {
         @Override
         protected void starting(Description description) {

@@ -39,7 +39,7 @@ public class ImportWithDifferentColumnOrderIT {
     public static final String SCHEMA = ImportWithDifferentColumnOrderIT.class.getSimpleName().toUpperCase();
 
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).around(spliceSchemaWatcher);

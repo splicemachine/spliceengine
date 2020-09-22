@@ -52,7 +52,7 @@ public class PredicateTupleIT extends SpliceUnitTest {
     private static final String SCHEMA = PredicateTupleIT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
