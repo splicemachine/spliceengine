@@ -403,7 +403,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return minRetentionPeriod;
     }
 
-    public void setMinRetainedPeriod(Long minRetentionPeriod) {
+    public void setMinRetentionPeriod(Long minRetentionPeriod) {
         this.minRetentionPeriod = minRetentionPeriod;
     }
 

@@ -1483,7 +1483,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 SpliceLogUtils.warn(LOG, "setting minimum retention period on table %s which has purge deleted " +
                         "rows set to true, this could lead to incorrect time travel query results", td.getName());
             }
-            td.setMinRetainedPeriod(retentionPeriod);
+            td.setMinRetentionPeriod(retentionPeriod);
             dd.dropTableDescriptor(td, sd, tc);
             dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
         }
