@@ -45,7 +45,7 @@ import com.splicemachine.mrio.MRConstants;
 public class SMRecordReaderImplIT extends BaseMRIOTest {
   private static final Logger LOG = Logger.getLogger(SMRecordReaderImplIT.class);
   protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-  protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SMRecordReaderImplIT.class.getSimpleName());
+  protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SMRecordReaderImplIT.class.getSimpleName());
   protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A", SMRecordReaderImplIT.class.getSimpleName(), "(col1 int, col2 varchar(56), primary key (col1))");
   protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B", SMRecordReaderImplIT.class.getSimpleName(), "(col1 int, col2 varchar(56), primary key (col1))");
   protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C", SMRecordReaderImplIT.class.getSimpleName(), "(col1 int, col2 varchar(56), primary key (col1))");

@@ -26,7 +26,7 @@ public class SMOutputFormatIT extends BaseMRIOTest {
 	private static String testTableName = "SPLICETABLEOUTPUTFORMATIT.A";
 	private static final String CLASS_NAME = SMOutputFormatIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     
     // Table for ADD_MONTHS testing.
     private static final SpliceTableWatcher tableWatcherA = new SpliceTableWatcher(

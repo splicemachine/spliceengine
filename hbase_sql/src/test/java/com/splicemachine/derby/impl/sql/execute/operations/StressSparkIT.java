@@ -60,7 +60,7 @@ public class StressSparkIT {
 
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private ExecutorService executor = Executors.newCachedThreadPool();
 

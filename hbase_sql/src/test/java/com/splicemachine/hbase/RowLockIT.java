@@ -42,7 +42,7 @@ import static org.junit.Assert.fail;
 public class RowLockIT {
     private static final String SCHEMA = RowLockIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     private static final SpliceTableWatcher A_TABLE = new SpliceTableWatcher("A", spliceSchemaWatcher.schemaName,
             "(i int)");

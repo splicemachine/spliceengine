@@ -44,7 +44,7 @@ import com.splicemachine.mrio.MRConstants;
 public class SMInputFormatIT extends BaseMRIOTest {
     private static final String CLASS_NAME = SMInputFormatIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     private static final SpliceTableWatcher tableWatcherA = new SpliceTableWatcher(
             "A", schemaWatcher.schemaName, "(col1 varchar(100) primary key, col2 varchar(100))");
     private static final SpliceTableWatcher tableWatcherB = new SpliceTableWatcher(

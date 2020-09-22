@@ -43,7 +43,7 @@ public class SplitRegionRowCountOperationIT{
     private static final long MAX_VALUE = 27;
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     @BeforeClass
     public static void createdSharedTables() throws Exception {

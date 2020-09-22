@@ -44,7 +44,7 @@ public class RegionSplitsIT extends SpliceUnitTest {
     private static final String SCHEMA_NAME = RegionSplitsIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
     private static final String TABLE1_NAME = "TAB1";
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
     private static final SpliceTableWatcher spliceTableWatcher1 =
             new SpliceTableWatcher(TABLE1_NAME, SCHEMA_NAME, "(I INT, C1 CHAR(254), C2 CHAR(254), C3 CHAR(254), C4 CHAR(254), C5 CHAR(254))");
 

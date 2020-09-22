@@ -65,7 +65,7 @@ public class KillOperationIT {
     private static final Logger LOG = Logger.getLogger(KillOperationIT.class);
     private static final String SCHEMA = KillOperationIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     private static final String TABLE = "T";
     private static final String TABLE_PK = "P";
