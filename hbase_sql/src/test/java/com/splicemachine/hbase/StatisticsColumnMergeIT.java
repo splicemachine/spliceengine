@@ -53,7 +53,7 @@ public class StatisticsColumnMergeIT extends SpliceUnitTest{
     private static Logger LOG = Logger.getLogger(StatisticsColumnMergeIT.class);
     public static final String CLASS_NAME = StatisticsColumnMergeIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static final String TABLE="T";
     private static org.apache.hadoop.hbase.client.Connection connection;

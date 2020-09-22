@@ -56,7 +56,7 @@ public class SplitRegionScannerIT  extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(SplitRegionScannerIT.class);
     private static final String SCHEMA = SplitRegionScannerIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 	protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
 	protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");
     protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",SCHEMA,"(col1 int, col2 varchar(56), primary key (col1))");

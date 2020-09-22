@@ -40,7 +40,7 @@ public class MultiRegionIT {
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
     private static final String TABLE1_NAME = "TAB1";
     private static final String TABLE2_NAME = "TAB2";
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
     private static final SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1_NAME, SCHEMA_NAME, "(I INT, D DOUBLE)");
     private static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME, SCHEMA_NAME, "(I INT, D DOUBLE)");
 

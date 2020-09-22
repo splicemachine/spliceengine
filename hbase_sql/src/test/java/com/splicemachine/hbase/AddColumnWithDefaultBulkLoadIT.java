@@ -37,7 +37,7 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
     private static final String SCHEMA_NAME=AddColumnWithDefaultBulkLoadIT.class.getSimpleName().toUpperCase();
     public static final String CLASS_NAME = AddColumnWithDefaultBulkLoadIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     private static String BADDIR;
     private static String BULKLOADDIR;
 

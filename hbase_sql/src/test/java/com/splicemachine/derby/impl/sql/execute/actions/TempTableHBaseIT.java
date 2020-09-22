@@ -36,7 +36,7 @@ import java.util.List;
 public class TempTableHBaseIT{
 
     public static final String CLASS_NAME = TempTableHBaseIT.class.getSimpleName().toUpperCase();
-    private static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
+    private static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static final List<String> empNameVals = Arrays.asList(
             "(001,'Jeff','Cunningham')",

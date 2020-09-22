@@ -39,7 +39,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = ExternalTablePartitionIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);

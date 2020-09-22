@@ -18,7 +18,7 @@ public class DefaultIndexBulkLoadIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String CLASS_NAME = DefaultIndexBulkLoadIT.class.getSimpleName().toUpperCase();
 
-    protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static SpliceTableWatcher BULK_HFILE_BLANK_TABLE = new SpliceTableWatcher("BULK_HFILE_BLANK_TABLE", schemaWatcher.schemaName,"(i varchar(10) default '', j varchar(10))");
     private static SpliceIndexWatcher BULK_HFILE_BLANK_TABLE_IX = new SpliceIndexWatcher(BULK_HFILE_BLANK_TABLE.tableName, schemaWatcher.schemaName, "BULK_HFILE_BLANK_TABLE_IX",
