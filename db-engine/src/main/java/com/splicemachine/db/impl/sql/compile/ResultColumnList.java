@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 
+import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -1123,24 +1124,33 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                                       StoreCostController scc) throws StandardException{
         assert cd.isIndex(): "ConglomerateDescriptor expected to be for index: "+ cd;
 
-        int[] baseCols=cd.getIndexDescriptor().baseColumnPositions();
-        ExecRow row=getExecutionFactory().getValueRow(baseCols.length+1);
+        ExecRow row;
+        IndexDescriptor id = cd.getIndexDescriptor();
+        if (id.isOnExpression()) {
+            DataTypeDescriptor[] indexColumnTypes = id.getIndexColumnTypes();
+            row = getExecutionFactory().getValueRow(indexColumnTypes.length + 1);
 
-        for(int i=0;i<baseCols.length;i++){
-            ColumnDescriptor coldes=td.getColumnDescriptor(baseCols[i]);
-            DataTypeDescriptor dataType=coldes.getType();
+            for (int i = 0; i < indexColumnTypes.length; i++) {
+                row.setColumn(i + 1, indexColumnTypes[i].getNull());
+            }
 
-            // rc = getResultColumn(baseCols[i]);
-            // rc = (ResultColumn) at(baseCols[i] - 1);
-            // dataType = rc.getTypeServices();
-            DataValueDescriptor dataValue=dataType.getNull();
+            RowLocation rlTemplate = scc.newRowLocationTemplate();
+            row.setColumn(indexColumnTypes.length + 1, rlTemplate);
+        } else {
+            int[] baseCols = cd.getIndexDescriptor().baseColumnPositions();
+            row = getExecutionFactory().getValueRow(baseCols.length + 1);
 
-            row.setColumn(i+1,dataValue);
+            for (int i = 0; i < baseCols.length; i++) {
+                ColumnDescriptor coldes = td.getColumnDescriptor(baseCols[i]);
+                DataTypeDescriptor dataType = coldes.getType();
+
+                DataValueDescriptor dataValue = dataType.getNull();
+                row.setColumn(i + 1, dataValue);
+            }
+
+            RowLocation rlTemplate = scc.newRowLocationTemplate();
+            row.setColumn(baseCols.length + 1, rlTemplate);
         }
-
-        RowLocation rlTemplate=scc.newRowLocationTemplate();
-
-        row.setColumn(baseCols.length+1,rlTemplate);
 
         return row;
     }

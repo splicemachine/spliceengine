@@ -1317,16 +1317,24 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      *
      * With DB-6231's enhancement, inlist does not need to be on the first index column anymore
      */
-    public boolean isMultiProbeQualifier(int[] keyColumns) throws StandardException{
+    public boolean isMultiProbeQualifier(ValueNode[] keyColumns) throws StandardException{
         if(keyColumns==null)
             return false; //can't be a MPQ if there are no keyed columns
         InListOperatorNode sourceInList=getSourceInList();
         if(sourceInList==null)
             return false; //not a multi-probe predicate
+        boolean found;
         for (int i = 0; i < sourceInList.leftOperandList.size(); i++) {
+            found = false;
             ValueNode lo = (ValueNode) sourceInList.leftOperandList.elementAt(i);
-            //if it doesn't refer to a column, then it can't be a qualifier
-            if (!(lo instanceof ColumnReference))
+            //if it doesn't refer to an index column, then it can't be a qualifier
+            for (ValueNode keyCol : keyColumns) {
+                if (lo.equals(keyCol)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
                 return false;
         }
 

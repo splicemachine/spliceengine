@@ -51,15 +51,16 @@ public class InListSelectivity extends AbstractSelectivityHolder {
     private final double DEFAULT_SINGLE_VALUE_SELECTIVITY = 0.5d;
     private boolean useExtrapolation = false;
 
-    public InListSelectivity(StoreCostController storeCost, Predicate p,QualifierPhase phase, double selectivityFactor)
-        throws StandardException {
-        super(((ColumnReference) p.getSourceInList().leftOperandList.elementAt(0)).getColumnNumber(), phase);
-        
-        colNo = new int[p.getSourceInList().leftOperandList.size()];
-        int i = 0;
-        for (Object v : p.getSourceInList().leftOperandList) {
-            colNo[i] = ((ColumnReference) v).getColumnNumber();
-            i++;
+    public InListSelectivity(StoreCostController storeCost, Predicate p, ValueNode[] keyColumns,
+                             QualifierPhase phase, double selectivityFactor)
+        throws StandardException
+    {
+        super(getLeftItemColumnPosition(p, 0, keyColumns), phase);
+
+        int numLeftItems = p.getSourceInList().leftOperandList.size();
+        colNo = new int[numLeftItems];
+        for (int i = 0; i < numLeftItems; i++) {
+            colNo[i] = getLeftItemColumnPosition(p, i, keyColumns);
         }
         this.p = p;
         this.storeCost = storeCost;
@@ -80,6 +81,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
         
         return localSelectivity;
     }
+
     private double addSelectivity(ValueNode vn, int columnNumber, double localSelectivity, boolean useExtrapolation) {
         double tempSel = -1.0d;
         if (vn instanceof ListValueNode) {
@@ -141,5 +143,21 @@ public class InListSelectivity extends AbstractSelectivityHolder {
 
         return false;
 
+    }
+
+    // Before calling this function, isMultiProbeQualifier() or isInQualifier() should be called on p already.
+    private static int getLeftItemColumnPosition(Predicate p, int index, ValueNode[] keyColumns) throws StandardException {
+        QueryTreeNode leftItem = p.getSourceInList().leftOperandList.elementAt(index);
+        if (keyColumns == null) {
+            assert leftItem instanceof ColumnReference;
+            return ((ColumnReference) leftItem).getColumnNumber();
+        } else {
+            for (int i = 0; i < keyColumns.length; i++) {
+                if (keyColumns[i].equals(leftItem)) {
+                    return i + 1;
+                }
+            }
+            throw new RuntimeException("in-list predicate is not a qualifier but get into selectivity calculation as a qualifier");
+        }
     }
 }

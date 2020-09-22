@@ -344,6 +344,18 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     }
 
     public List<Predicate> getOptimizableEqualityPredicateList(Optimizable optTable,int columnNumber,boolean isNullOkay) throws StandardException{
+        return getOptimizableEqualityPredicateListHelper(optTable,columnNumber,null,isNullOkay,false);
+    }
+
+    public List<Predicate> getOptimizableEqualityPredicateList(Optimizable optTable,ValueNode expr,boolean isNullOkay) throws StandardException{
+        return getOptimizableEqualityPredicateListHelper(optTable,-1,expr,isNullOkay,true);
+    }
+
+    private List<Predicate> getOptimizableEqualityPredicateListHelper(Optimizable optTable,
+                                                                      int columnNumber, ValueNode expr,
+                                                                      boolean isNullOkay, boolean isExpr)
+            throws StandardException
+    {
         int size=size();
         List<Predicate> predicateList = null;
         for(int index=0;index<size;index++){
@@ -356,7 +368,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // skip non-equality predicates
             ValueNode opNode=andNode.getLeftOperand();
 
-            if(opNode.optimizableEqualityNode(optTable,columnNumber,isNullOkay)){
+            boolean isPredOK;
+            if (isExpr) {
+                isPredOK = opNode.optimizableEqualityNode(optTable,expr,isNullOkay);
+            } else {
+                isPredOK = opNode.optimizableEqualityNode(optTable,columnNumber,isNullOkay);
+            }
+            if(isPredOK){
                 if (predicateList == null) {
                     predicateList = new ArrayList<>();
                 }

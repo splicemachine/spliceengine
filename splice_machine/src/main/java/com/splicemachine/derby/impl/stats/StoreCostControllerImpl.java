@@ -312,9 +312,9 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
-    public double baseTableColumnSizeFactor(BitSet validColumns) {
+    public double baseTableColumnSizeFactor(int numValidColumns) {
         assert baseTableRow.nColumns() > 0: "Base Table N Columns cannot be 0";
-        return ( (double) validColumns.cardinality())/ ((double) baseTableRow.nColumns());
+        return ((double) numValidColumns)/ ((double) baseTableRow.nColumns());
     }
 
     @Override

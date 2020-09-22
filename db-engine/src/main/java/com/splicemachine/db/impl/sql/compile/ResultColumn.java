@@ -2123,10 +2123,6 @@ public class ResultColumn extends ValueNode
      * @return A column reference referring to this ResultColumn.
      */
     public ColumnReference getColumnReference(ValueNode originalExpr) throws StandardException {
-        List<ColumnReference> origCRs = originalExpr.getHashableJoinColumnReference();
-        assert !origCRs.isEmpty();
-        ColumnReference origCR = origCRs.get(0);
-
         ColumnReference cr = (ColumnReference) getNodeFactory().getNode(
                 C_NodeTypes.COLUMN_REFERENCE,
                 getColumnName(),
@@ -2134,13 +2130,22 @@ public class ResultColumn extends ValueNode
                 getContextManager()
         );
         cr.setSource(this);
-        cr.setTableNumber(getTableNumber());
+        if (getTableNumber() >= 0) {
+            cr.setTableNumber(getTableNumber());
+        }
         cr.setColumnNumber(getColumnPosition());
         cr.columnName = this.name;
         cr.setType(getTypeServices());
-        cr.setOuterJoinLevel(origCR.getOuterJoinLevel());
-        cr.setNestingLevel(origCR.getNestingLevel());
-        cr.setSourceLevel(origCR.getSourceLevel());
+
+        if (originalExpr != null) {
+            List<ColumnReference> origCRs = originalExpr.getHashableJoinColumnReference();
+            assert !origCRs.isEmpty();
+            ColumnReference origCR = origCRs.get(0);
+
+            cr.setOuterJoinLevel(origCR.getOuterJoinLevel());
+            cr.setNestingLevel(origCR.getNestingLevel());
+            cr.setSourceLevel(origCR.getSourceLevel());
+        }
 
         return cr;
     }

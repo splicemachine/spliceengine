@@ -254,10 +254,10 @@ public interface StoreCostController extends RowCountable{
      * Column Size factor for the base table regardless of conglomerate being evaluated.  This represents the ratio
      * of the data being returned.
      *
-     * @param validColumns
+     * @param numValidColumns
      * @return
      */
-    double baseTableColumnSizeFactor(BitSet validColumns);
+    double baseTableColumnSizeFactor(int numValidColumns);
 
     /**
      * @return the total number of rows in the base conglomerate (including null and non-null)

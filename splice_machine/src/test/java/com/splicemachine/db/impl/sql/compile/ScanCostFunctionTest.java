@@ -55,14 +55,15 @@ public class ScanCostFunctionTest {
     @Test
     public void testEmptyPredicatesEqualSelectivityOne() throws Exception {
         List<SelectivityHolder>[] selectivityHolder = new List[6];
-        Assert.assertTrue("empty predicates do not have selectivity 1.0",ScanCostFunction.computeTotalSelectivity(selectivityHolder) == 1.0d);
+        Assert.assertTrue("empty predicates do not have selectivity 1.0",
+                ScanCostFunction.computeTotalSelectivity(selectivityHolder, new List[]{ new LinkedList<>() }) == 1.0d);
     }
 
     @Test
     public void testComputeAllSelectivity() throws Exception {
         Assert.assertEquals("TotalSelectivity For All Base Qualifiers incorrect",
                 0.125d*Math.sqrt(0.25d)*Math.sqrt(Math.sqrt(0.5d))*Math.sqrt(Math.sqrt(Math.sqrt(.75d))),
-                        ScanCostFunction.computeTotalSelectivity(baseOnly),
+                        ScanCostFunction.computeTotalSelectivity(baseOnly, new List[]{ new LinkedList<>() }),
                         0.0d
                 );
     }
@@ -71,7 +72,7 @@ public class ScanCostFunctionTest {
     public void testComputeBaseSelectivity() throws Exception {
         Assert.assertEquals("TotalSelectivity For All Base Qualifiers incorrect",
                 0.125d*Math.sqrt(0.25d)*Math.sqrt(Math.sqrt(0.5d))*Math.sqrt(Math.sqrt(Math.sqrt(.75d))),
-                ScanCostFunction.computePhaseSelectivity(baseOnly,QualifierPhase.BASE),
+                ScanCostFunction.computePhaseSelectivity(baseOnly, new List[]{ new LinkedList<>() }, QualifierPhase.BASE),
                 0.0d
         );
     }
@@ -80,7 +81,7 @@ public class ScanCostFunctionTest {
     public void testComputeBaseOnlySelectivity() throws Exception {
         Assert.assertEquals("TotalSelectivity For All Base Qualifiers incorrect",
                 0.125d*Math.sqrt(0.25d),
-                ScanCostFunction.computePhaseSelectivity(baseAndBaseFilter,QualifierPhase.BASE),
+                ScanCostFunction.computePhaseSelectivity(new List[]{ new LinkedList<>() }, baseAndBaseFilter, QualifierPhase.BASE),
                 0.0d
         );
     }

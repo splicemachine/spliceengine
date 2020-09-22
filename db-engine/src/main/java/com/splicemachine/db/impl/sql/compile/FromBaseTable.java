@@ -887,22 +887,29 @@ public class FromBaseTable extends FromTable {
              * the index baseColumnPositions, and remove everything else
              */
 
-//            if (cd.isIndex() || cd.isPrimaryKey()) {
             if (cd.isIndex() || cd.isPrimaryKey()) {
-                baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
-               if (!isCoveringIndex(cd) && !cd.isPrimaryKey()) {
-                    indexLookupList = new BitSet();
-                    for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
-                        boolean found = false;
-                        for (int baseColumnPosition : baseColumnPositions) {
-                            if (i == baseColumnPosition) {
-                                found = true;
-                                break;
+                if (!isCoveringIndex(cd) && !cd.isPrimaryKey()) {
+                    if (cd.getIndexDescriptor().isOnExpression()) {
+                        // If the index is defined on expressions and is not covering, all columns
+                        // of the base table need to be looked up. Special cases like part of the
+                        // index columns are covering or some index expressions are simply column
+                        // references are not considered here.
+                        indexLookupList = scanColumnList;
+                    } else {
+                        baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+                        indexLookupList = new BitSet();
+                        for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
+                            boolean found = false;
+                            for (int baseColumnPosition : baseColumnPositions) {
+                                if (i == baseColumnPosition) {
+                                    found = true;
+                                    break;
+                                }
                             }
-                        }
-                        if (!found) {
-                            indexLookupList.set(i);
-                            scanColumnList.clear(i);
+                            if (!found) {
+                                indexLookupList.set(i);
+                                scanColumnList.clear(i);
+                            }
                         }
                     }
                 }
@@ -911,15 +918,16 @@ public class FromBaseTable extends FromTable {
             scanColumnList = new BitSet();
         }
         DataValueDescriptor[] rowTemplate=getRowTemplate(cd,getBaseCostController());
-        ScanCostFunction scf = new ScanCostFunction(scanColumnList,
-                indexLookupList,
+        ScanCostFunction scf = new ScanCostFunction(
                 this,
+                cd,
                 scc,
                 costEstimate,
-                rowTemplate,
-                baseColumnPositions,
+                resultColumns,       // not correct in case of covering index on expressions
+                rowTemplate,         // this is a correct row template for all cases
+                scanColumnList,      // meaningless in case of index on expressions
+                indexLookupList,
                 forUpdate(),
-                resultColumns,
                 usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable
@@ -3356,35 +3364,64 @@ public class FromBaseTable extends FromTable {
         if(!irg.isUnique())
             return false;
 
-        int[] baseColumnPositions=irg.baseColumnPositions();
+        if (irg.isOnExpression()) {
+            LanguageConnectionContext lcc = getLanguageConnectionContext();
+            CompilerContext newCC = lcc.pushCompilerContext();
+            Parser p = newCC.getParser();
 
-        // Do we have an exact match on the full key
-
-        for(int curCol : baseColumnPositions){
-            // get the column number at this position
-            /* Is there a pushable equality predicate on this key column?
-             * (IS NULL is also acceptable)
-             */
-            List<Predicate> optimizableEqualityPredicateList =
-                    restrictionList.getOptimizableEqualityPredicateList(this,curCol,true);
-
-            // No equality predicate for this column, so this is not a one row result set
-            if (optimizableEqualityPredicateList == null)
-                return false;
-
-            // Look for equality predicate that is not a join predicate
-            boolean existsNonjoinPredicate = false;
-            for (Predicate predicate : optimizableEqualityPredicateList) {
-                if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
-                    existsNonjoinPredicate = true;
-                    break;
-                }
+            String[] exprTexts = irg.getExprTexts();
+            ValueNode[] exprAsts = new ValueNode[exprTexts.length];
+            for (String exprText : exprTexts) {
+                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprText);
+                PredicateList.setTableNumber(exprAst, this);
             }
-            // If all equality predicates are join predicates, then this is NOT a one row result set
-            if (!existsNonjoinPredicate)
-                return false;
-        }
+            lcc.popCompilerContext(newCC);
 
+            for (ValueNode exprAst : exprAsts) {
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(this, exprAst, true);
+
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
+
+                // Look for equality predicate that is not a join predicate
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (areAllJoinPredicates(optimizableEqualityPredicateList))
+                    return false;
+            }
+        } else {
+            int[] baseColumnPositions = irg.baseColumnPositions();
+
+            // Do we have an exact match on the full key
+
+            for (int curCol : baseColumnPositions) {
+                // get the column number at this position
+                /* Is there a pushable equality predicate on this key column?
+                 * (IS NULL is also acceptable)
+                 */
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(this, curCol, true);
+
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
+
+                // Look for equality predicate that is not a join predicate
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (areAllJoinPredicates(optimizableEqualityPredicateList))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean areAllJoinPredicates(List<Predicate> predList) {
+        for (Predicate predicate : predList) {
+            if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
+                return false;
+            }
+        }
         return true;
     }
 

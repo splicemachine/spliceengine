@@ -1737,11 +1737,11 @@ public class IndexIT extends SpliceUnitTest{
 
         /* check plan */
         expectedOps = new String[] {
+                "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
                 "IndexLookup",                 // base row retrieving for ADDRESS_1
                 "IndexScan[PA_IDX_1",
-                "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
         };
-        rowContainsQuery(new int[]{5,6,7}, "explain " + format(query, ""), methodWatcher, expectedOps);
+        rowContainsQuery(new int[]{6,8,9}, "explain " + format(query, ""), methodWatcher, expectedOps);
 
         /* check result */
         expected = "1 | 2  |\n" +
@@ -1767,7 +1767,7 @@ public class IndexIT extends SpliceUnitTest{
                 "IndexLookup",                 // base row retrieving for PERSON_ADDRESS_1
                 "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
         };
-        rowContainsQuery(new int[]{5,6,7,8}, "explain " + format(query, ""), methodWatcher, expectedOps);
+        rowContainsQuery(new int[]{7,8,10,11}, "explain " + format(query, ""), methodWatcher, expectedOps);
 
         /* check result */
         expected = "PID | ADDR_ID | ADDR_ID |STD_STATE_PROVENCE |\n" +
