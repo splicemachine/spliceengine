@@ -24,6 +24,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.system.CsvOptions;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
@@ -183,9 +184,10 @@ public interface DataSetProcessor {
      * Splice Machine implement natively the Spark interface so we use this to the constraint check.
      * @param storedAs
      * @param location
+     * @param csvOptions
      * @return
      */
-    StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException;
+    StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException;
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because
@@ -236,18 +238,17 @@ public interface DataSetProcessor {
      * Reads Text files given the scan variables.  The qualifiers in conjunctive normal form
      * will be applied in the parquet storage layer.
      *
+     * @param <V>
      * @param op
      * @param location
-     * @param characterDelimiter
-     * @param columnDelimiter
-     * @param baseColumnMap
+     * @param csvOptions
      * @param context
      * @param execRow
-     * @param <V>
+     * @param baseColumnMap
      * @return
      * @throws StandardException
      */
-    <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
+    <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, CsvOptions csvOptions, int[] baseColumnMap,
                                          OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
                                          boolean useSample, double sampleFraction) throws StandardException;
 

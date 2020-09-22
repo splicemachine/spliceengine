@@ -29,6 +29,7 @@ import com.splicemachine.derby.stream.iapi.RemoteQueryClient;
 import com.splicemachine.derby.stream.utils.ForwardingDataSetProcessor;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.system.CsvOptions;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -142,7 +143,7 @@ public class ControlOnlyDataSetProcessorFactory implements DataSetProcessorFacto
         }
 
         @Override
-        public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) {
+        public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) {
             if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "DistributedWrapper#getExternalFileSchema()");
             //no-op
