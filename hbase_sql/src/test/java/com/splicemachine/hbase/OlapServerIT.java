@@ -41,7 +41,7 @@ public class OlapServerIT extends SpliceUnitTest {
 
     private static final String SCHEMA = OlapServerIT.class.getSimpleName().toUpperCase();
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);

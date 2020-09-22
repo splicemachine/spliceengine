@@ -66,7 +66,7 @@ public class S3IT extends SpliceUnitTest{
             "      9      |   INDONESIA   |      2      |slyly express asymptotes. regular deposits haggle slyly. carefully ironic hockey players sleep blithely. carefull |";
     private static final String SCHEMA_NAME = S3IT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
     private static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("NATION2",SCHEMA_NAME,"( " +
             "N_NATIONKEY INTEGER NOT NULL, " +
             "N_NAME VARCHAR(25), " +

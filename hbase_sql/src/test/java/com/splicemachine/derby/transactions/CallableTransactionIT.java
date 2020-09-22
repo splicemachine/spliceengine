@@ -50,7 +50,7 @@ public class CallableTransactionIT extends SpliceUnitTest {
 	public static final String CLASS_NAME = CallableTransactionIT.class.getSimpleName().toUpperCase();
 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
 	// Names of files and SQL objects.
 	private static final String SCHEMA_NAME = CLASS_NAME;
