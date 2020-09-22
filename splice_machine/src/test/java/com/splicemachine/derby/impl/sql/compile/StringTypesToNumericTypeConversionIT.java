@@ -31,7 +31,7 @@ public class StringTypesToNumericTypeConversionIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String CLASS_NAME = StringTypesToNumericTypeConversionIT.class.getSimpleName().toUpperCase();
 
-    protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     private static SpliceTableWatcher T1 = new SpliceTableWatcher("T1", schemaWatcher.schemaName,"(col1 int)");
     private static SpliceTableWatcher T2 = new SpliceTableWatcher("T2", schemaWatcher.schemaName,"(col1 bigint)");
     private static SpliceTableWatcher T3 = new SpliceTableWatcher("T3", schemaWatcher.schemaName,"(col1 decimal(18,2))");

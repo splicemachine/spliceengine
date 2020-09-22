@@ -45,7 +45,7 @@ public class TernaryOperationIT {
     private static final String CLASS_NAME = TernaryOperationIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(
         "A",schemaWatcher.schemaName,"(c varchar(20),a int, b int)");

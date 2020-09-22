@@ -35,7 +35,7 @@ import java.sql.SQLException;
 public class SetRoleTransactionIT {
 
     public static final SpliceSchemaWatcher schemaWatcher =
-            new SpliceSchemaWatcher(SetRoleTransactionIT.class.getSimpleName().toUpperCase());
+            new SpliceSchemaWatcher(null, SetRoleTransactionIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 

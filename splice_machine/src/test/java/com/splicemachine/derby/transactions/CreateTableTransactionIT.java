@@ -36,7 +36,7 @@ import java.sql.Statement;
 @Category({Transactions.class})
 public class CreateTableTransactionIT {
     private static final String SCHEMA_NAME=CreateTableTransactionIT.class.getSimpleName().toUpperCase();
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
 
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();

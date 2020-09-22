@@ -57,7 +57,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
 
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
 
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
 
     public static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(ROWS_COUNT_WITH_SAMPLE,
             spliceSchemaWatcher.schemaName,

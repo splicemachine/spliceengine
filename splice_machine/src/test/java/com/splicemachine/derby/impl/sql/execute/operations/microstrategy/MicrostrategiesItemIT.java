@@ -37,7 +37,7 @@ public class MicrostrategiesItemIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	public static final String CLASS_NAME = MicrostrategiesItemIT.class.getSimpleName().toUpperCase();
 	public static final String TABLE_NAME = "A";
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 	protected static SpliceItemTable spliceTableWatcher = new SpliceItemTable(TABLE_NAME,CLASS_NAME); 	
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

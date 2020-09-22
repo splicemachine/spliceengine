@@ -45,7 +45,7 @@ public class DropColumnIT extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final String SCHEMA_NAME = DropColumnIT.class.getSimpleName().toUpperCase();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
     private static int nRows = 0;
     private static int nCols = 0;
 

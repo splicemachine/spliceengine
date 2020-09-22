@@ -52,7 +52,7 @@ public class UnionOperationIT {
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(new SpliceSchemaWatcher(CLASS_NAME))
+            .around(new SpliceSchemaWatcher(null, CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/UnionOperationIT.sql", CLASS_NAME));
 
     @Rule

@@ -53,7 +53,7 @@ public class OuterJoinIT extends SpliceUnitTest {
 
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
     protected static SpliceTableWatcher a = new SpliceTableWatcher(TABLE_NAME_1, CLASS_NAME, "(si varchar(40),sa character varying(40),sc varchar(40),sd int,se float)");
     private static SpliceTableWatcher cc = new SpliceTableWatcher(TABLE_NAME_2, CLASS_NAME, "(si varchar(40), sa varchar(40))");
     protected static SpliceTableWatcher dd = new SpliceTableWatcher(TABLE_NAME_3, CLASS_NAME, "(si varchar(40), sa varchar(40))");

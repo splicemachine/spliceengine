@@ -45,7 +45,7 @@ public class MergeJoinIT extends SpliceUnitTest {
     public static final String CLASS_NAME = MergeJoinIT.class.getSimpleName();
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     protected static final String LINEITEM = "LINEITEM";
     protected static final String ORDERS = "ORDERS";

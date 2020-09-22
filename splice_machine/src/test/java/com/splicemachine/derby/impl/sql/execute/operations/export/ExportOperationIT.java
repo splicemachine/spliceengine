@@ -47,7 +47,7 @@ public class ExportOperationIT {
     private static final String CLASS_NAME = ExportOperationIT.class.getSimpleName().toUpperCase();
 
     @ClassRule
-    public static SpliceSchemaWatcher SCHEMA_WATCHER = new SpliceSchemaWatcher(CLASS_NAME);
+    public static SpliceSchemaWatcher SCHEMA_WATCHER = new SpliceSchemaWatcher(null, CLASS_NAME);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 

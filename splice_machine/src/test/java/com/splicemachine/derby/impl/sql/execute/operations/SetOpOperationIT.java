@@ -68,7 +68,7 @@ public class SetOpOperationIT extends SpliceUnitTest {
 
 
     @ClassRule
-        public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+        public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
         @Rule
         public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);

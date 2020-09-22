@@ -18,7 +18,6 @@ import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.utils.Pair;
-import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -40,7 +39,7 @@ public class PrimaryKeyScanIT extends SpliceUnitTest{
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
     public static final String CLASS_NAME=PrimaryKeyScanIT.class.getSimpleName().toUpperCase();
     public static final String TABLE_NAME="A";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(null, CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher=new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(pk_1 varchar(50), pk_2 varchar(50),val int, PRIMARY KEY(pk_1,pk_2))");
     protected static SpliceTableWatcher spliceTableWatcher2=new SpliceTableWatcher("B",CLASS_NAME,
             "(pk_1 varchar(50),pk_2 varchar(50), val int, PRIMARY KEY(pk_2,pk_1))");

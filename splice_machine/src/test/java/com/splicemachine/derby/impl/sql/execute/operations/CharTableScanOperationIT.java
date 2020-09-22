@@ -46,7 +46,7 @@ public class CharTableScanOperationIT {
 		private static Logger LOG = Logger.getLogger(CharTableScanOperationIT.class);
 		protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		public static final String CLASS_NAME = CharTableScanOperationIT.class.getSimpleName().toUpperCase();
-		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 		protected static SpliceTableWatcher s = new SpliceTableWatcher("s",
 						CLASS_NAME,"(i int, vc char(30))");
 		protected static SpliceTableWatcher t = new SpliceTableWatcher("t",

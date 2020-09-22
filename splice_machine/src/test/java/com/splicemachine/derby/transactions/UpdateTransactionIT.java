@@ -34,7 +34,7 @@ import java.sql.Statement;
  */
 @Category({Transactions.class})
 public class UpdateTransactionIT {
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(UpdateTransactionIT.class.getSimpleName());
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, UpdateTransactionIT.class.getSimpleName());
 
     public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
 

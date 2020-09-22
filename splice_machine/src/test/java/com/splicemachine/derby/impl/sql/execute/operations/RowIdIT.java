@@ -45,7 +45,7 @@ public class RowIdIT extends SpliceUnitTest {
     public static final String TABLE6_NAME = "F";
     public static final String TABLE7_NAME = "G";
 
-    protected final static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected final static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static String tableDef = "(I INT)";
     private static String tableDef2 = "(I INT, J INT)";

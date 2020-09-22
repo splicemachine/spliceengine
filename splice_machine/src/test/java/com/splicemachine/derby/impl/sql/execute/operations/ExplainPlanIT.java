@@ -36,7 +36,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     public static final String CLASS_NAME = ExplainPlanIT.class.getSimpleName().toUpperCase();
     protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     public static final String TABLE_NAME = "A";
-    protected static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
 
     private static final String tableDef = "(I INT)";
     protected static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);

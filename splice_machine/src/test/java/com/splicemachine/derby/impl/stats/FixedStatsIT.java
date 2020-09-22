@@ -35,7 +35,7 @@ import static org.junit.Assert.fail;
  */
 public class FixedStatsIT{
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(FixedStatsIT.class.getSimpleName().toUpperCase());
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, FixedStatsIT.class.getSimpleName().toUpperCase());
 
     private static final SpliceTableWatcher charDelete = new SpliceTableWatcher("CHAR_DELETE",schema.schemaName,"(c char(10))");
     private static final SpliceTableWatcher intDecimalBetween = new SpliceTableWatcher("BETWEEN_TEST",schema.schemaName,"(d DECIMAL, i int)");

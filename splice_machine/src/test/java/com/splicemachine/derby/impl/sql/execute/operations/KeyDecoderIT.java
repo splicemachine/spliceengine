@@ -45,7 +45,7 @@ public class KeyDecoderIT extends SpliceUnitTest {
     private static final String TABLE1 = "APOLLO_MV_MINUTE";
     private static final String TABLE2 = "T";
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
     private static final String  CREATE =
             "(" +
                 "row_id bigint NOT NULL, " +

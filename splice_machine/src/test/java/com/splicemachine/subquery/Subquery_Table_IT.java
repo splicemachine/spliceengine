@@ -45,7 +45,7 @@ public class Subquery_Table_IT extends SpliceUnitTest {
     private static final String SCHEMA = Subquery_Table_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher();

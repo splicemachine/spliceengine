@@ -35,7 +35,7 @@ import java.sql.*;
 public class ExplainTableScanIT extends SpliceUnitTest{
     private static final int size=128;
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(ExplainTableScanIT.class.getSimpleName().toUpperCase());
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, ExplainTableScanIT.class.getSimpleName().toUpperCase());
 
     private static final String BASE_SCHEMA="a boolean,b smallint,c int,d bigint,e real,f double,g numeric(5,2),h char(5),i varchar(10),l date,m time,n timestamp";
     private static final String INSERTION_SCHEMA="a,b,c,d,e,f,g,h,i,l,m,n";

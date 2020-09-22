@@ -45,7 +45,7 @@ import java.util.concurrent.Future;
 @Category({Transactions.class, SlowTest.class})
 public class ConcurrentDDLIT {
     private static final Logger LOG = Logger.getLogger(ConcurrentDDLIT.class);
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(ConcurrentDDLIT.class.getSimpleName().toUpperCase());
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, ConcurrentDDLIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
     @ClassRule

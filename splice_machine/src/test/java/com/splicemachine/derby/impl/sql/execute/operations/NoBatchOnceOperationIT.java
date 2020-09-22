@@ -55,7 +55,7 @@ public class NoBatchOnceOperationIT extends SpliceUnitTest {
     }
 
     @ClassRule
-    public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
 
     @ClassRule
     public static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
