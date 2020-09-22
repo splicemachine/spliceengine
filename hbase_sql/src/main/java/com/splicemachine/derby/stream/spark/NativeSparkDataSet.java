@@ -1164,7 +1164,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         OperationContext context;
         SparkContext sc;
         String uuid;
-        List<Integer> stageIdsToWatch;
+        Set<Integer> stageIdsToWatch;
 
         public CountingListener(OperationContext context) {
             this( context, UUID.randomUUID().toString() );
@@ -1183,7 +1183,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
 
             List<StageInfo> stageInfos = JavaConverters.seqAsJavaListConverter(jobStart.stageInfos()).asJava();
-            stageIdsToWatch = stageInfos.stream().map(s -> s.stageId()).collect(Collectors.toList());
+            stageIdsToWatch = stageInfos.stream().map(s -> s.stageId()).collect(Collectors.toSet());
         }
 
         @Override

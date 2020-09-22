@@ -2457,7 +2457,7 @@ public class ExternalTableIT extends SpliceUnitTest {
     public void testOrcColumnName() throws Exception {
         String tablePath = getExternalResourceDirectory()+"orc_colname";
         methodWatcher.execute(String.format("create external table t_orc (col1 int, col2 varchar(5))" +
-                " STORED AS PARQUET LOCATION '%s'", tablePath));
+                " STORED AS ORC LOCATION '%s'", tablePath));
         methodWatcher.execute("insert into t_orc values (3, 'C')");
         SparkSession spark = SparkSession.builder()
                 .master("local")
