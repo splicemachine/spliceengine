@@ -261,7 +261,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             //NOT USED ANYMORE, for backward compatibility only
             isPinned = descriptor.isPinned();
             purgeDeletedRows = descriptor.purgeDeletedRows();
-            minRetentionPeriod = descriptor.minRetainedPeriod();
+            minRetentionPeriod = descriptor.getMinRetentionPeriod();
             tableVersion = descriptor.getVersion() == null ?
                     new SQLVarchar(CURRENT_TABLE_VERSION) :
                     new SQLVarchar(descriptor.getVersion());

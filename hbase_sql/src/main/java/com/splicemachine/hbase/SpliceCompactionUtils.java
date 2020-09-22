@@ -23,7 +23,6 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.typesafe.config.ConfigException;
 import org.apache.hadoop.hbase.regionserver.Store;
 
 import java.io.IOException;
@@ -95,7 +94,7 @@ public class SpliceCompactionUtils {
         return extract(store, new TableDescriptorExtractor<Long>() {
             @Override
             public Long get(TableDescriptor td) {
-                return td.minRetainedPeriod();
+                return td.getMinRetentionPeriod();
             }
             @Override
             public Long getDefaultValue() {
