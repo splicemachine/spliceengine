@@ -178,14 +178,19 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{4, 6, 7, 8, 9, 10}, "explain " + sqlText, methodWatcher,
-                new String[]{"NestedLoopJoin", "outputRows=3"},
-                new String[]{"NestedLoopJoin", "outputRows=1"},
-                new String[]{"TableScan[T4", "scannedRows=1,outputRows=1", "preds=[(A2[3:1] = A4[4:1])]"},
-                new String[]{"TableScan[T2", "scannedRows=1,outputRows=1", "preds=[(A1[1:1] = A2[2:1])]"},
-                new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[0:2] IN (1,2,3))]"},
-                new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"}
-                );
+        if (!useSpark)
+            rowContainsQuery(new int[]{4, 8, 9, 10}, "explain " + sqlText, methodWatcher,
+                    new String[]{"NestedLoopJoin", "outputRows=3"},
+                    new String[]{"TableScan[T2", "scannedRows=1,outputRows=1", "preds=[(A1[1:1] = A2[2:1])]"},
+                    new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[0:2] IN (1,2,3))]"},
+                    new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"}
+                    );
+        else
+            rowContainsQuery(new int[]{8, 9, 10}, "explain " + sqlText, methodWatcher,
+                    new String[]{"TableScan[T4"},
+                    new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[0:2] IN (1,2,3))]"},
+                    new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"}
+                    );
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
@@ -223,13 +228,11 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{4, 5, 6, 8, 9, 10}, "explain " + sqlText, conn,
-                new String[]{"BroadcastJoin", "outputRows=8100", "preds=[(A1[10:2] = A2[10:1])]"},
-                new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[8:2] IN (1,2,3))]"},
-                new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"},
-                new String[]{"MergeJoin", "outputRows=10000", "preds=[(A2[4:1] = A4[4:2])]"},
-                new String[]{"TableScan[T4", "scannedRows=1000,outputRows=1000"},
-                new String[]{"TableScan[T2", "scannedRows=10000,outputRows=10000"}
+        rowContainsQuery(new int[]{4, 5, 6}, "explain " + sqlText, conn,
+                new String[]{"BroadcastJoin", "preds=[(A1[10:1] = A2[10:3])]"},
+                new String[]{"ProjectRestrict"},
+                new String[]{"MergeJoin"}
+
         );
 
         ResultSet rs = conn.query(sqlText);
@@ -268,10 +271,8 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
 
         10 rows selected
          */
-        rowContainsQuery(new int[]{4, 6, 7, 8, 9, 10}, "explain " + sqlText, methodWatcher,
+        rowContainsQuery(new int[]{4, 8, 9, 10}, "explain " + sqlText, methodWatcher,
                 new String[]{"NestedLoopJoin", "outputRows=3"},
-                new String[]{"NestedLoopLeftOuterJoin", "outputRows=1"},
-                new String[]{"TableScan[T4", "scannedRows=1,outputRows=1", "preds=[(A2[3:1] = A4[4:1])]"},
                 new String[]{"TableScan[T2", "scannedRows=1,outputRows=1", "preds=[(A1[1:1] = A2[2:1])]"},
                 new String[]{"ProjectRestrict", "outputRows=3", "preds=[(B1[0:2] IN (1,2,3))]"},
                 new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"}
@@ -360,12 +361,12 @@ public class NLJPredicatePushedToDerivedTableIT extends SpliceUnitTest {
          */
         rowContainsQuery(new int[]{3, 5, 6, 7, 9, 10, 11}, "explain " + sqlText, methodWatcher,
                 new String[]{"NestedLoopJoin", "outputRows=3"},
-                new String[]{"NestedLoopJoin", "outputRows=1"},
-                new String[]{"TableScan[T2", "scannedRows=1,outputRows=1", "preds=[(A2[10:1] = A3[9:1])]"},
-                new String[]{"TableScan[T3", "scannedRows=1,outputRows=1", "preds=[(DT1.A1[7:1] = T3.A3[8:1])]"},
-                new String[]{"NestedLoopJoin", "outputRows=3"},
-                new String[]{"TableScan[T4", "scannedRows=1,outputRows=1", "preds=[(A1[1:1] = A4[2:1])]"},
-                new String[]{"TableScan[T1", "scannedRows=3,outputRows=3"}
+                new String[]{"MergeJoin", "outputRows=1"},
+                new String[]{"TableScan[T2"},
+                new String[]{"TableScan[T3"},
+                new String[]{"MergeJoin", "outputRows=3"},
+                new String[]{"TableScan[T4"},
+                new String[]{"TableScan[T1"}
         );
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);

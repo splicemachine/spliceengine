@@ -145,6 +145,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly*scanSelectivity, outerCost.rowCount(), innerCost.rowCount());
 
         double innerTableScaleFactor = Math.min(1.0, joinSelectivity * outerCost.rowCount());
+        innerTableScaleFactor = Math.min(innerTableScaleFactor, scanSelectivity);
 
         double joinCost = mergeJoinStrategyLocalCost(innerCost, outerCost, empty, totalJoinedRows, innerTableScaleFactor);
         innerCost.setLocalCost(joinCost);
