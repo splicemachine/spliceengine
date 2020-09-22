@@ -71,7 +71,7 @@ import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 @SuppressWarnings("SynchronizeOnNonFinalField")
 @SuppressFBWarnings(value = {"IS2_INCONSISTENT_SYNC", "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD"}, justification = "FIXME: DB-10223")
 public class GenericStatement implements Statement{
-    static AtomicInteger jsonIncrement;
+    protected static final AtomicInteger jsonIncrement = new AtomicInteger(0);
     protected int actualJsonIncrement = -1;
     private static final Logger JSON_TREE_LOG = Logger.getLogger(JsonTreeBuilderVisitor.class);
 
