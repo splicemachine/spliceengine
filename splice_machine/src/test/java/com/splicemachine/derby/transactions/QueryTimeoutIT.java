@@ -41,7 +41,7 @@ import static org.junit.Assert.assertTrue;
  */
 @Category({Transactions.class,SerialTest.class })
 public class QueryTimeoutIT extends SpliceUnitTest {
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, QueryTimeoutIT.class.getSimpleName());
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(QueryTimeoutIT.class.getSimpleName());
 
     public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
 

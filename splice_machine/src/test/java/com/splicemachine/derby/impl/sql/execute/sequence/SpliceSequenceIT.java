@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.sequence;
 
 import com.splicemachine.derby.test.framework.*;
+import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -42,7 +43,7 @@ public class SpliceSequenceIT {
     private static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);

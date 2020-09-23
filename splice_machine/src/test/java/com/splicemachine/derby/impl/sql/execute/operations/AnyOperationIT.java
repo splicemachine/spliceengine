@@ -34,7 +34,7 @@ public class AnyOperationIT {
 
     private static final String CLASS_NAME = AnyOperationIT.class.getSimpleName();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

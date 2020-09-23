@@ -44,7 +44,7 @@ public class CallStatementOperationIT extends SpliceUnitTest {
 	public static final String CLASS_NAME = CallStatementOperationIT.class.getSimpleName().toUpperCase();
 	private static Logger LOG = Logger.getLogger(CallStatementOperationIT.class);
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("TEST1",CLASS_NAME,"(a int)");
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 
 	@ClassRule 
 	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher).

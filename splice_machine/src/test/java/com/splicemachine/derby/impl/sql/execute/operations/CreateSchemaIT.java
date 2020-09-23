@@ -41,9 +41,9 @@ public class CreateSchemaIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static final Logger LOG = Logger.getLogger(CreateSchemaIT.class);
 
-    protected static SpliceSchemaWatcher sullivan1SchemaWatcher = new SpliceSchemaWatcher(null, "SULLIVAN1");
-    protected static SpliceSchemaWatcher sullivanSchemaWatcher = new SpliceSchemaWatcher(null, "SULLIVAN");
-    protected static SpliceSchemaWatcher cmprod = new SpliceSchemaWatcher(null, "cmprod");
+    protected static SpliceSchemaWatcher sullivan1SchemaWatcher = new SpliceSchemaWatcher("SULLIVAN1");
+    protected static SpliceSchemaWatcher sullivanSchemaWatcher = new SpliceSchemaWatcher("SULLIVAN");
+    protected static SpliceSchemaWatcher cmprod = new SpliceSchemaWatcher("cmprod");
     protected static SpliceUserWatcher cmprodUser = new SpliceUserWatcher("cmprod","cmprod_password");
 
 

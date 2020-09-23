@@ -36,7 +36,7 @@ import com.splicemachine.test_dao.TableDAO;
  *         Date: 5/1/15
  */
 public class ConstraintTransactionIT {
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, ConstraintTransactionIT.class.getSimpleName().toUpperCase());
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(ConstraintTransactionIT.class.getSimpleName().toUpperCase());
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
 
     private TableDAO tableDAO;

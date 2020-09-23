@@ -41,7 +41,7 @@ public class IndividualPrimaryKeyScanIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = IndividualPrimaryKeyScanIT.class.getSimpleName().toUpperCase();
     public static final String TABLE_NAME = "item";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,
             spliceSchemaWatcher.schemaName,
             "(i_id int, i_name varchar(24),i_price decimal(5,2),i_data varchar(50),i_im_id int not null, PRIMARY KEY (i_id))");

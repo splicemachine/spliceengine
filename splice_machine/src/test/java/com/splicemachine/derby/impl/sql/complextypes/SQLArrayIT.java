@@ -21,7 +21,7 @@ import static org.junit.Assert.assertEquals;
 public class SQLArrayIT extends SpliceUnitTest {
 
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, SQLArrayIT.class.getSimpleName().toUpperCase());
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(SQLArrayIT.class.getSimpleName().toUpperCase());
 
     private static final SpliceTableWatcher arrayOne = new SpliceTableWatcher("ARRAY_ONE",schema.schemaName,"(col1 int array)");
     private static final SpliceTableWatcher arrayTwo = new SpliceTableWatcher("ARRAY_TWO",schema.schemaName,"(col1 int array)");

@@ -47,7 +47,7 @@ import com.splicemachine.homeless.TestUtils;
  */
 public class TempTableIT {
     public static final String CLASS_NAME = TempTableIT.class.getSimpleName().toUpperCase();
-    private static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final List<String> empNameVals = Arrays.asList(
         "(001,'Jeff','Cunningham')",

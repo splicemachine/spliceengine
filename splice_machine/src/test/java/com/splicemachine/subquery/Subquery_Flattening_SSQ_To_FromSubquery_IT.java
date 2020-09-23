@@ -40,7 +40,7 @@ public class Subquery_Flattening_SSQ_To_FromSubquery_IT extends SpliceUnitTest {
     private static final String SCHEMA = Subquery_Flattening_SSQ_To_FromSubquery_IT.class.getSimpleName().toUpperCase();
 
     @ClassRule
-    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);

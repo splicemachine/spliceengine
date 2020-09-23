@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import junit.framework.Assert;
 import org.junit.ClassRule;
@@ -31,7 +32,7 @@ public class ColumnReferenceIT {
     private static final String SCHEMA = ColumnReferenceIT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);

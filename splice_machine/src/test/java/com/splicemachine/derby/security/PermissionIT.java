@@ -32,7 +32,7 @@ public class PermissionIT {
     protected static final String ROLE1 = "ADMIN_SCHEMA1";
 
     private static SpliceWatcher spliceClassWatcherAdmin = new SpliceWatcher();
-    private static SpliceSchemaWatcher spliceSchemaWatcher1 = new SpliceSchemaWatcher(null, SCHEMA1);
+    private static SpliceSchemaWatcher spliceSchemaWatcher1 = new SpliceSchemaWatcher(SCHEMA1);
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     private static SpliceRoleWatcher spliceRoleWatcher1 = new SpliceRoleWatcher(ROLE1);
     private static SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE, SCHEMA1,"(a1 int, b1 int, c1 int, d1 int)" );

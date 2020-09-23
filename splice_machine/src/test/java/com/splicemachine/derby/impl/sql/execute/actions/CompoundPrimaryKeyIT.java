@@ -33,7 +33,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 public class CompoundPrimaryKeyIT extends AbstractIndexTest {
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static String CLASS_NAME = CompoundPrimaryKeyIT.class.getSimpleName().toUpperCase();
-    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static SpliceTableWatcher twoCtgColumns                = new SpliceTableWatcher("TWO_CONTIGUOUS",spliceSchemaWatcher.schemaName,"(a int, b float, c int, d double, PRIMARY KEY(a,b))");
     private static SpliceTableWatcher twoNonCtgColumns             = new SpliceTableWatcher("TWO_NONCONTIGUOUS",spliceSchemaWatcher.schemaName,"(a int, b float, c int, d double,PRIMARY KEY(a,c))");

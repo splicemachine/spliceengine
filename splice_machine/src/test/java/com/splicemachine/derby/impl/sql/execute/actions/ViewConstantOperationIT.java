@@ -59,8 +59,8 @@ public class ViewConstantOperationIT extends SpliceUnitTest {
     public static final String USER1 = "VIEWUSER";
     public static final String PASSWORD1 = "viewuser";
 
-    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(null, CLASS_NAME);
-    protected static SpliceSchemaWatcher viewSchema = new SpliceSchemaWatcher(null, CLASS_NAME+"_View");
+    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static SpliceSchemaWatcher viewSchema = new SpliceSchemaWatcher(CLASS_NAME+"_View");
 
     private static String eNameDef = "(id int not null, fname varchar(8) not null, lname varchar(10) not null)";
     private static String ePrivDef = "(id int not null, dob varchar(10) not null, ssn varchar(12) not null)";

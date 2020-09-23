@@ -30,7 +30,7 @@ import java.sql.ResultSet;
 public class MultiProbeTableScanOperatonIT extends SpliceUnitTest {
 	public static final String CLASS_NAME = MultiProbeTableScanOperatonIT.class.getSimpleName();
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-	protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+	protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	protected static SpliceTableWatcher t1Watcher = new SpliceTableWatcher("user_groups",schemaWatcher.schemaName,"(user_id BIGINT NOT NULL,segment_id INT NOT NULL,unixtime BIGINT, primary key(segment_id, user_id))");
 	protected static SpliceTableWatcher t2Watcher = new SpliceTableWatcher("docs",schemaWatcher.schemaName,"(id varchar(128) not null)");
 	protected static SpliceTableWatcher t3Watcher = new SpliceTableWatcher("colls",schemaWatcher.schemaName,"(id varchar(128) not null,collid smallint not null)");

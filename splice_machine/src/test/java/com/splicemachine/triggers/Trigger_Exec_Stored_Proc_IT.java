@@ -46,7 +46,7 @@ public class Trigger_Exec_Stored_Proc_IT  extends SpliceUnitTest {
     private static final String SCHEMA = Trigger_Exec_Stored_Proc_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);

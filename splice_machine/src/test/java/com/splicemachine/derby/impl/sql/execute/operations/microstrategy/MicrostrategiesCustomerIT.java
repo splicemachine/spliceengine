@@ -39,7 +39,7 @@ public class MicrostrategiesCustomerIT {
 
     private static final String SCHEMA = MicrostrategiesCustomerIT.class.getSimpleName().toUpperCase();
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     @ClassRule
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
     @Rule
