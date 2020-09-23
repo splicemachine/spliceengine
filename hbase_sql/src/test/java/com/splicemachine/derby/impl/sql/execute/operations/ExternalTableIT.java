@@ -492,7 +492,6 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     // tests writing all columns types, null values, suggesting schema.
     @Test
-    @Ignore("DB-10033")
     public void testWriteReadFromSimpleExternalTable() throws Exception {
         for( String fileFormat : fileFormats )
             testWriteReadFromSimpleExternalTable(fileFormat);
