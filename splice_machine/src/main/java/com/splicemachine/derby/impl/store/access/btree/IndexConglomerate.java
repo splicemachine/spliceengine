@@ -525,6 +525,16 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
         int len=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(len,in);
+
+        // DataDictionaryImpl.bootstrapOneIndex creates system indexes with a null
+        // column ordering, making the IndexConglomerate inconsistent, which may
+        // lead to broken logic in places that call ScanOperation.getColumnOrdering.
+        // Fill in the missing information here so the index may be properly used.
+        if (columnOrdering == null || columnOrdering.length == 0) {
+            columnOrdering = new int[ascDescInfo.length];
+            for (int i=0; i < columnOrdering.length; i++)
+                columnOrdering[i] = i;
+        }   // msirek-temp
         partitionFactory =SIDriver.driver().getTableFactory();
         opFactory = SIDriver.driver().getOperationFactory();
     }

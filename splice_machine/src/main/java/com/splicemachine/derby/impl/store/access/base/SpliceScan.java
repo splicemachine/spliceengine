@@ -98,15 +98,15 @@ public class SpliceScan implements ScanManager, LazyScan{
         this.trans=(BaseSpliceTransaction)trans;
         this.opFactory = operationFactory;
         this.partitionFactory = partitionFactory;
-        setupScan();
-        attachFilter();
-        tableName=Long.toString(spliceConglomerate.getConglomerate().getContainerid());
         DataValueDescriptor[] dvdArray = this.spliceConglomerate.cloneRowTemplate();
         // Hack for Indexes...
         if (dvdArray[dvdArray.length-1] == null)
             dvdArray[dvdArray.length-1] = new HBaseRowLocation();
         currentRow = new ValueRow(dvdArray.length);
         currentRow.setRowArray(dvdArray);
+        setupScan();
+        attachFilter();
+        tableName=Long.toString(spliceConglomerate.getConglomerate().getContainerid());
         serializers = VersionedSerializers.forVersion("1.0", true).getSerializers(currentRow);
         if(LOG.isTraceEnabled()){
             SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s",Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);

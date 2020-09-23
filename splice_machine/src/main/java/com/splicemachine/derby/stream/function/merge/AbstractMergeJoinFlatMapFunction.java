@@ -388,7 +388,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                 numKeyColumns++;
             }
             if (numKeyColumns == 0)
-                return null;
+                throw StandardException.newException("Attempted merge join execution without a join key.");
 
             // Try to replace range conditions with equality if possible.
             if (numFixedKeyColumns > 0 && !sameStartStopPosition)
