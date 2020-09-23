@@ -166,6 +166,9 @@ public class CalciteConverterImpl implements CalciteConverter {
                     rightRel,
                     conditionExp,
                     convertedJoinType);
+        } else if (fromTable instanceof FromSubquery) {
+            ResultSetNode subquery = ((FromSubquery)fromTable).getSubquery();
+            oneTable = convertResultSet(subquery);
         }
         return oneTable;
     }
