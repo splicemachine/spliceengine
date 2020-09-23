@@ -57,6 +57,7 @@ import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.IteratorUtils;
@@ -637,19 +638,10 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     /**
-     *
      * Not Supported
-     *
-     * @param op
-     * @param location
-     * @param characterDelimiter
-     * @param columnDelimiter
-     * @param baseColumnMap
-     * @param context
-     * @return
      */
     @Override
-    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,  OperationContext context) {
+    public DataSet<ExecRow> writeTextFile(String location, CsvOptions csvOptions, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write text files");
     }
 
