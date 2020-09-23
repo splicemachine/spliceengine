@@ -524,11 +524,12 @@ public class BinaryRelationalOperatorNode
         ** and look for the same table on the other side.
         */
         if(lcr != null && !lcr.isEmpty()){
-            int bound = forIndexExpression ? lcr.size() : 1;
-            for (int i = 0; i < bound; i++) {
-                if (lcr.get(i) == cr) {
-                    otherSide = rightOperand;
-                    break;
+            if (forIndexExpression || lcr.size() == 1) {
+                for (ColumnReference columnReference : lcr) {
+                    if (columnReference.equals(cr)) {
+                        otherSide = rightOperand;
+                        break;
+                    }
                 }
             }
         }
@@ -536,11 +537,12 @@ public class BinaryRelationalOperatorNode
         if (otherSide == null) {
             rcr = rightOperand.getHashableJoinColumnReference();
             if (rcr != null && !rcr.isEmpty()) {
-                int bound = forIndexExpression ? rcr.size() : 1;
-                for (int i = 0; i < bound; i++) {
-                    if (rcr.get(i) == cr) {
-                        otherSide = leftOperand;
-                        break;
+                if (forIndexExpression || rcr.size() == 1) {
+                    for (ColumnReference columnReference : rcr) {
+                        if (columnReference.equals(cr)) {
+                            otherSide = leftOperand;
+                            break;
+                        }
                     }
                 }
             }

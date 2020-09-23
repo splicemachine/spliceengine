@@ -609,6 +609,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         isQualifier=false;
         // indexPosition of -1 is used by rowId, so use -2 to indicate that it has been set
         indexPosition = -2;
+        matchIndexExpression = false;
     }
 
     void generateExpressionOperand(Optimizable optTable,
