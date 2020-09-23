@@ -257,9 +257,8 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
      *
      * Cross Join Local Cost Computation
      *
-     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Left Side Transfer Cost) +
-     * (Right Side Cost) + (Left Side Row Count/Left Side Partition Count)*(Right Side Transfer
-     * Cost)
+     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Right Side Transfer Cost) +
+     * (Right Side Cost) + (Joining Row Cost)
      *
      * @param innerCost
      * @param outerCost
@@ -278,9 +277,8 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.getParallelism();
         double innerRemoteCost = innerCost.getRemoteCostPerPartition()*innerCost.getParallelism();
         return outerCost.getLocalCostPerPartition() +
-                outerCost.getRemoteCostPerPartition()  +
-                (outerCost.rowCount()/outerCost.getParallelism()) * (innerLocalCost + innerRemoteCost) +
-                joiningRowCost/outerCost.getParallelism();
+                innerRemoteCost + innerLocalCost +
+                joiningRowCost;
     }
 
 
