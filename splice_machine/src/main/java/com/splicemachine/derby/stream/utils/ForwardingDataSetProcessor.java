@@ -180,9 +180,15 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, CsvOptions csvOptions, int[] baseColumnMap, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
-                                                boolean useSample, double sampleFraction) throws StandardException {
-        return delegate.readTextFile(op, location, csvOptions, baseColumnMap, context,  qualifiers, probeValue, execRow, useSample, sampleFraction);
+    public <V> DataSet<ExecRow> readTextFile(CsvOptions csvOptions,
+                                             StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                             String location, OperationContext context, Qualifier[][] qualifiers,
+                                             DataValueDescriptor probeValue, ExecRow execRow, boolean useSample,
+                                             double sampleFraction
+    ) throws StandardException {
+        return delegate.readTextFile(csvOptions,
+                schema, baseColumnMap, partitionColumnMap,location, context, qualifiers,
+                probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override
