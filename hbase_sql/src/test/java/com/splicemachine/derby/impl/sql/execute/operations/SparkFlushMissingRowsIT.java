@@ -43,7 +43,7 @@ public class SparkFlushMissingRowsIT extends SpliceUnitTest {
 
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)

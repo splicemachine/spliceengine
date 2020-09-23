@@ -52,7 +52,7 @@ public class ClusterDDLTestIT {
     private SpliceTestDataSource dataSource;
     
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Before
     public void startup() {

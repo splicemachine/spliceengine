@@ -36,7 +36,7 @@ public class PinTableIT extends SpliceUnitTest{
 
     private static final String SCHEMA_NAME = PinTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
     private static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("PinTable1",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("PinTable2",SCHEMA_NAME,"(col1 int)");
     private static final SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("PinTable3",SCHEMA_NAME,"(col1 int)");

@@ -75,7 +75,7 @@ public class VacuumIT extends SpliceUnitTest{
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
     protected static SpliceTableWatcher spliceTableAWatcher = new SpliceTableWatcher(TABLEA, spliceSchemaWatcher

@@ -55,7 +55,7 @@ public class SplitRegionScannerStressIT extends BaseMRIOTest {
 
     public static final String CLASS_NAME = SplitRegionScannerStressIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static int nrows = 20000;
     private static int batchSize = 1000;

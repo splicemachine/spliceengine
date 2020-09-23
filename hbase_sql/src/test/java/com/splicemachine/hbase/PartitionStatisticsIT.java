@@ -49,7 +49,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 public class PartitionStatisticsIT {
     private static final String SCHEMA = PartitionStatisticsIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     private static final String TABLE = "T";
     private static TableName hTableName;

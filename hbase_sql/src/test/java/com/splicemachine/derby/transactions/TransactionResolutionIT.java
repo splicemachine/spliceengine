@@ -60,7 +60,7 @@ import static org.junit.Assert.fail;
 public class TransactionResolutionIT {
     private static final String SCHEMA = TransactionResolutionIT.class.getSimpleName().toUpperCase();
 
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, TransactionResolutionIT.class.getSimpleName());
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(TransactionResolutionIT.class.getSimpleName());
 
     public static final SpliceTableWatcher table_a = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(i int, j int)");
     public static final SpliceTableWatcher table_b = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(i int, j int, primary key(i,j))");

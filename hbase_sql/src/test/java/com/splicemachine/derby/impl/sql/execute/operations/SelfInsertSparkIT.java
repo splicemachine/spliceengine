@@ -57,7 +57,7 @@ public class SelfInsertSparkIT {
 
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final SpliceTableWatcher splitTable = new SpliceTableWatcher("foo",CLASS_NAME,"(col1 int primary key, col2 varchar(512))");
     private static final SpliceTableWatcher flushTable = new SpliceTableWatcher("foo2",CLASS_NAME,"(col1 int, col2 varchar(512))");

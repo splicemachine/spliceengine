@@ -55,7 +55,7 @@ public class HalfMergeSortSparkIT {
 
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final SpliceTableWatcher halfSortTable = new SpliceTableWatcher("half",CLASS_NAME,"(a int, b int, primary key (a,b))");
     private static final SpliceTableWatcher oneTable = new SpliceTableWatcher("one",CLASS_NAME,"(a int)");
@@ -136,7 +136,7 @@ public class HalfMergeSortSparkIT {
     protected static final String T2 = "T2";
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     protected static SpliceTableWatcher fooTable = new SpliceTableWatcher(FOO, CLASS_NAME,
             "(col1 int, col2 int, primary key (col1))");
