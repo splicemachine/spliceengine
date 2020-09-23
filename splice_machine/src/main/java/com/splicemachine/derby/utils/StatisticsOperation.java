@@ -115,7 +115,9 @@ public class StatisticsOperation extends SpliceBaseOperation {
                 String storedAs = scanSetBuilder.getStoredAs();
                 if (storedAs.equals("T")) {
                     CsvOptions csvOptions = new CsvOptions(builder.getDelimited(), builder.getEscaped(), builder.getLines());
-                    statsDataSet = dsp.readTextFile(null, builder.getLocation(), csvOptions, zeroBased, operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
+                    statsDataSet = dsp.readTextFile(csvOptions,
+                            schema, zeroBased, builder.getPartitionByColumnMap() , builder.getLocation(),
+                            operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 }
                 else if (storedAs.equals("P"))
                     statsDataSet = dsp.readParquetFile(schema, zeroBased, builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
