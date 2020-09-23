@@ -57,7 +57,7 @@ public class FailuresSparkIT {
 
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final SpliceTableWatcher a_table = new SpliceTableWatcher("a",CLASS_NAME,"(col1 int primary key)");
 

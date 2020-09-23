@@ -60,7 +60,7 @@ public class TableScanOperation_LargeRegionCount_IT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = TableScanOperation_LargeRegionCount_IT.class.getSimpleName().toUpperCase();
     @ClassRule
-    public static SpliceSchemaWatcher SCHEMA_WATCHER = new SpliceSchemaWatcher(null, SCHEMA_NAME);
+    public static SpliceSchemaWatcher SCHEMA_WATCHER = new SpliceSchemaWatcher(SCHEMA_NAME);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
 

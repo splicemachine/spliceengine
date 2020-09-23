@@ -40,8 +40,8 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
     private static final String SCHEMA1 = NAME + "1";
     private static final String SCHEMA2 = NAME + "2";
     private static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA1);
-    private static final SpliceSchemaWatcher schema1Watcher = new SpliceSchemaWatcher(null, SCHEMA1);
-    private static final SpliceSchemaWatcher schema2Watcher = new SpliceSchemaWatcher(null, SCHEMA2);
+    private static final SpliceSchemaWatcher schema1Watcher = new SpliceSchemaWatcher(SCHEMA1);
+    private static final SpliceSchemaWatcher schema2Watcher = new SpliceSchemaWatcher(SCHEMA2);
     private static final String MRP11 = "MRP11";
     private static final String MRP21 = "MRP21";
     private static final String MRP22 = "MRP22";
