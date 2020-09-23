@@ -499,7 +499,7 @@ public class CreateAliasNode extends DDLStatementNode{
                     this.getFullName(),
                     targetSchema+"."+targetTable);
 
-        SchemaDescriptor targetSD=getSchemaDescriptor(targetSchema,false);
+        SchemaDescriptor targetSD=getSchemaDescriptor(null, targetSchema,false);
         if((targetSD!=null) && isSessionSchema(targetSD))
             throw StandardException.newException(SQLState.LANG_OPERATION_NOT_ALLOWED_ON_SESSION_SCHEMA_TABLES);
 
@@ -514,7 +514,7 @@ public class CreateAliasNode extends DDLStatementNode{
         //
         // A user-defined aggregate cannot have the name of a builtin function which takes 1 argument.
         //
-        SchemaDescriptor sysfun=getSchemaDescriptor("SYSFUN",true);
+        SchemaDescriptor sysfun=getSchemaDescriptor(null, "SYSFUN",true);
         List<AliasDescriptor> systemFunctions=getDataDictionary().getRoutineList(sysfun.getUUID().toString(),
                 unqualifiedName, AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR );
 

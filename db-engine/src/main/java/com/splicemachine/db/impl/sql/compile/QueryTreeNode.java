@@ -70,6 +70,7 @@ import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 import org.apache.commons.lang3.SystemUtils;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.base.Strings;
+import com.splicemachine.db.catalog.UUID;
 
 import java.sql.Types;
 import java.util.*;
@@ -1042,10 +1043,10 @@ public abstract class QueryTreeNode implements Node, Visitable{
      * @throws StandardException Thrown on error
      * @return The descriptor for the schema.
      */
-    public final SchemaDescriptor getSchemaDescriptor(String schemaName)
+    public final SchemaDescriptor getSchemaDescriptor(UUID dbId, String schemaName)
             throws StandardException{
         //return getSchemaDescriptor(schemaName, schemaName != null);
-        return getSchemaDescriptor(schemaName,true);
+        return getSchemaDescriptor(dbId, schemaName,true);
     }
 
     /**
@@ -1059,13 +1060,14 @@ public abstract class QueryTreeNode implements Node, Visitable{
         DataDictionary dd=getDataDictionary();
         String nextSynonymTable=tabName.getTableName();
         String nextSynonymSchema=tabName.getSchemaName();
+        UUID dbId = getLanguageConnectionContext().getDatabase().getId(); // XXX decode as part of the fully defined tabName
         boolean found=false;
         CompilerContext cc=getCompilerContext();
 
         // Circular synonym references should have been detected at the DDL time, so
         // the following loop shouldn't loop forever.
         for(;;){
-            SchemaDescriptor nextSD=getSchemaDescriptor(nextSynonymSchema,false);
+            SchemaDescriptor nextSD=getSchemaDescriptor(dbId, nextSynonymSchema,false);
             if(nextSD==null || nextSD.getUUID()==null)
                 break;
 
@@ -1173,7 +1175,8 @@ public abstract class QueryTreeNode implements Node, Visitable{
         // ok, we have an unbound UDT. lookup this type in the data dictionary
 
         DataDictionary dd=getDataDictionary();
-        SchemaDescriptor typeSchema=getSchemaDescriptor(userTypeID.getSchemaName());
+        UUID dbId = getLanguageConnectionContext().getDatabase().getId();
+        SchemaDescriptor typeSchema=getSchemaDescriptor(dbId, userTypeID.getSchemaName());
         char udtNameSpace=AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR;
         String unqualifiedTypeName=userTypeID.getUnqualifiedName();
         AliasDescriptor ad=dd.getAliasDescriptor(typeSchema.getUUID().toString(),unqualifiedTypeName,udtNameSpace);
@@ -1547,7 +1550,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
      * schema does not exist.
      * @throws StandardException Schema does not exist and raiseError is true.
      */
-    final SchemaDescriptor getSchemaDescriptor(String schemaName,boolean raiseError)
+    final SchemaDescriptor getSchemaDescriptor(UUID dbId, String schemaName,boolean raiseError)
             throws StandardException{
         /*
         ** Check for a compilation context.  Sometimes
@@ -1565,6 +1568,10 @@ public abstract class QueryTreeNode implements Node, Visitable{
         ** In the above view vt must be compiled against
         ** the X schema.
         */
+
+        if (dbId == null) {
+            dbId = getLanguageConnectionContext().getDatabaseId();
+        }
 
         SchemaDescriptor sd=null;
         boolean isCurrent=false;
@@ -1589,7 +1596,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
         }
 
         DataDictionary dataDictionary=getDataDictionary();
-        SchemaDescriptor sdCatalog=dataDictionary.getSchemaDescriptor(schemaName,
+        SchemaDescriptor sdCatalog=dataDictionary.getSchemaDescriptor(dbId, schemaName,
                 getLanguageConnectionContext().getTransactionCompile(),raiseError);
 
         if(isCurrent || isCompilation){

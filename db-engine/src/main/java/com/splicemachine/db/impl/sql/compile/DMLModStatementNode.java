@@ -196,7 +196,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
             /*
             ** Get the TableDescriptor for the table we are inserting into
             */
-            SchemaDescriptor sdtc = getSchemaDescriptor(targetTableName.getSchemaName());
+            SchemaDescriptor sdtc = getSchemaDescriptor(null, targetTableName.getSchemaName());
 
             targetTableDescriptor = getTableDescriptor(
                             targetTableName.getTableName(), sdtc);
@@ -209,7 +209,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
                     throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, targetTableName.toString());
                 synonymTableName = targetTableName;
                 targetTableName = synonymTab;
-                sdtc = getSchemaDescriptor(targetTableName.getSchemaName());
+                sdtc = getSchemaDescriptor(null, targetTableName.getSchemaName());
 
                 targetTableDescriptor = getTableDescriptor(synonymTab.getTableName(), sdtc);
                 if (targetTableDescriptor == null)
@@ -259,7 +259,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
     {
         SchemaDescriptor        sd;
 
-        sd = getSchemaDescriptor(targetTableName.getSchemaName());
+        sd = getSchemaDescriptor(null, targetTableName.getSchemaName());
 
         return sd;
     }
@@ -447,7 +447,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
                 // current schema at the time that the table was
                 // created/altered. See DERBY-3945.
                 //
-                SchemaDescriptor    originalCurrentSchema = getSchemaDescriptor( di.getOriginalCurrentSchema(), true );
+                SchemaDescriptor    originalCurrentSchema = getSchemaDescriptor(null, di.getOriginalCurrentSchema(), true );
                 compilerContext.pushCompilationSchema( originalCurrentSchema );
 
                 try {

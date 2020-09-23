@@ -152,7 +152,7 @@ public class ConsistencyChecker
 
             ExecutionFactory ef = lcc.getLanguageConnectionFactory().getExecutionFactory();
 
-            sd = dd.getSchemaDescriptor(schemaName, tc, true);
+            sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
             td = dd.getTableDescriptor(tableName, sd, tc);
 
             if (td == null)

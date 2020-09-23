@@ -2183,7 +2183,7 @@ public class SelectNode extends ResultSetNode{
          *        we will think it is the default schema Beetle 4417
           */
         targetTableDescriptor=getTableDescriptor(targetTable.getBaseTableName(),
-                getSchemaDescriptor(((FromBaseTable)targetTable).getTableNameField().getSchemaName()));
+                getSchemaDescriptor(null, ((FromBaseTable)targetTable).getTableNameField().getSchemaName()));
         assert targetTableDescriptor!=null;
         if(targetTableDescriptor.getTableType()==TableDescriptor.SYSTEM_TABLE_TYPE){
             if(SanityManager.DEBUG)

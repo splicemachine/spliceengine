@@ -58,139 +58,139 @@ import java.util.Vector;
 
 public class SetSchemaNode extends MiscellaneousStatementNode
 {
-	private String 	name;
-	private int 	type;
-	
-	/**
-	 * Initializer for a SetSchemaNode
-	 *
-	 * @param schemaName	The name of the new schema
-	 * @param type			Type of schema name could be USER or dynamic parameter
-	 *
-	 */
-	public void init(Object schemaName, Object type)
-	{
-		this.name = (String) schemaName;
-		if (type != null)
-			this.type = (Integer) type;
-	}
+    private String     name;
+    private int     type;
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Initializer for a SetSchemaNode
+     *
+     * @param schemaName    The name of the new schema
+     * @param type            Type of schema name could be USER or dynamic parameter
+     *
+     */
+    public void init(Object schemaName, Object type)
+    {
+        this.name = (String) schemaName;
+        if (type != null)
+            this.type = (Integer) type;
+    }
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return super.toString() + 
-				(type == StatementType.SET_SCHEMA_USER ? "schemaName: \nUSER\n" :
-				(type == StatementType.SET_SCHEMA_DYNAMIC ? "schemaName: \n?\n" : 
-					"schemaName: " + "\n" + name + "\n"));
-		}
-		else
-		{
-			return "";
-		}
-	}
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String statementToString()
-	{
-		return "SET SCHEMA";
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return super.toString() +
+                (type == StatementType.SET_SCHEMA_USER ? "schemaName: \nUSER\n" :
+                (type == StatementType.SET_SCHEMA_DYNAMIC ? "schemaName: \n?\n" :
+                    "schemaName: " + "\n" + name + "\n"));
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		return	getGenericConstantActionFactory().getSetSchemaConstantAction(name, type);		
-	}
-	/**
-	 * Generate code, need to push parameters
-	 *
-	 * @param acb	The ActivationClassBuilder for the class being built
-	 * @param mb the method  for the execute() method to be built
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    public String statementToString()
+    {
+        return "SET SCHEMA";
+    }
 
-	public void generate(ActivationClassBuilder acb,
-								MethodBuilder mb)
-							throws StandardException
-	{
-		//generate the parameters for the DYNAMIC SET SCHEMA
-		if (type == StatementType.SET_SCHEMA_DYNAMIC)
-			generateParameterValueSet(acb);
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        return    getGenericConstantActionFactory().getSetSchemaConstantAction(name, type);
+    }
+    /**
+     * Generate code, need to push parameters
+     *
+     * @param acb    The ActivationClassBuilder for the class being built
+     * @param mb the method  for the execute() method to be built
+     *
+     * @exception StandardException        Thrown on error
+     */
 
-		// The generated java is the expression:
-		// return ResultSetFactory.getMiscResultSet(this )
+    public void generate(ActivationClassBuilder acb,
+                                MethodBuilder mb)
+                            throws StandardException
+    {
+        //generate the parameters for the DYNAMIC SET SCHEMA
+        if (type == StatementType.SET_SCHEMA_DYNAMIC)
+            generateParameterValueSet(acb);
 
-		acb.pushGetResultSetFactoryExpression(mb);
+        // The generated java is the expression:
+        // return ResultSetFactory.getMiscResultSet(this )
 
-		acb.pushThisAsActivation(mb); // first arg
+        acb.pushGetResultSetFactoryExpression(mb);
 
-		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getMiscResultSet",
-						ClassName.ResultSet, 1);
-	}
-	/**
-	 * Generate the code to create the ParameterValueSet, if necessary,
-	 * when constructing the activation.  Also generate the code to call
-	 * a method that will throw an exception if we try to execute without
-	 * all the parameters being set.
-	 * 
-	 * @param acb	The ActivationClassBuilder for the class we're building
-	 */
+        acb.pushThisAsActivation(mb); // first arg
 
-	void generateParameterValueSet(ActivationClassBuilder acb)
-		throws StandardException
-	{
-		Vector parameterList = getCompilerContext().getParameterList();
-		// parameter list size should be 1
-		if (SanityManager.DEBUG)
-			SanityManager.ASSERT(parameterList != null && parameterList.size() == 1);
-			
-		ParameterNode.generateParameterValueSet ( acb, 1, parameterList);
-	}
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getMiscResultSet",
+                        ClassName.ResultSet, 1);
+    }
+    /**
+     * Generate the code to create the ParameterValueSet, if necessary,
+     * when constructing the activation.  Also generate the code to call
+     * a method that will throw an exception if we try to execute without
+     * all the parameters being set.
+     *
+     * @param acb    The ActivationClassBuilder for the class we're building
+     */
 
-	/**
-	 * Returns the type of activation this class
-	 * generates.
-	 * 
-	 * @return  NEED_PARAM_ACTIVATION or
-	 *			NEED_NOTHING_ACTIVATION depending on params
-	 *
-	 */
-	int activationKind()
-	{
-		/*
-		** We need parameters 
-		** only for those that have parameters.
-		*/
-		if (type == StatementType.SET_SCHEMA_DYNAMIC)
-		{
-			return StatementNode.NEED_PARAM_ACTIVATION;
-		}
-		else
-		{
-			return StatementNode.NEED_NOTHING_ACTIVATION;
-		}
-	}
+    void generateParameterValueSet(ActivationClassBuilder acb)
+        throws StandardException
+    {
+        Vector parameterList = getCompilerContext().getParameterList();
+        // parameter list size should be 1
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(parameterList != null && parameterList.size() == 1);
 
-	@Override
-	public void bindStatement() throws StandardException
-	{
-		// name could be null when compiling a prepared SET SCHEMA statement, in that case
-		// avoid checking.
-		if(this.name != null) {
-			SchemaDescriptor sd = getSchemaDescriptor(this.name, true /*the schema must exist*/);
-			CompilerContext cc = getCompilerContext();
-			cc.addRequiredAccessSchemaPriv(sd.getUUID());
-		}
-	}
+        ParameterNode.generateParameterValueSet ( acb, 1, parameterList);
+    }
+
+    /**
+     * Returns the type of activation this class
+     * generates.
+     *
+     * @return  NEED_PARAM_ACTIVATION or
+     *            NEED_NOTHING_ACTIVATION depending on params
+     *
+     */
+    int activationKind()
+    {
+        /*
+        ** We need parameters
+        ** only for those that have parameters.
+        */
+        if (type == StatementType.SET_SCHEMA_DYNAMIC)
+        {
+            return StatementNode.NEED_PARAM_ACTIVATION;
+        }
+        else
+        {
+            return StatementNode.NEED_NOTHING_ACTIVATION;
+        }
+    }
+
+    @Override
+    public void bindStatement() throws StandardException
+    {
+        // name could be null when compiling a prepared SET SCHEMA statement, in that case
+        // avoid checking.
+        if(this.name != null) {
+            SchemaDescriptor sd = getSchemaDescriptor(null, this.name, true /*the schema must exist*/);
+            CompilerContext cc = getCompilerContext();
+            cc.addRequiredAccessSchemaPriv(sd.getUUID());
+        }
+    }
 }

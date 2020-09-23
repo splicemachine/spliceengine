@@ -1407,7 +1407,7 @@ public class FromBaseTable extends FromTable {
     private TableDescriptor bindTableDescriptor()
             throws StandardException{
         String schemaName=tableName.getSchemaName();
-        SchemaDescriptor sd=getSchemaDescriptor(schemaName);
+        SchemaDescriptor sd=getSchemaDescriptor(null, schemaName);
 
         tableDescriptor=getTableDescriptor(tableName.getTableName(),sd);
 
@@ -1423,7 +1423,7 @@ public class FromBaseTable extends FromTable {
                 throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND,tableName.toString());
 
             tableName=synonymTab;
-            sd=getSchemaDescriptor(tableName.getSchemaName());
+            sd=getSchemaDescriptor(null, tableName.getSchemaName());
 
             tableDescriptor=getTableDescriptor(synonymTab.getTableName(),sd);
             if(tableDescriptor==null)

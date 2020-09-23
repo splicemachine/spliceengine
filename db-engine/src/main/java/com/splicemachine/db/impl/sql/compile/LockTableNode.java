@@ -104,12 +104,12 @@ public class LockTableNode extends MiscellaneousStatementNode
 
     public void bindStatement() throws StandardException
     {
-        CompilerContext            cc = getCompilerContext();
-        ConglomerateDescriptor    cd;
+        CompilerContext         cc = getCompilerContext();
+        ConglomerateDescriptor  cd;
         SchemaDescriptor        sd;
 
         String schemaName = tableName.getSchemaName();
-        sd = getSchemaDescriptor(schemaName);
+        sd = getSchemaDescriptor(null, schemaName);
 
         // Users are not allowed to lock system tables
         if (sd.isSystemSchema())
@@ -127,7 +127,7 @@ public class LockTableNode extends MiscellaneousStatementNode
             if (synonymTab == null)
                 throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND, tableName.toString());
             tableName = synonymTab;
-            sd = getSchemaDescriptor(tableName.getSchemaName());
+            sd = getSchemaDescriptor(null, tableName.getSchemaName());
 
             lockTableDescriptor = getTableDescriptor(synonymTab.getTableName(), sd);
             if (lockTableDescriptor == null)

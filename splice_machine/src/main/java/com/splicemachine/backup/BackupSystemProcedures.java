@@ -571,7 +571,7 @@ public class BackupSystemProcedures {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
         if (sd == null) {
             throw StandardException.newException(com.splicemachine.db.iapi.reference.SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
         }

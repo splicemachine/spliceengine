@@ -983,7 +983,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     @Override
-    public SchemaDescriptor getSchemaDescriptor(String schemaName,
+    public SchemaDescriptor getSchemaDescriptor(UUID dbId, String schemaName,
                                                 TransactionController tc,
                                                 boolean raiseError) throws StandardException{
         /*
@@ -994,31 +994,48 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(tc==null){
             tc=getTransactionCompile();
         }
+        if (dbId == null) {
+            dbId = getLCC().getDatabaseId();
+        }
 
-        if(getSystemSchemaDescriptor().getSchemaName().equals(schemaName)){
-            return getSystemSchemaDescriptor();
-        }else if(getSysIBMSchemaDescriptor().getSchemaName().equals(schemaName)){
-            // oh you are really asking SYSIBM, if this db is soft upgraded 
-            // from pre 52, I may have 2 versions for you, one on disk 
-            // (user SYSIBM), one imaginary (builtin). The
-            // one on disk (real one, if it exists), should always be used.
-            if(dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2,null)){
-                return getSysIBMSchemaDescriptor();
-            }
+        switch (schemaName) {
+            case SchemaDescriptor.STD_SYSTEM_SCHEMA_NAME:
+                return getSystemSchemaDescriptor();
+            case SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME:
+                // oh you are really asking SYSIBM, if this db is soft upgraded
+                // from pre 52, I may have 2 versions for you, one on disk
+                // (user SYSIBM), one imaginary (builtin). The
+                // one on disk (real one, if it exists), should always be used.
+                if(dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2,null)){
+                    return getSysIBMSchemaDescriptor();
+                }
+                break;
+            case SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME:
+                return sysIBMADMSchemaDesc;
+            case SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME:
+                return getSystemUtilSchemaDescriptor();
+            case SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME:
+                return getSysFunSchemaDescriptor();
+            case SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME:
+                return sysViewSchemaDesc;
+            default:
+                break;
         }
 
         /*
         ** Manual lookup
         */
 
-        SchemaDescriptor sd = dataDictionaryCache.schemaCacheFind(schemaName);
+
+
+        SchemaDescriptor sd = dataDictionaryCache.schemaCacheFind(dbId, schemaName);
         if (sd!=null)
             return sd;
 
-        sd=locateSchemaRow(schemaName,tc);
+        sd=locateSchemaRow(dbId, schemaName,tc);
 
         if (sd!=null)
-            dataDictionaryCache.schemaCacheAdd(schemaName,sd);
+            dataDictionaryCache.schemaCacheAdd(dbId, schemaName,sd);
         //if no schema found and schema name is SESSION, then create an 
         //in-memory schema descriptor
         if(sd==null && getDeclaredGlobalTemporaryTablesSchemaDescriptor().getSchemaName().equals(schemaName)){
@@ -1125,14 +1142,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     @Override
-    public SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException{
-        DataValueDescriptor schemaNameOrderable;
+    public SchemaDescriptor locateSchemaRow(UUID dbId, String schemaName,TransactionController tc) throws StandardException{
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
-        schemaNameOrderable=new SQLVarchar(schemaName);
+        DataValueDescriptor schemaNameOrderable=new SQLVarchar(schemaName);
+        DataValueDescriptor dbIdOrderable = getIDValueAsCHAR(dbId);
 
-        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(2);
         keyRow.setColumn(1,schemaNameOrderable);
+        keyRow.setColumn(2,dbIdOrderable);
 
         return (SchemaDescriptor)
                 getDescriptorViaIndex(
@@ -1496,13 +1514,13 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     @Override
-    public void dropSchemaDescriptor(String schemaName,TransactionController tc) throws StandardException{
+    public void dropSchemaDescriptor(UUID dbId, String schemaName,TransactionController tc) throws StandardException{
         ExecIndexRow keyRow1;
         DataValueDescriptor schemaNameOrderable;
         TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
 
         if(SanityManager.DEBUG){
-            SchemaDescriptor sd=getSchemaDescriptor(schemaName,getTransactionCompile(),true);
+            SchemaDescriptor sd = getSchemaDescriptor(dbId, schemaName, getTransactionCompile(), true);
             if(!isSchemaEmpty(sd)){
                 SanityManager.THROWASSERT("Attempt to drop schema "+schemaName+" that is not empty");
             }
@@ -6141,7 +6159,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return null;
         }
 
-        SchemaDescriptor sd=getSchemaDescriptor(btii.getSchemaName(),tc,true);
+        SchemaDescriptor sd = getSchemaDescriptor(getLCC().getDatabase().getId(), btii.getSchemaName(), tc, true);
 
         return getAliasDescriptor(sd.getUUID().toString(),btii.getUnqualifiedName(),AliasInfo.ALIAS_NAME_SPACE_UDT_AS_CHAR);
     }
@@ -6421,7 +6439,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     public void resetDatabaseOwner(TransactionController tc) throws StandardException{
-        SchemaDescriptor sd=locateSchemaRow(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,tc);
+        SchemaDescriptor sd=locateSchemaRow(spliceDbDesc.getUUID(), SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc);
         authorizationDatabaseOwner=sd.getAuthorizationId();
 
         systemSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
@@ -8451,7 +8469,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public abstract void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue, boolean useBatch) throws StandardException;
 
     @Override
-    public abstract Long peekAtSequence(String schemaName,String sequenceName) throws StandardException;
+    public abstract Long peekAtSequence(UUID dbId, String schemaName,String sequenceName) throws StandardException;
 
     @Override
     public RowLocation getRowLocationTemplate(LanguageConnectionContext lcc,TableDescriptor td) throws StandardException{
@@ -8471,7 +8489,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return rl;
     }
 
-    private static LanguageConnectionContext getLCC(){
+    protected static LanguageConnectionContext getLCC(){
         return (LanguageConnectionContext)ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
     }
 
@@ -10222,7 +10240,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }else{// see if it's a user-defined table function
             String schemaName=td.getSchemaName();
             String functionName=td.getDescriptorName();
-            SchemaDescriptor sd=getSchemaDescriptor(td.getSchemaName(),null,true);
+            SchemaDescriptor sd=getSchemaDescriptor(getLCC().getDatabase().getId(), td.getSchemaName(),null,true);
 
             if(sd!=null){
                 AliasDescriptor ad=getAliasDescriptor(sd.getUUID().toString(),functionName,AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR);
@@ -10658,7 +10676,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Get the uuid string of a sequence given its schema and sequence name.
      * </p>
      */
-    protected String getSequenceID(String schemaName,String sequenceName) throws StandardException{
+    protected String getSequenceID(UUID dbId, String schemaName,String sequenceName) throws StandardException{
         Map<String, String> sequencesInSchema=sequenceIDs.get(schemaName);
         if(sequencesInSchema!=null){
             String uuid=sequencesInSchema.get(sequenceName);
@@ -10670,7 +10688,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         // oops, not saved in the sequenceID map yet. lookup the sequence.
         // this will save the uuid in the sequenceID map.
-        SchemaDescriptor schemaDescriptor=getSchemaDescriptor(schemaName,getTransactionCompile(),true);
+        SchemaDescriptor schemaDescriptor=getSchemaDescriptor(dbId, schemaName,getTransactionCompile(),true);
         SequenceDescriptor desc=getSequenceDescriptor(schemaDescriptor,sequenceName);
 
         if(desc==null){

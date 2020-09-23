@@ -80,7 +80,7 @@ public class DataDictionaryCache {
     private ManagedCache<Long,ConglomerateDescriptor> conglomerateDescriptorCache;
     private ManagedCache<GenericStatement,GenericStorablePreparedStatement> statementCache;
     private ManagedCache<String, DatabaseDescriptor> databaseCache;
-    private ManagedCache<String,SchemaDescriptor> schemaCache;
+    private ManagedCache<Pair<UUID, String>,SchemaDescriptor> schemaCache;
     private ManagedCache<UUID, SchemaDescriptor> oidSchemaCache;
     private ManagedCache<String,AliasDescriptor> aliasDescriptorCache;
     private ManagedCache<String,Optional<RoleGrantDescriptor>> roleCache;
@@ -409,26 +409,26 @@ public class DataDictionaryCache {
         databaseCache.invalidate(databaseName);
     }
 
-    public SchemaDescriptor schemaCacheFind(String schemaName) throws StandardException {
+    public SchemaDescriptor schemaCacheFind(UUID dbId, String schemaName) throws StandardException {
         if (!dd.canReadCache(null))
             return null;
         if (LOG.isDebugEnabled())
-            LOG.debug("schemaCacheFind " + schemaName);
-        return schemaCache.getIfPresent(schemaName);
+            LOG.debug("schemaCacheFind " + dbId + ":" + schemaName);
+        return schemaCache.getIfPresent(new Pair<>(dbId, schemaName));
     }
 
-    public void schemaCacheAdd(String schemaName, SchemaDescriptor descriptor) throws StandardException {
+    public void schemaCacheAdd(UUID dbId, String schemaName, SchemaDescriptor descriptor) throws StandardException {
         if (!dd.canWriteCache(null))
             return;
         if (LOG.isDebugEnabled())
-            LOG.debug("schemaCacheAdd " + schemaName + " : " + descriptor);
-        schemaCache.put(schemaName,descriptor);
+            LOG.debug("schemaCacheAdd " + dbId + ":" + schemaName + " : " + descriptor);
+        schemaCache.put(new Pair<>(dbId, schemaName), descriptor);
     }
 
-    public void schemaCacheRemove(String schemaName) throws StandardException {
+    public void schemaCacheRemove(UUID dbId, String schemaName) throws StandardException {
         if (LOG.isDebugEnabled())
-            LOG.debug("schemaCacheRemove " + schemaName);
-        schemaCache.invalidate(schemaName);
+            LOG.debug("schemaCacheRemove " + dbId + ":" + schemaName);
+        schemaCache.invalidate(new Pair<>(dbId, schemaName));
     }
 
     public SchemaDescriptor oidSchemaCacheFind(UUID schemaID) throws StandardException {
@@ -445,7 +445,7 @@ public class DataDictionaryCache {
             return;
         if (LOG.isDebugEnabled())
             LOG.debug("oidSchemaCacheAdd " + schemaID + " : " + descriptor);
-        oidSchemaCache.put(schemaID,descriptor);
+        oidSchemaCache.put(schemaID, descriptor);
     }
 
     public void oidSchemaCacheRemove(UUID schemaID) throws StandardException {

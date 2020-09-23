@@ -145,7 +145,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 
 		SchemaDescriptor tdSd = td.getSchemaDescriptor();
 		SchemaDescriptor constraintSd = 
-			constraintSchemaName == null ? tdSd : dd.getSchemaDescriptor(constraintSchemaName, tc, true);
+			constraintSchemaName == null ? tdSd : dd.getSchemaDescriptor(null, constraintSchemaName, tc, true);
 
 
 		/* Get the constraint descriptor for the index, along

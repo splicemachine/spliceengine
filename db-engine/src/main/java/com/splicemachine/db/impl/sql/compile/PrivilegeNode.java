@@ -172,16 +172,16 @@ public class PrivilegeNode extends QueryTreeNode
      * @param isGrant grant if true; revoke if false
      * @return the bound node
      *
-     * @exception StandardException	Standard error policy.
+     * @exception StandardException    Standard error policy.
      */
-	public QueryTreeNode bind( HashMap dependencies, List grantees, boolean isGrant ) throws StandardException
-	{
+    public QueryTreeNode bind( HashMap dependencies, List grantees, boolean isGrant ) throws StandardException
+    {
         SchemaDescriptor sd;
 
         switch( objectType)
         {
         case SCHEMA_PRIVILEGES:
-            sd = getSchemaDescriptor( schemaName, true);
+            sd = getSchemaDescriptor(null, schemaName, true);
             verifySelfGrantRevoke(sd,grantees);
 
             if (sd.isSystemSchema())
@@ -205,7 +205,7 @@ public class PrivilegeNode extends QueryTreeNode
             if (specificPrivileges.modifyActionAllowed() || specificPrivileges.accessActionAllowed()) {
                 throw StandardException.newException(SQLState.AUTH_NOT_VALID_TABLE_PRIVILEGE);
             }
-            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            sd = getSchemaDescriptor(null, objectName.getSchemaName(), true);
             verifySelfGrantRevoke(sd,grantees);
 
             // The below code handles the case where objectName.getSchemaName()
@@ -233,7 +233,7 @@ public class PrivilegeNode extends QueryTreeNode
             }
 
             if (td.getTableType() != TableDescriptor.BASE_TABLE_TYPE &&
-            		td.getTableType() != TableDescriptor.VIEW_TYPE)
+                    td.getTableType() != TableDescriptor.VIEW_TYPE)
             {
                 throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
             }
@@ -243,7 +243,7 @@ public class PrivilegeNode extends QueryTreeNode
             break;
 
         case ROUTINE_PRIVILEGES:
-            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            sd = getSchemaDescriptor(null, objectName.getSchemaName(), true);
             verifySelfGrantRevoke(sd,grantees);
 
             // The below code handles the case where objectName.getSchemaName()
@@ -255,7 +255,7 @@ public class PrivilegeNode extends QueryTreeNode
             {
                 throw StandardException.newException(SQLState.AUTH_GRANT_REVOKE_NOT_ALLOWED, objectName.getFullTableName());
             }
-				
+
             AliasDescriptor proc = null;
             RoutineAliasInfo routineInfo;
             List<AliasDescriptor> list = getDataDictionary().getRoutineList(
@@ -325,7 +325,7 @@ public class PrivilegeNode extends QueryTreeNode
             break;
         case AGGREGATE_PRIVILEGES:
 
-            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            sd = getSchemaDescriptor(null, objectName.getSchemaName(), true);
             verifySelfGrantRevoke(sd,grantees);
 
             // The below code handles the case where objectName.getSchemaName()
@@ -344,7 +344,7 @@ public class PrivilegeNode extends QueryTreeNode
 
         case SEQUENCE_PRIVILEGES:
 
-            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            sd = getSchemaDescriptor(null, objectName.getSchemaName(), true);
             verifySelfGrantRevoke(sd,grantees);
 
             // The below code handles the case where objectName.getSchemaName()
@@ -361,7 +361,7 @@ public class PrivilegeNode extends QueryTreeNode
             
         case UDT_PRIVILEGES:
 
-            sd = getSchemaDescriptor( objectName.getSchemaName(), true);
+            sd = getSchemaDescriptor(null, objectName.getSchemaName(), true);
             verifySelfGrantRevoke(sd,grantees);
 
             // The below code handles the case where objectName.getSchemaName()

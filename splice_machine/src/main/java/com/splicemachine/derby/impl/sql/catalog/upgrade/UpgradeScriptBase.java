@@ -42,7 +42,7 @@ public class UpgradeScriptBase implements UpgradeScript {
         String schemaName = sName.toUpperCase();
         String procedureName = pName.toUpperCase();
 
-        SchemaDescriptor sd = sdd.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        SchemaDescriptor sd = sdd.getSchemaDescriptor(null, schemaName, tc, true);  // Throws an exception if the schema does not exist.
         UUID schemaId = sd.getUUID();
         AliasDescriptor ad = sdd.getAliasDescriptor(schemaId.toString(), procedureName, procedureOrFunction);
         if (ad != null) {  // Drop the procedure if it already exists.

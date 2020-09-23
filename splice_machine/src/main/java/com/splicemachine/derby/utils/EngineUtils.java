@@ -191,7 +191,7 @@ public class EngineUtils{
                                                         LanguageConnectionContext lcc,
                                                         DataDictionary dd) throws StandardException {
         SchemaDescriptor schemaDescriptor;
-        if (schema ==null || (schemaDescriptor = dd.getSchemaDescriptor(schema, lcc.getTransactionExecute(), true))==null)
+        if (schema ==null || (schemaDescriptor = dd.getSchemaDescriptor(null, schema, lcc.getTransactionExecute(), true))==null)
             throw ErrorState.LANG_SCHEMA_DOES_NOT_EXIST.newException(schema);
         return schemaDescriptor;
     }

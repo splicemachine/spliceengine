@@ -69,7 +69,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
     private static final int[][] indexColumnPositions =
     {
-        {SYSSCHEMAS_SCHEMANAME},
+        {SYSSCHEMAS_SCHEMANAME, SYSSCHEMAS_DATABASEID},
         {SYSSCHEMAS_SCHEMAID}
     };
 

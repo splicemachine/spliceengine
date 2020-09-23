@@ -50,36 +50,36 @@ import com.splicemachine.db.iapi.reference.SQLState;
 
 public class DropSchemaNode extends DDLStatementNode
 {
-	private int			dropBehavior;
-	private String		schemaName;
+    private int            dropBehavior;
+    private String        schemaName;
 
-	/**
-	 * Initializer for a DropSchemaNode
-	 *
-	 * @param schemaName		The name of the object being dropped
-	 * @param dropBehavior		Drop behavior (RESTRICT | CASCADE)
-	 *
-	 */
-	public void init(Object schemaName, Object dropBehavior)
-		throws StandardException
-	{
-		initAndCheck(null);
-		this.schemaName = (String) schemaName;
-		this.dropBehavior = (Integer) dropBehavior;
-	}
+    /**
+     * Initializer for a DropSchemaNode
+     *
+     * @param schemaName        The name of the object being dropped
+     * @param dropBehavior        Drop behavior (RESTRICT | CASCADE)
+     *
+     */
+    public void init(Object schemaName, Object dropBehavior)
+        throws StandardException
+    {
+        initAndCheck(null);
+        this.schemaName = (String) schemaName;
+        this.dropBehavior = (Integer) dropBehavior;
+    }
 
-	public void bindStatement() throws StandardException
-	{
-		/* 
-		** Users are not permitted to drop
-		** the SYS or SPLICE schemas.
-		*/
+    public void bindStatement() throws StandardException
+    {
+        /*
+        ** Users are not permitted to drop
+        ** the SYS or SPLICE schemas.
+        */
         if (getDataDictionary().isSystemSchemaName(schemaName))
-		{
-			throw(StandardException.newException(
+        {
+            throw(StandardException.newException(
                     SQLState.LANG_CANNOT_DROP_SYSTEM_SCHEMAS, this.schemaName));
-		}
-		
+        }
+
         /* 
         ** In SQL authorization mode, the current authorization identifier
         ** must be either the owner of the schema or the database owner 
@@ -91,50 +91,50 @@ public class DropSchemaNode extends DDLStatementNode
             StatementContext stx = lcc.getStatementContext();
             
             String currentUser = stx.getSQLSessionContext().getCurrentUser();
-			SchemaDescriptor sd=lcc.getDataDictionary().getSchemaDescriptor(schemaName,
-					getLanguageConnectionContext().getTransactionCompile(),true);
-			getCompilerContext().addRequiredAccessSchemaPriv(sd.getUUID());
+            SchemaDescriptor sd=lcc.getDataDictionary().getSchemaDescriptor(null, schemaName,
+                    getLanguageConnectionContext().getTransactionCompile(),true);
+            getCompilerContext().addRequiredAccessSchemaPriv(sd.getUUID());
             getCompilerContext().addRequiredSchemaPriv(schemaName, 
                 currentUser,
                 Authorizer.DROP_SCHEMA_PRIV);
         }
-	}
+    }
 
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
 
-	public String toString()
-	{
-		if (SanityManager.DEBUG)
-		{
-			return super.toString() +
-				"dropBehavior: " + "\n" + dropBehavior + "\n";
-		}
-		else
-		{
-			return "";
-		}
-	}
+    public String toString()
+    {
+        if (SanityManager.DEBUG)
+        {
+            return super.toString() +
+                "dropBehavior: " + "\n" + dropBehavior + "\n";
+        }
+        else
+        {
+            return "";
+        }
+    }
 
-	public String statementToString()
-	{
-		return "DROP SCHEMA";
-	}
+    public String statementToString()
+    {
+        return "DROP SCHEMA";
+    }
 
-	// inherit generate() method from DDLStatementNode
+    // inherit generate() method from DDLStatementNode
 
 
-	/**
-	 * Create the Constant information that will drive the guts of Execution.
-	 *
-	 * @exception StandardException		Thrown on failure
-	 */
-	public ConstantAction	makeConstantAction() throws StandardException
-	{
-		return	getGenericConstantActionFactory().getDropSchemaConstantAction(schemaName);
-	}
+    /**
+     * Create the Constant information that will drive the guts of Execution.
+     *
+     * @exception StandardException        Thrown on failure
+     */
+    public ConstantAction    makeConstantAction() throws StandardException
+    {
+        return    getGenericConstantActionFactory().getDropSchemaConstantAction(schemaName);
+    }
 }

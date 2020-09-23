@@ -273,7 +273,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void createSystemViews(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
         //Add the SYSVW schema if it does not exists
-        if (getSchemaDescriptor(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
+        if (getSchemaDescriptor(spliceDbDesc.getUUID(), SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
             sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, SchemaDescriptor.SYSVW_SCHEMA_UUID, tc);
         }
 
@@ -355,7 +355,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void createTablesAndViewsInSysIBMADM(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
         //Add the SYSIBMADM schema if it does not exists
-        if (getSchemaDescriptor(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
+        if (getSchemaDescriptor(spliceDbDesc.getUUID(), SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, tc, false) == null) {
             sysIBMADMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_ADM_SCHEMA_NAME, SchemaDescriptor.SYSIBMADM_SCHEMA_UUID, tc);
         }
 
@@ -643,8 +643,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     @Override
-    public Long peekAtSequence(String schemaName,String sequenceName) throws StandardException {
-        String sequenceUUIDstring=getSequenceID(schemaName, sequenceName);
+    public Long peekAtSequence(UUID dbId, String schemaName,String sequenceName) throws StandardException {
+        String sequenceUUIDstring=getSequenceID(dbId, schemaName, sequenceName);
         if(sequenceUUIDstring==null)
             throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION,"SEQUENCE",(schemaName+"."+sequenceName));
 
@@ -674,10 +674,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 RowLocation[] rowLocation=new RowLocation[1];
                 sequenceDescriptor=new SequenceDescriptor[1];
 
-                LanguageConnectionContext llc=(LanguageConnectionContext)
-                        ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
-
-                TransactionController tc=llc.getTransactionExecute();
+                TransactionController tc=getLCC().getTransactionExecute();
                 computeSequenceRowLocation(tc,sequenceUUIDstring,rowLocation,sequenceDescriptor);
                 sequenceRowLocationBytes=rowLocation[0].getBytes();
                 sequenceRowLocationBytesMap.put(sequenceUUIDstring,sequenceRowLocationBytes);
@@ -1581,7 +1578,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void createPermissionTableSystemViews(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
         //Add the SYSVW schema if it does not exists
-        if (getSchemaDescriptor(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
+        if (getSchemaDescriptor(spliceDbDesc.getUUID(), SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
             SpliceLogUtils.info(LOG, "SYSVW does not exist, system views for permission tables are not created!");
             return;
         }
@@ -1623,7 +1620,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void createAliasToTableSystemView(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
         //Add the SYSVW schema if it does not exists
-        if (getSchemaDescriptor(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
+        if (getSchemaDescriptor(spliceDbDesc.getUUID(), SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME, tc, false) == null) {
             SpliceLogUtils.info(LOG, "SYSVW does not exist, system views for permission tables are not created!");
             return;
         }

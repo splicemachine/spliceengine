@@ -521,7 +521,7 @@ public class SpliceDatabase extends BasicDatabase{
                     StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
                             fid.getDescriptorType(), util.getSqlName(), fid.getSchemaDescriptor().getDescriptorType(), util.getSchemaName());
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(util.getSchemaName(), null, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, util.getSchemaName(), null, true);
         try {
             TransactionController tc= ((DataDictionaryImpl)dd).getTransactionCompile();
             DDLMessage.DDLChange ddlChange = ProtoUtil.createNotifyJarLoader( ((SpliceTransactionManager)tc).getActiveStateTxn().getTxnId(), false,false,null,null);

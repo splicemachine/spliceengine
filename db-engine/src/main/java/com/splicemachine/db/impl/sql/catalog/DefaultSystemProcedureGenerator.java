@@ -126,7 +126,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         schemaName = schemaName.toUpperCase();
         procName = procName.toUpperCase();
 
-        SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(null, schemaName, tc, true);  // Throws an exception if the schema does not exist.
         UUID schemaId = sd.getUUID();
 
         // Do not check for an existing procedure.  We want stuff to blow up.
@@ -166,7 +166,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         schemaName = schemaName.toUpperCase();
         procName = procName.toUpperCase();
 
-        SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(null, schemaName, tc, true);  // Throws an exception if the schema does not exist.
         UUID schemaId = sd.getUUID();
 
         // Check for existing procedure
@@ -204,7 +204,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         procName = procName.toUpperCase();
 
         // Delete the procedure from SYSALIASES if it already exists.
-        SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(null, schemaName, tc, true);  // Throws an exception if the schema does not exist.
         UUID schemaId = sd.getUUID();
 
            // Check for existing procedure
@@ -286,7 +286,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
             return null;
         }
 
-        SchemaDescriptor sd = dictionary.getSchemaDescriptor(schemaName, tc, true);  // Throws an exception if the schema does not exist.
+        SchemaDescriptor sd = dictionary.getSchemaDescriptor(null, schemaName, tc, true);  // Throws an exception if the schema does not exist.
         UUID schemaId = sd.getUUID();
         Map<UUID, List<Procedure>> procedureMap = getProcedures(dictionary, tc);
         return procedureMap.get(schemaId);
@@ -331,7 +331,7 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         procedures.put(sysIbmUUID,sysIbmProcedures);
 
         // SQL schema
-        UUID sqlJUUID = dictionary.getSchemaDescriptor(
+        UUID sqlJUUID = dictionary.getSchemaDescriptor(dictionary.getSpliceDatabaseDescriptor().getUUID(),
                 SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,tc,true).getUUID();
         procedures.put(sqlJUUID,sqlJProcedures);
 
@@ -447,11 +447,11 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                     .ownerClass(SYSTEM_PROCEDURES)
                     .build()
             ,
-                /*
-                 * PLEASE NOTE:
-                 * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
-                 * with tools to debug and repair databases and data dictionaries.
-                 */
+            /*
+             * PLEASE NOTE:
+             * This method is currently not used, but will be used and moved when Splice Machine has a SYS_DEBUG schema available
+             * with tools to debug and repair databases and data dictionaries.
+             */
 //                Procedure.newBuilder().name("SYSCS_CREATE_SYSTEM_PROCEDURE")
 //                .numOutputParams(0).numResultSets(0).modifiesSql()
 //                .returnType(null).isDeterministic(false)
@@ -489,11 +489,11 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
 
     private static final List<Procedure> sqlJProcedures = Arrays.asList(
             Procedure.newBuilder().name("INSTALL_JAR").numOutputParams(0).numResultSets(0)
-                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .varchar("URL",256)
-                .catalog("JAR")
-                .integer("DEPLOY").build()
+                    .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    .ownerClass(SYSTEM_PROCEDURES)
+                    .varchar("URL",256)
+                    .catalog("JAR")
+                    .integer("DEPLOY").build()
             ,
             Procedure.newBuilder().name("REPLACE_JAR").numOutputParams(0).numResultSets(0)
                     .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)

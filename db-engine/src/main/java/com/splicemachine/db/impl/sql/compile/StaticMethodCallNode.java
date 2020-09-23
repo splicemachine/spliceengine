@@ -217,7 +217,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 
             boolean noSchema = schemaName == null;
 
-            SchemaDescriptor sd = getSchemaDescriptor(schemaName, schemaName != null);
+            SchemaDescriptor sd = getSchemaDescriptor(null, schemaName, schemaName != null);
 
             // The field methodName is used by resolveRoutine and
             // is set to the name of the routine (procedureName.getTableName()).
@@ -237,7 +237,7 @@ public class StaticMethodCallNode extends MethodCallNode {
                 // was not qualified. E.g. COS(angle). The
                 // SYSFUN functions are not in SYSALIASES but
                 // an in-memory table, set up in DataDictionaryImpl.
-                sd = getSchemaDescriptor("SYSFUN", true);
+                sd = getSchemaDescriptor(null, "SYSFUN", true);
 
                 resolveRoutine(fromList, subqueryList, aggregateVector, sd);
                 setIsSystemFunction(true);
@@ -301,7 +301,7 @@ public class StaticMethodCallNode extends MethodCallNode {
             {
                 if (!sd.isSystemSchema())
                     throw StandardException.newException(
-                        SQLState.LANG_TYPE_DOESNT_EXIST2, (Throwable) null,
+                        SQLState.LANG_TYPE_DOESNT_EXIST2, null,
                         javaClassName);
             }
         }

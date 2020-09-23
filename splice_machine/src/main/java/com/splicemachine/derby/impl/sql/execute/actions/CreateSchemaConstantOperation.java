@@ -92,7 +92,7 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
         DataDictionary dd = lcc.getDataDictionary();
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, lcc.getTransactionExecute(), false);
 
         /*
          * if the schema descriptor is an in-memory schema, we do not throw schema already exists exception for it.

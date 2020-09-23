@@ -51,7 +51,7 @@ import java.util.Properties;
 import java.sql.SQLException;
 
 /**
-  *	PropertyInfo is a class with static methods that retrieve the properties
+  *    PropertyInfo is a class with static methods that retrieve the properties
   * associated with a table or index and set and retrieve properties associated
   * with a database.
   * 
@@ -65,70 +65,70 @@ public final class PropertyInfo
     /**
      * Get the Properties associated with a given table.
      *
-	 * @param schemaName    The name of the schema that the table is in.
-	 * @param tableName     The name of the table.
-	 * 
-	 * @return Properties   The Properties associated with the specified table.
+     * @param schemaName    The name of the schema that the table is in.
+     * @param tableName     The name of the table.
+     *
+     * @return Properties   The Properties associated with the specified table.
      *                      (An empty Properties is returned if the table does not exist.)
      * @exception SQLException on error
      */
     public static Properties getTableProperties(String schemaName, String tableName)
         throws SQLException
-	{
-		return	PropertyInfo.getConglomerateProperties( schemaName, tableName, false );
-	}
+    {
+        return    PropertyInfo.getConglomerateProperties( schemaName, tableName, false );
+    }
 
-	/**
-		Set or delete the value of a property of the database on the current connection.
+    /**
+        Set or delete the value of a property of the database on the current connection.
 
-		@param key the property key
-		@param value the new value, if null the property is deleted.
+        @param key the property key
+        @param value the new value, if null the property is deleted.
 
-		@exception SQLException on error
-	*/
-	public static void setDatabaseProperty(String key, String value) throws SQLException
-	{
-		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        @exception SQLException on error
+    */
+    public static void setDatabaseProperty(String key, String value) throws SQLException
+    {
+        LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
 
-		try {
-		Authorizer a = lcc.getAuthorizer();
-		a.authorize((Activation) null, Authorizer.PROPERTY_WRITE_OP);
+        try {
+        Authorizer a = lcc.getAuthorizer();
+        a.authorize((Activation) null, Authorizer.PROPERTY_WRITE_OP);
 
         // Get the current transaction controller
         TransactionController tc = lcc.getTransactionExecute();
 
-		tc.setProperty(key, value, false);
-		} catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
-		}
-	}
+        tc.setProperty(key, value, false);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
+    }
 
-	/**
-	  Internal use only.
-	  */
-    private	PropertyInfo() {}
+    /**
+      Internal use only.
+      */
+    private    PropertyInfo() {}
 
 
-	//////////////////////////////////////////////////////////////////////////////
-	//
-	//	PRIVATE METHODS
-	//
-	/////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////////////////////////////////
+    //
+    //    PRIVATE METHODS
+    //
+    /////////////////////////////////////////////////////////////////////////////
 
     /**
      * Get the Properties associated with a given conglomerate
      *
-	 * @param schemaName    	The name of the schema that the conglomerate is in.
-	 * @param conglomerateName  The name of the conglomerate.
-	 * 
-	 * @return Properties   The Properties associated with the specified conglomerate.
+     * @param schemaName        The name of the schema that the conglomerate is in.
+     * @param conglomerateName  The name of the conglomerate.
+     *
+     * @return Properties   The Properties associated with the specified conglomerate.
      *                      (An empty Properties is returned if the conglomerate does not exist.)
      * @exception SQLException on error
      */
-	private static Properties	getConglomerateProperties( String schemaName, String conglomerateName, boolean isIndex )
+    private static Properties    getConglomerateProperties( String schemaName, String conglomerateName, boolean isIndex )
         throws SQLException
-	{
-		long					  conglomerateNumber;
+    {
+        long                      conglomerateNumber;
 
         // find the language context.
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
@@ -136,51 +136,51 @@ public final class PropertyInfo
         // Get the current transaction controller
         TransactionController tc = lcc.getTransactionExecute();
 
-		try {
+        try {
 
-		// find the DataDictionary
-		DataDictionary dd = lcc.getDataDictionary();
+        // find the DataDictionary
+        DataDictionary dd = lcc.getDataDictionary();
 
 
-		// get the SchemaDescriptor
-		SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
-		if ( !isIndex)
-		{
-			// get the TableDescriptor for the table
-			TableDescriptor td = dd.getTableDescriptor(conglomerateName, sd, tc);
+        // get the SchemaDescriptor
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
+        if ( !isIndex)
+        {
+            // get the TableDescriptor for the table
+            TableDescriptor td = dd.getTableDescriptor(conglomerateName, sd, tc);
 
-			// Return an empty Properties if table does not exist or if it is for a view.
-			if ((td == null) || td.getTableType() == TableDescriptor.VIEW_TYPE) { return new Properties(); }
+            // Return an empty Properties if table does not exist or if it is for a view.
+            if ((td == null) || td.getTableType() == TableDescriptor.VIEW_TYPE) { return new Properties(); }
 
-			conglomerateNumber = td.getHeapConglomerateId();
-		}
-		else
-		{
-			// get the ConglomerateDescriptor for the index
-			ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateName, sd, false);
+            conglomerateNumber = td.getHeapConglomerateId();
+        }
+        else
+        {
+            // get the ConglomerateDescriptor for the index
+            ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateName, sd, false);
 
-			// Return an empty Properties if index does not exist
-			if (cd == null) { return new Properties(); }
+            // Return an empty Properties if index does not exist
+            if (cd == null) { return new Properties(); }
 
-			conglomerateNumber = cd.getConglomerateNumber();
-		}
+            conglomerateNumber = cd.getConglomerateNumber();
+        }
 
-		ConglomerateController cc = tc.openConglomerate(
+        ConglomerateController cc = tc.openConglomerate(
                 conglomerateNumber,
                 false,
                 0, 
                 TransactionController.MODE_RECORD,
                 TransactionController.ISOLATION_SERIALIZABLE);
 
-		Properties properties = tc.getUserCreateConglomPropList();
-		cc.getTableProperties( properties );
+        Properties properties = tc.getUserCreateConglomPropList();
+        cc.getTableProperties( properties );
 
-		cc.close();
+        cc.close();
         return properties;
 
-		} catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
-		}
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        }
 
-	}
+    }
 }

@@ -51,9 +51,9 @@ import com.splicemachine.db.impl.load.Import;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.shared.common.reference.AuditEventType;
-import org.apache.log4j.Logger;
 import com.splicemachine.utils.StringUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.log4j.Logger;
 
 import java.security.AccessController;
 import java.security.Policy;
@@ -1033,10 +1033,9 @@ public class SystemProcedures{
 
         try{
             DataDictionary data_dictionary=lcc.getDataDictionary();
-            SchemaDescriptor sd=
-                    data_dictionary.getSchemaDescriptor(schema,tc,true);
-            TableDescriptor td=
-                    data_dictionary.getTableDescriptor(tablename,sd,tc);
+            UUID dbId = lcc.getDatabase().getId();
+            SchemaDescriptor sd = data_dictionary.getSchemaDescriptor(dbId, schema, tc, true);
+            TableDescriptor td = data_dictionary.getTableDescriptor(tablename,sd,tc);
 
             if(td!=null && td.getTableType()==TableDescriptor.VTI_TYPE){
                 return;
@@ -1775,7 +1774,8 @@ public class SystemProcedures{
         DataDictionary dd=lcc.getDataDictionary();
         TransactionController tc=lcc.getTransactionExecute();
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+        UUID dbId =lcc.getDatabase().getId();
+        SchemaDescriptor sd = dd.getSchemaDescriptor(dbId, schemaName, lcc.getTransactionExecute(), false);
 
         // if the schema already, do nothing,  we already have a schema for the user
         // let the admin handle that
@@ -2068,7 +2068,8 @@ public class SystemProcedures{
     public static Long SYSCS_PEEK_AT_SEQUENCE(String schemaName,String sequenceName)
             throws SQLException{
         try{
-            return ConnectionUtil.getCurrentLCC().getDataDictionary().peekAtSequence(schemaName,sequenceName);
+            UUID dbId = ConnectionUtil.getCurrentLCC().getDatabase().getId();
+            return ConnectionUtil.getCurrentLCC().getDataDictionary().peekAtSequence(dbId, schemaName,sequenceName);
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }

@@ -137,7 +137,7 @@ class CreateSchemaConstantAction extends DDLConstantAction
         DataDictionary dd = lcc.getDataDictionary();
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, lcc.getTransactionExecute(), false);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, lcc.getTransactionExecute(), false);
 
         //if the schema descriptor is an in-memory schema, we donot throw schema already exists exception for it.
         //This is to handle in-memory SESSION schema for temp tables

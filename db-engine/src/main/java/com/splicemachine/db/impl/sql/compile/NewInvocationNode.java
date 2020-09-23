@@ -148,10 +148,10 @@ public class NewInvocationNode extends MethodCallNode
             // pass to the data dictionary.
             td = new TableDescriptor(getDataDictionary(),
                     vtiName.getTableName(),
-                    getSchemaDescriptor(vtiName.getSchemaName()),
+                    getSchemaDescriptor(null, vtiName.getSchemaName()),
                     TableDescriptor.VTI_TYPE,
                     TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
-                    null,null,null,null,null,null, false,false, null);
+					null,null,null,null,null,null, false,false, null);
         }
 
         /* Use the table descriptor to figure out what the corresponding

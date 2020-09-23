@@ -700,7 +700,7 @@ public class SpliceRegionAdmin {
             throw StandardException.newException(SQLState.TABLE_NAME_CANNOT_BE_NULL);
         }
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
         if (sd == null){
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
         }

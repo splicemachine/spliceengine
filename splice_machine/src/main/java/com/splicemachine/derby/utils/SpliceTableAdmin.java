@@ -258,7 +258,7 @@ public class SpliceTableAdmin {
         Activation activation = lcc.getLastActivation();
 
         DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schema, tc, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schema, tc, true);
         if (sd == null) {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schema);
         }

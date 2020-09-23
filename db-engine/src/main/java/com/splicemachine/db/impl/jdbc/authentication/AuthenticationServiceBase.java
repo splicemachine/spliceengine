@@ -936,7 +936,7 @@ public abstract class AuthenticationServiceBase
 
         // Check if the DBO schema already exists which may happen if the manual override for
         // creation of the native credentials database is set.
-        SchemaDescriptor sd = dd.getSchemaDescriptor(userName, tc, false);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(null, userName, tc, false);
         if (sd == null || sd.getUUID() == null) {
             UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
             dd.startWriting(lcc);

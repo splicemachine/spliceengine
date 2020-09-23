@@ -53,6 +53,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.*;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -376,9 +377,23 @@ public class DDLUtils {
     public static void preDropSchema(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropSchema with change=%s",change);
-        dd.getDataDictionaryCache().schemaCacheRemove(change.getDropSchema().getSchemaName());
-        dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(change.getDropSchema().getSchemaUUID()));
-
+        SpliceTransactionResourceImpl transactionResource = null;
+        boolean prepared = false;
+        try {
+            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
+            LanguageConnectionContext lcc = transactionResource.getLcc();
+            dd.getDataDictionaryCache().schemaCacheRemove(lcc.getDatabaseId(), change.getDropSchema().getSchemaName());
+            dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(change.getDropSchema().getSchemaUUID()));
+        } catch (SQLException e) {
+            e.printStackTrace();
+            throw StandardException.plainWrapException(e);
+        } finally {
+            if (prepared) {
+                transactionResource.close();
+            }
+        }
     }
 
     public static void preUpdateSchemaOwner(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
@@ -391,8 +406,9 @@ public class DDLUtils {
             TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
             transactionResource = new SpliceTransactionResourceImpl();
             prepared = transactionResource.marshallTransaction(txn);
+            LanguageConnectionContext lcc = transactionResource.getLcc();
             // remove corresponding schema canche entry
-            dd.getDataDictionaryCache().schemaCacheRemove(change.getUpdateSchemaOwner().getSchemaName());
+            dd.getDataDictionaryCache().schemaCacheRemove(lcc.getDatabaseId(), change.getUpdateSchemaOwner().getSchemaName());
             dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(change.getUpdateSchemaOwner().getSchemaUUID()));
             // clear permission cache as it has out-of-date permission info for the schema
             dd.getDataDictionaryCache().clearPermissionCache();
@@ -423,9 +439,10 @@ public class DDLUtils {
             transactionResource = new SpliceTransactionResourceImpl();
             //transactionResource.prepareContextManager();
             prepared = transactionResource.marshallTransaction(txn);
-            TransactionController tc = transactionResource.getLcc().getTransactionExecute();
+            LanguageConnectionContext lcc = transactionResource.getLcc();
+            TransactionController tc = lcc.getTransactionExecute();
             DDLMessage.DropIndex dropIndex =  change.getDropIndex();
-            SchemaDescriptor sd = dd.getSchemaDescriptor(dropIndex.getSchemaName(),tc,true);
+            SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), dropIndex.getSchemaName(),tc,true);
             TableDescriptor td = dd.getTableDescriptor(ProtoUtil.getDerbyUUID(dropIndex.getTableUUID()));
             ConglomerateDescriptor cd = dd.getConglomerateDescriptor(dropIndex.getIndexName(), sd, true);
             if (td!=null) { // Table Descriptor transaction never committed
@@ -478,9 +495,9 @@ public class DDLUtils {
                 if(td==null) // Table Descriptor transaction never committed
                     return;
                 dm.invalidateFor(td,DependencyManager.RENAME,transactionResource.getLcc());
-    		/* look for foreign key dependency on the table. If found any,
-	    	use dependency manager to pass the rename action to the
-		    dependents. */
+            /* look for foreign key dependency on the table. If found any,
+            use dependency manager to pass the rename action to the
+            dependents. */
                 ConstraintDescriptorList constraintDescriptorList=dd.getConstraintDescriptors(td);
                 for(int index=0;index<constraintDescriptorList.size();index++){
                     ConstraintDescriptor constraintDescriptor=constraintDescriptorList.elementAt(index);
@@ -597,10 +614,11 @@ public class DDLUtils {
             try{
                 prepared = transactionResource.marshallTransaction(txn);
                 dd.invalidateAllSPSPlans(); // This will break other nodes, must do ddl
-                ClassFactory cf = transactionResource.getLcc().getLanguageConnectionFactory().getClassFactory();
+                LanguageConnectionContext lcc = transactionResource.getLcc();
+                ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
                 cf.notifyModifyJar(change.getNotifyJarLoader().getReload());
                 if (change.getNotifyJarLoader().getDrop()) {
-                    SchemaDescriptor sd = dd.getSchemaDescriptor(change.getNotifyJarLoader().getSchemaName(), null, true);
+                    SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), change.getNotifyJarLoader().getSchemaName(), null, true);
                     if (sd ==null)
                         return;
                     FileInfoDescriptor fid = dd.getFileInfoDescriptor(sd,change.getNotifyJarLoader().getSqlName());
@@ -694,8 +712,9 @@ public class DDLUtils {
             try{
                 prepared = transactionResource.marshallTransaction(txn);
                 DDLMessage.DropSequence dropSequence=change.getDropSequence();
-                TransactionController tc = transactionResource.getLcc().getTransactionExecute();
-                SchemaDescriptor sd = dd.getSchemaDescriptor(dropSequence.getSchemaName(),tc,true);
+                LanguageConnectionContext lcc = transactionResource.getLcc();
+                TransactionController tc = lcc.getTransactionExecute();
+                SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), dropSequence.getSchemaName(),tc,true);
                 if(sd==null) // Table Descriptor transaction never committed
                     return;
                 SequenceDescriptor seqDesc = dd.getSequenceDescriptor(sd,dropSequence.getSequenceName());

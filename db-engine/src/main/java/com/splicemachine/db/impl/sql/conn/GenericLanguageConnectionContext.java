@@ -547,9 +547,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             DataDictionary dd=getDataDictionary();
             SchemaDescriptor sd;
             if (defaultSchema != null) {
-                sd = dd.getSchemaDescriptor(defaultSchema, getTransactionCompile(), true);
+                sd = dd.getSchemaDescriptor(getDatabaseId(), defaultSchema, getTransactionCompile(), true);
             } else {
-                sd = dd.getSchemaDescriptor(getSessionUserId(), getTransactionCompile(), false);
+                sd = dd.getSchemaDescriptor(getDatabaseId(), getSessionUserId(), getTransactionCompile(), false);
             }
             if(sd==null){
                 sd=new SchemaDescriptor(
@@ -2674,6 +2674,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public UUID getDatabaseId(){
+        return db.getId();
+    }
+
+    @Override
     public int incrementBindCount(){
         bindCount++;
         return bindCount;
@@ -3579,6 +3584,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if(definersRights){
             DataDictionary dd = getDataDictionary();
             SchemaDescriptor sd = dd.getSchemaDescriptor(
+                    getDatabaseId(),
                     definer,
                     getTransactionExecute(),
                     false);

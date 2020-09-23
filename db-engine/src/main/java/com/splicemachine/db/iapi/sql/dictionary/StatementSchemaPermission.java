@@ -114,7 +114,7 @@ public class StatementSchemaPermission extends StatementPermission
                             sd.getSchemaName());
                 break;
             case Authorizer.MODIFY_SCHEMA_PRIV:
-                sd = dd.getSchemaDescriptor(schemaName, tc, false);
+                sd = dd.getSchemaDescriptor(null, schemaName, tc, false);
                 if (sd == null)
                     return;
 
@@ -132,7 +132,7 @@ public class StatementSchemaPermission extends StatementPermission
 
                 break;
             case Authorizer.DROP_SCHEMA_PRIV:
-                sd = dd.getSchemaDescriptor(schemaName, tc, false);
+                sd = dd.getSchemaDescriptor(null, schemaName, tc, false);
                 // If schema hasn't been created already, no need to check
                 // for drop schema, an exception will be thrown if the schema
                 // does not exists.
@@ -277,7 +277,7 @@ public class StatementSchemaPermission extends StatementPermission
 
         String priv = null;
 
-        switch( privType)
+        switch(privType)
         {
             case Authorizer.SELECT_PRIV:
             case Authorizer.MIN_SELECT_PRIV:
@@ -308,7 +308,7 @@ public class StatementSchemaPermission extends StatementPermission
                 break;
         }
 
-        return "Y".equals(priv) || (!forGrant) && "y".equals( priv) ?  AUTHORIZED : UNAUTHORIZED;
+        return "Y".equals(priv) || (!forGrant) && "y".equals(priv) ?  AUTHORIZED : UNAUTHORIZED;
     } // end of hasPermissionOnTable
 
     /**

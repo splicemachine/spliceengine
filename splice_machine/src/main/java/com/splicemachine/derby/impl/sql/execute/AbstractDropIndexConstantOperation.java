@@ -79,7 +79,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
         if(tableConglomerateId==0)
             tableConglomerateId=td.getHeapConglomerateId();
 
-        SchemaDescriptor sd=dd.getSchemaDescriptor(schemaName,tc,true);
+        SchemaDescriptor sd=dd.getSchemaDescriptor(null, schemaName,tc,true);
 
         ConglomerateDescriptor cd=dd.getConglomerateDescriptor(indexName,sd,true);
         if(cd==null)

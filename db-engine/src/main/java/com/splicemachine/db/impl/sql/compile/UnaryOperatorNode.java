@@ -837,7 +837,7 @@ public class UnaryOperatorNode extends OperatorNode
                     (DataTypeDescriptor)additionalArgs[0];
             mb.push(targetType.getJDBCTypeId());
             mb.push(targetType.getMaximumWidth());
-            mb.push(getSchemaDescriptor(null, false).getCollationType());
+            mb.push(getSchemaDescriptor(null, null, false).getCollationType());
             return 3;
         }
 

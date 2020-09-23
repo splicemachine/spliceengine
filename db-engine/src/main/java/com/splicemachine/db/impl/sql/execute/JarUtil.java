@@ -197,7 +197,7 @@ public class JarUtil
     public FileInfoDescriptor getInfo()
          throws StandardException
     {
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, null, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabase().getId(), schemaName, null, true);
         return dd.getFileInfoDescriptor(sd,sqlName);
     }
 
