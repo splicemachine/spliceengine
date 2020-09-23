@@ -2095,6 +2095,11 @@ public class FromBaseTable extends FromTable {
                 rc.setReferenced();
                 rc.setVirtualColumnId(i + 1);  // virtual column IDs are 1-based
                 rc.setName(idxCD.getConglomerateName() + "_col" + rc.getColumnPosition());
+                // don't set isNameGenerated flag, otherwise cannot be used as an order-by column
+                rc.setSourceTableName(this.getBaseTableName());
+                rc.setSourceSchemaName(this.getTableDescriptor().getSchemaName());
+                rc.setSourceConglomerateNumber(idxCD.getConglomerateNumber());
+                rc.setSourceConglomerateColumnPosition(rc.getColumnPosition());
                 newCols.addResultColumn(rc);
             }
             lcc.popCompilerContext(newCC);

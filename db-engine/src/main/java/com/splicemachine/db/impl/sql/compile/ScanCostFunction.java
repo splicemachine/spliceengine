@@ -81,7 +81,8 @@ public class ScanCostFunction{
     private final CostEstimate totalCost;
     private final StoreCostController scc;
 
-    // the following two fields come from this base table
+    // resultColumns from the base table
+    // at this point, this seems to be always full column list because no access path is chosen
     private final ResultColumnList resultColumns;
 
     // base columns returned from scanning phase
@@ -156,9 +157,17 @@ public class ScanCostFunction{
         this.forUpdate=forUpdate;
         this.usedNoStatsColumnIds = usedNoStatsColumnIds;
 
+        /* We always allocate one extra column in a selectivity holder array because column
+         * positions are 1-based, and slot index 0 is used for storing predicates fall into
+         * default selectivity estimation.
+         */
         int numColumnsInScan;
         int numColumnsInTop;
         if (isIndexOnExpression) {
+            /* For an index row, scanRowTemplate has one extra column for the source row key.
+             * It's impossible to have predicates on source row key, so we can safely use
+             * slot index 0 for storing default selectivity estimation.
+             */
             numColumnsInScan = scanRowTemplate.length;
             numColumnsInTop = baseColumnsInLookup == null ? numColumnsInScan /* covering index */ : resultColumns.size() + 1;
         } else {
@@ -276,7 +285,7 @@ public class ScanCostFunction{
             for (Object o : p.getSourceInList().leftOperandList) {
                 List<ColumnReference> crList = ((ValueNode)o).getHashableJoinColumnReference();
                 for (ColumnReference cr : crList) {
-                    if (!scc.useRealColumnStatistics(cr.getColumnNumber()))
+                    if (!scc.useRealBaseColumnStatistics(cr.getColumnNumber()))
                         usedNoStatsColumnIds.add(cr.getColumnNumber());
                 }
             }
@@ -286,7 +295,7 @@ public class ScanCostFunction{
     private void collectNoStatsColumnsFromUnaryAndBinaryPred(Predicate p) {
         if (p.getRelop() != null) {
             ColumnReference cr = p.getRelop().getColumnOperand(baseTable);
-            if (cr != null && !scc.useRealColumnStatistics(cr.getColumnNumber())) {
+            if (cr != null && !scc.useRealBaseColumnStatistics(cr.getColumnNumber())) {
                 usedNoStatsColumnIds.add(cr.getColumnNumber());
             }
         }
@@ -312,21 +321,21 @@ public class ScanCostFunction{
             collectNoStatsColumnsFromInListPred(p);
         }
         else if ( (p.isStartKey() || p.isStopKey()) && scanPredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
-            performQualifierSelectivity(p, QualifierPhase.BASE, defaultSelectivityFactor, SCAN);
+            performQualifierSelectivity(p, QualifierPhase.BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
             if (!p.isStartKey() || !p.isStopKey()) // Only allows = to further restrict BASE scan numbers
                 scanPredicatePossible = false;
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
         else if (p.isQualifier()) { // Qualifier in Base Table (FILTER_BASE)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, defaultSelectivityFactor, SCAN);
+            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
         else if (PredicateList.isQualifier(p,baseTable,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
-            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor, TOP);
+            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
         else // Project Restrict Selectivity Filter
-            addSelectivity(new PredicateSelectivity(p,baseTable,QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
+            addSelectivity(new DefaultPredicateSelectivity(p,baseTable,QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
     }
 
     /**
@@ -337,17 +346,17 @@ public class ScanCostFunction{
      * @param qualifierPhase
      * @throws StandardException
      */
-    private void performQualifierSelectivity (Predicate p, QualifierPhase qualifierPhase, double selectivityFactor, int phase) throws StandardException {
+    private void performQualifierSelectivity (Predicate p, QualifierPhase qualifierPhase, boolean forIndexExpr, double selectivityFactor, int phase) throws StandardException {
         if(p.compareWithKnownConstant(baseTable, true) &&
                 (p.getRelop().getColumnOperand(baseTable) != null ||
-                        (p.getRelop().getExpressionOperand(baseTable.getTableNumber(), -1, (FromTable)baseTable, true) != null) && p.getIndexPosition() >= 0))
+                        (forIndexExpr && p.getRelop().getExpressionOperand(baseTable.getTableNumber(), -1, (FromTable)baseTable, true) != null) && p.getIndexPosition() >= 0))
         {
             // Range Qualifier
-            addRangeQualifier(p, qualifierPhase, selectivityFactor);
+            addRangeQualifier(p, qualifierPhase, forIndexExpr, selectivityFactor);
         }
         else {
             // Predicate Cannot Be Transformed to Range, use Predicate Selectivity Defaults
-            addSelectivity(new PredicateSelectivity(p, baseTable, qualifierPhase, selectivityFactor), phase);
+            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, qualifierPhase, selectivityFactor), phase);
         }
     }
 
@@ -358,8 +367,17 @@ public class ScanCostFunction{
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
         totalCost.setEstimatedRowCount(Math.round(totalRowCount));
 
+        int numCols = getTotalNumberOfBaseColumnsInvolved();
+        if (isIndexOnExpression && numCols == 0) {
+            // Scanning a covering expression-based index. No base table columns is scanned if we choose this path,
+            // use number of index columns instead. This may over estimate because probably not all index columns
+            // are referenced but should be better than using 0. Otherwise, heap size is always 0 and remote cost is
+            // a constant value for a covering expression-based index scan.
+            numCols = indexDescriptor.getIndexColumnTypes().length;
+        }
+        double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(numCols);
         double baseTableAverageRowWidth = scc.getBaseTableAvgRowWidth();
-        double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(getTotalNumberOfBaseColumnsInvolved());
+
         // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
         double colSizeFactor = baseTableAverageRowWidth*baseTableColumnSizeFactor;
 
@@ -453,8 +471,16 @@ public class ScanCostFunction{
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
         totalCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
 
+        int numCols = getTotalNumberOfBaseColumnsInvolved();
+        if (isIndexOnExpression && numCols == 0) {
+            // Scanning a covering expression-based index. No base table columns is scanned if we choose this path,
+            // use number of index columns instead. This may over estimate because probably not all index columns
+            // are referenced but should be better than using 0. Otherwise, heap size is always 0 and remote cost is
+            // a constant value for a covering expression-based index scan.
+            numCols = indexDescriptor.getIndexColumnTypes().length;
+        }
+        double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(numCols);
         double baseTableAverageRowWidth = scc.getBaseTableAvgRowWidth();
-        double baseTableColumnSizeFactor = scc.baseTableColumnSizeFactor(getTotalNumberOfBaseColumnsInvolved());
 
         // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
         double colSizeFactor = baseTableAverageRowWidth*baseTableColumnSizeFactor;
@@ -672,17 +698,19 @@ public class ScanCostFunction{
      * @throws StandardException
      */
 
-    private boolean addRangeQualifier(Predicate p, QualifierPhase phase, double selectivityFactor) throws StandardException{
+    private boolean addRangeQualifier(Predicate p, QualifierPhase phase, boolean forIndexExpr, double selectivityFactor)
+            throws StandardException
+    {
         DataValueDescriptor value=p.getCompareValue(baseTable);
         RelationalOperator relop=p.getRelop();
 
         boolean useExtrapolation = false;
         int colNum;
 
-        ColumnReference cr = relop.getColumnOperand(baseTable);
-        if (cr == null) {
+        if (forIndexExpr && p.getIndexPosition() >= 0) {
             colNum = p.getIndexPosition() + 1;
         } else {
+            ColumnReference cr = relop.getColumnOperand(baseTable);
             ColumnDescriptor columnDescriptor = cr.getSource().getTableColumnDescriptor();
             if (columnDescriptor != null)
                 useExtrapolation = columnDescriptor.getUseExtrapolation() != 0;
@@ -693,16 +721,16 @@ public class ScanCostFunction{
         List<SelectivityHolder> columnHolder = getSelectivityListForColumn(colNum, mapQualifierPhaseToPhase(phase));
         OP_SWITCH: switch(relationalOperator){
             case RelationalOperator.EQUALS_RELOP:
-                columnHolder.add(new RangeSelectivity(scc,value,value,true,true,colNum,phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,value,value,true,true, forIndexExpr, colNum,phase, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.NOT_EQUALS_RELOP:
-                columnHolder.add(new NotEqualsSelectivity(scc,colNum,phase,value, selectivityFactor, useExtrapolation));
+                columnHolder.add(new NotEqualsSelectivity(scc, forIndexExpr, colNum, phase, value, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.IS_NULL_RELOP:
-                columnHolder.add(new NullSelectivity(scc,colNum,phase));
+                columnHolder.add(new NullSelectivity(scc, forIndexExpr, colNum, phase));
                 break;
             case RelationalOperator.IS_NOT_NULL_RELOP:
-                columnHolder.add(new NotNullSelectivity(scc,colNum,phase));
+                columnHolder.add(new NotNullSelectivity(scc, forIndexExpr, colNum, phase));
                 break;
             case RelationalOperator.GREATER_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -715,7 +743,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,true,true,colNum,phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,value,null,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.GREATER_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -728,7 +756,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,value,null,false,true,colNum,phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,value,null,false,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.LESS_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -741,7 +769,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,true,colNum,phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
                 break;
             case RelationalOperator.LESS_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -754,7 +782,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(scc,null,value,true,false,colNum,phase, selectivityFactor, useExtrapolation));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,false, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
                 break;
             default:
                 throw new RuntimeException("Unknown Qualifier Type");

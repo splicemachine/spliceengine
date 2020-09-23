@@ -44,10 +44,10 @@ import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.DEFAULT_INLI
  *
  */
 public class InListSelectivity extends AbstractSelectivityHolder {
-    private Predicate p;
-    private StoreCostController storeCost;
-    private double selectivityFactor;
-    private int colNo [];
+    private final Predicate p;
+    private final StoreCostController storeCost;
+    private final double selectivityFactor;
+    private final int[] colNo;
     private final double DEFAULT_SINGLE_VALUE_SELECTIVITY = 0.5d;
     private boolean useExtrapolation = false;
 
@@ -55,7 +55,7 @@ public class InListSelectivity extends AbstractSelectivityHolder {
                              QualifierPhase phase, double selectivityFactor)
         throws StandardException
     {
-        super(getLeftItemColumnPosition(p, 0, keyColumns), phase);
+        super(keyColumns != null, getLeftItemColumnPosition(p, 0, keyColumns), phase);
 
         int numLeftItems = p.getSourceInList().leftOperandList.size();
         colNo = new int[numLeftItems];
@@ -72,9 +72,9 @@ public class InListSelectivity extends AbstractSelectivityHolder {
         if (vn instanceof ConstantNode) {
             ConstantNode cn = (ConstantNode)vn;
             if (localSelectivity == -1.0d)
-                localSelectivity = storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true, useExtrapolation);
+                localSelectivity = storeCost.getSelectivity(useExprIndexStats, columnNumber, cn.getValue(), true, cn.getValue(), true, useExtrapolation);
             else
-                localSelectivity *= storeCost.getSelectivity(columnNumber, cn.getValue(), true, cn.getValue(), true, useExtrapolation);
+                localSelectivity *= storeCost.getSelectivity(useExprIndexStats, columnNumber, cn.getValue(), true, cn.getValue(), true, useExtrapolation);
         }
         else
             localSelectivity *= DEFAULT_SINGLE_VALUE_SELECTIVITY;
@@ -95,8 +95,8 @@ public class InListSelectivity extends AbstractSelectivityHolder {
         else {
             if (vn instanceof ConstantNode) {
                 ConstantNode cn = (ConstantNode) vn;
-                tempSel = storeCost.getSelectivity(columnNumber, cn.getValue(), true,
-                                                   cn.getValue(), true, useExtrapolation);
+                tempSel = storeCost.getSelectivity(useExprIndexStats, columnNumber, cn.getValue(),
+                        true, cn.getValue(), true, useExtrapolation);
             }
             else {
                 tempSel = DEFAULT_SINGLE_VALUE_SELECTIVITY;
@@ -135,8 +135,6 @@ public class InListSelectivity extends AbstractSelectivityHolder {
         if(!(lo instanceof ColumnReference))
             return false;
         ColumnReference cr = (ColumnReference)lo;
-        if (cr == null)
-            return false;
         ColumnDescriptor columnDescriptor = cr.getSource().getTableColumnDescriptor();
         if (columnDescriptor != null)
             return columnDescriptor.getUseExtrapolation()!=0;

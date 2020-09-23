@@ -96,6 +96,10 @@ public class BinaryOperatorNode extends OperatorNode
     protected int leftMatchIndexExpr  = -1;
     protected int rightMatchIndexExpr = -1;
 
+    // 0-based index column position
+    protected int leftMatchIndexExprColumnPosition  = -1;
+    protected int rightMatchIndexExprColumnPosition = -1;
+
     // At the time of adding XML support, it was decided that
     // we should avoid creating new OperatorNodes where possible.
     // So for the XML-related binary operators we just add the
@@ -1061,11 +1065,13 @@ public class BinaryOperatorNode extends OperatorNode
 
     public int getOperatorType() { return operatorType; }
 
-    public void setMatchIndexExpr(int tableNumber, boolean isLeft) {
+    public void setMatchIndexExpr(int tableNumber, int columnPosition, boolean isLeft) {
         if (isLeft) {
             this.leftMatchIndexExpr = tableNumber;
+            this.leftMatchIndexExprColumnPosition = columnPosition;
         } else {
             this.rightMatchIndexExpr = tableNumber;
+            this.rightMatchIndexExprColumnPosition = columnPosition;
         }
     }
 }

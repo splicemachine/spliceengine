@@ -157,6 +157,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                         row(8,8,8,8,8,8,8,8,8,8,8,8),
                         row(9,9,9,9,9,9,9,9,9,9,9,9)))
                 .withIndex("create index t1_idx on t1(c3,c4,c5)")
+                .withIndex("create index t1_expr_idx on t1(mod(c2, 3), c4 + 3, abs(c3))")
                 .create();
 
         // we purposely leave t1 out from stats collection, as the test case is to test the plan selection without stats.
@@ -208,9 +209,10 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     public void testCoveringIndexOverBaseTableScanWithoutStats () throws Exception {
         //covering index should be picked
         rowContainsQuery(3, "explain select c3, c4, c5 from t1 where c4=10", "IndexScan[T1_IDX", methodWatcher);
+        //rowContainsQuery(3, "explain select mod(c2,3), abs(c3), c4 + 3 from t1 where c4+3=13", "IndexScan[T1_EXPR_IDX", methodWatcher);
         //if not covering index, base table scan should be picked
         rowContainsQuery(3, "explain select c3, c4, c5, c6 from t1 where c4=10", "TableScan[T1", methodWatcher);
-
+        //rowContainsQuery(5, "explain select abs(c3), c4 + 3, c5 from t1 where c4+3=13", "TableScan[T1", methodWatcher);
     }
 
     @Test @Ignore

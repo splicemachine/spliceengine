@@ -1645,24 +1645,55 @@ public class BinaryRelationalOperatorNode
         double selectivity = 1.0d;
         ColumnReference innerColumn = null;
         ColumnReference outerColumn = null;
-        if (leftOperand instanceof ColumnReference) {
+        int innerColumnPosition = -1;
+        int outerColumnPosition = -1;
+        boolean innerUseExprIndexStats = false;
+        boolean outerUseExprIndexStats = false;
+
+        if (leftMatchIndexExpr >= 0) {
+            ColumnReference cr = leftOperand.getHashableJoinColumnReference().get(0);
+            if (leftMatchIndexExpr == innerTable.getTableNumber()) {
+                innerColumn = cr;
+                innerColumnPosition = leftMatchIndexExprColumnPosition + 1;
+                innerUseExprIndexStats = true;
+            } else {
+                outerColumn = cr;
+                outerColumnPosition = leftMatchIndexExprColumnPosition + 1;
+                outerUseExprIndexStats = true;
+            }
+        } else if (leftOperand instanceof ColumnReference) {
             ColumnReference cr = (ColumnReference) leftOperand;
             if (cr.getTableNumber() == innerTable.getTableNumber()) {
                 innerColumn = cr;
+                innerColumnPosition = cr.getSource().getColumnPosition();
             }
             else {
                 outerColumn = cr;
+                outerColumnPosition = cr.getSource().getColumnPosition();
             }
         }
         else return selectivity;
 
-        if (rightOperand instanceof ColumnReference) {
+        if (rightMatchIndexExpr >= 0) {
+            ColumnReference cr = rightOperand.getHashableJoinColumnReference().get(0);
+            if (rightMatchIndexExpr == innerTable.getTableNumber()) {
+                innerColumn = cr;
+                innerColumnPosition = rightMatchIndexExprColumnPosition + 1;
+                innerUseExprIndexStats = true;
+            } else {
+                outerColumn = cr;
+                outerColumnPosition = rightMatchIndexExprColumnPosition + 1;
+                outerUseExprIndexStats = true;
+            }
+        } else if (rightOperand instanceof ColumnReference) {
             ColumnReference cr = (ColumnReference) rightOperand;
             if (cr.getTableNumber() == innerTable.getTableNumber()) {
                 innerColumn = cr;
+                innerColumnPosition = cr.getSource().getColumnPosition();
             }
             else {
                 outerColumn = cr;
+                outerColumnPosition = cr.getSource().getColumnPosition();
             }
         }
         else return selectivity;
@@ -1678,16 +1709,16 @@ public class BinaryRelationalOperatorNode
             long rc = (long)outerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minOuterColumn = outerTableCostController.minValue(outerColumn.getSource().getColumnPosition());
-            maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
+            minOuterColumn = outerTableCostController.minValue(outerUseExprIndexStats, outerColumnPosition);
+            maxOuterColumn = outerTableCostController.maxValue(outerUseExprIndexStats, outerColumnPosition);
         }
 
         if (innerTableCostController != null) {
             long rc = (long)innerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minInnerColumn = innerTableCostController.minValue(innerColumn.getSource().getColumnPosition());
-            maxInnerColumn = innerTableCostController.maxValue(innerColumn.getSource().getColumnPosition());
+            minInnerColumn = innerTableCostController.minValue(innerUseExprIndexStats, innerColumnPosition);
+            maxInnerColumn = innerTableCostController.maxValue(innerUseExprIndexStats, innerColumnPosition);
         }
 
         DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
@@ -1695,8 +1726,8 @@ public class BinaryRelationalOperatorNode
 
         if (startKey!= null && minInnerColumn != null && startKey.compare(minInnerColumn) > 0 ||
                 endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
-            selectivity *= innerTableCostController.getSelectivity(innerColumn.getSource().getColumnPosition(),
-                    startKey, true, endKey, true, false);
+            selectivity *= innerTableCostController.getSelectivity(innerUseExprIndexStats,
+                    innerColumnPosition, startKey, true, endKey, true, false);
         }
 
         return selectivity;

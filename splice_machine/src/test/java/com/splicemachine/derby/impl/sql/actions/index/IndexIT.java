@@ -1665,7 +1665,7 @@ public class IndexIT extends SpliceUnitTest{
     public void testJoinOverTwoCompoundExpressionBasedIndexes() throws Exception {
         methodWatcher.executeUpdate("CREATE TABLE PERSON_ADDRESS_1 (PID INTEGER, ADDR_ID INTEGER)");
         methodWatcher.executeUpdate("CREATE TABLE ADDRESS_1 (ADDR_ID INTEGER, STD_STATE_PROVENCE VARCHAR(30))");
-        methodWatcher.executeUpdate("CREATE INDEX pa_idx_1 ON PERSON_ADDRESS_1 (pid, max(addr_id, 300))");
+        methodWatcher.executeUpdate("CREATE INDEX pa_idx_1 ON PERSON_ADDRESS_1 (pid, pid + 3, max(addr_id, 300))");
         methodWatcher.executeUpdate("CREATE INDEX a_idx_1 ON ADDRESS_1 (lower(std_state_provence), abs(addr_id))");
         methodWatcher.executeUpdate("INSERT INTO PERSON_ADDRESS_1 VALUES (10, 100),(20, 200),(30,300),(40, 400),(50,500)");
         methodWatcher.executeUpdate("INSERT INTO ADDRESS_1 VALUES (100, 'MO'),(200, 'IA'),(300,'NY'),(400,'FL'),(500,'AL')");
