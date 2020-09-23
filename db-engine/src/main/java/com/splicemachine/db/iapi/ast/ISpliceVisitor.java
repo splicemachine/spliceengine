@@ -98,6 +98,7 @@ public interface ISpliceVisitor {
     Visitable visit(ConditionalNode node) throws StandardException;
     Visitable visit(ConstraintDefinitionNode node) throws StandardException;
     Visitable visit(CreateAliasNode node) throws StandardException;
+    Visitable visit(CreateDatabaseNode node) throws StandardException;
     Visitable visit(CreateIndexNode node) throws StandardException;
     Visitable visit(CreateRoleNode node) throws StandardException;
     Visitable visit(CreateSchemaNode node) throws StandardException;

@@ -60,7 +60,7 @@ import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.jdbc.LOBStoredProcedure;
 import com.splicemachine.db.impl.services.locks.Timeout;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
@@ -581,7 +581,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     protected boolean isCurrentlyCreatingSecondaryDatabase(Properties startParams) {
-        return Boolean.TRUE.equals(EmbedConnection.isCreate.get()) &&
+        return Boolean.TRUE.equals(BasicDatabase.isCreate.get()) &&
                 !getCurrentlyBootingDatabaseName(startParams).equals(spliceDbDesc.getDatabaseName());
     }
 

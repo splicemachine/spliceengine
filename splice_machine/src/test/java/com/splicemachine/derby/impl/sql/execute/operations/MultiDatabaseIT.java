@@ -71,7 +71,7 @@ public class MultiDatabaseIT {
     public void testCurrentDatabase() throws SQLException {
         try (ResultSet rs = spliceDbConn.query("select current server")) {
             rs.next();
-            assertEquals("splicedb", rs.getString(1));
+            assertEquals("SPLICEDB", rs.getString(1));
         }
         try (ResultSet rs = otherDbConn.query("select current server")) {
             rs.next();

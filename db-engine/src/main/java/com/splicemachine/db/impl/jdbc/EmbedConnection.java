@@ -55,6 +55,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.util.InterruptStatus;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.jdbc.authentication.NoneAuthenticationServiceImpl;
 import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.security.DatabasePermission;
@@ -102,7 +103,6 @@ import java.sql.ResultSet;
  */
 public abstract class EmbedConnection implements EngineConnection
 {
-    public static final ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
     protected static final StandardException exceptionClose = StandardException.closeException();
     public static final String INTERNAL_CONNECTION = "SPLICE_INTERNAL_CONNECTION";
     
@@ -288,7 +288,7 @@ public abstract class EmbedConnection implements EngineConnection
                     info = removePhaseTwoProps((Properties)info.clone());
                 }
 
-                isCreate.set(createBoot && !dropDatabase);
+                BasicDatabase.isCreate.set(createBoot && !dropDatabase);
 
                 // Return false iff the monitor cannot handle a service of the
                 // type indicated by the protocol within the name.  If that's
@@ -296,12 +296,12 @@ public abstract class EmbedConnection implements EngineConnection
 
                 if (!bootDatabase(info, isTwoPhaseUpgradeBoot))
                 {
-                    isCreate.remove();
+                    BasicDatabase.isCreate.remove();
                     tr.clearContextInError();
                     setInactive();
                     return;
                 }
-                isCreate.remove();
+                BasicDatabase.isCreate.remove();
             }
 
            if (createBoot && !shutdown && !dropDatabase)
@@ -364,7 +364,6 @@ public abstract class EmbedConnection implements EngineConnection
             // Add potentially newly created database in the sysdatabase table
             if (createBoot && !shutdown && !dropDatabase) {
                 SystemProcedures.addDatabase(getDBName(), "PLACEHOLDER", tr.getDatabase().getId(), tr.getLcc()); // XXX(arnaud multidb) different userid probably for aid?
-
             }
 
             // now we have the database connection, we can shut down
@@ -418,7 +417,7 @@ public abstract class EmbedConnection implements EngineConnection
         }
         catch (OutOfMemoryError noMemory)
         {
-            isCreate.remove();
+            BasicDatabase.isCreate.remove();
             //System.out.println("freeA");
             InterruptStatus.restoreIntrFlagIfSeen();
             restoreContextStack();
@@ -434,7 +433,7 @@ public abstract class EmbedConnection implements EngineConnection
             throw NO_MEM;
         }
         catch (Throwable t) {
-            isCreate.remove();
+            BasicDatabase.isCreate.remove();
             InterruptStatus.restoreIntrFlagIfSeen();
 
             if (t instanceof StandardException)

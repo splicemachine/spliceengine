@@ -481,7 +481,7 @@ public abstract class InternalDriver implements ModuleControl {
 		}
 		// Beetle 4653 - trim database name to remove blanks that might make a difference on finding the database
 		// on unix platforms
-		dbname = dbname.trim();
+		dbname = dbname.trim().toUpperCase();
 
 		return dbname;
 	}

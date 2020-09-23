@@ -57,7 +57,7 @@ public final class DatabaseDescriptor extends TupleDescriptor implements UniqueT
      * STD_DB_NAME is the name of the default database
      *
      */
-    public static final String STD_DB_NAME = "splicedb";
+    public static final String STD_DB_NAME = "SPLICEDB";
 
     /** the public interface for this system:
         <ol>

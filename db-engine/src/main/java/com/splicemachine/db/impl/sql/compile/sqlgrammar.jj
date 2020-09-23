@@ -3931,6 +3931,7 @@ createStatements() throws StandardException :
 {
     beginToken = <CREATE> (
         (
+            statementNode = databaseDefinition() |
             statementNode = schemaDefinition() |
             statementNode = viewDefinition(beginToken) |
             statementNode = triggerDefinition() |
@@ -12431,6 +12432,25 @@ asOfClause() throws StandardException :
     {
         return txIdExpression;
     }
+}
+
+StatementNode
+databaseDefinition() throws StandardException :
+{
+    String    dbName = null;
+}
+{
+    <DATABASE>
+    (
+        dbName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
+        {
+            return (StatementNode) nodeFactory.getNode(
+                    C_NodeTypes.CREATE_DATABASE_NODE,
+                    dbName,
+                    getContextManager()
+            );
+        }
+    )
 }
 
 StatementNode

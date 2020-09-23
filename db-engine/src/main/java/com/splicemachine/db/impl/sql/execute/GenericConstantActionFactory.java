@@ -258,6 +258,15 @@ public abstract class GenericConstantActionFactory {
         char    aliasType);
 
     /**
+     * Make the ConstantAction for a CREATE DATABASE statement.
+     *
+     *  @param dbName    Name of table.
+     */
+    public abstract ConstantAction getCreateDatabaseConstantAction
+    (
+            String dbName);
+
+    /**
      * Make the ConstantAction for a CREATE SCHEMA statement.
      *
      *  @param schemaName    Name of table.

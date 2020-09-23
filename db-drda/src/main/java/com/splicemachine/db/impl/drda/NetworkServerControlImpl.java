@@ -503,7 +503,7 @@ public final class NetworkServerControlImpl {
 			return null;
     }
 
-	protected static Driver getDriver()
+	public static Driver getDriver()
 	{
 		return cloudscapeDriver;
 	}

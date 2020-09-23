@@ -185,6 +185,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
+    public ConstantAction getCreateDatabaseConstantAction(String dbName) {
+        SpliceLogUtils.trace(LOG, "getCreateDatabaseConstantAction for database {%s}", dbName);
+        return new CreateDatabaseConstantOperation(dbName);
+    }
+
+    @Override
     public ConstantAction getCreateSchemaConstantAction(String schemaName,String aid){
         SpliceLogUtils.trace(LOG,"getCreateSchemaConstantAction for schema {%s} with aid {%s}",schemaName,aid);
         return new CreateSchemaConstantOperation(schemaName,aid);

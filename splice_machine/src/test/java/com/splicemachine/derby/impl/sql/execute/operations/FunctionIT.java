@@ -259,7 +259,7 @@ public class FunctionIT extends SpliceUnitTest {
                 "select (select current_server)"};
         String expected = "1    |\n" +
                 "----------\n" +
-                "splicedb |";
+                "SPLICEDB |";
 
         for (String sql: sqlTexts) {
             try (ResultSet rs = methodWatcher.executeQuery(sql)) {

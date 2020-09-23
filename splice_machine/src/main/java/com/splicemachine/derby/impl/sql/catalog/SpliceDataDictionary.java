@@ -41,7 +41,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.db.BasicDatabase;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.*;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
@@ -607,7 +607,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber(),
                     databaseVersion.getSprintVersionNumber());
         }
-        if(create || Boolean.TRUE.equals(EmbedConnection.isCreate.get())) {
+        if(create || Boolean.TRUE.equals(BasicDatabase.isCreate.get())) {
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);
             ContextService.getFactory();
             SpliceTransactionManager txnManager=(SpliceTransactionManager)af.getTransaction(ContextService.getCurrentContextManager());
