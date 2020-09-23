@@ -45,7 +45,7 @@ public class Trigger_Row_IT {
     private static final String SCHEMA = Trigger_Row_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);

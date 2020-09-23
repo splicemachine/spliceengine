@@ -36,7 +36,7 @@ public class HashNestedLoopLeftOuterJoinOperationIT {
     private static final String CLASS_NAME = HashNestedLoopLeftOuterJoinOperationIT.class.getSimpleName().toUpperCase();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @Rule
     public SpliceWatcher watcher = new SpliceWatcher(CLASS_NAME);

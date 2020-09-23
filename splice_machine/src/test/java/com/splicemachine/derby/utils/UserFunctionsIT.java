@@ -46,7 +46,7 @@ public class UserFunctionsIT {
 
     public static final String CLASS_NAME = UserFunctionsIT.class.getSimpleName().toUpperCase();
 
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     public static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 

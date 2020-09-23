@@ -53,7 +53,7 @@ public class ResultCountIT {
             "(140, 'fkruger', 'Freddy', 'Kruger')");
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final String TASK_TABLE_NAME = "Tasks";
     private static final String TASK_TABLE_DEF = "(TaskId varchar(5), empId int, StartedAt INT, FinishedAt INT)";

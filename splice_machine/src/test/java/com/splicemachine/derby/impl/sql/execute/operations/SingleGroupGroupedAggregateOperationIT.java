@@ -46,7 +46,7 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = SingleGroupGroupedAggregateOperationIT.class.getSimpleName().toUpperCase();
     public static final String TABLE_NAME_1 = "T";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(username varchar(40),i int)");
 
     @ClassRule

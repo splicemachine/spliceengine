@@ -42,7 +42,7 @@ import static org.junit.Assert.assertNotNull;
 public class UpportIT extends SpliceUnitTest {
     public static final String CLASS_NAME = UpportIT.class.getSimpleName().toUpperCase();
     private static final SpliceSchemaWatcher schema =
-            new SpliceSchemaWatcher(null, CLASS_NAME);
+            new SpliceSchemaWatcher(CLASS_NAME);
     private static final SpliceTableWatcher nullableBTable =
             new SpliceTableWatcher("empty_table",schema.schemaName,"(a int, b int, primary key(a))");
     private static final SpliceTableWatcher occupiedTable =
@@ -64,7 +64,7 @@ public class UpportIT extends SpliceUnitTest {
     private static File IMPORTDIR;
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(UpportIT.class.getSimpleName().toUpperCase());

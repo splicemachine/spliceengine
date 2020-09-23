@@ -50,7 +50,7 @@ public class PL_SaveSourceCode_IT {
     private static final String SCHEMA = PL_SaveSourceCode_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);

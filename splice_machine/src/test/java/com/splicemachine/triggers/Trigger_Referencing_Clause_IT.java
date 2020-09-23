@@ -66,7 +66,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
     protected static final String PASSWORD2 = "U2";
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);

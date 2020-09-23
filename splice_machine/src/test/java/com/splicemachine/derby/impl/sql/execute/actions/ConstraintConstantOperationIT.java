@@ -47,7 +47,7 @@ public class ConstraintConstantOperationIT {
     private static final String PASSWORD1 = "test";
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     private static SpliceRoleWatcher spliceRoleWatcher1 = new SpliceRoleWatcher(ROLE1);
     private static SpliceRoleWatcher spliceRoleWatcher2 = new SpliceRoleWatcher(ROLE2);

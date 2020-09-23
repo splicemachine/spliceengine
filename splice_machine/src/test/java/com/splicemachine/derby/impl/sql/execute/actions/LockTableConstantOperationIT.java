@@ -29,7 +29,7 @@ import java.sql.SQLException;
 
 public class LockTableConstantOperationIT extends SpliceUnitTest { 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, LockTableConstantOperationIT.class.getSimpleName());
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(LockTableConstantOperationIT.class.getSimpleName());	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",LockTableConstantOperationIT.class.getSimpleName(),"(name varchar(40) NOT NULL, val int)");
 	
 	@ClassRule 

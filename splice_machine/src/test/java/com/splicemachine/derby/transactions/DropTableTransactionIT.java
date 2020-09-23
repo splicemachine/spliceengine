@@ -36,7 +36,7 @@ import static org.junit.Assert.fail;
 @Category({Transactions.class})
 public class DropTableTransactionIT{
 
-    private static final SpliceSchemaWatcher schemaWatcher=new SpliceSchemaWatcher(null, DropTableTransactionIT.class.getSimpleName().toUpperCase()+"2");
+    private static final SpliceSchemaWatcher schemaWatcher=new SpliceSchemaWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase()+"2");
 
 //    private static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
     private static final String tableStructure= "(a int, b int)";

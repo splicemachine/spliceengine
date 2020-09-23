@@ -34,7 +34,7 @@ import java.util.BitSet;
 public class IndexNullityIT{
 
     private static final SpliceWatcher classWatcher=new SpliceWatcher();
-    private static final SpliceSchemaWatcher schema=new SpliceSchemaWatcher(null, IndexNullityIT.class.getSimpleName());
+    private static final SpliceSchemaWatcher schema=new SpliceSchemaWatcher(IndexNullityIT.class.getSimpleName());
 
     @ClassRule
     public static final TestRule chain=RuleChain.outerRule(classWatcher).around(schema);

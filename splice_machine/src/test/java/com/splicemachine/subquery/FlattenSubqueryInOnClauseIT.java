@@ -14,6 +14,7 @@
 
 package com.splicemachine.subquery;
 
+import com.splicemachine.derby.impl.sql.execute.operations.joins.FlattenedOuterJoinIT;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -36,7 +37,7 @@ public class FlattenSubqueryInOnClauseIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(FlattenSubqueryInOnClauseIT.class);
     public static final String CLASS_NAME = FlattenSubqueryInOnClauseIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
 
     @ClassRule

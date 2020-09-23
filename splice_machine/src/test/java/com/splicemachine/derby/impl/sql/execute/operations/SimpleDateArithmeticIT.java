@@ -45,7 +45,7 @@ public class SimpleDateArithmeticIT {
     private static final String SCHEMA_NAME = SimpleDateArithmeticIT.class.getSimpleName().toUpperCase();
 
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
+    private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
     private static final String QUALIFIED_TABLE_NAME = schemaWatcher.schemaName + ".date_add_test";
     private static final String QUALIFIED_TABLE_NAME2 = schemaWatcher.schemaName + ".old_date_test";

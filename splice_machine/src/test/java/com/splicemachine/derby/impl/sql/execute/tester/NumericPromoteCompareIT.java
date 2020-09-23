@@ -46,7 +46,7 @@ public class NumericPromoteCompareIT {
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(new SpliceSchemaWatcher(null, CLASS_NAME))
+            .around(new SpliceSchemaWatcher(CLASS_NAME))
             .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/NumericPromoteCompareIT.sql", CLASS_NAME));
 
     @Rule

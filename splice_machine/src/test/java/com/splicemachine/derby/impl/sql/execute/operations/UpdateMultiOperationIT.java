@@ -44,7 +44,7 @@ public class UpdateMultiOperationIT{
     private static final String SCHEMA = UpdateMultiOperationIT.class.getSimpleName().toUpperCase();
 
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

@@ -43,7 +43,7 @@ public class SpliceAdmin_OperationsIT extends SpliceUnitTest{
     public static final String CLASS_NAME = SpliceAdmin_OperationsIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceTableWatcher bigTableWatcher = new SpliceTableWatcher("TEST_BIG",CLASS_NAME,"(a int)");
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static final String USER_NAME = CLASS_NAME+"_USER";
     private SpliceTestDataSource dataSource;
 

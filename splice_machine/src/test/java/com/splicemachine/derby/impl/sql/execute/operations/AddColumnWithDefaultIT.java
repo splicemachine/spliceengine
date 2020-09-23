@@ -61,7 +61,7 @@ public class AddColumnWithDefaultIT extends SpliceUnitTest {
     }
 
     @ClassRule
-    public  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    public  static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(schemaWatcher.schemaName);

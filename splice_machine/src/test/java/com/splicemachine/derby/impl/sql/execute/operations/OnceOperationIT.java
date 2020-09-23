@@ -38,7 +38,7 @@ public class OnceOperationIT extends SpliceUnitTest {
 	public static final String TABLE1_NAME = "A";
     public static final String TABLE2_NAME = "territories";
     public static final String TABLE3_NAME = "employee_territories";
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1_NAME,CLASS_NAME,"(k int, l int)");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME,CLASS_NAME," (territoryid INTEGER NOT NULL,territory_Description VARCHAR(40) NOT NULL,regionid int NOT NULL, primary key (territoryid))");
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3_NAME,CLASS_NAME,"(employeeid INTEGER NOT NULL,territoryid INTEGER NOT NULL,primary key (employeeid) )");

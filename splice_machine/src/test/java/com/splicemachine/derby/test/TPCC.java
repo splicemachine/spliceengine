@@ -41,7 +41,7 @@ public class TPCC extends SpliceUnitTest {
 	protected static final String STOCK = "STOCK";
 	protected static final String WAREHOUSE = "WAREHOUSE";
 	
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher customerTable = new SpliceTableWatcher(CUSTOMER,CLASS_NAME,
 			"(c_w_id int NOT NULL, c_d_id int NOT NULL, c_id int NOT NULL, c_discount decimal(4,4) NOT NULL,"+
 		    "c_credit char(2) NOT NULL,c_last varchar(16) NOT NULL,c_first varchar(16) NOT NULL,c_credit_lim decimal(12,2) NOT NULL,"+

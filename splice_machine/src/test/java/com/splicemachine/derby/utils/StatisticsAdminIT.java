@@ -47,13 +47,13 @@ public class StatisticsAdminIT extends SpliceUnitTest {
     private static final String SCHEMA4=SCHEMA+"4";
 
     private static final SpliceWatcher spliceClassWatcher=new SpliceWatcher(SCHEMA);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(null, SCHEMA);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA);
     private static final SpliceWatcher spliceClassWatcher2=new SpliceWatcher(SCHEMA2);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher2=new SpliceSchemaWatcher(null, SCHEMA2);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher2=new SpliceSchemaWatcher(SCHEMA2);
     private static final SpliceWatcher spliceClassWatcher3=new SpliceWatcher(SCHEMA3);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher3=new SpliceSchemaWatcher(null, SCHEMA3);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher3=new SpliceSchemaWatcher(SCHEMA3);
     private static final SpliceWatcher spliceClassWatcher4=new SpliceWatcher(SCHEMA4);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher4=new SpliceSchemaWatcher(null, SCHEMA4);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher4=new SpliceSchemaWatcher(SCHEMA4);
 
     private static final String TABLE_EMPTY="EMPTY";
     private static final String TABLE_OCCUPIED="OCCUPIED";

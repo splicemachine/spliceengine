@@ -25,7 +25,7 @@ public class PredicateTransitiveClosureIT extends SpliceUnitTest {
     private static Logger LOG = Logger.getLogger(PredicateTransitiveClosureIT.class);
     public static final String CLASS_NAME = PredicateTransitiveClosureIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

@@ -62,7 +62,7 @@ public class HdfsUnsafeImportIT extends SpliceUnitTest {
     private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_1, spliceSchemaWatcher
             .schemaName, "(name varchar(40), title varchar(40), age int)");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_2, spliceSchemaWatcher

@@ -60,7 +60,7 @@ public class DecoderIT {
 
     private static final String SCHEMA_NAME = DecoderIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static final SpliceSchemaWatcher spliceSchemaWathcer = new SpliceSchemaWatcher(null, SCHEMA_NAME);
+    private static final SpliceSchemaWatcher spliceSchemaWathcer = new SpliceSchemaWatcher(SCHEMA_NAME);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();

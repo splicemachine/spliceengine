@@ -18,7 +18,9 @@ import splice.com.google.common.collect.Lists;
 import com.splicemachine.concurrent.Threads;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.*;
 import java.util.List;
@@ -35,7 +37,7 @@ public class ForeignKey_Concurrent_IT {
     private static final String SCHEMA = ForeignKey_Concurrent_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);

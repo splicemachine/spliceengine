@@ -26,6 +26,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -51,7 +52,7 @@ import static com.splicemachine.homeless.TestUtils.o;
  */
 @Category({Transactions.class})
 public class DropColumnTransactionIT {
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, DropColumnTransactionIT.class.getSimpleName().toUpperCase());
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropColumnTransactionIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher commitTable = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(a int, b int)");
@@ -119,6 +120,18 @@ public class DropColumnTransactionIT {
     public static void setUpClass() throws Exception {
         conn1 = classWatcher.getOrCreateConnection();
         conn2 = classWatcher.createConnection();
+    }
+
+    @AfterClass
+    public static void tearDownClass() throws Exception {
+        if(!conn1.isClosed()){
+            conn1.rollback();
+            conn1.close();
+        }
+        if(!conn2.isClosed()){
+            conn2.rollback();
+            conn2.close();
+        }
     }
 
     @After

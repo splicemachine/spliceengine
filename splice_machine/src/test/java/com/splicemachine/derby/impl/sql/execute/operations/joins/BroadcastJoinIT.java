@@ -57,7 +57,7 @@ public class BroadcastJoinIT extends SpliceUnitTest {
         this.useSpark = useSpark;
     }
 
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, BroadcastJoinIT.class.getSimpleName().toUpperCase());
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(BroadcastJoinIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher a= new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c1 int, c2 int)");
     public static final SpliceTableWatcher b= new SpliceTableWatcher("B",schemaWatcher.schemaName,"(c2 int,c3 int)");

@@ -22,9 +22,11 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
 
+import com.splicemachine.primitives.Bytes;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import scala.Predef;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -53,7 +55,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     public static final String TABLE_NAME_12 = "l";
     public static final String TABLE_NAME_13 = "m";
     public static final String TABLE_NAME_14 = "n";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     private static String tableDef = "(TaskId INT NOT NULL, empId Varchar(3) NOT NULL, StartedAt INT NOT NULL, FinishedAt INT NOT NULL)";
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,SCHEMA, tableDef);

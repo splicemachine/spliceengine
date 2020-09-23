@@ -34,7 +34,7 @@ public class Subquery_Flattening_Exists_IT {
     private static final String SCHEMA = Subquery_Flattening_Exists_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);

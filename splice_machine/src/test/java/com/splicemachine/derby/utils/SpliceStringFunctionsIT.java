@@ -53,7 +53,7 @@ public class SpliceStringFunctionsIT {
     private static final String CLASS_NAME = SpliceStringFunctionsIT.class.getSimpleName().toUpperCase();
     private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
 
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     // Table for repeat testing
     private static final SpliceTableWatcher tableWatcherA = new SpliceTableWatcher(

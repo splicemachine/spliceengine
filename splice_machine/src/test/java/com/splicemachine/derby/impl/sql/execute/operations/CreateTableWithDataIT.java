@@ -46,7 +46,7 @@ import java.sql.Statement;
 public class CreateTableWithDataIT{
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
 
-    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(null, CreateTableWithDataIT.class.getSimpleName());
+    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(CreateTableWithDataIT.class.getSimpleName());
     protected static SpliceTableWatcher baseTable=new SpliceTableWatcher("T",spliceSchemaWatcher.schemaName,"(a int, b int)");
     protected static SpliceTableWatcher rightTable=new SpliceTableWatcher("R",spliceSchemaWatcher.schemaName,"(b int, c int)");
     protected static SpliceTableWatcher decimalTable=new SpliceTableWatcher("D",spliceSchemaWatcher.schemaName,"(d decimal(15, 2))");

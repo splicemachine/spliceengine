@@ -30,7 +30,7 @@ import java.sql.Statement;
 public class MiscOperationIT extends SpliceUnitTest { 
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 	private static Logger LOG = Logger.getLogger(MiscOperationIT.class);
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, MiscOperationIT.class.getSimpleName());
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(MiscOperationIT.class.getSimpleName());	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",MiscOperationIT.class.getSimpleName(),"(num int, addr varchar(50), zip char(5))");
 	
 	@ClassRule 
