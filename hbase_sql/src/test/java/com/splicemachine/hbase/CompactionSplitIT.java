@@ -59,7 +59,7 @@ public class CompactionSplitIT {
     private static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @BeforeClass
     public static void createTables() throws Exception {

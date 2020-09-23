@@ -69,7 +69,7 @@ public class CheckTableIT extends SpliceUnitTest {
     public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
     @BeforeClass
     public static void init() throws Exception {

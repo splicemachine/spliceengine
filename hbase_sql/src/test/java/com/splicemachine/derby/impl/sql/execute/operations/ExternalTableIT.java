@@ -53,7 +53,7 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = ExternalTableIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
-    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA_NAME);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
     private TriggerBuilder tb = new TriggerBuilder();
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);

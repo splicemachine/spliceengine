@@ -47,7 +47,7 @@ public class ClientSideRegionScannerIT extends BaseMRIOTest{
     private static final Logger LOG=Logger.getLogger(ClientSideRegionScannerIT.class);
     protected static String SCHEMA_NAME=ClientSideRegionScannerIT.class.getSimpleName();
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(null, SCHEMA_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA_NAME);
     protected static SpliceTableWatcher spliceTableWatcherA=new SpliceTableWatcher("A",SCHEMA_NAME,"(col1 int, col2 varchar(56), primary key (col1))");
 
     protected static Connection connection;

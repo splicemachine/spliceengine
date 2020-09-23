@@ -56,7 +56,7 @@ public class SnapshotIT extends SpliceUnitTest
     private static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
