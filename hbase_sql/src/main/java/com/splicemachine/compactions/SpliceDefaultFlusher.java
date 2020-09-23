@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.regionserver.FlushLifeCycleTracker;
 import org.apache.hadoop.hbase.regionserver.HStore;
 import org.apache.hadoop.hbase.regionserver.MemStoreSnapshot;
 import org.apache.hadoop.hbase.regionserver.throttle.ThroughputController;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
@@ -36,6 +37,8 @@ import java.util.List;
  * We use this class to pass the PurgeConfig down the stack to flush logic in SIObserver.
  */
 public class SpliceDefaultFlusher extends DefaultStoreFlusher {
+    private static final Logger LOG = Logger.getLogger(SpliceDefaultFlusher.class);
+
     public SpliceDefaultFlusher(Configuration conf, HStore store) throws IOException {
         super(conf, store);
     }
@@ -51,11 +54,17 @@ public class SpliceDefaultFlusher extends DefaultStoreFlusher {
         } else {
             purgeConfig.noPurgeDeletes();
         }
+        long txnLowWatermark = SIConstants.OLDEST_TIME_TRAVEL_TX;
         if(SIDriver.driver().isEngineStarted()) {
-            purgeConfig.transactionLowWatermark(SpliceCompactionUtils.getTxnLowWatermark(store));
-        } else {
-            purgeConfig.transactionLowWatermark(SIConstants.OLDEST_TIME_TRAVEL_TX);
+            try {
+                purgeConfig.transactionLowWatermark(SpliceCompactionUtils.getTxnLowWatermark(store));
+            } catch (Exception e) {
+                LOG.warn("Could not extract compaction information: ", e);
+                assert SIDriver.driver().lifecycleManager().isRestoreMode() :
+                        "Fetching txn low watermark is only known to fail during restore mode";
+            }
         }
+        purgeConfig.transactionLowWatermark(txnLowWatermark);
         purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
         return super.flushSnapshot(snapshot, cacheFlushId, status, throughputController,
                 new FlushLifeCycleTrackerWithConfig(tracker, purgeConfig.build()));
