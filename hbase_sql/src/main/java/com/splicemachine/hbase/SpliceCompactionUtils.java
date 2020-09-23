@@ -20,12 +20,10 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.hadoop.hbase.regionserver.Store;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -33,8 +31,6 @@ import java.io.IOException;
  * Created by jyuan on 5/29/17.
  */
 public class SpliceCompactionUtils {
-    private static final Logger LOG = Logger.getLogger(SpliceCompactionUtils.class);
-
     private interface TableDescriptorExtractor<T> {
         T get(TableDescriptor td);
         T getDefaultValue();
@@ -68,10 +64,6 @@ public class SpliceCompactionUtils {
             return t.getDefaultValue();
         }
         catch (Exception e) {
-            if (ErrorState.SPLICE_REGION_OFFLINE.accepts(e)) {
-                LOG.warn("Could not extract compaction information because the region is offline", e);
-                return t.getDefaultValue();
-            }
             throw new IOException(e);
         }
         finally{
