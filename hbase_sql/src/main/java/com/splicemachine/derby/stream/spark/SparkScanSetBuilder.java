@@ -86,7 +86,8 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             DataSet locatedRows;
             if (storedAs.equals("T")) {
                 CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines);
-                locatedRows = dsp.readTextFile(op, location, csvOptions, baseColumnMap, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
+                locatedRows = dsp.readTextFile(csvOptions,schema, baseColumnMap, partitionByColumns, location,
+                        operationContext, qualifiers,null, execRow, useSample, sampleFraction);
             }
             else if (storedAs.equals("P"))
                 locatedRows = dsp.readParquetFile(schema, baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
