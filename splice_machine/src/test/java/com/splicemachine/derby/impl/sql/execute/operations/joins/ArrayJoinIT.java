@@ -29,27 +29,43 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SlowTest;
+import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Maps;
 
+import java.math.BigDecimal;
 import java.sql.Array;
+import java.sql.CallableStatement;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
+import static com.splicemachine.homeless.TestUtils.o;
 import static org.junit.Assert.assertEquals;
 
 
@@ -63,7 +79,7 @@ public class ArrayJoinIT extends SpliceUnitTest {
 
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1, SCHEMA,
             "(ia int array, va varchar(40) array,ra real array,fa float array, da decimal array, i int, v varchar(20))");
     private TestConnection conn;

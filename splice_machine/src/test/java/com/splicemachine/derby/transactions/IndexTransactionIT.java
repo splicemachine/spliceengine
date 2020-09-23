@@ -38,7 +38,7 @@ import java.sql.Statement;
 @Category({Transactions.class, LongerThanTwoMinutes.class})
 public class IndexTransactionIT {
 
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, IndexTransactionIT.class.getSimpleName().toUpperCase());
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(IndexTransactionIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int,c int, primary key (a))");
 

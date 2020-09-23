@@ -39,7 +39,7 @@ public class Subquery_Flattening_Join_IT {
     private static final String SCHEMA = Subquery_Flattening_Join_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     public RuledConnection conn = new RuledConnection(null,true);
 

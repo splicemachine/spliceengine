@@ -17,9 +17,11 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.util.StatementUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Statement;
@@ -41,7 +43,7 @@ public class ForeignKey_Action_IT {
     private static final String SCHEMA = ForeignKey_Action_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);

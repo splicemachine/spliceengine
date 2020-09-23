@@ -54,7 +54,7 @@ public class WithStatementIT extends SpliceUnitTest {
     protected static TestConnection testUserConn;
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     private static SpliceUserWatcher testUserWatcher = new SpliceUserWatcher(TEST_USER, TEST_PASSWORD);
     private static SpliceRoleWatcher testRoleWatcher = new SpliceRoleWatcher(TEST_ROLE);
 

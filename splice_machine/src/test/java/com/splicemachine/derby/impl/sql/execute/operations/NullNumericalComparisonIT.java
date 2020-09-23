@@ -46,7 +46,7 @@ import java.util.Map;
 public class NullNumericalComparisonIT { 
 
     public static final String CLASS_NAME = NullNumericalComparisonIT.class.getSimpleName().toUpperCase();
-    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
     private static final List<String> empHourVals = Arrays.asList(

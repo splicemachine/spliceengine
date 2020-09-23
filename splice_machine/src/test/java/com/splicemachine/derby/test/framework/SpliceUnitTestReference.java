@@ -26,7 +26,7 @@ import org.junit.runner.Description;
 
 public class SpliceUnitTestReference extends SpliceUnitTest {
 	protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SpliceUnitTestReference.class.getSimpleName());
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SpliceUnitTestReference.class.getSimpleName());	
 	protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("A",SpliceUnitTestReference.class.getSimpleName(),"(col1 varchar(40))");
 	
 	@ClassRule 

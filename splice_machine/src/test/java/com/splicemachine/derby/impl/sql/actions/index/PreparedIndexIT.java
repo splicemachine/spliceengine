@@ -39,7 +39,7 @@ public class PreparedIndexIT{
 
     @ClassRule
     public static final SpliceSchemaWatcher schemaWatcher =
-            new SpliceSchemaWatcher(null, SCHEMA);
+            new SpliceSchemaWatcher(SCHEMA);
 
     private final RuledConnection conn = new RuledConnection(SCHEMA,false);
 

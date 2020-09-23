@@ -32,7 +32,7 @@ public class JdbcApiIT {
 
     private static final String CLASS_NAME = JdbcApiIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static final SpliceTableWatcher A_TABLE = new SpliceTableWatcher("A",schemaWatcher.schemaName,
             "(a1 int)");
 

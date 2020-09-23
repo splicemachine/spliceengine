@@ -39,7 +39,7 @@ import java.sql.SQLException;
 @Category({Transactions.class})
 public class InsertInsertTransactionIT {
 
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, InsertInsertTransactionIT.class.getSimpleName().toUpperCase());
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(InsertInsertTransactionIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int, primary key (a))");
 

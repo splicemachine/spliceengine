@@ -60,7 +60,7 @@ public class NonCoveringIndexIT extends SpliceUnitTest {
     }
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @BeforeClass
     public static void createSharedTables() throws Exception {

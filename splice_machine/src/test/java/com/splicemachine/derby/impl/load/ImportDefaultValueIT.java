@@ -74,7 +74,7 @@ public class ImportDefaultValueIT {
     public static final String UTF_8_CHAR_SET_STR = "UTF-8";
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = ImportDefaultValueIT.class.getSimpleName().toUpperCase();
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     private static File BADDIR;
     private static File IMPORTDIR;
     private TestConnection conn;

@@ -38,7 +38,7 @@ public class TransactionAdminIT {
     public static final String SCHEMA = TransactionAdminIT.class.getSimpleName().toUpperCase();
 
     @ClassRule
-    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     
     @ClassRule
     public static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);

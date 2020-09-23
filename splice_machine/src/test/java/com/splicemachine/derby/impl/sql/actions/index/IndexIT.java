@@ -62,7 +62,7 @@ public class IndexIT extends SpliceUnitTest{
             +"c_balance, c_ytd_payment, c_payment_cnt, c_since FROM %s.%s"
             +" WHERE c_w_id = ? AND c_d_id = ? AND c_last = ? ORDER BY c_first",SCHEMA_NAME,CustomerTable.TABLE_NAME);
 
-    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(null, SCHEMA_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(SCHEMA_NAME);
     private static CustomerTable customerTableWatcher=new CustomerTable(CustomerTable.TABLE_NAME,SCHEMA_NAME){
         @Override
         protected void starting(Description description){

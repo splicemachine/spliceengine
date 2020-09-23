@@ -42,7 +42,7 @@ public class SortOperationIT extends SpliceUnitTest {
 	public static final String TABLE_NAME_5 = "B";
 	public static final String TABLE_NAME_6 = "C";
 
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
 	protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,CLASS_NAME,"(name varchar(255),value1 varchar(255),value2 varchar(255))");
 	protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,CLASS_NAME,"(name varchar(255), age float,created_time timestamp)");
 	protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,CLASS_NAME,"(col boolean)");

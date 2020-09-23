@@ -46,7 +46,7 @@ public class Trigger_Dependency_IT {
     private static final String SCHEMA = Trigger_Dependency_IT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);

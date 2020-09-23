@@ -56,7 +56,7 @@ public class GroupByRollupIT extends SpliceUnitTest {
     }
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);

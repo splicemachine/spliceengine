@@ -42,7 +42,7 @@ public class PreparedStatementIT {
             "(5, 'Doe', 'Jane', 'Baltimore','MD')");
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final String CUST_TABLE_NAME = "customers";
     private static final String CUST_TABLE_DEF = "(customerid integer not null primary key, lastname varchar(30), firstname varchar(10), city varchar(19), state char(2))";

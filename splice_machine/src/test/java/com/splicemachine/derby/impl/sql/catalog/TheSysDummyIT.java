@@ -35,7 +35,7 @@ import com.splicemachine.test_dao.TableDAO;
 public class TheSysDummyIT {
 
     private static final String SCHEMA = TheSysDummyIT.class.getSimpleName().toUpperCase();
-    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
     @ClassRule

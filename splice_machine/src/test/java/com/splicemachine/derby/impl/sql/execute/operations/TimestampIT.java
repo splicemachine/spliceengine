@@ -48,7 +48,7 @@ public class TimestampIT extends SpliceUnitTest {
     private Boolean useSpark;
     private static boolean extendedTimestamps = true;
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
     protected static SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     private static File BADDIR;

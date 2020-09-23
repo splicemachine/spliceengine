@@ -44,7 +44,7 @@ import static org.junit.Assert.assertEquals;
 public class OuterJoinOrderByEliminationIT extends SpliceUnitTest {
     public static final String CLASS_NAME = OuterJoinOrderByEliminationIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {

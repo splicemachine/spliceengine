@@ -26,6 +26,7 @@ import java.text.SimpleDateFormat;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -43,7 +44,7 @@ public class TruncateFunctionIT {
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 
     private static SpliceSchemaWatcher schemaWatcher =
-        new SpliceSchemaWatcher(null, TruncateFunctionIT.class.getSimpleName().toUpperCase());
+        new SpliceSchemaWatcher(TruncateFunctionIT.class.getSimpleName().toUpperCase());
 
     private static final String QUALIFIED_TABLE_NAME = schemaWatcher.schemaName + ".trunctest";
 

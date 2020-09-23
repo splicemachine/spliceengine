@@ -35,7 +35,7 @@ public class UniqueConstraintIT {
     private static final String SCHEMA = UniqueConstraintIT.class.getSimpleName().toUpperCase();
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);

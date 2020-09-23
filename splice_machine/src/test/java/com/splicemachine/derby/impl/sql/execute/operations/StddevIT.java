@@ -28,7 +28,7 @@ public class StddevIT extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE_NAME = "TAB";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(I INT, D DOUBLE)";
     protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME,CLASS_NAME, tableDef);

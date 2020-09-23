@@ -64,7 +64,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
     private static final String SCHEMA = WindowFunctionIT.class.getSimpleName().toUpperCase();
 
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
+    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     private static String empTabDef = "(empnum int, dept int, salary int)";
     private static final String EMPTAB = "EMPTAB";

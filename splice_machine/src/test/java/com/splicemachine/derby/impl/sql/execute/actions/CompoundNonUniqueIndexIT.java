@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.LongerThanTwoMinutes;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -33,7 +34,7 @@ import org.junit.rules.TestRule;
 public class CompoundNonUniqueIndexIT extends AbstractIndexTest{
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static String CLASS_NAME = CompoundNonUniqueIndexIT.class.getSimpleName().toUpperCase();
-    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    private static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static SpliceTableWatcher twoContiguousColumns                          = new SpliceTableWatcher("TWO_CONTIGUOUS",               spliceSchemaWatcher.schemaName,tableSchema);
     private static SpliceTableWatcher twoContiguousColumnsAfter                     = new SpliceTableWatcher("TWO_CONTIGUOUS_AFTER",         spliceSchemaWatcher.schemaName,tableSchema);

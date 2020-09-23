@@ -15,9 +15,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import splice.com.google.common.collect.Sets;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.ConcurrentTicker;
+import com.splicemachine.concurrent.IncrementingClock;
 import com.splicemachine.concurrent.TickingClock;
 import com.splicemachine.derby.test.framework.*;
+import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -37,7 +40,7 @@ import java.util.Set;
 
 public class DistinctScanOperationIT extends SpliceUnitTest{
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher();
-    protected static SpliceSchemaWatcher schema=new SpliceSchemaWatcher(null, DistinctScanOperationIT.class.getSimpleName());
+    protected static SpliceSchemaWatcher schema=new SpliceSchemaWatcher(DistinctScanOperationIT.class.getSimpleName());
     protected static SpliceTableWatcher foo=new SpliceTableWatcher("FOO",DistinctScanOperationIT.class.getSimpleName(),"(si int, sa varchar(40))");
     protected static SpliceTableWatcher ts=new SpliceTableWatcher("TS",DistinctScanOperationIT.class.getSimpleName(),"(si int, t timestamp)");
     protected static SpliceTableWatcher tab=new SpliceTableWatcher("TAB",DistinctScanOperationIT.class.getSimpleName(),"(I INT, D DOUBLE)");

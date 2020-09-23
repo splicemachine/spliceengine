@@ -39,7 +39,7 @@ import static org.junit.Assert.assertEquals;
  */
 @Category(Transactions.class)
 public class AddColumnTransactionIT {
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, AddColumnTransactionIT.class.getSimpleName().toUpperCase());
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(AddColumnTransactionIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher commitTable = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher commitTable2 = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(a int, b int)");

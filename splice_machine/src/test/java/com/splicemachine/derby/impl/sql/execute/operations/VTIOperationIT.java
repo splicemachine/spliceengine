@@ -41,7 +41,7 @@ public class VTIOperationIT extends SpliceUnitTest {
     private static final String TABLE_NAME="EMPLOYEE";
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

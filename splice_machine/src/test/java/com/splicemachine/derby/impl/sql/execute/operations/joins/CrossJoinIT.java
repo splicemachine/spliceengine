@@ -68,7 +68,7 @@ public class CrossJoinIT extends SpliceUnitTest {
         this.idx = idx;
     }
 
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CrossJoinIT.class.getSimpleName().toUpperCase());
+    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CrossJoinIT.class.getSimpleName().toUpperCase());
 
     public static final SpliceTableWatcher a= new SpliceTableWatcher("A",schemaWatcher.schemaName,"(c1 int, c2 int)");
     public static final SpliceTableWatcher b= new SpliceTableWatcher("B",schemaWatcher.schemaName,"(c2 int,c3 int)");

@@ -70,7 +70,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     public static final String INDEX_91 = "IDX_I1";
     public static final String INDEX_J = "IDX_J1";
 
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2,spliceSchemaWatcher.schemaName,"(n_1 varchar(40),n_2 varchar(30),val int)");
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3,spliceSchemaWatcher.schemaName,"(name varchar(40), val int)");

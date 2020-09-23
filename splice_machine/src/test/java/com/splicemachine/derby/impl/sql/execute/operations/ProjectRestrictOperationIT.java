@@ -46,7 +46,7 @@ public class ProjectRestrictOperationIT extends SpliceUnitTest{
     public static final String CLASS_NAME=ProjectRestrictOperationIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher=new SpliceWatcher(CLASS_NAME);
     public static final String TABLE_NAME="A";
-    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static SpliceSchemaWatcher spliceSchemaWatcher=new SpliceSchemaWatcher(CLASS_NAME);
     protected static SpliceTableWatcher spliceTableWatcher=new SpliceTableWatcher(TABLE_NAME,CLASS_NAME,"(si varchar(40),sa varchar(40),sc int)");
     protected static SpliceTableWatcher spliceTableWatcher2=new SpliceTableWatcher("B",CLASS_NAME,"(sc int,sd int,se decimal(7,2))");
     protected static SpliceTableWatcher spliceTableWatcher3=new SpliceTableWatcher("d6363",CLASS_NAME,"(a int, b char)");

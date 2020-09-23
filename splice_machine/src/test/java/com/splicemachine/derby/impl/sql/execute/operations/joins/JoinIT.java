@@ -45,7 +45,7 @@ public class JoinIT extends SpliceUnitTest {
 
     protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
 
-    protected static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(null, CLASS_NAME);
+    protected static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     protected static final SpliceTableWatcher A_TABLE = new SpliceTableWatcher("A",schemaWatcher.schemaName,
             "(a1 int not null primary key, a2 int, a3 int, a4 int, a5 int, a6 int)");
