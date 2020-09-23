@@ -1702,8 +1702,8 @@ public class ExternalTableIT extends SpliceUnitTest {
         Assert.assertEquals( methodWatcher.executeUpdate(
                 "insert into TEST_CSV_PART VALUES (1, 'a'), (2, 'b'), (3, 'c')"), 3);
 
-        ResultSet rs = methodWatcher.executeQuery("select * from TEST_CSV_PART");
-        Assert.assertEquals("T1 |T2 |\n" +
+        ResultSet rs = methodWatcher.executeQuery("select T2, T1 from TEST_CSV_PART");
+        Assert.assertEquals("T2 |T1 |\n" +
                 "--------\n" +
                 " a | 1 |\n" +
                 " b | 2 |\n" +
