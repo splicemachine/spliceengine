@@ -14,36 +14,37 @@
 
 package com.splicemachine.backup;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.db.iapi.error.StandardException;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.TimeZone;
+
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.utils.EngineUtils;
+import com.splicemachine.procedures.ProcedureUtils;
+import org.apache.log4j.Logger;
+import org.spark_project.guava.collect.Lists;
+
+import com.splicemachine.EngineDriver;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
-
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.List;
-import java.util.TimeZone;
 
 /**
  *
@@ -185,6 +186,8 @@ public class BackupSystemProcedures {
     public static void SYSCS_BACKUP_DATABASE(String directory, String type, ResultSet[] resultSets)
             throws StandardException, SQLException {
         type = type.trim();
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
         try {
             // Check directory
             if (directory == null || directory.isEmpty()) {
@@ -328,6 +331,8 @@ public class BackupSystemProcedures {
             throws StandardException, SQLException {
 
         type = type.trim();
+        Connection conn = SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 
         try {
             // Check directory
@@ -421,7 +426,7 @@ public class BackupSystemProcedures {
         try{
             BackupManager backupManager = EngineDriver.driver().manager().getBackupManager();
             List<Long> backupIds = Lists.newArrayList();
-            backupIds.add(backupId);
+            backupIds.add(new Long(backupId));
             backupManager.removeBackup(backupIds);
             resultSets[0] = ProcedureUtils.generateResult("Success", "Delete backup "+backupId);
         } catch (Throwable t) {
@@ -574,12 +579,11 @@ public class BackupSystemProcedures {
         if (sd == null) {
             throw StandardException.newException(com.splicemachine.db.iapi.reference.SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
         }
-        TableDescriptor td = dd.getTableDescriptor(lcc.mangleTableName(tableName), sd, tc);
-        if (td == null) {
-            td = dd.getTableDescriptor(tableName, sd, tc);
-        }
-        if (td == null || !lcc.isVisibleToCurrentSession(td))
+        TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+        if (td == null)
+        {
             throw StandardException.newException(com.splicemachine.db.iapi.reference.SQLState.TABLE_NOT_FOUND, tableName);
+        }
     }
 
     public static void SYSCS_BACKUP_SCHEMA(String schemaName,

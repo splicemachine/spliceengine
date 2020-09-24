@@ -434,8 +434,6 @@ public class FromSubquery extends FromTable
             }
         }
 
-        assert subquery != null;
-
         // Push the order by list down to the ResultSet
         if (orderByList != null)
         {
@@ -789,21 +787,10 @@ public class FromSubquery extends FromTable
      *
      * @exception StandardException        Thrown on error
      */
-    @Override
     public boolean referencesSessionSchema()
         throws StandardException
     {
         return subquery.referencesSessionSchema();
-    }
-
-    /**
-     * Return true if the node references temporary tables no matter under which schema
-     *
-     * @return true if references temporary tables, else false
-     */
-    @Override
-    public boolean referencesTemporaryTable() {
-        return subquery.referencesTemporaryTable();
     }
 
     /**
@@ -892,6 +879,6 @@ public class FromSubquery extends FromTable
     }
 
     private String getNewAnonymousCorrelationName() {
-        return "_spliceinternal_anonym_subquery_" + anonymousSubqueries++;
+        return new String("_spliceinternal_anonym_subquery_" + anonymousSubqueries++);
     }
 }

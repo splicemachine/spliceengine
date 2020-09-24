@@ -55,7 +55,6 @@ import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
 import com.splicemachine.system.SparkVersion;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -70,7 +69,7 @@ import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
-    protected static final AtomicInteger jsonIncrement = new AtomicInteger(0);
+    protected static AtomicInteger jsonIncrement;
     protected int actualJsonIncrement = -1;
     private static final Logger JSON_TREE_LOG = Logger.getLogger(JsonTreeBuilderVisitor.class);
 
@@ -143,13 +142,11 @@ public class GenericStatement implements Statement{
                     // looping infinitely.
                     if(!conglomId.equals(prevErrorId)){
                         recompile=true;
-                        prevErrorId=conglomId;
                     }
-                    else
-                        throw se;
+
+                    prevErrorId=conglomId;
                 }
-                else
-                    throw se;
+                throw se;
             }finally{
                 // Check if the statement was invalidated while it was
                 // compiled. If so, the newly compiled plan may not be
@@ -272,8 +269,6 @@ public class GenericStatement implements Statement{
         return s.startsWith("EXPLAIN");
     }
 
-    @SuppressFBWarnings(value = "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD",
-            justification = "the new object created at line 370 will not be put into cache and it cannot be referenced by other threads")
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
                                          boolean cacheMe,
                                          Object[] paramDefaults,
@@ -366,7 +361,6 @@ public class GenericStatement implements Statement{
                         // cannot use this state since it is private to a connection.
                         // switch to a new statement.
                         foundInCache=false;
-                        // reassigning preparedStmt causes a FindBugs bug ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD
                         preparedStmt=new GenericStorablePreparedStatement(this);
                         break;
                     }
@@ -411,11 +405,8 @@ public class GenericStatement implements Statement{
                 }
             }
 
-            // if we reach here from the break at line 371, preparedStmt object is different
-            synchronized (preparedStmt) {
-                preparedStmt.compilingStatement = true;
-                preparedStmt.setActivationClass(null);
-            }
+            preparedStmt.compilingStatement=true;
+            preparedStmt.setActivationClass(null);
         }
 
         try{
@@ -481,7 +472,7 @@ public class GenericStatement implements Statement{
             int maxMulticolumnProbeValues = CompilerContext.DEFAULT_MAX_MULTICOLUMN_PROBE_VALUES;
             try {
                 if (maxMulticolumnProbeValuesString != null)
-                    maxMulticolumnProbeValues = Integer.parseInt(maxMulticolumnProbeValuesString);
+                    maxMulticolumnProbeValues = Integer.valueOf(maxMulticolumnProbeValuesString);
             }
             catch (Exception e) {
                 // If the property value failed to convert to an int, don't throw an error,
@@ -493,7 +484,7 @@ public class GenericStatement implements Statement{
             boolean multicolumnInlistProbeOnSparkEnabled = CompilerContext.DEFAULT_MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED;
             try {
                 if (multicolumnInlistProbeOnSparkEnabledString != null)
-                    multicolumnInlistProbeOnSparkEnabled = Boolean.parseBoolean(multicolumnInlistProbeOnSparkEnabledString);
+                    multicolumnInlistProbeOnSparkEnabled = Boolean.valueOf(multicolumnInlistProbeOnSparkEnabledString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -504,7 +495,7 @@ public class GenericStatement implements Statement{
             boolean convertMultiColumnDNFPredicatesToInList = CompilerContext.DEFAULT_CONVERT_MULTICOLUMN_DNF_PREDICATES_TO_INLIST;
             try {
                 if (convertMultiColumnDNFPredicatesToInListString != null)
-                    convertMultiColumnDNFPredicatesToInList = Boolean.parseBoolean(convertMultiColumnDNFPredicatesToInListString);
+                    convertMultiColumnDNFPredicatesToInList = Boolean.valueOf(convertMultiColumnDNFPredicatesToInListString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -517,7 +508,7 @@ public class GenericStatement implements Statement{
             try {
                 if (disablePredicateSimplificationString != null)
                     disablePredicateSimplification =
-                        Boolean.parseBoolean(disablePredicateSimplificationString);
+                        Boolean.valueOf(disablePredicateSimplificationString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -550,7 +541,7 @@ public class GenericStatement implements Statement{
             try {
                 if (allowOverflowSensitiveNativeSparkExpressionsString != null)
                     allowOverflowSensitiveNativeSparkExpressions =
-                        Boolean.parseBoolean(allowOverflowSensitiveNativeSparkExpressionsString);
+                        Boolean.valueOf(allowOverflowSensitiveNativeSparkExpressionsString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -562,7 +553,7 @@ public class GenericStatement implements Statement{
             int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;
             try {
                 if (currentTimestampPrecisionString != null)
-                    currentTimestampPrecision = Integer.parseInt(currentTimestampPrecisionString);
+                    currentTimestampPrecision = Integer.valueOf(currentTimestampPrecisionString);
                     if (currentTimestampPrecision < 0)
                         currentTimestampPrecision = 0;
                     if (currentTimestampPrecision > 9)
@@ -579,7 +570,7 @@ public class GenericStatement implements Statement{
             try {
                 if (outerJoinFlatteningDisabledString != null)
                     outerJoinFlatteningDisabled =
-                            Boolean.parseBoolean(outerJoinFlatteningDisabledString);
+                            Boolean.valueOf(outerJoinFlatteningDisabledString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -607,7 +598,7 @@ public class GenericStatement implements Statement{
             try {
                 if (ssqFlatteningForUpdateDisabledString != null)
                     ssqFlatteningForUpdateDisabled =
-                            Boolean.parseBoolean(ssqFlatteningForUpdateDisabledString);
+                            Boolean.valueOf(ssqFlatteningForUpdateDisabledString);
             } catch (Exception e) {
                 // If the property value failed to convert to a boolean, don't throw an error,
                 // just use the default setting.
@@ -675,7 +666,7 @@ public class GenericStatement implements Statement{
              * Otherwise we would just erase the DDL's invalidation when
              * we mark it valid.
              */
-            /*Timestamp endTimestamp = */generate(lcc, timestamps, cc, qt);
+            Timestamp endTimestamp = generate(lcc, timestamps, cc, qt);
 
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
@@ -763,7 +754,7 @@ public class GenericStatement implements Statement{
             //view gets replaced with the actual view definition. Right after
             // binding, we still have the information on the view and that is why
             // we do the check here.
-            if(preparedStmt.referencesSessionSchema(qt) || qt.referencesTemporaryTable()){
+            if(preparedStmt.referencesSessionSchema(qt)){
                 if(foundInCache)
                     ((GenericLanguageConnectionContext)lcc).removeStatement(this);
             }
@@ -919,6 +910,8 @@ public class GenericStatement implements Statement{
         if (JSON_TREE_LOG.isTraceEnabled()) {
             JSON_TREE_LOG.warn("JSON AST logging is enabled");
             try {
+                if (jsonIncrement ==null)
+                    jsonIncrement = new AtomicInteger(0);
                 if (actualJsonIncrement==-1)
                     actualJsonIncrement = jsonIncrement.getAndIncrement();
                 JsonTreeBuilderVisitor jsonVisitor = new JsonTreeBuilderVisitor();

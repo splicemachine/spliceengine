@@ -21,19 +21,15 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
-import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.fs.Path;
 import org.apache.log4j.Logger;
 import org.spark_project.guava.base.Splitter;
@@ -79,49 +75,43 @@ public class TableSplit{
         Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
         LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
 
-        schemaName = EngineUtils.validateSchema(schemaName);
-        tableName = EngineUtils.validateTable(tableName);
-
-        try {
-            TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
-            tableName = td.getName();
+        if (tableName == null) {
+            throw StandardException.newException(SQLState.TABLE_NAME_CANNOT_BE_NULL);
         }
-        catch (StandardException e) {
-            throw new SQLException(e);
+
+        if (schemaName == null) {
+            schemaName = lcc.getCurrentSchemaName();
         }
 
         long conglomId = getConglomerateId(defaultConn, schemaName, tableName, indexName);
         String tempDir = new Path(badRecordDirectory, ".TMP").toString();
         String sql = "call syscs_util.compute_split_key(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
-        try (PreparedStatement ps = defaultConn.prepareStatement(sql)) {
-            ps.setString(1, schemaName);
-            ps.setString(2, tableName);
-            ps.setString(3, indexName);
-            ps.setString(4, insertColumnList);
-            ps.setString(5, fileName);
-            ps.setString(6, columnDelimiter);
-            ps.setString(7, characterDelimiter);
-            ps.setString(8, timestampFormat);
-            ps.setString(9, dateFormat);
-            ps.setString(10, timeFormat);
-            ps.setLong(11, badRecordsAllowed);
-            ps.setString(12, badRecordDirectory);
-            ps.setString(13, oneLineRecords);
-            ps.setString(14, charset);
-            ps.setString(15, tempDir);
-            ResultSet rs = ps.executeQuery();
-            if (rs != null)
-                rs.close();
-        }
+        PreparedStatement ps = defaultConn.prepareStatement(sql);
+        ps.setString(1, schemaName);
+        ps.setString(2, tableName);
+        ps.setString(3, indexName);
+        ps.setString(4, insertColumnList);
+        ps.setString(5, fileName);
+        ps.setString(6, columnDelimiter);
+        ps.setString(7, characterDelimiter);
+        ps.setString(8, timestampFormat);
+        ps.setString(9, dateFormat);
+        ps.setString(10, timeFormat);
+        ps.setLong(11, badRecordsAllowed);
+        ps.setString(12, badRecordDirectory);
+        ps.setString(13, oneLineRecords);
+        ps.setString(14, charset);
+        ps.setString(15, tempDir);
+        ps.executeQuery();
+        ps.close();
 
         DistributedFileSystem fs = SIDriver.driver().getFileSystem(tempDir);
         Path filePath = new Path(tempDir, conglomId + "/keys");
         InputStream in = fs.newInputStream(filePath.toString(), StandardOpenOption.READ);
-        try (BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"))) {
-            String splitKey;
-            while ((splitKey = br.readLine()) != null) {
-                splitTable(schemaName, tableName, indexName, splitKey);
-            }
+        BufferedReader br = new BufferedReader(new InputStreamReader(in, "UTF-8"));
+        String splitKey = null;
+        while((splitKey = br.readLine()) != null) {
+            splitTable(schemaName, tableName, indexName, splitKey);
         }
     }
     /**
@@ -364,7 +354,7 @@ public class TableSplit{
         }
     }
 
-    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "String provided with system default encoding")
+
     private static byte[] createRegionName(String regionName) {
         return regionName.getBytes();
     }

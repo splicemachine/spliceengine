@@ -350,16 +350,6 @@ public class CursorNode extends DMLStatementNode{
     }
 
     /**
-     * Return true if the node references temporary tables no matter under which schema
-     *
-     * @return true if references temporary tables, else false
-     */
-    @Override
-    public boolean referencesTemporaryTable() {
-        return resultSet.referencesTemporaryTable();
-    }
-
-    /**
      * Optimize a DML statement (which is the only type of statement that
      * should need optimizing, I think). This method over-rides the one
      * in QueryTreeNode.

@@ -274,9 +274,9 @@ public class RenameNode extends DDLStatementNode
 		td = getTableDescriptor();
 
 		//throw an exception if user is attempting a rename on temporary table
-		if (td.isTemporary())
+		if (td.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
 		{
-			throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_TEMP_TABLE);
+				throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE);
 		}
 
 		switch (this.renamingWhat)
@@ -323,7 +323,6 @@ public class RenameNode extends DDLStatementNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	@Override
 	public boolean referencesSessionSchema()
 		throws StandardException
 	{
@@ -334,16 +333,6 @@ public class RenameNode extends DDLStatementNode
 		//new name in rename action
 		return renamingWhat == StatementType.RENAME_TABLE && isSessionSchema(getSchemaDescriptor());
 
-	}
-
-	/**
-	 * Return true if the node references temporary tables no matter under which schema
-	 *
-	 * @return true if references temporary tables, else false
-	 */
-	@Override
-	public boolean referencesTemporaryTable() {
-		return td.isTemporary();
 	}
 
 	//do any checking needs to be done at bind time for rename table

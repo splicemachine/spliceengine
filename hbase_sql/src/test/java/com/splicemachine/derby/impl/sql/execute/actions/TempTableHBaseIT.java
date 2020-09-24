@@ -21,9 +21,9 @@ import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import java.sql.Connection;
 import java.sql.Statement;
 import java.util.Arrays;
@@ -78,7 +78,7 @@ public class TempTableHBaseIT{
                         SpliceUnitTest.loadTable(statement, tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE, empNameVals);
                     }
                 });
-                tempConglomID = TableName.valueOf(TestUtils.lookupConglomerateNumber(tableSchema.schemaName, SIMPLE_TEMP_TABLE, true, methodWatcher));
+                tempConglomID = TableName.valueOf(TestUtils.lookupConglomerateNumber(tableSchema.schemaName, SIMPLE_TEMP_TABLE, methodWatcher));
                 connection.commit();
 
             } finally {

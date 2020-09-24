@@ -227,28 +227,6 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     }
 
     /**
-     * Return true if the node references temporary tables no matter under which schema
-     *
-     * @return true if references temporary tables, else false
-     */
-    @Override
-    public boolean referencesTemporaryTable() {
-        FromTable fromTable;
-        boolean found=false;
-
-        int size=size();
-        for(int index=0;index<size;index++){
-            fromTable=(FromTable)elementAt(index);
-
-            if(fromTable.referencesTemporaryTable()){
-                found=true;
-                break;
-            }
-        }
-        return found;
-    }
-
-    /**
      * Determine whether or not the specified name is an exposed name in
      * the current query block.
      *

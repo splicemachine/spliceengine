@@ -319,7 +319,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
         catch (SQLException e)
         {
             String sqlState = e.getSQLState();
-            Assert.assertEquals("XIE0M",sqlState);
+            Assert.assertEquals("42X05",sqlState);
         }
     }
 
@@ -578,7 +578,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
         ResultSet rs = conn.query("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T_TEMP')");
         rs.next();
         String ddl = rs.getString(1);
-        Assert.assertEquals("CREATE LOCAL TEMPORARY TABLE \"SHOWCREATETABLEIT\".\"T_TEMP\" (\n" +
+        Assert.assertEquals("CREATE GLOBAL TEMPORARY TABLE \"SHOWCREATETABLEIT\".\"T_TEMP\" (\n" +
                 "\"A1\" INTEGER\n" +
                 ",\"B1\" INTEGER\n" +
                 ",\"C1\" INTEGER\n" +
