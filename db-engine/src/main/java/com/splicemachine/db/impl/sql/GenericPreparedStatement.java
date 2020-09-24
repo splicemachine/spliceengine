@@ -907,9 +907,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                 updateMode = cursorInfo.updateMode;
             }
         }
-        synchronized (this) {
-            isValid = true;
-        }
+        setValid();
     }
 
     @Override
