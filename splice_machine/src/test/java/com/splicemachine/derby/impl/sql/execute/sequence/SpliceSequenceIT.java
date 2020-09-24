@@ -75,11 +75,11 @@ public class SpliceSequenceIT {
         assertEquals(new Long(first + 1), methodWatcher.query(
                 String.format("VALUES SYSCS_UTIL.SYSCS_PEEK_AT_SEQUENCE('%s', 'SMALLSEQ')",SCHEMA)));
         assertEquals((first + 1), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
-        assertEquals((first + 2), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals((first + 2), (int)methodWatcher.query("values (nextval for SMALLSEQ)"));
         assertEquals((first + 3), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
-        assertEquals((first + 4), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals((first + 4), (int)methodWatcher.query("values (nextval for SMALLSEQ)"));
         assertEquals((first + 5), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
-        assertEquals((first+ 6), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals((first+ 6), (int)methodWatcher.query("values (nextval for SMALLSEQ)"));
 
         assertTrue(first >= Short.MIN_VALUE && first <= Short.MAX_VALUE);
 
