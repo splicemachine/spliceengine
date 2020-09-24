@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import org.spark_project.guava.base.Strings;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
@@ -144,7 +145,7 @@ public class CachedOperation extends SpliceBaseOperation {
         }
         else {
             dsp.incrementOpDepth();
-            DataSet dataSet = source.getDataSet(dsp);
+            DataSet dataSet = source.getDataSet(dsp).map(new SetCurrentLocatedRowFunction<>(source.getOperationContext()));
             dsp.decrementOpDepth();
             dsp.prependSpliceExplainString(this.explainPlan);
             return dataSet;
