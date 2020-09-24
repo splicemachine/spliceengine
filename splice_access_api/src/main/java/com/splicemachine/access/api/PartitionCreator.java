@@ -25,6 +25,7 @@ import java.io.IOException;
 public interface PartitionCreator{
 
     PartitionCreator withName(String name);
+    PartitionCreator withName(String name, int priority);
 
     PartitionCreator withDisplayNames(String[] displayNames);
 

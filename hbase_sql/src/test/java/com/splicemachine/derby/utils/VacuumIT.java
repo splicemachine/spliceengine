@@ -23,6 +23,7 @@ import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
@@ -125,6 +126,34 @@ public class VacuumIT extends SpliceUnitTest{
             for(String t : deletedTables){
                 long conglom=new Long(t);
                 assertTrue(conglom>=DataDictionary.FIRST_USER_TABLE_NUMBER);
+            }
+        }
+    }
+
+    @Test
+    public void testSysTablesPriority() throws Exception {
+        try(Admin admin=ConnectionFactory.createConnection(new Configuration()).getAdmin()){
+            HTableDescriptor[] tableDescriptors = admin.listTables();
+            for( HTableDescriptor td : tableDescriptors) {
+                String s = td.getValue("tableDisplayName");
+                if( s == null ) {
+
+                    String arr[] = {"splice:DROPPED_CONGLOMERATES", "splice:SPLICE_CONGLOMERATE",
+                                    "splice:SPLICE_MASTER_SNAPSHOTS", "splice:SPLICE_REPLICATION_PROGRESS",
+                                    "splice:SPLICE_SEQUENCES", "splice:SPLICE_TXN", "splice:TENTATIVE_DDL"};
+                    Assert.assertTrue(td.toString(), ArrayUtils.contains(arr, td.getTableName().getNameAsString()));
+                    // check this
+                    Assert.assertEquals(td.toString(), 110, td.getPriority());
+                }
+                else
+                {
+                    if( s.startsWith("SYS") || s.startsWith("splice:") || s.equals("MON_GET_CONNECTION") ) {
+                        Assert.assertEquals(td.toString(), 100, td.getPriority());
+                    }
+                    else {
+                        Assert.assertEquals(td.toString(), 0, td.getPriority());
+                    }
+                }
             }
         }
     }

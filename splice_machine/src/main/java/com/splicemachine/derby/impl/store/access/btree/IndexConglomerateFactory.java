@@ -65,14 +65,15 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
     int[]                   collationIds,
     Properties              properties,
 	int                     temporaryFlag,
-	byte[][]                splitKeys) throws StandardException {
+	byte[][]                splitKeys,
+	int                     priority) throws StandardException {
 		IndexConglomerate index = new IndexConglomerate();
 		index.create(isExternal,
 				xact_mgr.getRawStoreXact(), input_containerid,
 				template, columnOrder, collationIds, properties,
 				index.getTypeFormatId(),
 				temporaryFlag,operationFactory,partitionFactory,
-				splitKeys);
+				splitKeys, priority);
 
 		return index;
 	}

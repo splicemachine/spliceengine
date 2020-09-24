@@ -282,7 +282,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                     collation_ids,
                     properties,
                     TransactionController.IS_TEMPORARY | 
-                    TransactionController.IS_KEPT);
+                    TransactionController.IS_KEPT, 0);
 
 			conglomCreated = true;
 
@@ -345,7 +345,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                         null, // no collation needed for index on row locations.
                         props, 
                         (TransactionController.IS_TEMPORARY | 
-                         TransactionController.IS_KEPT));
+                         TransactionController.IS_KEPT), 0);
 
 				uniqueIndex_cc = tc.openConglomerate(
 								uniqueIndexConglomId, 
@@ -413,7 +413,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                     null, // no collation needed for index on row locations.
                     props, 
                     (TransactionController.IS_TEMPORARY | 
-                     TransactionController.IS_KEPT));
+                     TransactionController.IS_KEPT), 0);
 
 			positionIndex_cc = 
                 tc.openConglomerate(

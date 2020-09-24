@@ -306,7 +306,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
                  null, //collation_ids
                  properties,
                  TransactionController.IS_TEMPORARY |
-                 TransactionController.IS_KEPT);
+                 TransactionController.IS_KEPT, 0);
 
             LOG.trace(format("Created temporary conglomerate splice:%d", CID));
 

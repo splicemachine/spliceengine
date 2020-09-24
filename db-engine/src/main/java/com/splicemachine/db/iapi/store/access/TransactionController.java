@@ -429,7 +429,8 @@ public interface TransactionController
     ColumnOrdering[]        columnOrder,
     int[]                   collationIds,
     Properties              properties,
-    int                     temporaryFlag)
+    int                     temporaryFlag,
+	int                     priority)
 		throws StandardException;
 
     long createConglomerate(
@@ -440,7 +441,8 @@ public interface TransactionController
             int[]                   collationIds,
             Properties              properties,
             int                     temporaryFlag,
-            byte[][]                splitKeys)
+            byte[][]                splitKeys,
+			int                     priority)
             throws StandardException;
 
 	/** Tags this conglomerate with the transaction Id that dropped it, in order

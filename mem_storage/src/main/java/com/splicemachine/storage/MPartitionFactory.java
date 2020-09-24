@@ -67,6 +67,11 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public PartitionCreator withName(String name){
+            return withName(name, 0);
+        }
+
+        @Override
+        public PartitionCreator withName(String name, int priority){
             this.name=name;
             return this;
         }

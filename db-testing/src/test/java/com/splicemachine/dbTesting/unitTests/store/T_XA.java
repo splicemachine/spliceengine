@@ -221,7 +221,7 @@ public class T_XA extends T_Generic
 				null,  	//column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
 
         // commit an idle transaction - using onePhase optimization.
@@ -349,7 +349,7 @@ public class T_XA extends T_Generic
                 null, 	//column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
         // prepare the update xact.
         if (xa_tc.xa_prepare() != XATransactionController.XA_OK)
@@ -479,7 +479,7 @@ public class T_XA extends T_Generic
 				null, //column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
 
         // commit an idle transaction - using onePhase optimization.
@@ -507,7 +507,7 @@ public class T_XA extends T_Generic
 				null, //column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
 
         // commit an idle transaction - using onePhase optimization.
@@ -618,7 +618,7 @@ public class T_XA extends T_Generic
 				null, //column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
 
 
@@ -749,7 +749,7 @@ public class T_XA extends T_Generic
 				null, //column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
         commit_method.commit(true, 42, global_id, branch_id, xa_tc);
 
@@ -877,7 +877,7 @@ public class T_XA extends T_Generic
 				null, //column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
         // Should be no prepared transactions, there is one update global xact.
         if (((XAResourceManager) store.getXAResourceManager()).recover(
@@ -954,7 +954,7 @@ public class T_XA extends T_Generic
 				null, //column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
         // Should be no prepared transactions, there is one update global xact.
         if (((XAResourceManager) store.getXAResourceManager()).recover(
@@ -1086,7 +1086,7 @@ public class T_XA extends T_Generic
 				null, //column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
         tc.commit();
 
@@ -1133,7 +1133,7 @@ public class T_XA extends T_Generic
 				null, //column sort order - not required for heap
 				null,  	//default collation
                 null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
+                TransactionController.IS_DEFAULT, 0);       // not temporary
 
         // Should be no prepared transactions, there is one update global xact.
         if (((XAResourceManager) store.getXAResourceManager()).recover(

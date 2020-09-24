@@ -315,7 +315,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
                         (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
                         TransactionController.IS_DEFAULT,
-                splitKeys);
+                splitKeys, 0 /* priority = 0 */ );
         SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
         try {
