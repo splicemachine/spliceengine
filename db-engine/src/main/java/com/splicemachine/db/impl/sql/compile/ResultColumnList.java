@@ -421,7 +421,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
                         rc=null;
                     }
                 }else{
-                    assert exp instanceof BaseColumnNode: "expected BaseColumnNode, found: "+ exp.getClass();
+                    // we could get here with BaseColumnNode or constant expressions
                     rc=null;
                 }
             }
