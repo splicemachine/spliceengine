@@ -39,12 +39,12 @@ public class UpgradeScriptForReplication extends UpgradeScriptBase {
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
             if (!admin.tableExists(HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME)) {
                 LOG.info("Creating " + HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME);
-                admin.newPartition().withName(HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME).create();
+                admin.newPartition().withName(HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME, 100).create();
             }
 
             if (!admin.tableExists(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME)) {
                 LOG.info("Creating " + HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME);
-                admin.newPartition().withName(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME).create();
+                admin.newPartition().withName(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME, 100).create();
             }
         } catch (IOException e) {
             LOG.warn("Exception while creating while creating replication tables", e);

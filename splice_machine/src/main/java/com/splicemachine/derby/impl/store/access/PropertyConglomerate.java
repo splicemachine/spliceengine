@@ -94,7 +94,7 @@ public class PropertyConglomerate {
                     null,
 						null, // use default collation for property conglom.
                     conglomProperties, 
-                    TransactionController.IS_DEFAULT);
+                    TransactionController.IS_DEFAULT, 100);
 
 			//
 			// IMPORTANT: Hey, you!  Yeah, you!  Before you think about adding another "service" property default here,

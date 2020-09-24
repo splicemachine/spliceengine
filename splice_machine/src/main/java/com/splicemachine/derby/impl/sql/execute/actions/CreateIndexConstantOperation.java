@@ -829,7 +829,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              */
             conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
                     getColumnOrderings(indexRowGenerator.baseColumnPositions()), indexRowGenerator.getColumnCollationIds(
-                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys);
+                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys, 0 /* priority = 0 */);
 
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
             // Enable replication for index if that's enables for base table

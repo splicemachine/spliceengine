@@ -190,7 +190,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         columnOrdering, //column sort order - not required for heap
                         td.getColumnCollationIds(),
                         properties,
-                        TransactionController.IS_DEFAULT);
+                        TransactionController.IS_DEFAULT, 0);
 
 		    /* Set up index info to perform truncate on them*/
         int numIndexes = getAffectedIndexes(td);
@@ -277,7 +277,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         columnOrder,
                         collationIds,
                         properties,
-                        TransactionController.IS_DEFAULT);
+                        TransactionController.IS_DEFAULT, 0);
 
 
     }

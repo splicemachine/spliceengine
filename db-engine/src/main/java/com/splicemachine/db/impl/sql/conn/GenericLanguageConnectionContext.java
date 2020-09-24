@@ -1671,7 +1671,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         td.getColumnCollationIds(),  // same ids as old conglomerate
                         null, // properties
                         (TransactionController.IS_TEMPORARY|
-                                TransactionController.IS_KEPT));
+                                TransactionController.IS_KEPT), 0);
 
         long cid=td.getHeapConglomerateId();
 

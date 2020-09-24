@@ -42,6 +42,10 @@ public class PipelinePartitionCreator implements PartitionCreator{
     }
 
     public PartitionCreator withName(String name){
+        return withName(name, 0);
+    }
+
+    public PartitionCreator withName(String name, int priority){
         baseCreator=baseCreator.withName(name);
         try{
             //noinspection ResultOfMethodCallIgnored

@@ -54,9 +54,15 @@ public class HPartitionCreator implements PartitionCreator{
 
     @Override
     public PartitionCreator withName(String name){
+        return withName(name, 0);
+    }
+
+    @Override
+    public PartitionCreator withName(String name, int priority){
         assert tableName == null;
         tableName = tableInfoFactory.getTableInfo(name);
         descriptorBuilder = TableDescriptorBuilder.newBuilder(tableName);
+        descriptorBuilder.setPriority(priority);
         return this;
     }
 

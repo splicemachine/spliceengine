@@ -92,7 +92,8 @@ public interface ConglomerateFactory extends MethodFactory
     int[]                   collationIds,
     Properties              properties,
 	int						temporaryFlag,
-	byte[][]                splitKeys)
+	byte[][]                splitKeys,
+	int                     priority)
             throws StandardException;
     /**
      * Return Conglomerate object for conglomerate with container_key.
