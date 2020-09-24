@@ -1659,17 +1659,19 @@ public class ExternalTableIT extends SpliceUnitTest {
 
     @Test
     public void testCsvOptions() throws Exception {
+
         String tablePath = getExternalResourceDirectory() + "test_csv_options";
+        // see https://splicemachine.atlassian.net/browse/DB-10339
         String csvOptions[] = {
                 // default
                 "",
-                "\"\\\"Hallo; #\\\"World\\\"!\\\"\",\";Ha#,\"\n",
+                "\"\\\"Hallo; #\\\"World\\\"!\\\"\",\";Ha,\"\n",
                 // TERMINATED BY
                 "ROW FORMAT DELIMITED FIELDS TERMINATED BY ';'",
-                "\"\\\"Hallo; #\\\"World\\\"!\\\"\";\";Ha#,\"\n",
+                "\"\\\"Hallo; #\\\"World\\\"!\\\"\";\";Ha,\"\n",
                 // ESCAPED BY
                 "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '#'",
-                "\"#\"Hallo; ###\"World#\"!#\"\",\";Ha##,\"\n",
+                "\"#\"Hallo; ###\"World#\"!#\"\",\";Ha,\"\n",
         };
         for( int i = 0; i < csvOptions.length; i+=2 ) {
             // Create an external table stored as text
@@ -1677,13 +1679,13 @@ public class ExternalTableIT extends SpliceUnitTest {
                     csvOptions[i] + " STORED AS TEXTFILE\n" +
                     "location '" + tablePath + "'");
             Assert.assertEquals( methodWatcher.executeUpdate(
-                    "insert into TEST_CSV_OPTIONS values ('\"Hallo; #\"World\"!\"', ';Ha#,')"), 1);
+                    "insert into TEST_CSV_OPTIONS values ('\"Hallo; #\"World\"!\"', ';Ha,')"), 1);
 
 
             ResultSet rs = methodWatcher.executeQuery("select * from TEST_CSV_OPTIONS");
-            Assert.assertEquals("T1         | T2   |\n" +
-                    "---------------------------\n" +
-                    "\"Hallo; #\"World\"!\" |;Ha#, |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            Assert.assertEquals(csvOptions[i],"T1         | T2  |\n" +
+                    "--------------------------\n" +
+                    "\"Hallo; #\"World\"!\" |;Ha, |",TestUtils.FormattedResult.ResultFactory.toString(rs));
 
             File path = new File(tablePath);
             Assert.assertEquals( csvOptions[i+1], concatAllCsvFiles(path) );
