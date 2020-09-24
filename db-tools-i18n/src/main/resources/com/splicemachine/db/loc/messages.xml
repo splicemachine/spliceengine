@@ -1665,7 +1665,7 @@ Guide.
 
             <msg>
                 <name>42995</name>
-                <text>The requested function does not apply to temporary tables.</text>
+                <text>The requested function does not apply to global temporary tables.</text>
             </msg>
 
             <msg>
@@ -3234,19 +3234,6 @@ Guide.
                 <name>42ZD2</name>
                 <text>Using time travel clause with {0} is not allowed</text>
                 <arg>artifactName</arg>
-            </msg>
-
-            <msg>
-                <name>42ZD3</name>
-                <text>INTERNAL ERROR: Invalid internal local temporary table name: '{0}'</text>
-                <arg>tableName</arg>
-            </msg>
-
-            <msg>
-                <name>42ZD4</name>
-                <text>Table '{0}'.'{1}' exists as a local temporary table in another session</text>
-                <arg>schemaName</arg>
-                <arg>tableName</arg>
             </msg>
 
             <msg>

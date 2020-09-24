@@ -356,6 +356,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             throw StandardException.newException(SQLState.LANG_MODIFYING_PRIMARY_KEY_ON_NON_EMPTY_TABLE,tableDescriptor.getQualifiedName());
         }
 
+        List<String> constraintColumnNames = Arrays.asList(cd.getColumnDescriptors().getColumnNames());
+
         ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
         int nColumns = columnDescriptorList.size();
 
@@ -364,6 +366,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         //   o create array of collation id's to tell collation id of each
         //     column in table.
         ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
+
+        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+
+        // How were the columns ordered before?
+        int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
 
         // We're adding a uniqueness constraint. Column sort order will change.
         int[] collation_ids = new int[nColumns];
@@ -403,7 +410,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             columnSortOrder, //column sort order
             collation_ids,
             properties, // properties
-            tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
+            tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
                 (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
                 TransactionController.IS_DEFAULT);
 
@@ -523,7 +530,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
                 ModifyColumnConstantOperation updateNullabilityAction =
                         new ModifyColumnConstantOperation(td.getSchemaDescriptor(), td.getName(), td.getUUID(),
-                                pkColumnInfo, new ConstantAction[0], '\0', behavior, null);
+                                pkColumnInfo, new ConstantAction[0], new Character('\0'), behavior, null);
                 updateNullabilityAction.executeConstantAction(activation);
                 hasColumnUpdate = true;
             }
@@ -572,6 +579,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         //     column in table.
         ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
 
+        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+
+        // How were the columns ordered before?
+         int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+
         // We're adding a uniqueness constraint. Column sort order will change.
         int[] collation_ids = new int[nColumns];
         ColumnOrdering[] columnSortOrder = new IndexColumnOrder[constraintColumnNames.size()];
@@ -615,7 +627,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             columnSortOrder, //column sort order - not required for heap
             collation_ids,
             properties, // properties
-            tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
+            tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
                 (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
                 TransactionController.IS_DEFAULT);
 

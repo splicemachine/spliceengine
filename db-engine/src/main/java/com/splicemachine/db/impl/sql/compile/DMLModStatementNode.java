@@ -31,6 +31,10 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.util.Hashtable;
+import java.util.Iterator;
+import java.util.Vector;
+
 import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -40,19 +44,21 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.compile.Parser;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import org.apache.commons.lang3.ArrayUtils;
-
-import java.util.Hashtable;
-import java.util.Vector;
 
 /**
  * A DMLStatement for a table modification: to wit, INSERT
@@ -162,7 +168,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
     protected void generateCodeForTemporaryTable(ActivationClassBuilder acb, MethodBuilder mb)
         throws StandardException
     {
-        if (targetTableDescriptor != null && targetTableDescriptor.isTemporary() &&
+        if (targetTableDescriptor != null && targetTableDescriptor.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE &&
                 targetTableDescriptor.isOnRollbackDeleteRows())
         {
             mb.pushThis();

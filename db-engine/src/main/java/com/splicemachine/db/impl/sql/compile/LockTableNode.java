@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -134,9 +135,9 @@ public class LockTableNode extends MiscellaneousStatementNode
         }
 
         //throw an exception if user is attempting to lock a temporary table
-        if (lockTableDescriptor.isTemporary())
+        if (lockTableDescriptor.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
         {
-        	throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_TEMP_TABLE);
+                throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE);
         }
 
         conglomerateNumber = lockTableDescriptor.getHeapConglomerateId();
@@ -164,23 +165,12 @@ public class LockTableNode extends MiscellaneousStatementNode
      *
      * @exception StandardException        Thrown on error
      */
-    @Override
     public boolean referencesSessionSchema()
         throws StandardException
     {
         //If lock table is on a SESSION schema table, then return true.
         return isSessionSchema(lockTableDescriptor.getSchemaName());
     }
-
-	/**
-	 * Return true if the node references temporary tables no matter under which schema
-	 *
-	 * @return true if references temporary tables, else false
-	 */
-	@Override
-	public boolean referencesTemporaryTable() {
-		return lockTableDescriptor.isTemporary();
-	}
 
     /**
      * Create the Constant information that will drive the guts of Execution.

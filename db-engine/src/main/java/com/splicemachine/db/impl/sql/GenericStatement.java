@@ -71,7 +71,7 @@ import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 @SuppressWarnings("SynchronizeOnNonFinalField")
 @SuppressFBWarnings(value = {"IS2_INCONSISTENT_SYNC", "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD"}, justification = "FIXME: DB-10223")
 public class GenericStatement implements Statement{
-    protected static final AtomicInteger jsonIncrement = new AtomicInteger(0);
+    static AtomicInteger jsonIncrement;
     protected int actualJsonIncrement = -1;
     private static final Logger JSON_TREE_LOG = Logger.getLogger(JsonTreeBuilderVisitor.class);
 
@@ -252,8 +252,6 @@ public class GenericStatement implements Statement{
         return s.startsWith("EXPLAIN");
     }
 
-    @SuppressFBWarnings(value = "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD",
-            justification = "the new object created at line 370 will not be put into cache and it cannot be referenced by other threads")
     private PreparedStatement prepMinion(LanguageConnectionContext lcc,
                                          boolean cacheMe,
                                          Object[] paramDefaults,
@@ -346,7 +344,6 @@ public class GenericStatement implements Statement{
                         // cannot use this state since it is private to a connection.
                         // switch to a new statement.
                         foundInCache=false;
-                        // reassigning preparedStmt causes a FindBugs bug ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD
                         preparedStmt=new GenericStorablePreparedStatement(this);
                         break;
                     }
@@ -391,11 +388,8 @@ public class GenericStatement implements Statement{
                 }
             }
 
-            // if we reach here from the break at line 371, preparedStmt object is different
-            synchronized (preparedStmt) {
-                preparedStmt.compilingStatement = true;
-                preparedStmt.setActivationClass(null);
-            }
+            preparedStmt.compilingStatement=true;
+            preparedStmt.setActivationClass(null);
         }
 
         try{
@@ -742,7 +736,7 @@ public class GenericStatement implements Statement{
             //view gets replaced with the actual view definition. Right after
             // binding, we still have the information on the view and that is why
             // we do the check here.
-            if(preparedStmt.referencesSessionSchema(qt) || qt.referencesTemporaryTable()){
+            if(preparedStmt.referencesSessionSchema(qt)){
                 if(foundInCache)
                     ((GenericLanguageConnectionContext)lcc).removeStatement(this);
             }
@@ -899,6 +893,8 @@ public class GenericStatement implements Statement{
         if (JSON_TREE_LOG.isTraceEnabled()) {
             JSON_TREE_LOG.warn("JSON AST logging is enabled");
             try {
+                if (jsonIncrement ==null)
+                    jsonIncrement = new AtomicInteger(0);
                 if (actualJsonIncrement==-1)
                     actualJsonIncrement = jsonIncrement.getAndIncrement();
                 JsonTreeBuilderVisitor jsonVisitor = new JsonTreeBuilderVisitor();

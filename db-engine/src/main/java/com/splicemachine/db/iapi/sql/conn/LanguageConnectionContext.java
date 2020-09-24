@@ -109,11 +109,6 @@ public interface LanguageConnectionContext extends Context {
     int    ANSI_CASING = 0;
     int    ANTI_ANSI_CASING = 1;
 
-    // Local temporary table handling
-    String LOCAL_TEMP_TABLE_SUFFIX_FIX_PART = "____________________";
-    char LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR = '_';
-    int LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR = 20;
-
     /**
      * Initialize. For use after pushing the contexts that initialization needs.
      *
@@ -258,29 +253,13 @@ public interface LanguageConnectionContext extends Context {
     boolean dropDeclaredGlobalTempTable(TableDescriptor td);
 
     /**
-     * Mangle a table name with current session ID as its suffix
-     * Should be used only on temporary tables
-     * @param tableName temporary table name given by user
-     * @return mangled temporary table name to be used internally
-     */
-    String mangleTableName(String tableName);
-
-    /**
-     * Check if a table is visible to current session
-     *
-     * @param td TableDescriptor of the table to check
-     * @return true if the table is visible to current session, false otherwise
-     */
-    boolean isVisibleToCurrentSession(TableDescriptor td) throws StandardException;
-
-    /**
      * Get table descriptor for the declared global temporary table from the list of temporary
      * tables known by this connection.
      * @param tableName Get table descriptor for the passed table name
      * @return TableDescriptor if found the temporary table. Else return null
      *
      */
-    TableDescriptor getTableDescriptorForTempTable(String tableName);
+    TableDescriptor getTableDescriptorForDeclaredGlobalTempTable(String tableName);
 
     /**
         Reset the connection before it is returned (indirectly) by

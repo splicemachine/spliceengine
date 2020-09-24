@@ -150,6 +150,7 @@ public class CreateIndexNode extends DDLStatementNode
         this.dateFormat = dateFormat != null ? ((CharConstantNode)dateFormat).getString() : null;
         this.timeFormat = timeFormat != null ? ((CharConstantNode)timeFormat).getString() : null;
         this.hfilePath = hfilePath != null ? ((CharConstantNode)hfilePath).getString() : null;
+
         this.onExpression = isIndexOnExpression();
         int exprSize = this.onExpression ? this.expressionList.size() : 0;
         this.exprTexts = new String[exprSize];
@@ -385,16 +386,6 @@ public class CreateIndexNode extends DDLStatementNode
     {
         //If create index is on a SESSION schema table, then return true.
         return isSessionSchema(td.getSchemaName());
-    }
-
-    /**
-     * Return true if the node references temporary tables no matter under which schema
-     *
-     * @return true if references temporary tables, else false
-     */
-    @Override
-    public boolean referencesTemporaryTable() {
-        return td.isTemporary();
     }
 
     /**

@@ -14,21 +14,23 @@
 
 package com.splicemachine.homeless;
 
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.utils.Pair;
-import org.apache.commons.dbutils.BasicRowProcessor;
-import org.apache.commons.io.FileUtils;
-import org.apache.log4j.Logger;
-import org.junit.runner.Description;
-import splice.com.google.common.collect.Lists;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.sql.*;
 import java.util.*;
+
+import com.splicemachine.db.iapi.types.SQLClob;
+import org.apache.log4j.Logger;
+import splice.com.google.common.collect.Lists;
+import com.splicemachine.utils.Pair;
+import org.apache.commons.dbutils.BasicRowProcessor;
+import org.apache.commons.io.FileUtils;
+import org.junit.runner.Description;
+
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 import static org.junit.Assert.assertEquals;
 
@@ -177,14 +179,10 @@ public class TestUtils {
     }
 
     public static String lookupConglomerateNumber(String schemaName, String tableName, SpliceWatcher spliceWatcher) throws Exception {
-        return lookupConglomerateNumber(schemaName, tableName, false, spliceWatcher);
-    }
-
-    public static String lookupConglomerateNumber(String schemaName, String tableName, boolean isLocalTable, SpliceWatcher spliceWatcher) throws Exception {
         ResultSet rs = spliceWatcher.executeQuery("select t1.conglomeratenumber from sys.sysconglomerates t1, " +
-                "sys.systables t2, sys.sysschemas t3 where t1.tableid = t2.tableid and t2.schemaid = t1.schemaid and t2.schemaid = t3.schemaid and " +
-                "t2.tablename " + (isLocalTable ? ("like '" + tableName.toUpperCase() + "____________________%") : ("= '" + tableName.toUpperCase())) +
-                "' and t3.schemaname = '"+schemaName.toUpperCase()+"'");
+                                                      "sys.systables t2, sys.sysschemas t3 where t1.tableid = t2.tableid" +
+                                                      " and t2.tablename = '"+tableName.toUpperCase()+"' and t3.schemaname = '"+schemaName.toUpperCase()+"'" +
+                                                      "  and t2.schemaid = t1.schemaid and t2.schemaid = t3.schemaid");
         String conglomNum = null;
         if (rs.next()) {
             conglomNum = rs.getString(1);

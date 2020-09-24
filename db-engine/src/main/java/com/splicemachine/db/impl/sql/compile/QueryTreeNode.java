@@ -499,15 +499,6 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     /**
-     * Return true if the node references temporary tables no matter under which schema
-     *
-     * @return true if references temporary tables, else false
-     */
-    public boolean referencesTemporaryTable() {
-        return false;
-    }
-
-    /**
      * Return true from this method means that we need to collect privilege
      * requirement for this node. For following cases, this method will
      * return true.
@@ -1392,11 +1383,6 @@ public abstract class QueryTreeNode implements Node, Visitable{
      * tables(ie temp tables) here. Any calls to getTableDescriptor in data dictionary
      * should be only for persistent tables
      *
-     * Note: The comment above is not precise anymore:
-     * 1. Splice temporary tables are stored in both data dictionary and LCC
-     * 2. Splice temporary tables are by default not under SESSION schema
-     * 3. Splice local temporary tables have their names mangled
-     *
      * @param tableName The name of the table to get the descriptor for
      * @param schema    The descriptor for the schema the table lives in.
      *                  If null, use the current (default) schema.
@@ -1407,13 +1393,11 @@ public abstract class QueryTreeNode implements Node, Visitable{
     protected final TableDescriptor getTableDescriptor(String tableName,
                                                        SchemaDescriptor schema) throws StandardException{
         TableDescriptor retval;
-        LanguageConnectionContext lcc = getLanguageConnectionContext();
-        DataDictionary dd = getDataDictionary();
 
         //Following if means we are dealing with SESSION schema.
         if(isSessionSchema(schema)){
             //First we need to look in the list of temporary tables to see if this table is a temporary table.
-            retval=lcc.getTableDescriptorForTempTable(tableName);
+            retval=getLanguageConnectionContext().getTableDescriptorForDeclaredGlobalTempTable(tableName);
             if(retval!=null)
                 return retval; //this is a temporary table
         }
@@ -1424,20 +1408,13 @@ public abstract class QueryTreeNode implements Node, Visitable{
         if(schema.getUUID()==null)
             return null;
 
-        //If not in session schema, look for local temporary table first.
-        //If tables is not under SESSION schema, don't get it from LCC. Table version is not set there.
-        retval = dd.getTableDescriptor(lcc.mangleTableName(tableName),schema,lcc.getTransactionCompile());
-        if (retval != null)
-            return retval;
-
         //it is not a temporary table, so go through the data dictionary to find the physical persistent table
-        //Since temporary tables are also stored in data dictionary, we may get a local temporary table created
-        //in another session if user managed to get the mangled name. For this reason, check visibility.
-        retval = dd.getTableDescriptor(tableName,schema,lcc.getTransactionCompile());
-        if(retval==null || retval.isSynonymDescriptor() || !lcc.isVisibleToCurrentSession(retval))
+        TableDescriptor td=getDataDictionary().getTableDescriptor(tableName,schema,
+                this.getLanguageConnectionContext().getTransactionCompile());
+        if(td==null || td.isSynonymDescriptor())
             return null;
 
-        return retval;
+        return td;
     }
 
     /**

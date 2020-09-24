@@ -36,12 +36,11 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.function.FileFunction;
 import com.splicemachine.derby.stream.function.MutableCSVTokenizer;
 import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.utils.BooleanList;
-import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
@@ -73,9 +72,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.sql.ResultSet;
 import java.sql.Types;
-import java.util.ArrayList;
-import java.util.GregorianCalendar;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by jyuan on 8/14/17.
@@ -686,22 +683,35 @@ public class SpliceRegionAdmin {
         EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
         Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
         LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
+        SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
+        DataDictionary dd = lcc.getDataDictionary();
 
         // Check parameters
         if (schemaName == null) {
             schemaName = lcc.getCurrentSchemaName();
         } else {
-            schemaName = EngineUtils.validateSchema(schemaName);
+            schemaName = schemaName.trim();
         }
 
         if (tableName != null) {
-            tableName = EngineUtils.validateTable(tableName);
+            tableName = tableName.trim();
         }
         else {
             throw StandardException.newException(SQLState.TABLE_NAME_CANNOT_BE_NULL);
         }
 
-        return DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        if (sd == null){
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+        }
+
+        TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
+        if (td == null)
+        {
+            throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
+        }
+
+        return td;
     }
 
     /**

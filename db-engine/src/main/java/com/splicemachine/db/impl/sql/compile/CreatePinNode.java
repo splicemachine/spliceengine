@@ -111,7 +111,9 @@ public class CreatePinNode extends DDLStatementNode  {
 	 */
 	public ConstantAction	makeConstantAction() throws StandardException {
            return getGenericConstantActionFactory().getPinTableConstantAction(
-				   getSchemaDescriptor(!td.isTemporary(), true).getSchemaName(),
+				   getSchemaDescriptor(td.getTableType() !=
+								   TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE,
+						   true).getSchemaName(),
 					getObjectName().getTableName());
 	}
 

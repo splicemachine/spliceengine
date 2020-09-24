@@ -343,9 +343,9 @@ public String statementToString()
 			baseTable = getTableDescriptor();
 
 		//throw an exception if user is attempting to alter a temporary table
-		if (baseTable.isTemporary())
+		if (baseTable.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
 		{
-			throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_TEMP_TABLE);
+				throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE);
 		}
 
 		/* Statement is dependent on the TableDescriptor */
@@ -482,22 +482,11 @@ public String statementToString()
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	@Override
 	public boolean referencesSessionSchema()
 		throws StandardException
 	{
 		//If alter table is on a SESSION schema table, then return true. 
 		return isSessionSchema(baseTable.getSchemaName());
-	}
-
-	/**
-	 * Return true if the node references temporary tables no matter under which schema
-	 *
-	 * @return true if references temporary tables, else false
-	 */
-	@Override
-	public boolean referencesTemporaryTable() {
-		return baseTable.isTemporary();
 	}
 
 	/**

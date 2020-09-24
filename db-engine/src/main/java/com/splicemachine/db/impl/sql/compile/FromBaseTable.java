@@ -1396,6 +1396,7 @@ public class FromBaseTable extends FromTable {
         return this;
     }
 
+
     /**
      * Bind the table descriptor for this table.
      * <p/>
@@ -1505,18 +1506,12 @@ public class FromBaseTable extends FromTable {
 
         if(exposedTableName.getSchemaName()==null && correlationName==null)
             exposedTableName.bind(this.getDataDictionary());
-
-        TableName temporaryTableName = (TableName) getNodeFactory().getNode(
-                                           C_NodeTypes.TABLE_NAME,
-                                           exposedTableName.getSchemaName(),
-                                           getLanguageConnectionContext().mangleTableName(exposedTableName.getTableName()),
-                                           exposedTableName.getContextManager());
         /*
         ** If the column did not specify a name, or the specified name
         ** matches the table we're looking at, see whether the column
         ** is in this table.
         */
-        if(columnsTableName==null || columnsTableName.equals(exposedTableName) || columnsTableName.equals(temporaryTableName)){
+        if(columnsTableName==null || columnsTableName.equals(exposedTableName)){
             resultColumn=resultColumns.getResultColumn(columnReference.getColumnName());
             /* Did we find a match? */
             if(resultColumn!=null){
@@ -2688,16 +2683,6 @@ public class FromBaseTable extends FromTable {
     public boolean referencesSessionSchema() throws StandardException{
         //If base table is a SESSION schema table, then return true.
         return isSessionSchema(tableDescriptor.getSchemaDescriptor());
-    }
-
-    /**
-     * Return true if the node references temporary tables no matter under which schema
-     *
-     * @return true if references temporary tables, else false
-     */
-    @Override
-    public boolean referencesTemporaryTable() {
-        return tableDescriptor.isTemporary();
     }
 
 

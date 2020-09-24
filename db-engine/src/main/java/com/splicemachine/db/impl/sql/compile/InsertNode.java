@@ -706,7 +706,6 @@ public final class InsertNode extends DMLModStatementNode {
      *
      * @exception StandardException        Thrown on error
      */
-    @Override
     public boolean referencesSessionSchema()
         throws StandardException
     {
@@ -720,17 +719,6 @@ public final class InsertNode extends DMLModStatementNode {
             returnValue = resultSet.referencesSessionSchema();
 
         return returnValue;
-    }
-
-    /**
-     * Return true if the node references temporary tables no matter under which schema
-     *
-     * @return true if references temporary tables, else false
-     */
-    @Override
-    public boolean referencesTemporaryTable() {
-        return (targetTableDescriptor != null && targetTableDescriptor.isTemporary())
-                || resultSet.referencesTemporaryTable();
     }
 
     /**
