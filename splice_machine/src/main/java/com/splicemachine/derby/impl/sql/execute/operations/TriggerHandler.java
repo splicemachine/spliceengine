@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -84,8 +85,6 @@ public class TriggerHandler {
     private Activation activation;
     private TriggerRowHolderImpl triggerRowHolder;
     private boolean isSpark;
-    private TxnView txn;
-    private byte[] token;
 
     private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
 
@@ -126,7 +125,6 @@ public class TriggerHandler {
     }
 
     public void setTxn(TxnView txn) {
-        this.txn = txn;
         if (triggerRowHolder != null)
             triggerRowHolder.setTxn(txn);
     }
@@ -161,8 +159,6 @@ public class TriggerHandler {
 
     public void initTriggerRowHolders(boolean isSpark, TxnView txn, byte[] token, long ConglomID) throws StandardException {
         this.isSpark = isSpark;
-        this.txn = txn;
-        this.token = token;
         Properties properties = new Properties();
         if (hasStatementTriggerWithReferencingClause) {
             // Use the smaller of ControlExecutionRowLimit or 1000000 to determine when to switch to spark execution.
@@ -242,7 +238,7 @@ public class TriggerHandler {
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
-                    null, SIDriver.driver().getExecutorService(), withContext, heapList);
+                    null, SIDriver.driver().getExecutorService(), withContext, heapList, !SpliceClient.isRegionServer);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;

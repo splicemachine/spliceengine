@@ -2197,4 +2197,6 @@ public interface DataDictionary{
     void setMetadataAccessRestrictionEnabled();
 
     void updateSystemSchemasView(TransactionController tc) throws StandardException;
+
+    boolean useTxnAwareCache();
 }

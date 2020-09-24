@@ -32,7 +32,6 @@
 package com.splicemachine.db.iapi.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
@@ -1653,4 +1652,6 @@ public interface TransactionController
 
 
     boolean isElevated();
+
+	long getActiveStateTxId();
 }
