@@ -44,11 +44,13 @@ import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.stream.spark.ExternalizableSerializer
 import com.splicemachine.derby.stream.spark.KafkaReadFunction
 import com.splicemachine.nsds.kafka.{KafkaTopics, KafkaUtils}
+import com.splicemachine.spark2.splicemachine.SplicemachineContext.RowForKafka
 import org.apache.log4j.Logger
 import org.apache.spark.TaskContext
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 @SerialVersionUID(20200517241L)
 private object Holder extends Serializable {
@@ -59,6 +61,45 @@ object KafkaOptions {
   val KAFKA_SERVERS = "KAFKA_SERVERS"
   val KAFKA_POLL_TIMEOUT = "KAFKA_POLL_TIMEOUT"
   val KAFKA_TOPIC_PARTITIONS = "KAFKA_TOPIC_PARTITIONS"
+}
+
+object SplicemachineContext {
+  @SerialVersionUID(20200922241L)
+  class RowForKafka(
+      topicName: String,
+      partition: Int,
+      schema: StructType
+    ) extends Serializable
+  {
+    var sparkRow: Option[Row] = None
+    var valueRow: Option[ValueRow] = None
+    var msgCount: Int = -1
+    
+    def topicName(): String = topicName
+    def partition(): Int = partition
+    def schema(): StructType = schema
+    
+    override def toString(): String =
+      if( valueRow.isDefined ) {
+        valueRow.toString
+      } else {
+        "None"
+      }
+
+    def send(producer: KafkaProducer[Integer, Externalizable], last: Boolean = false): Unit =
+      if( valueRow.isDefined ) {
+        producer.send( new ProducerRecord(
+          topicName,
+          partition,
+          partition,
+          new KafkaReadFunction.Message(
+            valueRow.get,
+            msgCount,
+            if(last) { msgCount } else -1
+          )
+        ))
+      }
+  }
 }
 
 /**
@@ -89,6 +130,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   )
   
   private[this] val insAccum = SparkSession.builder.getOrCreate.sparkContext.longAccumulator("NSDSv2_Ins")
+  private[this] val lastRowsToSend = 
+    SparkSession.builder.getOrCreate.sparkContext.collectionAccumulator[RowForKafka]("LastRowsToSend")
   
   /**
    *
@@ -508,8 +551,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     // hbase user has read/write permission on the topic
     try {
       insAccum.reset
+      lastRowsToSend.reset
       println(s"${java.time.Instant.now} SMC.ins sendData")
       sendData(topicName, rdd, schema)
+      //lastRowsToSend.value.asScala.foreach(_.send(true))
+      sendData(lastRowsToSend.value.asScala, true)
 
       if( ! insAccum.isZero ) {
         println(s"${java.time.Instant.now} SMC.ins prepare sql")
@@ -584,39 +630,106 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     kafkaTopics.create()
   }
   
-  def sendData_streaming(dataFrame: DataFrame, topicName: String): Long = {
+  def sendData_streaming(dataFrame: DataFrame, topicName: String): (Seq[RowForKafka], Long) = {
 //    if( newTopic ) {
 //      println(s"${java.time.Instant.now} SMC.sds get topic name")
 //      activeInsTopic = kafkaTopics.create()
 //    }
 
     insAccum.reset
+    lastRowsToSend.reset
     println(s"${java.time.Instant.now} SMC.sds sendData")
     sendData(topicName, dataFrame.rdd, dataFrame.schema)
 
-    insAccum.sum
+    val rows = lastRowsToSend.value.asScala
+    //println(s"${java.time.Instant.now} SMC.sds last rows ${rows.mkString("\n")}")
+
+    (rows, insAccum.sum)
+  }
+  
+  /** checkRecovery was written to help debug an issue and normally won't need to be called. */
+  private[this] def checkRecovery(
+     id: String,
+     topicName: String, 
+     partition: Int, 
+     itr: Iterator[Row],
+     schema: StructType
+   ): Unit = {
+
+    val lastVR = KafkaUtils.lastMessageOf(kafkaServers, topicName, partition)
+      .asInstanceOf[KafkaReadFunction.Message].vr
+    val cols = if( lastVR.length > 0) { Range(0,lastVR.length-1).toArray } else { Array(0) }
+    val lastKHash = lastVR.hashCode(cols)
+
+    val khashcodes = KafkaUtils.messagesFrom(kafkaServers, topicName, partition)
+      .map( _.asInstanceOf[KafkaReadFunction.Message].vr.hashCode(cols) )
+
+    println(s"$id SMC.checkRecovery 1st Kafka hashcode ${khashcodes.headOption.getOrElse(-1)}" )
+    
+    var i = 0
+    var res = Seq.empty[String]
+    while( itr.hasNext ) {
+      val hashcode = externalizable(itr.next, schema, partition).hashCode(cols)
+      res = res :+ s"$i,${khashcodes.indexOf(hashcode)}\t${hashcode==lastKHash}"
+      i += 1
+    }
+    
+    println(s"$id SMC.checkRecovery res: Kafka count ${khashcodes.size}\n${res.mkString("\n")}")
   }
   
   private[this] var sendDataTimestamp: Long = _
+  
+  //private[this] val lastRowsToSend = mutable.Set.empty[RowForKafka]
 
   private[this] def sendData(topicName: String, rdd: JavaRDD[Row], schema: StructType): Unit = {
     sendDataTimestamp = System.currentTimeMillis
     rdd.rdd.mapPartitionsWithIndex(
       (partition, itrRow) => {
-//        val thid = Thread.currentThread.getId
-        println(s"SMC.sendData p= $partition")
-        val taskContext = TaskContext.get
+        val id = topicName.substring(0,5)+":"+partition.toString
+        //val thid = Thread.currentThread.getId
+        println(s"$id SMC.sendData p== $partition")
 
-        var itr = itrRow
         var msgCount = 0
-        if (taskContext != null && taskContext.attemptNumber > 0) {
-          val entriesInKafka = KafkaUtils.messageCount(kafkaServers, topicName, partition)
-          println(s"SMC.sendData Retry $partition $entriesInKafka ${itrRow.size}")
-//          for(i <- (1: Long) to entriesInKafka) {
-//            itrRow.next
+        val taskContext = TaskContext.get
+        val itr = if (taskContext != null && taskContext.attemptNumber > 0) {
+          // Recover from previous task failure
+          // Be sure the iterator is advanced past the items previously published to Kafka
+          
+          //val entriesInKafka = KafkaUtils.messageCount(kafkaServers, topicName, partition)
+          //msgCount = entriesInKafka.asInstanceOf[Int]
+          println(s"$id SMC.sendData Retry $partition ${taskContext.attemptNumber} ${insAccum.sum}")
+
+          val itr12 = itrRow //.duplicate
+          //checkRecovery(id, topicName, partition, itr12._1, schema)
+
+          val lastVR = KafkaUtils.lastMessageOf(kafkaServers, topicName, partition)
+            .asInstanceOf[KafkaReadFunction.Message].vr
+          val hashCols = if( lastVR.length > 0) { Range(0,lastVR.length-1).toArray } else { Array(0) }
+          val lastKHash = lastVR.hashCode(hashCols)
+          def hash: Row => Int = row => externalizable(row, schema, partition).hashCode(hashCols)
+          
+          //val itr34 = itr12._2.duplicate
+          val itr34 = itr12.duplicate
+          
+          val inKafka_NotInKafka = itr34._1.span( hash(_) != lastKHash )
+          if( inKafka_NotInKafka._2.hasNext ) {
+            inKafka_NotInKafka._2.next  // matches the last item in Kafka, get past it
+            //println(s"$id SMC.sendData Retry skip ${hash(r)} $lastKHash")
+            msgCount = inKafka_NotInKafka._1.size + 1  // this message count was lost during previous task failure
+            inKafka_NotInKafka._2
+          } else {  // itrRow starts after the last item added to Kafka
+            itr34._2
+          }
+
+//          while( itr34._1.hasNext && hash(itr34._1.next) != lastKHash ) {}
+//
+//          itr = if( dupItr._2.exists( hash(_) == lastKHash ) ) {
+//            dupItr._2.dropWhile( hash(_) != lastKHash )
+//          } else {
+//            itrRow  // change to 3rd duplicate
 //          }
-          msgCount = entriesInKafka.asInstanceOf[Int]
-          itr = itrRow.drop(msgCount)
+        } else {
+          itrRow
         }
 
         val props = new Properties
@@ -635,23 +748,33 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
 //        val sendDataTimestamp = System.currentTimeMillis
 //        println(s"SMC.sendData ts $sendDataTimestamp")
+
+//        var row = if( itr.hasNext ) {
+//          msgCount += 1
+//          Some(itr.next) 
+//        } else None
         
-        var row = if( itr.hasNext ) { Some(itr.next) } else None
-        
-        def send(last: Boolean = false): Unit = {
+        val rowK = new RowForKafka(topicName, partition, schema)
+        rowK.sparkRow = if( itr.hasNext ) {
           msgCount += 1
-          producer.send( new ProducerRecord(
-            topicName,
-            partition,
-            partition,
-            //r.nextInt(insertTopicPartitions),
-            new KafkaReadFunction.Message(
-              externalizable(row.get, schema, partition),
-              msgCount,
-              if(last) { msgCount } else -1
-            )
-          ))
-        }
+          //Some(externalizable(itr.next, schema, partition))
+          Some(itr.next)
+        } else None
+        rowK.msgCount = msgCount
+        
+//        def send(last: Boolean = false): Unit = {
+//          producer.send( new ProducerRecord(
+//            topicName,
+//            partition,
+//            partition,
+//            //r.nextInt(insertTopicPartitions),
+//            new KafkaReadFunction.Message(
+//              externalizable(row.get, schema, partition),
+//              msgCount,
+//              if(last) { msgCount } else -1
+//            )
+//          ))
+//        }
         
         while( itr.hasNext ) {
 //          msgCount += 1
@@ -666,10 +789,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 //              -1
 //            )
 //          ))
-          send()
-          row = Some(itr.next)
+          rowK.valueRow = Some(externalizable(rowK.sparkRow.get, schema, partition))
+          rowK.send(producer)
+          msgCount += 1
+          rowK.sparkRow = Some(itr.next)
+          rowK.msgCount = msgCount
         }
-        row.foreach( r => send(true) )
+        //row.foreach( r => send(true) )
+        lastRowsToSend.add(rowK)
 
 //        producer.send( new ProducerRecord(
 //          topicName,
@@ -680,13 +807,31 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         
         insAccum.add(msgCount)
 
-        println(s"SMC.sendData t $topicName p $partition records $msgCount")
+        println(s"$id SMC.sendData t $topicName p $partition records $msgCount")
         
+        producer.flush
         producer.close
 
         java.util.Arrays.asList("OK").iterator().asScala
       }
     ).collect
+  }
+  
+  def sendData(rows: Seq[RowForKafka], last: Boolean = false): Unit = {
+    val props = new Properties
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
+    props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-s2s-smcrfk-"+java.util.UUID.randomUUID() )
+    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, classOf[IntegerSerializer].getName)
+    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[ExternalizableSerializer].getName)
+    val producer = new KafkaProducer[Integer, Externalizable](props)
+    
+    rows.foreach( r => {
+      r.valueRow = Some(externalizable(r.sparkRow.get, r.schema, r.partition))
+      r.send(producer, last)
+    })
+    
+    producer.flush
+    producer.close
   }
 
   /** Convert org.apache.spark.sql.Row to Externalizable. */

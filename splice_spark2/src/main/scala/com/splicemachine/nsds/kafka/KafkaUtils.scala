@@ -16,10 +16,12 @@
 package com.splicemachine.nsds.kafka
 
 import java.io.Externalizable
+import java.util
 import java.util.{Collections, Properties, UUID}
 
+import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.stream.spark.ExternalizableDeserializer
-import org.apache.kafka.clients.consumer.{ConsumerConfig, KafkaConsumer}
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.common.TopicPartition
 import org.apache.kafka.common.serialization.IntegerDeserializer
 
@@ -32,7 +34,7 @@ object KafkaUtils {
     val groupId = "spark-consumer-nsdsk-ku"
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
     props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
-    props.put(ConsumerConfig.CLIENT_ID_CONFIG, groupId +"-"+ UUID.randomUUID)
+    props.put(ConsumerConfig.CLIENT_ID_CONFIG, groupId + "-" + UUID.randomUUID)
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
     props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
     new KafkaConsumer[Integer, Externalizable](props)
@@ -40,16 +42,16 @@ object KafkaUtils {
 
   def messageCount(bootstrapServers: String, topicName: String): Long = {
     @transient lazy val consumer = getConsumer(bootstrapServers)
-    
+
     val partitionInfo = consumer.partitionsFor(topicName).asScala
     val partitions = partitionInfo.map(pi => new TopicPartition(topicName, pi.partition()))
     consumer.assign(partitions.asJava)
     consumer.seekToEnd(Collections.emptySet())
     val endPartitions: Map[TopicPartition, Long] = partitions.map(p => p -> consumer.position(p))(collection.breakOut)
-    
+
     consumer.seekToBeginning(Collections.emptySet())
     val count = partitions.map(p => endPartitions(p) - consumer.position(p)).sum
-    
+
     consumer.close
     count
   }
@@ -62,11 +64,58 @@ object KafkaUtils {
     consumer.assign(partitions.asJava)
     consumer.seekToEnd(partitions.asJava)
     val nextOffset = consumer.position(topicPartition)
-    
+
     consumer.seekToBeginning(partitions.asJava)
     val firstOffset = consumer.position(topicPartition)
 
     consumer.close
     nextOffset - firstOffset
+  }
+  
+  def lastMessageOf(bootstrapServers: String, topicName: String, partition: Int): Externalizable = {
+    @transient lazy val consumer = getConsumer(bootstrapServers)
+
+    val topicPartition = new TopicPartition(topicName, partition)
+    val partitions = Seq(topicPartition)
+    consumer.assign(partitions.asJava)
+    consumer.seek(topicPartition, consumer.endOffsets(partitions.asJava).get(topicPartition) - 1 )
+    
+    consumer.poll(java.time.Duration.ofMillis(100L)).asScala
+      .headOption.map(_.value).getOrElse(new ValueRow())
+  }
+
+  def messagesFrom(bootstrapServers: String, topicName: String, partition: Int): Seq[Externalizable] = {
+    @transient lazy val consumer = getConsumer(bootstrapServers)
+
+    consumer.assign(util.Arrays.asList(new TopicPartition(topicName, partition)))
+    
+    val expectedMsgCt = messageCount(bootstrapServers, topicName, partition)
+    
+    val timeout = java.time.Duration.ofMillis(1000L)
+    var records = Iterable.empty[ConsumerRecord[Integer, Externalizable]]
+    var newRecords = consumer.poll(timeout).asScala // newRecords: Iterable[ConsumerRecord[Integer, Externalizable]]
+    records = records ++ newRecords
+
+    var retries = 0
+    val maxRetries = 10
+    while(
+      newRecords.nonEmpty ||
+      (records.size < expectedMsgCt && retries < maxRetries)
+    )
+    {
+      if( newRecords.isEmpty ) { retries += 1 }
+      newRecords = consumer.poll(timeout).asScala
+      records = records ++ newRecords
+    }
+    consumer.close
+    
+    println( s"KafkaUtils.msgs record count: ${records.size}" )
+
+    val seqBuilder = Seq.newBuilder[Externalizable]
+    for (record <- records.iterator) {
+      seqBuilder += record.value
+    }
+
+    seqBuilder.result
   }
 }
