@@ -32,7 +32,6 @@
 package com.splicemachine.db.iapi.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
@@ -1657,4 +1656,6 @@ public interface TransactionController
     String getCatalogVersion(long conglomerateNumber) throws StandardException;
 
     void setCatalogVersion(long conglomerteNumber, String version) throws StandardException;
+
+	long getActiveStateTxId();
 }
