@@ -627,7 +627,7 @@ abstract class SQLBinary
          */
         if (typePrecedence() < other.typePrecedence())
         {
-            return - (other.compare(this));
+            return compare(other);
         }
 
         /*
@@ -1133,7 +1133,7 @@ abstract class SQLBinary
      * String display of value
      */
 
-    public final String toString()
+    public String toString()
     {
         if (dataValue == null)
         {
