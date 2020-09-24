@@ -14,38 +14,24 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.Statement;
-import java.util.Arrays;
-import java.util.List;
-
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import com.splicemachine.derby.test.framework.*;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import com.splicemachine.derby.test.framework.SQLClosures;
-import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
+import java.io.File;
+import java.sql.*;
+import java.util.Arrays;
+import java.util.List;
+
+import static junit.framework.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * @author Jeff Cunningham
  *         Date: 1/25/15
  */
-public class TempTableIT {
+public class TempTableIT extends SpliceUnitTest {
     public static final String CLASS_NAME = TempTableIT.class.getSimpleName().toUpperCase();
     private static SpliceSchemaWatcher tableSchema = new SpliceSchemaWatcher(CLASS_NAME);
 
@@ -642,7 +628,13 @@ public class TempTableIT {
             connection.commit();
 
             // Create index
-            new SpliceIndexWatcher(CONSTRAINT_TEMP_TABLE,CLASS_NAME, "IDX_TEMP",tableSchema.schemaName,"(id)",true).starting(null);
+            try {
+                new SpliceIndexWatcher(CONSTRAINT_TEMP_TABLE, CLASS_NAME, "IDX_TEMP", tableSchema.schemaName, "(id)", true).starting(null);
+                fail("Expected exception invalid create index statement since local temporary tables are not visible to other sessions.");
+            } catch (RuntimeException e) {
+                // expected
+            }
+            SpliceIndexWatcher.createIndex(connection, tableSchema.schemaName, CONSTRAINT_TEMP_TABLE, "IDX_TEMP", "(id)", true, false, false);
 
             SQLClosures.query(connection, String.format("select id from %s.%s", tableSchema.schemaName,
                                                         CONSTRAINT_TEMP_TABLE),
@@ -816,4 +808,379 @@ public class TempTableIT {
         connection2.commit();
     }
 
+    /**
+     * Test session visibility of local temporary tables.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testLocalTempTableSessionVisibility() throws Exception {
+        final String createStmt = String.format("CREATE LOCAL TEMPORARY TABLE %s.%s %s ON COMMIT PRESERVE ROWS",
+                tableSchema.schemaName, SIMPLE_TEMP_TABLE, simpleDef);
+        final String selectStmt = String.format("select * from %s.%s", tableSchema.schemaName, SIMPLE_TEMP_TABLE);
+
+        Connection connection_1 = methodWatcher.createConnection();
+        Connection connection_2 = methodWatcher.createConnection();
+        try {
+            // create a local temporary table in connection_1 and load some data into it
+            SQLClosures.execute(connection_1, statement -> {
+                statement.execute(createStmt);
+                // insert in the same session
+                SpliceUnitTest.loadTable(statement, tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE, empNameVals);
+            });
+            connection_1.commit();
+
+            // select in the same session should success
+            SQLClosures.query(connection_1, selectStmt,
+                    resultSet -> Assert.assertEquals(5, SpliceUnitTest.resultSetSize(resultSet)));
+
+            // try operating on the local temporary table from connection_2
+            SQLClosures.execute(connection_2, statement -> {
+                // select should fail
+                // Note that this select uses exactly the same SQL string as the one above. It must fail or session
+                // visibility is broken.
+                try {
+                    statement.executeQuery(selectStmt);
+                    fail("Expected exception of table doesn't exist since it's not visible to this session.");
+                } catch (SQLException e) {
+                    // expected
+                    Assert.assertEquals(e.getLocalizedMessage(),"42X05", e.getSQLState());
+                }
+
+                // insert should fail
+                try {
+                    SpliceUnitTest.loadTable(statement, tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE, empNameVals);
+                    fail("Expected exception of table doesn't exist since it's not visible to this session.");
+                } catch (SQLException e) {
+                    // expected
+                    Assert.assertEquals(e.getLocalizedMessage(),"42X05", e.getSQLState());
+                }
+
+                // update should fail
+                try {
+                    statement.execute(String.format("update %s set id = 2", tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE));
+                    fail("Expected exception of table doesn't exist since it's not visible to this session.");
+                } catch (SQLException e) {
+                    // expected
+                    Assert.assertEquals(e.getLocalizedMessage(),"42X05", e.getSQLState());
+                }
+
+                // delete should fail
+                try {
+                    statement.execute(String.format("delete from %s where id = 2", tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE));
+                    fail("Expected exception of table doesn't exist since it's not visible to this session.");
+                } catch (SQLException e) {
+                    // expected
+                    Assert.assertEquals(e.getLocalizedMessage(),"42X05", e.getSQLState());
+                }
+
+                // drop should fail
+                try {
+                    statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE));
+                    fail("Expected exception of table doesn't exist since it's not visible to this session.");
+                } catch (SQLException e) {
+                    // expected
+                    Assert.assertEquals(e.getLocalizedMessage(),"42Y55", e.getSQLState());
+                }
+
+                // create index should fail
+                try {
+                    statement.execute(String.format("create index temp_idx1 on %s(fname)", tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE));
+                    fail("Expected exception of table doesn't exist since it's not visible to this session.");
+                } catch (SQLException e) {
+                    // expected
+                    Assert.assertEquals(e.getLocalizedMessage(),"42Y55", e.getSQLState());
+                }
+
+                // system procedure should fail
+                try {
+                    statement.execute(String.format("call syscs_util.syscs_flush_table('%s', '%s')", tableSchema.schemaName, SIMPLE_TEMP_TABLE));
+                    fail("Expected exception of table doesn't exist since it's not visible to this session.");
+                } catch (SQLException e) {
+                    // expected
+                    Assert.assertEquals(e.getLocalizedMessage(),"XIE0M", e.getSQLState());
+                }
+            });
+
+            // now create a local temporary table with the same name in connection_2
+            // this DDL is the same SQL string as connection_1 uses, but no data is loaded
+            SQLClosures.execute(connection_2, statement -> { statement.execute(createStmt); });
+            connection_2.commit();
+
+            // select in the same session should success
+            // since connection_2 sees only its own local temporary tables, the table should be empty
+            SQLClosures.query(connection_2, selectStmt,
+                    resultSet -> Assert.assertEquals(0, SpliceUnitTest.resultSetSize(resultSet)));
+
+            // do the same select in connection_1, it should get 5 rows instead
+            SQLClosures.query(connection_1, selectStmt,
+                    resultSet -> Assert.assertEquals(5, SpliceUnitTest.resultSetSize(resultSet)));
+        } finally {
+            // both tables are destroyed
+            methodWatcher.closeAll();
+        }
+    }
+
+    /**
+     * Test session visibility of indexes on local temporary tables.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testLocalTempTableIndexesSessionVisibility() throws Exception {
+        final String createTblStmt = String.format("CREATE LOCAL TEMPORARY TABLE %s.%s %s ON COMMIT PRESERVE ROWS",
+                tableSchema.schemaName, SIMPLE_TEMP_TABLE, simpleDef);
+        final String createIdxPattern = "CREATE INDEX %s ON %s.%s(fname)";
+        final String dropIdxPattern = "DROP INDEX %s";
+        final String idxName = "TEMP_IDX_00001";
+        final String selectStmt = String.format("select * from %s.%s", tableSchema.schemaName, SIMPLE_TEMP_TABLE);
+
+        Connection connection_1 = methodWatcher.createConnection();
+        Connection connection_2 = methodWatcher.createConnection();
+        try {
+            // create a local temporary table in connection_1, load some data, and create an index TEMP_IDX_00001
+            SQLClosures.execute(connection_1, statement -> {
+                statement.execute(createTblStmt);
+                // insert in the same session
+                SpliceUnitTest.loadTable(statement, tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE, empNameVals);
+            });
+            SpliceIndexWatcher.createIndex(connection_1, tableSchema.schemaName, SIMPLE_TEMP_TABLE, idxName, "(fname)", true, false, false);
+            connection_1.commit();
+
+            // select in the same session should success
+            SQLClosures.query(connection_1, selectStmt,
+                    resultSet -> Assert.assertEquals(5, SpliceUnitTest.resultSetSize(resultSet)));
+
+            // drop index TEMP_IDX_00001 from connection_2 should fail
+            try {
+                SpliceIndexWatcher.executeDrop(connection_2, tableSchema.schemaName, idxName);
+                fail("Expected exception of table doesn't exist since it's not visible to this session.");
+            } catch (RuntimeException e) {
+                // expected
+                Assert.assertTrue(e.getLocalizedMessage().contains(SIMPLE_TEMP_TABLE));
+                Assert.assertFalse(e.getLocalizedMessage().contains(idxName));
+            }
+
+            // now create a local temporary table in connection_2
+            SQLClosures.execute(connection_2, statement -> { statement.execute(createTblStmt); });
+            connection_2.commit();
+
+            // connection_2 cannot create an index with the same name because index names are not mangled
+            // so connection_2 cannot create this index name, nor can it drop it, just choose another name
+            SQLClosures.execute(connection_2, statement -> {
+                try {
+                    statement.execute(String.format(createIdxPattern, idxName, tableSchema.schemaName, SIMPLE_TEMP_TABLE));
+                    fail("Expected exception of index already exist since index names are not mangled.");
+                } catch (SQLException e) {
+                    // expected
+                    Assert.assertEquals(e.getLocalizedMessage(),"X0Y32", e.getSQLState());
+                    Assert.assertTrue(e.getLocalizedMessage().contains(idxName));
+                }
+            });
+
+            // drop index TEMP_IDX_00001 from connection_1 should be fine
+            SpliceIndexWatcher.executeDrop(connection_1, tableSchema.schemaName, idxName);
+        } finally {
+            // both tables are destroyed
+            methodWatcher.closeAll();
+        }
+    }
+
+    /**
+     * Test ALTER TABLE and RENAME TABLE on temporary tables. Should fail.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testAlterAndRenameTableOnTempTable() throws Exception {
+        final String tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s ON COMMIT PRESERVE ROWS";
+        try (Connection connection = methodWatcher.createConnection()) {
+            SQLClosures.execute(connection, statement -> {
+                statement.execute(String.format(tmpCreate, tableSchema.schemaName, SIMPLE_TEMP_TABLE, simpleDef));
+            });
+            connection.commit();
+
+            try {
+                SQLClosures.execute(connection, statement -> {
+                    statement.execute(String.format("alter table %s.%s add column xyz int",
+                            tableSchema.schemaName, SIMPLE_TEMP_TABLE));
+                    fail("Expected exception since ALTER TABLE is not allowed on a temp table.");
+                });
+            } catch (SQLException e) {
+                // expected
+                Assert.assertEquals(e.getLocalizedMessage(), "42995", e.getSQLState());
+            }
+
+            try {
+                SQLClosures.execute(connection, statement -> {
+                    statement.execute(String.format("rename table %s.%s to xyz",
+                            tableSchema.schemaName, SIMPLE_TEMP_TABLE));
+                    fail("Expected exception since RENAME TABLE is not allowed on a temp table.");
+                });
+            } catch (SQLException e) {
+                // expected
+                Assert.assertEquals(e.getLocalizedMessage(), "42995", e.getSQLState());
+            }
+        } finally {
+            methodWatcher.closeAll();
+        }
+    }
+
+    /**
+     * Test system procedures on temporary tables.
+     * Only those applicable to a table are tested.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testSystemProceduresOnTempTable() throws Exception {
+        final String tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s ON COMMIT PRESERVE ROWS";
+        final String tableName = "A";
+        try (Connection connection = methodWatcher.createConnection()) {
+            // create a local temporary table
+            SQLClosures.execute(connection, statement -> {
+                statement.execute(String.format(tmpCreate, tableSchema.schemaName, tableName, "(name varchar(40) primary key, title varchar(40), age int)"));
+            });
+            connection.commit();
+
+            // import data
+            final File BADDIR = SpliceUnitTest.createBadLogDirectory(tableSchema.schemaName);
+            SQLClosures.execute(connection, statement -> {
+                statement.execute(String.format("call syscs_util.import_data('%s', '%s', null, '%s', ',', null, null, null, null, 0, '%s', null, null)",
+                        tableSchema.schemaName, tableName, getResourceDirectory() + "importTest.in", BADDIR.getCanonicalPath()));
+            });
+            connection.commit();
+
+            // merge data
+            // since NAME is a PK, merge should do upsert, which means table content is not changed
+            SQLClosures.execute(connection, statement -> {
+                statement.execute(String.format("call syscs_util.merge_data_from_file('%s', '%s', null, '%s', ',', null, null, null, null, 0, '%s', null, null)",
+                        tableSchema.schemaName, tableName, getResourceDirectory() + "importTest.in", BADDIR.getCanonicalPath()));
+            });
+            connection.commit();
+
+            try {
+                SQLClosures.execute(connection, statement -> {
+                    statement.execute(String.format("call syscs_util.snapshot_table('%s', '%s', '%s_snapshot_1')",
+                            tableSchema.schemaName, tableName, tableName));
+                    fail("Expected exception since SNAPSHOT_TABLE is not allowed on a temp table.");
+                });
+            } catch (SQLException e) {
+                // expected
+                Assert.assertEquals(e.getLocalizedMessage(), "42995", e.getSQLState());
+            }
+
+            SQLClosures.execute(connection, statement -> {
+                statement.execute(String.format("call syscs_util.enable_column_statistics('%s', '%s', 'title')",
+                        tableSchema.schemaName, tableName));
+                statement.execute(String.format("call syscs_util.disable_column_statistics('%s', '%s', 'title')",
+                        tableSchema.schemaName, tableName));
+                statement.execute(String.format("call syscs_util.syscs_flush_table('%s', '%s')",
+                        tableSchema.schemaName, tableName));
+                statement.execute(String.format("call syscs_util.syscs_perform_major_compaction_on_table('%s', '%s')",
+                        tableSchema.schemaName, tableName));
+                statement.execute(String.format("call syscs_util.set_purge_deleted_rows('%s', '%s', 'true')",
+                        tableSchema.schemaName, tableName));
+                statement.execute(String.format("call syscs_util.show_create_table('%s', '%s')",
+                        tableSchema.schemaName, tableName));
+            });
+
+            String[] encodedRegion = { null };
+            SQLClosures.query(connection, String.format("call syscs_util.get_encoded_region_name('%s', '%s', null, '1', '|', null, null, null, null)",
+                    tableSchema.schemaName, tableName),
+                    resultSet -> {
+                        if (resultSet.next())
+                            encodedRegion[0] = resultSet.getString(1);
+                        if (resultSet.next())
+                            fail("There should be only one encoded region for table" + tableSchema.schemaName + "." + tableName);
+                    }
+            );
+
+            if (encodedRegion[0] != null) {
+                SQLClosures.execute(connection, statement -> {
+                    statement.execute(String.format("call syscs_util.compact_region('%s', '%s', null, '%s')",
+                            tableSchema.schemaName, tableName, encodedRegion[0]));
+                    statement.execute(String.format("call syscs_util.major_compact_region('%s', '%s', null, '%s')",
+                            tableSchema.schemaName, tableName, encodedRegion[0]));
+                    statement.execute(String.format("call syscs_util.get_start_key('%s', '%s', null, '%s')",
+                            tableSchema.schemaName, tableName, encodedRegion[0]));
+                });
+            }
+
+        } finally {
+            methodWatcher.closeAll();
+        }
+    }
+
+    /**
+     * Test name clash rules of local temporary tables.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testLocalTempTableNameClash() throws Exception {
+        final String createTablePattern = "CREATE %s " + String.format("TABLE %s.%s %s", tableSchema.schemaName, SIMPLE_TEMP_TABLE, simpleDef);
+        final String selectStmt = String.format("select * from %s.%s", tableSchema.schemaName, SIMPLE_TEMP_TABLE);
+
+        Connection connection_1 = methodWatcher.createConnection();
+        Connection connection_2 = methodWatcher.createConnection();
+        try {
+            // create a local temporary table in connection_1
+            SQLClosures.execute(connection_1, statement -> {
+                statement.execute(String.format(createTablePattern, "LOCAL TEMPORARY"));
+            });
+            connection_1.commit();
+
+            // create another local temporary table with the same name in connection_1, should fail
+            try {
+                SQLClosures.execute(connection_1, statement -> {
+                    statement.execute(String.format(createTablePattern, "LOCAL TEMPORARY"));
+                });
+                fail("Expected exception of table already exists.");
+            } catch (SQLException e) {
+                // expected
+                Assert.assertEquals(e.getLocalizedMessage(), "X0Y32", e.getSQLState());
+            }
+
+            // local temporary names clash with base tables globally
+            // create base table with the same name in connection_1, should fail
+            try {
+                SQLClosures.execute(connection_1, statement -> {
+                    statement.execute(String.format(createTablePattern, ""));
+                });
+                fail("Expected exception of table already exists.");
+            } catch (SQLException e) {
+                // expected
+                Assert.assertEquals(e.getLocalizedMessage(), "X0Y32", e.getSQLState());
+            }
+
+            // create base table with the same name in connection_2, should fail
+            try {
+
+                SQLClosures.execute(connection_2, statement -> {
+                    statement.execute(String.format(createTablePattern, ""));
+                });
+                fail("Expected exception of table name clashes with a local temporary table.");
+            } catch (SQLException e) {
+                // expected
+                Assert.assertEquals(e.getLocalizedMessage(), "42ZD4", e.getSQLState());
+            }
+
+            // create a local temporary table with the same name in connection_2, OK
+            SQLClosures.execute(connection_2, statement -> {
+                statement.execute(String.format(createTablePattern, "LOCAL TEMPORARY"));
+            });
+
+            // drop tables are not part of the test but just to make sure TEMPTABLEIT schema can be dropped
+            SQLClosures.execute(connection_1, statement -> {
+                statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE));
+            });
+            SQLClosures.execute(connection_2, statement -> {
+                statement.execute(String.format("drop table %s", tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE));
+            });
+        } finally {
+            // both tables are destroyed
+            methodWatcher.closeAll();
+        }
+    }
 }
