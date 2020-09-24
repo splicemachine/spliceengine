@@ -31,8 +31,9 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+
+import com.splicemachine.db.iapi.error.StandardException;
 
 /**
  * A SubqueryList represents a list of subquerys within a specific clause 
@@ -149,9 +150,10 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
      */
     @Override
     public boolean referencesSessionSchema() throws StandardException {
-        SubqueryNode    subqueryNode;
         int size = size();
         for (int index = 0; index < size; index++) {
+            SubqueryNode    subqueryNode;
+
             subqueryNode = elementAt(index);
 
             if (subqueryNode.getResultSet().referencesSessionSchema()) {
@@ -159,24 +161,6 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
             }
         }
 
-        return false;
-    }
-
-    /**
-     * Return true if the node references temporary tables no matter under which schema
-     *
-     * @return true if references temporary tables, else false
-     */
-    @Override
-    public boolean referencesTemporaryTable() {
-        SubqueryNode subqueryNode;
-        int size = size();
-        for (int index = 0; index < size; index++) {
-            subqueryNode = elementAt(index);
-            if (subqueryNode.getResultSet().referencesTemporaryTable()) {
-                return true;
-            }
-        }
         return false;
     }
 

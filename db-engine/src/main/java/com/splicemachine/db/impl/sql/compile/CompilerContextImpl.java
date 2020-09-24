@@ -867,7 +867,8 @@ public class CompilerContextImpl extends ContextImpl
         if (td == null)
             return;
 
-        if (td.isTemporary() || td.getTableType() == TableDescriptor.WITH_TYPE) {
+        if (td.getTableType() ==
+                TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE || td.getTableType() == TableDescriptor.WITH_TYPE) {
             return; // no priv needed, it is per session anyway
         }
 
@@ -928,7 +929,8 @@ public class CompilerContextImpl extends ContextImpl
         if( requiredTablePrivileges == null || table == null)
             return;
 
-        if (table.isTemporary()) {
+        if (table.getTableType() ==
+                TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
             return; // no priv needed, it is per session anyway
         }
 
