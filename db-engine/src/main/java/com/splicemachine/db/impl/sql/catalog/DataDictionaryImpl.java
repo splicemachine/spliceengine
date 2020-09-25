@@ -65,6 +65,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.compile.SetNode;
 import com.splicemachine.db.impl.sql.compile.TableName;
+import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -1563,11 +1564,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         endKeyRow.setColumn(1,tableNameEndOrderable);
         endKeyRow.setColumn(2,schemaIDOrderable);
 
+        /* Set a scan qualifier on SYSTABLES.SCHEMAID */
+        GenericScanQualifier[][] qualifiers = new GenericScanQualifier[1][];
+        qualifiers[0] = new GenericScanQualifier[1];
+        GenericScanQualifier gsq = new GenericScanQualifier();
+        // since we are scanning an index, columnId is the index column position of SCHEMAID
+        // index column position is 0-based
+        gsq.setQualifier(1, new SQLVarchar(schemaUUID), DataValueDescriptor.ORDER_OP_EQUALS, false, false, false);
+        qualifiers[0][0] = gsq;
+
         getDescriptorsViaIndex(
                 SYSTABLESRowFactory.SYSTABLES_INDEX1_ID,
                 startKeyRow,
                 endKeyRow,
-                null,
+                qualifiers,
                 ti,
                 null,
                 tds,
