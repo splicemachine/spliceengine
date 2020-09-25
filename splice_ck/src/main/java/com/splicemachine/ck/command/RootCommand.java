@@ -19,7 +19,7 @@ import org.apache.log4j.Logger;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
-@Command(mixinStandardHelpOptions = true, name = "sck", description = "SpliceMachine check command suite", descriptionHeading = "Description:%n",
+@Command(mixinStandardHelpOptions = true, name = "spliceck", description = "SpliceMachine check command suite", descriptionHeading = "Description:%n",
         optionListHeading = "Options:%n", subcommands = {TListCommand.class,
         TColsCommand.class, RegionOfCommand.class, TableOfCommand.class, RGetCommand.class, RPutCommand.class,
         TxListCommand.class, SListCommand.class})

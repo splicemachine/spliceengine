@@ -14,9 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -35,9 +32,12 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.utils.SpliceLogUtils;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 
 public abstract class DDLSingleTableConstantOperation extends DDLConstantOperation {
 	private static final Logger LOG = Logger.getLogger(DDLSingleTableConstantOperation.class);
@@ -272,9 +272,15 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
                         cd.getIndexDescriptor().indexType(), 
                         td.getSchemaName(), 
                         cd.getConglomerateName(), td.getName(), td.getUUID(),
-                        cols, cd.getIndexDescriptor().isAscending(),
+                        cols,
+                        cd.getIndexDescriptor().getIndexColumnTypes(),
+                        cd.getIndexDescriptor().isAscending(),
                         true, cd.getUUID(), false, false, false,false,false,0,
-						null,null,null,null,null,null,null,prop);
+                        null,null,null,null,null,null,null,
+                        cd.getIndexDescriptor().getExprTexts(),
+                        cd.getIndexDescriptor().getExprBytecode(),
+                        cd.getIndexDescriptor().getGeneratedClassNames(),
+                        prop);
 
         //create index
         action.executeConstantAction(activation);

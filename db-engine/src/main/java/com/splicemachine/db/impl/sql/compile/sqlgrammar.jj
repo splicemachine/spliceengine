@@ -74,6 +74,7 @@ import com.splicemachine.db.impl.sql.compile.FromSubquery;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
+import com.splicemachine.db.impl.sql.compile.IndexExpression;
 import com.splicemachine.db.impl.sql.compile.JavaToSQLValueNode;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.MethodCallNode;
@@ -2893,6 +2894,7 @@ TOKEN [IGNORE_CASE] :
 |    <NATURAL: "natural">
 |    <NCHAR: "nchar">
 |    <NEXT: "next">
+|    <NEXTVAL: "nextval">
 |    <NO: "no">
 |    <NOLOGGING: "nologging">
 |    <NOT: "not">
@@ -11319,29 +11321,40 @@ columnNameItem(ResultColumnList columnList) throws StandardException :
  * <A NAME="indexColumnList">indexColumnList</A>
  */
 void
-indexColumnList(Vector columnList) throws StandardException :
-{}
+indexColumnList(Vector columnList, Token beginToken) throws StandardException :
 {
-    indexColumnItem(columnList) ( <COMMA> indexColumnItem(columnList) ) *
+    Token commaToken = null;
+}
+{
+    indexColumnItem(columnList, beginToken) ( commaToken = <COMMA> indexColumnItem(columnList, commaToken) ) *
 }
 
 /*
  * <A NAME="indexColumnItem">indexColumnItem</A>
  */
 void
-indexColumnItem(Vector columnList) throws StandardException :
+indexColumnItem(Vector columnList, Token beginToken) throws StandardException :
 {
-    String        columnName;
+    ValueNode expr;
+    Token ascToken = null;
+    Token descToken = null;
+    Token endToken = null;
 }
 {
-    /* identifier never ends with a space; appending a space meaning desc */
-    columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) [<ASC> | <DESC> {columnName = columnName + ' ';}]
+    expr = valueExpression() [ascToken = <ASC> | descToken = <DESC>]
     {
-        /*
-        ** Store the column names for the index columns in the
-        ** index column list.
-        */
-        columnList.addElement(columnName);
+        endToken = getToken(0);
+        int endOffset = endToken.endOffset;
+        if (ascToken != null || descToken != null) {
+            endOffset = endToken.beginOffset - 1;
+        }
+
+        columnList.addElement(
+            new IndexExpression(
+                StringUtil.slice(statementSQLText, beginToken.endOffset + 1, endOffset, false),
+                expr,
+                (descToken == null)  // default is ASC
+            ));
     }
 }
 
@@ -12133,7 +12146,7 @@ nextValueExpression() throws StandardException :
     TableName sequenceName;
 }
 {
-       <NEXT> <VALUE> <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+       (<NEXT> <VALUE> | <NEXTVAL>) <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
        {
         checkVersion(DataDictionary.DD_VERSION_DERBY_10_6, "NEXT VALUE");
         nextValue = (ValueNode) nodeFactory.getNode(
@@ -13094,6 +13107,7 @@ indexDefinition() throws StandardException :
     Boolean     preSplit = Boolean.FALSE;
     Vector        indexColumnList = new Vector();
     Boolean     isLogicalKey = Boolean.TRUE;
+    Token       beginToken = null;
 }
 {
     /*
@@ -13102,7 +13116,7 @@ indexDefinition() throws StandardException :
     */
     [ unique = unique() ] <INDEX>
         indexName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-                <LEFT_PAREN> indexColumnList(indexColumnList) <RIGHT_PAREN>
+                beginToken = <LEFT_PAREN> indexColumnList(indexColumnList, beginToken) <RIGHT_PAREN>
         [ properties = propertyList(false) <CHECK_PROPERTIES>]
         [ <EXCLUDE>
             [ <NULL> <KEYS> { excludeNulls = true;} ]
@@ -17845,6 +17859,7 @@ reservedKeyword() :
 |    tok = <NCHAR>
 |    tok = <NVARCHAR>
 |    tok = <NEXT>
+|    tok = <NEXTVAL>
 |    tok = <NO>
 |    tok = <NOLOGGING>
 |   tok = <NONE>
