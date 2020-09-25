@@ -1154,6 +1154,28 @@ public class TempTableIT extends SpliceUnitTest {
                 Assert.assertEquals(e.getLocalizedMessage(), "X0Y32", e.getSQLState());
             }
 
+            // create a base table with the same name under a different schema in connection_1, OK
+            SQLClosures.execute(connection_2, statement -> {
+                String schemaName = getSchemaName() + "_TEMP_TABLE_TEST_1";
+                statement.execute(format("create schema if not exists %s", schemaName));
+
+                statement.execute(format("CREATE TABLE %s.%s %s", schemaName, SIMPLE_TEMP_TABLE, simpleDef));
+
+                statement.execute(format("DROP TABLE %s.%s", schemaName, SIMPLE_TEMP_TABLE));
+                statement.execute(format("DROP SCHEMA %s RESTRICT", schemaName));
+            });
+
+            // create a local temporary table with the same name under a different schema in connection_1, OK
+            SQLClosures.execute(connection_2, statement -> {
+                String schemaName = getSchemaName() + "_TEMP_TABLE_TEST_1";
+                statement.execute(format("create schema if not exists %s", schemaName));
+
+                statement.execute(format("CREATE LOCAL TEMPORARY TABLE %s.%s %s", schemaName, SIMPLE_TEMP_TABLE, simpleDef));
+
+                statement.execute(format("DROP TABLE %s.%s", schemaName, SIMPLE_TEMP_TABLE));
+                statement.execute(format("DROP SCHEMA %s RESTRICT", schemaName));
+            });
+
             // create base table with the same name in connection_2, should fail
             try {
 
@@ -1169,6 +1191,17 @@ public class TempTableIT extends SpliceUnitTest {
             // create a local temporary table with the same name in connection_2, OK
             SQLClosures.execute(connection_2, statement -> {
                 statement.execute(String.format(createTablePattern, "LOCAL TEMPORARY"));
+            });
+
+            // create a base table with the same name under a different schema in connection_2, OK
+            SQLClosures.execute(connection_2, statement -> {
+                String schemaName = getSchemaName() + "_TEMP_TABLE_TEST_2";
+                statement.execute(format("create schema if not exists %s", schemaName));
+
+                statement.execute(format("CREATE TABLE %s.%s %s", schemaName, SIMPLE_TEMP_TABLE, simpleDef));
+
+                statement.execute(format("DROP TABLE %s.%s", schemaName, SIMPLE_TEMP_TABLE));
+                statement.execute(format("DROP SCHEMA %s RESTRICT", schemaName));
             });
 
             // drop tables are not part of the test but just to make sure TEMPTABLEIT schema can be dropped
