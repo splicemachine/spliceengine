@@ -59,9 +59,8 @@ public class SpliceDefaultFlusher extends DefaultStoreFlusher {
             try {
                 purgeConfig.transactionLowWatermark(SpliceCompactionUtils.getTxnLowWatermark(store));
             } catch (Exception e) {
-                LOG.warn("Could not extract compaction information: ", e);
-                assert SIDriver.driver().lifecycleManager().isRestoreMode() :
-                        "Fetching txn low watermark is only known to fail during restore mode";
+                LOG.warn("Could not extract compaction information, we will not purge during flush." +
+                        "This may happen during restore. Exception: ", e);
             }
         }
         purgeConfig.transactionLowWatermark(txnLowWatermark);
