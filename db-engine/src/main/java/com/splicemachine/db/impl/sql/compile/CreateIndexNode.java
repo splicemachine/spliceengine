@@ -31,23 +31,21 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Hashtable;
-import java.util.Properties;
-import java.util.Vector;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+
+import java.util.Hashtable;
+import java.util.Properties;
+import java.util.Vector;
 
 /**
  * A CreateIndexNode is the root of a QueryTree that represents a CREATE INDEX
@@ -59,7 +57,6 @@ public class CreateIndexNode extends DDLStatementNode
 {
 	boolean				unique;
 	boolean				uniqueWithDuplicateNulls;
-	DataDictionary		dd = null;
 	Properties			properties;
 	String				indexType;
 	TableName			indexName;
@@ -197,12 +194,9 @@ public class CreateIndexNode extends DDLStatementNode
 
 	public void bindStatement() throws StandardException
 	{
-		CompilerContext			cc = getCompilerContext();
-		SchemaDescriptor		sd;
-		int						columnCount;
+		int	columnCount;
 
-		sd = getSchemaDescriptor();
-
+/*		SchemaDescriptor sd = getSchemaDescriptor(); */
 		td = getTableDescriptor(tableName);
 
 		//If total number of indexes on the table so far is more than 32767, then we need to throw an exception
@@ -284,6 +278,16 @@ public class CreateIndexNode extends DDLStatementNode
 	}
 
 	/**
+	 * Return true if the node references temporary tables no matter under which schema
+	 *
+	 * @return true if references temporary tables, else false
+	 */
+	@Override
+	public boolean referencesTemporaryTable() {
+		return td.isTemporary();
+	}
+
+	/**
 	 * Create the Constant information that will drive the guts of Execution.
 	 *
 	 * @exception StandardException		Thrown on failure
@@ -291,11 +295,7 @@ public class CreateIndexNode extends DDLStatementNode
 	public ConstantAction	makeConstantAction() throws StandardException
 	{
 		SchemaDescriptor		sd = getSchemaDescriptor();
-
-		int columnCount = columnNames.length;
 		int approxLength = 0;
-		boolean index_has_long_column = false;
-
 
 		// bump the page size for the index,
 		// if the approximate sizes of the columns in the key are
