@@ -1201,7 +1201,9 @@ public class SQLParser
             tokKind == NOW ||
             tokKind == CURRENT && (isDATETIME(getToken(2).kind)) ||
             tokKind == CURRENT && getToken(2).kind == SERVER ||
-            tokKind == CURRENT_SERVER)
+            tokKind == CURRENT_SERVER ||
+            tokKind == CURRENT && getToken(2).kind == DATABASE ||
+            tokKind == CURRENT_DATABASE)
         {
             return false;
         }
@@ -1450,12 +1452,13 @@ public class SQLParser
           case CURRENT_TIME:
           case CURRENT_TIMESTAMP:
           case CURRENT_SERVER:
+          case CURRENT_DATABASE:
           case NOW:
               retval = true;
             break;
 
           case CURRENT:
-            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER)
+            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER || getToken(2).kind == DATABASE)
                 retval = true;
             break;
 
@@ -2807,6 +2810,7 @@ TOKEN [IGNORE_CASE] :
 |    <CROSS: "cross">
 |    <CURRENT: "current">
 |    <CURRENT_DATE: "current_date">
+|    <CURRENT_DATABASE: "current_database">
 |    <CURRENT_SERVER: "current_server">
 |    <CURRENT_TIME: "current_time">
 |    <CURRENT_TIMESTAMP: "current_timestamp">
@@ -11614,13 +11618,15 @@ currentServerFunction() throws StandardException :
 {
 }
 {
-    LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == SERVER)}) <CURRENT> <SERVER>
-    {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_SERVER_NODE,
-                                getContextManager());
-    }
-    | <CURRENT_SERVER>
+    (
+        LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == SERVER)}) <CURRENT> <SERVER>
+    |
+        <CURRENT_SERVER>
+    |
+        LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == DATABASE)}) <CURRENT> <DATABASE>
+    |
+        <CURRENT_DATABASE>
+    )
     {
         return (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.CURRENT_SERVER_NODE,

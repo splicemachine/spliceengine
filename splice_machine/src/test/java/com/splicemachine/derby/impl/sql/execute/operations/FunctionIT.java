@@ -256,6 +256,8 @@ public class FunctionIT extends SpliceUnitTest {
         String[] sqlTexts = {
                 "values current server", "values current_server",
                 "select current server", "select current_server",
+                "values current database", "values current_database",
+                "select current database", "select current_database",
                 "select (select current_server)"};
         String expected = "1    |\n" +
                 "----------\n" +
