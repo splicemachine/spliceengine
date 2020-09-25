@@ -523,7 +523,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
                 ModifyColumnConstantOperation updateNullabilityAction =
                         new ModifyColumnConstantOperation(td.getSchemaDescriptor(), td.getName(), td.getUUID(),
-                                pkColumnInfo, new ConstantAction[0], '\0', behavior, null);
+                                pkColumnInfo, new ConstantAction[0], Character.valueOf('\0'), behavior, null);
                 updateNullabilityAction.executeConstantAction(activation);
                 hasColumnUpdate = true;
             }

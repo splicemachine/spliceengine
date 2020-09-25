@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.Serializable;
 import java.sql.ResultSetMetaData;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,8 +58,7 @@ import java.util.Map;
  *
  */
 public final class GenericResultDescription
-	implements ResultDescription, Formatable
-{
+		implements ResultDescription, Formatable, Serializable {
 
 	/********************************************************
 	**
