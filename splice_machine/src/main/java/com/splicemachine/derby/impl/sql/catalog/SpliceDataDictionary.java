@@ -1683,7 +1683,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             // now upgrade the views if necessary
             TableDescriptor td1 = getTableDescriptor(SYSTABLESRowFactory.SYSTABLE_VIEW_NAME, sysViewSchemaDesc, tc);
-            if(td1 != null) {
+            if (td1 != null) {
                 ViewDescriptor vd1 = getViewDescriptor(td1);
                 dropAllColumnDescriptors(td1.getUUID(), tc);
                 dropViewDescriptor(vd1, tc);
@@ -1750,5 +1750,10 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public long getSystablesMinRetentionPeriod() {
         return SIDriver.driver().getConfiguration().getSystablesMinRetentionPeriod();
+    }
+
+    @Override
+    public boolean useTxnAwareCache() {
+        return !SpliceClient.isRegionServer;
     }
 }
