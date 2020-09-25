@@ -35,6 +35,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import java.io.*;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 
@@ -51,6 +52,7 @@ import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import static java.lang.String.format;
@@ -68,6 +70,7 @@ import static java.lang.String.format;
 * This class is a modified version of TemporaryRowHolderImpl.
 *
 */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
 {
      private static final Logger LOG = Logger.getLogger(TriggerRowHolderImpl.class);
@@ -176,7 +179,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
             conglomCreated = true;
             this.CID = ConglomID;
         }
-        else if (overflowToConglomThreshold == 0 && execRowDefinition != null) {
+        else if (overflowToConglomThreshold == 0) {
             try {
                 createConglomerate(execRowDefinition);
                 conglomCreated = true;
@@ -322,11 +325,9 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
     }
 
     class InMemoryTriggerRowsIterator implements Iterator<ExecRow>, Closeable {
-        private TriggerRowHolderImpl holder;
         private int position = 0;
-        public InMemoryTriggerRowsIterator(TriggerRowHolderImpl holder)
+        public InMemoryTriggerRowsIterator()
         {
-            this.holder = holder;
         }
 
         @Override
@@ -337,10 +338,12 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
 
         @Override
-        public ExecRow next() {
+        public ExecRow next() throws NoSuchElementException
+        {
             if (position <= lastArraySlot)
                 return rowArray[position++];
-            return null;
+            else
+                throw new NoSuchElementException();
         }
 
         @Override
@@ -349,7 +352,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
     }
     public InMemoryTriggerRowsIterator getCachedRowsIterator() {
-        return new InMemoryTriggerRowsIterator(this);
+        return new InMemoryTriggerRowsIterator();
     }
 
     // Must use the version of insert that provides the KVPair.
