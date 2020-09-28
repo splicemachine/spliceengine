@@ -16,12 +16,14 @@ package com.splicemachine.access.hbase;
 
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.concurrent.Clock;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.ClientPartition;
 import com.splicemachine.storage.Partition;
 import com.splicemachine.storage.PartitionInfoCache;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
@@ -54,15 +56,25 @@ public class HPartitionCreator implements PartitionCreator{
 
     @Override
     public PartitionCreator withName(String name){
-        return withName(name, 0);
+        return withName(name, Conglomerate.Priority.NORMAL);
+    }
+
+    public static int GetHBasePriority(Conglomerate.Priority priority)
+    {
+        switch(priority){
+            case NORMAL:    return HConstants.NORMAL_QOS;
+            case HIGH:      return HConstants.ADMIN_QOS;
+            case VERY_HIGH: return HConstants.HIGH_QOS;
+            default:        throw new RuntimeException("Not implemented priority " + priority);
+        }
     }
 
     @Override
-    public PartitionCreator withName(String name, int priority){
+    public PartitionCreator withName(String name, Conglomerate.Priority priority){
         assert tableName == null;
         tableName = tableInfoFactory.getTableInfo(name);
         descriptorBuilder = TableDescriptorBuilder.newBuilder(tableName);
-        descriptorBuilder.setPriority(priority);
+        descriptorBuilder.setPriority(GetHBasePriority(priority));
         return this;
     }
 

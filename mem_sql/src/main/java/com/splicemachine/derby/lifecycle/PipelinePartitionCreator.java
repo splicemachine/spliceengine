@@ -25,6 +25,7 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.storage.MServerControl;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -42,10 +43,11 @@ public class PipelinePartitionCreator implements PartitionCreator{
     }
 
     public PartitionCreator withName(String name){
-        return withName(name, 0);
+        return withName(name, Conglomerate.Priority.NORMAL);
     }
 
-    public PartitionCreator withName(String name, int priority){
+    public PartitionCreator withName(String name, Conglomerate.Priority priority){
+        // mem can ignore priority
         baseCreator=baseCreator.withName(name);
         try{
             //noinspection ResultOfMethodCallIgnored

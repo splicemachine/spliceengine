@@ -67,7 +67,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                           int tmpFlag,
                           TxnOperationFactory operationFactory,
                           PartitionFactory partitionFactory,
-                          byte[][] splitKeys, int priority) throws StandardException{
+                          byte[][] splitKeys, Priority priority) throws StandardException{
         super.create(isExternal,rawtran,
                 input_containerid,
                 template,

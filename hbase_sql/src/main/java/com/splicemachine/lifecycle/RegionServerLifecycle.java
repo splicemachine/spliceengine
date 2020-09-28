@@ -64,7 +64,7 @@ public class RegionServerLifecycle implements DistributedDerbyStartup{
                             .newBuilder(spliceInit)
                             .setColumnFamily(
                                     ColumnFamilyDescriptorBuilder.newBuilder(Bytes.toBytes("FOO")).build()
-                            ).setPriority(1000).build();
+                            ).build();
 
                     // Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
                     // triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a

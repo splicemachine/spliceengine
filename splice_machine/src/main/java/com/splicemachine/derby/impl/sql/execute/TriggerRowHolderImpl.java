@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderResultSet;
@@ -309,7 +310,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
                  null, //collation_ids
                  properties,
                  TransactionController.IS_TEMPORARY |
-                 TransactionController.IS_KEPT, 0);
+                 TransactionController.IS_KEPT, Conglomerate.Priority.NORMAL);
 
             LOG.trace(format("Created temporary conglomerate splice:%d", CID));
 

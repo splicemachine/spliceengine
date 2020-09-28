@@ -6,6 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
@@ -54,7 +55,7 @@ public class HTablePrioritiesIT {
 
     @Test
     public void testTablesPriority() throws Exception {
-        int prio0 = 0, prio100 = 0, prio110 = 0;
+        int prioNormal = 0, prioAdmin = 0, prioHigh = 0;
         try(Admin admin= ConnectionFactory.createConnection(new Configuration()).getAdmin()){
             HTableDescriptor[] tableDescriptors = admin.listTables();
             for( HTableDescriptor td : tableDescriptors) {
@@ -65,26 +66,26 @@ public class HTablePrioritiesIT {
                             "splice:SPLICE_MASTER_SNAPSHOTS", "splice:SPLICE_REPLICATION_PROGRESS",
                             "splice:SPLICE_SEQUENCES", "splice:SPLICE_TXN", "splice:TENTATIVE_DDL"};
                     Assert.assertTrue(td.toString(), ArrayUtils.contains(arr, td.getTableName().getNameAsString()));
-                    Assert.assertEquals(td.toString(), 110, td.getPriority());
-                    prio110 ++;
+                    Assert.assertEquals(td.toString(), HConstants.HIGH_QOS, td.getPriority());
+                    prioHigh ++;
                 }
                 else
                 {
                     if( s.startsWith("SYS") || s.startsWith("splice:") || s.equals("MON_GET_CONNECTION") ) {
-                        Assert.assertEquals(td.toString(), 100, td.getPriority());
-                        prio100 ++;
+                        Assert.assertEquals(td.toString(), HConstants.ADMIN_QOS, td.getPriority());
+                        prioAdmin ++;
                     }
                     else {
                         Assert.assertEquals(td.toString(), 0, td.getPriority());
-                        prio0 ++;
+                        prioNormal ++;
                     }
                 }
             }
         }
         // assert there's actually tables we are checking
-        Assert.assertTrue( prio0 >=  4 );
-        Assert.assertTrue( prio100 > 5 );
-        Assert.assertTrue( prio110 > 5 );
+        Assert.assertTrue( prioNormal >= 4 );
+        Assert.assertTrue( prioAdmin > 5 );
+        Assert.assertTrue( prioHigh > 5 );
     }
 
 }

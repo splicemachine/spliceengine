@@ -90,7 +90,7 @@ public class IndexConglomerate extends SpliceConglomerate{
                           int tmpFlag,
                           TxnOperationFactory opFactory,
                           PartitionFactory partitionFactory,
-                          byte[][] splitKeys, int priority) throws StandardException{
+                          byte[][] splitKeys, Conglomerate.Priority priority) throws StandardException{
         super.create(isExternal,rawtran,
                 input_containerid,
                 template,
