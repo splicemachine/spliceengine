@@ -57,6 +57,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.LOBStoredProcedure;
@@ -6777,7 +6778,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         ti.getCatalogRowFactory().makeEmptyRowForLatestVersion(),
                         heapProperties,
                         columnOrder,
-                        100)
+                        Conglomerate.Priority.HIGH)
         );
 
         // bootstrap indexes on core tables before bootstrapping the tables themselves
@@ -7218,7 +7219,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 null, //default sort order
                 null, //default collation id's for collumns in all system congloms
                 indexProperties, // default properties
-                TransactionController.IS_DEFAULT, 100); // not temporary
+                TransactionController.IS_DEFAULT,  // not temporary
+                Conglomerate.Priority.HIGH);
 
         conglomerateDescriptor=
                 ddg.newConglomerateDescriptor(conglomId,
@@ -7365,14 +7367,16 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     protected long createConglomerate(TransactionController tc,
                                       ExecRow rowTemplate,
-                                      Properties properties, int priority) throws StandardException{
+                                      Properties properties,
+                                      Conglomerate.Priority priority) throws StandardException{
         return createConglomerate(tc,rowTemplate,properties,null, priority);
     }
 
     protected long createConglomerate(TransactionController tc,
                                       ExecRow rowTemplate,
                                       Properties properties,
-                                      ColumnOrdering[] columnOrdering, int priority) throws StandardException{
+                                      ColumnOrdering[] columnOrdering,
+                                      Conglomerate.Priority priority) throws StandardException{
         long conglomId;
 
         conglomId=tc.createConglomerate(false,
@@ -10748,7 +10752,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 heapProperties.setProperty("catalogVersion", version);
                 ExecRow rowTemplate=ti.getCatalogRowFactory().makeEmptyRowForLatestVersion();
 
-                long conglomerate=createConglomerate(tc,rowTemplate,heapProperties, 100);
+                long conglomerate=createConglomerate(tc,rowTemplate,heapProperties, Conglomerate.Priority.HIGH);
                 ti.setHeapConglomerate(conglomerate);
             }catch(Exception e){
                 e.printStackTrace();

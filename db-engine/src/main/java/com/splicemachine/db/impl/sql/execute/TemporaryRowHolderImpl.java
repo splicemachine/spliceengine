@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLRef;
@@ -280,7 +281,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                     collation_ids,
                     properties,
                     TransactionController.IS_TEMPORARY | 
-                    TransactionController.IS_KEPT, 0);
+                    TransactionController.IS_KEPT, Conglomerate.Priority.NORMAL);
 
 			conglomCreated = true;
 
@@ -343,7 +344,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                         null, // no collation needed for index on row locations.
                         props, 
                         (TransactionController.IS_TEMPORARY | 
-                         TransactionController.IS_KEPT), 0);
+                         TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
 				uniqueIndex_cc = tc.openConglomerate(
 								uniqueIndexConglomId, 
@@ -411,7 +412,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                     null, // no collation needed for index on row locations.
                     props, 
                     (TransactionController.IS_TEMPORARY | 
-                     TransactionController.IS_KEPT), 0);
+                     TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
 			positionIndex_cc = 
                 tc.openConglomerate(

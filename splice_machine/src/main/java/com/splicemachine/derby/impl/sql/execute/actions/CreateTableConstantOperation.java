@@ -20,6 +20,7 @@ import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -315,7 +316,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
                         (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
                         TransactionController.IS_DEFAULT,
-                splitKeys, 0 /* priority = 0 */ );
+                splitKeys, Conglomerate.Priority.NORMAL);
         SchemaDescriptor sd = DDLConstantOperation.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
         try {

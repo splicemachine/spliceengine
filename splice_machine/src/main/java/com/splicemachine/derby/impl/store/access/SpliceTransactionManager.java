@@ -525,7 +525,7 @@ public class SpliceTransactionManager implements XATransactionController,
     @Override
     public long createConglomerate(boolean isExternal, String implementation,
                                    DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
-                                   int[] collationIds, Properties properties, int temporaryFlag, int priority)
+                                   int[] collationIds, Properties properties, int temporaryFlag, Conglomerate.Priority priority)
             throws StandardException {
         return createConglomerateInternal(isExternal, implementation, template, columnOrder, collationIds, properties,
                 temporaryFlag, null, priority);
@@ -534,7 +534,8 @@ public class SpliceTransactionManager implements XATransactionController,
     @Override
     public long createConglomerate(boolean isExternal, String implementation,
                                    DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
-                                   int[] collationIds, Properties properties, int temporaryFlag, byte[][] splitKeys, int priority)
+                                   int[] collationIds, Properties properties, int temporaryFlag, byte[][] splitKeys,
+                                   Conglomerate.Priority priority)
             throws StandardException {
         return createConglomerateInternal(isExternal, implementation, template, columnOrder, collationIds, properties,
                 temporaryFlag, splitKeys, priority);
@@ -543,7 +544,7 @@ public class SpliceTransactionManager implements XATransactionController,
     private long createConglomerateInternal(boolean isExternal, String implementation,
                                             DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
                                             int[] collationIds, Properties properties, int temporaryFlag,
-                                            byte[][] splitKeys, int priority)
+                                            byte[][] splitKeys, Conglomerate.Priority priority)
             throws StandardException {
         // Find the appropriate factory for the desired implementation.
         MethodFactory mfactory;
@@ -617,7 +618,7 @@ public class SpliceTransactionManager implements XATransactionController,
         // RESOLVE: this create the conglom LOGGED, this is slower than
         // necessary although still correct.
         long conglomId = createConglomerate(isExternal,implementation, template,
-                columnOrder, collationIds, properties, temporaryFlag, 0);
+                columnOrder, collationIds, properties, temporaryFlag, Conglomerate.Priority.NORMAL);
 
         long rows_loaded = loadConglomerate(conglomId, true, // conglom is being
                 // created

@@ -149,16 +149,18 @@ public class HBaseConnectionFactory{
     //        admin.deleteTable(id);
     //    }
 
+    private final int TABLE_PRIORITY = HConstants.HIGH_QOS;
+
     public HTableDescriptor generateDefaultSIGovernedTable(String tableName){
         HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));
-        desc.setPriority(110);
+        desc.setPriority(TABLE_PRIORITY);
         desc.addFamily(createDataFamily());
         return desc;
     }
 
     public HTableDescriptor generateNonSITable(String tableName){
         HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));
-        desc.setPriority(110);
+        desc.setPriority(TABLE_PRIORITY);
         desc.addFamily(createDataFamily());
         return desc;
     }
@@ -173,7 +175,7 @@ public class HBaseConnectionFactory{
         columnDescriptor.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
         columnDescriptor.setBloomFilterType(BloomType.valueOf(HConfiguration.DEFAULT_BLOOMFILTER.toUpperCase()));
         columnDescriptor.setTimeToLive(HConfiguration.DEFAULT_TTL);
-        desc.setPriority(110);
+        desc.setPriority(TABLE_PRIORITY);
         desc.addFamily(columnDescriptor);
         desc.addFamily(new HColumnDescriptor(Bytes.toBytes(SI_PERMISSION_FAMILY)));
         return desc;

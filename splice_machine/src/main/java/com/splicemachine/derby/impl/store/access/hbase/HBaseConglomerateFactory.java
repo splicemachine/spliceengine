@@ -91,7 +91,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
             int[] collationIds,
             Properties properties,
             int temporaryFlag,
-            byte[][] splitKeys, int priority)
+            byte[][] splitKeys, Conglomerate.Priority priority)
             throws StandardException{
         HBaseConglomerate hbase=new HBaseConglomerate();
 

@@ -18,6 +18,7 @@ import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.apache.log4j.Logger;
@@ -39,12 +40,14 @@ public class UpgradeScriptForReplication extends UpgradeScriptBase {
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
             if (!admin.tableExists(HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME)) {
                 LOG.info("Creating " + HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME);
-                admin.newPartition().withName(HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME, 100).create();
+                admin.newPartition().withName(HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME,
+                        Conglomerate.Priority.HIGH).create();
             }
 
             if (!admin.tableExists(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME)) {
                 LOG.info("Creating " + HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME);
-                admin.newPartition().withName(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME, 100).create();
+                admin.newPartition().withName(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME,
+                        Conglomerate.Priority.HIGH).create();
             }
         } catch (IOException e) {
             LOG.warn("Exception while creating while creating replication tables", e);

@@ -20,6 +20,7 @@ import splice.com.google.common.collect.Iterables;
 import com.splicemachine.access.api.*;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.primitives.Bytes;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -67,11 +68,12 @@ public class MPartitionFactory implements PartitionFactory<Object>{
 
         @Override
         public PartitionCreator withName(String name){
-            return withName(name, 0);
+            return withName(name, Conglomerate.Priority.NORMAL);
         }
 
         @Override
-        public PartitionCreator withName(String name, int priority){
+        public PartitionCreator withName(String name, Conglomerate.Priority priority){
+            // mem can ignore priority
             this.name=name;
             return this;
         }
