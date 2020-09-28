@@ -577,6 +577,15 @@ public class ExternalTableIT extends SpliceUnitTest {
         Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
+    String[] fileFormatsText = { "PARQUET", "ORC", "AVRO", "TEXTFILE" };
+    @Test
+    public void testPartitionThirdSecond() throws Exception {
+        for (String fileFormat : fileFormatsText) {
+            ExternalTablePartitionIT.checkPartitionInsertSelect(  methodWatcher, getExternalResourceDirectory(),
+                    "partition_third_second", fileFormat, "col3, col2");
+        }
+    }
+
     // todo: move to testWriteReadFromSimpleExternalTablefor( String storedAs : fileFormats )
     @Test
     public void testWriteReadFromSimpleCsvExternalTable() throws Exception {
