@@ -526,7 +526,7 @@ public class SpliceTransactionManager implements XATransactionController,
     public long createConglomerate(boolean isExternal, String implementation,
                                    DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
                                    int[] collationIds, Properties properties, int temporaryFlag, Conglomerate.Priority priority)
-            throws StandardException {
+                throws StandardException {
         return createConglomerateInternal(isExternal, implementation, template, columnOrder, collationIds, properties,
                 temporaryFlag, null, priority);
     }

@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.catalog;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.configuration.SQLConfiguration;
@@ -61,6 +62,7 @@ import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.sql.Types;
 import java.util.*;
 
@@ -1329,6 +1331,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         SpliceLogUtils.info(LOG,
                 "SYS.SYSDEPENDS updated: Foreign keys dependencies on RoleDescriptors or permission descriptors deleted, total rows deleted: " + rowsToDelete.size());
+    }
+
+    public int upgradeTablePriorities(TransactionController tc) throws Exception {
+        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+        return admin.upgradeTablePriorities();
     }
 
     public void upgradeSysColumnsWithUseExtrapolationColumn(TransactionController tc) throws StandardException {

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl;
 
+import com.splicemachine.access.hbase.HBasePartitionAdmin;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -8,8 +9,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.*;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -17,6 +17,10 @@ import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Category({SerialTest.class})
 public class HTablePrioritiesIT {
@@ -53,39 +57,81 @@ public class HTablePrioritiesIT {
             .around(spliceTableDWatcher)
             .around(spliceTableEWatcher);
 
+
     @Test
     public void testTablesPriority() throws Exception {
-        int prioNormal = 0, prioAdmin = 0, prioHigh = 0;
-        try(Admin admin= ConnectionFactory.createConnection(new Configuration()).getAdmin()){
-            HTableDescriptor[] tableDescriptors = admin.listTables();
-            for( HTableDescriptor td : tableDescriptors) {
-                String s = td.getValue("tableDisplayName");
-                if( s == null ) {
+        try(Admin admin= ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+            // we shouldn't have something to upgrade since we should've already created all tables correctly
+            Assert.assertEquals( 0,
+                    HBasePartitionAdmin.upgradeTablePriorities(admin) );
 
+            testTablesPriority(admin);
+        }
+    }
+
+    public void testTablesPriority(Admin admin) throws Exception {
+
+        int prioNormal = 0, prioAdmin = 0, prioHigh = 0;
+        HTableDescriptor[] tableDescriptors = admin.listTables();
+        for( HTableDescriptor td : tableDescriptors) {
+            // test priority is a set in HBasePartitionAdmin.getPriorityShouldHave
+            Assert.assertEquals(td.toString(), HBasePartitionAdmin.getPriorityShouldHave(td), td.getPriority());
+
+            // this is a double-check, adjust this if you add tables
+            String tdn = td.getValue("tableDisplayName");
+            switch (td.getPriority()){
+                case HConstants.HIGH_QOS:
                     String arr[] = {"splice:DROPPED_CONGLOMERATES", "splice:SPLICE_CONGLOMERATE",
                             "splice:SPLICE_MASTER_SNAPSHOTS", "splice:SPLICE_REPLICATION_PROGRESS",
                             "splice:SPLICE_SEQUENCES", "splice:SPLICE_TXN", "splice:TENTATIVE_DDL"};
                     Assert.assertTrue(td.toString(), ArrayUtils.contains(arr, td.getTableName().getNameAsString()));
-                    Assert.assertEquals(td.toString(), HConstants.HIGH_QOS, td.getPriority());
-                    prioHigh ++;
-                }
-                else
-                {
-                    if( s.startsWith("SYS") || s.startsWith("splice:") || s.equals("MON_GET_CONNECTION") ) {
-                        Assert.assertEquals(td.toString(), HConstants.ADMIN_QOS, td.getPriority());
-                        prioAdmin ++;
-                    }
-                    else {
-                        Assert.assertEquals(td.toString(), 0, td.getPriority());
-                        prioNormal ++;
-                    }
-                }
+                    Assert.assertEquals(null, tdn);
+                    prioHigh++;
+                    break;
+                case HConstants.ADMIN_QOS:
+                    Assert.assertTrue(tdn.startsWith("SYS") || tdn.startsWith("splice:") ||
+                                    tdn.equals("MON_GET_CONNECTION") );
+                    prioAdmin++;
+                    break;
+                case HConstants.NORMAL_QOS:
+                    prioNormal++;
+                    break;
             }
         }
         // assert there's actually tables we are checking
         Assert.assertTrue( prioNormal >= 4 );
         Assert.assertTrue( prioAdmin > 5 );
         Assert.assertTrue( prioHigh > 5 );
+    }
+
+    static public String getTableNameRepr(HTableDescriptor td)
+    {
+        String s = td.getValue("tableDisplayName");
+        return s == null
+                ? "N " + td.getTableName().getNameAsString()
+                : "T " + s;
+    }
+
+    @Test
+    public void testTablesPriorityUpgrade() throws Exception {
+        try(Admin admin= ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
+            List<HTableDescriptor> tdlist = Arrays.stream(admin.listTables())
+                    .filter(td -> getTableNameRepr(td).startsWith("T SYSCONSTRAINTS"))
+                    .collect(Collectors.toList());
+            // list contains the table and the indices (currently 1+3)
+            Assert.assertTrue( tdlist.size() >= 4 );
+            // change their priorities to PRIO = 0
+            for( HTableDescriptor td : tdlist ) {
+                HBasePartitionAdmin.setHTablePriority(admin, td, 0 );
+            }
+
+            // do upgrade, assert we fixed priorities for the number of tables that we changed
+            Assert.assertEquals( tdlist.size(),
+                    HBasePartitionAdmin.upgradeTablePriorities(admin) );
+
+            // now test if priorities are all correct
+            testTablesPriority(admin);
+        }
     }
 
 }
