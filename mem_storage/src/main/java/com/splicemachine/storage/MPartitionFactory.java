@@ -260,5 +260,10 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         public String getCatalogVersion(long conglomerateNumber) throws StandardException {
             throw new UnsupportedOperationException("Operation not supported in mem storage engine");
         }
+
+        @Override
+        public int upgradeTablePriorities() throws Exception {
+            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        }
     }
 }

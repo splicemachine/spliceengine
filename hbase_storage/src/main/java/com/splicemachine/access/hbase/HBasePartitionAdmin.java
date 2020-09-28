@@ -22,7 +22,11 @@ import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -719,5 +723,66 @@ public class HBasePartitionAdmin implements PartitionAdmin{
             }
         }
         return null;
+    }
+
+    static public int getPriorityShouldHave(HTableDescriptor td)
+    {
+        String s = td.getValue("tableDisplayName");
+        if( s == null ) {
+            return HConstants.HIGH_QOS;
+        }
+        else {
+            if (s.startsWith("SYS") || s.startsWith("splice:") || s.equals("MON_GET_CONNECTION")) {
+                return HConstants.ADMIN_QOS;
+            } else {
+                return HConstants.NORMAL_QOS;
+            }
+        }
+    }
+
+    @Override
+    public int upgradeTablePriorities() throws Exception {
+        return upgradeTablePriorities(admin);
+    }
+
+    public static int upgradeTablePriorities(Admin admin) throws Exception
+    {
+        final int NUM_THREADS = 10;
+        ExecutorService executor = null;
+        try {
+            HTableDescriptor[] tableDescriptors = admin.listTables();
+
+            List<Callable<Void>> upgradeTasks = Arrays.stream(tableDescriptors)
+                    .filter( td -> td.getPriority() != getPriorityShouldHave(td))
+                    .map( td -> (Callable<Void>) () -> {
+                        setHTablePriority(admin, td, getPriorityShouldHave(td));
+                        return null;
+                    })
+                    .collect(Collectors.toList());
+            executor = Executors.newFixedThreadPool( NUM_THREADS );
+            executor.invokeAll( upgradeTasks );
+            return upgradeTasks.size();
+        } catch (IOException | InterruptedException e) {
+            throw e;
+        }
+        finally
+        {
+            if(executor != null)
+                executor.shutdown();
+        }
+    }
+
+    public static void setHTablePriority(Admin admin, HTableDescriptor htd, int priority)
+            throws IOException
+    {
+        TableName tn = htd.getTableName();
+        org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
+        if (admin.isTableEnabled(tn))
+            admin.disableTable(tn);
+        TableDescriptorBuilder.ModifyableTableDescriptor m =
+                (TableDescriptorBuilder.ModifyableTableDescriptor) td;
+        m.setValue("PRIORITY", Integer.toString(priority));
+        admin.modifyTable(td);
+        admin.enableTable(tn);
     }
 }

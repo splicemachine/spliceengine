@@ -216,7 +216,7 @@ public class T_XA extends T_Generic
         // Create a heap conglomerate.
         T_AccessRow template_row = new T_AccessRow(1);
 
-        long conglomid = CreateHeapConglomerate(xa_tc, template_row);
+        long conglomid = createHeapConglomerate(xa_tc, template_row);
 
         // commit an idle transaction - using onePhase optimization.
         commit_method.commit(true, 42, global_id, branch_id, xa_tc);
@@ -260,7 +260,7 @@ public class T_XA extends T_Generic
         REPORT("(XATest_1) finishing");
     }
 
-    private long CreateHeapConglomerate(TransactionController tc, T_AccessRow template_row) throws StandardException {
+    private long createHeapConglomerate(TransactionController tc, T_AccessRow template_row) throws StandardException {
         return tc.createConglomerate(false,
                 "heap", // create a heap conglomerate
                 template_row.getRowArray(), // 1 column template.
@@ -346,7 +346,7 @@ public class T_XA extends T_Generic
                 branch_id);
 
 		// Create a heap conglomerate.
-        long conglomid = CreateHeapConglomerate(xa_tc, new T_AccessRow(1));
+        long conglomid = createHeapConglomerate(xa_tc, new T_AccessRow(1));
 
         // prepare the update xact.
         if (xa_tc.xa_prepare() != XATransactionController.XA_OK)
@@ -468,7 +468,7 @@ public class T_XA extends T_Generic
                 branch_id);
 
         // Create a heap conglomerate.
-        long conglomid = CreateHeapConglomerate(xa_tc, new T_AccessRow(1));
+        long conglomid = createHeapConglomerate(xa_tc, new T_AccessRow(1));
 
         // commit an idle transaction - using onePhase optimization.
         commit_method.rollback(42, global_id, branch_id, xa_tc);
@@ -487,7 +487,7 @@ public class T_XA extends T_Generic
                 branch_id);
 
 		// Create a heap conglomerate.
-        conglomid = CreateHeapConglomerate(xa_tc, new T_AccessRow(1));
+        conglomid = createHeapConglomerate(xa_tc, new T_AccessRow(1));
 
         // commit an idle transaction - using onePhase optimization.
         commit_method.commit(true, 42, global_id, branch_id, xa_tc);
@@ -589,7 +589,7 @@ public class T_XA extends T_Generic
                 branch_id);
 
 		// Create a heap conglomerate.
-        long conglomid = CreateHeapConglomerate(xa_tc, new T_AccessRow(1));
+        long conglomid = createHeapConglomerate(xa_tc, new T_AccessRow(1));
 
         // Open a scan on the conglomerate, to verify the create happened,
         // and to show that the same openScan done after abort fails.
@@ -710,7 +710,7 @@ public class T_XA extends T_Generic
                 branch_id);
 
 		// Create a heap conglomerate.
-        conglomid = CreateHeapConglomerate(xa_tc, new T_AccessRow(1));
+        conglomid = createHeapConglomerate(xa_tc, new T_AccessRow(1));
         commit_method.commit(true, 42, global_id, branch_id, xa_tc);
 
         xa_tc.destroy();
@@ -829,7 +829,7 @@ public class T_XA extends T_Generic
                 branch_id);
 
 		// Create a heap conglomerate.
-        long conglomid = CreateHeapConglomerate(xa_tc, new T_AccessRow(1));
+        long conglomid = createHeapConglomerate(xa_tc, new T_AccessRow(1));
 
         // Should be no prepared transactions, there is one update global xact.
         if (((XAResourceManager) store.getXAResourceManager()).recover(
@@ -897,7 +897,7 @@ public class T_XA extends T_Generic
                 global_id,
                 branch_id);
 
-        conglomid = CreateHeapConglomerate(xa_tc, new T_AccessRow(1));
+        conglomid = createHeapConglomerate(xa_tc, new T_AccessRow(1));
 
         // Should be no prepared transactions, there is one update global xact.
         if (((XAResourceManager) store.getXAResourceManager()).recover(
@@ -1020,7 +1020,7 @@ public class T_XA extends T_Generic
 
         TransactionController   tc = store.getTransaction(cm);
 
-        long conglomid = CreateHeapConglomerate(tc, new T_AccessRow(1));
+        long conglomid = createHeapConglomerate(tc, new T_AccessRow(1));
         tc.commit();
 
         // COMMIT AN IDLE TRANSACTION.
@@ -1058,7 +1058,7 @@ public class T_XA extends T_Generic
 
 
 		// Create a heap conglomerate.
-        conglomid = CreateHeapConglomerate(xa_tc, new T_AccessRow(1));
+        conglomid = createHeapConglomerate(xa_tc, new T_AccessRow(1));
 
         // Should be no prepared transactions, there is one update global xact.
         if (((XAResourceManager) store.getXAResourceManager()).recover(
