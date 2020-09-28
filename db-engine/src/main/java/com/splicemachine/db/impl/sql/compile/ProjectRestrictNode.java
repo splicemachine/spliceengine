@@ -2008,7 +2008,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         if (childResult.isNotExists())
             return false;
 
-        if (restrictionList != null && restrictionList.isUnsatisfiable()) {
+        if (restrictionList != null && restrictionList.isUnsatisfiable(false)) {
             sat = Satisfiability.UNSAT;
             return true;
         }

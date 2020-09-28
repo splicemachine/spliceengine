@@ -2586,7 +2586,7 @@ public class SelectNode extends ResultSetNode{
             return false;
 
         if (wherePredicates != null) {
-            if (wherePredicates.isUnsatisfiable()) {
+            if (wherePredicates.isUnsatisfiable(true)) {
                 nonAggregatePartSat = Satisfiability.UNSAT;
                 return true;
             }
