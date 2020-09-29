@@ -346,7 +346,6 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                     // dd ref count is not 0, hence it couldn't have turned
                     // into COMPILE_ONLY mode
                     td=dd.getTableDescriptor(tableUUID);
-                    assert scd!=null;
                     scd.setTableDescriptor(td);
                     // try again now
                     conglomDesc=td.getConglomerateDescriptor(
