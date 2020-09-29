@@ -15,7 +15,6 @@ package com.splicemachine.derby.security;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.derby.test.framework.SpliceNetConnection.ConnectionBuilder;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.HBaseTest;
 import org.junit.*;
@@ -74,7 +73,7 @@ public class DefaultRoleIT {
     private static SpliceSchemaWatcher spliceSchemaWatcher3 = new SpliceSchemaWatcher(SCHEMA3);
     private static SpliceSchemaWatcher spliceSchemaWatcher4 = new SpliceSchemaWatcher(SCHEMA4);
     private static SpliceSchemaWatcher spliceSchemaWatcher5 = new SpliceSchemaWatcher(SCHEMA5);
-    private static SpliceSchemaWatcher  spliceSchemaWatcherUser1 = new SpliceSchemaWatcher(SCHEMA,USER1);
+    private static SpliceSchemaWatcher  spliceSchemaWatcherUser1 = new SpliceSchemaWatcher(null, SCHEMA,USER1);
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     private static SpliceRoleWatcher spliceRoleWatcher1 = new SpliceRoleWatcher(ROLE1);
     private static SpliceRoleWatcher spliceRoleWatcher2 = new SpliceRoleWatcher(ROLE2);

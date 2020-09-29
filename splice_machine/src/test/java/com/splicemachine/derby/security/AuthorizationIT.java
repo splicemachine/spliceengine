@@ -46,7 +46,7 @@ public class AuthorizationIT {
 
     private static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
 
-    private static SpliceSchemaWatcher spliceSchemaWatcher1 = new SpliceSchemaWatcher(SCHEMA, USER1);
+    private static SpliceSchemaWatcher spliceSchemaWatcher1 = new SpliceSchemaWatcher(null, SCHEMA, USER1);
     private static SpliceUserWatcher spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     private static SpliceUserWatcher spliceUserWatcher2 = new SpliceUserWatcher(USER2, PASSWORD2);
     private static SpliceUserWatcher spliceUserWatcher3 = new SpliceUserWatcher(USER3, PASSWORD3);
