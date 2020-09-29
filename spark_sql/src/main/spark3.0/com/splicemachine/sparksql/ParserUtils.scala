@@ -15,6 +15,7 @@
 
 package com.splicemachine.sparksql
 
+
 import org.apache.spark.sql.execution.SparkSqlParser
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.SparkSession
