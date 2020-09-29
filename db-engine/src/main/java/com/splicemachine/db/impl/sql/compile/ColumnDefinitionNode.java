@@ -50,7 +50,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
-import sun.invoke.empty.Empty;
 
 import java.sql.Types;
 import java.util.Vector;
@@ -497,8 +496,8 @@ public class ColumnDefinitionNode extends TableElementNode
         if (!isAutoincrement)
             return;
 
-        if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
-            throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE);
+        if (tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)
+            throw StandardException.newException(SQLState.LANG_NOT_ALLOWED_FOR_TEMP_TABLE);
 
         //increment value for autoincrement column can't be 0 if the autoinc column
         //is part of create table or it is part of alter table to change the
