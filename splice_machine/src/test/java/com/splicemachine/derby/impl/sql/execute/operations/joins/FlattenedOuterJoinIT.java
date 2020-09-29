@@ -487,4 +487,21 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
         Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
     }
+
+    @Test
+    public void testDB10018() throws Exception {
+        String sqlText = "select * from t1 full join t2 on false where a1 is not null";
+
+        String expected = "A1 |B1 | C1  | A2  | B2  | C2  |\n" +
+                "--------------------------------\n" +
+                " 1 |10 |  1  |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |NULL |NULL |NULL |\n" +
+                " 2 |20 |  2  |NULL |NULL |NULL |\n" +
+                " 3 |30 |  3  |NULL |NULL |NULL |\n" +
+                " 4 |40 |NULL |NULL |NULL |NULL |";
+
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        Assert.assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+    }
 }
