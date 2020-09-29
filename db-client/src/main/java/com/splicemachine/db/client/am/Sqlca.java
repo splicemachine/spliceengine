@@ -35,7 +35,7 @@ import com.splicemachine.db.client.net.Typdef;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public abstract class Sqlca {
-    transient protected Connection connection_;
+    transient protected ClientConnection connection_;
     SqlException exceptionThrownOnStoredProcInvocation_;
     @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "messageTextRetrievedContainsTokensOnly_ is read in ExceptionFormatter.printTrace")
     boolean messageTextRetrievedContainsTokensOnly_ = true;
@@ -80,7 +80,7 @@ public abstract class Sqlca {
      * procedure to get the same message). */
     private String[] cachedMessages;
 
-    protected Sqlca(com.splicemachine.db.client.am.Connection connection) {
+    protected Sqlca(ClientConnection connection) {
         connection_ = connection;
         agent_ = connection_ != null ? connection_.agent_ : null;
     }
@@ -463,7 +463,7 @@ public abstract class Sqlca {
     }
 
     @SuppressFBWarnings(value = {"EI_EXPOSE_REP2", "IS2_INCONSISTENT_SYNC"}, justification = "DB-9811, DB-9812")
-    public void resetRowsetSqlca(com.splicemachine.db.client.am.Connection connection,
+    public void resetRowsetSqlca(ClientConnection connection,
                                  int sqlCode,
                                  String sqlState,
                                  byte[] sqlErrpBytes) {

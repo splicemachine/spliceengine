@@ -2231,5 +2231,8 @@ public interface DataDictionary{
 
     boolean schemaReplicationEnabled(String schemaName) throws StandardException;
 
+
     String getCatalogVersion(long conglomerateNumber) throws StandardException;
+
+    boolean useTxnAwareCache();
 }

@@ -239,6 +239,13 @@ public class IndexIT extends SpliceUnitTest{
         SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,OrderLineTable.TABLE_NAME,OrderLineTable.INDEX_NAME,OrderLineTable.INDEX_ORDER_DEF_DESC,true);
     }
 
+    @Test
+    public void createIndexesOnExpressions() throws Exception{
+        SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME,CustomerTable.EXPR_INDEX_DEF,false);
+        SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,OrderTable.TABLE_NAME,OrderTable.INDEX_NAME,OrderTable.EXPR_INDEX_DEF,true);
+        SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,OrderLineTable.TABLE_NAME,OrderLineTable.INDEX_NAME,OrderLineTable.EXPR_INDEX_DEF,false);
+    }
+
     // ===============================================================================
     // Query Tests
     // ===============================================================================
@@ -603,6 +610,24 @@ public class IndexIT extends SpliceUnitTest{
         Assert.assertEquals(1,resultSetSize(rs));
     }
 
+    @Test
+    public void testUpdateCustomerWithExpressionBasedIndex() throws Exception{
+        SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,CustomerTable.TABLE_NAME,CustomerTable.INDEX_NAME,CustomerTable.EXPR_INDEX_DEF,false);
+
+        String query=String.format(SELECT_UNIQUE_CUSTOMER,SCHEMA_NAME,CustomerTable.TABLE_NAME);
+        ResultSet rs=methodWatcher.executeQuery(query);
+        Assert.assertEquals(1,resultSetSize(rs));
+
+        int nRows=methodWatcher.getStatement().executeUpdate(String.format("update %s.%s c set c.c_last = %s where %s",
+                SCHEMA_NAME,CustomerTable.TABLE_NAME,"'new_value'","(c.c_w_id + 2) * 4 = 12 and c.c_d_id = 10 and c.c_id = 510"));
+        Assert.assertEquals(1,nRows);
+
+        query=String.format("select * from %s.%s c where upper(c_last) = 'NEW_VALUE'",
+                SCHEMA_NAME,CustomerTable.TABLE_NAME);
+        rs=methodWatcher.executeQuery(query);
+        Assert.assertEquals(1,resultSetSize(rs));
+    }
+
     // ===============================================================================
     // Insert Tests
     // ===============================================================================
@@ -778,6 +803,7 @@ public class IndexIT extends SpliceUnitTest{
     // DB-5029
     public void testCreateIndexAndUpdateDataViaIndexScan() throws Exception {
         methodWatcher.executeUpdate("create table double_INDEXES1(column1 DOUBLE)");
+        methodWatcher.executeUpdate("INSERT INTO double_INDEXES1(column1) VALUES (-1.79769E+308),(1.79769E+308),(0)");
         methodWatcher.executeUpdate("CREATE INDEX doubleIndex2 ON double_INDEXES1(column1 ASC)");
         methodWatcher.executeUpdate("update double_INDEXES1 set column1 = -1.79769E+308 where column1 = -1.79769E+308");
         rowContainsQuery(new int[]{1,2,3},"select column1 from double_INDEXES1 --splice-properties index=doubleIndex2\n order by column1",methodWatcher,
@@ -785,4 +811,430 @@ public class IndexIT extends SpliceUnitTest{
 
     }
 
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfNumericFunctions() throws Exception {
+        String tableName = "TEST_IDX_NUMERIC_FN";
+        methodWatcher.executeUpdate(format("create table %s (d1 double, d2 double, i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values (3.14159, 4.54321, 1), (2.71828, 2.12345, 2)", tableName));
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX ON %s " +
+                       "(abs(d1), ceil(d1), exp(d1), floor(d1), ln(d1), log10(d1), max(i, 3), min(3, i), mod(i, 2), " +
+                       "round(d1), sign(d1), sqrt(d1), trunc(i, 1))",
+                        tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values (1.41421, 3.43215, 3)", tableName));
+        methodWatcher.executeUpdate(format("update %s set d1 = 1.61803 where d2 = 4.54321", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select d1 from %s --splice-properties index=%s_IDX\n order by d1", tableName, tableName),methodWatcher,
+                "1.41421","1.61803","2.71828");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfStringFunctions() throws Exception {
+        String tableName = "TEST_IDX_STRING_FN";
+        methodWatcher.executeUpdate(format("create table %s (c1 char(5), c2 varchar(5))", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('foo', 'bar'), ('hello', 'world')", tableName));
+
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX ON %s " +
+                       "(c1 || '.test', initcap(c1), lcase(c1), length(c1), " +
+                       "ltrim(c1), repeat(c1, 2), replace(c1, 'o', '0'), rtrim(c1), " +
+                       "substr(c1, 2), trim(c1), ucase(c1))",
+                        tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 'xyz')", tableName));
+        methodWatcher.executeUpdate(format("update %s set c1 = 'this' where c2 = 'world'", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select c1 from %s --splice-properties index=%s_IDX\n order by c1", tableName, tableName),methodWatcher,
+                "abc","foo","this");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfTrigonometricFunctions() throws Exception {
+        String tableName = "TEST_IDX_TRIGONOMETRIC_FN";
+        methodWatcher.executeUpdate(format("create table %s (d1 double, d2 double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values (30, 0.4), (60, 0.6)", tableName));
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX ON %s " +
+                       "(acos(d2), asin(d2), atan(d2), atan2(d2, 0), cos(d1), cosh(d1), cot(d1), degrees(d1), " +
+                       "radians(d1), pi() + d2, sin(d1), sinh(d1), tan(d1), tanh(d1))",
+                        tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values (90, 0.8)", tableName));
+        methodWatcher.executeUpdate(format("update %s set d1 = 70 where d2 = 0.6", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select d1 from %s --splice-properties index=%s_IDX\n order by d1", tableName, tableName),methodWatcher,
+                "30","70","90");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfDateTimeFunctions() throws Exception {
+        String tableName = "TEST_IDX_DATETIME_FN";
+        methodWatcher.executeUpdate(format("create table %s (d date, t time, ts timestamp)", tableName));
+        methodWatcher.executeUpdate(
+                format("insert into %s values " +
+                       "('2014-01-28', '22:00:05', '2014-01-31 22:00:05')," +
+                       "('2016-05-04', '12:04:30', '2016-05-01 12:04:30')"
+                        , tableName));
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX ON %s " +
+                       "(add_months(d, 5), date(ts), day(d), extract(Week FROM d), hour(t), day(d), minute(t), " +
+                       "month(d), month_between(d, '2018-01-01'), monthname(d), quarter(d), second(t), " +
+                       "time(ts), timestamp(d, t), timestampadd(SQL_TSI_DAY, 2, ts), " +
+                       "timestampdiff(SQL_TSI_DAY, timestamp(d, t), ts), trunc(d, 'month'), week(d), year(d))",
+                        tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values ('2017-09-10', '08:55:06', '2017-09-12 08:45:06')", tableName));
+        methodWatcher.executeUpdate(format("update %s set d = '2016-05-05' where t = '12:04:30'", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select d from %s --splice-properties index=%s_IDX\n order by d", tableName, tableName),methodWatcher,
+                "2014-01-28","2016-05-05","2017-09-10");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfConversionFunctions() throws Exception {
+        String tableName = "TEST_IDX_CONVERSION_FN";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('50', 10), ('100', 20)", tableName));
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX ON %s " +
+                       "(bigint(vc), cast(vc as integer), char(i), double(vc), integer(vc), smallint(vc), " +
+                       "tinyint(vc), to_char(date(i),'yy'), to_date(date(i), 'yyyy-MM-dd'), varchar(vc || 'x'))",
+                        tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values ('120', 30)", tableName));
+        methodWatcher.executeUpdate(format("update %s set vc = '80' where i = 10", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select vc from %s --splice-properties index=%s_IDX\n order by vc", tableName, tableName),methodWatcher,
+                "80","100","120");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfMiscFunctions() throws Exception {
+        String tableName = "TEST_IDX_MISC_FN";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 10), ('def', 20)", tableName));
+        methodWatcher.executeUpdate(
+                format("CREATE INDEX %s_IDX ON %s " +
+                                "(coalesce(vc, 'aa'), nvl(vc, 'bb'), nullif(vc, 'def'))",
+                        tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values ('ghi', 30)", tableName));
+        methodWatcher.executeUpdate(format("update %s set vc = 'xyz' where i = 10", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select vc from %s --splice-properties index=%s_IDX\n order by vc", tableName, tableName),methodWatcher,
+                "def","ghi","xyz");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsCaseExpression() throws Exception {
+        String tableName = "TEST_IDX_CASE_EXPR";
+        methodWatcher.executeUpdate(format("create table %s (i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values (10), (11)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (case mod(i, 2) when 0 then i else 0 end)", tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values (35)", tableName));
+        methodWatcher.executeUpdate(format("update %s set i = 18 where i = 10", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select i from %s --splice-properties index=%s_IDX\n order by i", tableName, tableName),methodWatcher,
+                "11","18","35");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsNullInput() throws Exception {
+        String tableName = "TEST_IDX_NULL_INPUT";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values (NULL, 10), ('abc', NULL)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (upper(c), nullif(i, 0)) EXCLUDE NULL KEYS", tableName, tableName));
+
+        methodWatcher.executeUpdate(format("insert into %s values (NULL, NULL)", tableName));
+        methodWatcher.executeUpdate(format("update %s set c = 'def' where i = 10", tableName));
+        /* currently no valid plan, enable later
+        rowContainsQuery(new int[]{1,2,3},format("select i from %s --splice-properties index=%s_IDX\n order by i nulls last", tableName, tableName),methodWatcher,
+                "10","NULL","NULL");
+         */
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfNotAllowedBuiltInFunctions() throws Exception {
+        String tableName = "TEST_IDX_NOT_ALLOWED_FN";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i + rand(3))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i + random())", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (regexp_like(vc, 'o'))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (instr(vc, 'o'))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (locate('o', vc))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (to_char(current_date, 'yy') || vc)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (cast(current_time as varchar(32)) || vc)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (to_char(date(current_timestamp), 'yy') || vc)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (to_char(date(now()), 'yy') || vc)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || current_role)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || (current schema))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || current_user)", tableName, tableName));
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || group_user)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || session_user)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (vc || user)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfAggregateFunctions() throws Exception {
+        String tableName = "TEST_IDX_AGGR_FN";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (avg(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (count(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (count(*) + i)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (max(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (min(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (stddev_pop(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (stddev_samp(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (sum(i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOfWindowFunctions() throws Exception {
+        String tableName = "TEST_IDX_WINDOW_FN";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (dense_rank() over (partition by i order by i) + i)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (rank() over (partition by i order by i) + i)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (row_number() over (partition by i order by i) + i)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (first_value(vc) over (partition by i order by i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (last_value(vc) over (partition by i order by i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (lead(vc) over (partition by i order by i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (lag(vc) over (partition by i order by i))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsSubquery() throws Exception {
+        String tableName = "TEST_IDX_UDF";
+        methodWatcher.executeUpdate(format("create table %s (i int)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (case mod(i, 2) when 0 then (select count(*) from %s) else 0 end)",
+                    tableName, tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsOnUDF() throws Exception {
+        String tableName = "TEST_IDX_UDF";
+        methodWatcher.executeUpdate(format("create table %s (d double)", tableName));
+        methodWatcher.executeUpdate("CREATE FUNCTION try_some_UDF( RADIANS DOUBLE )\n" +
+                "  RETURNS DOUBLE\n" +
+                "  PARAMETER STYLE JAVA\n" +
+                "  NO SQL\n" +
+                "  LANGUAGE JAVA\n" +
+                "  EXTERNAL NAME 'java.lang.Math.toDegrees'");
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (try_some_UDF(d))", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsNoColumnReference() throws Exception {
+        String tableName = "TEST_IDX_NO_COLUMN_REFERENCE";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));
+
+        try {
+            methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (lower(vc), 2 + 4)", tableName, tableName));
+            Assert.fail("expect exception of invalid index expression");
+        } catch (SQLException e) {
+            Assert.assertEquals("429BX", e.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("2 + 4"));
+        }
+    }
 }

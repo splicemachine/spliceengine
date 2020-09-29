@@ -95,6 +95,8 @@ public class FirstLastValueFunction extends SpliceGenericWindowFunction {
 
     @Override
     public DataValueDescriptor getResult() throws StandardException {
+        if (chunks.isEmpty() || chunks.get(0).isEmpty())
+            return null;
         int index = (isLastValue ? chunks.size()-1 : 0);
         WindowChunk first = chunks.get(index);
         return first.getResult();

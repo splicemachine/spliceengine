@@ -47,10 +47,6 @@ public class NetXAConnectionReply extends NetResultSetReply {
         parseSYNCCTLreply(connection);
         endOfSameIdChainData();
 
-        NetXACallInfo callInfo =
-                netAgent_.netConnection_.xares_.callInfoArray_[netAgent_.netConnection_.currXACallInfoOffset_];
-        callInfo.xaInProgress_ = false;
-        callInfo.xaWasSuspended = false;
         connection.completeLocalCommit();
     }
 
@@ -110,8 +106,6 @@ public class NetXAConnectionReply extends NetResultSetReply {
         parseSYNCCTLreply(conn);
         endOfSameIdChainData();
 
-        NetXACallInfo callInfo = conn.xares_.callInfoArray_[conn.currXACallInfoOffset_];
-        callInfo.xaInProgress_ = false;
         conn.completeLocalCommit();
     }
 
@@ -120,9 +114,6 @@ public class NetXAConnectionReply extends NetResultSetReply {
         parseSYNCCTLreply(conn);
         endOfSameIdChainData();
 
-        NetXACallInfo callInfo = conn.xares_.callInfoArray_[conn.currXACallInfoOffset_];
-        callInfo.xaInProgress_ = false;
-        callInfo.xaWasSuspended = false;
         conn.completeLocalRollback();
 
         return javax.transaction.xa.XAResource.XA_OK;
@@ -274,7 +265,7 @@ public class NetXAConnectionReply extends NetResultSetReply {
             // read sqlstt string
             sqlsttString = readString(stringLength, netAgent_.targetTypdef_.getCcsidMbcEncoding());
             // read null indicator
-            singleNullInd = readUnsignedByte();
+            readUnsignedByte();
         }
         return sqlsttString;
     }
@@ -297,7 +288,6 @@ public class NetXAConnectionReply extends NetResultSetReply {
     }
 
     protected java.util.Hashtable parseIndoubtList() throws DisconnectException {
-        boolean found = false;
         int port = 0;
         int numXid = 0;
         String sIpAddr = null;
@@ -305,8 +295,7 @@ public class NetXAConnectionReply extends NetResultSetReply {
         parseLengthAndMatchCodePoint(CodePoint.PRPHRCLST);
         peekCP = peekCodePoint();
         if (peekCP == CodePoint.XIDCNT) {
-            found = true;
-            numXid = parseXIDCNT();
+            parseXIDCNT();
             peekCP = peekCodePoint();
         }
 

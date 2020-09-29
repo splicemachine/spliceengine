@@ -17,18 +17,18 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.compile.LeadLagFunctionDefinition;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
-import com.splicemachine.derby.impl.sql.execute.operations.window.function.SpliceGenericWindowFunction;
-import com.splicemachine.derby.impl.sql.execute.operations.window.function.StringAggregator;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.expressions.Window;
 import org.apache.spark.sql.expressions.WindowSpec;
 import org.apache.spark.sql.types.DataType;
+
+import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.FunctionType;
 import static com.splicemachine.derby.stream.spark.SparkUtils.convertPartitions;
 import static com.splicemachine.derby.stream.spark.SparkUtils.convertSortColumns;
 import static org.apache.spark.sql.functions.*;
-import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.*;
 /**
  * Created by jfilali on 10/4/16.
  * Spark Window Builder.
@@ -251,13 +251,15 @@ public class SparkWindow {
                 break;
 
             case LAG_FUNCTION:
-                column = lag(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)),1)
+                column = lag(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)),
+                        (int)specificArgs.getOrDefault(LeadLagFunctionDefinition.OFFSET, 1))
                         .over(spec)
                         .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;
 
             case LEAD_FUNCTION:
-                column = lead(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)),1)
+                column = lead(col(ValueRow.getNamedColumn(inputColumnIds[0] - 1)),
+                        (int)specificArgs.getOrDefault(LeadLagFunctionDefinition.OFFSET, 1))
                         .over(spec)
                         .as(ValueRow.getNamedColumn(resultColumn - 1));
                 break;

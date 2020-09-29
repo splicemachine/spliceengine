@@ -74,6 +74,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1964), new UpgradeScriptForAliasToTableView(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1970), new UpgradeScriptForAddTablesAndViewsInSYSIBMADM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1971), new UpgradeScriptToAddCatalogVersion(sdd,tc));
+        scripts.put(new Splice_DD_Version(sdd,3,1,0, 1974), new UpgradeScriptToAddMinRetentionPeriodColumnToSYSTABLES(sdd, tc));
     }
     public void run() throws StandardException{
 

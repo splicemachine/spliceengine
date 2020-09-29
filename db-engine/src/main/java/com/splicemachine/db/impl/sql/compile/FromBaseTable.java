@@ -117,6 +117,8 @@ public class FromBaseTable extends FromTable {
     private boolean pin;
     int updateOrDelete;
     boolean skipStats;
+    boolean useRealTableStats;
+    HashSet<Integer> usedNoStatsColumnIds;
     int splits;
     long defaultRowCount;
     double defaultSelectivityFactor = -1d;
@@ -237,6 +239,7 @@ public class FromBaseTable extends FromTable {
 
         setOrigTableName(this.tableName);
         templateColumns=resultColumns;
+        usedNoStatsColumnIds=new HashSet<>();
     }
 
     /**
@@ -268,6 +271,7 @@ public class FromBaseTable extends FromTable {
                     && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
                 return false;
             }
+            return currentConglomerateDescriptor.getIndexDescriptor().getExprBytecode().length <= 0;
         }
         return true;
     }
@@ -810,6 +814,7 @@ public class FromBaseTable extends FromTable {
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
+        useRealTableStats=scc.useRealTableStatistics();
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);
         costEstimate.setPredicateList(baseTableRestrictionList);
@@ -863,7 +868,8 @@ public class FromBaseTable extends FromTable {
                 rowTemplate,
                 baseColumnPositions,
                 forUpdate(),
-                resultColumns);
+                resultColumns,
+                usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable
         currentAccessPath.setSpecialMaxScan(false);
@@ -3567,5 +3573,11 @@ public class FromBaseTable extends FromTable {
 
     public AggregateNode getAggregateForSpecialMaxScan() {
         return aggrForSpecialMaxScan;
+    }
+
+    public boolean useRealTableStats() { return useRealTableStats; }
+
+    public List<Integer> getNoStatsColumnIds() {
+        return new ArrayList<>(usedNoStatsColumnIds);
     }
 }

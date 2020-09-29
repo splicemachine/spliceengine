@@ -75,11 +75,11 @@ public class SpliceSequenceIT {
         assertEquals(new Long(first + 1), methodWatcher.query(
                 String.format("VALUES SYSCS_UTIL.SYSCS_PEEK_AT_SEQUENCE('%s', 'SMALLSEQ')",SCHEMA)));
         assertEquals((first + 1), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
-        assertEquals((first + 2), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals((first + 2), (int)methodWatcher.query("values (nextval for SMALLSEQ)"));
         assertEquals((first + 3), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
-        assertEquals((first + 4), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals((first + 4), (int)methodWatcher.query("values (nextval for SMALLSEQ)"));
         assertEquals((first + 5), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
-        assertEquals((first+ 6), (int)methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals((first+ 6), (int)methodWatcher.query("values (nextval for SMALLSEQ)"));
 
         assertTrue(first >= Short.MIN_VALUE && first <= Short.MAX_VALUE);
 
@@ -101,7 +101,7 @@ public class SpliceSequenceIT {
         try {methodWatcher.executeUpdate("drop sequence "+SEQUENCE + " restrict");} catch (Exception e) {}
         methodWatcher.executeUpdate("create sequence "+SEQUENCE);
         methodWatcher.executeUpdate(String.format("grant usage on SEQUENCE %s to %s",SEQUENCE,USER));
-        Connection connection = methodWatcher.createConnection(USER,PASSWORD);
+        Connection connection = methodWatcher.connectionBuilder().user(USER).password(PASSWORD).build();
         ResultSet rs = connection.prepareStatement("values (next value for "+SEQUENCE+")").executeQuery();
         assertTrue(rs.next());
         assertEquals(-2147483648,rs.getInt(1));

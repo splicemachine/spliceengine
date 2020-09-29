@@ -62,6 +62,7 @@ import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -78,6 +79,8 @@ import java.util.Vector;
  * Doesn't actually implement any of the activation interface,
  * expects the subclasses to do that.
  */
+@SuppressFBWarnings(value = {"UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"},
+        justification = "not used fields could be referenced by generated code")
 public abstract class BaseActivation implements CursorActivation, GeneratedByteCode {
 //    private static final Logger LOG = Logger.getLogger(BaseActivation.class);
     private    LanguageConnectionContext    lcc;
@@ -247,12 +250,12 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
         lcc = (LanguageConnectionContext) cm.getContext(LanguageConnectionContext.CONTEXT_ID);
 
-        dvf = lcc.getDataValueFactory();
-
         if (SanityManager.DEBUG) {
             if (lcc == null)
                 SanityManager.THROWASSERT("lcc is null in activation type " + getClass());
         }
+
+        dvf = lcc.getDataValueFactory();
 
         // mark in use
         inUse = true;
@@ -903,7 +906,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     /**
      * @exception StandardException on error
      */
-    protected static void nullToPrimitiveTest(DataValueDescriptor dvd, String primitiveType)
+    public static void nullToPrimitiveTest(DataValueDescriptor dvd, String primitiveType)
         throws StandardException
     {
         if (dvd==null || dvd.isNull())
