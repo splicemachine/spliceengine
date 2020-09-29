@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.ArrayList;
@@ -125,6 +126,9 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         int referenceCount=0;
 
         if(td!=null){
+            if (!(td instanceof ConstraintDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             ConstraintDescriptor constraint=(ConstraintDescriptor)td;
             /*
 			** We only allocate a new UUID if the descriptor doesn't already have one.
@@ -215,6 +219,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * @param dd                    dataDictionary
      * @throws StandardException thrown on failure
      */
+    @SuppressFBWarnings(value="SF_SWITCH_FALLTHROUGH")
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
@@ -341,8 +346,8 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                     // dd ref count is not 0, hence it couldn't have turned
                     // into COMPILE_ONLY mode
                     td=dd.getTableDescriptor(tableUUID);
-                    if(scd!=null)
-                        scd.setTableDescriptor(td);
+                    assert scd!=null;
+                    scd.setTableDescriptor(td);
                     // try again now
                     conglomDesc=td.getConglomerateDescriptor(
                             ((SubKeyConstraintDescriptor)
@@ -485,6 +490,8 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                                 parentTupleDescriptor).getReferencedColumnsDescriptor(),
                         schema,
                         constraintEnabled);
+                break;
+            default:
                 break;
         }
         return constraintDesc;
