@@ -858,9 +858,8 @@ public class SparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
                                                 OperationContext context) throws StandardException {
-
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
+                rdd.map(new LocatedRowToRowFunction()),
                 context.getOperation().schema());
 
         return new NativeSparkDataSet<>(insertDF, context).writeTextFile(partitionBy, location, csvOptions, context);
