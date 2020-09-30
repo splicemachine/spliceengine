@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.util.StringUtil;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -228,6 +229,30 @@ public class SQLBit
             truncate(sourceWidth, desiredWidth, !errorOnTrunc);
 		}
 	}
+
+	@Override
+	public final String toString() {
+		if (dataValue == null)
+		{
+			if ((stream == null) && (_blobValue == null) )
+			{
+				return "NULL";
+			}
+			else
+			{
+				if (SanityManager.DEBUG)
+					SanityManager.THROWASSERT(
+							"value is null, stream or blob is not null");
+				return "";
+			}
+		}
+		else
+		{
+			String hex = com.splicemachine.db.iapi.util.StringUtil.toHexString(dataValue, 0, dataValue.length);
+			return String.format("X'%s'",hex);
+		}
+	}
+
 
 
 	public Format getFormat() {
