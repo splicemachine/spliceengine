@@ -36,7 +36,7 @@ public class QuoteTrackingTokenizerTest {
         List<String> correctCols = Arrays.asList("hello", "goodbye", "parseThis!", "boots");
         BooleanList correctQuotes = BooleanList.wrap(new boolean[4]);
 
-        checkResults(row, correctCols, correctQuotes, 4);
+        checkResults(row, correctCols, correctQuotes, true, 4);
     }
 
     @Test
@@ -45,7 +45,7 @@ public class QuoteTrackingTokenizerTest {
         List<String> correctCols = Arrays.asList("hello", "goodbye", "parseThis!", "boots");
         BooleanList correctQuotes = BooleanList.wrap(true, false, false, false);
 
-        checkResults(row, correctCols, correctQuotes, 4);
+        checkResults(row, correctCols, correctQuotes, true, 4);
     }
 
     @Test
@@ -54,7 +54,7 @@ public class QuoteTrackingTokenizerTest {
         List<String> correctCols = Arrays.asList("hello", "goodbye", "parseThis!", "boots\nmagoo");
         BooleanList correctQuotes = BooleanList.wrap(true, false, false, true);
 
-        checkResults(row, correctCols, correctQuotes, 4);
+        checkResults(row, correctCols, correctQuotes, true, 4);
     }
 
     @Test
@@ -62,7 +62,23 @@ public class QuoteTrackingTokenizerTest {
         String row = "\"hello\",goodbye,parseThis!,\"boots\nma\n\n\ngoo\"";
         List<String> correctCols = Arrays.asList("hello", "goodbye", "parseThis!", "boots\nma\n\n\ngoo");
         BooleanList correctQuotes = BooleanList.wrap(true, false, false, true);
-        checkResults(row, correctCols, correctQuotes, 3);
+        checkResults(row, correctCols, correctQuotes, true, 4);
+    }
+
+    @Test
+    public void recordsConsecutiveQuotesIntoNull() throws Exception {
+        String row = "\"\",\" \",";
+        List<String> correctCols = Arrays.asList(null, " ", null);
+        BooleanList correctQuotes = BooleanList.wrap(true, true, false);
+        checkResults(row, correctCols, correctQuotes, true, 3);
+    }
+
+    @Test
+    public void recordsConsecutiveQuotesIntoEmptyString() throws Exception {
+        String row = "\"\",\" \",";
+        List<String> correctCols = Arrays.asList("", " ", null);
+        BooleanList correctQuotes = BooleanList.wrap(true, true, false);
+        checkResults(row, correctCols, correctQuotes, false, 3);
     }
 
     @Test
@@ -79,7 +95,7 @@ public class QuoteTrackingTokenizerTest {
         String invalidRow = "\"hello\",,,goodbye,parseThis!,\"boots\nma\n\n\ngoo\"";
         List<String> correctCols = Arrays.asList("hello", null, null, "goodbye", "parseThis!", "boots\nma\n\n\ngoo");
         BooleanList correctQuotes = BooleanList.wrap(true, false, false, false, false, true);
-        checkResults(invalidRow, correctCols, correctQuotes, 3, false);
+        checkResults(invalidRow, correctCols, correctQuotes, true, 3, false);
     }
 
     @Test
@@ -88,7 +104,7 @@ public class QuoteTrackingTokenizerTest {
         List<String> correctCols = Arrays.asList("hello", "goodbye", "parseThis!", "boots");
         BooleanList correctQuotes = BooleanList.wrap(true, false, false, false);
         try {
-            checkResults(invalidRow, correctCols, correctQuotes, 4, true);
+            checkResults(invalidRow, correctCols, correctQuotes, true, 4, true);
             Assert.fail("expected exception to be thrown, but no exception was thrown");
         } catch(Exception e) {
             Assert.assertTrue(e instanceof SuperCsvException);
@@ -104,7 +120,7 @@ public class QuoteTrackingTokenizerTest {
         List<String> correctCols = Arrays.asList("hello", "goodbye", "parseThis!", "boots");
         BooleanList correctQuotes = BooleanList.wrap(true, false, false, false);
         try {
-            checkResults(invalidRow, correctCols, correctQuotes, 4);
+            checkResults(invalidRow, correctCols, correctQuotes, true, 4);
             Assert.fail("expected exception to be thrown, but no exception was thrown");
         } catch(Exception e) {
             Assert.assertTrue(e instanceof SuperCsvException);
@@ -128,7 +144,7 @@ public class QuoteTrackingTokenizerTest {
     public void quotedMultiRowRecordWithOneLineRecordSetThrowsProperly() throws Exception {
         String invalidRow = "\"hello\",\"wrong\ncell\",goodbye\n";
         try {
-            QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(invalidRow), CsvPreference.STANDARD_PREFERENCE, true);
+            QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(invalidRow), CsvPreference.STANDARD_PREFERENCE, true, true);
             List<String> columns = new ArrayList<>();
             qtt.readColumns(columns);
             Assert.fail("expected exception to be thrown, but no exception was thrown");
@@ -141,16 +157,16 @@ public class QuoteTrackingTokenizerTest {
     }
 
 
-    private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes, int size) throws IOException {
-        checkResults(row, expectedColumns, expectedQuotes, size, false);
+    private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes, boolean quotedEmptyIsNull, int size) throws IOException {
+        checkResults(row, expectedColumns, expectedQuotes, quotedEmptyIsNull, size, false);
     }
 
-    private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes, int size, boolean triggerScan) throws IOException {
+    private static void checkResults(String row, List<String> expectedColumns, BooleanList expectedQuotes, boolean quotedEmptyIsNull, int size, boolean triggerScan) throws IOException {
         QuoteTrackingTokenizer qtt = null;
         if(triggerScan) {
-            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE, false, 1, Collections.nCopies(expectedColumns.size(), 10));
+            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE, false, quotedEmptyIsNull, 1, Collections.nCopies(expectedColumns.size(), 10));
         } else {
-            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE, false);
+            qtt = new QuoteTrackingTokenizer(new StringReader(row), CsvPreference.STANDARD_PREFERENCE, false, quotedEmptyIsNull);
         }
         List<String> actualColumns = new ArrayList<>(size);
         BooleanList actualQuotes = new BooleanList(size);
@@ -161,7 +177,7 @@ public class QuoteTrackingTokenizerTest {
 
     private static void checkResults(String column, List<List<String>> expectedColumns, List<BooleanList> expectedQuotes,
                                      List<List<Integer>> expectedValueSizes, int size, List<Integer> valueSizes, boolean oneLineRecord) throws IOException {
-        QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(column), CsvPreference.STANDARD_PREFERENCE, oneLineRecord, 1, valueSizes);
+        QuoteTrackingTokenizer qtt = new QuoteTrackingTokenizer(new StringReader(column), CsvPreference.STANDARD_PREFERENCE, oneLineRecord, true, 1, valueSizes);
 
         List<String> cols = new ArrayList<>(size);
         BooleanList quoteCols = new BooleanList(size);
