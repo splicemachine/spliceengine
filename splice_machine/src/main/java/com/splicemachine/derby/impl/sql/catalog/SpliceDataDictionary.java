@@ -1349,10 +1349,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
         for (int i = 0; i < NUM_NONCORE; ++i) {
             // noncoreInfo[x] will be null otherwise
-            TabInfoImpl ti = getNonCoreTIByNumber(i+NUM_CORE);
-            // conglomerate ids will be -1 otherwise
-            faultInTabInfo(ti);
-            addTabInfo.apply(ti);
+            addTabInfo.apply( getNonCoreTI(i+NUM_CORE) );
         }
 
         for( String s : HBaseConfiguration.internalTablesArr) {

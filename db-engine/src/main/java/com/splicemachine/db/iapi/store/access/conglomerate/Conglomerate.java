@@ -70,7 +70,7 @@ public interface Conglomerate extends Storable, DataValueDescriptor
     // these are used to prioritize tables when they are re-loaded by hbase
     enum Priority
     {
-        NORMAL, HIGH, VERY_HIGH
+        NORMAL, HIGH
     }
 
     /**
