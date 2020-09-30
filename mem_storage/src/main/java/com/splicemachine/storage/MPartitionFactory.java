@@ -262,7 +262,7 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
-        public int upgradeTablePriorities() throws Exception {
+        public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
             throw new UnsupportedOperationException("Operation not supported in mem storage engine");
         }
     }
