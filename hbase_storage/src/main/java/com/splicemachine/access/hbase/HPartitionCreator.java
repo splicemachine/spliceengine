@@ -59,12 +59,11 @@ public class HPartitionCreator implements PartitionCreator{
         return withName(name, Conglomerate.Priority.NORMAL);
     }
 
-    public static int GetHBasePriority(Conglomerate.Priority priority)
+    public static int getHBasePriority(Conglomerate.Priority priority)
     {
         switch(priority){
             case NORMAL:    return HConstants.NORMAL_QOS;
             case HIGH:      return HConstants.ADMIN_QOS;
-            case VERY_HIGH: return HConstants.HIGH_QOS;
             default:        throw new RuntimeException("Not implemented priority " + priority);
         }
     }
@@ -74,7 +73,7 @@ public class HPartitionCreator implements PartitionCreator{
         assert tableName == null;
         tableName = tableInfoFactory.getTableInfo(name);
         descriptorBuilder = TableDescriptorBuilder.newBuilder(tableName);
-        descriptorBuilder.setPriority(GetHBasePriority(priority));
+        descriptorBuilder.setPriority(getHBasePriority(priority));
         return this;
     }
 

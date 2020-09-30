@@ -187,4 +187,3 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
     }
 }
-actions/AlterTableConstantOperation.java
