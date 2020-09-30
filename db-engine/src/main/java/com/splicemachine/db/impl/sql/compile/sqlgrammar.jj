@@ -2332,6 +2332,7 @@ public class SQLParser
      * For temporary table validation and creation.
      */
     private StatementNode verifySyntaxAndCreate(Object[] declareTableClauses,
+                                                Boolean isGlobal,
                                                 TableName tableName,
                                                 TableElementList tableElementList,
                                                 Integer createBehavior) throws StandardException {
@@ -4858,7 +4859,7 @@ declareTemporaryTableDeclaration() throws StandardException :
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, true, tableName, tableElementList,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
@@ -4880,17 +4881,18 @@ createTemporaryTableDeclaration() throws StandardException :
     TableName            tableName;
     TableElementList tableElementList;
     Object[] declareTableClauses = new Object[3];
+    Token localTok = null;
     Token ifTok = null;
     Token ifTok2 = null;
 }
 {
-    ( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
+    ( localTok = <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, (localTok == null), tableName, tableElementList,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
