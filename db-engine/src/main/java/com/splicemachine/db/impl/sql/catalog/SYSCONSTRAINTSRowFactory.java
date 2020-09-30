@@ -675,7 +675,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
             "   SELECT SC.CONSTRAINTNAME, SC.SCHEMAID, SC.TABLEID, PK.CONGLOMERATEID\n" +
             "     FROM SYS.SYSCONSTRAINTS SC, SYS.SYSPRIMARYKEYS PK\n" +
             "     WHERE PK.CONSTRAINTID = SC.CONSTRAINTID) C, -- get all primary key conglomerate IDs\n" +
-            "  SYSVW.SYSSCHEMASVIEW S,\n" +
+            "  SYS.SYSSCHEMAS S,\n" +
             "  SYS.SYSTABLES T,\n" +
             "  SYS.SYSCONGLOMERATES CONGLOMS,\n" +
             "  SYS.SYSCOLUMNS COLS\n" +
