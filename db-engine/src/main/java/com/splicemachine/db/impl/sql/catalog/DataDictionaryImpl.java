@@ -65,6 +65,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.compile.SetNode;
 import com.splicemachine.db.impl.sql.compile.TableName;
+import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -1507,6 +1508,88 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 false);
 
         return finishTableDescriptor(td);
+    }
+
+    /**
+     * Get a list of TableDescriptors whose table names are in a given range within the given schema.
+     *
+     * @param tableNameStart Starting table name, inclusive.
+     * @param tableNameEnd Ending table name, exclusive.
+     * @param schema The descriptor for the schema the table lives in.
+     *               If null, use the system schema.
+     * @return A list of TableDescriptors whose table names are in range of [tableNameStart, tableNameEnd) in given schema.
+     * @throws StandardException
+     */
+    @Override
+    public List<TableDescriptor> getTableDescriptors(String tableNameStart,String tableNameEnd,
+                                                     SchemaDescriptor schema)
+        throws StandardException
+    {
+        SchemaDescriptor sd=(schema==null)?getSystemSchemaDescriptor():schema;
+
+        UUID schemaUUID=sd.getUUID();
+        if (schemaUUID == null)
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, sd.getSchemaName());
+
+        return getTableDescriptorsIndex1Scan(tableNameStart,tableNameEnd,schemaUUID.toString());
+    }
+
+    /**
+     * A ranged scan on systables_index1 (tablename, schemaid).
+     *
+     * @param tableNameStart Starting table name, inclusive.
+     * @param tableNameEnd Ending table name, exclusive.
+     * @param schemaUUID Schema UUID.
+     * @return A list of TableDescriptors whose table names are in range of [tableNameStart, tableNameEnd) in given schema.
+     * @throws StandardException
+     */
+    private List<TableDescriptor> getTableDescriptorsIndex1Scan(String tableNameStart, String tableNameEnd, String schemaUUID)
+            throws StandardException {
+        List<TableDescriptor> tds = new ArrayList<>();
+
+        DataValueDescriptor schemaIDOrderable;
+        DataValueDescriptor tableNameStartOrderable;
+        DataValueDescriptor tableNameEndOrderable;
+        TabInfoImpl ti=coreInfo[SYSTABLES_CORE_NUM];
+
+        tableNameStartOrderable=new SQLVarchar(tableNameStart);
+        tableNameEndOrderable=new SQLVarchar(tableNameEnd);
+        schemaIDOrderable=new SQLChar(schemaUUID);
+
+        /* Set up the start position for the scan */
+        ExecIndexRow startKeyRow=exFactory.getIndexableRow(2);
+        startKeyRow.setColumn(1,tableNameStartOrderable);
+        startKeyRow.setColumn(2,schemaIDOrderable);
+
+        /* Set up the stop position for the scan */
+        ExecIndexRow endKeyRow=exFactory.getIndexableRow(2);
+        endKeyRow.setColumn(1,tableNameEndOrderable);
+        endKeyRow.setColumn(2,schemaIDOrderable);
+
+        /* Set a scan qualifier on SYSTABLES.SCHEMAID */
+        GenericScanQualifier[][] qualifiers = new GenericScanQualifier[1][];
+        qualifiers[0] = new GenericScanQualifier[1];
+        GenericScanQualifier gsq = new GenericScanQualifier();
+        // since we are scanning an index, columnId is the index column position of SCHEMAID
+        // index column position is 0-based
+        gsq.setQualifier(1, new SQLVarchar(schemaUUID), DataValueDescriptor.ORDER_OP_EQUALS, false, false, false);
+        qualifiers[0][0] = gsq;
+
+        getDescriptorsViaIndex(
+                SYSTABLESRowFactory.SYSTABLES_INDEX1_ID,
+                startKeyRow,
+                endKeyRow,
+                qualifiers,
+                ti,
+                null,
+                tds,
+                false);
+
+        for (int i = 0; i < tds.size(); i++) {
+            tds.set(i, finishTableDescriptor(tds.get(i)));
+        }
+
+        return tds;
     }
 
     /**
@@ -7411,6 +7494,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return getDescriptorViaIndexMinion(
                 indexId,
                 keyRow,
+                keyRow,
                 scanQualifiers,
                 ti,
                 parentTupleDescriptor,
@@ -7460,6 +7544,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         return getDescriptorViaIndexMinion(indexId,
                 keyRow,
+                keyRow,
                 scanQualifiers,
                 ti,
                 parentTupleDescriptor,
@@ -7469,9 +7554,34 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 tc);
     }
 
+    public final void getDescriptorsViaIndex(int indexId,
+                                                        ExecIndexRow startKeyRow,
+                                                        ExecIndexRow endKeyRow,
+                                                        ScanQualifier[][] scanQualifiers,
+                                                        TabInfoImpl ti,
+                                                        TupleDescriptor parentTupleDescriptor,
+                                                        List list,
+                                                        boolean forUpdate) throws StandardException{
+        // Get the current transaction controller
+        TransactionController tc=getTransactionCompile();
+
+        getDescriptorViaIndexMinion(
+            indexId,
+            startKeyRow,
+            endKeyRow,
+            scanQualifiers,
+            ti,
+            parentTupleDescriptor,
+            list,
+            forUpdate,
+            TransactionController.ISOLATION_REPEATABLE_READ,
+            tc);
+    }
+
 
     public final <T extends TupleDescriptor> T getDescriptorViaIndexMinion(int indexId,
-                                                                           ExecIndexRow keyRow,
+                                                                           ExecIndexRow startKeyRow,
+                                                                           ExecIndexRow endKeyRow,
                                                                            ScanQualifier[][] scanQualifiers,
                                                                            TabInfoImpl ti,
                                                                            TupleDescriptor parentTupleDescriptor,
@@ -7503,10 +7613,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 TransactionController.MODE_RECORD,
                 isolationLevel,
                 null,         // all fields as objects
-                keyRow.getRowArray(),   // start position - first row
+                startKeyRow.getRowArray(),   // start position - first row
                 ScanController.GE,      // startSearchOperation
                 scanQualifiers,         //scanQualifier,
-                keyRow.getRowArray(),   // stop position - through last row
+                endKeyRow.getRowArray(),   // stop position - through last row
                 ScanController.GT);     // stopSearchOperation
         List<RowLocation> rowLocations = new ArrayList();
 

@@ -69,7 +69,7 @@ abstract class DDLStatementNode extends StatementNode
     public    static    final    int    MODIFY_TYPE = 3;
     public    static    final    int    LOCKING_TYPE = 4;
     public    static    final    int    UPDATE_STATISTICS = 5;
-    public    static    final    int DROP_STATISTICS = 6;
+    public    static    final    int    DROP_STATISTICS = 6;
 
 
     /////////////////////////////////////////////////////////////////////////
@@ -370,8 +370,7 @@ abstract class DDLStatementNode extends StatementNode
 
         TableDescriptor td = getTableDescriptor(tableName.getTableName(), sd);
 
-        if (td == null)
-        {
+        if (td == null) {
             throw StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST,
                         statementToString(), tableName);
         }
@@ -382,7 +381,7 @@ abstract class DDLStatementNode extends StatementNode
             boolean doSystemTableCheck)
         throws StandardException
     {
-        String sqlState = null;
+        String sqlState;
 
         switch (td.getTableType()) {
         case TableDescriptor.VTI_TYPE:
@@ -402,11 +401,9 @@ abstract class DDLStatementNode extends StatementNode
                 return td;
             break;
 
-            case TableDescriptor.BASE_TABLE_TYPE:
-                return td;
-            case TableDescriptor.EXTERNAL_TYPE:
-                return td;
-            case TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:
+        case TableDescriptor.BASE_TABLE_TYPE:
+        case TableDescriptor.EXTERNAL_TYPE:
+        case TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE:
             return td;
 
         /*
