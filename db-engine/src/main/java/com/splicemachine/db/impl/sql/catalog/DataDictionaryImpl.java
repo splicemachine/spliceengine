@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.locks.LockFactory;
 import com.splicemachine.db.iapi.services.locks.ShExLockable;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.monitor.PersistentService;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
@@ -59,6 +60,7 @@ import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.LOBStoredProcedure;
 import com.splicemachine.db.impl.services.locks.Timeout;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
@@ -444,14 +446,15 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
             boolean nativeAuthenticationEnabled=PropertyUtil.nativeAuthenticationEnabled(startParams);
 
-            if(create){
-                String userName=IdUtil.getUserNameFromURLProps(startParams);
-                authorizationDatabaseOwner=IdUtil.getUserAuthorizationId(userName);
-                HashSet newlyCreatedRoutines=new HashSet();
+            HashSet newlyCreatedRoutines = null;
+
+            if(create) {
+                String userName = IdUtil.getUserNameFromURLProps(startParams);
+                authorizationDatabaseOwner = IdUtil.getUserAuthorizationId(userName);
+                newlyCreatedRoutines = new HashSet();
 
                 // create any required tables.
                 createDictionaryTables(startParams,bootingTC,ddg);
-
                 //create metadata sps statement required for network server
                 createSystemSps(bootingTC);
 
@@ -514,7 +517,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         Property.SQL_AUTHORIZATION_PROPERTY);
 
                 // Feature compatibility check.
-                if(Boolean.valueOf(startParams.getProperty(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK))){
+                if(Boolean.parseBoolean(startParams.getProperty(Attribute.SOFT_UPGRADE_NO_FEATURE_CHECK))){
                     // Do not perform check if this boot is the first
                     // phase (soft upgrade boot) of a hard upgrade,
                     // which happens in two phases beginning with
@@ -534,13 +537,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                     // For upgrades from 10.1 and earlier there is no
                     // database owner check at a hard upgrade.
                     if(dictionaryVersion.majorVersionNumber>=DataDictionary.DD_VERSION_DERBY_10_2){
-                        usesSqlAuthorization=Boolean.valueOf(sqlAuth) || nativeAuthenticationEnabled;
+                        usesSqlAuthorization=Boolean.parseBoolean(sqlAuth) || nativeAuthenticationEnabled;
                     }
                 }else{
-                    if(Boolean.valueOf(sqlAuth) || nativeAuthenticationEnabled){
+                    if(Boolean.parseBoolean(sqlAuth) || nativeAuthenticationEnabled){
                         usesSqlAuthorization=true;
                     }
                 }
+            }
+
+            if (create || isCurrentlyCreatingSecondaryDatabase(startParams)) {
+                createSpliceSchema(bootingTC, startParams);
             }
 
             assert authorizationDatabaseOwner!=null:"Failed to get Database Owner authorization";
@@ -567,6 +574,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         setDependencyManager();
         booting=false;
+    }
+
+    protected boolean isCurrentlyCreatingSecondaryDatabase(Properties startParams) {
+        return Boolean.TRUE.equals(EmbedConnection.isCreate.get()) &&
+                !getCurrentlyBootingDatabaseName(startParams).equals(spliceDbDesc.getDatabaseName());
+    }
+
+    protected String getCurrentlyBootingDatabaseName(Properties startParams) {
+        return startParams.getProperty(PersistentService.SERVICE_NAME);
+    }
+
+    protected UUID getCurrentlyBootingDatabaseUuid(Properties startParams, TransactionController tc) throws StandardException {
+        String dbIdKey = DataDictionary.getDatabaseId(getCurrentlyBootingDatabaseName(startParams));
+        return (UUID) tc.getProperty(dbIdKey);
     }
 
     /**
@@ -697,7 +718,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         UUID databaseID = (UUID) tc.getProperty(DataDictionary.DATABASE_ID);
 
         spliceDbDesc = new DatabaseDescriptor(
-                this, DatabaseDescriptor.STD_DB_NAME, "PLACEHOLDER", // XXX replace placeholder
+                this, DatabaseDescriptor.STD_DB_NAME, "PLACEHOLDER", // XXX(arnaud multidb) replace placeholder
                 databaseID);
     }
 
@@ -6705,18 +6726,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         //Add the SYSCS_UTIL Schema
         addSystemSchema(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,SchemaDescriptor.SYSCS_UTIL_SCHEMA_UUID,tc);
 
-        //Add the SPLICE schema //XXX Add this schema all the time, but probably not all the ones above for other DB
-        SchemaDescriptor appSchemaDesc=new SchemaDescriptor(this,
+        //Add the SYSVW schema
+        sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID,tc);
+    }
+
+    protected void createSpliceSchema(TransactionController tc, Properties params) throws StandardException {
+        UUID schemaUuid = isCurrentlyCreatingSecondaryDatabase(params) ? uuidFactory.createUUID()
+                : uuidFactory.recreateUUID(SchemaDescriptor.DEFAULT_SCHEMA_UUID);
+        UUID databaseUuid = getCurrentlyBootingDatabaseUuid(params, tc);
+                SchemaDescriptor appSchemaDesc=new SchemaDescriptor(this,
                 SchemaDescriptor.STD_DEFAULT_SCHEMA_NAME,
                 SchemaDescriptor.DEFAULT_USER_NAME,
-                uuidFactory.recreateUUID(SchemaDescriptor.DEFAULT_SCHEMA_UUID),
-                getSpliceDatabaseDescriptor().getUUID(),
+                schemaUuid,
+                databaseUuid,
                 false);
 
         addDescriptor(appSchemaDesc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
-
-        //Add the SYSVW schema
-        sysViewSchemaDesc = addSystemSchema(SchemaDescriptor.STD_SYSTEM_VIEW_SCHEMA_NAME,SchemaDescriptor.SYSVW_SCHEMA_UUID,tc);
     }
 
     /**
