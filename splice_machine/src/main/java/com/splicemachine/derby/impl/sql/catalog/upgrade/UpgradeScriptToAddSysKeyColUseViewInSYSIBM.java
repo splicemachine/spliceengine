@@ -27,7 +27,7 @@ public class UpgradeScriptToAddSysKeyColUseViewInSYSIBM extends UpgradeScriptBas
     protected void upgradeSystemTables() throws StandardException {
         sdd.createKeyColumnUseViewInSysIBM(tc);
 
-        SpliceLogUtils.info(LOG, "Catalog upgraded: updated syscolumns view in SYSIBM schema");
+        SpliceLogUtils.info(LOG, "Catalog upgraded: added syskeycoluse view in SYSIBM schema");
 
     }
 }
