@@ -33,37 +33,29 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.sql.compile.AccessPath;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.sql.conn.Authorizer;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.impl.sql.execute.FKInfo;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.compile.AccessPath;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.vti.DeferModification;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.vti.DeferModification;
+
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Vector;
@@ -677,12 +669,23 @@ public final class UpdateNode extends DMLModStatementNode
      *
      * @exception StandardException        Thrown on error
      */
+    @Override
     public boolean referencesSessionSchema()
         throws StandardException
     {
         //If this node references a SESSION schema table, then return true.
         return(resultSet.referencesSessionSchema());
 
+    }
+
+    /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return resultSet.referencesTemporaryTable();
     }
 
     /**
@@ -1373,6 +1376,7 @@ public final class UpdateNode extends DMLModStatementNode
                             fromList.elementAt(j);
                     final String tableName;
                     final String exposedTableName;
+                    final String tempTableName;
                     if ( fromTable instanceof CurrentOfNode ) {
                         tableName = ((CurrentOfNode)fromTable).
                                 getBaseCursorTargetTableName().getTableName();
@@ -1382,8 +1386,9 @@ public final class UpdateNode extends DMLModStatementNode
                         tableName = fromTable.getBaseTableName();
                         exposedTableName = fromTable.getExposedName();
                     }
+                    tempTableName = getLanguageConnectionContext().mangleTableName(tableName);
 
-                    if (columnTableName.equals(tableName) || columnTableName.equals(exposedTableName)) {
+                    if (columnTableName.equals(tableName) || columnTableName.equals(exposedTableName) || columnTableName.equals(tempTableName)) {
                         foundMatchingTable = true;
                         break;
                     }

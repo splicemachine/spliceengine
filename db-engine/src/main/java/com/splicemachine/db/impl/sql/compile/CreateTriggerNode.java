@@ -31,9 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.sql.Timestamp;
-import java.util.*;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -41,17 +38,14 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import org.spark_project.guava.collect.Lists;
+
+import java.util.*;
 
 /**
  * A CreateTriggerNode is the root of a QueryTree that represents a CREATE TRIGGER statement.
@@ -482,6 +476,16 @@ public class CreateTriggerNode extends DDLStatementNode {
             }
         }
         return false;
+    }
+
+    /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return triggerTableDescriptor.isTemporary();
     }
 
     /**

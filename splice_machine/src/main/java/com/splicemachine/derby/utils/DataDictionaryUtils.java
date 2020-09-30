@@ -14,16 +14,17 @@
 
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryImpl;
-import org.spark_project.guava.collect.Lists;
-
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import org.spark_project.guava.collect.Lists;
 
 import java.sql.SQLException;
 import java.util.List;
@@ -37,6 +38,26 @@ public class DataDictionaryUtils {
     public static TableDescriptor getTableDescriptor(LanguageConnectionContext lcc, UUID tableId) throws StandardException {
         DataDictionary dd = lcc.getDataDictionary();
         return dd.getTableDescriptor(tableId);
+    }
+
+    public static TableDescriptor getTableDescriptor(LanguageConnectionContext lcc, String schemaName, String tableName) throws StandardException {
+        DataDictionary dd = lcc.getDataDictionary();
+        SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
+
+        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
+        if (sd == null) {
+            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
+        }
+
+        TableDescriptor td = dd.getTableDescriptor(lcc.mangleTableName(tableName), sd, tc);
+        if (td == null) {
+            td = dd.getTableDescriptor(tableName, sd, tc);
+        }
+        if (td == null || !lcc.isVisibleToCurrentSession(td)) {
+            throw StandardException.newException(SQLState.TABLE_NOT_FOUND, schemaName + "." + tableName);
+        }
+
+        return td;
     }
 
     public static TableDescriptor getUncachedTableDescriptor(LanguageConnectionContext lcc, UUID tableId) throws StandardException {
@@ -139,9 +160,9 @@ public class DataDictionaryUtils {
     public static int[] getFormatIds(TxnView txn, UUID tableId) throws SQLException, StandardException {
 
         boolean prepared = false;
-        SpliceTransactionResourceImpl transactionResource = null;
+        SpliceTransactionResourceImpl impl = null;
         try {
-            SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+            impl = new SpliceTransactionResourceImpl();
             prepared = impl.marshallTransaction(txn);
             LanguageConnectionContext lcc = impl.getLcc();
             DataDictionary dd = lcc.getDataDictionary();
@@ -153,7 +174,7 @@ public class DataDictionaryUtils {
             }
         } finally {
             if (prepared)
-                transactionResource.close();
+                impl.close();
         }
     }
 
