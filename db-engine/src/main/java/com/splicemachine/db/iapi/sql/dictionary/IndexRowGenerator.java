@@ -577,7 +577,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 
     /** @see IndexDescriptor#isOnExpression */
     @Override
-    public boolean isOnExpression() { return id.isOnExpression(); }
+    public boolean isOnExpression() { return id != null && id.isOnExpression(); }
 
     /** @see IndexDescriptor#getExecutableIndexExpression */
     @Override
