@@ -576,10 +576,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         booting=false;
     }
 
-    protected void createOrLoadDictionaryTables() {
-
-    }
-
     protected boolean isCurrentlyCreatingSecondaryDatabase(Properties startParams) {
         return Boolean.TRUE.equals(EmbedConnection.isCreate.get()) &&
                 !getCurrentlyBootingDatabaseName(startParams).equals(spliceDbDesc.getDatabaseName());
