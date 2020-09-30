@@ -107,6 +107,8 @@ public final class FKConstraintDefinitionNode extends ConstraintDefinitionNode
             throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_REF_TAB,
                                                 getConstraintMoniker(),
                                                 refTableName.getTableName());
+		if (td.isTemporary())
+			throw StandardException.newException(SQLState.LANG_TEMP_TABLE_NO_FOREIGN_KEYS);
 
         // Verify if REFERENCES_PRIV is granted to columns referenced
         getCompilerContext().pushCurrentPrivType(getPrivType());

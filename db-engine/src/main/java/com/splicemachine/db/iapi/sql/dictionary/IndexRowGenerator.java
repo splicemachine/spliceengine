@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.sql.dictionary;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -46,6 +47,9 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
+import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -57,8 +61,8 @@ import java.io.ObjectOutput;
  */
 public class IndexRowGenerator implements IndexDescriptor, Formatable
 {
-	private IndexDescriptor	id;
-	private ExecutionFactory ef;
+    private IndexDescriptor  id;
+    private ExecutionFactory ef;
 
     /**
      * Constructor for an IndexRowGeneratorImpl
@@ -77,30 +81,63 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
      * 									index.  These will be useful for
      * 									covered queries.
      */
-	public IndexRowGenerator(String indexType,
-								boolean isUnique,
-								boolean isUniqueWithDuplicateNulls,
-								int[] baseColumnPositions,
-								boolean[] isAscending,
-								int numberOfOrderedColumns,
-							 	boolean excludeNulls,
-							    boolean excludeDefaults)
-	{
-		id = new IndexDescriptorImpl(indexType,
-									isUnique,
-									isUniqueWithDuplicateNulls,
-									baseColumnPositions,
-									isAscending,
-									numberOfOrderedColumns,
-									excludeNulls,
-									excludeDefaults);
+    public IndexRowGenerator(String indexType,
+                             boolean isUnique,
+                             boolean isUniqueWithDuplicateNulls,
+                             int[] baseColumnPositions,
+                             boolean[] isAscending,
+                             int numberOfOrderedColumns,
+                             boolean excludeNulls,
+                             boolean excludeDefaults)
+    {
+        id = new IndexDescriptorImpl(indexType,
+                                    isUnique,
+                                    isUniqueWithDuplicateNulls,
+                                    baseColumnPositions,
+                                    isAscending,
+                                    numberOfOrderedColumns,
+                                    excludeNulls,
+                                    excludeDefaults);
 
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(baseColumnPositions != null,
-				"baseColumnPositions are null");
-		}
-	}
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(baseColumnPositions != null,
+                "baseColumnPositions are null");
+        }
+    }
+
+    public IndexRowGenerator(String indexType,
+                             boolean isUnique,
+                             boolean isUniqueWithDuplicateNulls,
+                             int[] baseColumnPositions,
+                             DataTypeDescriptor[] indexColumnTypes,
+                             boolean[] isAscending,
+                             int numberOfOrderedColumns,
+                             boolean excludeNulls,
+                             boolean excludeDefaults,
+                             String[] exprTexts,
+                             ByteArray[] exprBytecode,
+                             String[] generatedClassNames)
+    {
+        id = new IndexDescriptorImpl(indexType,
+                                    isUnique,
+                                    isUniqueWithDuplicateNulls,
+                                    baseColumnPositions,
+                                    indexColumnTypes,
+                                    isAscending,
+                                    numberOfOrderedColumns,
+                                    excludeNulls,
+                                    excludeDefaults,
+                                    exprTexts,
+                                    exprBytecode,
+                                    generatedClassNames);
+
+        if (SanityManager.DEBUG)
+        {
+            SanityManager.ASSERT(baseColumnPositions != null,
+                    "baseColumnPositions are null");
+        }
+    }
 
 	/**
 	 * Constructor for an IndexRowGeneratorImpl
@@ -120,7 +157,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	public ExecIndexRow getIndexRowTemplate()
 	{
 		return getExecutionFactory().getIndexableRow(
-				id.baseColumnPositions().length + 1);
+				id.isAscending().length + 1);
 	}
 
 	/**
@@ -131,7 +168,7 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	public ExecIndexRow getIndexRowKeyTemplate()
 	{
 		if (id.isUnique()) {
-			return getExecutionFactory().getIndexableRow(id.baseColumnPositions().length);
+			return getExecutionFactory().getIndexableRow(id.isAscending().length);
 		} else {
 			return getIndexRowTemplate();
 		}
@@ -150,17 +187,25 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     		RowLocation rowLocation)
     throws StandardException
     {
-		int[] baseColumnPositions = id.baseColumnPositions();
 		ExecIndexRow indexRow = getIndexRowTemplate();
+		DataTypeDescriptor[] columnTypes = getIndexColumnTypes();
 
-		for (int i = 0; i < baseColumnPositions.length; i++)
-		{
-			DataTypeDescriptor dtd =
-				columnList.elementAt(baseColumnPositions[i] - 1).getType();
-			indexRow.setColumn(i + 1, dtd.getNull());
+		if (columnTypes.length == 0) {
+			// Index is not built on expressions, use base column types.
+			int[] baseColumnPositions = id.baseColumnPositions();
+			for (int i = 0; i < baseColumnPositions.length; i++) {
+				DataTypeDescriptor dtd =
+						columnList.elementAt(baseColumnPositions[i] - 1).getType();
+				indexRow.setColumn(i + 1, dtd.getNull());
+			}
+			indexRow.setColumn(baseColumnPositions.length + 1, rowLocation);
+		} else {
+			// Index is built on expressions, use their result types.
+			for (int i = 0; i < columnTypes.length; i++) {
+				indexRow.setColumn(i + 1, columnTypes[i].getNull());
+			}
+			indexRow.setColumn(columnTypes.length + 1, rowLocation);
 		}
-
-		indexRow.setColumn(baseColumnPositions.length + 1, rowLocation);
 		return indexRow;
     }
 
@@ -188,99 +233,118 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
                             RowLocation rowLocation,
                             ExecIndexRow indexRow,
                             FormatableBitSet bitSet)
-                        throws StandardException
+            throws StandardException
     {
         getIndexRowHelper(baseRow, rowLocation, indexRow, bitSet, true);
     }
 
-	/**
-	 * Get an index row key for this index given a row from the base table
-	 * and the RowLocation of the base row.  This method can be used
-	 * to get the new index row for inserts, and the old and new index
-	 * rows for deletes and updates.  For updates, the result row has
-	 * all the old column values followed by all of the new column values,
-	 * so you must form a row using the new column values to pass to
-	 * this method to get the new index row. For unique indices the row
-	 * location is not included in the row key.
-	 *
-	 * @param baseRow	A row in the base table
-	 * @param rowLocation	The RowLocation of the row in the base table
-	 * @param indexRow	A template for the index row.  It must have the
-	 *					correct number of columns.
-	 * @param bitSet	If non-null, then baseRow is a partial row and the
-	 *					set bits in bitSet represents the column mapping for
-	 *					the partial row to the complete base row. <B> WARNING:
-	 *					</B> ONE based!!!
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void getIndexRowKey(ExecRow baseRow,
-							RowLocation rowLocation,
-							ExecIndexRow indexRow,
-							FormatableBitSet bitSet)
-						throws StandardException
-	{
-	    getIndexRowHelper(baseRow, rowLocation, indexRow, bitSet, false);
-	}
+    /**
+     * Get an index row key for this index given a row from the base table
+     * and the RowLocation of the base row.  This method can be used
+     * to get the new index row for inserts, and the old and new index
+     * rows for deletes and updates.  For updates, the result row has
+     * all the old column values followed by all of the new column values,
+     * so you must form a row using the new column values to pass to
+     * this method to get the new index row. For unique indices the row
+     * location is not included in the row key.
+     *
+     * @param baseRow       A row in the base table
+     * @param rowLocation   The RowLocation of the row in the base table
+     * @param indexRow      A template for the index row.  It must have the
+     *                      correct number of columns.
+     * @param bitSet        If non-null, then baseRow is a partial row and the
+     *                       set bits in bitSet represents the column mapping for
+     *                       the partial row to the complete base row. <B> WARNING:
+     *                       </B> ONE based!!!
+     *
+     * @exception StandardException        Thrown on error
+     */
+    public void getIndexRowKey(ExecRow baseRow,
+                               RowLocation rowLocation,
+                               ExecIndexRow indexRow,
+                               FormatableBitSet bitSet)
+            throws StandardException
+    {
+        getIndexRowHelper(baseRow, rowLocation, indexRow, bitSet, false);
+    }
 
-	private void getIndexRowHelper(ExecRow baseRow,
-							RowLocation rowLocation,
-							ExecIndexRow indexRow,
-							FormatableBitSet bitSet,
-							boolean alwaysIncludeLocation)
-						throws StandardException
-	{
-		/*
-		** Set the columns in the index row that are based on columns in
-		** the base row.
-		*/
-		int[] baseColumnPositions = id.baseColumnPositions();
-		int colCount = baseColumnPositions.length;
+    private void getIndexRowHelper(ExecRow baseRow,
+                                   RowLocation rowLocation,
+                                   ExecIndexRow indexRow,
+                                   FormatableBitSet bitSet,
+                                   boolean alwaysIncludeLocation)
+            throws StandardException
+    {
+        int colCount;
+        if (isOnExpression()) {
+            colCount = isAscending().length;
+            ExecRow expandedRow;
 
-		if (bitSet == null)
-		{
-			/*
-			** Set the columns in the index row that are based on columns in
-			** the base row.
-			*/
-			for (int i = 0; i < colCount ; i++)
-			{
-				indexRow.setColumn(i + 1,
-						baseRow.getColumn(baseColumnPositions[i]));
-			}
-		}
-		else
-		{
-			if (SanityManager.DEBUG)
-			{
-				SanityManager.ASSERT(!bitSet.get(0), "element zero of the bitSet passed into getIndexRow() is not false, bitSet should be 1 based");
-			}
- 
-			/*
-			** Set the columns in the index row that are based on columns in
-			** the base row.
-			*/
-			for (int i = 0; i < colCount; i++)
-			{
-				int fullColumnNumber = baseColumnPositions[i];
-				int partialColumnNumber = 0;
-				for (int index = 1; index <= fullColumnNumber; index++)
-				{
-					if (bitSet.get(index))
-					{
-						partialColumnNumber++;
-					}
-				}
-				indexRow.setColumn(i + 1,
-							baseRow.getColumn(partialColumnNumber));
-			}
-		}
+            if (bitSet == null) {
+                expandedRow = baseRow;
+            } else {
+                // expand partial row
+                int maxNumCols = getMaxBaseColumnPosition();
+                expandedRow = new ValueRow(maxNumCols);
+                for (int expandedRowIndex = 1, baseRowIndex = 1; expandedRowIndex <= maxNumCols; expandedRowIndex++) {
+                    if (bitSet.get(expandedRowIndex)) {
+                        expandedRow.setColumn(expandedRowIndex, baseRow.getColumn(baseRowIndex));
+                        baseRowIndex++;
+                    }
+                }
+            }
+            for (int i = 0; i < colCount; i++) {
+                BaseExecutableIndexExpression execExpr = getExecutableIndexExpression(i);
+                if (execExpr == null) {
+                    throw StandardException.newException(SQLState.LANG_UNABLE_TO_LOAD_GENERATE_CODE, getExprTexts()[i]);
+                }
+                execExpr.runExpression(expandedRow, indexRow);
+            }
+        } else {
+            /*
+             ** Set the columns in the index row that are based on columns in
+             ** the base row.
+             */
+            int[] baseColumnPositions = id.baseColumnPositions();
+            colCount = baseColumnPositions.length;
 
-		if (alwaysIncludeLocation || !id.isUnique()) {
-			/* Set the row location in the last column of the index row */
-			indexRow.setColumn(colCount + 1, rowLocation);
-		}
-	}
+            if (bitSet == null) {
+                /*
+                 ** Set the columns in the index row that are based on columns in
+                 ** the base row.
+                 */
+                for (int i = 0; i < colCount; i++) {
+                    indexRow.setColumn(i + 1,
+                            baseRow.getColumn(baseColumnPositions[i]));
+                }
+            } else {
+                if (SanityManager.DEBUG) {
+                    SanityManager.ASSERT(!bitSet.get(0), "element zero of the bitSet passed into getIndexRow() is not false, bitSet should be 1 based");
+                }
+
+                /*
+                 ** Set the columns in the index row that are based on columns in
+                 ** the base row.
+                 */
+                for (int i = 0; i < colCount; i++) {
+                    int fullColumnNumber = baseColumnPositions[i];
+                    int partialColumnNumber = 0;
+                    for (int index = 1; index <= fullColumnNumber; index++) {
+                        if (bitSet.get(index)) {
+                            partialColumnNumber++;
+                        }
+                    }
+                    indexRow.setColumn(i + 1,
+                            baseRow.getColumn(partialColumnNumber));
+                }
+            }
+        }
+
+        if (alwaysIncludeLocation || !id.isUnique()) {
+            /* Set the row location in the last column of the index row */
+            indexRow.setColumn(colCount + 1, rowLocation);
+        }
+    }
 
     /**
      * Return an array of collation ids for this table.
@@ -293,31 +357,37 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
      * This is only expected to get called during ddl, so object allocation
      * is ok. 
      *
-	 * @param columnList ColumnDescriptors describing the base table.
+     * @param columnList ColumnDescriptors describing the base table.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     public int[] getColumnCollationIds(ColumnDescriptorList columnList)
-		throws StandardException
+        throws StandardException
     {
-        int[] base_cols     = id.baseColumnPositions();
-        int[] collation_ids = new int[base_cols.length + 1];
+        int[] collation_ids = new int[isAscending().length + 1];
+        DataTypeDescriptor[] indexColumnTypes = getIndexColumnTypes();
 
-		for (int i = 0; i < base_cols.length; i++)
-		{
-            collation_ids[i] =
-				columnList.elementAt(
-                    base_cols[i] - 1).getType().getCollationType();
-		}
+        if (indexColumnTypes.length <= 0) {
+            int[] base_cols = id.baseColumnPositions();
+            for (int i = 0; i < base_cols.length; i++) {
+                collation_ids[i] =
+                        columnList.elementAt(
+                                base_cols[i] - 1).getType().getCollationType();
+            }
+        } else {
+            for (int i = 0; i < indexColumnTypes.length; i++) {
+                collation_ids[i] = indexColumnTypes[i].getCollationType();
+            }
+        }
 
         // row location column at end is always basic collation type.
-        collation_ids[collation_ids.length - 1] = 
-            StringDataValue.COLLATION_TYPE_UCS_BASIC; 
+        collation_ids[collation_ids.length - 1] =
+                StringDataValue.COLLATION_TYPE_UCS_BASIC;
 
-		return(collation_ids);
+        return(collation_ids);
     }
 
-		 
+
 	/**
 	 * Get the IndexDescriptor that this IndexRowGenerator is based on.
 	 */
@@ -371,6 +441,9 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	{
 		return id.toString();
 	}
+
+	/** @see IndexDescriptor#getIndexColumnTypes */
+	public DataTypeDescriptor[] getIndexColumnTypes() { return id.getIndexColumnTypes(); }
 
 	/** @see IndexDescriptor#isAscending */
 	public boolean			isAscending(Integer keyColumnPosition)
@@ -488,5 +561,38 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     @Override
     public boolean isPrimaryKey() {
         return indexType() != null && indexType().contains("PRIMARY");
+    }
+
+    /** @see IndexDescriptor#getExprTexts */
+    @Override
+    public String[] getExprTexts() { return id.getExprTexts(); }
+
+    /** @see IndexDescriptor#getExprBytecode */
+    @Override
+    public ByteArray[] getExprBytecode() { return id.getExprBytecode(); }
+
+    /** @see IndexDescriptor#getGeneratedClassNames */
+    @Override
+    public String[] getGeneratedClassNames() { return id.getGeneratedClassNames(); }
+
+    /** @see IndexDescriptor#isOnExpression */
+    @Override
+    public boolean isOnExpression() { return id.isOnExpression(); }
+
+    /** @see IndexDescriptor#getExecutableIndexExpression */
+    @Override
+    public BaseExecutableIndexExpression getExecutableIndexExpression(int indexColumnPosition)
+            throws StandardException
+    {
+        return id.getExecutableIndexExpression(indexColumnPosition);
+    }
+
+    private int getMaxBaseColumnPosition() {
+        int maxPosition = 1;  // base column positions are 1-based
+        for (int bcp : id.baseColumnPositions()) {
+            if (bcp > maxPosition)
+                maxPosition = bcp;
+        }
+        return maxPosition;
     }
 }

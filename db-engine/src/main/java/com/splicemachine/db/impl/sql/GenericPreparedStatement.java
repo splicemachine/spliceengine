@@ -628,7 +628,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
      * @return true if the dependent is currently valid
      */
     @Override
-    public boolean isValid() {
+    public synchronized boolean isValid() {
         return isValid;
     }
 
@@ -636,7 +636,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
      * set this prepared statement to be valid, currently used by GenericTriggerExecutor.
      */
     @Override
-    public void setValid() {
+    public synchronized void setValid() {
         isValid = true;
     }
 
@@ -907,7 +907,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                 updateMode = cursorInfo.updateMode;
             }
         }
-        isValid = true;
+        setValid();
     }
 
     @Override
