@@ -265,46 +265,52 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
                 new ColumnDescriptor("AUTHORIZATIONID", 3, 3,
                         DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR,  false,  128),
                         null, null, view, viewId, 0, 0, 0),
-                new ColumnDescriptor("DATABASEID", 4, 4,
-                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
-                        null, null, view, viewId, 0, 0, 0)
+                //new ColumnDescriptor("DATABASEID", 4, 4,
+                //        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 36),
+                //        null, null, view, viewId, 0, 0, 0)
         });
         return cdsl;
     }
 
+    public static final String FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS =
+        " (s.schemaname in ('SYS', 'SYSIBM', 'SYSIBMADM', 'SYSC_UTIL', 'SYSFUN', 'SYSVW') OR " +
+        " d.databasename = current server) ";
+
     private static final String REGULAR_USER_SCHEMA =
-            "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P " +
-                    "WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' " +
-                    "and P.grantee in (select name from sysvw.sysallroles) \n" +
-                    "UNION ALL " +
-                    "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S " +
-                    "WHERE S.authorizationId " +
-                    "     in (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(1) as b (NAME VARCHAR(128)))";
+            "SELECT S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID " +
+            "FROM SYS.SYSSCHEMAS as S, SYS.SYSSCHEMAPERMS as P, SYS.SYSDATABASES as D " +
+            "WHERE  S.schemaid = P.schemaid and P.accessPriv = 'y' and s.databaseid = d.databaseid and " +
+                FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS +
+                "and P.grantee in (select name from sysvw.sysallroles) \n" +
+            "UNION ALL " +
+            "SELECT S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID " +
+            "FROM SYS.SYSSCHEMAS as S INNER JOIN SYS.SYSDATABASES as D ON s.databaseid = d.databaseid " +
+            "WHERE " + FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS + " AND " +
+                "S.authorizationId in (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(1) as b (NAME VARCHAR(128)))";
 
     private static final String SUPER_USER_SCHEMA =
-            "SELECT S.* " +
-                    "FROM SYS.SYSSCHEMAS as S ";
+            "SELECT S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID " +
+                    "FROM SYS.SYSSCHEMAS as S INNER JOIN SYS.SYSDATABASES as D on s.databaseid = d.databaseid ";
 
     private static final String PUBLIC_SCHEMA =
-            "SELECT S.* " +
+            "SELECT S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID " +
                     "FROM SYS.SYSSCHEMAS as S where S.SCHEMANAME in ('SYSVW') ";
 
     public static final String SYSSCHEMASVIEW_VIEW_SQL = "create view sysschemasView as \n" +
             SUPER_USER_SCHEMA +
-            "WHERE 'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128))) \n" +
+            "WHERE " + FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS + " AND " +
+                "'SPLICE' = (select name from new com.splicemachine.derby.vti.SpliceGroupUserVTI(2) as b (NAME VARCHAR(128))) \n" +
             "UNION ALL " +
             REGULAR_USER_SCHEMA +
             "UNION " +
             PUBLIC_SCHEMA;
 
     public static final String SYSSCHEMASVIEW_VIEW_SQL1 = "create view sysschemasView as \n" +
-            SUPER_USER_SCHEMA;
+            SUPER_USER_SCHEMA + "WHERE " + FILTER_SYS_SCHEMAS_OR_CURRENT_DB_SCHEMAS;
 
 
     public static final String RANGER_USER_SCHEMA =
-            "select S.* from SYS.SYSSCHEMAS as S where S.SCHEMANAME in " +
+            "select S.SCHEMAID, S.SCHEMANAME, S.AUTHORIZATIONID from SYS.SYSSCHEMAS as S where S.SCHEMANAME in " +
             "(select name from new com.splicemachine.derby.vti.SchemaFilterVTI() as b (NAME VARCHAR(128))) ";
 
 
