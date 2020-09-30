@@ -15,7 +15,6 @@ public class UpgradeScriptForTablePriorities extends UpgradeScriptBase {
     @Override
     protected void upgradeSystemTables() throws StandardException {
         SpliceLogUtils.info(LOG, "Upgrading table priorities...");
-        // Exception handling here is WIP obviously
         try {
             int num = sdd.upgradeTablePriorities(tc);
             SpliceLogUtils.info(LOG, "Upgraded " + num + " table priorities.");

@@ -20,6 +20,8 @@ import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
@@ -62,9 +64,9 @@ import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.io.IOException;
 import java.sql.Types;
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * @author Scott Fines
@@ -562,8 +564,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // Check splice data dictionary version to decide if upgrade is necessary
         upgradeIfNecessary(tc);
-
-
     }
 
     /**
@@ -1335,7 +1335,33 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public int upgradeTablePriorities(TransactionController tc) throws Exception {
         PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
-        return admin.upgradeTablePriorities();
+        ArrayList<String> toUpgrade = new ArrayList<>();
+        Function<TabInfoImpl, Void> addTabInfo =  (TabInfoImpl info ) ->
+                {
+                    toUpgrade.add( Long.toString(info.getHeapConglomerate()) );
+                    for( int j = 0; j < info.getNumberOfIndexes(); j++ )
+                        toUpgrade.add( Long.toString(info.getIndexConglomerate(j)) );
+                    return null;
+                };
+        for (int i = 0; i < coreInfo.length; ++i) {
+            assert coreInfo[i] != null;
+            addTabInfo.apply(coreInfo[i]);
+        }
+        for (int i = 0; i < NUM_NONCORE; ++i) {
+            // noncoreInfo[x] will be null otherwise
+            TabInfoImpl ti = getNonCoreTIByNumber(i+NUM_CORE);
+            // conglomerate ids will be -1 otherwise
+            faultInTabInfo(ti);
+            addTabInfo.apply(ti);
+        }
+
+        for( String s : HBaseConfiguration.internalTablesArr) {
+            toUpgrade.add(s);
+        }
+        toUpgrade.add("16"); // splice:16 core table
+        toUpgrade.add(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+
+        return admin.upgradeTablePrioritiesFromList(toUpgrade);
     }
 
     public void upgradeSysColumnsWithUseExtrapolationColumn(TransactionController tc) throws StandardException {

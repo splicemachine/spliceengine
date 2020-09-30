@@ -63,7 +63,7 @@ public class HTablePrioritiesIT {
         try(Admin admin= ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
             // we shouldn't have something to upgrade since we should've already created all tables correctly
             Assert.assertEquals( 0,
-                    HBasePartitionAdmin.upgradeTablePriorities(admin) );
+                    HBasePartitionAdmin.upgradeTablePrioritiesFromList(admin, admin.listTableDescriptors()) );
 
             testTablesPriority(admin);
         }
@@ -72,8 +72,8 @@ public class HTablePrioritiesIT {
     public void testTablesPriority(Admin admin) throws Exception {
 
         int prioNormal = 0, prioAdmin = 0, prioHigh = 0;
-        HTableDescriptor[] tableDescriptors = admin.listTables();
-        for( HTableDescriptor td : tableDescriptors) {
+        List<TableDescriptor>  tableDescriptors = admin.listTableDescriptors();
+        for( TableDescriptor td : tableDescriptors) {
             // test priority is a set in HBasePartitionAdmin.getPriorityShouldHave
             Assert.assertEquals(td.toString(), HBasePartitionAdmin.getPriorityShouldHave(td), td.getPriority());
 
@@ -104,30 +104,33 @@ public class HTablePrioritiesIT {
         Assert.assertTrue( prioHigh > 5 );
     }
 
-    static public String getTableNameRepr(HTableDescriptor td)
+    static public String getTableNameRepr(TableDescriptor td)
     {
         String s = td.getValue("tableDisplayName");
-        return s == null
+        s = s == null
                 ? "N " + td.getTableName().getNameAsString()
                 : "T " + s;
+        String idx = td.getValue( "indexDisplayName");
+        idx = idx == null ? "" : " INDEX " + idx;
+        return s + idx;
     }
 
     @Test
     public void testTablesPriorityUpgrade() throws Exception {
         try(Admin admin= ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
-            List<HTableDescriptor> tdlist = Arrays.stream(admin.listTables())
+            List<TableDescriptor>  tdlist = admin.listTableDescriptors().stream()
                     .filter(td -> getTableNameRepr(td).startsWith("T SYSCONSTRAINTS"))
                     .collect(Collectors.toList());
-            // list contains the table and the indices (currently 1+3)
+            // list contains the table SYSCONSTRAINTS its indices (currently 1+3)
             Assert.assertTrue( tdlist.size() >= 4 );
             // change their priorities to PRIO = 0
-            for( HTableDescriptor td : tdlist ) {
-                HBasePartitionAdmin.setHTablePriority(admin, td, 0 );
+            for( TableDescriptor td : tdlist ) {
+                HBasePartitionAdmin.setHTablePriority(admin, td.getTableName(), td, 0 );
             }
 
-            // do upgrade, assert we fixed priorities for the number of tables that we changed
+            // do upgrade, assert we upgraded the priorities for the number of tables that we changed
             Assert.assertEquals( tdlist.size(),
-                    HBasePartitionAdmin.upgradeTablePriorities(admin) );
+                    HBasePartitionAdmin.upgradeTablePrioritiesFromList(admin, admin.listTableDescriptors()) );
 
             // now test if priorities are all correct
             testTablesPriority(admin);

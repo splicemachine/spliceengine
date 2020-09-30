@@ -183,7 +183,7 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     }
 
     @Override
-    public int upgradeTablePriorities() throws Exception {
+    public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
     }
 }

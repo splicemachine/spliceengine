@@ -86,7 +86,9 @@ public interface PartitionAdmin extends AutoCloseable{
 
     /**
      * Upgrade Script to update HBase Tables Priorities so that System tables are loaded with higher priorities
+     *
      * @return number of tables upgraded
      */
-    int upgradeTablePriorities() throws Exception;
+
+    int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception;
 }

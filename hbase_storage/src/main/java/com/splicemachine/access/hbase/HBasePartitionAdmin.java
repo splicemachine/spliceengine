@@ -740,29 +740,51 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         }
     }
 
-    @Override
-    public int upgradeTablePriorities() throws Exception {
-        return upgradeTablePriorities(admin);
+    static public int getPriorityShouldHave(org.apache.hadoop.hbase.client.TableDescriptor td)
+    {
+        String s = td.getValue("tableDisplayName");
+        if( s == null ) {
+            return HConstants.HIGH_QOS;
+        }
+        else {
+            if (s.startsWith("SYS") || s.startsWith("splice:") || s.equals("MON_GET_CONNECTION")) {
+                return HConstants.ADMIN_QOS;
+            } else {
+                return HConstants.NORMAL_QOS;
+            }
+        }
+    }
+    public static void setHTablePriority(Admin admin, TableName tn,
+                                         org.apache.hadoop.hbase.client.TableDescriptor td,
+                                         int priority) throws IOException {
+        boolean tableEnabled = admin.isTableEnabled(tn);
+        if (tableEnabled) {
+            admin.disableTable(tn);
+        }
+        ((TableDescriptorBuilder.ModifyableTableDescriptor) td).setPriority(priority);
+        admin.modifyTable(td);
+        admin.enableTable(tn);
     }
 
-    public static int upgradeTablePriorities(Admin admin) throws Exception
+    public static int upgradeTablePrioritiesFromList(Admin admin,
+                                                     List<org.apache.hadoop.hbase.client.TableDescriptor> tableDescriptors)
+            throws Exception
     {
         final int NUM_THREADS = 10;
         ExecutorService executor = null;
         try {
-            HTableDescriptor[] tableDescriptors = admin.listTables();
 
-            List<Callable<Void>> upgradeTasks = Arrays.stream(tableDescriptors)
+            List<Callable<Void>> upgradeTasks = tableDescriptors.stream()
                     .filter( td -> td.getPriority() != getPriorityShouldHave(td))
                     .map( td -> (Callable<Void>) () -> {
-                        setHTablePriority(admin, td, getPriorityShouldHave(td));
+                        setHTablePriority(admin, td.getTableName(), td, getPriorityShouldHave(td));
                         return null;
                     })
                     .collect(Collectors.toList());
             executor = Executors.newFixedThreadPool( NUM_THREADS );
             executor.invokeAll( upgradeTasks );
             return upgradeTasks.size();
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
             throw e;
         }
         finally
@@ -771,18 +793,19 @@ public class HBasePartitionAdmin implements PartitionAdmin{
                 executor.shutdown();
         }
     }
-
-    public static void setHTablePriority(Admin admin, HTableDescriptor htd, int priority)
-            throws IOException
-    {
-        TableName tn = htd.getTableName();
-        org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
-        if (admin.isTableEnabled(tn))
-            admin.disableTable(tn);
-        TableDescriptorBuilder.ModifyableTableDescriptor m =
-                (TableDescriptorBuilder.ModifyableTableDescriptor) td;
-        m.setValue("PRIORITY", Integer.toString(priority));
-        admin.modifyTable(td);
-        admin.enableTable(tn);
+    @Override
+    public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
+        List<org.apache.hadoop.hbase.client.TableDescriptor> tableDescriptorList =
+                conglomerateIdList.stream()
+                        .map( conglomerateId -> {
+                            TableName tn = tableInfoFactory.getTableInfo(conglomerateId);
+                            try {
+                                return admin.getDescriptor(tn);
+                            } catch (IOException e) {
+                                return null;
+                            } } )
+                        .filter( td -> td != null )
+                        .collect(Collectors.toList());
+        return upgradeTablePrioritiesFromList( admin, tableDescriptorList );
     }
 }
