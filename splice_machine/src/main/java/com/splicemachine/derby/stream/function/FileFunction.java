@@ -16,6 +16,9 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -80,7 +83,9 @@ public class FileFunction extends AbstractFileFunction<String> {
                     valueSizeHints.add(dtd.getMaximumWidth());
                 }
             }
-            tokenizer = new MutableCSVTokenizer(reader, preference, oneLineRecord,
+            boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                    ConnectionUtil.getCurrentLCC(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+            tokenizer = new MutableCSVTokenizer(reader, preference, oneLineRecord, quotedEmptyIsNull,
                     EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
             initialized = true;
         }
