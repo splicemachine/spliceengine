@@ -848,13 +848,18 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
                 boolean[] isAscending = curIndex.isAscending();
 
-                int numColumnOrderings = baseColumnPositions.length + 1;
+                int numColumnOrderings = baseColumnPositions.length;
+                if (!curIndex.isUnique())
+                    numColumnOrderings ++;
                 ordering[index] = new ColumnOrdering[numColumnOrderings];
 
-                for (int ii =0; ii < numColumnOrderings - 1; ii++) {
-                    ordering[index][ii] = new IndexColumnOrder(ii, isAscending[ii]);
+                for (int ii =0; ii < numColumnOrderings; ii++) {
+                    if (!curIndex.isUnique() && ii == numColumnOrderings -1)
+                        ordering[index][ii] = new IndexColumnOrder(ii);
+                    else
+                        ordering[index][ii] = new IndexColumnOrder(ii, isAscending[ii]);
                 }
-                ordering[index][numColumnOrderings - 1] = new IndexColumnOrder(numColumnOrderings - 1);
+
                 collation[index] = curIndex.getColumnCollationIds(td.getColumnDescriptorList());
             }
         }
