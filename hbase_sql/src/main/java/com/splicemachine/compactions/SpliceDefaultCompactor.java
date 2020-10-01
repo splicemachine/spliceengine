@@ -331,7 +331,7 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                 ScanType scanType = request.isAllFiles() ? COMPACT_DROP_DELETES : COMPACT_RETAIN_DELETES;
                 ScanInfo scanInfo = preCreateCoprocScanner(request, scanType, fd.earliestPutTs, scanners, null);
                 scanner = createScanner(store, scanners, scanType, smallestReadPoint, fd.earliestPutTs);
-                if (needsSI(store.getTableName())) {
+                if (SpliceCompactionUtils.needsSI(store.getTableName())) {
                     SIDriver driver=SIDriver.driver();
                     SConfiguration config = HConfiguration.getConfiguration();
                     double resolutionShare = config.getOlapCompactionResolutionShare();
@@ -395,22 +395,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             }
         }
         return newFiles;
-    }
-
-    private boolean needsSI(TableName tableName) {
-        TableType type = EnvUtils.getTableType(HConfiguration.getConfiguration(), tableName);
-        switch (type) {
-            case TRANSACTION_TABLE:
-            case ROOT_TABLE:
-            case META_TABLE:
-            case HBASE_TABLE:
-                return false;
-            case DERBY_SYS_TABLE:
-            case USER_TABLE:
-                return true;
-            default:
-                throw new RuntimeException("Unknow table type " + type);
-        }
     }
 
     @Override

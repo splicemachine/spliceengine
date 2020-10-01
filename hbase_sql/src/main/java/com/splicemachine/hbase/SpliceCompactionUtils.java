@@ -14,6 +14,8 @@
 
 package com.splicemachine.hbase;
 
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -22,7 +24,9 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.regionserver.Store;
 
 import java.io.IOException;
@@ -89,6 +93,8 @@ public class SpliceCompactionUtils {
         });
     }
 
+    private static long RETAIN_FOREVER = -1;
+
     private static Long minRetentionPeriod(Store store) throws IOException { ;
         return extract(store, new TableDescriptorExtractor<Long>() {
             @Override
@@ -97,7 +103,7 @@ public class SpliceCompactionUtils {
             }
             @Override
             public Long getDefaultValue() {
-                return SIConstants.OLDEST_TIME_TRAVEL_TX;
+                return RETAIN_FOREVER;
             }
         });
     }
@@ -108,8 +114,11 @@ public class SpliceCompactionUtils {
         }
         long lowTxnWatermark = TransactionsWatcher.getLowWatermarkTransaction();
         Long minRetentionPeriod = SpliceCompactionUtils.minRetentionPeriod(store);
-        if(minRetentionPeriod == null || minRetentionPeriod == 0L) {
+        if (minRetentionPeriod == null || minRetentionPeriod == 0L) {
             return lowTxnWatermark;
+        }
+        if (minRetentionPeriod == RETAIN_FOREVER) {
+            return SIConstants.OLDEST_TIME_TRAVEL_TX;
         }
         long minRetentionTs = System.currentTimeMillis() - minRetentionPeriod * 1000;
         long minRetentionTxnId = SIDriver.driver().getTxnStore().getTxnAt(minRetentionTs);
@@ -118,4 +127,21 @@ public class SpliceCompactionUtils {
         }
         return Math.min(lowTxnWatermark, minRetentionTxnId);
     }
+
+    public static boolean needsSI(TableName tableName) {
+        TableType type = EnvUtils.getTableType(HConfiguration.getConfiguration(), tableName);
+        switch (type) {
+            case TRANSACTION_TABLE:
+            case ROOT_TABLE:
+            case META_TABLE:
+            case HBASE_TABLE:
+                return false;
+            case DERBY_SYS_TABLE:
+            case USER_TABLE:
+                return true;
+            default:
+                throw new RuntimeException("Unknow table type " + type);
+        }
+    }
+
 }

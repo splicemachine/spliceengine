@@ -55,14 +55,15 @@ public class SpliceDefaultFlusher extends DefaultStoreFlusher {
             purgeConfig.noPurgeDeletes();
         }
         long txnLowWatermark = SIConstants.OLDEST_TIME_TRAVEL_TX;
-        if(SIDriver.driver().isEngineStarted()) {
+        if(SIDriver.driver().isEngineStarted() &&
+                SpliceCompactionUtils.needsSI(store.getTableName()) &&
+                !SIDriver.driver().lifecycleManager().isRestoreMode()) {
             try {
                 txnLowWatermark = SpliceCompactionUtils.getTxnLowWatermark(store);
             } catch (Exception e) {
                 LOG.warn("Could not extract compaction information, we will not purge during flush." +
-                        "This may happen during restore. Exception: ", e);
-                assert SIDriver.driver().lifecycleManager().isRestoreMode() :
-                        "Fetching txn low watermark is only known to fail during restore mode";
+                        " Exception: ", e);
+                assert false;
             }
         }
         purgeConfig.transactionLowWatermark(txnLowWatermark);
