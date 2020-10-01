@@ -813,8 +813,9 @@ public class SparkDataSet<V> implements DataSet<V> {
     {
         StructType tableSchema = generateTableSchema( context );
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                rdd.map(new LocatedRowToRowFunction()),
+                rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                 tableSchema);
+
         return new NativeSparkDataSet<>(insertDF, context);
     }
 
@@ -858,8 +859,9 @@ public class SparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
                                                 OperationContext context) throws StandardException {
+
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                rdd.map(new LocatedRowToRowFunction()),
+                rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
                 context.getOperation().schema());
 
         return new NativeSparkDataSet<>(insertDF, context).writeTextFile(partitionBy, location, csvOptions, context);
