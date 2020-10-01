@@ -2465,7 +2465,7 @@ public class ExternalTableIT extends SpliceUnitTest {
                 .getOrCreate();
         Dataset dataset = spark
                 .read()
-                .parquet(tablePath);
+                .orc(tablePath);
         String actual = dataset.schema().toString();
         String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
         Assert.assertEquals(actual, expected, actual);
