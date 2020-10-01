@@ -801,6 +801,10 @@ public class JDBCDisplayUtil {
 		maxWidth = maxDisplayWidth;
 	}
 
+	static public int getMaxDisplayWidth() {
+		return maxWidth;
+	}
+
 	static	private	void	indentedPrintLine( PrintWriter out, int indentLevel, String text )
 	{
 		indent( out, indentLevel );
