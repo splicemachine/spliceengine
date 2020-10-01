@@ -48,7 +48,7 @@
 <property><name>hbase.master.balancer.stochastic.regionCountCost</name><value>1500</value></property>
 <property><name>hbase.regionserver.thread.compaction.large</name><value>4</value></property>
 <property><name>hbase.regionserver.thread.compaction.small</name><value>2</value></property>
-<property><name>splice.olap_server.external</name><value>true</value></property>
+<property><name>splice.olap_server.external</name><value>false</value></property>
 <property><name>hbase.regions.slop</name><value>0</value></property>
 <property><name>hbase.rpc.timeout</name><value>300000</value></property>
 <property><name>hbase.zookeeper.property.tickTime</name><value>6000</value></property>

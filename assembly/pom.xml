@@ -759,19 +759,12 @@
                                         <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/splice/">
                                             <include name="hbase-env.sh"/>
                                             <include name="hbase-env.secure.sh"/>
+                                            <include name="mapr-splice-hbase-config.sh"/>
                                         </replace>
                                         <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/bin/">
                                             <include name="hbase-config.sh"/>
                                         </replace>
-                                        <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/splice/">
-                                            <include name="hbase-env.sh"/>
-                                            <include name="hbase-env.secure.sh"/>
-                                        </replace>
                                         <replace token="##SPARKVERSION##" value="${spark.minor.version}" dir="mapr/src/main/resources/scripts/splice/">
-                                            <include name="hbase-env.sh"/>
-                                            <include name="hbase-env.secure.sh"/>
-                                        </replace>
-                                        <replace token="##SPLICEPATCHEDJAR##" value="/opt/splice/default/lib/spark-yarn_2.11-${spark.version}-patched.jar" dir="mapr/src/main/resources/scripts/splice/">
                                             <include name="hbase-env.sh"/>
                                             <include name="hbase-env.secure.sh"/>
                                         </replace>
@@ -804,63 +797,8 @@
                                     </includeArtifactIds>
                                 </configuration>
                             </execution>
-                        <execution>
-                            <id>extract-patch-yarn</id>
-                            <goals>
-                              <goal>unpack</goal>
-                            </goals>
-                            <configuration>
-                              <artifactItems>
-                                <artifactItem>
-                                  <groupId>org.apache.spark</groupId>
-                                  <artifactId>spark-yarn_2.11</artifactId>
-                                  <version>${spark.version}</version>
-                                  <classifier>sources</classifier>
-                                  <type>jar</type>
-                                  <outputDirectory>${project.build.directory}/tmp/</outputDirectory>
-                                  <includes>**/*</includes>
-                                </artifactItem>
-                              </artifactItems>
-                            </configuration>
-                        </execution>
                     </executions>
                     </plugin>
-                    <plugin>  
-                        <groupId>org.codehaus.mojo</groupId> 
-                        <artifactId>exec-maven-plugin</artifactId> 
-                        <version>1.1.1</version> 
-                        <executions>
-                          <execution>
-                            <id>patch-yarn</id>
-                            <phase>generate-resources</phase>
-                            <goals>
-                              <goal>exec</goal> 
-                            </goals>
-                         <configuration>
-                            <executable>mapr/src/main/resources/scripts/splice/patch.sh</executable>
-                          </configuration>
-                          </execution>
-                        </executions>
-                      </plugin>
-                      <plugin>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <configuration>
-                            <descriptors>
-                                <descriptor>mapr/src/main/resources/patch/assembly.xml</descriptor>
-                            </descriptors>
-                            <finalName>spark-yarn_2.11-${spark.version}-patched</finalName>
-                            <appendAssemblyId>false</appendAssemblyId>
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                                <phase>package</phase> <!-- bind to the packaging phase -->
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                      </plugin>
                       <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-shade-plugin</artifactId>
@@ -1416,21 +1354,6 @@
                                                     <location>/opt/splice/default/lib/javax.servlet-api-3.1.0.jar</location>
                                                 </softlinkSource>
                                             </sources>
-                                        </mapping>
-                                        <mapping>
-                                            <directory>/opt/mapr/hbase/${envHbase}-splice/lib</directory>
-                                            <configuration>true</configuration>
-                                            <username>mapr</username>
-                                            <groupname>mapr</groupname>
-                                            <sources>
-                                                <source>
-                                                    <location>target/</location>
-                                                    <includes>
-                                                        <include>spark-yarn_2.11-${spark.version}-patched.jar</include>
-                                                    </includes>
-                                                </source>
-                                            </sources>
-                                            <filemode>755</filemode>
                                         </mapping>
                                     </mappings>
                                     <cleanScriptlet>

@@ -43,6 +43,7 @@ import java.util.concurrent.*;
  * Created by dgomezferro on 5/25/16.
  */
 public class ResultStreamer<T> extends ChannelInboundHandlerAdapter implements Function2<Integer, Iterator<T>, Iterator<String>>, Serializable, Externalizable {
+    private static final long serialVersionUID = 6855581325522639949L;
     private static final Logger LOG = Logger.getLogger(ResultStreamer.class);
 
     private OperationContext<?> context;
