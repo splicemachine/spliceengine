@@ -526,28 +526,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	}
 
 	/**
-	 * See if this IN list operator is referencing the same table.
-	 *
-	 * @param cr	The column reference.
-	 *
-	 * @return	true if in list references the same table as in cr.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean selfReference(ColumnReference cr)
-		throws StandardException
-	{
-		int size = rightOperandList.size();
-		for (int i = 0; i < size; i++)
-		{
-			ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
-			if (vn.getTablesReferenced().get(cr.getTableNumber()))
-				return true;
-		}
-		return false;
-	}
-
-	/**
 	 * The selectivity for an "IN" predicate is generally very small.
 	 * This is an estimate applicable when in list are not all constants.
 	 */

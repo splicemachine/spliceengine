@@ -568,8 +568,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 		/* if it's for "in" operator's dynamic start key, operator is GE,
 		 * beetle 3858
+		 * between operator is inclusive, also GE
 		 */
-        if(andNode.getLeftOperand() instanceof InListOperatorNode)
+        if(andNode.getLeftOperand() instanceof BinaryListOperatorNode)
             return ScanController.GE;
 
         RelationalOperator relop=getRelop();
@@ -583,8 +584,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 		 /* if it's for "in" operator's dynamic stop key, operator is GT,
 		  * beetle 3858
+		  * between operator is inclusive, also GT
 		  */
-        if(andNode.getLeftOperand() instanceof InListOperatorNode)
+        if(andNode.getLeftOperand() instanceof BinaryListOperatorNode)
             return ScanController.GT;
 
         RelationalOperator relop=getRelop();

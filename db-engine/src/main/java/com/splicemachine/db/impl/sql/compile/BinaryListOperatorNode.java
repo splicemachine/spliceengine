@@ -322,6 +322,28 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     }
 
     /**
+     * See if this binary list operator is referencing the same table.
+     *
+     * @param cr	The column reference.
+     *
+     * @return	true if this list references the same table as in cr.
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public boolean selfReference(ColumnReference cr)
+            throws StandardException
+    {
+        int size = rightOperandList.size();
+        for (int i = 0; i < size; i++)
+        {
+            ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
+            if (vn.getTablesReferenced().get(cr.getTableNumber()))
+                return true;
+        }
+        return false;
+    }
+
+    /**
      * Categorize this predicate.  Initially, this means
      * building a bit map of the referenced tables for each predicate.
      * If the source of this ColumnReference (at the next underlying level)

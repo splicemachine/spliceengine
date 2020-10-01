@@ -1457,19 +1457,35 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
-    public void testIndexExpressionPredicateNotQualifier() throws Exception {
+    public void testIndexExpressionPredicateBetween() throws Exception {
         String tableName = "TEST_NOT_QUALIFIER_EXPR_INDEX";
-        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
-        methodWatcher.executeUpdate(format("insert into %s values ('foo', 0), ('bar', 1)", tableName));
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2), ('ghi', 30, 3.3)", tableName));
 
-        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C))", tableName, tableName));
-        methodWatcher.executeUpdate(format("insert into %s values ('abc', 2)", tableName));
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (c, i, mod(i,2), i+2, upper(c))", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('xyz', 40, 3.3)", tableName));
 
-        String query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) between 'AAA' and 'BAT' order by c", tableName, tableName);
+        // as a qualifier
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where c = 'def' and upper(c) between 'ABC' and 'JKL '", tableName, tableName);
+
+        String[] expectedOps = new String[] {
+                "ProjectRestrict",  // directly on top of IndexScan, no other ops in between
+                "IndexScan",
+                " >= ABC",          // should be on the same line as IndexScan
+                " <= JKL"           // should be on the same line as IndexScan
+        };
+        rowContainsQuery(new int[]{3,4,4,4}, "explain " + query, methodWatcher, expectedOps);
+
         String expected = "C  |\n" +
                 "-----\n" +
-                "abc |\n" +
-                "bar |";
+                "def |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // as part of a start/stop key
+        query = format("select c from %s --splice-properties index=%s_IDX\n where c = 'def' and i = 20 and mod(i,2) = 0 and i + 3 = 23 and upper(c) between 'ABC' and 'JKL '", tableName, tableName);
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));

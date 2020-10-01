@@ -1904,6 +1904,9 @@ public class FromBaseTable extends FromTable {
             resultColumns.setFromExprIndex(isOnExpression);
 
             if (isOnExpression) {
+                // do translation before replacing index expressions, otherwise
+                // orderUsefulPredicates() doesn't recognize generated column
+                translateBetweenOnIndexExprToGEAndLE();
                 // for expressions from outer tables, replace them later
                 replaceIndexExpressions(resultColumns);
             }
@@ -2032,6 +2035,10 @@ public class FromBaseTable extends FromTable {
          */
         getUpdateLocks=cursorTargetTable;
         cursorTargetTable=false;
+
+        if (isOnExpression) {
+            translateBetweenOnIndexExprToGEAndLE();
+        }
 
         return retval;
     }
@@ -3780,5 +3787,71 @@ public class FromBaseTable extends FromTable {
         if (requalificationRestrictionList != null) {
             requalificationRestrictionList.replaceIndexExpression(childRCL);
         }
+    }
+
+    private void translateBetweenOnIndexExprToGEAndLE() throws StandardException {
+        if (storeRestrictionList != null) {
+            storeRestrictionList = translateBetweenHelper(storeRestrictionList);
+        }
+        if (nonStoreRestrictionList != null) {
+            nonStoreRestrictionList = translateBetweenHelper(nonStoreRestrictionList);
+        }
+        if (requalificationRestrictionList != null) {
+            requalificationRestrictionList = translateBetweenHelper(requalificationRestrictionList);
+        }
+    }
+
+    private PredicateList translateBetweenHelper(PredicateList predList) throws StandardException {
+        PredicateList newList = (PredicateList)getNodeFactory().getNode(
+                C_NodeTypes.PREDICATE_LIST,
+                getContextManager());
+
+        for (int i = 0; i < predList.size(); i++) {
+            Predicate pred = predList.elementAt(i);
+            if (pred.getAndNode().getLeftOperand() instanceof BetweenOperatorNode) {
+                BetweenOperatorNode bon = (BetweenOperatorNode) pred.getAndNode().getLeftOperand();
+                AndNode newAnd = bon.translateToGEAndLE();
+
+                Predicate le = (Predicate)getNodeFactory().getNode(
+                        C_NodeTypes.PREDICATE,
+                        newAnd.getRightOperand(),
+                        pred.getReferencedSet(),
+                        getContextManager());
+                le.copyFields(pred);
+                le.clearScanFlags();
+                if (pred.isStopKey()) {
+                    le.markStopKey();
+                }
+                if (pred.isQualifier()) {
+                    le.markQualifier();
+                }
+                newList.addOptPredicate(le);
+
+                BooleanConstantNode trueNode = (BooleanConstantNode)getNodeFactory().getNode(
+                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                        Boolean.TRUE,
+                        getContextManager());
+                newAnd.setRightOperand(trueNode);
+
+                Predicate ge = (Predicate)getNodeFactory().getNode(
+                        C_NodeTypes.PREDICATE,
+                        newAnd,
+                        pred.getReferencedSet(),
+                        getContextManager());
+                ge.copyFields(pred);
+                ge.clearScanFlags();
+                if (pred.isStartKey()) {
+                    ge.markStartKey();
+                }
+                if (pred.isQualifier()) {
+                    ge.markQualifier();
+                }
+                newList.addOptPredicate(ge);
+            } else {
+                newList.addOptPredicate(pred);
+            }
+        }
+        newList.classify(this, getTrulyTheBestAccessPath().getConglomerateDescriptor(), true);
+        return newList;
     }
 }
