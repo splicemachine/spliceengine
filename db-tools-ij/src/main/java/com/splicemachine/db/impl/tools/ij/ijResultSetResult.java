@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.tools.ij;
 
+import com.splicemachine.db.tools.JDBCDisplayUtil;
+
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
@@ -73,6 +75,28 @@ public class ijResultSetResult extends ijResultImpl {
 
 		displayColumns = display;
 		columnWidths   = widths;
+	}
+
+	public ijResultSetResult(ResultSet r, int[] columnParameters) throws SQLException {
+		resultSet = r;
+		statement = resultSet.getStatement();
+		this.displayColumns = new int[columnParameters.length/3];
+		this.columnWidths = new int[columnParameters.length/3];
+		for(int i=0; i<columnParameters.length/3; i++)
+		{
+			displayColumns[i] = columnParameters[i*3];
+			int colWidth = columnParameters[i*3+1];
+			int maxColWidth  = columnParameters[i*3+2];
+			int max = JDBCDisplayUtil.getMaxDisplayWidth();
+			if( max != 256 )
+			{
+				if (maxColWidth != 0 && (max == 0 || max > maxColWidth))
+					colWidth = maxColWidth;
+				else
+					colWidth = max;
+			}
+			columnWidths[i] = colWidth;
+		}
 	}
 
 	public boolean isResultSet() throws SQLException { return statement==null || statement.getUpdateCount() == -1; }
