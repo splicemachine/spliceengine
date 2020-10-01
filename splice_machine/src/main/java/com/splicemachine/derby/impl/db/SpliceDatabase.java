@@ -386,6 +386,9 @@ public class SpliceDatabase extends BasicDatabase{
                     case DROP_SCHEMA:
                         DDLUtils.preDropSchema(change,dataDictionary,dependencyManager);
                         break;
+                    case DROP_DATABASE:
+                        DDLUtils.preDropDatabase(change,dataDictionary,dependencyManager);
+                        break;
                     case UPDATE_SCHEMA_OWNER:
                         DDLUtils.preUpdateSchemaOwner(change,dataDictionary,dependencyManager);
                         break;
@@ -479,12 +482,9 @@ public class SpliceDatabase extends BasicDatabase{
         SpliceLogUtils.trace(LOG,"bootStore create %s, startParams %s",create,startParams);
         af=(AccessFactory)Monitor.bootServiceModule(create,this,AccessFactory.MODULE,startParams);
         ((SpliceAccessManager) af).setDatabase(this);
-        create = create || Boolean.TRUE.equals(BasicDatabase.isCreate.get());
         if(create){
-            TransactionController tc=af.getTransaction(ContextService.getFactory().getCurrentContextManager());
-            ((SpliceTransaction)((SpliceTransactionManager)tc).getRawTransaction()).elevate(Bytes.toBytes("boot"));
+            af.elevateRawTransaction(Bytes.toBytes("boot"));
         }
-
     }
 
     /**

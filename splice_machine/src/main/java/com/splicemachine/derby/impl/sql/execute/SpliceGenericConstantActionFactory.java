@@ -317,6 +317,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
+    public ConstantAction getDropDatabaseConstantAction(String dbName){
+        SpliceLogUtils.trace(LOG,"getDropDatabaseConstantAction for {%s}", dbName);
+        return new DropDatabaseConstantOperation(dbName);
+    }
+
+    @Override
     public ConstantAction getDropTableConstantAction(String fullTableName,
                                                      String tableName,SchemaDescriptor sd,long conglomerateNumber,
                                                      UUID tableId,int behavior){

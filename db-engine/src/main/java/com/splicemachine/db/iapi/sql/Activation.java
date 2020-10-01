@@ -605,7 +605,7 @@ public interface Activation extends Dependent
      * Get the current SQL session context if in a nested connection of a
      * stored routine or in a substatement.
      */
-    SQLSessionContext getSQLSessionContextForChildren();
+    SQLSessionContext getSQLSessionContextForChildren() throws StandardException;
 
     /**
      * Set up and return the current SQL session context for all immediately
@@ -615,7 +615,7 @@ public interface Activation extends Dependent
      * (push=false).
      * @param push true if used to push a new connection context
      */
-    SQLSessionContext setupSQLSessionContextForChildren(boolean push);
+    SQLSessionContext setupSQLSessionContextForChildren(boolean push) throws StandardException;
 
     /**
      * This activation is created in a dynamic call context or a substatement

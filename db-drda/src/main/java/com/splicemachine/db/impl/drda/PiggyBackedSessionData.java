@@ -32,6 +32,9 @@
 package com.splicemachine.db.impl.drda;
 
 import java.sql.SQLException;
+
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
 
 
@@ -96,7 +99,12 @@ class PiggyBackedSessionData {
             isoMod_ = true;
             iso_ = iso;
         }
-        String schema = conn_.getCurrentSchemaName();
+        String schema = null;
+        try {
+            schema = conn_.getCurrentSchemaName();
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
         if (!schema.equals(schema_)) {
             schemaMod_ = true;
             schema_ = schema;

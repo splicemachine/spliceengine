@@ -39,7 +39,7 @@ import static org.junit.Assert.*;
 public class MultiDatabaseIT {
     protected static SpliceWatcher classWatcher = new SpliceWatcher();
     private static final Logger LOG = Logger.getLogger(MultiDatabaseIT.class);
-    private static String OTHER_DB = MultiDatabaseIT.class.getSimpleName();
+    private static String OTHER_DB = MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String SCHEMA = MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String TABLE = MultiDatabaseIT.class.getSimpleName().toUpperCase();
 
@@ -60,10 +60,10 @@ public class MultiDatabaseIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
-    @BeforeClass
-    public static void setUpClass() throws Exception {
-        spliceDbConn = classWatcher.createConnection();
-        otherDbConn = classWatcher.connectionBuilder().database(OTHER_DB).build();
+    @Before
+    public void setUp() throws Exception {
+        spliceDbConn = methodWatcher.createConnection();
+        otherDbConn = methodWatcher.connectionBuilder().database(OTHER_DB).build();
         connections = new TestConnection[]{spliceDbConn, otherDbConn};
     }
 
@@ -71,7 +71,7 @@ public class MultiDatabaseIT {
     public void testCurrentDatabase() throws SQLException {
         try (ResultSet rs = spliceDbConn.query("select current server")) {
             rs.next();
-            assertEquals("splicedb", rs.getString(1));
+            assertEquals("SPLICEDB", rs.getString(1));
         }
         try (ResultSet rs = otherDbConn.query("select current server")) {
             rs.next();
@@ -82,12 +82,12 @@ public class MultiDatabaseIT {
     @Test
     public void testSysDatabases() throws SQLException {
         try (ResultSet rs = spliceDbConn.query(String.format(
-                "select databasename, databaseid from sys.sysdatabases where databasename in ('splicedb', '%s') order by 1", OTHER_DB))) {
+                "select databasename, databaseid from sys.sysdatabases where databasename in ('SPLICEDB', '%s') order by 1", OTHER_DB))) {
             rs.next();
             assertEquals(OTHER_DB, rs.getString(1));
             String uuid1 = rs.getString(2);
             rs.next();
-            assertEquals("splicedb", rs.getString(1));
+            assertEquals("SPLICEDB", rs.getString(1));
             String uuid2 = rs.getString(2);
             assertNotEquals(uuid1, uuid2);
         }
@@ -100,10 +100,12 @@ public class MultiDatabaseIT {
         for (TestConnection conn: connections) {
             try (ResultSet rs = conn.query(String.format(
                     "select schemaname, schemaid from sysvw.sysschemasview where schemaname in ('SPLICE', '%s') order by 1", SCHEMA))) {
-                rs.next();
+                boolean next = rs.next();
+                assertTrue(next);
                 assertEquals(SCHEMA, rs.getString(1));
                 testSchemaUuids.add(rs.getString(2));
-                rs.next();
+                next = rs.next();
+                assertTrue(next);
                 assertEquals("SPLICE", rs.getString(1));
                 spliceSchemaUuids.add(rs.getString(2));
             }
@@ -162,7 +164,7 @@ public class MultiDatabaseIT {
             classWatcher.connectionBuilder().database(OTHER_DB + "_NO_CREATE").build();
             Assert.fail("An exception should be thrown");
         } catch (SQLException e) {
-            Assert.assertEquals("XJ040", e.getSQLState()); // XXX (arnaud multidb) should we throw another exception?
+            Assert.assertEquals("42Y18", e.getSQLState());
         }
     }
 }

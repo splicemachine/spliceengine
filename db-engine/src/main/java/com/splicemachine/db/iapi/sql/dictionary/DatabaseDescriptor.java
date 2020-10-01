@@ -34,7 +34,14 @@ package com.splicemachine.db.iapi.sql.dictionary;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import sun.reflect.generics.reflectiveObjects.NotImplementedException;
 
 import java.io.Externalizable;
@@ -264,5 +271,51 @@ public final class DatabaseDescriptor extends TupleDescriptor implements UniqueT
     }
     public void setDataDictionary(DataDictionary dataDictionary) {
         this.dataDictionary = dataDictionary;
+    }
+
+    /**
+     * Drop this database.
+     * Drops the database if it is empty.
+     * @throws StandardException Schema could not be dropped.
+     */
+    public void drop(LanguageConnectionContext lcc,
+                     Activation activation) throws StandardException
+    {
+        DataDictionary dd = getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
+        TransactionController tc = lcc.getTransactionExecute();
+
+        // First drop restrict the default SPLICE schema:
+        SchemaDescriptor spliceSchemaDesc = dd.getSchemaDescriptor(getUUID(), Property.DEFAULT_USER_NAME, tc, false);
+        if (spliceSchemaDesc != null) {
+            spliceSchemaDesc.drop(lcc, activation);
+        }
+
+        /*
+         ** Make sure the database is empty.
+         ** In the future we want to drop everything
+         ** in the database if it is CASCADE.
+         */
+        if (!dd.isDatabaseEmpty(this))
+        {
+            throw StandardException.newException(SQLState.LANG_DATABASE_NOT_EMPTY, getDatabaseName());
+        }
+
+        /* Prepare all dependents to invalidate.  (This is there chance
+         * to say that they can't be invalidated.  For example, an open
+         * cursor referencing a table/view that the user is attempting to
+         * drop.) If no one objects, then invalidate any dependent objects.
+         */
+        dm.invalidateFor(this, DependencyManager.DROP_DATABASE, lcc);
+
+        dd.dropDatabaseDescriptor(getDatabaseName(), tc);
+
+        /*
+         ** If we have dropped the current default databae,
+         ** then we will set the default to null.  The
+         ** LCC is free to set the new default database to
+         ** some system defined default.
+         */
+        // lcc.resetSchemaUsages(activation, getDatabaseName()); XXX (arnaud multidb) implement that?
     }
 }

@@ -115,7 +115,7 @@ public class JarUtil
       @exception StandardException Opps
       */
     private long add(final InputStream is) throws StandardException {
-        return lcc.getDatabase().addJar(is,this);
+        return lcc.getSpliceInstance().addJar(is,this);
     }
 
     /**
@@ -147,7 +147,7 @@ public class JarUtil
       @exception StandardException Opps
       */
     private void drop() throws StandardException {
-        lcc.getDatabase().dropJar(this);
+        lcc.getSpliceInstance().dropJar(this);
     }
 
     /**
@@ -187,7 +187,7 @@ public class JarUtil
       @exception StandardException Opps
       */
     private long replace(InputStream is) throws StandardException {
-        return lcc.getDatabase().replaceJar(is,this);
+        return lcc.getSpliceInstance().replaceJar(is,this);
     }
 
     /**
@@ -197,7 +197,7 @@ public class JarUtil
     public FileInfoDescriptor getInfo()
          throws StandardException
     {
-        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabase().getId(), schemaName, null, true);
+        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, null, true);
         return dd.getFileInfoDescriptor(sd,sqlName);
     }
 

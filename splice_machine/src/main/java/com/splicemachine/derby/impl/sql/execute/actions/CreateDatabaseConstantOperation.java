@@ -105,39 +105,8 @@ public class CreateDatabaseConstantOperation extends DDLConstantAction {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS, "Database" , dbName);
         }
 
-        Properties p = new Properties();
-        p.put(Attribute.USERNAME_ATTR, "splice"); // XXX (arnaud multidb) provide different credentials to create new DB
-        p.put(Attribute.PASSWORD_ATTR, "admin");
-        AtomicReference<StandardException> exception = new AtomicReference<>();
-        AtomicReference<UUID> dbUuid = new AtomicReference<>();
-        Runnable createDb = () -> {
-            BasicDatabase.isCreate.set(true);
-            try {
-                if (!Monitor.startPersistentService(dbName, p)) {
-                    throw StandardException.newException(SQLState.CREATE_DATABASE_FAILED, dbName);
-                }
-                InternalDatabase database = (InternalDatabase) Monitor.findService(Property.DATABASE_MODULE, dbName);
-                dbUuid.set(database.getId());
-            } catch (StandardException e) {
-                exception.set(e);
-            } finally {
-                BasicDatabase.isCreate.set(false);
-            }
-        };
-
-        Thread thread = new Thread(createDb);
-        thread.start();
-        try {
-            thread.join();
-        } catch (InterruptedException e) {
-            throw StandardException.plainWrapException(e);
-        }
-
-        if (exception.get() != null) {
-            throw exception.get();
-        }
-        SystemProcedures.addDatabase(dbName, "PLACEHOLDER", dbUuid.get(), activation.getLanguageConnectionContext());
-
+        // XXX (arnaud multidb) Replace placeholder with actual authorization_id
+        SystemProcedures.addDatabase(dbName, "PLACEHOLDER", activation.getLanguageConnectionContext(), false);
 
         if (!isDatabasePresent(activation)) {
             throw StandardException.newException(SQLState.CREATE_DATABASE_FAILED, dbName);

@@ -74,7 +74,7 @@ public interface DataSetProcessor {
      * Creates an operation context for executing a function.
      *
      */
-    <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation);
+    <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) throws StandardException;
 
     /**
      * Creates an operation context based only on the supplied activation

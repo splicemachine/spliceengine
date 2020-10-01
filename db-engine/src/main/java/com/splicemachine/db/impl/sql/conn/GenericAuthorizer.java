@@ -79,7 +79,7 @@ public class GenericAuthorizer implements Authorizer {
       */
     private boolean connectionMustRemainReadOnly()
     {
-        return lcc.getDatabase().isReadOnly() ||
+        return lcc.getSpliceInstance().isReadOnly() ||
                 (userAccessLevel == READ_ACCESS);
     }
 

@@ -143,11 +143,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private DataSetProcessorType type;
 
     private final String ipAddress;
-    private InternalDatabase db;
+    private InternalDatabase spliceInstance;
+    private String dbName;
 
     private final int instanceNumber;
     private String drdaID;
-    private String dbname;
     private String rdbIntTkn;
 
     private Object lastQueryTree; // for debugging
@@ -212,7 +212,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private int outermostTrigger=-1;
 
     protected Authorizer authorizer;
-    protected String userName=null; //The name the user connects with.
+    protected String userName; //The name the user connects with.
     protected List<String> groupuserlist = null; // name of ldap user group
 
     //May still be quoted.
@@ -352,12 +352,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             TransactionController tranCtrl,
             LanguageFactory lf,
             LanguageConnectionFactory lcf,
-            InternalDatabase db,
+            InternalDatabase spliceInstance,
             String userName,
             List<String> groupuserlist,
             int instanceNumber,
             String drdaID,
-            String dbname,
+            String dbName,
             String rdbIntTkn,
             DataSetProcessorType type,
             boolean skipStats,
@@ -365,7 +365,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String ipAddress,
             String defaultSchema,
             Properties connectionProperties
-            ) throws StandardException{
+    ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
         tran=tranCtrl;
@@ -376,12 +376,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         of=lcf.getOptimizerFactory();
         langFactory=lf;
         connFactory=lcf;
-        this.db=db;
+        this.spliceInstance = spliceInstance;
+        this.dbName = dbName;
         this.userName=userName;
         this.groupuserlist=groupuserlist;
         this.instanceNumber=instanceNumber;
         this.drdaID=drdaID;
-        this.dbname=dbname;
         this.rdbIntTkn=rdbIntTkn;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
@@ -389,7 +389,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         /* Find out whether or not to log info on executing statements to error log
          */
         String logStatementProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logStatementText");
-        logStatementText=logStatementProperty == null || Boolean.valueOf(logStatementProperty);
+        logStatementText=logStatementProperty == null || Boolean.parseBoolean(logStatementProperty);
         // log statements by default
         if (!logStatementText) {
             stmtLogger.setLevel(Level.OFF);
@@ -400,7 +400,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                 (maxStatementLogLenStr);
 
         String logQueryPlanProperty=PropertyUtil.getCachedDatabaseProperty(this,"derby.language.logQueryPlan");
-        logQueryPlan=Boolean.valueOf(logQueryPlanProperty);
+        logQueryPlan=Boolean.parseBoolean(logQueryPlanProperty);
 
         try {
             String valueString = PropertyUtil.getCachedDatabaseProperty(this, "derby.language.tableLimitForExhaustiveSearch");
@@ -415,7 +415,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String nljPredPushDownString =
                     PropertyUtil.getCachedDatabaseProperty(this, Property.DISABLE_NLJ_PREIDCATE_PUSH_DOWN);
             if (nljPredPushDownString != null)
-                nljPredicatePushDownDisabled = Boolean.valueOf(nljPredPushDownString);
+                nljPredicatePushDownDisabled = Boolean.parseBoolean(nljPredPushDownString);
         } catch (Exception e) {
             // no op, use default value 6
         }
@@ -476,7 +476,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String sessionUser=null;
 
     @Override
-    public void initialize() throws StandardException{
+    public void initialize() throws StandardException{ // XXX (arnaud/multidb) those default values must be set up per DB
         interruptedException=null;
         sessionUser=IdUtil.getUserAuthorizationId(userName);
         /*
@@ -501,6 +501,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
          */
         if(getDefaultSchema()==null)
             setDefaultSchema(sd);
+
+        setCurrentDatabase(getDataDictionary().getDatabaseDescriptor(dbName, getTransactionCompile()));
     }
 
     /*
@@ -557,7 +559,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         getSessionUserId(),
                         getSessionUserId(),
                         null,
-                        getDatabase().getId(),
+                        getDatabaseId(),
                         false);
             }
 
@@ -2181,17 +2183,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public SchemaDescriptor getDefaultSchema() {
+    public SchemaDescriptor getDefaultSchema() throws StandardException {
         return getCurrentSQLSessionContext().getDefaultSchema();
     }
 
     @Override
-    public SchemaDescriptor getDefaultSchema(Activation a) {
+    public SchemaDescriptor getDefaultSchema(Activation a) throws StandardException {
         return getCurrentSQLSessionContext(a).getDefaultSchema();
     }
 
     @Override
-    public String getCurrentSchemaName() {
+    public DatabaseDescriptor getCurrentDatabase() throws StandardException {
+        return getCurrentSQLSessionContext().getCurrentDatabase();
+    }
+
+    @Override
+    public String getCurrentSchemaName() throws StandardException {
         // getCurrentSchemaName with no arg is used even
         // at run-time but only in places(*) where the statement context
         // can be relied on, AFAICT.
@@ -2206,7 +2213,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public String getCurrentSchemaName(Activation a) {
+    public String getCurrentSchemaName(Activation a) throws StandardException {
         SchemaDescriptor s=getDefaultSchema(a);
         if(null==s)
             return null;
@@ -2217,6 +2224,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public boolean isInitialDefaultSchema(String schemaName){
         return cachedInitialDefaultSchemaDescr.getSchemaName().
                 equals(schemaName);
+    }
+
+    @Override
+    public void setCurrentDatabase(DatabaseDescriptor desc) throws StandardException {
+        getCurrentSQLSessionContext().setCurrentDatabase(desc);
+        dbName = desc.getDatabaseName();
     }
 
     @Override
@@ -2426,7 +2439,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public StatementContext pushStatementContext(boolean isAtomic,boolean isForReadOnly,
                                                  String stmtText,ParameterValueSet pvs,
                                                  boolean rollbackParentContext,
-                                                 long timeoutMillis) {
+                                                 long timeoutMillis) throws StandardException {
         int parentStatementDepth=statementDepth;
         boolean inTrigger=false;
         boolean parentIsAtomic=false;
@@ -2700,13 +2713,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public InternalDatabase getDatabase(){
-        return db;
+    public InternalDatabase getSpliceInstance(){
+        return spliceInstance;
     }
 
     @Override
-    public UUID getDatabaseId(){
-        return db.getId();
+    public UUID getDatabaseId() throws StandardException {
+        return getCurrentDatabase().getUUID();
     }
 
     @Override
@@ -3122,7 +3135,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public DataDictionary getDataDictionary(){
-        return getDatabase().getDataDictionary();
+        return getSpliceInstance().getDataDictionary();
     }
 
     @Override
@@ -3303,8 +3316,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public String getDbname(){
-        return dbname;
+    public String getDbname() {
+        return dbName;
     }
 
     @Override
@@ -3313,7 +3326,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public StringBuffer appendErrorInfo(){
+    public StringBuffer appendErrorInfo() {
 
         TransactionController tc=getTransactionExecute();
         if(tc==null)
@@ -3341,17 +3354,17 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void setCurrentRole(Activation a, String role) {
+    public void setCurrentRole(Activation a, String role) throws StandardException {
         getCurrentSQLSessionContext(a).setRole(role);
     }
 
     @Override
-    public void setCurrentRoles(Activation a, List<String> roles) {
+    public void setCurrentRoles(Activation a, List<String> roles) throws StandardException {
         getCurrentSQLSessionContext(a).setRoles(roles);
     }
 
     @Override
-    public List<String> getCurrentRoles(Activation a) {
+    public List<String> getCurrentRoles(Activation a) throws StandardException {
         return getCurrentSQLSessionContext(a).getRoles();
     }
 
@@ -3376,22 +3389,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public String getCurrentUserId(Activation a) {
+    public String getCurrentUserId(Activation a) throws StandardException {
         return getCurrentSQLSessionContext(a).getCurrentUser();
     }
 
     @Override
-    public void setCurrentUser(Activation a, String userName) {
+    public void setCurrentUser(Activation a, String userName) throws StandardException {
         getCurrentSQLSessionContext(a).setUser(userName);
     }
 
     @Override
-    public void setCurrentGroupUser(Activation a, List<String> groupUsers) {
+    public void setCurrentGroupUser(Activation a, List<String> groupUsers) throws StandardException {
         getCurrentSQLSessionContext(a).setCurrentGroupUser(groupUsers);
     }
 
     @Override
-    public List<String> getCurrentGroupUser(Activation a) {
+    public List<String> getCurrentGroupUser(Activation a) throws StandardException {
         return getCurrentSQLSessionContext(a).getCurrentGroupUser();
     }
 
@@ -3450,12 +3463,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public void removeRole(Activation a, String roleName) {
+    public void removeRole(Activation a, String roleName) throws StandardException {
         getCurrentSQLSessionContext(a).removeRole(roleName);
     }
 
     @Override
-    public void removeRoles(Activation a, List<String> rolesToRemove) {
+    public void removeRoles(Activation a, List<String> rolesToRemove) throws StandardException {
         if (rolesToRemove == null || rolesToRemove.isEmpty())
             return;
 
@@ -3526,7 +3539,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      *
      * @param activation the activation
      */
-    private SQLSessionContext getCurrentSQLSessionContext(Activation activation) {
+    private SQLSessionContext getCurrentSQLSessionContext(Activation activation) throws StandardException {
         SQLSessionContext curr;
 
         Activation parent=activation.getParentActivation();
@@ -3548,7 +3561,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     /**
      * Return the current SQL session context based on statement context
      */
-    private SQLSessionContext getCurrentSQLSessionContext() {
+    private SQLSessionContext getCurrentSQLSessionContext() throws StandardException {
         StatementContext ctx=getStatementContext();
         SQLSessionContext curr;
 
@@ -3623,7 +3636,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             if (sd == null) {
                 sd = new SchemaDescriptor(
                         getDataDictionary(), definer, definer, null,
-                        getDatabase().getId(),
+                        getDatabaseId(),
                         false);
             }
 
@@ -3660,23 +3673,19 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public SQLSessionContext getTopLevelSQLSessionContext() {
+    public SQLSessionContext getTopLevelSQLSessionContext() throws StandardException {
         if(topLevelSSC==null){
-            topLevelSSC=new SQLSessionContextImpl(
-                    getInitialDefaultSchemaDescriptor(),
-                    getSessionUserId(),
-                    defaultRoles, groupuserlist);
+            topLevelSSC = createSQLSessionContext();
         }
         return topLevelSSC;
     }
 
 
     @Override
-    public SQLSessionContext createSQLSessionContext() {
-        return new SQLSessionContextImpl(
-                getInitialDefaultSchemaDescriptor(),
-                getSessionUserId() /* a priori */,
-                defaultRoles, groupuserlist);
+    public SQLSessionContext createSQLSessionContext() throws StandardException {
+        return new SQLSessionContextImpl(getDataDictionary().getDatabaseDescriptor(dbName, getTransactionCompile()),
+                getInitialDefaultSchemaDescriptor(), /* a priori */
+                getSessionUserId(), defaultRoles, groupuserlist);
     }
 
     /**

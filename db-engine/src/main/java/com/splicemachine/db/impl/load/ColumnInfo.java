@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.load;
 
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
@@ -45,7 +47,7 @@ import java.sql.SQLException;
 import java.util.*;
 
 /**
- *	
+ *
  * This class provides supportto  create casting/conversions required to 
  * perform import. Import VTI  gives all the data in VARCHAR type becuase data
  * in the files is in CHAR format. There is no implicit cast availabile from
@@ -60,111 +62,115 @@ public class ColumnInfo {
     private ArrayList insertColumnNames;
     private ArrayList columnTypes ;
     private ArrayList jdbcColumnTypes;
-	private int noOfColumns;
-	private Connection conn;
-	private String tableName;
-	private String schemaName;
+    private int noOfColumns;
+    private Connection conn;
+    private String tableName;
+    private String schemaName;
     private HashMap udtClassNames;
 
-	/**
-	 * Initialize the column type and name  information
-	 * @param conn  - connection to use for metadata queries
-	 * @param sName - table's schema
-	 * @param tName - table Name
-	 * @param insertColumnList - an optional list of column identifiers
-	 * @exception SQLException on error
-	 */
-	public ColumnInfo(Connection conn,
-					  String sName, 
-					  String tName,
-					  List<String> insertColumnList)
-		throws SQLException  {
-		insertColumnNames = new ArrayList(1);
-		columnTypes = new ArrayList(1);
+    /**
+     * Initialize the column type and name  information
+     * @param conn  - connection to use for metadata queries
+     * @param sName - table's schema
+     * @param tName - table Name
+     * @param insertColumnList - an optional list of column identifiers
+     * @exception SQLException on error
+     */
+    public ColumnInfo(Connection conn,
+                      String sName,
+                      String tName,
+                      List<String> insertColumnList)
+        throws SQLException  {
+        insertColumnNames = new ArrayList(1);
+        columnTypes = new ArrayList(1);
         jdbcColumnTypes = new ArrayList(1);
         udtClassNames = new HashMap();
-		noOfColumns = 0;
-		this.conn = conn;
+        noOfColumns = 0;
+        this.conn = conn;
 
         if (sName == null) {
             // Use the current schema if no schema is specified.
-            sName = ((EngineConnection) conn).getCurrentSchemaName();
+            try {
+                sName = ((EngineConnection) conn).getCurrentSchemaName();
+            } catch (StandardException se) {
+                throw PublicAPI.wrapStandardException(se);
+            }
         }
 
-		this.schemaName = sName;
-		this.tableName =  tName;
+        this.schemaName = sName;
+        this.tableName =  tName;
 
-		if(insertColumnList != null && ! insertColumnList.isEmpty()) {
-			for (String columnName : insertColumnList) {
-				if(!initializeColumnInfo(columnName.trim())) {
-					if(tableExists())
-						throw  LoadError.invalidColumnName(columnName.trim());
-					else {
-						String entityName = (schemaName !=null ? 
-											 schemaName + "." + tableName :tableName); 
-						throw LoadError.tableNotFound(entityName);
-					}
-				}
-			}
-		} else {
-		 	//All columns in the table
-			if(!initializeColumnInfo(null)) {
-				String entityName = (schemaName !=null ? 
-									 schemaName + "." + tableName :tableName); 
-				throw LoadError.tableNotFound(entityName);
-			}
-		}
+        if(insertColumnList != null && ! insertColumnList.isEmpty()) {
+            for (String columnName : insertColumnList) {
+                if(!initializeColumnInfo(columnName.trim())) {
+                    if(tableExists())
+                        throw  LoadError.invalidColumnName(columnName.trim());
+                    else {
+                        String entityName = (schemaName !=null ?
+                                             schemaName + "." + tableName :tableName);
+                        throw LoadError.tableNotFound(entityName);
+                    }
+                }
+            }
+        } else {
+             //All columns in the table
+            if(!initializeColumnInfo(null)) {
+                String entityName = (schemaName !=null ?
+                                     schemaName + "." + tableName :tableName);
+                throw LoadError.tableNotFound(entityName);
+            }
+        }
 
-	}
+    }
 
-	private boolean initializeColumnInfo(String columnPattern)
-		throws SQLException {
-		DatabaseMetaData dmd = conn.getMetaData();
-		ResultSet rs = dmd.getColumns(null, 
-									  schemaName,
-									  tableName,
-									  columnPattern);
-		boolean foundTheColumn=false;
-		while (rs.next()) {
-			// 4.COLUMN_NAME String => column name
-			String columnName = rs.getString(4);
-			// 5.DATA_TYPE short => SQL type from java.sql.Types
-			short dataType = rs.getShort(5);
-			// 6.TYPE_NAME String => Data source dependent type name
-			String typeName = rs.getString(6);
-			// 7.COLUMN_SIZE int => column size. For char or date types
-			// this is the maximum number of characters, for numeric or
-			// decimal types this is precision.
-			int columnSize = rs.getInt(7);
-			// 9.DECIMAL_DIGITS int => the number of fractional digits
-			int decimalDigits = rs.getInt(9);
-			// 10.NUM_PREC_RADIX int => Radix (typically either 10 or 2)
-			int numPrecRadix = rs.getInt(10);
-			foundTheColumn = true;
-			if(importExportSupportedType(dataType)) {
-				insertColumnNames.add(columnName);
-				String sqlType = getSqlType(typeName, columnSize, decimalDigits);
-				columnTypes.add(sqlType);
+    private boolean initializeColumnInfo(String columnPattern)
+        throws SQLException {
+        DatabaseMetaData dmd = conn.getMetaData();
+        ResultSet rs = dmd.getColumns(null,
+                                      schemaName,
+                                      tableName,
+                                      columnPattern);
+        boolean foundTheColumn=false;
+        while (rs.next()) {
+            // 4.COLUMN_NAME String => column name
+            String columnName = rs.getString(4);
+            // 5.DATA_TYPE short => SQL type from java.sql.Types
+            short dataType = rs.getShort(5);
+            // 6.TYPE_NAME String => Data source dependent type name
+            String typeName = rs.getString(6);
+            // 7.COLUMN_SIZE int => column size. For char or date types
+            // this is the maximum number of characters, for numeric or
+            // decimal types this is precision.
+            int columnSize = rs.getInt(7);
+            // 9.DECIMAL_DIGITS int => the number of fractional digits
+            int decimalDigits = rs.getInt(9);
+            // 10.NUM_PREC_RADIX int => Radix (typically either 10 or 2)
+            int numPrecRadix = rs.getInt(10);
+            foundTheColumn = true;
+            if(importExportSupportedType(dataType)) {
+                insertColumnNames.add(columnName);
+                String sqlType = getSqlType(typeName, columnSize, decimalDigits);
+                columnTypes.add(sqlType);
                 jdbcColumnTypes.add((int) dataType);
-				noOfColumns++;
+                noOfColumns++;
 
                 if ( dataType == java.sql.Types.JAVA_OBJECT ) {
                     udtClassNames.put( "COLUMN" +  noOfColumns, getUDTClassName( dmd, typeName ) );
                 }
-			}else {
-				rs.close();
-				throw
-					LoadError.nonSupportedTypeColumn(columnName,typeName);
-			}
+            }else {
+                rs.close();
+                throw
+                    LoadError.nonSupportedTypeColumn(columnName,typeName);
+            }
 
-		}
+        }
 
-		rs.close();
-		return foundTheColumn;
-	}
+        rs.close();
+        return foundTheColumn;
+    }
 
-	private String getSqlType(String typeName, int columnSize, int decimalDigits) {
-	    if (typeName.equals("VARCHAR () FOR BIT DATA")) {
+    private String getSqlType(String typeName, int columnSize, int decimalDigits) {
+        if (typeName.equals("VARCHAR () FOR BIT DATA")) {
             return  "VARCHAR (" + columnSize + ") FOR BIT DATA";
         }
         else if (typeName.equals("CHAR () FOR BIT DATA")) {
@@ -205,49 +211,49 @@ public class ColumnInfo {
     }
 
 
-	//return true if the given type is supported by import/export
-	public  static final boolean importExportSupportedType(int type){
+    //return true if the given type is supported by import/export
+    public  static final boolean importExportSupportedType(int type){
 
-		return !(type == java.sql.Types.BIT ||
-				 type == java.sql.Types.OTHER ||
-				 type == JDBC40Translation.SQLXML ); 
-	}
+        return !(type == java.sql.Types.BIT ||
+                 type == java.sql.Types.OTHER ||
+                 type == JDBC40Translation.SQLXML );
+    }
 
 
 
-	public static String getTypeOption(String type , int length , int precision , int scale) {
+    public static String getTypeOption(String type , int length , int precision , int scale) {
 
-			if ((type.equals("CHAR") ||
-				 type.equals("BLOB") ||
-				 type.equals("CLOB") ||
-				 type.equals("VARCHAR")) && length != 0)
-			{
-				 return "(" + length + ")";
-			}
+            if ((type.equals("CHAR") ||
+                 type.equals("BLOB") ||
+                 type.equals("CLOB") ||
+                 type.equals("VARCHAR")) && length != 0)
+            {
+                 return "(" + length + ")";
+            }
 
-			if (type.equals("FLOAT")  && precision != 0)
-				return  "(" + precision + ")";
+            if (type.equals("FLOAT")  && precision != 0)
+                return  "(" + precision + ")";
 
-			//there are three format of decimal and numeric. Plain decimal, decimal(x)
-			//and decimal(x,y). x is precision and y is scale.
-			if (type.equals("DECIMAL") ||
-				type.equals("NUMERIC")) 
-			{
-				if ( precision != 0 && scale == 0)
-					return "(" + precision + ")";
-				else if (precision != 0 && scale != 0)
-					return "(" + precision + "," + scale + ")";
-				else if(precision == 0 && scale!=0)
-					return "(" + scale + ")";
-			}
+            //there are three format of decimal and numeric. Plain decimal, decimal(x)
+            //and decimal(x,y). x is precision and y is scale.
+            if (type.equals("DECIMAL") ||
+                type.equals("NUMERIC"))
+            {
+                if ( precision != 0 && scale == 0)
+                    return "(" + precision + ")";
+                else if (precision != 0 && scale != 0)
+                    return "(" + precision + "," + scale + ")";
+                else if(precision == 0 && scale!=0)
+                    return "(" + scale + ")";
+            }
 
-			if ((type.equals("DECIMAL") ||
-				 type.equals("NUMERIC")) && scale != 0)
-				return "(" + scale + ")";
+            if ((type.equals("DECIMAL") ||
+                 type.equals("NUMERIC")) && scale != 0)
+                return "(" + scale + ")";
         
-			//no special type option
-			return "";
-	}
+            //no special type option
+            return "";
+    }
 
     /**
      * Get the column type names.
@@ -284,70 +290,70 @@ public class ColumnInfo {
         return sb.toString();
     }
 
-	// write a Serializable as a string
-	public static String stringifyObject( Object udt ) throws Exception {
-		DynamicByteArrayOutputStream dbaos = new DynamicByteArrayOutputStream();
-		ObjectOutputStream oos = new ObjectOutputStream( dbaos );
+    // write a Serializable as a string
+    public static String stringifyObject( Object udt ) throws Exception {
+        DynamicByteArrayOutputStream dbaos = new DynamicByteArrayOutputStream();
+        ObjectOutputStream oos = new ObjectOutputStream( dbaos );
 
-		oos.writeObject( udt );
+        oos.writeObject( udt );
 
-		byte[] buffer = dbaos.getByteArray();
-		int length = dbaos.getUsed();
+        byte[] buffer = dbaos.getByteArray();
+        int length = dbaos.getUsed();
 
-		return StringUtil.toHexString( buffer, 0, length );
-	}
+        return StringUtil.toHexString( buffer, 0, length );
+    }
 
 
-	/**
+    /**
      * Get the class names of udt columns as a string.
      */
     public String getUDTClassNames() throws Exception {
         return stringifyObject( udtClassNames );
     }
 
-	/* returns comma seperated column Names delimited by quotes for the insert
+    /* returns comma seperated column Names delimited by quotes for the insert
      * statement
-	 * eg: "C1", "C2" , "C3" , "C4" 
-	 */
-	public String getInsertColumnNames()
-	{
-		StringBuilder sb = new StringBuilder();
-		boolean first = true;
-		for(int index = 0 ; index < noOfColumns; index++)
-		{
-			if(!first)
-				sb.append(", ");
-			else
-				first = false;
+     * eg: "C1", "C2" , "C3" , "C4"
+     */
+    public String getInsertColumnNames()
+    {
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for(int index = 0 ; index < noOfColumns; index++)
+        {
+            if(!first)
+                sb.append(", ");
+            else
+                first = false;
             // Column names can be SQL reserved words, or they can contain
             // spaces and special characters, so it is necessary delimit them
             // for insert to work correctly.
             String name = (String) insertColumnNames.get(index);
             sb.append(IdUtil.normalToDelimited(name));
-		}
-	
-		//there is no column info available
-		if(first)
-			return null;
-		else
-			return sb.toString();
-	}
+        }
 
-	//Return true if the given table exists in the database
-	private boolean tableExists() throws SQLException
-	{
-		DatabaseMetaData dmd = conn.getMetaData();
-		ResultSet rs = dmd.getTables(null, schemaName, tableName, null);
-		boolean foundTable = false;
-		if(rs.next())
-		{
-			//found the entry
-			foundTable = true;
-		}
-		
-		rs.close();
-		return foundTable;
-	}
+        //there is no column info available
+        if(first)
+            return null;
+        else
+            return sb.toString();
+    }
+
+    //Return true if the given table exists in the database
+    private boolean tableExists() throws SQLException
+    {
+        DatabaseMetaData dmd = conn.getMetaData();
+        ResultSet rs = dmd.getTables(null, schemaName, tableName, null);
+        boolean foundTable = false;
+        if(rs.next())
+        {
+            //found the entry
+            foundTable = true;
+        }
+
+        rs.close();
+        return foundTable;
+    }
 
     /*
      * Get the expected vti column type names. This information was 
@@ -390,15 +396,15 @@ public class ColumnInfo {
         
         HashMap retval = new HashMap();
 
-		for (Object o : stringMap.entrySet()) {
-			Map.Entry entry = (Map.Entry) o;
-			String columnName = (String) entry.getKey();
-			String className = (String) entry.getValue();
+        for (Object o : stringMap.entrySet()) {
+            Map.Entry entry = (Map.Entry) o;
+            String columnName = (String) entry.getKey();
+            String className = (String) entry.getValue();
 
-			Class classValue = Class.forName(className);
+            Class classValue = Class.forName(className);
 
-			retval.put(columnName, classValue);
-		}
+            retval.put(columnName, classValue);
+        }
 
         return retval;
     }
@@ -411,12 +417,12 @@ public class ColumnInfo {
     {
         if ( stringVersion == null ) { return null; }
 
-		return (HashMap) ImportAbstract.destringifyObject( stringVersion );
+        return (HashMap) ImportAbstract.destringifyObject( stringVersion );
     }
 
     public ArrayList getImportColumns() {
-    	return insertColumnNames;
-	}
+        return insertColumnNames;
+    }
 }
 
 

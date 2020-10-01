@@ -476,7 +476,7 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
          */
         dm.invalidateFor(this, DependencyManager.DROP_SCHEMA, lcc);
 
-        dd.dropSchemaDescriptor(lcc.getDatabase().getId(), getSchemaName(), tc);
+        dd.dropSchemaDescriptor(getDatabaseId(), getSchemaName(), tc);
 
         /*
          ** If we have dropped the current default schema,

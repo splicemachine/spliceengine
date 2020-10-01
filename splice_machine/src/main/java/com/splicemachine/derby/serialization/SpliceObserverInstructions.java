@@ -113,7 +113,7 @@ public class SpliceObserverInstructions implements Externalizable{
         }
     }
 
-    public static SpliceObserverInstructions create(ActivationHolder holder){
+    public static SpliceObserverInstructions create(ActivationHolder holder) throws StandardException {
         ActivationContext activationContext=ActivationContext.create(holder);
         LanguageConnectionContext lcc=holder.getActivation().getLanguageConnectionContext();
         TriggerExecutionStack triggerExecutionStack=null;

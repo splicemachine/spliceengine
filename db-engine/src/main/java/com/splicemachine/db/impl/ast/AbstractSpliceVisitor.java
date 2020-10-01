@@ -377,6 +377,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(DropDatabaseNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(DropIndexNode node) throws StandardException {
         return defaultVisit(node);
     }

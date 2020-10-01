@@ -1033,7 +1033,7 @@ public class SystemProcedures{
 
         try{
             DataDictionary data_dictionary=lcc.getDataDictionary();
-            UUID dbId = lcc.getDatabase().getId();
+            UUID dbId = lcc.getDatabaseId();
             SchemaDescriptor sd = data_dictionary.getSchemaDescriptor(dbId, schema, tc, true);
             TableDescriptor td = data_dictionary.getTableDescriptor(tablename,sd,tc);
 
@@ -1733,7 +1733,7 @@ public class SystemProcedures{
 
     }
 
-    public static void addDatabase(String dbName, String aid, UUID uuid, LanguageConnectionContext lcc) throws StandardException {
+    public static UUID addDatabase(String dbName, String aid, LanguageConnectionContext lcc, boolean setDatabase) throws StandardException {
         DataDictionary dd=lcc.getDataDictionary();
         TransactionController tc=lcc.getTransactionExecute();
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
@@ -1741,10 +1741,11 @@ public class SystemProcedures{
 
         // if the database already exists, do nothing, we already have a database
         // let the admin handle that
-        if ((dbd != null) && (dbd.getUUID() != null)){
-            assert dbd.getUUID().equals(uuid);
-            return;
+        if (dbd != null) {
+            return dbd.getUUID();
         }
+
+        UUID uuid = dd.getUUIDFactory().createUUID();
 
         /*
          ** Inform the data dictionary that we are about to write to it.
@@ -1758,6 +1759,11 @@ public class SystemProcedures{
         dd.startWriting(lcc);
         dbd = ddg.newDatabaseDescriptor(dbName, aid, uuid);
         dd.addDescriptor(dbd, null, DataDictionary.SYSDATABASES_CATALOG_NUM, false, tc, false);
+        if (setDatabase) {
+            lcc.setCurrentDatabase(dbd);
+        }
+        dd.createSpliceSchema(tc, uuid);
+        return uuid;
     }
 
     /**
@@ -1774,7 +1780,7 @@ public class SystemProcedures{
         DataDictionary dd=lcc.getDataDictionary();
         TransactionController tc=lcc.getTransactionExecute();
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-        UUID dbId =lcc.getDatabase().getId();
+        UUID dbId =lcc.getDatabaseId();
         SchemaDescriptor sd = dd.getSchemaDescriptor(dbId, schemaName, lcc.getTransactionExecute(), false);
 
         // if the schema already, do nothing,  we already have a schema for the user
@@ -1794,7 +1800,7 @@ public class SystemProcedures{
             ** the transaction.
             */
         dd.startWriting(lcc);
-        sd = ddg.newSchemaDescriptor(schemaName, aid, tmpSchemaId, lcc.getDatabase().getId());
+        sd = ddg.newSchemaDescriptor(schemaName, aid, tmpSchemaId, lcc.getDatabaseId());
         dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
     }
 
@@ -2068,7 +2074,7 @@ public class SystemProcedures{
     public static Long SYSCS_PEEK_AT_SEQUENCE(String schemaName,String sequenceName)
             throws SQLException{
         try{
-            UUID dbId = ConnectionUtil.getCurrentLCC().getDatabase().getId();
+            UUID dbId = ConnectionUtil.getCurrentLCC().getDatabaseId();
             return ConnectionUtil.getCurrentLCC().getDataDictionary().peekAtSequence(dbId, schemaName,sequenceName);
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);

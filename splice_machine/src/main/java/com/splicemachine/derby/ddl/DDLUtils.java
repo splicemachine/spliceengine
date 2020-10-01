@@ -378,22 +378,21 @@ public class DDLUtils {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG,"preDropSchema with change=%s",change);
         SpliceTransactionResourceImpl transactionResource = null;
-        boolean prepared = false;
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(change.getTxnId());
-            transactionResource = new SpliceTransactionResourceImpl();
-            prepared = transactionResource.marshallTransaction(txn);
-            LanguageConnectionContext lcc = transactionResource.getLcc();
-            dd.getDataDictionaryCache().schemaCacheRemove(lcc.getDatabaseId(), change.getDropSchema().getSchemaName());
-            dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(change.getDropSchema().getSchemaUUID()));
-        } catch (SQLException e) {
-            e.printStackTrace();
-            throw StandardException.plainWrapException(e);
-        } finally {
-            if (prepared) {
-                transactionResource.close();
-            }
+        DDLMessage.DropSchema dropSchema = change.getDropSchema();
+        if (dropSchema.hasDbUUID()) {
+            dd.getDataDictionaryCache().schemaCacheRemove(ProtoUtil.getDerbyUUID(dropSchema.getDbUUID()), dropSchema.getSchemaName());
+        } else { // This was sent by a region server that does not support multidb yet. We invalidate the whole cache
+            SpliceLogUtils.warn(LOG, "We cannot invalidate schema cache for %s without DB information. " +
+                    "Invalidating the whole cache instead", dropSchema.getSchemaName());
+            dd.getDataDictionaryCache().clearSchemaCache();
         }
+        dd.getDataDictionaryCache().oidSchemaCacheRemove(ProtoUtil.getDerbyUUID(dropSchema.getSchemaUUID()));
+    }
+
+    public static void preDropDatabase(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"preDropDatabase with change=%s",change);
+        dd.getDataDictionaryCache().databaseCacheRemove(change.getDropDatabase().getDbName());
     }
 
     public static void preUpdateSchemaOwner(DDLMessage.DDLChange change, DataDictionary dd, DependencyManager dm) throws StandardException {

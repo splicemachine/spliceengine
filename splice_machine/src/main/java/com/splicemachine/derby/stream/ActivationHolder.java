@@ -75,7 +75,7 @@ public class ActivationHolder implements Externalizable {
 
     }
 
-    public ActivationHolder(Activation activation, SpliceOperation operation) {
+    public ActivationHolder(Activation activation, SpliceOperation operation) throws StandardException {
         this.activation = activation;
         this.initialized = true;
         addSubOperations(operationsMap, operation);
@@ -176,7 +176,11 @@ public class ActivationHolder implements Externalizable {
     @Override
     public synchronized void writeExternal(ObjectOutput out) throws IOException {
         if(soi==null){
-            soi = SpliceObserverInstructions.create(this);
+            try {
+                soi = SpliceObserverInstructions.create(this);
+            } catch (StandardException e) {
+                throw new IOException(e);
+            }
         }
         out.writeObject(operationsList);
         out.writeObject(soi);

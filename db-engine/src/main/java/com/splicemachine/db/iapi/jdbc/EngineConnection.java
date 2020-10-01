@@ -30,6 +30,8 @@
  */
 package com.splicemachine.db.iapi.jdbc;
 
+import com.splicemachine.db.iapi.error.StandardException;
+
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
@@ -114,7 +116,7 @@ public interface EngineConnection extends Connection {
      * @return the current schema name
      * @throws java.sql.SQLException
      */
-    String getCurrentSchemaName() throws SQLException;
+    String getCurrentSchemaName() throws SQLException, StandardException;
 
     /**
      * Resets the connection before it is returned from a PooledConnection

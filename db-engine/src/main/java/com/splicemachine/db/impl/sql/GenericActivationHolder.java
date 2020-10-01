@@ -600,11 +600,11 @@ final public class GenericActivationHolder implements Activation
         return ac.getTargetVTI();
     }
 
-    public SQLSessionContext getSQLSessionContextForChildren() {
+    public SQLSessionContext getSQLSessionContextForChildren() throws StandardException {
         return ac.getSQLSessionContextForChildren();
     }
 
-    public SQLSessionContext setupSQLSessionContextForChildren(boolean push) {
+    public SQLSessionContext setupSQLSessionContextForChildren(boolean push) throws StandardException {
         return ac.setupSQLSessionContextForChildren(push);
     }
 

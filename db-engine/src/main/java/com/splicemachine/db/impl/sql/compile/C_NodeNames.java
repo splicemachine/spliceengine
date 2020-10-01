@@ -378,6 +378,8 @@ public interface C_NodeNames
 
     String CREATE_DATABASE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreateDatabaseNode";
 
+    String DROP_DATABASE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropDatabaseNode";
+
     // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 

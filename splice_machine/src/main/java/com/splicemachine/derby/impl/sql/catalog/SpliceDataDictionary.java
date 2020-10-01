@@ -608,7 +608,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     databaseVersion.getMinorVersionNumber(),databaseVersion.getPatchVersionNumber(),
                     databaseVersion.getSprintVersionNumber());
         }
-        if(create || Boolean.TRUE.equals(BasicDatabase.isCreate.get())) {
+        if(create) {
             SpliceAccessManager af=(SpliceAccessManager)Monitor.findServiceModule(this,AccessFactory.MODULE);
             ContextService.getFactory();
             SpliceTransactionManager txnManager=(SpliceTransactionManager)af.getTransaction(ContextService.getCurrentContextManager());

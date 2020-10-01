@@ -49,7 +49,7 @@ public interface OperationManager {
      * @param userId user for which we want the operations, or null for all operations
      * @return list of running operations for the given user
      */
-    List<Pair<UUID, RunningOperation>> runningOperations(String userId);
+    List<Pair<UUID, RunningOperation>> runningOperations(String userId) throws StandardException;
 
     /**
      * Kill a running operation. Only the user that started the operation might kill it. The database owner can kill any

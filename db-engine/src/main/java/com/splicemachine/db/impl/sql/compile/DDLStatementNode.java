@@ -269,7 +269,7 @@ abstract class DDLStatementNode extends StatementNode
             DataDictionary dd = getDataDictionary();
 
             sd  = new SchemaDescriptor(dd, schemaName,
-                    null, null, getLanguageConnectionContext().getDatabase().getId(), false);
+                    null, null, getLanguageConnectionContext().getDatabaseId(), false);
 
             if (isPrivilegeCollectionRequired())
                 cc.addRequiredSchemaPriv(schemaName, null, Authorizer.CREATE_SCHEMA_PRIV);

@@ -114,6 +114,7 @@ public interface ISpliceVisitor {
     Visitable visit(DeleteNode node) throws StandardException;
     Visitable visit(DenseRankFunctionNode node) throws StandardException;
     Visitable visit(DropAliasNode node) throws StandardException;
+    Visitable visit(DropDatabaseNode node) throws StandardException;
     Visitable visit(DropIndexNode node) throws StandardException;
     Visitable visit(DropRoleNode node) throws StandardException;
     Visitable visit(DropSchemaNode node) throws StandardException;

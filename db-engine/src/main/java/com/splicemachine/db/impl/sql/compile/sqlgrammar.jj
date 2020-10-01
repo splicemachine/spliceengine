@@ -3975,6 +3975,7 @@ dropStatements() throws StandardException :
 {
     <DROP>
         (
+            statementNode = dropDatabaseStatement() |
             statementNode = dropSchemaStatement() |
             statementNode = dropTableStatement() |
             statementNode = dropIndexStatement() |
@@ -16266,6 +16267,24 @@ dropSchemaStatement() throws StandardException :
         StatementNode stmt =  (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.DROP_SCHEMA_NODE,
                             schemaName,
+                            new Integer(StatementType.DROP_RESTRICT),
+                            getContextManager());
+
+        return stmt;
+    }
+}
+
+StatementNode
+dropDatabaseStatement() throws StandardException :
+{
+    String dbName;
+}
+{
+    <DATABASE> dbName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) <RESTRICT>
+    {
+        StatementNode stmt =  (StatementNode) nodeFactory.getNode(
+                            C_NodeTypes.DROP_DATABASE_NODE,
+                            dbName,
                             new Integer(StatementType.DROP_RESTRICT),
                             getContextManager());
 

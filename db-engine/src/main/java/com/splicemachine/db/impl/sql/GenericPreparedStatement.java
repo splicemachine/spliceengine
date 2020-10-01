@@ -742,7 +742,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
                     DataDictionary dd = lcc.getDataDictionary();
                     SPSDescriptor spsd = null;
                     if (execStmtName != null) {
-                        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabase().getId(), execSchemaName, lcc.getTransactionCompile(), true);
+                        SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), execSchemaName, lcc.getTransactionCompile(), true);
                         spsd = dd.getSPSDescriptor(execStmtName, sd);
                         spsd.makeInvalid(action, lcc);
                     }

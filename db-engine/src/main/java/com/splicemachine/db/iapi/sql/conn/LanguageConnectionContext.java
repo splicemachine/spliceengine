@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.OptimizerFactory;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
@@ -478,17 +479,17 @@ public interface LanguageConnectionContext extends Context {
      * @param a activation
      * @return String the authorization id
      */
-    String getCurrentUserId(Activation a);
+    String getCurrentUserId(Activation a) throws StandardException;
 
-    void setCurrentUser(Activation a, String userName);
+    void setCurrentUser(Activation a, String userName) throws StandardException;
 
-    void setCurrentGroupUser(Activation a, List<String> groupUsers);
+    void setCurrentGroupUser(Activation a, List<String> groupUsers) throws StandardException;
     /**
      * Get the current group user
      * @param a activation
      * @return String current group user
      */
-    public List<String> getCurrentGroupUser(Activation a);
+    public List<String> getCurrentGroupUser(Activation a) throws StandardException;
 
     /**
      *  Get the Authorization Id of the session user
@@ -504,7 +505,7 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return SchemaDescriptor    the default schema
      */
-    SchemaDescriptor getDefaultSchema();
+    SchemaDescriptor getDefaultSchema() throws StandardException;
 
     /**
      * Get the default schema (used at execution time).  At execution
@@ -517,7 +518,19 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return SchemaDescriptor    the default schema
      */
-    SchemaDescriptor getDefaultSchema(Activation a);
+    SchemaDescriptor getDefaultSchema(Activation a) throws StandardException;
+
+    /**
+     * Get the current database
+     *
+     * @return DatabaseDescriptor    the current database descriptor
+     */
+    DatabaseDescriptor getCurrentDatabase() throws StandardException;
+
+    /**
+     * Set the current database
+     */
+    void setCurrentDatabase(DatabaseDescriptor desc) throws StandardException;
 
     /**
      * Set the default schema (at compile-time, see explanations for
@@ -563,7 +576,7 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return SchemaDescriptor    the current schema
      */
-    String getCurrentSchemaName();
+    String getCurrentSchemaName() throws StandardException;
 
     /**
      * Get the current schema name (at execution time, see explanations for
@@ -571,7 +584,7 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return SchemaDescriptor    the current schema
      */
-    String getCurrentSchemaName(Activation a);
+    String getCurrentSchemaName(Activation a) throws StandardException;
 
 
     /**
@@ -679,7 +692,7 @@ public interface LanguageConnectionContext extends Context {
      *
      */
     StatementContext pushStatementContext(boolean isAtomic, boolean isForReadOnly, String stmtText,
-        ParameterValueSet pvs, boolean rollbackParentContext, long timeoutMillis);
+        ParameterValueSet pvs, boolean rollbackParentContext, long timeoutMillis) throws StandardException;
 
     /**
      * Pop a StatementContext of the context stack.
@@ -839,12 +852,12 @@ public interface LanguageConnectionContext extends Context {
     /**
       Returns the Database of this connection.
      */
-    InternalDatabase getDatabase();
+    InternalDatabase getSpliceInstance();
 
     /**
      * Returns the Database id of this connection
      */
-    UUID getDatabaseId();
+    UUID getDatabaseId() throws StandardException;
 
     /**
      * Returns true if isolation level has been set using JDBC/SQL.
@@ -1162,7 +1175,7 @@ public interface LanguageConnectionContext extends Context {
      * @param a activation of set role statement
      * @param role  the id of the role to be set to current
      */
-    void setCurrentRole(Activation a, String role);
+    void setCurrentRole(Activation a, String role) throws StandardException;
 
     /**
      * Set the current role
@@ -1170,7 +1183,7 @@ public interface LanguageConnectionContext extends Context {
      * @param a activation of set role statement
      * @param roles  the list of roles to be set to current
      */
-    public void setCurrentRoles(Activation a, List<String> roles);
+    public void setCurrentRoles(Activation a, List<String> roles) throws StandardException;
 
     /**
      * Get the current set of roles of the dynamic
@@ -1179,7 +1192,7 @@ public interface LanguageConnectionContext extends Context {
      * @param a activation of statement needing current role
      * @return List of roleids
      */
-    List<String> getCurrentRoles(Activation a);
+    List<String> getCurrentRoles(Activation a) throws StandardException;
 
     /**
      * Removes all revoked roles from the list of current roles of the dynamic
@@ -1229,7 +1242,7 @@ public interface LanguageConnectionContext extends Context {
      * @param roleName role name for the role to remove from session's current role list.
      * @throws StandardException
      */
-    public void removeRole(Activation a, String roleName);
+    public void removeRole(Activation a, String roleName) throws StandardException;
 
     /**
      *
@@ -1237,7 +1250,7 @@ public interface LanguageConnectionContext extends Context {
      * @param rolesToRemove a list of roles to remove from session's current role list.
      * @throws StandardException
      */
-    public void removeRoles(Activation a, List<String> rolesToRemove);
+    public void removeRoles(Activation a, List<String> rolesToRemove) throws StandardException;
 
     /**
      * Create a new SQL session context for the current activation on the basis
@@ -1267,7 +1280,7 @@ public interface LanguageConnectionContext extends Context {
     /**
      * Get the value of top level session context of the top level connection.
      */
-    SQLSessionContext getTopLevelSQLSessionContext();
+    SQLSessionContext getTopLevelSQLSessionContext() throws StandardException;
 
     /**
      * Used when a statement as part of its operation executes an other
@@ -1297,7 +1310,7 @@ public interface LanguageConnectionContext extends Context {
      * Create a fresh SQLSessionContext for this connection.
      * @return new SQLSessionContext
      */
-    SQLSessionContext createSQLSessionContext();
+    SQLSessionContext createSQLSessionContext() throws StandardException;
 
     /**
      * Debug method for remembering the last query tree.

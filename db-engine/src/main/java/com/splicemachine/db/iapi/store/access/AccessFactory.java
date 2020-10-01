@@ -49,52 +49,52 @@ import com.splicemachine.db.iapi.store.access.conglomerate.MethodFactory;
   An AccessFactory is typically obtained from the Monitor:
   <p>
   <blockquote><pre>
-	// Get the current transaction controller.
-	AccessFactory af;
-	af = (AccessFactory) Monitor.findServiceModule(this, AccessFactory.MODULE);
+    // Get the current transaction controller.
+    AccessFactory af;
+    af = (AccessFactory) Monitor.findServiceModule(this, AccessFactory.MODULE);
   </pre></blockquote>
 **/
 
 public interface AccessFactory
 {
-	/**
-	 * Used to identify this interface when finding it with the Monitor.
+    /**
+     * Used to identify this interface when finding it with the Monitor.
      **/
-	String MODULE =
+    String MODULE =
         "com.splicemachine.db.iapi.store.access.AccessFactory";
 
-	/**
-	 * Register an access method that this access manager can use.
-	 **/
-	void registerAccessMethod(MethodFactory factory);
+    /**
+     * Register an access method that this access manager can use.
+     **/
+    void registerAccessMethod(MethodFactory factory);
 
-	/**
-	 * Database creation has finished.
+    /**
+     * Database creation has finished.
      *
-	 * @exception StandardException Standard exception policy.
-	 **/
-	void createFinished() throws StandardException;
+     * @exception StandardException Standard exception policy.
+     **/
+    void createFinished() throws StandardException;
 
-	/**
-	 *Find an access method that implements an implementation type.
+    /**
+     *Find an access method that implements an implementation type.
      *
-	 * @exception StandardException Standard exception policy.
-	 **/
-	MethodFactory findMethodFactoryByImpl(String impltype)
+     * @exception StandardException Standard exception policy.
+     **/
+    MethodFactory findMethodFactoryByImpl(String impltype)
         throws StandardException;
 
-	/**
-	 * Find an access method that implements a format type.
-	 **/
-	MethodFactory findMethodFactoryByFormat(UUID format);
+    /**
+     * Find an access method that implements a format type.
+     **/
+    MethodFactory findMethodFactoryByFormat(UUID format);
 
     /**
      * Get the LockFactory to use with this store.
      *
-	 * @return The lock factory to use with this store.
+     * @return The lock factory to use with this store.
      *
      **/
-	LockFactory getLockFactory();
+    LockFactory getLockFactory();
 
 
     /**
@@ -106,17 +106,17 @@ public interface AccessFactory
      *
      * @return The XAResourceManager associated with this accessfactory.
      *
-	 * @exception StandardException Standard exception policy.
+     * @exception StandardException Standard exception policy.
      *
      **/
-	/* XAResourceManager */ Object getXAResourceManager()
-		throws StandardException;
+    /* XAResourceManager */ Object getXAResourceManager()
+        throws StandardException;
 
 
-	/**
-	 * Is the store read-only.
-	 */
-	boolean isReadOnly();
+    /**
+     * Is the store read-only.
+     */
+    boolean isReadOnly();
 
 
 
@@ -131,19 +131,19 @@ public interface AccessFactory
      **************************************************************************
      */
 
-	/**
-	 * Get a transaction controller with which to manipulate data within
-	 * the access manager.  Implicitly creates an access context if one
-	 * does not already exist.
+    /**
+     * Get a transaction controller with which to manipulate data within
+     * the access manager.  Implicitly creates an access context if one
+     * does not already exist.
      *
      * @param cm    The context manager for the current context.
      *
-	 * @exception StandardException Standard exception policy.
-	 * @see TransactionController
-	 **/
+     * @exception StandardException Standard exception policy.
+     * @see TransactionController
+     **/
 
-	TransactionController getTransaction(ContextManager cm)
-		throws StandardException;
+    TransactionController getTransaction(ContextManager cm)
+        throws StandardException;
 
     /**
      * Get a transaction. If a new transaction is 
@@ -154,15 +154,15 @@ public interface AccessFactory
      *                      this name.  The name is displayed in the 
      *                      transactiontable VTI.
      *
-	 * @exception StandardException Standard exception policy.
+     * @exception StandardException Standard exception policy.
      *
-	 * @see TransactionController
-	 * @see AccessFactory#getTransaction
+     * @see TransactionController
+     * @see AccessFactory#getTransaction
      */
-	TransactionController getAndNameTransaction(
+    TransactionController getAndNameTransaction(
     ContextManager  cm, 
     String          transName)
-		throws StandardException;
+        throws StandardException;
 
     /**
      * Return a snap shot of all transactions in the db.
@@ -174,13 +174,13 @@ public interface AccessFactory
      *         no transaction in the database.
      *
      **/
-	TransactionInfo[] getTransactionInfo();
+    TransactionInfo[] getTransactionInfo();
 
-	/**
+    /**
      * Start a global transaction.
      * <p>
-	 * Get a transaction controller with which to manipulate data within
-	 * the access manager.  Implicitly creates an access context.
+     * Get a transaction controller with which to manipulate data within
+     * the access manager.  Implicitly creates an access context.
      * <p>
      * Must only be called if no other transaction context exists in the
      * current context manager.  If another transaction exists in the context
@@ -203,15 +203,15 @@ public interface AccessFactory
      * @param branch_id The branch qualifier of the Xid - ie.
      *                  Xid.getBranchQaulifier()
      *
-	 * @exception StandardException Standard exception policy.
-	 * @see TransactionController
-	 **/
-	/* XATransactionController */ Object startXATransaction(
+     * @exception StandardException Standard exception policy.
+     * @see TransactionController
+     **/
+    /* XATransactionController */ Object startXATransaction(
     ContextManager  cm,
     int             format_id,
     byte[]          global_id,
     byte[]          branch_id)
-		throws StandardException;
+        throws StandardException;
 
 
     /**************************************************************************
@@ -220,54 +220,56 @@ public interface AccessFactory
      **************************************************************************
      */
 
-	/**
-	  * Freeze the database temporarily so a backup can be taken.
-	  * <P>Please see Derby on line documentation on backup and restore.
-	  *
-	  * @exception StandardException Thrown on error
-	  */
-	void freeze() throws StandardException;
+    /**
+      * Freeze the database temporarily so a backup can be taken.
+      * <P>Please see Derby on line documentation on backup and restore.
+      *
+      * @exception StandardException Thrown on error
+      */
+    void freeze() throws StandardException;
 
-	/**
-	  * Unfreeze the database after a backup has been taken.
-	  * <P>Please see Derby on line documentation on backup and restore.
-	  *
-	  * @exception StandardException Thrown on error
-	  */
-	void unfreeze() throws StandardException;
+    /**
+      * Unfreeze the database after a backup has been taken.
+      * <P>Please see Derby on line documentation on backup and restore.
+      *
+      * @exception StandardException Thrown on error
+      */
+    void unfreeze() throws StandardException;
 
-	/**
+    /**
      * Backup the database to backupDir.  
      * <P>Please see Derby on line documentation on backup and restore.
      *
      * @param backupDir the name of the directory where the backup should be
-     *		             stored.
+     *                     stored.
      * @param wait      if <tt>true</tt>, waits for  all the backup blocking 
      *                  operations in progress to finish.
      *
      * @exception StandardException Thrown on error
      */
-	void backup(String backupDir, boolean wait)
+    void backup(String backupDir, boolean wait)
         throws StandardException;
 
 
-	/**
-	 * Checkpoints the database, that is, flushes all dirty data to disk.
-	 * Records a checkpoint in the transaction log, if there is a log.
-	 *
-	 * @exception StandardException Thrown on error
-	 */
-	void checkpoint() throws StandardException;
+    /**
+     * Checkpoints the database, that is, flushes all dirty data to disk.
+     * Records a checkpoint in the transaction log, if there is a log.
+     *
+     * @exception StandardException Thrown on error
+     */
+    void checkpoint() throws StandardException;
 
-	/**
-	 * Get a transaction controller with which to query data within
-	 * the access manager.  Implicitly creates an access context if one
-	 * does not already exist.
-	 *
-	 * @param cm    The context manager for the current context.
-	 *
-	 * @exception StandardException Standard exception policy.
-	 * @see TransactionController
-	 **/
-	TransactionController getReadOnlyTransaction(ContextManager cm, long txnId) throws StandardException;
+    /**
+     * Get a transaction controller with which to query data within
+     * the access manager.  Implicitly creates an access context if one
+     * does not already exist.
+     *
+     * @param cm    The context manager for the current context.
+     *
+     * @exception StandardException Standard exception policy.
+     * @see TransactionController
+     **/
+    TransactionController getReadOnlyTransaction(ContextManager cm, long txnId) throws StandardException;
+
+    void elevateRawTransaction(byte[] writeTable) throws StandardException;
 }

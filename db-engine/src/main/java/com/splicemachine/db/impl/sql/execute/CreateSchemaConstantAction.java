@@ -174,7 +174,7 @@ class CreateSchemaConstantAction extends DDLConstantAction
         sd = ddg.newSchemaDescriptor(schemaName,
                                     thisAid,
                                     tmpSchemaId,
-                                    lcc.getDatabase().getId());
+                                    lcc.getDatabaseId());
 
         dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
     }

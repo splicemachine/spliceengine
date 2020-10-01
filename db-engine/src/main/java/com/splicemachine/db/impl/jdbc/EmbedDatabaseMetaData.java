@@ -239,7 +239,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return true if so
      */
 	public boolean isReadOnly() {
-		return getLanguageConnectionContext().getDatabase().isReadOnly();
+		return getLanguageConnectionContext().getSpliceInstance().isReadOnly();
 	}
 
     /**

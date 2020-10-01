@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.services.context;
 
+import com.splicemachine.db.iapi.error.StandardException;
+
 /**
  * Contexts are created and used to manage the execution
  * environment. They provide a convenient location for

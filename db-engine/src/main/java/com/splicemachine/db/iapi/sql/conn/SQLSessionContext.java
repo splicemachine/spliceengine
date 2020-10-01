@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.sql.conn;
 
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 
 import java.util.List;
@@ -108,6 +109,16 @@ public interface SQLSessionContext {
      * Get the schema of this SQL connection context
      */
     SchemaDescriptor getDefaultSchema();
+
+    /**
+     * Get the current database of this SQL connection context
+     */
+    DatabaseDescriptor getCurrentDatabase();
+
+    /**
+     * Get the current database of this SQL connection context
+     */
+    void setCurrentDatabase(DatabaseDescriptor desc);
 
     /**
      * Get the SQL roles of this SQL connection context

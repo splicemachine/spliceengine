@@ -15,12 +15,15 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -28,24 +31,24 @@ import com.splicemachine.protobuf.ProtoUtil;
 
 /**
  *    This class  describes actions that are ALWAYS performed for a
- *    DROP SCHEMA Statement at Execution time.
+ *    DROP DATABASE Statement at Execution time.
  *
  */
 
-public class DropSchemaConstantOperation extends DDLConstantOperation {
-    private final String schemaName;
+public class DropDatabaseConstantOperation extends DDLConstantOperation {
+    private final String dbName;
     /**
-     *    Make the ConstantAction for a DROP SCHEMA statement.
+     *    Make the ConstantAction for a DROP DATABASE statement.
      *
-     *    @param    schemaName            Schema name.
+     *    @param dbName database name.
      *
      */
-    public DropSchemaConstantOperation(String    schemaName) {
-        this.schemaName = schemaName;
+    public DropDatabaseConstantOperation(String dbName) {
+        this.dbName = dbName;
     }
 
-    public    String    toString() {
-        return "DROP SCHEMA " + schemaName;
+    public String toString() {
+        return "DROP DATABASE " + dbName;
     }
 
     /**
@@ -70,18 +73,16 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
          */
         dd.startWriting(lcc);
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(null, schemaName, tc, true);
-        dd.dropAllSchemaPermDescriptors(sd.getObjectID(),tc);
-        sd.drop(lcc, activation);
-        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropSchema(
-                tc.getActiveStateTxn().getTxnId(),
-                (BasicUUID)sd.getDatabaseId(),
-                schemaName,
-                (BasicUUID)sd.getUUID());
+        DatabaseDescriptor dbDesc = dd.getDatabaseDescriptor(dbName, tc, true);
+        //dd.dropAllDatabasePermDescriptors(dbDesc.getObjectID(),tc); XXX (arnaud multidb) implement this
+        dbDesc.drop(lcc, activation);
+        DDLMessage.DDLChange ddlChange = ProtoUtil.createDropDatabase(tc.getActiveStateTxn().getTxnId(), dbName, (BasicUUID)dbDesc.getUUID());
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
+
+        //Monitor.removePersistentService(dbName);
     }
 
     public String getScopeName() {
-        return String.format("Drop Schema %s", schemaName);
+        return String.format("Drop Database %s", dbName);
     }
 }

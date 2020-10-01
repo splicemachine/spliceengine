@@ -128,7 +128,7 @@ public class CreateSchemaConstantOperation extends DDLConstantAction {
         // Run Remotely
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
 
-        sd = ddg.newSchemaDescriptor(schemaName, thisAid, tmpSchemaId, lcc.getDatabase().getId());
+        sd = ddg.newSchemaDescriptor(schemaName, thisAid, tmpSchemaId, lcc.getDatabaseId());
 
         /*
          * Note on transactional behavior:

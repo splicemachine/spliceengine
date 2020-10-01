@@ -940,7 +940,7 @@ public abstract class AuthenticationServiceBase
         if (sd == null || sd.getUUID() == null) {
             UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
             dd.startWriting(lcc);
-            sd = ddg.newSchemaDescriptor(userName, userName, tmpSchemaId, lcc.getDatabase().getId());
+            sd = ddg.newSchemaDescriptor(userName, userName, tmpSchemaId, lcc.getDatabaseId());
             dd.addDescriptor(sd, null, DataDictionary.SYSSCHEMAS_CATALOG_NUM, false, tc, false);
         }
     }
