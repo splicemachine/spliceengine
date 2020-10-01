@@ -543,14 +543,7 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     /**
-     *
-     * Not Supported
-     *
-     * @param dsp
-     * @param partitionBy
-     * @param location
-     * @param context
-     * @return
+     * ControlDataSet.writeParquetFile is used in EXPORT_BINARY
      */
     @Override
     @SuppressFBWarnings(value="REC_CATCH_EXCEPTION", justification="DB-10231")
