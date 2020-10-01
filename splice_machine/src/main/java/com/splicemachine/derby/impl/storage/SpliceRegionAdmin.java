@@ -20,9 +20,12 @@ import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -765,6 +768,10 @@ public class SpliceRegionAdmin {
     private static byte[] getRowKey(TableDescriptor td, ConglomerateDescriptor index, ExecRow execRow,
                              String splitKey, String columnDelimiter, String characterDelimiter,
                              String timeFormat, String dateFormat, String timestampFormat) throws Exception{
+        EmbedConnection defaultConn=(EmbedConnection) SpliceAdmin.getDefaultConn();
+        Activation lastActivation=defaultConn.getLanguageConnection().getLastActivation();
+        LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
+
         // set up csv reader
         CsvPreference preference = createCsvPreference(columnDelimiter, characterDelimiter);
         Reader reader = new StringReader(splitKey);
@@ -772,7 +779,10 @@ public class SpliceRegionAdmin {
         for(DataValueDescriptor dvd : execRow.getRowArray()) {
             valueSizeHints.add(dvd.estimateMemoryUsage());
         }
-        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference, false,
+
+        boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                lcc, Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+        MutableCSVTokenizer tokenizer = new MutableCSVTokenizer(reader,preference, false, quotedEmptyIsNull,
                 EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
         tokenizer.setLine(splitKey);
         List<String> read=tokenizer.read();
