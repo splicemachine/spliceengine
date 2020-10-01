@@ -128,6 +128,7 @@ public interface ISpliceVisitor {
     Visitable visit(FromList node) throws StandardException;
     Visitable visit(GenerationClauseNode node) throws StandardException;
     Visitable visit(GetCurrentConnectionNode node) throws StandardException;
+    Visitable visit(GetNearestTransactionNode node) throws StandardException;
     Visitable visit(GrantNode node) throws StandardException;
     Visitable visit(GrantRoleNode node) throws StandardException;
     Visitable visit(GroupByColumn node) throws StandardException;

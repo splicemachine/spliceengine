@@ -21,6 +21,8 @@ import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.commons.io.filefilter.WildcardFileFilter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.SparkSession;
 import org.junit.*;
@@ -28,6 +30,8 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.File;
+import java.io.FileFilter;
+import java.io.FileInputStream;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -571,6 +575,15 @@ public class ExternalTableIT extends SpliceUnitTest {
 
         ResultSet rs = methodWatcher.executeQuery("select * from empty_avro");
         Assert.assertEquals("", TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    String[] fileFormatsText = { "PARQUET", "ORC", "AVRO", "TEXTFILE" };
+    @Test
+    public void testPartitionThirdSecond() throws Exception {
+        for (String fileFormat : fileFormatsText) {
+            ExternalTablePartitionIT.checkPartitionInsertSelect(  methodWatcher, getExternalResourceDirectory(),
+                    "partition_third_second", fileFormat, "col3, col2");
+        }
     }
 
     // todo: move to testWriteReadFromSimpleExternalTablefor( String storedAs : fileFormats )
@@ -1639,6 +1652,78 @@ public class ExternalTableIT extends SpliceUnitTest {
         }
     }
 
+    private String concatAllCsvFiles(File path) throws Exception {
+        FileFilter fileFilter = new WildcardFileFilter("*.csv");
+        File[] files = path.listFiles(fileFilter);
+        if( files == null )
+            return "<FILE NOT FOUND>";
+
+        StringBuilder sb = new StringBuilder();
+        for ( File file : files ) {
+            FileInputStream stream = new FileInputStream( file );
+            sb.append( IOUtils.toString(stream, "UTF-8") );
+        }
+        return sb.toString();
+    }
+
+    @Test
+    public void testCsvOptions() throws Exception {
+
+        String tablePath = getExternalResourceDirectory() + "test_csv_options";
+        // see https://splicemachine.atlassian.net/browse/DB-10339
+        String csvOptions[] = {
+                // default
+                "",
+                "\"\\\"Hallo; #\\\"World\\\"!\\\"\",\";Ha,\"\n",
+                // TERMINATED BY
+                "ROW FORMAT DELIMITED FIELDS TERMINATED BY ';'",
+                "\"\\\"Hallo; #\\\"World\\\"!\\\"\";\";Ha,\"\n",
+                // ESCAPED BY
+                "ROW FORMAT DELIMITED FIELDS TERMINATED BY ',' ESCAPED BY '#'",
+                "\"#\"Hallo; ###\"World#\"!#\"\",\";Ha,\"\n",
+        };
+        for( int i = 0; i < csvOptions.length; i+=2 ) {
+            // Create an external table stored as text
+            methodWatcher.executeUpdate( "CREATE EXTERNAL TABLE TEST_CSV_OPTIONS (t1 varchar(30), t2 varchar(30)) \n" +
+                    csvOptions[i] + " STORED AS TEXTFILE\n" +
+                    "location '" + tablePath + "'");
+            Assert.assertEquals( methodWatcher.executeUpdate(
+                    "insert into TEST_CSV_OPTIONS values ('\"Hallo; #\"World\"!\"', ';Ha,')"), 1);
+
+
+            ResultSet rs = methodWatcher.executeQuery("select * from TEST_CSV_OPTIONS");
+            Assert.assertEquals(csvOptions[i],"T1         | T2  |\n" +
+                    "--------------------------\n" +
+                    "\"Hallo; #\"World\"!\" |;Ha, |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+            File path = new File(tablePath);
+            Assert.assertEquals( csvOptions[i+1], concatAllCsvFiles(path) );
+            methodWatcher.execute("drop table TEST_CSV_OPTIONS" );
+            FileUtils.deleteDirectory( path );
+        }
+    }
+
+    @Test
+    public void testCsvPartitioning() throws Exception {
+        String tablePath = getExternalResourceDirectory() + "test_csv_partitioned";
+        // Create an external table stored as text
+        methodWatcher.executeUpdate( "CREATE EXTERNAL TABLE TEST_CSV_PART (t1 varchar(30), t2 varchar(30)) \n" +
+                "PARTITIONED BY (t1) STORED AS TEXTFILE\n" +
+                "location '" + tablePath + "'");
+        Assert.assertEquals( methodWatcher.executeUpdate(
+                "insert into TEST_CSV_PART VALUES (1, 'a'), (2, 'b'), (3, 'c')"), 3);
+
+        ResultSet rs = methodWatcher.executeQuery("select T2, T1 from TEST_CSV_PART");
+        Assert.assertEquals("T2 |T1 |\n" +
+                "--------\n" +
+                " a | 1 |\n" +
+                " b | 2 |\n" +
+                " c | 3 |", TestUtils.FormattedResult.ResultFactory.toString(rs));
+
+        Assert.assertEquals( "a\n", concatAllCsvFiles(new File(tablePath + "/T1=1")) );
+        Assert.assertEquals( "b\n", concatAllCsvFiles(new File(tablePath + "/T1=2")) );
+        Assert.assertEquals( "c\n", concatAllCsvFiles(new File(tablePath + "/T1=3")) );
+    }
 
     @Test
     public void testUsingExsitingCsvFile() throws Exception {
@@ -2194,26 +2279,41 @@ public class ExternalTableIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testBroadcastJoinOrcTablesOnSpark() throws Exception {
-        methodWatcher.executeUpdate(String.format("create external table l (col1 int)" +
-                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"left"));
-        int insertCount = methodWatcher.executeUpdate(String.format("insert into l values 1, 2, 3" ));
-        methodWatcher.executeUpdate(String.format("create external table r (col1 int)" +
-                " STORED AS ORC LOCATION '%s'", getExternalResourceDirectory()+"right"));
-        int insertCount2 = methodWatcher.executeUpdate(String.format("insert into r values 1,2,3"));
+    public void testJoin() throws Exception {
+        for( String fileFormat : fileFormats ) {
+            String name = "testJoin_" + fileFormat + "_";
+            String tablePath = getExternalResourceDirectory() + name;
+            methodWatcher.executeUpdate(String.format("create external table l (col1 int)" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath + "left"));
+            int insertCount = methodWatcher.executeUpdate(String.format("insert into l values 1, 2, 3"));
+            methodWatcher.executeUpdate(String.format("create external table r (col1 int)" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath + "right"));
+            int insertCount2 = methodWatcher.executeUpdate(String.format("insert into r values 1,2,3"));
+            Assert.assertEquals("insertCount is wrong " + fileFormat, 3, insertCount);
+            Assert.assertEquals("insertCount is wrong " + fileFormat, 3, insertCount2);
 
-        Assert.assertEquals("insertCount is wrong",3,insertCount);
-        Assert.assertEquals("insertCount is wrong",3,insertCount2);
+            // test for SPLICE-1850
+            ResultSet rs = methodWatcher.executeQuery("select * from \n" +
+                    "l --splice-properties useSpark=true\n" +
+                    ", r --splice-properties joinStrategy=broadcast\n" +
+                    "where l.col1=r.col1");
+            Assert.assertEquals( fileFormat, "COL1 |COL1 |\n" +
+                    "------------\n" +
+                    "  1  |  1  |\n" +
+                    "  2  |  2  |\n" +
+                    "  3  |  3  |", TestUtils.FormattedResult.ResultFactory.toString(rs));
 
-        ResultSet rs = methodWatcher.executeQuery("select * from \n" +
-                "l --splice-properties useSpark=true\n" +
-                ", r --splice-properties joinStrategy=broadcast\n" +
-                "where l.col1=r.col1");
-        Assert.assertEquals("COL1 |COL1 |\n" +
-                "------------\n" +
-                "  1  |  1  |\n" +
-                "  2  |  2  |\n" +
-                "  3  |  3  |",TestUtils.FormattedResult.ResultFactory.toString(rs));
+            methodWatcher.executeUpdate(String.format("create external table joined (col1 int, col2 int)" +
+                    " STORED AS " + fileFormat + " LOCATION '%s'", tablePath + "joined"));
+
+            // test for DB-9770
+            // using cross join will go over NativeSparkDataSet instead of SparkDataSet
+            int insertCountJoin = methodWatcher.executeUpdate(String.format("insert into joined (select a.col1,b.col1 from l a, l b)"));
+            Assert.assertEquals("insertCount for cross join is wrong " + fileFormat, 9, insertCountJoin);
+            methodWatcher.execute("DROP TABLE l");
+            methodWatcher.execute("DROP TABLE r");
+            methodWatcher.execute("DROP TABLE joined");
+        }
     }
 
     @Ignore
@@ -2365,7 +2465,7 @@ public class ExternalTableIT extends SpliceUnitTest {
                 .getOrCreate();
         Dataset dataset = spark
                 .read()
-                .orc(tablePath);
+                .parquet(tablePath);
         String actual = dataset.schema().toString();
         String expected = "StructType(StructField(COL1,IntegerType,true), StructField(COL2,StringType,true))";
         Assert.assertEquals(actual, expected, actual);

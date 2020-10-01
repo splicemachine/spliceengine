@@ -74,6 +74,7 @@ import com.splicemachine.db.impl.sql.compile.FromSubquery;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
+import com.splicemachine.db.impl.sql.compile.IndexExpression;
 import com.splicemachine.db.impl.sql.compile.JavaToSQLValueNode;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.MethodCallNode;
@@ -2331,6 +2332,7 @@ public class SQLParser
      * For temporary table validation and creation.
      */
     private StatementNode verifySyntaxAndCreate(Object[] declareTableClauses,
+                                                Boolean isGlobal,
                                                 TableName tableName,
                                                 TableElementList tableElementList,
                                                 Integer createBehavior) throws StandardException {
@@ -2893,6 +2895,7 @@ TOKEN [IGNORE_CASE] :
 |    <NATURAL: "natural">
 |    <NCHAR: "nchar">
 |    <NEXT: "next">
+|    <NEXTVAL: "nextval">
 |    <NO: "no">
 |    <NOLOGGING: "nologging">
 |    <NOT: "not">
@@ -3036,6 +3039,7 @@ TOKEN [IGNORE_CASE] :
 |   <EXTRACT: "extract">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
+|    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
 |   <GROUPING: "grouping">
 |   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
@@ -4856,7 +4860,7 @@ declareTemporaryTableDeclaration() throws StandardException :
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, true, tableName, tableElementList,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
@@ -4878,17 +4882,18 @@ createTemporaryTableDeclaration() throws StandardException :
     TableName            tableName;
     TableElementList tableElementList;
     Object[] declareTableClauses = new Object[3];
+    Token localTok = null;
     Token ifTok = null;
     Token ifTok2 = null;
 }
 {
-    ( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
+    ( localTok = <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, (localTok == null), tableName, tableElementList,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
@@ -8438,7 +8443,8 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLQUERY ||
                 getToken(1).kind == GROUPING ||
                 getToken(1).kind == TO_INSTANT ||
-                getToken(1).kind == TO_HBASE_ESCAPED ) &&
+                getToken(1).kind == TO_HBASE_ESCAPED ||
+                getToken(1).kind == GET_NEAREST_TRANSACTION ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -8597,6 +8603,11 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                     C_NodeTypes.TO_HBASE_ESCAPED_NODE,
                                     value,
                                     getContextManager());
+    }
+|
+    value = getNearestTransaction()
+    {
+        return value;
     }
 }
 
@@ -11320,29 +11331,40 @@ columnNameItem(ResultColumnList columnList) throws StandardException :
  * <A NAME="indexColumnList">indexColumnList</A>
  */
 void
-indexColumnList(Vector columnList) throws StandardException :
-{}
+indexColumnList(Vector columnList, Token beginToken) throws StandardException :
 {
-    indexColumnItem(columnList) ( <COMMA> indexColumnItem(columnList) ) *
+    Token commaToken = null;
+}
+{
+    indexColumnItem(columnList, beginToken) ( commaToken = <COMMA> indexColumnItem(columnList, commaToken) ) *
 }
 
 /*
  * <A NAME="indexColumnItem">indexColumnItem</A>
  */
 void
-indexColumnItem(Vector columnList) throws StandardException :
+indexColumnItem(Vector columnList, Token beginToken) throws StandardException :
 {
-    String        columnName;
+    ValueNode expr;
+    Token ascToken = null;
+    Token descToken = null;
+    Token endToken = null;
 }
 {
-    /* identifier never ends with a space; appending a space meaning desc */
-    columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) [<ASC> | <DESC> {columnName = columnName + ' ';}]
+    expr = valueExpression() [ascToken = <ASC> | descToken = <DESC>]
     {
-        /*
-        ** Store the column names for the index columns in the
-        ** index column list.
-        */
-        columnList.addElement(columnName);
+        endToken = getToken(0);
+        int endOffset = endToken.endOffset;
+        if (ascToken != null || descToken != null) {
+            endOffset = endToken.beginOffset - 1;
+        }
+
+        columnList.addElement(
+            new IndexExpression(
+                StringUtil.slice(statementSQLText, beginToken.endOffset + 1, endOffset, false),
+                expr,
+                (descToken == null)  // default is ASC
+            ));
     }
 }
 
@@ -11675,6 +11697,21 @@ currentServerFunction() throws StandardException :
         return (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.CURRENT_SERVER_NODE,
                                 getContextManager());
+    }
+}
+
+ValueNode
+getNearestTransaction() throws StandardException :
+{
+    ValueNode value;
+}
+{
+    <GET_NEAREST_TRANSACTION> <LEFT_PAREN> value = primaryExpression() <RIGHT_PAREN>
+    {
+          return (ValueNode) nodeFactory.getNode(
+                                  C_NodeTypes.GET_NEAREST_TRANSACTION,
+                                  value,
+                                  getContextManager());
     }
 }
 
@@ -12134,7 +12171,7 @@ nextValueExpression() throws StandardException :
     TableName sequenceName;
 }
 {
-       <NEXT> <VALUE> <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+       (<NEXT> <VALUE> | <NEXTVAL>) <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
        {
         checkVersion(DataDictionary.DD_VERSION_DERBY_10_6, "NEXT VALUE");
         nextValue = (ValueNode) nodeFactory.getNode(
@@ -13114,6 +13151,7 @@ indexDefinition() throws StandardException :
     Boolean     preSplit = Boolean.FALSE;
     Vector        indexColumnList = new Vector();
     Boolean     isLogicalKey = Boolean.TRUE;
+    Token       beginToken = null;
 }
 {
     /*
@@ -13122,7 +13160,7 @@ indexDefinition() throws StandardException :
     */
     [ unique = unique() ] <INDEX>
         indexName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-                <LEFT_PAREN> indexColumnList(indexColumnList) <RIGHT_PAREN>
+                beginToken = <LEFT_PAREN> indexColumnList(indexColumnList, beginToken) <RIGHT_PAREN>
         [ properties = propertyList(false) <CHECK_PROPERTIES>]
         [ <EXCLUDE>
             [ <NULL> <KEYS> { excludeNulls = true;} ]
@@ -17865,6 +17903,7 @@ reservedKeyword() :
 |    tok = <NCHAR>
 |    tok = <NVARCHAR>
 |    tok = <NEXT>
+|    tok = <NEXTVAL>
 |    tok = <NO>
 |    tok = <NOLOGGING>
 |   tok = <NONE>
@@ -18063,6 +18102,7 @@ nonReservedKeyword()  :
     |    tok = <FORTRAN>
     |    tok = <FRACTION>
     |    tok = <GENERATED>
+    |    tok = <GET_NEAREST_TRANSACTION>
     |    tok = <GREATEST>
     |    tok = <GROUPING>
     |    tok = <HFILE>

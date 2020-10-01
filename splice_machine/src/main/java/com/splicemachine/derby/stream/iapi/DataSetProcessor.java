@@ -237,21 +237,14 @@ public interface DataSetProcessor {
      *
      * Reads Text files given the scan variables.  The qualifiers in conjunctive normal form
      * will be applied in the parquet storage layer.
-     *
-     * @param op
-     * @param location
-     * @param characterDelimiter
-     * @param columnDelimiter
-     * @param baseColumnMap
-     * @param context
-     * @param execRow
-     * @param <V>
-     * @return
+     * 
      * @throws StandardException
      */
-    <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                         OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                                         boolean useSample, double sampleFraction) throws StandardException;
+    <V> DataSet<ExecRow> readTextFile(CsvOptions csvOptions,
+                                      StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                      String location, OperationContext context, Qualifier[][] qualifiers,
+                                      DataValueDescriptor probeValue, ExecRow execRow,
+                                      boolean useSample, double sampleFraction) throws StandardException;
 
     /**
      *

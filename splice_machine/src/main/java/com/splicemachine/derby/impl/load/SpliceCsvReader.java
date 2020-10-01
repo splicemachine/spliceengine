@@ -29,42 +29,42 @@ import org.supercsv.prefs.CsvPreference;
  * @author dwinters
  */
 @SuppressFBWarnings(value = "IT_NO_SUCH_ELEMENT", justification = "this is by design, the caller is responsible for " +
-		"calling hasNext first to check whether a new element is there.")
+        "calling hasNext first to check whether a new element is there.")
 public class SpliceCsvReader implements Iterator<List<String>> {
 
-	private QuoteTrackingTokenizer tokenizer;
-	private List<String> columns = new ArrayList<>();
-	private BooleanList quotedColumns= new BooleanList();
+    private QuoteTrackingTokenizer tokenizer;
+    private List<String> columns = new ArrayList<>();
+    private BooleanList quotedColumns= new BooleanList();
 
-	private boolean firstRead = true;
-	/**
-	 * Constructs a new <tt>SpliceCsvReader</tt> with the supplied Reader and CSV preferences. Note that the
-	 * <tt>reader</tt> will be wrapped in a <tt>BufferedReader</tt> before accessed.
-	 * 
-	 * @param reader
-	 *            the reader
-	 * @param preferences
-	 *            the CSV preferences
-	 * @throws NullPointerException
-	 *             if reader or preferences are null
-	 */
-	public SpliceCsvReader(Reader reader, CsvPreference preferences) {
-		this.tokenizer = new QuoteTrackingTokenizer(reader,preferences, false);
-	}
+    private boolean firstRead = true;
+    /**
+     * Constructs a new <tt>SpliceCsvReader</tt> with the supplied Reader and CSV preferences. Note that the
+     * <tt>reader</tt> will be wrapped in a <tt>BufferedReader</tt> before accessed.
+     *
+     * @param reader
+     *            the reader
+     * @param preferences
+     *            the CSV preferences
+     * @throws NullPointerException
+     *             if reader or preferences are null
+     */
+    public SpliceCsvReader(Reader reader, CsvPreference preferences, boolean quotedEmptyIsNull) {
+        this.tokenizer = new QuoteTrackingTokenizer(reader,preferences, false, quotedEmptyIsNull);
+    }
 
-	public SpliceCsvReader(Reader reader, CsvPreference preferences, long scanThreshold, List<Integer> valueSizesHint) {
-		this.tokenizer = new QuoteTrackingTokenizer(reader,preferences,false, scanThreshold, valueSizesHint);
-	}
+    public SpliceCsvReader(Reader reader, CsvPreference preferences, boolean quotedEmptyIsNull, long scanThreshold, List<Integer> valueSizesHint) {
+        this.tokenizer = new QuoteTrackingTokenizer(reader,preferences,false, quotedEmptyIsNull, scanThreshold, valueSizesHint);
+    }
 
     @Override
     public boolean hasNext() {
         try {
-			boolean read = tokenizer.readColumns(columns,quotedColumns);
-			if(firstRead){
-				((ArrayList)columns).trimToSize();
-				quotedColumns.trimToSize();
-				firstRead =false;
-			}
+            boolean read = tokenizer.readColumns(columns,quotedColumns);
+            if(firstRead){
+                ((ArrayList)columns).trimToSize();
+                quotedColumns.trimToSize();
+                firstRead =false;
+            }
             return read;
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
@@ -73,12 +73,12 @@ public class SpliceCsvReader implements Iterator<List<String>> {
 
     @Override
     public List<String> next() {
-		return columns;
+        return columns;
     }
 
-	public BooleanList nextQuotedColumns(){
-		return quotedColumns;
-	}
+    public BooleanList nextQuotedColumns(){
+        return quotedColumns;
+    }
 
     @Override
     public void remove() {

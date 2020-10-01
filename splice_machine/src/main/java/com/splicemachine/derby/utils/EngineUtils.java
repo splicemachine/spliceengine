@@ -176,15 +176,10 @@ public class EngineUtils{
     public static TableDescriptor verifyTableExists(Connection conn, String schema, String table) throws
             SQLException, StandardException {
         LanguageConnectionContext lcc = ((EmbedConnection) conn).getLanguageConnection();
-        DataDictionary dd = lcc.getDataDictionary();
         // check schema visiblity to the current user
         checkSchemaVisibility(schema);
-        SchemaDescriptor schemaDescriptor = getSchemaDescriptor(schema, lcc, dd);
-        TableDescriptor tableDescriptor = dd.getTableDescriptor(table, schemaDescriptor, lcc.getTransactionExecute());
-        if (tableDescriptor == null)
-            throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schema + "." + table);
 
-        return tableDescriptor;
+        return DataDictionaryUtils.getTableDescriptor(lcc, schema, table);
     }
 
     public static SchemaDescriptor getSchemaDescriptor(String schema,
