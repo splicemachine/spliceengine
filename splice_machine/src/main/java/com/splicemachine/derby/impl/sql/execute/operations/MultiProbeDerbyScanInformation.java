@@ -159,10 +159,12 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 			boolean isOlapServer = javaCmd != null && javaCmd.startsWith("com.splicemachine.olap.OlapServerMaster");
 
 			// On spark, threadCount is really the number of DataSets we'll produce, that
-			// would need to be union'ed together.
-			int threadCount = isOlapServer ? 1 : 10;
+			// would need to be union'ed together.  Adjust this value to experiment with the
+			// number of threads on control or number of UNION branches on Spark.
+			//int threadCount = isOlapServer ? 1 : 2;
+			final int threadCount = 1;
 
-			int probesPerThread = startStopKeys.size() >= threadCount ? startStopKeys.size() / threadCount : 1;
+			int probesPerThread = startStopKeys.size() >= threadCount ? (startStopKeys.size() / threadCount)+1 : 3;
 			int endIndex;
 			for (int i=0; i < startStopKeys.size(); i+=probesPerThread) {
 				probeValue = null;

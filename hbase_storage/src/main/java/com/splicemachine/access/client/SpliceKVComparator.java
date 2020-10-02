@@ -43,7 +43,7 @@ public class SpliceKVComparator extends KeyValue.KVComparator implements RawComp
     // Used to distinguish between special cells created by the MemstoreFlushAwareScanner,
     // and cells created by MultiRowRangeFilter.getNextCellHint, which also has
     // a timestamp of HConstants.LATEST_TIMESTAMP.
-    private boolean isSpecialTimestamp(Cell cell) {
+    public static boolean isSpecialTimestamp(Cell cell) {
         if  (CellUtil.matchingFamily(cell, ClientRegionConstants.HOLD) ||
              CellUtil.matchingFamily(cell, ClientRegionConstants.FLUSH))
             return true;
