@@ -14,15 +14,11 @@
 
 package com.splicemachine.storage;
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
-import org.apache.hadoop.mapreduce.InputSplit;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -98,8 +94,8 @@ public class HScan implements DataScan {
             MultiRowRangeFilter filter = new MultiRowRangeFilter(ranges);
             scan.setFilter(filter);
             List<MultiRowRangeFilter.RowRange> sortedRanges = filter.getRowRanges();
-            scan.setStartRow(sortedRanges.get(0).getStartRow());
-            scan.setStopRow(sortedRanges.get(sortedRanges.size()-1).getStopRow());
+            scan.withStartRow(sortedRanges.get(0).getStartRow());
+            scan.withStopRow(sortedRanges.get(sortedRanges.size()-1).getStopRow());
         }
     }
 
