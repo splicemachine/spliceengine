@@ -42,10 +42,7 @@ import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.StringDataValue;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -887,6 +884,14 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     public boolean constantExpression(PredicateList whereClause)
     {
         return false;
+    }
+
+    public boolean isKnownConstant(boolean considerParameters) {
+        return false;
+    }
+
+    public DataValueDescriptor getKnownConstantValue() {
+        return null;
     }
 
     /**

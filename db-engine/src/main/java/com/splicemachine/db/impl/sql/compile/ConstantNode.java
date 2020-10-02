@@ -320,4 +320,12 @@ public abstract class ConstantNode extends ValueNode
     public boolean isConstantOrParameterTreeNode() {
         return true;
     }
+
+    @Override
+    public boolean isKnownConstant(boolean considerParameters) { return true; }
+
+    @Override
+    public DataValueDescriptor getKnownConstantValue() {
+        return getValue();
+    }
 }

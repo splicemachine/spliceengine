@@ -1136,6 +1136,14 @@ public class CastNode extends ValueNode
     public boolean isConstantOrParameterTreeNode() {
         return castOperand.isConstantOrParameterTreeNode();
     }
+
+    @Override
+    public boolean isKnownConstant(boolean considerParameters) { return castOperand.isKnownConstant(considerParameters); }
+
+    @Override
+    public DataValueDescriptor getKnownConstantValue() {
+        return castOperand.getKnownConstantValue();
+    }
 }
 
 

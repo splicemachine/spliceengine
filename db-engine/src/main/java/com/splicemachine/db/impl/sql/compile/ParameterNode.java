@@ -579,4 +579,14 @@ public class ParameterNode extends ValueNode
     public boolean isConstantOrParameterTreeNode() {
         return true;
     }
+
+    @Override
+    public boolean isKnownConstant(boolean considerParameters) {
+        return considerParameters && getDefaultValue() != null;
+    }
+
+    @Override
+    public DataValueDescriptor getKnownConstantValue() {
+        return getDefaultValue();
+    }
 }

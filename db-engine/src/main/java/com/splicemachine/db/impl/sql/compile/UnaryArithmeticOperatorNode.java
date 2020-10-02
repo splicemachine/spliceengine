@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import java.sql.Types;
@@ -101,6 +102,19 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
      */
     public boolean isParameterNode() {
         return (operatorType == UNARY_PLUS || operatorType == UNARY_MINUS) && operand.isParameterNode();
+    }
+
+    @Override
+    public boolean isKnownConstant(boolean considerParameters) {
+        return considerParameters && requiresTypeFromContext() && operand.isKnownConstant(true);
+    }
+
+    @Override
+    public DataValueDescriptor getKnownConstantValue() {
+        if (requiresTypeFromContext()) {
+            return operand.getKnownConstantValue();
+        }
+        return null;
     }
 
     /**

@@ -1086,27 +1086,14 @@ public class BinaryRelationalOperatorNode
         }
     }
 
-    public static boolean isKnownConstant(ValueNode node, boolean considerParameters) {
-        if (node instanceof CastNode)
-            node = ((CastNode) node).castOperand;
-
-        if(considerParameters){
-            return (node instanceof ConstantNode) ||
-                    ((node.requiresTypeFromContext()) &&
-                            (((ParameterNode)node).getDefaultValue()!=null));
-        }else{
-            return node instanceof ConstantNode;
-        }
-    }
-
     @Override
     public boolean compareWithKnownConstant(Optimizable optTable,boolean considerParameters){
         ValueNode node;
         if (optTable != null) {
             node = keyColumnOnLeft(optTable) ? rightOperand : leftOperand;
-            return isKnownConstant(node, considerParameters);
+            return node.isKnownConstant(considerParameters);
         } else {
-            return (isKnownConstant(rightOperand, considerParameters) || isKnownConstant(leftOperand, considerParameters));
+            return (rightOperand.isKnownConstant(considerParameters) || leftOperand.isKnownConstant(considerParameters));
         }
     }
 
@@ -1119,21 +1106,7 @@ public class BinaryRelationalOperatorNode
         ** the key column.
         */
         node=keyColumnOnLeft(optTable)?rightOperand:leftOperand;
-        if (node instanceof CastNode)
-            node = ((CastNode) node).castOperand;
-
-        if(node instanceof ConstantNode){
-            return ((ConstantNode)node).getValue();
-        }else if(node.requiresTypeFromContext()){
-            ParameterNode pn;
-            if(node instanceof UnaryOperatorNode)
-                pn=((UnaryOperatorNode)node).getParameterOperand();
-            else
-                pn=(ParameterNode)(node);
-            return pn.getDefaultValue();
-        }else{
-            return null;
-        }
+        return node.getKnownConstantValue();
     }
 
 
