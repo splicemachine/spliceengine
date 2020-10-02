@@ -3808,7 +3808,7 @@ public class FromBaseTable extends FromTable {
 
         for (int i = 0; i < predList.size(); i++) {
             Predicate pred = predList.elementAt(i);
-            if (pred.getAndNode().getLeftOperand() instanceof BetweenOperatorNode) {
+            if (pred.isBetween()) {
                 BetweenOperatorNode bon = (BetweenOperatorNode) pred.getAndNode().getLeftOperand();
                 AndNode newAnd = bon.translateToGEAndLE();
 

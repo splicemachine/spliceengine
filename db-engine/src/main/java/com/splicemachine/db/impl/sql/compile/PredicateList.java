@@ -196,7 +196,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
              * translate it now but just test whether it is useful or not. If it
              * is useful, translate it later when changing access path.
              */
-            boolean isBetween=pred.getAndNode().getLeftOperand() instanceof BetweenOperatorNode;
+            boolean isBetween=pred.isBetween();
             BetweenOperatorNode bon = isBetween ? (BetweenOperatorNode)pred.getAndNode().getLeftOperand() : null;
 
             /* If it's not a relational operator and it's not "in", then it's
@@ -606,7 +606,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          * translate it now but just test whether it is useful or not. If it
          * is useful, translate it later when changing access path.
          */
-        boolean isBetween=pred.getAndNode().getLeftOperand() instanceof BetweenOperatorNode;
+        boolean isBetween=pred.isBetween();
 
         /* If it's not an "in" operator and either a) it's not a relational
          * operator or b) it's not a qualifier, then it's not useful for
@@ -1337,7 +1337,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             int thisOperator=-1;
 
             boolean isIn=(thisPred.getSourceInList()!=null);
-            boolean isBetween=(thisPred.getAndNode().getLeftOperand() instanceof BetweenOperatorNode);
+            boolean isBetween=thisPred.isBetween();
 
             if(relop!=null)
                 thisOperator=relop.getOperator();

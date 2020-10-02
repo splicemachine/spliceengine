@@ -32,11 +32,11 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 
 /**
  * A BetweenOperatorNode represents a BETWEEN clause. The between values are
@@ -276,6 +276,16 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		greaterEqual.setBetweenSelectivity();
 
 		return newAnd;
+	}
+
+	public boolean compareWithKnownConstant(boolean considerParameters) {
+		for (Object node : rightOperandList) {
+			ValueNode value = (ValueNode) node;
+			if (!value.isKnownConstant(considerParameters)) {
+				return false;
+			}
+		}
+		return true;
 	}
  
 	/**

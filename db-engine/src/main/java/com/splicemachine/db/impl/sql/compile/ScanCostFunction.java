@@ -354,6 +354,9 @@ public class ScanCostFunction{
             // Range Qualifier
             addRangeQualifier(p, qualifierPhase, forIndexExpr, selectivityFactor);
         }
+        else if(p.isBetween() && forIndexExpr && ((BetweenOperatorNode) p.getAndNode().getLeftOperand()).compareWithKnownConstant(true)) {
+            addRangeQualifier(p, qualifierPhase, true, selectivityFactor);
+        }
         else {
             // Predicate Cannot Be Transformed to Range, use Predicate Selectivity Defaults
             addSelectivity(new DefaultPredicateSelectivity(p, baseTable, qualifierPhase, selectivityFactor), phase);
@@ -701,12 +704,10 @@ public class ScanCostFunction{
     private boolean addRangeQualifier(Predicate p, QualifierPhase phase, boolean forIndexExpr, double selectivityFactor)
             throws StandardException
     {
-        DataValueDescriptor value=p.getCompareValue(baseTable);
         RelationalOperator relop=p.getRelop();
-
         boolean useExtrapolation = false;
-        int colNum;
 
+        int colNum;
         if (forIndexExpr && p.getIndexPosition() >= 0) {
             colNum = p.getIndexPosition() + 1;
         } else {
@@ -717,8 +718,19 @@ public class ScanCostFunction{
 
             colNum = cr.getColumnNumber();
         }
-        int relationalOperator = relop.getOperator();
+
         List<SelectivityHolder> columnHolder = getSelectivityListForColumn(colNum, mapQualifierPhaseToPhase(phase));
+
+        if (p.isBetween()) {
+            BetweenOperatorNode bon = (BetweenOperatorNode) p.getAndNode().getLeftOperand();
+            DataValueDescriptor start = ((ValueNode) bon.getRightOperandList().elementAt(0)).getKnownConstantValue();
+            DataValueDescriptor stop  = ((ValueNode) bon.getRightOperandList().elementAt(1)).getKnownConstantValue();
+            columnHolder.add(new RangeSelectivity(scc, start, stop, true, true, forIndexExpr, colNum, phase, selectivityFactor, useExtrapolation));
+            return true;
+        }
+
+        DataValueDescriptor value=p.getCompareValue(baseTable);
+        int relationalOperator = relop.getOperator();
         OP_SWITCH: switch(relationalOperator){
             case RelationalOperator.EQUALS_RELOP:
                 columnHolder.add(new RangeSelectivity(scc,value,value,true,true, forIndexExpr, colNum,phase, selectivityFactor, useExtrapolation));

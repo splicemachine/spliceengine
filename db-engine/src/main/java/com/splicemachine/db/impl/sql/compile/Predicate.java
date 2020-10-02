@@ -1488,4 +1488,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         return op.collectExpressions(exprMap);
     }
+
+    public boolean isBetween() {
+        return andNode.getLeftOperand() instanceof BetweenOperatorNode;
+    }
 }
