@@ -83,7 +83,7 @@ public class FileFunction extends AbstractFileFunction<String> {
                 }
             }
             boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
-                    op.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+                    operationContext.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
             tokenizer = new MutableCSVTokenizer(reader, preference, oneLineRecord, quotedEmptyIsNull,
                     EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
             initialized = true;

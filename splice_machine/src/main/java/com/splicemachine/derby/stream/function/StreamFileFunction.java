@@ -63,7 +63,7 @@ import java.util.*;
             return Collections.<ExecRow>emptyList().iterator();
         checkPreference();
         boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
-                operationContext.getOperation().getActivation().getLanguageConnectionContext(),
+                operationContext.getActivation().getLanguageConnectionContext(),
                 Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
 
         return new Iterator<ExecRow>() {
