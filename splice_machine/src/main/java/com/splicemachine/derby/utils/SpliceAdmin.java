@@ -33,8 +33,8 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -82,8 +82,8 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.text.SimpleDateFormat;
-import java.util.*;
 import java.util.Date;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -442,7 +442,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         operate(new BaseAdminProcedures.JMXServerOperation() {
             @Override
             public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
-                List<ManagedCacheMBean> managedCaches = JMXUtils.getManagedCache(connections, DataDictionaryCache.cacheNames);
+                List<ManagedCacheMBean> managedCaches = JMXUtils.getManagedCache(connections, DataDictionaryCache.getCacheNames());
                 ExecRow template = buildExecRow(MANAGED_CACHE_COLUMNS);
                 List<ExecRow> rows = Lists.newArrayListWithExpectedSize(managedCaches.size());
                 int i=0;
@@ -452,7 +452,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     DataValueDescriptor[] dvds = template.getRowArray();
                     try{
                         dvds[0].setValue(connections.get(j).getFirst());
-                        dvds[1].setValue(DataDictionaryCache.cacheNames[i%DataDictionaryCache.cacheNames.length]);
+                        dvds[1].setValue(DataDictionaryCache.getCacheNames().get(i%DataDictionaryCache.getCacheNames().size()));
                         dvds[2].setValue(ex.getSize());
                         dvds[3].setValue(ex.getMissCount());
                         dvds[4].setValue(ex.getMissRate());
@@ -463,7 +463,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     }
                     rows.add(template.getClone());
                     i++;
-                    j = i >= DataDictionaryCache.cacheNames.length?1:0;
+                    j = i >= DataDictionaryCache.getCacheNames().size()?1:0;
                 }
 
                 EmbedConnection defaultConn = (EmbedConnection) getDefaultConn();
@@ -696,6 +696,19 @@ public class SpliceAdmin extends BaseAdminProcedures{
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
         assert lcc != null;
         DataDictionary dd = lcc.getDataDictionary();
+
+        schemaName = EngineUtils.validateSchema(schemaName);
+        if (tableName != null) {
+            tableName = EngineUtils.validateTable(tableName);
+            try {
+                TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
+                tableName = td.getName();
+            }
+            catch (StandardException e) {
+                throw new SQLException(e);
+            }
+        }
+
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory = SIDriver.driver().getTableFactory();
         schemaName = EngineUtils.validateSchema(schemaName);
@@ -729,6 +742,20 @@ public class SpliceAdmin extends BaseAdminProcedures{
      * @throws SQLException
      */
     public static void SYSCS_FLUSH_TABLE(String schemaName,String tableName) throws SQLException{
+        LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        assert lcc != null;
+
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
+
+        try {
+            TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
+            tableName = td.getName();
+        }
+        catch (StandardException e) {
+            throw new SQLException(e);
+        }
+
         // sys query for table conglomerate for in schema
         PartitionFactory tableFactory=SIDriver.driver().getTableFactory();
         schemaName = EngineUtils.validateSchema(schemaName);
@@ -1398,17 +1425,15 @@ public class SpliceAdmin extends BaseAdminProcedures{
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         TransactionController tc  = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
-        dd.startWriting(lcc);
+
         SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
         if (sd == null)
         {
             throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
         }
-        TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
-        if (td == null)
-        {
-            throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
-        }
+        TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
+
+        dd.startWriting(lcc);
         DDLMessage.DDLChange ddlChange = ProtoUtil.createAlterTable(((SpliceTransactionManager) tc).getActiveStateTxn().getTxnId(),
                 (BasicUUID) td.getUUID());
         DependencyManager dm = dd.getDependencyManager();
@@ -1464,25 +1489,19 @@ public class SpliceAdmin extends BaseAdminProcedures{
         tableName = EngineUtils.validateTable(tableName);
         EngineUtils.checkSchemaVisibility(schemaName);
 
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schemaName, tc, true);
-        if (sd == null)
-        {
-            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schemaName);
-        }
+        EngineUtils.checkSchemaVisibility(schemaName);
 
-        TableDescriptor td = dd.getTableDescriptor(tableName, sd, tc);
-        if (td == null)
-        {
-            throw StandardException.newException(SQLState.TABLE_NOT_FOUND, tableName);
-        }
+        TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
         if (td.isExternal())
             throw StandardException.newException(SQLState.SNAPSHOT_EXTERNAL_TABLE_UNSUPPORTED, tableName);
+        if (td.isTemporary())
+            throw StandardException.newException(LANG_NOT_ALLOWED_FOR_TEMP_TABLE, tableName);
 
         List<String> snapshotList = Lists.newArrayList();
         try {
             dd.startWriting(lcc);
 
-            ResultSet rs = getTablesForSnapshot(schemaName, tableName);
+            ResultSet rs = getTablesForSnapshot(schemaName, td.getName());
             snapshot(rs, snapshotName, schemaName, dd, tc, snapshotList);
         }
         catch (Exception e)
@@ -2162,9 +2181,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException
     {
         Connection connection = getDefaultConn();
+        schemaName = EngineUtils.validateSchema(schemaName);
+        tableName = EngineUtils.validateTable(tableName);
         try {
-            schemaName = EngineUtils.validateSchema(schemaName);
-            tableName = EngineUtils.validateTable(tableName);
             TableDescriptor td = EngineUtils.verifyTableExists(connection, schemaName, tableName);
 
             String tableTypeString = "";
@@ -2236,8 +2255,8 @@ public class SpliceAdmin extends BaseAdminProcedures{
             } else if (td.getTableType() == TableDescriptor.SYSTEM_TABLE_TYPE) {
                 //Target table is a system table
                 throw ErrorState.LANG_NO_USER_DDL_IN_SYSTEM_SCHEMA.newException("SHOW CREATE TABLE", schemaName);
-            } else if (td.getTableType() == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE) {
-                tableTypeString = "GLOBAL TEMPORARY ";
+            } else if (td.getTableType() == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE) {
+                tableTypeString = "LOCAL TEMPORARY ";
             }
 
             // Get column list, and write DDL for each column.

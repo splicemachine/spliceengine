@@ -337,18 +337,23 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context,Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow,
+    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context,
+                                      Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow,
                                       boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
         return new ControlDataSet(proc.readORCFile(baseColumnMap,partitionColumnMap,location,context,qualifiers,probeValue,execRow, useSample, sampleFraction, statsjob).toLocalIterator());
     }
 
     @Override
-    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, CsvOptions csvOptions, int[] baseColumnMap,
-                                                OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                                                boolean useSample, double sampleFraction) throws StandardException{
+    public <V> DataSet<ExecRow> readTextFile(CsvOptions csvOptions,
+                                             StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                             String location, OperationContext context, Qualifier[][] qualifiers,
+                                             DataValueDescriptor probeValue, ExecRow execRow,
+                                             boolean useSample, double sampleFraction) throws StandardException{
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return new ControlDataSet(proc.readTextFile(op,location,csvOptions,baseColumnMap, context, qualifiers, probeValue, execRow, useSample, sampleFraction).toLocalIterator());
+        return new ControlDataSet(proc.readTextFile(csvOptions,
+                schema, baseColumnMap,partitionColumnMap, location,
+                context, qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
     }
 
     @Override

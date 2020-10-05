@@ -774,14 +774,20 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, CsvOptions csvOptions, int[] baseColumnMap,
-                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                                                boolean useSample, double sampleFraction) throws StandardException {
+    public <V> DataSet<ExecRow> readTextFile(CsvOptions csvOptions,
+                                             StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
+                                             String location, OperationContext context, Qualifier[][] qualifiers,
+                                             DataValueDescriptor probeValue, ExecRow execRow,
+                                             boolean useSample, double sampleFraction) throws StandardException {
         assert baseColumnMap != null:"baseColumnMap Null";
+
         try {
             Dataset<Row> table = null;
+            ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
             try {
-                table = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(location);
+                table = SpliceSpark.getSession().read()
+                        .options(getCsvOptions(csvOptions))
+                        .schema(tableSchema).csv(location);
                 if (table.schema().fields().length == 0)
                     return getEmpty();
             } catch (Exception e) {
@@ -789,23 +795,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
 
             checkNumColumns(location, baseColumnMap, table);
-            if (op == null) {
-                // stats collection scan
-                for(int index = 0; index < execRow.schema().fields().length; index++) {
-                    StructField ft = table.schema().fields()[index];
-                    Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
-                    table = table.withColumn(ft.name(), cl);
-                }
-            } else {
-                for( int index = 0; index< baseColumnMap.length; index++) {
-                    if (baseColumnMap[index] != -1) {
-                        StructField ft = table.schema().fields()[index];
-                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
-                        table = table.withColumn(ft.name(), cl);
-                    }
-                }
-            }
-
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
             return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
                     execRow, useSample, sampleFraction, table);

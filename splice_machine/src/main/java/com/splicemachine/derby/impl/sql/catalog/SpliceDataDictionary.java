@@ -341,6 +341,25 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
     }
 
+    public void createKeyColumnUseViewInSysIBM(TransactionController tc) throws StandardException {
+        TableDescriptor td = getTableDescriptor("SYSKEYCOLUSE", sysIBMSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONSTRAINTS_CATALOG_NUM, "SYSKEYCOLUSE", 0, sysIBMSchemaDesc, SYSCONSTRAINTSRowFactory.SYSKEYCOLUSE_VIEW_IN_SYSIBM);
+
+        SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
+    }
+
     public void updateColumnViewInSysIBM(TransactionController tc) throws StandardException {
         tc.elevate("dictionary");
 
@@ -490,6 +509,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createPermissionTableSystemViews(tc);
 
         createTableColumnViewInSysIBM(tc);
+
+        createKeyColumnUseViewInSysIBM(tc);
 
         createAliasToTableSystemView(tc);
 
@@ -1581,24 +1602,24 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     }
 
     public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
-        TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
+        TabInfoImpl ti = getNonCoreTI(SYSALIASES_CATALOG_NUM);
         faultInTabInfo(ti);
 
-        FormatableBitSet columnToReadSet=new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
-        FormatableBitSet columnToUpdateSet=new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
-        for(int i=0;i<SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT;i++){
+        FormatableBitSet columnToReadSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
+        FormatableBitSet columnToUpdateSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
+        for (int i = 0; i < SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT; i++) {
             // we do not want to read the saved serialized plan
-            if (i+1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME) {
+            if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME) {
                 columnToReadSet.set(i);
             }
             columnToUpdateSet.set(i);
         }
         /* Set up a couple of row templates for fetching CHARS */
         DataValueDescriptor[] rowTemplate = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
-        DataValueDescriptor[] replaceRow= new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
+        DataValueDescriptor[] replaceRow = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
 
         /* Scan the entire heap */
-        ScanController sc=
+        ScanController sc =
                 tc.openScan(
                         ti.getHeapConglomerate(),
                         false,
@@ -1612,16 +1633,21 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                         null,
                         ScanController.NA);
 
-        while(sc.fetchNext(rowTemplate)){
+        while (sc.fetchNext(rowTemplate)) {
             /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
-            for (int i=0; i<rowTemplate.length; i++) {
-                if (i+1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME)
-                    if(replaceRow[i] == null) {
+            for (int i = 0; i < rowTemplate.length; i++) {
+                if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME)
+                    if (replaceRow[i] == null) {
                         replaceRow[i] = new SQLLongvarchar("NULL");
                     }
             }
-            sc.replace(replaceRow,columnToUpdateSet);
+            sc.replace(replaceRow, columnToUpdateSet);
         }
         sc.close();
+    }
+
+    @Override
+    public boolean useTxnAwareCache() {
+        return !SpliceClient.isRegionServer;
     }
 }

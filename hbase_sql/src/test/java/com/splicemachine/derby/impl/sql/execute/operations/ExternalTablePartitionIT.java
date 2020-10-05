@@ -113,9 +113,11 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
 
     String[] fileFormatsText = { "PARQUET", "ORC", "AVRO", "TEXTFILE" };
 
-    private void checkPartitionInsertSelect(String testName, String fileFormat, String partitionedBy) throws Exception {
+    static public void checkPartitionInsertSelect(SpliceWatcher methodWatcher, String externalResourceDirectory,
+                                                  String testName,
+                                                  String fileFormat, String partitionedBy) throws Exception {
         String name = testName + "_" + fileFormat;
-        String tablePath = getExternalResourceDirectory() + "/" + name;
+        String tablePath = externalResourceDirectory + "/" + name;
         methodWatcher.executeUpdate(String.format("create external table " + name + " (col1 int, col2 int, col3 varchar(10)) " +
                 "partitioned by (" + partitionedBy + ") STORED AS " + fileFormat + " LOCATION '%s'", tablePath));
 
@@ -185,35 +187,32 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
     @Test
     public void testPartitionFirst() throws Exception {
         for( String fileFormat : fileFormatsText) {
-            checkPartitionInsertSelect( "partition_first", fileFormat, "col1");
+            checkPartitionInsertSelect( methodWatcher, getExternalResourceDirectory(),
+                    "partition_first", fileFormat, "col1");
         }
     }
 
     @Test
     public void testPartitionFirstSecond() throws Exception {
         for( String fileFormat : fileFormatsText) {
-            checkPartitionInsertSelect( "partition_first_second", fileFormat, "col1, col2");
+            checkPartitionInsertSelect( methodWatcher, getExternalResourceDirectory(),
+                    "partition_first_second", fileFormat, "col1, col2");
         }
     }
 
     @Test
     public void testPartitionSecond() throws Exception {
         for( String fileFormat : fileFormatsText) {
-            checkPartitionInsertSelect( "partition_second", fileFormat, "col2");
+            checkPartitionInsertSelect( methodWatcher, getExternalResourceDirectory(),
+                    "partition_second", fileFormat, "col2");
         }
     }
 
     @Test
     public void testPartitionLast() throws Exception {
         for (String fileFormat : fileFormatsText) {
-            checkPartitionInsertSelect( "partition_last", fileFormat, "col3");
-        }
-    }
-
-    @Test
-    public void testPartitionThirdSecond() throws Exception {
-        for (String fileFormat : fileFormatsText) {
-            checkPartitionInsertSelect( "partition_third_second", fileFormat, "col3, col2");
+            checkPartitionInsertSelect( methodWatcher, getExternalResourceDirectory(),
+                    "partition_last", fileFormat, "col3");
         }
     }
 

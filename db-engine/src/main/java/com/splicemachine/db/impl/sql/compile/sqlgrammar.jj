@@ -2330,6 +2330,7 @@ public class SQLParser
      * For temporary table validation and creation.
      */
     private StatementNode verifySyntaxAndCreate(Object[] declareTableClauses,
+                                                Boolean isGlobal,
                                                 TableName tableName,
                                                 TableElementList tableElementList) throws StandardException {
         // NOT LOGGED is allways true
@@ -2890,6 +2891,7 @@ TOKEN [IGNORE_CASE] :
 |    <NATURAL: "natural">
 |    <NCHAR: "nchar">
 |    <NEXT: "next">
+|    <NEXTVAL: "nextval">
 |    <NO: "no">
 |    <NOLOGGING: "nologging">
 |    <NOT: "not">
@@ -4828,7 +4830,7 @@ declareTemporaryTableDeclaration() throws StandardException :
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
+        return verifySyntaxAndCreate(declareTableClauses, true, tableName, tableElementList);
     }
 }
 
@@ -4848,13 +4850,14 @@ createTemporaryTableDeclaration() throws StandardException :
     TableName            tableName;
     TableElementList tableElementList;
     Object[] declareTableClauses = new Object[3];
+    Token localTok = null;
 }
 {
-    ( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    ( localTok = <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList);
+        return verifySyntaxAndCreate(declareTableClauses, (localTok == null), tableName, tableElementList);
     }
 }
 
@@ -12083,7 +12086,7 @@ nextValueExpression() throws StandardException :
     TableName sequenceName;
 }
 {
-       <NEXT> <VALUE> <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+       (<NEXT> <VALUE> | <NEXTVAL>) <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
        {
         checkVersion(DataDictionary.DD_VERSION_DERBY_10_6, "NEXT VALUE");
         nextValue = (ValueNode) nodeFactory.getNode(
@@ -17766,6 +17769,7 @@ reservedKeyword() :
 |    tok = <NCHAR>
 |    tok = <NVARCHAR>
 |    tok = <NEXT>
+|    tok = <NEXTVAL>
 |    tok = <NO>
 |    tok = <NOLOGGING>
 |   tok = <NONE>

@@ -4410,10 +4410,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
     }
 
-    public boolean isUnsatisfiable() {
-        for (int i=0; i<size(); i++)
-            if (elementAt(i).isUnsatisfiable())
+    public boolean isUnsatisfiable(boolean checkOJCond) {
+        for (int i=0; i<size(); i++) {
+            Predicate pred = elementAt(i);
+            if (checkOJCond && pred.getOuterJoinLevel() > 0)
+                continue;
+            if (pred.isUnsatisfiable())
                 return true;
+        }
         return false;
     }
     @Override

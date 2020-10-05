@@ -582,6 +582,19 @@ public interface DataDictionary{
     TableDescriptor getTableDescriptor(UUID tableID) throws StandardException;
 
     /**
+     * Get a list of TableDescriptors whose table names are in a given range within the given schema.
+     *
+     * @param tableNameStart Starting table name, inclusive.
+     * @param tableNameEnd Ending table name, exclusive.
+     * @param schema The descriptor for the schema the table lives in.
+     *               If null, use the system schema.
+     * @return A list of TableDescriptors whose table names are in range of [tableNameStart, tableNameEnd) in given schema.
+     * @throws StandardException
+     */
+    List<TableDescriptor> getTableDescriptors(String tableNameStart,String tableNameEnd,
+                                              SchemaDescriptor schema) throws StandardException;
+
+    /**
      * Drop the table descriptor.
      *
      * @param td     The table descriptor to drop
@@ -2184,4 +2197,6 @@ public interface DataDictionary{
     void setMetadataAccessRestrictionEnabled();
 
     void updateSystemSchemasView(TransactionController tc) throws StandardException;
+
+    boolean useTxnAwareCache();
 }
