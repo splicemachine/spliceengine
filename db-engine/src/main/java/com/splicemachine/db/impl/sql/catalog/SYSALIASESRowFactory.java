@@ -48,7 +48,7 @@ import java.util.List;
 
 /**
  * Factory for creating a SYSALIASES row.
- * <p>
+ *
  * Here are the directions for adding a new system supplied alias.
  * Misc:
  * All system supplied aliases are class aliases at this point.
@@ -69,7 +69,6 @@ import java.util.List;
 
 public class SYSALIASESRowFactory extends CatalogRowFactory {
     public static final String TABLENAME_STRING = "SYSALIASES";
-    public static final int SYSALIASES_ALIASINFO = 8;
     protected static final int SYSALIASES_INDEX1_ID = 0;
     protected static final int SYSALIASES_INDEX2_ID = 1;
     protected static final int SYSALIASES_INDEX3_ID = 2;
@@ -81,6 +80,7 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
     private static final int SYSALIASES_ALIASTYPE = 5;
     private static final int SYSALIASES_NAMESPACE = 6;
     private static final int SYSALIASES_SYSTEMALIAS = 7;
+    public static final int SYSALIASES_ALIASINFO = 8;
     private static final int SYSALIASES_SPECIFIC_NAME = 9;
     public static final int SYSALIASES_COLUMN_COUNT = 9;
 

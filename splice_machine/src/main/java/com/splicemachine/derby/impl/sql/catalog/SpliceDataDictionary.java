@@ -29,7 +29,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -64,7 +63,10 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 
 /**
  * @author Scott Fines
@@ -1235,7 +1237,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         for (RoutinePermsDescriptor permsDescriptor: listToDelete) {
             addRemovePermissionsDescriptor(false, permsDescriptor, permsDescriptor.getGrantee(), tc);
         }
-        
+
         SpliceLogUtils.info(LOG, "SYS.SYSROUTINEPERMS upgraded: obsolete rows deleted");
     }
 
@@ -1608,38 +1610,38 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         FormatableBitSet columnToReadSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
         FormatableBitSet columnToUpdateSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
         for (int i = 0; i < SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT; i++) {
-            // we do not want to read the saved serialized plan
-            if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME) {
-                columnToReadSet.set(i);
-            }
+            // partial row updates do not work properly (DB-9388), therefore, we read all columns and mark them all for
+            // update even if this is not necessary for all of them.
+            columnToReadSet.set(i);
             columnToUpdateSet.set(i);
         }
-        /* Set up a couple of row templates for fetching CHARS */
+        /* Set up a row template for fetching */
         DataValueDescriptor[] rowTemplate = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
+
+        /* Set up another row for replacing the existing row, effectively updating it */
         DataValueDescriptor[] replaceRow = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
 
         /* Scan the entire heap */
-        ScanController sc =
-                tc.openScan(
-                        ti.getHeapConglomerate(),
-                        false,
-                        TransactionController.OPENMODE_FORUPDATE,
-                        TransactionController.MODE_TABLE,
-                        TransactionController.ISOLATION_REPEATABLE_READ,
-                        columnToReadSet,
-                        null,
-                        ScanController.NA,
-                        null,
-                        null,
-                        ScanController.NA);
+        ScanController sc = tc.openScan(
+                ti.getHeapConglomerate(),
+                false,
+                TransactionController.OPENMODE_FORUPDATE,
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                columnToReadSet,
+                null,
+                ScanController.NA,
+                null,
+                null,
+                ScanController.NA);
 
         while (sc.fetchNext(rowTemplate)) {
-            /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
             for (int i = 0; i < rowTemplate.length; i++) {
-                if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME)
-                    if (replaceRow[i] == null) {
-                        replaceRow[i] = new SQLLongvarchar("NULL");
-                    }
+                replaceRow[i] = rowTemplate[i].cloneValue(false);
+                /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
+                if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME && rowTemplate[i].isNull()) {
+                    replaceRow[i] = new SQLLongvarchar("NULL");
+                }
             }
             sc.replace(replaceRow, columnToUpdateSet);
         }
