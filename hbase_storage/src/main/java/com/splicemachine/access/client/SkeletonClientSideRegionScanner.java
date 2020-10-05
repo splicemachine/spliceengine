@@ -210,8 +210,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                 if (restartRow != null) {
                     if (LOG.isDebugEnabled())
                         SpliceLogUtils.debug(LOG, "setting start row to %s", Hex.encodeHexString(restartRow));
-                    //noinspection deprecation
-                    scan.setStartRow(restartRow);
+                    scan.withStartRow(restartRow);
                 }
             }
             memScannerList.add(getMemStoreScanner());

@@ -257,15 +257,7 @@ public class SpliceTableAdmin {
         TxnView txn = ((SpliceTransactionManager) tc).getActiveStateTxn();
         Activation activation = lcc.getLastActivation();
 
-        DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor sd = dd.getSchemaDescriptor(schema, tc, true);
-        if (sd == null) {
-            throw StandardException.newException(SQLState.LANG_SCHEMA_DOES_NOT_EXIST, schema);
-        }
-        TableDescriptor td = dd.getTableDescriptor(table, sd, tc);
-        if (td == null) {
-            throw StandardException.newException(SQLState.TABLE_NOT_FOUND, table);
-        }
+        TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schema, table);
 
         if (index != null) {
             ConglomerateDescriptor indexCD = SpliceRegionAdmin.getIndex(td, index);

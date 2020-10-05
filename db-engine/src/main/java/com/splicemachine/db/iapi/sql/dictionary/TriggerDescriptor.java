@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -56,11 +57,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
-import java.sql.Timestamp;
 
 /**
  * A trigger.
@@ -295,7 +294,13 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      */
     public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, int index) throws StandardException {
 
-        return getSPS(lcc, index);
+        return getSPS(lcc, index, null);
+
+    }
+
+    public SPSDescriptor getActionSPS(LanguageConnectionContext lcc, int index, ManagedCache<UUID, SPSDescriptor>localCache) throws StandardException {
+
+        return getSPS(lcc, index, localCache);
 
     }
 
@@ -309,7 +314,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @throws StandardException if an error occurs
      */
     private SPSDescriptor getSPS(LanguageConnectionContext lcc,
-                                 int index)
+                                 int index, ManagedCache<UUID, SPSDescriptor>localCache)
             throws StandardException
     {
         boolean isWhenClause = index == -1;
@@ -327,7 +332,18 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         // fail for row trigger that were executing on remote nodes with SpliceTransactionView with which we
         // cannot begin a new txn.
         //  lcc.beginNestedTransaction(true);
-        SPSDescriptor sps = dd.getSPSDescriptor(spsId);
+        SPSDescriptor sps = null;
+        if (localCache != null)
+            sps = localCache.getIfPresent(spsId);
+
+        if (sps == null) {
+            sps = dd.getSPSDescriptor(spsId);
+            if (localCache != null && sps != null)
+                localCache.put(spsId, sps);
+        }
+
+        assert sps != null : "sps should not be null";
+
         // lcc.commitNestedTransaction();
 
         //We need to regenerate the trigger action sql if
@@ -421,12 +437,12 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     /**
      * Get the trigger when clause sps
      */
-    public SPSDescriptor getWhenClauseSPS(LanguageConnectionContext lcc) throws StandardException {
+    public SPSDescriptor getWhenClauseSPS(LanguageConnectionContext lcc, ManagedCache<UUID, SPSDescriptor> localCache) throws StandardException {
         if (whenSPSId == null) {
             // This trigger doesn't have a WHEN clause.
             return null;
         }
-        return getSPS(lcc, -1);
+        return getSPS(lcc, -1, localCache);
     }
 
     /**
