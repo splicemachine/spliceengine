@@ -104,8 +104,8 @@ public class SplitRegionScanner implements RegionScanner {
                             Bytes.compareTo(regionStartKey, startRow) >= 0 ? regionStartKey : startRow;
                     byte[] splitStop = (stopRow.length == 0 ||
                             Bytes.compareTo(regionStopKey, stopRow) <= 0) && regionStopKey.length > 0 ? regionStopKey : stopRow;
-                    newScan.setStartRow(splitStart);
-                    newScan.setStopRow(splitStop);
+                    newScan.withStartRow(splitStart);
+                    newScan.withStopRow(splitStop);
                     if (LOG.isDebugEnabled())
                         SpliceLogUtils.debug(LOG, "adding Split Region Scanner for startKey='%s', endKey='%s' on partition ['%s', '%s']",
                                 CellUtils.toHex(splitStart), CellUtils.toHex(splitStop),
@@ -164,7 +164,7 @@ public class SplitRegionScanner implements RegionScanner {
                     scanExceptionCount++;
                     Cell topCell = ((SkeletonClientSideRegionScanner) this.currentScanner).getTopCell();
                     if (topCell != null) {
-                        scan.setStartRow(Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0})); // set to previous start row
+                        scan.withStartRow(Bytes.add(CellUtil.cloneRow(topCell), new byte[]{0})); // set to previous start row
                     }
                     close();
                     LOG.warn(String.format("re-init split scanner with scan=%s, table=%s", scan, htable), ioe);

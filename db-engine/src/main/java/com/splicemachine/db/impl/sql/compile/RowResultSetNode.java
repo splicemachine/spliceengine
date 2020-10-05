@@ -135,10 +135,7 @@ public class RowResultSetNode extends FromTable {
 
     @Override
     public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
-        if(costEstimate==null){
-            costEstimate = super.getFinalCostEstimate(false);
-        }
-        return costEstimate;
+        return super.getFinalCostEstimate(useSelf);
     }
 
     @Override

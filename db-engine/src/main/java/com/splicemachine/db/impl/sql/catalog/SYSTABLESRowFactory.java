@@ -79,7 +79,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
     @Deprecated
     protected static final int SYSTABLES_IS_PINNED              = 14;
     protected static final int SYSTABLES_PURGE_DELETED_ROWS     = 15;
-    public static final int SYSTABLES_MIN_RETENTION_PERIOD   = 16;
+    protected static final int SYSTABLES_MIN_RETENTION_PERIOD   = 16;
     /* End External Tables Columns */
 
     protected static final int SYSTABLES_INDEX1_ID        = 0;
@@ -234,7 +234,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                     tabSType = "V";
                     break;
 
-                case TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:
+                case TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE:
                     tabSType = "X";
                     break;
 
@@ -262,7 +262,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             //NOT USED ANYMORE, for backward compatibility only
             isPinned = descriptor.isPinned();
             purgeDeletedRows = descriptor.purgeDeletedRows();
-            minRetentionPeriod = descriptor.minRetainedPeriod();
+            minRetentionPeriod = descriptor.getMinRetainedVersions();
             tableVersion = descriptor.getVersion() == null ?
                     new SQLVarchar(CURRENT_TABLE_VERSION) :
                     new SQLVarchar(descriptor.getVersion());
@@ -477,7 +477,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                 tableTypeEnum = TableDescriptor.SYNONYM_TYPE;
                 break;
             case 'X':
-                tableTypeEnum = TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE;
+                tableTypeEnum = TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE;
                 break;
             case 'E':
                 tableTypeEnum = TableDescriptor.EXTERNAL_TYPE;
@@ -496,7 +496,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         schema = dd.getSchemaDescriptor(schemaUUID, isolationLevel, null);
 
         // If table is temp table, (SESSION) schema will be null
-        if (schema == null && (tableTypeEnum == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)) {
+        if (schema == null && (tableTypeEnum == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)) {
             schema = dd.getDeclaredGlobalTemporaryTablesSchemaDescriptor();
         }
 

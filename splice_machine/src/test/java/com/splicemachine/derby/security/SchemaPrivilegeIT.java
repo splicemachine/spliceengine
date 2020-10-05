@@ -65,8 +65,8 @@ public class SchemaPrivilegeIT {
 
     private static SpliceWatcher        spliceClassWatcherAdmin = new SpliceWatcher();
     private static SpliceSchemaWatcher  spliceSchemaWatcher1 = new SpliceSchemaWatcher(SCHEMA1);
-    private static SpliceSchemaWatcher  spliceSchemaWatcherUser3 = new SpliceSchemaWatcher(SECOND_SCHEMA,USER3);
-    private static SpliceSchemaWatcher  spliceSchema3WatcherUser3 = new SpliceSchemaWatcher(THIRD_SCHEMA,USER3);
+    private static SpliceSchemaWatcher  spliceSchemaWatcherUser3 = new SpliceSchemaWatcher(null, SECOND_SCHEMA,USER3);
+    private static SpliceSchemaWatcher  spliceSchema3WatcherUser3 = new SpliceSchemaWatcher(null, THIRD_SCHEMA,USER3);
     private static SpliceUserWatcher    spliceUserWatcher1 = new SpliceUserWatcher(USER1, PASSWORD1);
     private static SpliceUserWatcher    spliceUserWatcher2 = new SpliceUserWatcher(USER2, PASSWORD2);
     private static SpliceUserWatcher    spliceUserWatcher3 = new SpliceUserWatcher(USER3, PASSWORD3);

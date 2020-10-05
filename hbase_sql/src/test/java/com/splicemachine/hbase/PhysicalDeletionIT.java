@@ -15,22 +15,18 @@
 package com.splicemachine.hbase;
 
 import com.splicemachine.access.HConfiguration;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.util.Shell;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -38,7 +34,6 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 5/24/17.
  */
-@Category(value = {SerialTest.class})
 public class PhysicalDeletionIT extends SpliceUnitTest {
 
     private static final String NAME = PhysicalDeletionIT.class.getSimpleName().toUpperCase();
@@ -50,7 +45,6 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
     private static final String MRP11 = "MRP11";
     private static final String MRP21 = "MRP21";
     private static final String MRP22 = "MRP22";
-    private static final String MRP31 = "MRP31";
     @ClassRule
     public static  TestRule chain =
             RuleChain.outerRule(classWatcher)
@@ -75,7 +69,6 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
         new TableCreator(conn).withCreate(String.format("create table %s.%s(col1 int)", SCHEMA1, MRP11)).create();
         new TableCreator(conn).withCreate(String.format("create table %s.%s(col1 int)", SCHEMA2, MRP21)).create();
         new TableCreator(conn).withCreate(String.format("create table %s.%s(col1 int)", SCHEMA2, MRP22)).create();
-        new TableCreator(conn).withCreate(String.format("create table %s.%s(col1 int)", SCHEMA1, MRP31)).create();
     }
 
     private void assertPurgeDeletedRowsFlag(boolean expected) throws SQLException {
@@ -90,11 +83,35 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
 
     @Test
     public void testPhysicalDelete() throws Exception {
+
+        TestConnection conn = classWatcher.getOrCreateConnection();
+
         assertPurgeDeletedRowsFlag(false);
+
         methodWatcher.executeUpdate("delete from A");
         methodWatcher.executeUpdate("insert into a values(1,1), (2,2)");
+
         Thread.sleep(2000); // wait for commit markers to be written
-        shouldContainAfterPurge("A", 2, true);
+
+        try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
+            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_FLUSH_TABLE('" + SCHEMA1 + "','A')");
+            methodWatcher.execute("CALL SYSCS_UTIL.SET_PURGE_DELETED_ROWS('" + SCHEMA1 + "','A',true)");
+            methodWatcher.execute("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('" + SCHEMA1 + "','A')");
+
+            assertPurgeDeletedRowsFlag(true);
+
+            Scan s = new Scan();
+            long[] conglomId = SpliceAdmin.getConglomNumbers(conn, SCHEMA1, "A");
+            TableName hTableName = TableName.valueOf("splice:" + conglomId[0]);
+            Table table = connection.getTable(hTableName);
+            ResultScanner scanner = table.getScanner(s);
+            int count = 0;
+            for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
+                System.out.println("RAW CELLS: " + Arrays.toString(rr.rawCells()));
+                count++;
+            }
+            Assert.assertEquals(2, count);
+        }
     }
 
     private void setMinRetentionPeriodOf(String schema, String table, int minRetentionPeriod) throws Exception {
@@ -153,40 +170,5 @@ public class PhysicalDeletionIT extends SpliceUnitTest {
         } catch (Exception e) {
             Assert.assertEquals("'-400' is not in the valid range 'non-negative number'.", e.getMessage());
         }
-    }
-
-    private void shouldContainAfterPurge(String table, int numCells, boolean forcePurge) throws Exception {
-        TestConnection conn = classWatcher.getOrCreateConnection();
-        try (Connection connection = ConnectionFactory.createConnection(HConfiguration.unwrapDelegate())) {
-            methodWatcher.execute(String.format("CALL SYSCS_UTIL.SYSCS_FLUSH_TABLE('%s', '%s')", PhysicalDeletionIT.SCHEMA1, table));
-            methodWatcher.execute(String.format("CALL SYSCS_UTIL.SET_PURGE_DELETED_ROWS('%s', '%s', %b)", PhysicalDeletionIT.SCHEMA1, table, forcePurge));
-            methodWatcher.execute(String.format("CALL SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE('%s', '%s')", PhysicalDeletionIT.SCHEMA1, table));
-            Scan s = new Scan();
-            long[] conglomId = SpliceAdmin.getConglomNumbers(conn, PhysicalDeletionIT.SCHEMA1, table);
-            TableName hTableName = TableName.valueOf("splice:" + conglomId[0]);
-            Table t = connection.getTable(hTableName);
-            ResultScanner scanner = t.getScanner(s);
-            int count = 0;
-            for (Result rr = scanner.next(); rr != null; rr = scanner.next()) {
-                count++;
-            }
-            Assert.assertEquals(numCells, count);
-        }
-    }
-
-    @Test
-    public void testMinRetentionPeriodKeepsHistory() throws Exception {
-        methodWatcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s','%s', 3600)", SCHEMA1, MRP31));
-        // add some data
-        methodWatcher.executeUpdate(String.format("INSERT INTO %s.%s VALUES (1),(2),(3),(4),(5),(6),(7)", SCHEMA1, MRP31));
-        methodWatcher.executeUpdate(String.format("DELETE FROM %s.%s", SCHEMA1, MRP31));
-        methodWatcher.executeUpdate(String.format("INSERT INTO %s.%s VALUES (10),(20)", SCHEMA1, MRP31));
-        Thread.sleep(2000); // wait for commit markers to be written
-        shouldContainAfterPurge(MRP31, 9, false);
-        methodWatcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s','%s', 0)", SCHEMA1, MRP31));
-        SConfiguration config = HConfiguration.getConfiguration();
-        long updateInterval = config.getTransactionsWatcherUpdateInterval();
-        Thread.sleep(updateInterval * 1000 + 1000);
-        shouldContainAfterPurge(MRP31, 2, false);
     }
 }

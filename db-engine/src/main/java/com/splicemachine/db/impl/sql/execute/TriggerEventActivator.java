@@ -71,6 +71,7 @@ public class TriggerEventActivator {
     private String tableName;
     private boolean triggerExecutionContextPushed;
     private boolean executionStmtValidatorPushed;
+    private boolean fromSparkExecution;
 
     // getLcc() may return a different LanguageConnectionContext at the time
     // we pop the triggerExecutionContext and executionStmtValidator, versus
@@ -103,7 +104,8 @@ public class TriggerEventActivator {
                                  Vector<AutoincrementCounter> aiCounters, 
                                  ExecutorService executorService, 
                                  Function<Function<LanguageConnectionContext,Void>, Callable> withContext,
-                                 FormatableBitSet heapList) throws StandardException {
+                                 FormatableBitSet heapList,
+                                 boolean fromSparkExecution) throws StandardException {
         if (triggerInfo == null) {
             return;
         }
@@ -119,11 +121,13 @@ public class TriggerEventActivator {
         }
         this.heapList = heapList;
         connectionContext = (ConnectionContext) getLcc().getContextManager().getContext(ConnectionContext.CONTEXT_ID);
-
+        // fromSparkExecution has to be set before initTriggerExecContext() as the latter uses this variable
+        this.fromSparkExecution = fromSparkExecution;
         initTriggerExecContext(aiCounters);
         setupExecutors(triggerInfo);
         this.executorService = executorService;
         this.withContext = withContext;
+
     }
 
     private void pushExecutionStmtValidator() throws StandardException {
@@ -184,7 +188,7 @@ public class TriggerEventActivator {
         GenericExecutionFactory executionFactory = (GenericExecutionFactory) getLcc().getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
         connectionContext, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
-                tableId, tableName, aiCounters, heapList);
+                tableId, tableName, aiCounters, heapList, fromSparkExecution);
     }
 
     /**
@@ -204,15 +208,21 @@ public class TriggerEventActivator {
         for (TriggerDescriptor td : triggerInfo.getTriggerDescriptors()) {
             TriggerEvent event = td.getTriggerEvent();
             if (td.isRowTrigger()) {
-                boolean runConcurrently = true;
-                for (String sql: td.getTriggerDefinitionList()) {
-                    sql = sql.toUpperCase();
-                    Matcher matcher = pattern.matcher(sql);
-                    if ((sql.contains("INSERT") && sql.contains("INTO")) ||
-                            (sql.contains("UPDATE") && sql.contains("SET")) ||
-                            (sql.contains("DELETE") && sql.contains("FROM")) ||
-                            matcher.find()) {
-                        runConcurrently = false;
+                // disable concurrent trigger for spark execution due to the high overhead
+                // to create lcc and TriggerExecutionContext for each row and each trigger,
+                // each make non-cached dictionary calls for
+                // defaultroles, defaultSchema, storedPreparedStatement ...
+                boolean runConcurrently = !fromSparkExecution;
+                if (runConcurrently) {
+                    for (String sql : td.getTriggerDefinitionList()) {
+                        sql = sql.toUpperCase();
+                        Matcher matcher = pattern.matcher(sql);
+                        if ((sql.contains("INSERT") && sql.contains("INTO")) ||
+                                (sql.contains("UPDATE") && sql.contains("SET")) ||
+                                (sql.contains("DELETE") && sql.contains("FROM")) ||
+                                matcher.find()) {
+                            runConcurrently = false;
+                        }
                     }
                 }
                 if (runConcurrently) {
@@ -340,7 +350,7 @@ public class TriggerEventActivator {
                         lccPushed = pushLanguageConnectionContextToCM(lcc, cm);
                         TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(connectionContext,
                                 statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
-                                tableId, tableName, null, heapList);
+                                tableId, tableName, null, heapList, fromSparkExecution);
                         RowTriggerExecutor triggerExecutor = new RowTriggerExecutor(tec, td, activation, lcc);
 
                         try {

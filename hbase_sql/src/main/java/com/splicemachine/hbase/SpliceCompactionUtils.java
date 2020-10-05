@@ -21,9 +21,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.si.api.txn.Txn;
-import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.typesafe.config.ConfigException;
 import org.apache.hadoop.hbase.regionserver.Store;
 
 import java.io.IOException;
@@ -33,12 +31,8 @@ import java.io.IOException;
  */
 public class SpliceCompactionUtils {
 
-    private interface TableDescriptorExtractor<T> {
-        T get(TableDescriptor td);
-        T getDefaultValue();
-    }
+    public static boolean forcePurgeDeletes(Store store) throws IOException {
 
-    private static <T> T extract(Store store, TableDescriptorExtractor<T> t) throws IOException {
         boolean prepared = false;
         SpliceTransactionResourceImpl transactionResource = null;
         Txn txn = null;
@@ -58,12 +52,12 @@ public class SpliceCompactionUtils {
                     UUID tableID = cd.getTableID();
                     TableDescriptor td = dd.getTableDescriptor(tableID);
                     if (td != null)
-                        return t.get(td);
+                        return td.purgeDeletedRows();
                 }
             }
         }
         catch (NumberFormatException e) {
-            return t.getDefaultValue();
+            return false;
         }
         catch (Exception e) {
             throw new IOException(e);
@@ -75,49 +69,6 @@ public class SpliceCompactionUtils {
                 txn.commit();
         }
 
-        return t.getDefaultValue();
-    }
-
-    public static boolean forcePurgeDeletes(Store store) throws IOException {
-        return extract(store, new TableDescriptorExtractor<Boolean>() {
-            @Override
-            public Boolean get(TableDescriptor td) {
-                return td.purgeDeletedRows();
-            }
-            @Override
-            public Boolean getDefaultValue() {
-                return false;
-            }
-        });
-    }
-
-    private static Long minRetentionPeriod(Store store) throws IOException { ;
-        return extract(store, new TableDescriptorExtractor<Long>() {
-            @Override
-            public Long get(TableDescriptor td) {
-                return td.minRetainedPeriod();
-            }
-            @Override
-            public Long getDefaultValue() {
-                return SIConstants.OLDEST_TIME_TRAVEL_TX;
-            }
-        });
-    }
-
-    public static long getTxnLowWatermark(Store store) throws IOException {
-        if(SIDriver.driver() == null || !SIDriver.driver().isEngineStarted()) {
-            return SIConstants.OLDEST_TIME_TRAVEL_TX;
-        }
-        long lowTxnWatermark = TransactionsWatcher.getLowWatermarkTransaction();
-        Long minRetentionPeriod = SpliceCompactionUtils.minRetentionPeriod(store);
-        if(minRetentionPeriod == null || minRetentionPeriod == 0L) {
-            return lowTxnWatermark;
-        }
-        long minRetentionTs = System.currentTimeMillis() - minRetentionPeriod * 1000;
-        long minRetentionTxnId = SIDriver.driver().getTxnStore().getTxnAt(minRetentionTs);
-        if(minRetentionTxnId == -1) {
-            return SIConstants.OLDEST_TIME_TRAVEL_TX;
-        }
-        return Math.min(lowTxnWatermark, minRetentionTxnId);
+        return false;
     }
 }
