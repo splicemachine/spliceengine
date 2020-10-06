@@ -10,10 +10,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.*;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -115,6 +112,9 @@ public class HTablePrioritiesIT {
         return s + idx;
     }
 
+    // we have to further investigate this, but this conflicts with VacuumIT
+    // maybe the enable/disable of the hbase tables here is conflicting
+    @Ignore("DB-10230")
     @Test
     public void testTablesPriorityUpgrade() throws Exception {
         try(Admin admin= ConnectionFactory.createConnection(new Configuration()).getAdmin()) {
