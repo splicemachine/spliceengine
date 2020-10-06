@@ -297,7 +297,8 @@ public class utilMain implements java.security.PrivilegedAction {
 				}
 
 			connEnv[currCE].doPrompt(true, out);
-   			try {
+			ijResult result = null;
+			try {
    				command = null;
 				out.flush();
 				command = commandGrabber[currCE].nextStatement();
@@ -350,7 +351,7 @@ public class utilMain implements java.security.PrivilegedAction {
 						beginTime = System.currentTimeMillis();
 					}
 
-					ijResult result = ijParser.ijStatement();
+					result = ijParser.ijStatement();
 
 					if(!(result instanceof ijShellConfigResult)) {
 						displayResult(out,result,connEnv[currCE].getConnection());
@@ -393,6 +394,12 @@ public class utilMain implements java.security.PrivilegedAction {
     			  	out.println(langUtil.getTextMessage("IJ_JavaErro0",e.toString()));
 					doTrace(e);
 				}
+				finally{
+					try {
+						if(result != null) result.closeStatement();
+					} catch (SQLException e) {
+				}
+			}
 
 			/* Go to the next connection/user, if there is one */
 			currCE = ++currCE % connEnv.length;
