@@ -19,10 +19,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.derby.impl.sql.execute.actions.IndexConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -126,6 +123,7 @@ public abstract class AbstractDropIndexConstantOperation extends IndexConstantOp
         SpliceTransactionManager userTxnManager = (SpliceTransactionManager)lcc.getTransactionExecute();
         dd.dropConglomerateDescriptor(cd,userTxnManager);
         td.removeConglomerateDescriptor(cd);
+        dd.deletePartitionStatistics(cd.getConglomerateNumber(), userTxnManager);
     }
 
     public String getScopeName() {
