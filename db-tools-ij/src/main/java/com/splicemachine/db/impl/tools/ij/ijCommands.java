@@ -2,6 +2,8 @@ package com.splicemachine.db.impl.tools.ij;
 
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.tools.JDBCDisplayUtil;
+import com.splicemachine.db.impl.tools.ij.ijResultSetResult.ColumnParameters;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.*;
 import java.sql.*;
@@ -9,6 +11,8 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Vector;
 
+// database resources are closed by caller
+@SuppressFBWarnings({"NM_CLASS_NAMING_CONVENTION", "ODR_OPEN_DATABASE_RESOURCE", "OBL_UNSATISFIED_OBLIGATION"})
 public class ijCommands {
     Connection theConnection;
     ConnectionEnv currentConnEnv;
@@ -29,8 +33,8 @@ public class ijCommands {
      * @param start Starting index, inclusive
      * @param end   Ending index, exclusive
      */
-    public static int[] intArraySubset(final int[] input, int start, int end) {
-        int[] res = new int[end-start];
+    public static ColumnParameters[] arraySubset(final ColumnParameters[] input, int start, int end) {
+        ColumnParameters[] res = new ColumnParameters[end-start];
         System.arraycopy(input, start, res, 0, end-start);
         return res;
     }
@@ -49,11 +53,11 @@ public class ijCommands {
             DatabaseMetaData dbmd = theConnection.getMetaData();
             rs = dbmd.getTables(null,schema,null,tableType);
 
-            int[] columnParameters = new int[] {
-                    rs.findColumn("TABLE_SCHEM"), 20, 0,
-                    rs.findColumn("TABLE_NAME"), 50, 0,
-                    rs.findColumn("CONGLOM_ID"), 10, 10,
-                    rs.findColumn("REMARKS"), 20, 0,
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs,"TABLE_SCHEM", 20),
+                    new ColumnParameters( rs,"TABLE_NAME", 50),
+                    new ColumnParameters( rs,"CONGLOM_ID", 10),
+                    new ColumnParameters( rs,"REMARKS", 20)
             };
             return new ijResultSetResult(rs, columnParameters);
         } catch (SQLException e) {
@@ -98,28 +102,28 @@ public class ijCommands {
 
         try {
             ResultSet rs = getIndexInfoForTable(schema, table);
-            int[] columnParameters = new int[] {
-                    rs.findColumn("TABLE_SCHEM"), 20, 0,
-                    rs.findColumn("TABLE_NAME"), 50, 0,
-                    rs.findColumn("INDEX_NAME"), 50, 0,
-                    rs.findColumn("COLUMN_NAME"), 20, 0,
-                    rs.findColumn("ORDINAL_POSITION"), 8, 16,
-                    rs.findColumn("NON_UNIQUE"), 10, 10,
-                    rs.findColumn("TYPE"), 5, 15,
-                    rs.findColumn("ASC_OR_DESC"), 4, 11,
-                    rs.findColumn("CONGLOM_NO"), 10, 10
+//            ColumnParameters[] columnParameters = new ColumnParameters[] {
+//                    new ColumnParameters( rs, "FUNCTION_SCHEM", 14),
+//                    new ColumnParameters( rs, "FUNCTION_NAME", 35),
+//                    new ColumnParameters( rs, "REMARKS", 80)
+//            };
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "TABLE_SCHEM", 20),
+                    new ColumnParameters( rs, "TABLE_NAME", 50),
+                    new ColumnParameters( rs, "INDEX_NAME", 50),
+                    new ColumnParameters( rs, "COLUMN_NAME", 20),
+                    new ColumnParameters( rs, "ORDINAL_POSITION", 8).maxWidth(16),
+                    new ColumnParameters( rs, "NON_UNIQUE", 10).maxWidth(10),
+                    new ColumnParameters( rs, "TYPE", 5).maxWidth(15),
+                    new ColumnParameters( rs, "ASC_OR_DESC", 4).maxWidth( 11),
+                    new ColumnParameters( rs, "CONGLOM_NO", 10).maxWidth(10)
             };
             if(schema!=null) {
-                columnParameters = intArraySubset(columnParameters, 1*3,
-                        columnParameters.length);
+                columnParameters = arraySubset(columnParameters, 1, columnParameters.length);
             }
-            return new ijResultSetResult(rs, columnParameters);
+            result = new ijResultSetResult(rs, columnParameters);
+            return result;
         } catch (SQLException e) {
-            try {
-                if(result!=null)
-                    result.closeStatement();
-            } catch (SQLException se) {
-            }
             throw e;
         }
     }
@@ -136,10 +140,10 @@ public class ijCommands {
             DatabaseMetaData dbmd = theConnection.getMetaData();
             rs = dbmd.getProcedures(null,schema,null);
 
-            int[] columnParameters = new int[] {
-                    rs.findColumn("PROCEDURE_SCHEM"), 20, 0,
-                    rs.findColumn("PROCEDURE_NAME"), 60, 0,
-                    rs.findColumn("REMARKS"), 100, 0
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "PROCEDURE_SCHEM", 20),
+                    new ColumnParameters( rs, "PROCEDURE_NAME", 60),
+                    new ColumnParameters( rs, "REMARKS", 100)
             };
 
             return new ijResultSetResult(rs, columnParameters);
@@ -191,10 +195,10 @@ public class ijCommands {
             rs = dbmd.getProcedureColumns(null,schema,proc,null);
 
             // Small subset of the result set fields available
-            int[] columnParameters = new int[] {
-                    rs.findColumn("COLUMN_NAME"), 32, 0,
-                    rs.findColumn("TYPE_NAME"), 16, 32,
-                    rs.findColumn("ORDINAL_POSITION"), 16
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "COLUMN_NAME", 32),
+                    new ColumnParameters( rs, "TYPE_NAME", 32).maxWidth(16),
+                    new ColumnParameters( rs, "ORDINAL_POSITION", 16).maxWidth(8)
             };
 
             return new ijResultSetResult(rs, columnParameters);
@@ -219,11 +223,11 @@ public class ijCommands {
             DatabaseMetaData dbmd = theConnection.getMetaData();
             rs = dbmd.getPrimaryKeys(null,schema,table);
 
-            int[] columnParameters = new int[] {
-                    rs.findColumn("TABLE_NAME"), 30, 0,
-                    rs.findColumn("COLUMN_NAME"), 30, 0,
-                    rs.findColumn("KEY_SEQ"), 10, 10,
-                    rs.findColumn("PK_NAME"), 30, 0
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "TABLE_NAME", 30),
+                    new ColumnParameters( rs, "COLUMN_NAME", 30),
+                    new ColumnParameters( rs, "KEY_SEQ", 10),
+                    new ColumnParameters( rs, "PK_NAME", 30)
             };
             return new ijResultSetResult(rs, columnParameters);
         } catch (SQLException e) {
@@ -279,10 +283,10 @@ public class ijCommands {
                 throw ijException.notAvailableForDriver(dbmd.getDriverName());
             }
 
-            int[] columnParameters = new int[] {
-                    rs.findColumn("FUNCTION_SCHEM"), 14, 0,
-                    rs.findColumn("FUNCTION_NAME"), 35, 0,
-                    rs.findColumn("REMARKS"), 80, 0
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "FUNCTION_SCHEM", 14),
+                    new ColumnParameters( rs, "FUNCTION_NAME", 35),
+                    new ColumnParameters( rs, "REMARKS", 80)
             };
 
             return new ijResultSetResult(rs, columnParameters);
@@ -307,8 +311,8 @@ public class ijCommands {
             DatabaseMetaData dbmd = theConnection.getMetaData();
             rs = dbmd.getSchemas();
 
-            int[] columnParameters = new int[] {
-                    rs.findColumn("TABLE_SCHEM"), 30, 0
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "TABLE_SCHEM", 30)
             };
 
             return new ijResultSetResult(rs, columnParameters);
@@ -340,8 +344,8 @@ public class ijCommands {
                         ("SELECT ROLEID FROM SYS.SYSROLES WHERE ISDEF='Y' " +
                                 "ORDER BY ROLEID ASC");
 
-                int[] columnParameters = new int[] {
-                        rs.findColumn("ROLEID"), 30, 0
+                ColumnParameters[] columnParameters = new ColumnParameters[] {
+                        new ColumnParameters( rs, "ROLEID", 30)
                 };
 
                 return new ijResultSetResult(rs, columnParameters);
@@ -377,8 +381,8 @@ public class ijCommands {
                                 "	   SYSCS_DIAG.CONTAINED_ROLES(CURRENT_ROLE)) T " +
                                 "ORDER BY ROLEID");
 
-                int[] columnParameters = new int[] {
-                        rs.findColumn("ROLEID"), 30, 0
+                ColumnParameters[] columnParameters = new ColumnParameters[] {
+                        new ColumnParameters( rs, "ROLEID", 30)
                 };
 
                 return new ijResultSetResult(rs, columnParameters);
@@ -424,8 +428,8 @@ public class ijCommands {
                     currentConnEnv.getSession().getIsEmbeddedDerby()) {
                 rs = theConnection.createStatement().executeQuery(query);
 
-                int[] columnParameters = new int[] {
-                        rs.findColumn("ROLEID"), 30, 0
+                ColumnParameters[] columnParameters = new ColumnParameters[] {
+                        new ColumnParameters( rs, "ROLEID", 30)
                 };
 
                 return new ijResultSetResult(rs, columnParameters);
@@ -445,6 +449,7 @@ public class ijCommands {
     /**
      * Outputs the DDL of given table.
      */
+    @SuppressFBWarnings("SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE") // intentional
     public ijResult showCreateTable(String schema, String table) throws SQLException {
         ResultSet rs = null;
         try {
@@ -553,20 +558,25 @@ public class ijCommands {
             }
 
             rs = dbmd.getColumns(null,schema,table,null);
-            int[] columnParameters = new int[] {
-                    rs.findColumn("TABLE_SCHEM"), 20, 0,
-                    rs.findColumn("TABLE_NAME"), 20, 0,
-                    rs.findColumn("COLUMN_NAME"), 40, 0,
-                    rs.findColumn("TYPE_NAME"), 9, 15,
-                    rs.findColumn("DECIMAL_DIGITS"), 4, 14,
-                    rs.findColumn("NUM_PREC_RADIX"), 4, 14,
-                    rs.findColumn("COLUMN_SIZE"), 10, 11,
-                    rs.findColumn("COLUMN_DEF"), 10, 10,
-                    rs.findColumn("CHAR_OCTET_LENGTH"), 10, 17,
-                    rs.findColumn("IS_NULLABLE"), 6, 11
+
+            ColumnParameters[] columnParameters = new ColumnParameters[] {
+                    new ColumnParameters( rs, "TABLE_SCHEM", 20),
+                    new ColumnParameters( rs, "TABLE_NAME", 20),
+                    new ColumnParameters( rs, "COLUMN_NAME", 40),
+                    new ColumnParameters( rs, "TYPE_NAME", 9).maxWidth(15),
+                    new ColumnParameters( rs, "DECIMAL_DIGITS", 4).maxWidth(14),
+                    new ColumnParameters( rs, "NUM_PREC_RADIX", 4).maxWidth(14),
+                    new ColumnParameters( rs, "COLUMN_SIZE", 10).maxWidth(11),
+                    new ColumnParameters( rs, "COLUMN_DEF", 10).maxWidth(10),
+                    new ColumnParameters( rs, "CHAR_OCTET_LENGTH", 10).maxWidth(17),
+                    new ColumnParameters( rs, "IS_NULLABLE", 6).maxWidth(11)
             };
-            columnParameters = intArraySubset(columnParameters, 2*3,
-                    columnParameters.length);
+            // If schema is specified (if util.getSelectedSchema in
+            // DescTableStatement() returns correct value), then we
+            // don't need to output schema and table names.
+            if(schema!=null && table != null) {
+                columnParameters = arraySubset(columnParameters, 2, columnParameters.length);
+            }
             return new ijResultSetResult(rs, columnParameters);
         } catch (SQLException e) {
             try {
