@@ -97,7 +97,7 @@ public class ScanCostFunction{
     // positions of columns used in estimating selectivity but missing real statistics
     private final HashSet<Integer> usedNoStatsColumnIds;
 
-    // Will be used shortly
+    // will be used shortly
     private final boolean forUpdate;
 
     // selectivity elements for scanning phase
@@ -110,6 +110,9 @@ public class ScanCostFunction{
     // for normal indexes and primary keys, stores column references to the base table
     // for indexes on expressions, stores the ASTs of index expressions in their defined order
     private final ValueNode[] indexColumns;
+
+    // cost of evaluating all expressions used in added predicates per row
+    private double exprEvalCostPerRow = 0.0f;
 
     /**
      *
@@ -301,6 +304,10 @@ public class ScanCostFunction{
         }
     }
 
+    private void accumulateExprEvalCost(Predicate p) throws StandardException {
+        exprEvalCostPerRow += p.getAndNode().getLeftOperand().getBaseOperationCost();
+    }
+
     /**
      *
      * Add Predicate and keep track of the selectivity
@@ -313,11 +320,13 @@ public class ScanCostFunction{
             addSelectivity(new InListSelectivity(scc, p, isIndexOnExpression ? indexColumns : null, QualifierPhase.BASE, defaultSelectivityFactor), SCAN);
             collectNoStatsColumnsFromInListPred(p);
         } else if (p.isInQualifier(baseColumnsInScan)) { // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
-            addSelectivity(new InListSelectivity(scc, p, null, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), SCAN); // TODO: Why FILTER_PROJECTION here?
+            addSelectivity(new InListSelectivity(scc, p, null, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), SCAN);
+            accumulateExprEvalCost(p);
             collectNoStatsColumnsFromInListPred(p);
         }
         else if (p.isInQualifier(baseColumnsInLookup)) { // In Qualifier against looked up columns (FILTER_PROJECTION)
             addSelectivity(new InListSelectivity(scc, p, null, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
+            accumulateExprEvalCost(p);
             collectNoStatsColumnsFromInListPred(p);
         }
         else if ( (p.isStartKey() || p.isStopKey()) && scanPredicatePossible) { // Range Qualifier on Start/Stop Keys (BASE)
@@ -332,10 +341,13 @@ public class ScanCostFunction{
         }
         else if (PredicateList.isQualifier(p,baseTable,indexDescriptor,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
             performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP);
+            accumulateExprEvalCost(p);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
-        else // Project Restrict Selectivity Filter
-            addSelectivity(new DefaultPredicateSelectivity(p,baseTable,QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
+        else { // Project Restrict Selectivity Filter
+            addSelectivity(new DefaultPredicateSelectivity(p, baseTable, QualifierPhase.FILTER_PROJECTION, defaultSelectivityFactor), TOP);
+            accumulateExprEvalCost(p);
+        }
     }
 
     /**
@@ -411,7 +423,7 @@ public class ScanCostFunction{
             totalCost.setIndexLookupRows(totalRowCount);
             totalCost.setIndexLookupCost(lookupCost+baseCost);
         }
-        double projectionCost = totalRowCount * scc.getLocalLatency() * colSizeFactor*1d/1000d;
+        double projectionCost = totalRowCount * (scc.getLocalLatency() * colSizeFactor*1d/1000d + exprEvalCostPerRow);
         totalCost.setProjectionRows(totalCost.getEstimatedRowCount());
         totalCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         totalCost.setLocalCost(baseCost+lookupCost+projectionCost);
@@ -542,7 +554,7 @@ public class ScanCostFunction{
             totalCost.setProjectionRows(-1.0d);
             totalCost.setProjectionCost(-1.0d);
         } else {
-            projectionCost = totalRowCount * filterBaseTableSelectivity * localLatency * colSizeFactor*1d/1000d;
+            projectionCost = totalRowCount * filterBaseTableSelectivity * (localLatency * colSizeFactor*1d/1000d + exprEvalCostPerRow);
             totalCost.setProjectionRows((double) totalCost.getEstimatedRowCount());
             totalCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }

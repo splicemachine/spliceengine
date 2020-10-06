@@ -619,4 +619,10 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 			return (resultLength);
 
 	}
+
+	@Override
+	public double getBaseOperationCost() throws StandardException {
+		// allocation cost shadows copy cost
+		return SIMPLE_OP_COST * ALLOC_COST_FACTOR + getChildrenCost();
+	}
 }

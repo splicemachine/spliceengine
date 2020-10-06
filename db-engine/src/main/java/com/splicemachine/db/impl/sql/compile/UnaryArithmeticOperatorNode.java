@@ -266,4 +266,9 @@ public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
         }
         super.setType(descriptor);
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        return getOperandCost() + SIMPLE_OP_COST;
+    }
 }

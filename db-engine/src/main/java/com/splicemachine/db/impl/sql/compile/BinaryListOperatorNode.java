@@ -515,4 +515,13 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         }
         return result;
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double localCost = 0.0;
+        for (Object leftOperand : leftOperandList) {
+            localCost += ((ValueNode) leftOperand).getBaseOperationCost();
+        }
+        return localCost;
+    }
 }

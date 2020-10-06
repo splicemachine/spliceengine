@@ -181,4 +181,12 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
         mb.cast(ClassName.DataValueDescriptor);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,(String)null,methodName,getTypeCompiler().interfaceName(),1);
     } // end of generateExpression
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double lowerCost = getOperandCost();
+        double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : 2.0);
+        double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+        return lowerCost + localCost + callCost;
+    }
 }

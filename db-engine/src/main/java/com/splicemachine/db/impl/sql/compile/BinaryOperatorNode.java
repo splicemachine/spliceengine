@@ -1074,5 +1074,14 @@ public class BinaryOperatorNode extends OperatorNode
             this.rightMatchIndexExprColumnPosition = columnPosition;
         }
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException { return getChildrenCost(); }
+
+    protected double getChildrenCost() throws StandardException {
+        double leftCost = leftOperand == null ? 0.0 : leftOperand.getBaseOperationCost();
+        double rightCost = rightOperand == null ? 0.0 : rightOperand.getBaseOperationCost();
+        return leftCost + rightCost;
+    }
 }
 

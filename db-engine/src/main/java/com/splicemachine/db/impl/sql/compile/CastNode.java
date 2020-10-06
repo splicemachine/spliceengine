@@ -1144,6 +1144,11 @@ public class CastNode extends ValueNode
     public DataValueDescriptor getKnownConstantValue() {
         return castOperand.getKnownConstantValue();
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        return SIMPLE_OP_COST + castOperand.getBaseOperationCost();
+    }
 }
 
 

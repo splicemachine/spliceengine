@@ -1593,4 +1593,14 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         // by default, take this whole subtree as an expression
         return collectSingleExpression(exprMap);
     }
+
+    protected static final double SIMPLE_OP_COST = 0.2;            // add/sub, logical and/or/negate, etc.
+    protected static final double FLOAT_OP_COST_FACTOR = 2;        // 2x cost of simple op
+    protected static final double MULTIPLICATION_COST_FACTOR = 4;
+    protected static final double DIV_COST_FACTOR = 25;
+    protected static final double FN_CALL_COST_FACTOR = 27.5;      // in theory, direct/indirect/virtual calls are different, but we don't model it here
+    protected static final double BYPASS_COST_FACTOR = 1.5;        // switch between integer and floating-point units
+    protected static final double ALLOC_COST_FACTOR = 350;
+
+    public double getBaseOperationCost() throws StandardException { return 0.0f; }
 }

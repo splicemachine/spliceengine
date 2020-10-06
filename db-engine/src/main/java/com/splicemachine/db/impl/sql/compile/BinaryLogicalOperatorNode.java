@@ -259,4 +259,9 @@ abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 		}
 		return result;
 	}
+
+	@Override
+	public double getBaseOperationCost() throws StandardException {
+		return SIMPLE_OP_COST + getChildrenCost();
+	}
 }

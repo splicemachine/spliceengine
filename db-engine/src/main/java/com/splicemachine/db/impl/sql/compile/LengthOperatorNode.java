@@ -163,4 +163,12 @@ public final class LengthOperatorNode extends UnaryOperatorNode
 	public String getReceiverInterfaceName() {
 	    return ClassName.ConcatableDataValue;
 	}
+
+	@Override
+	public double getBaseOperationCost() throws StandardException {
+		double lowerCost = getOperandCost();
+		double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : operand.getTypeServices().getNull().getLength());
+		double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+		return lowerCost + localCost + callCost;
+	}
 }

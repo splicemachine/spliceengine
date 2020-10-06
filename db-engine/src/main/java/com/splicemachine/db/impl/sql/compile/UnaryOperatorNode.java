@@ -915,4 +915,10 @@ public class UnaryOperatorNode extends OperatorNode
         // for count(*), operand is null
         return operand != null && operand.isConstantOrParameterTreeNode();
     }
+
+    public double getBaseOperationCost() throws StandardException { return getOperandCost(); }
+
+    protected double getOperandCost() throws StandardException {
+        return operand == null ? 0.0f : operand.getBaseOperationCost();
+    }
 }

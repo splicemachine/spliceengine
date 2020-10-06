@@ -213,4 +213,27 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
 
         return this;
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double localCost;
+        switch (operator) {
+            case TypeCompiler.TIMES_OP:
+                localCost = SIMPLE_OP_COST * MULTIPLICATION_COST_FACTOR;
+                break;
+            case TypeCompiler.DIVIDE_OP:
+            case TypeCompiler.MOD_OP:
+                localCost = SIMPLE_OP_COST * DIV_COST_FACTOR;
+                break;
+            case TypeCompiler.PLUS_OP:
+            case TypeCompiler.MINUS_OP:
+            default:
+                localCost = SIMPLE_OP_COST;
+                break;
+        }
+        if (leftOperand.getTypeId().isFloatingPointTypeId() || rightOperand.getTypeId().isFloatingPointTypeId()) {
+            localCost *= FLOAT_OP_COST_FACTOR;
+        }
+        return localCost + getChildrenCost() + SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+    }
 }
