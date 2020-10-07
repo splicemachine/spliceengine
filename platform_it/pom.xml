@@ -1150,6 +1150,14 @@
             </properties>
         </profile>
         <profile>
+            <id>hdp3.1.5</id>
+            <properties>
+                <extraDependency>splice_ranger_service</extraDependency>
+                <extraDependency2>splice_ranger_admin</extraDependency2>
+                <extraDependency3>splice_atlas</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
             <id>cdh6.3.0</id>
             <properties>
                 <extraDependency>splice_sentry</extraDependency>
