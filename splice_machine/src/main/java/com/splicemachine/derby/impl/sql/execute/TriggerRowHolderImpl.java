@@ -27,7 +27,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.db.impl.sql.execute.TemporaryRowHolderResultSet;
@@ -36,7 +35,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import java.io.*;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.Properties;
 import java.util.concurrent.Callable;
 
@@ -53,7 +51,6 @@ import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import static java.lang.String.format;
@@ -71,7 +68,6 @@ import static java.lang.String.format;
 * This class is a modified version of TemporaryRowHolderImpl.
 *
 */
-@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
 {
      private static final Logger LOG = Logger.getLogger(TriggerRowHolderImpl.class);
@@ -180,7 +176,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
             conglomCreated = true;
             this.CID = ConglomID;
         }
-        else if (overflowToConglomThreshold == 0) {
+        else if (overflowToConglomThreshold == 0 && execRowDefinition != null) {
             try {
                 createConglomerate(execRowDefinition);
                 conglomCreated = true;
@@ -310,7 +306,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
                  null, //collation_ids
                  properties,
                  TransactionController.IS_TEMPORARY |
-                 TransactionController.IS_KEPT, Conglomerate.Priority.NORMAL);
+                 TransactionController.IS_KEPT);
 
             LOG.trace(format("Created temporary conglomerate splice:%d", CID));
 
@@ -326,9 +322,11 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
     }
 
     class InMemoryTriggerRowsIterator implements Iterator<ExecRow>, Closeable {
+        private TriggerRowHolderImpl holder;
         private int position = 0;
-        public InMemoryTriggerRowsIterator()
+        public InMemoryTriggerRowsIterator(TriggerRowHolderImpl holder)
         {
+            this.holder = holder;
         }
 
         @Override
@@ -339,12 +337,10 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
 
         @Override
-        public ExecRow next() throws NoSuchElementException
-        {
+        public ExecRow next() {
             if (position <= lastArraySlot)
                 return rowArray[position++];
-            else
-                throw new NoSuchElementException();
+            return null;
         }
 
         @Override
@@ -353,7 +349,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         }
     }
     public InMemoryTriggerRowsIterator getCachedRowsIterator() {
-        return new InMemoryTriggerRowsIterator();
+        return new InMemoryTriggerRowsIterator(this);
     }
 
     // Must use the version of insert that provides the KVPair.

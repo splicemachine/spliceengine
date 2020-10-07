@@ -15,15 +15,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.access.api.PartitionAdmin;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
-import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -208,7 +199,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         columnOrdering, //column sort order - not required for heap
                         td.getColumnCollationIds(),
                         properties,
-                        TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
+                        TransactionController.IS_DEFAULT);
 
         /* Set up index info to perform truncate on them*/
         int numIndexes = getAffectedIndexes(td);
@@ -298,7 +289,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         columnOrder,
                         collationIds,
                         properties,
-                        TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
+                        TransactionController.IS_DEFAULT);
 
 
     }

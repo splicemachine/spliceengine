@@ -33,7 +33,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
@@ -406,7 +405,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             properties, // properties
             tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
                 (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
-                TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
+                TransactionController.IS_DEFAULT);
 
         // follow thru with remaining constraint actions, create, store, etc.
         constraint.executeConstantAction(activation);
@@ -524,7 +523,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
                 ModifyColumnConstantOperation updateNullabilityAction =
                         new ModifyColumnConstantOperation(td.getSchemaDescriptor(), td.getName(), td.getUUID(),
-                                pkColumnInfo, new ConstantAction[0], Character.valueOf('\0'), behavior, null);
+                                pkColumnInfo, new ConstantAction[0], '\0', behavior, null);
                 updateNullabilityAction.executeConstantAction(activation);
                 hasColumnUpdate = true;
             }
@@ -618,7 +617,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             properties, // properties
             tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
                 (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
-                TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
+                TransactionController.IS_DEFAULT);
 
         /*
          * modify the conglomerate descriptor with the new conglomId

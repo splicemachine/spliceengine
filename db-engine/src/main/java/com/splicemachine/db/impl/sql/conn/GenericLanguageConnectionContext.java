@@ -57,7 +57,6 @@ import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -1672,7 +1671,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         td.getColumnCollationIds(),  // same ids as old conglomerate
                         null, // properties
                         (TransactionController.IS_TEMPORARY|
-                                TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
+                                TransactionController.IS_KEPT));
 
         long cid=td.getHeapConglomerateId();
 
