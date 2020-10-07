@@ -199,7 +199,7 @@ message SetDatabaseProperty {
 message TentativeFK {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
-        /* Info about the constraint that is ultimately used in constraint violation error messages */
+        /* Info about the constraint */
         optional FKConstraintInfo fkConstraintInfo = 3;
         /* formatIds for the backing index of the FK we are creating */
         repeated int32 backingIndexFormatIds = 4;
@@ -299,6 +299,18 @@ message FKConstraintInfo {
     optional string columnNames = 3;
     optional string parentTableVersion = 4;
     repeated int32 formatIds = 5;
+
+    /**
+      delete rule:
+        CASCADE    = 0
+        RESTRICT   = 1
+        NOACTION   = 2
+        SETNULL    = 3
+        SETDEFAULT = 4
+     */
+    optional int32 deleteRule = 6;
+    optional Table table = 7;
+    repeated int32 columnIndices = 8; // 1-based
 }
 
 message NotifyJarLoader {

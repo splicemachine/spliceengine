@@ -121,8 +121,6 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 		switch(otherConstraintInfo.getReferentialActionDeleteRule()){
 			case StatementType.RA_CASCADE:
 				throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "ON DELETE CASCADE");
-			case StatementType.RA_SETNULL:
-				throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "ON DELETE SET NULL");
 		}
 	}
 
