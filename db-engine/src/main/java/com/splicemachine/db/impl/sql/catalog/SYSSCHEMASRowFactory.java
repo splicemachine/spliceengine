@@ -70,7 +70,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
     public static final int SYSSCHEMAS_INDEX2_ID = 1;
 
 
-    protected static final int[][] indexColumnPositions =
+    private static final int[][] indexColumnPositions =
     {
         {SYSSCHEMAS_SCHEMANAME, SYSSCHEMAS_DATABASEID},
         {SYSSCHEMAS_SCHEMAID}

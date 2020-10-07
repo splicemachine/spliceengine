@@ -68,19 +68,19 @@ import java.security.AccessControlException;
 
 
 /**
-	Abstract factory class and api for JDBC objects.
+    Abstract factory class and api for JDBC objects.
 */
 
 public abstract class InternalDriver implements ModuleControl {
     
-	private static final Object syncMe = new Object();
-	private static InternalDriver activeDriver;
+    private static final Object syncMe = new Object();
+    private static InternalDriver activeDriver;
     
     private Object mbean;
 
-	protected boolean active;
-	private ContextService contextServiceFactory;
-	private AuthenticationService	authenticationService;
+    protected boolean active;
+    private ContextService contextServiceFactory;
+    private AuthenticationService    authenticationService;
 
     /**
      * Tells whether or not {@code AutoloadedDriver} should deregister itself
@@ -89,194 +89,194 @@ public abstract class InternalDriver implements ModuleControl {
      */
     private static boolean deregister = true;
 
-	public static final InternalDriver activeDriver()
-	{
-		return activeDriver;
-	}
+    public static final InternalDriver activeDriver()
+    {
+        return activeDriver;
+    }
 
-	public InternalDriver() {
-		contextServiceFactory = ContextService.getFactory();
-	}
+    public InternalDriver() {
+        contextServiceFactory = ContextService.getFactory();
+    }
 
-	/*
-	**	Methods from ModuleControl
-	*/
+    /*
+    **    Methods from ModuleControl
+    */
 
-	public void boot(boolean create, Properties properties) throws StandardException {
+    public void boot(boolean create, Properties properties) throws StandardException {
 
-		synchronized (InternalDriver.syncMe)
-		{
-			InternalDriver.activeDriver = this;
-		}
+        synchronized (InternalDriver.syncMe)
+        {
+            InternalDriver.activeDriver = this;
+        }
 
-		active = true;
+        active = true;
         
         mbean = ((ManagementService)
            Monitor.getSystemModule(Module.JMX)).registerMBean(
                    new JDBC(this),
                    JDBCMBean.class,
                    "type=JDBC");
-	}
+    }
 
-	public void stop() {
+    public void stop() {
 
-		synchronized (InternalDriver.syncMe)
-		{
-			InternalDriver.activeDriver = null;
-		}
+        synchronized (InternalDriver.syncMe)
+        {
+            InternalDriver.activeDriver = null;
+        }
         
         ((ManagementService)
                 Monitor.getSystemModule(Module.JMX)).unregisterMBean(
                         mbean);
 
-		active = false;
+        active = false;
 
-		contextServiceFactory = null;
-	}
+        contextServiceFactory = null;
+    }
 
-	/*
-	** Methods from java.sql.Driver
-	*/
-	public boolean acceptsURL(String url) {
-		return active && embeddedDriverAcceptsURL( url );
-	}
+    /*
+    ** Methods from java.sql.Driver
+    */
+    public boolean acceptsURL(String url) {
+        return active && embeddedDriverAcceptsURL( url );
+    }
 
-	/*
-	** This method can be called by AutoloadedDriver so that we
-	** don't accidentally boot Derby while answering the question "Can
-	** you handle this URL?"
-	*/
-	public static	boolean embeddedDriverAcceptsURL(String url) {
-		return
-		//	need to reject network driver's URL's
-		!url.startsWith(Attribute.JCC_PROTOCOL) && !url.startsWith(Attribute.DNC_PROTOCOL) &&
-		(url.startsWith(Attribute.PROTOCOL) || url.equals(Attribute.SQLJ_NESTED));
-				
-	}
+    /*
+    ** This method can be called by AutoloadedDriver so that we
+    ** don't accidentally boot Derby while answering the question "Can
+    ** you handle this URL?"
+    */
+    public static    boolean embeddedDriverAcceptsURL(String url) {
+        return
+        //    need to reject network driver's URL's
+        !url.startsWith(Attribute.JCC_PROTOCOL) && !url.startsWith(Attribute.DNC_PROTOCOL) &&
+        (url.startsWith(Attribute.PROTOCOL) || url.equals(Attribute.SQLJ_NESTED));
 
-	public Connection connect(String url, Properties info)
-		 throws SQLException 
-	{
-		if (!acceptsURL(url)) { return null; }
-		
+    }
+
+    public Connection connect(String url, Properties info)
+         throws SQLException
+    {
+        if (!acceptsURL(url)) { return null; }
+
         /**
          * If we are below the low memory watermark for obtaining
          * a connection, then don't even try. Just throw an exception.
          */
-		if (EmbedConnection.memoryState.isLowMemory())
-		{
-			throw EmbedConnection.NO_MEM;
-		}
-        			
-		/*
-		** A url "jdbc:default:connection" means get the current
-		** connection.  From within a method called from JSQL, the
-		** "current" connection is the one that is running the
-		** JSQL statement containing the method call.
-		*/
-		boolean current = url.equals(Attribute.SQLJ_NESTED);
-		
-		/* If jdbc:default:connection, see if user already has a
-		 * connection. All connection attributes are ignored.
-		 */
-		if (current) {
+        if (EmbedConnection.memoryState.isLowMemory())
+        {
+            throw EmbedConnection.NO_MEM;
+        }
 
-			ConnectionContext connContext = getConnectionContext();
+        /*
+        ** A url "jdbc:default:connection" means get the current
+        ** connection.  From within a method called from JSQL, the
+        ** "current" connection is the one that is running the
+        ** JSQL statement containing the method call.
+        */
+        boolean current = url.equals(Attribute.SQLJ_NESTED);
 
-			if (connContext != null) {
-						
-				return connContext.getNestedConnection(false);
-				
-			}
-			// there is no Derby connection, so
-			// return null, as we are not the driver to handle this
-			return null;
-		}
+        /* If jdbc:default:connection, see if user already has a
+         * connection. All connection attributes are ignored.
+         */
+        if (current) {
 
-		// convert the ;name=value attributes in the URL into
-		// properties.
-		FormatableProperties finfo = null;
+            ConnectionContext connContext = getConnectionContext();
+
+            if (connContext != null) {
+
+                return connContext.getNestedConnection(false);
+
+            }
+            // there is no Derby connection, so
+            // return null, as we are not the driver to handle this
+            return null;
+        }
+
+        // convert the ;name=value attributes in the URL into
+        // properties.
+        FormatableProperties finfo = null;
         
-		try {
+        try {
             
             finfo = getAttributes(url, info);
-			info = null; // ensure we don't use this reference directly again.
+            info = null; // ensure we don't use this reference directly again.
 
-			/*
-			** A property "shutdown=true" means shut the system or database down
-			*/
-			boolean shutdown = Boolean.valueOf(finfo.getProperty(Attribute.SHUTDOWN_ATTR));
-			
-			if (shutdown) {				
-				// If we are shutting down the system don't attempt to create
-				// a connection; but we validate users credentials if we have to.
-				// In case of datbase shutdown, we ask the database authentication
-				// service to authenticate the user. If it is a system shutdown,
-				// then we ask the Driver to do the authentication.
-				//
-				if (InternalDriver.getDatabaseName(url, finfo).isEmpty()) {
-					//
-					// We need to authenticate the user if authentication is
-					// ON. Note that this is a system shutdown.
-					// check that we do have a authentication service
-					// it is _always_ expected.
-					if (this.getAuthenticationService() == null)
-						throw Util.generateCsSQLException(
+            /*
+            ** A property "shutdown=true" means shut the system or database down
+            */
+            boolean shutdown = Boolean.valueOf(finfo.getProperty(Attribute.SHUTDOWN_ATTR));
+
+            if (shutdown) {
+                // If we are shutting down the system don't attempt to create
+                // a connection; but we validate users credentials if we have to.
+                // In case of datbase shutdown, we ask the database authentication
+                // service to authenticate the user. If it is a system shutdown,
+                // then we ask the Driver to do the authentication.
+                //
+                if (InternalDriver.getDatabaseName(url, finfo).isEmpty()) {
+                    //
+                    // We need to authenticate the user if authentication is
+                    // ON. Note that this is a system shutdown.
+                    // check that we do have a authentication service
+                    // it is _always_ expected.
+                    if (this.getAuthenticationService() == null)
+                        throw Util.generateCsSQLException(
                                 SQLState.LOGIN_FAILED,
                                 MessageService.getTextMessage(MessageId.AUTH_NO_SERVICE_FOR_SYSTEM));
-					
-						
-					if (this.getAuthenticationService().authenticate((String) null, finfo) == null) {
 
-						// not a valid user
-						throw Util.generateCsSQLException(
+
+                    if (this.getAuthenticationService().authenticate((String) null, finfo) == null) {
+
+                        // not a valid user
+                        throw Util.generateCsSQLException(
                                     SQLState.NET_CONNECT_AUTH_FAILED,
                                     MessageService.
                                     getTextMessage(MessageId.AUTH_INVALID));
-					}
+                    }
 
                     // DERBY-2905, allow users to provide deregister attribute to 
                     // leave AutoloadedDriver registered in DriverManager, default
                     // value is true
                     if (finfo.getProperty(Attribute.DEREGISTER_ATTR) != null) {
                         boolean deregister = Boolean.valueOf(
-								finfo.getProperty(Attribute.DEREGISTER_ATTR));
+                                finfo.getProperty(Attribute.DEREGISTER_ATTR));
                         InternalDriver.setDeregister(deregister);
                     }
 
-					// check for shutdown privileges
-					// DERBY-3495: uncomment to enable system privileges checks
-					//final String user = IdUtil.getUserNameFromURLProps(finfo);
-					//checkShutdownPrivileges(user);
+                    // check for shutdown privileges
+                    // DERBY-3495: uncomment to enable system privileges checks
+                    //final String user = IdUtil.getUserNameFromURLProps(finfo);
+                    //checkShutdownPrivileges(user);
 
-					Monitor.getMonitor().shutdown();
+                    Monitor.getMonitor().shutdown();
 
-					throw Util.generateCsSQLException(
+                    throw Util.generateCsSQLException(
                                          SQLState.CLOUDSCAPE_SYSTEM_SHUTDOWN);
-				}
-			}
-			
-			EmbedConnection conn = getNewEmbedConnection(url, finfo);
+                }
+            }
 
-			// if this is not the correct driver a EmbedConnection
-			// object is returned in the closed state.
-			if (conn.isClosed()) {
-				return null;
-			}
+            EmbedConnection conn = getNewEmbedConnection(url, finfo);
 
-			return conn;
-		}
-		catch (OutOfMemoryError noMemory)
-		{
-			EmbedConnection.memoryState.setLowMemory();
-			throw EmbedConnection.NO_MEM;
-		}
-		finally {
-			// break any link with the user's Properties set.
+            // if this is not the correct driver a EmbedConnection
+            // object is returned in the closed state.
+            if (conn.isClosed()) {
+                return null;
+            }
+
+            return conn;
+        }
+        catch (OutOfMemoryError noMemory)
+        {
+            EmbedConnection.memoryState.setLowMemory();
+            throw EmbedConnection.NO_MEM;
+        }
+        finally {
+            // break any link with the user's Properties set.
             if (finfo != null)
-			    finfo.clearDefaults();
-		}
-	}
+                finfo.clearDefaults();
+        }
+    }
 
     /**
      * Checks for System Privileges.
@@ -328,95 +328,95 @@ public abstract class InternalDriver implements ModuleControl {
             checkSystemPrivileges(user, sp);
         } catch (Exception e) {
             throw Util.generateCsSQLException(
-				SQLState.AUTH_SHUTDOWN_MISSING_PERMISSION,
-				user, (Object)e); // overloaded method
+                SQLState.AUTH_SHUTDOWN_MISSING_PERMISSION,
+                user, (Object)e); // overloaded method
         }
     }
 
-	public int getMajorVersion() {
-		return Monitor.getMonitor().getEngineVersion().getMajorVersion();
-	}
-	
-	public int getMinorVersion() {
-		return Monitor.getMonitor().getEngineVersion().getMinorVersion();
-	}
+    public int getMajorVersion() {
+        return Monitor.getMonitor().getEngineVersion().getMajorVersion();
+    }
 
-	public boolean jdbcCompliant() {
-		return true;
-	}
+    public int getMinorVersion() {
+        return Monitor.getMonitor().getEngineVersion().getMinorVersion();
+    }
 
-	/*
-	** URL manipulation
-	*/
+    public boolean jdbcCompliant() {
+        return true;
+    }
 
-	/**
-		Convert all the attributes in the url into properties and
-		combine them with the set provided. 
-		<BR>
-		If the caller passed in a set of attributes (info != null)
-		then we set that up as the default of the returned property
-		set as the user's set. This means we can easily break the link
-		with the user's set, ensuring that we don't hang onto the users object.
-		It also means that we don't add our attributes into the user's
-		own property object.
+    /*
+    ** URL manipulation
+    */
 
-		@exception SQLException thrown if URL form bad
-	*/
-	protected FormatableProperties getAttributes(String url, Properties info) 
-		throws SQLException {
+    /**
+        Convert all the attributes in the url into properties and
+        combine them with the set provided.
+        <BR>
+        If the caller passed in a set of attributes (info != null)
+        then we set that up as the default of the returned property
+        set as the user's set. This means we can easily break the link
+        with the user's set, ensuring that we don't hang onto the users object.
+        It also means that we don't add our attributes into the user's
+        own property object.
 
-		// We use FormatableProperties here to take advantage
-		// of the clearDefaults, method.
-		FormatableProperties finfo = new FormatableProperties(info);
-		info = null; // ensure we don't use this reference directly again.
+        @exception SQLException thrown if URL form bad
+    */
+    protected FormatableProperties getAttributes(String url, Properties info)
+        throws SQLException {
 
-		StringTokenizer st = new StringTokenizer(url, ";");
-		st.nextToken(); // skip the first part of the url
+        // We use FormatableProperties here to take advantage
+        // of the clearDefaults, method.
+        FormatableProperties finfo = new FormatableProperties(info);
+        info = null; // ensure we don't use this reference directly again.
 
-		while (st.hasMoreTokens()) {
+        StringTokenizer st = new StringTokenizer(url, ";");
+        st.nextToken(); // skip the first part of the url
 
-			String v = st.nextToken();
+        while (st.hasMoreTokens()) {
 
-			int eqPos = v.indexOf('=');
-			if (eqPos == -1)
-				throw Util.generateCsSQLException(
+            String v = st.nextToken();
+
+            int eqPos = v.indexOf('=');
+            if (eqPos == -1)
+                throw Util.generateCsSQLException(
                                             SQLState.MALFORMED_URL, url);
 
-			//if (eqPos != v.lastIndexOf('='))
-			//	throw Util.malformedURL(url);
+            //if (eqPos != v.lastIndexOf('='))
+            //    throw Util.malformedURL(url);
 
-			finfo.put((v.substring(0, eqPos)).trim(),
-					 (v.substring(eqPos + 1)).trim()
-					);
-		}
+            finfo.put((v.substring(0, eqPos)).trim(),
+                     (v.substring(eqPos + 1)).trim()
+                    );
+        }
 
-		// now validate any attributes we can
-		//
-		// Boolean attributes -
-		//  dataEncryption,create,createSource,convertToSource,shutdown,upgrade,current
+        // now validate any attributes we can
+        //
+        // Boolean attributes -
+        //  dataEncryption,create,createSource,convertToSource,shutdown,upgrade,current
 
 
-		checkBoolean(finfo, Attribute.DATA_ENCRYPTION);
-		checkBoolean(finfo, Attribute.CREATE_ATTR);
-		checkBoolean(finfo, Attribute.SHUTDOWN_ATTR);
+        checkBoolean(finfo, Attribute.DATA_ENCRYPTION);
+        checkBoolean(finfo, Attribute.CREATE_ATTR);
+        checkBoolean(finfo, Attribute.SHUTDOWN_ATTR);
         checkBoolean(finfo, Attribute.DEREGISTER_ATTR);
-		checkBoolean(finfo, Attribute.UPGRADE_ATTR);
+        checkBoolean(finfo, Attribute.UPGRADE_ATTR);
 
-		return finfo;
-	}
+        return finfo;
+    }
 
-	private static void checkBoolean(Properties set, String attribute) throws SQLException
+    private static void checkBoolean(Properties set, String attribute) throws SQLException
     {
         final String[] booleanChoices = {"true", "false"};
         checkEnumeration( set, attribute, booleanChoices);
-	}
+    }
 
 
-	private static void checkEnumeration(Properties set, String attribute, String[] choices) throws SQLException
+    private static void checkEnumeration(Properties set, String attribute, String[] choices) throws SQLException
     {
-		String value = set.getProperty(attribute);
-		if (value == null)
-			return;
+        String value = set.getProperty(attribute);
+        if (value == null)
+            return;
 
         for (String choice : choices) {
             if (value.toUpperCase(Locale.ENGLISH).equals(choice.toUpperCase(Locale.ENGLISH)))
@@ -433,194 +433,194 @@ public abstract class InternalDriver implements ModuleControl {
             choicesStr.append(choices[i]);
         }
         
-		throw Util.generateCsSQLException(
+        throw Util.generateCsSQLException(
                 SQLState.INVALID_ATTRIBUTE, attribute, value, choicesStr + "}");
-	}
+    }
 
 
-	/**
-		Get the database name from the url.
-		Copes with three forms
+    /**
+        Get the database name from the url.
+        Copes with three forms
 
-		jdbc:splice:dbname
-		jdbc:splice:dbname;...
-		jdbc:splice:;subname=dbname
+        jdbc:splice:dbname
+        jdbc:splice:dbname;...
+        jdbc:splice:;subname=dbname
 
-		@param url The url being used for the connection
-		@param info The properties set being used for the connection, must include
-		the properties derived from the attributes in the url
+        @param url The url being used for the connection
+        @param info The properties set being used for the connection, must include
+        the properties derived from the attributes in the url
 
-		@return a String containing the database name or an empty string ("") if
-		no database name is present in the URL.
-	*/
-	public static String getDatabaseName(String url, Properties info) {
+        @return a String containing the database name or an empty string ("") if
+        no database name is present in the URL.
+    */
+    public static String getDatabaseName(String url, Properties info) {
 
-		if (url.equals(Attribute.SQLJ_NESTED))
-		{
-			return "";
-		}	
-		
-		// skip the jdbc:splice:
-		int attributeStart = url.indexOf(';');
-		String dbname;
-		if (attributeStart == -1)
-			dbname = url.substring(Attribute.PROTOCOL.length());
-		else
-			dbname = url.substring(Attribute.PROTOCOL.length(), attributeStart);
+        if (url.equals(Attribute.SQLJ_NESTED))
+        {
+            return "";
+        }
 
-		// For security reasons we rely on here an non-null string being
-		// taken as the database name, before the databaseName connection
-		// attribute. Specifically, even if dbname is blank we still we
-		// to use it rather than the connection attribute, even though
-		// it will end up, after the trim, as a zero-length string.
-		// See EmbeddedDataSource.update()
+        // skip the jdbc:splice:
+        int attributeStart = url.indexOf(';');
+        String dbname;
+        if (attributeStart == -1)
+            dbname = url.substring(Attribute.PROTOCOL.length());
+        else
+            dbname = url.substring(Attribute.PROTOCOL.length(), attributeStart);
 
-		if (dbname.isEmpty()) {
-		    if (info != null)
-				dbname = info.getProperty(Attribute.DBNAME_ATTR, dbname);
-		}
-		// Beetle 4653 - trim database name to remove blanks that might make a difference on finding the database
-		// on unix platforms
-		dbname = dbname.trim().toUpperCase();
+        // For security reasons we rely on here an non-null string being
+        // taken as the database name, before the databaseName connection
+        // attribute. Specifically, even if dbname is blank we still we
+        // to use it rather than the connection attribute, even though
+        // it will end up, after the trim, as a zero-length string.
+        // See EmbeddedDataSource.update()
 
-		return dbname;
-	}
+        if (dbname.isEmpty()) {
+            if (info != null)
+                dbname = info.getProperty(Attribute.DBNAME_ATTR, dbname);
+        }
+        // Beetle 4653 - trim database name to remove blanks that might make a difference on finding the database
+        // on unix platforms
+        dbname = dbname.trim().toUpperCase();
 
-	public final ContextService getContextServiceFactory() {
-		return contextServiceFactory;
-	}
+        return dbname;
+    }
 
-	// returns the authenticationService handle
-	public AuthenticationService getAuthenticationService() {
-		//
-		// If authenticationService handle not cached in yet, then
-		// ask the monitor to find it for us and set it here in its
-		// attribute.
-		//
-		if (this.authenticationService == null) {
-			this.authenticationService = (AuthenticationService)
-				Monitor.findService(AuthenticationService.MODULE,
-									"authentication"
-								   );
-		}
+    public final ContextService getContextServiceFactory() {
+        return contextServiceFactory;
+    }
 
-		return this.authenticationService;
-	}
+    // returns the authenticationService handle
+    public AuthenticationService getAuthenticationService() {
+        //
+        // If authenticationService handle not cached in yet, then
+        // ask the monitor to find it for us and set it here in its
+        // attribute.
+        //
+        if (this.authenticationService == null) {
+            this.authenticationService = (AuthenticationService)
+                Monitor.findService(AuthenticationService.MODULE,
+                                    "authentication"
+                                   );
+        }
 
-	/*
-		Methods to be overloaded in sub-implementations such as
-		a tracing driver.
-	 */
-	protected abstract EmbedConnection getNewEmbedConnection(String url, Properties info) 
-		 throws SQLException ;
+        return this.authenticationService;
+    }
 
-
-	private ConnectionContext getConnectionContext() {
-
-		/*
-		** The current connection is the one in the current
-		** connection context, so get the context.
-		*/
-		ContextManager	cm = getCurrentContextManager();
-
-		ConnectionContext localCC = null;
-
-		/*
-			cm is null the very first time, and whenever
-			we aren't actually nested.
-		 */
-		if (cm != null) {
-			localCC = (ConnectionContext)
-				(cm.getContext(ConnectionContext.CONTEXT_ID));
-		}
-
-		return localCC;
-	}
-
-	private ContextManager getCurrentContextManager() {
-		return getContextServiceFactory().getCurrentContextManager();
-	}
+    /*
+        Methods to be overloaded in sub-implementations such as
+        a tracing driver.
+     */
+    protected abstract EmbedConnection getNewEmbedConnection(String url, Properties info)
+         throws SQLException ;
 
 
-	/**
-		Return true if this driver is active. Package private method.
-	*/
-	public boolean isActive() {
-		return active;
-	}
+    private ConnectionContext getConnectionContext() {
 
-	/**
- 	 * Get a new nested connection.
-	 *
-	 * @param conn	The EmbedConnection.
-	 *
-	 * @return A nested connection object.
-	 *
-	 */
-	public abstract Connection getNewNestedConnection(EmbedConnection conn);
+        /*
+        ** The current connection is the one in the current
+        ** connection context, so get the context.
+        */
+        ContextManager    cm = getCurrentContextManager();
 
-	/*
-	** methods to be overridden by subimplementations wishing to insert
-	** their classes into the mix.
-	*/
+        ConnectionContext localCC = null;
 
-	public java.sql.Statement newEmbedStatement(
-				EmbedConnection conn,
-				boolean forMetaData,
-				int resultSetType,
-				int resultSetConcurrency,
-				int resultSetHoldability)
-	{
-		return new EmbedStatement(conn, forMetaData, resultSetType, resultSetConcurrency,
-		resultSetHoldability);
-	}
-	/**
-	 	@exception SQLException if fails to create statement
-	 */
-	public abstract java.sql.PreparedStatement newEmbedPreparedStatement(
-				EmbedConnection conn,
-				String stmt, 
-				boolean forMetaData, 
-				int resultSetType,
-				int resultSetConcurrency,
-				int resultSetHoldability,
-				int autoGeneratedKeys,
-				int[] columnIndexes,
-				String[] columnNames)
-		throws SQLException;
+        /*
+            cm is null the very first time, and whenever
+            we aren't actually nested.
+         */
+        if (cm != null) {
+            localCC = (ConnectionContext)
+                (cm.getContext(ConnectionContext.CONTEXT_ID));
+        }
 
-	/**
-	 	@exception SQLException if fails to create statement
-	 */
-	public abstract java.sql.CallableStatement newEmbedCallableStatement(
-				EmbedConnection conn,
-				String stmt, 
-				int resultSetType,
-				int resultSetConcurrency,
-				int resultSetHoldability)
-		throws SQLException;
+        return localCC;
+    }
 
-	/**
-	 * Return a new java.sql.DatabaseMetaData instance for this implementation.
-	 	@exception SQLException on failure to create.
-	 */
-	public DatabaseMetaData newEmbedDatabaseMetaData(EmbedConnection conn,
-		String dbname) throws SQLException {
-		return new EmbedDatabaseMetaData(conn,dbname);
-	}
+    private ContextManager getCurrentContextManager() {
+        return ContextService.getCurrentContextManager();
+    }
 
-	/**
-	 * Return a new java.sql.ResultSet instance for this implementation.
-	 * @param conn Owning connection
-	 * @param results Top level of language result set tree
-	 * @param forMetaData Is this for meta-data
-	 * @param statement The statement that is creating the SQL ResultSet
-	 * @param isAtomic 
-	 * @return a new java.sql.ResultSet
-	 * @throws SQLException
-	 */
-	public abstract EmbedResultSet
-		newEmbedResultSet(EmbedConnection conn, ResultSet results, boolean forMetaData, EmbedStatement statement, boolean isAtomic) throws SQLException;
+
+    /**
+        Return true if this driver is active. Package private method.
+    */
+    public boolean isActive() {
+        return active;
+    }
+
+    /**
+      * Get a new nested connection.
+     *
+     * @param conn    The EmbedConnection.
+     *
+     * @return A nested connection object.
+     *
+     */
+    public abstract Connection getNewNestedConnection(EmbedConnection conn);
+
+    /*
+    ** methods to be overridden by subimplementations wishing to insert
+    ** their classes into the mix.
+    */
+
+    public java.sql.Statement newEmbedStatement(
+                EmbedConnection conn,
+                boolean forMetaData,
+                int resultSetType,
+                int resultSetConcurrency,
+                int resultSetHoldability)
+    {
+        return new EmbedStatement(conn, forMetaData, resultSetType, resultSetConcurrency,
+        resultSetHoldability);
+    }
+    /**
+         @exception SQLException if fails to create statement
+     */
+    public abstract java.sql.PreparedStatement newEmbedPreparedStatement(
+                EmbedConnection conn,
+                String stmt,
+                boolean forMetaData,
+                int resultSetType,
+                int resultSetConcurrency,
+                int resultSetHoldability,
+                int autoGeneratedKeys,
+                int[] columnIndexes,
+                String[] columnNames)
+        throws SQLException;
+
+    /**
+         @exception SQLException if fails to create statement
+     */
+    public abstract java.sql.CallableStatement newEmbedCallableStatement(
+                EmbedConnection conn,
+                String stmt,
+                int resultSetType,
+                int resultSetConcurrency,
+                int resultSetHoldability)
+        throws SQLException;
+
+    /**
+     * Return a new java.sql.DatabaseMetaData instance for this implementation.
+         @exception SQLException on failure to create.
+     */
+    public DatabaseMetaData newEmbedDatabaseMetaData(EmbedConnection conn,
+        String dbname) throws SQLException {
+        return new EmbedDatabaseMetaData(conn,dbname);
+    }
+
+    /**
+     * Return a new java.sql.ResultSet instance for this implementation.
+     * @param conn Owning connection
+     * @param results Top level of language result set tree
+     * @param forMetaData Is this for meta-data
+     * @param statement The statement that is creating the SQL ResultSet
+     * @param isAtomic
+     * @return a new java.sql.ResultSet
+     * @throws SQLException
+     */
+    public abstract EmbedResultSet
+        newEmbedResultSet(EmbedConnection conn, ResultSet results, boolean forMetaData, EmbedStatement statement, boolean isAtomic) throws SQLException;
         
         /**
          * Returns a new java.sql.ResultSetMetaData for this implementation

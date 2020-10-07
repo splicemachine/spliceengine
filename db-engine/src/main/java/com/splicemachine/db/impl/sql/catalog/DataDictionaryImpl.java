@@ -1560,7 +1560,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         dbIdOrderable = new SQLChar(dbId.toString());
 
         /* Set up the start/stop position for the scan */
-        keyRow1=exFactory.getIndexableRow(SYSSCHEMASRowFactory.indexColumnPositions[SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID].length);
+        SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
+        keyRow1=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID));
         keyRow1.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_SCHEMANAME, schemaNameOrderable);
         keyRow1.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, dbIdOrderable);
 
@@ -6119,11 +6120,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         dbIdOrderable = new SQLChar(dbUUID);
 
         /* Set up the start/stop position for the scan */
-        keyRow=exFactory.getIndexableRow(SYSSCHEMASRowFactory.indexColumnPositions[SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID].length);
+        SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
+        keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID));
         keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_SCHEMANAME, schemaNameOrderable);
         keyRow.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_DATABASEID, dbIdOrderable);
 
-        SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
         ExecRow row=rf.makeEmptyRow();
 
         row.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_SCHEMAAID,new SQLVarchar(authorizationId));

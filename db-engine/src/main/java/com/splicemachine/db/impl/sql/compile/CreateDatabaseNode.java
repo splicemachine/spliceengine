@@ -52,7 +52,6 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 public class CreateDatabaseNode extends DDLStatementNode
 {
     private String name;
-    private DatabaseDescriptor descriptor;
 
     /**
      * Initializer for a CreateDatabaseNode
@@ -101,8 +100,7 @@ public class CreateDatabaseNode extends DDLStatementNode
      */
     public void bindStatement() throws StandardException
     {
-        DataDictionary dd = getDataDictionary();
-        descriptor = dd.getDatabaseDescriptor(name, getLanguageConnectionContext().getTransactionCompile(), false);
+        // XXX (arnaud multidb) implement that
     }
 
     public String statementToString()

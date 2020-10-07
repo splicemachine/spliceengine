@@ -103,9 +103,14 @@ public abstract class BrokeredConnection implements EngineConnection
     }
     public final Statement createStatement() throws SQLException
     {
+        Statement realStatement = null;
         try {
-            return control.wrapStatement(getRealConnection().createStatement());
+            realStatement = getRealConnection().createStatement();
+            return control.wrapStatement(realStatement);
         } catch (SQLException sqle) {
+            if (realStatement != null) {
+                realStatement.close();
+            }
             notifyException(sqle);
             throw sqle;
         }
@@ -114,9 +119,14 @@ public abstract class BrokeredConnection implements EngineConnection
     public final PreparedStatement prepareStatement(String sql)
         throws SQLException
     {
+        PreparedStatement realStatement = null;
         try {
-            return control.wrapStatement(getRealConnection().prepareStatement(sql), sql, null);
+            realStatement = getRealConnection().prepareStatement(sql);
+            return control.wrapStatement(realStatement, sql, null);
         } catch (SQLException sqle) {
+            if (realStatement != null) {
+                realStatement.close();
+            }
             notifyException(sqle);
             throw sqle;
         }
@@ -299,13 +309,17 @@ public abstract class BrokeredConnection implements EngineConnection
     public final Statement createStatement(int resultSetType, int resultSetConcurrency) 
       throws SQLException
     {
+        Statement realStatement = null;
         try
         {
-            return control.wrapStatement(getRealConnection().
-                createStatement(resultSetType, resultSetConcurrency));
+            realStatement = getRealConnection().createStatement(resultSetType, resultSetConcurrency);
+            return control.wrapStatement(realStatement);
         }
         catch (SQLException se)
         {
+            if (realStatement != null) {
+                realStatement.close();
+            }
             notifyException(se);
             throw se;
         }
@@ -316,13 +330,17 @@ public abstract class BrokeredConnection implements EngineConnection
                     int resultSetConcurrency)
        throws SQLException
     {
+        PreparedStatement realStatement = null;
         try
         {
-            return control.wrapStatement(getRealConnection().
-                prepareStatement(sql, resultSetType, resultSetConcurrency), sql, null);
+            realStatement = getRealConnection().prepareStatement(sql, resultSetType, resultSetConcurrency);
+            return control.wrapStatement(realStatement, sql, null);
         }
         catch (SQLException se)
         {
+            if (realStatement != null) {
+                realStatement.close();
+            }
             notifyException(se);
             throw se;
         }
@@ -692,15 +710,19 @@ public abstract class BrokeredConnection implements EngineConnection
     public final PreparedStatement prepareStatement(String sql,
             int resultSetType, int resultSetConcurrency,
             int resultSetHoldability) throws SQLException {
+        PreparedStatement realStatement = null;
         try {
             resultSetHoldability = statementHoldabilityCheck(resultSetHoldability);
 
-            return control.wrapStatement(
-                getRealConnection().prepareStatement(sql, resultSetType,
-                        resultSetConcurrency, resultSetHoldability), sql, null);
+            realStatement = getRealConnection().prepareStatement(
+                    sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+            return control.wrapStatement(realStatement, sql, null);
         }
         catch (SQLException se)
         {
+            if (realStatement != null) {
+                realStatement.close();
+            }
             notifyException(se);
             throw se;
         }
