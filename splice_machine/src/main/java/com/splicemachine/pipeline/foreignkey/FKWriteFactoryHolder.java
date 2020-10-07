@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.ddl.DDLMessage;
 import splice.com.google.common.collect.ImmutableList;
 import splice.com.google.common.collect.Lists;
@@ -92,13 +93,14 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    public void addParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds,List<FKConstraintInfo> fkConstraintInfos) {
+    public void addParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds, List<Long> baseTableConglomIds, List<FKConstraintInfo> fkConstraintInfos) {
         /* One instance handles all FKs that reference this primary key or unique index */
+        assert backingIndexConglomIds.size() == baseTableConglomIds.size();
         if (parentInterceptWriteFactory == null) {
-            parentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds,exceptionFactory,fkConstraintInfos);
+            parentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds,baseTableConglomIds, exceptionFactory,fkConstraintInfos);
         }
         else {
-            parentInterceptWriteFactory.addReferencingIndexConglomerateNumber(backingIndexConglomIds);
+            parentInterceptWriteFactory.addReferencingIndexConglomerateNumber(backingIndexConglomIds, baseTableConglomIds, fkConstraintInfos);
         }
 
     }
@@ -115,7 +117,8 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         TentativeFK tentativeFKAdd = ddlChange.getTentativeFK();
         // We are configuring a write context on the PARENT base-table or unique-index.
         if (onConglomerateNumber == tentativeFKAdd.getReferencedConglomerateNumber()) {
-            addParentInterceptWriteFactory(tentativeFKAdd.getReferencedTableName(), ImmutableList.of(tentativeFKAdd.getReferencingConglomerateNumber()),ImmutableList.of(tentativeFKAdd.getFkConstraintInfo()));
+            addParentInterceptWriteFactory(tentativeFKAdd.getReferencedTableName(), ImmutableList.of(tentativeFKAdd.getReferencingConglomerateNumber()),
+                    ImmutableList.of(tentativeFKAdd.getFkConstraintInfo().getTable().getConglomerate()),ImmutableList.of(tentativeFKAdd.getFkConstraintInfo()));
         }
         // We are configuring a write context on the CHILD fk backing index.
         if (onConglomerateNumber == tentativeFKAdd.getReferencingConglomerateNumber()) {
@@ -145,7 +148,11 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
 
 
     /* Add factories for intercepting writes to FK backing indexes. */
-    public void buildForeignKeyInterceptWriteFactory(DataDictionary dataDictionary, ForeignKeyConstraintDescriptor fkConstraintDesc) throws StandardException {
+    public void buildForeignKeyInterceptWriteFactory(DataDictionary dataDictionary,
+                                                     ForeignKeyConstraintDescriptor fkConstraintDesc,
+                                                     long baseConglomerate,
+                                                     TableDescriptor td,
+                                                     LanguageConnectionContext lcc) throws StandardException {
         ReferencedKeyConstraintDescriptor referencedConstraint = fkConstraintDesc.getReferencedConstraint();
         long referencedKeyConglomerateNum;
         // FK references unique constraint.
@@ -156,30 +163,35 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         else {
             referencedKeyConglomerateNum = referencedConstraint.getTableDescriptor().getHeapConglomerateId();
         }
-        FKConstraintInfo info = ProtoUtil.createFKConstraintInfo(fkConstraintDesc);
+        FKConstraintInfo info = ProtoUtil.createFKConstraintInfo(fkConstraintDesc, td, lcc);
         addChildIntercept(referencedKeyConglomerateNum, info);
     }
 
     /* Add factories for *checking* existence of FK referenced primary-key or unique-index rows. */
-    public void buildForeignKeyCheckWriteFactory(ReferencedKeyConstraintDescriptor cDescriptor) throws StandardException {
+    public void buildForeignKeyCheckWriteFactory(ReferencedKeyConstraintDescriptor cDescriptor,
+                                                 long baseConglomerate,
+                                                 TableDescriptor td,
+                                                 LanguageConnectionContext lcc) throws StandardException {
         ConstraintDescriptorList fks = cDescriptor.getForeignKeyConstraints(ConstraintDescriptor.ENABLED);
         if (fks.isEmpty()) {
             return;
         }
         String parentTableName = cDescriptor.getTableDescriptor().getName();
         List<Long> backingIndexConglomIds = Lists.newArrayList();
+        List<Long> childBasetableConglomIds = Lists.newArrayList();
         List<DDLMessage.FKConstraintInfo> fkConstraintInfos = Lists.newArrayList();
         for (ConstraintDescriptor fk : fks) {
             ForeignKeyConstraintDescriptor foreignKeyConstraint = (ForeignKeyConstraintDescriptor) fk;
             try {
                 ConglomerateDescriptor backingIndexCd = foreignKeyConstraint.getIndexConglomerateDescriptor(null);
                 backingIndexConglomIds.add(backingIndexCd.getConglomerateNumber());
-                fkConstraintInfos.add(ProtoUtil.createFKConstraintInfo(foreignKeyConstraint));
+                childBasetableConglomIds.add(fk.getTableDescriptor().getHeapConglomerateId());
+                fkConstraintInfos.add(ProtoUtil.createFKConstraintInfo(foreignKeyConstraint, td, lcc));
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }
         }
-        addParentInterceptWriteFactory(parentTableName, backingIndexConglomIds,fkConstraintInfos);
+        addParentInterceptWriteFactory(parentTableName, backingIndexConglomIds, childBasetableConglomIds, fkConstraintInfos);
     }
 
 
