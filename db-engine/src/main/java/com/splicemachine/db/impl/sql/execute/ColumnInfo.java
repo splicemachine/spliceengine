@@ -53,7 +53,7 @@ import java.io.IOException;
  *	@version 0.1
  */
 
-public class ColumnInfo implements Formatable {
+public final class ColumnInfo implements Formatable, Cloneable {
 	/********************************************************
 	**
 	**	This class implements Formatable. That means that it

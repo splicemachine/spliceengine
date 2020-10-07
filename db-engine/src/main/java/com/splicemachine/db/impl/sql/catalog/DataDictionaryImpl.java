@@ -257,9 +257,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         startupParameters=startParams;
         uuidFactory=Monitor.getMonitor().getUUIDFactory();
         engineType=Monitor.getEngineType(startParams);
-        //Set the collation type of system schemas before we start loading 
-        //built-in schemas's SchemaDescriptor(s). This is because 
-        //SchemaDescriptor will look to DataDictionary to get the correct 
+        //Set the collation type of system schemas before we start loading
+        //built-in schemas's SchemaDescriptor(s). This is because
+        //SchemaDescriptor will look to DataDictionary to get the correct
         //collation type for themselves. We can't load SD for SESSION schema
         //just yet because we do not know the collation type for user schemas
         //yet. We will know the right collation for user schema little later
@@ -924,8 +924,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(getSystemSchemaDescriptor().getSchemaName().equals(schemaName)){
             return getSystemSchemaDescriptor();
         }else if(getSysIBMSchemaDescriptor().getSchemaName().equals(schemaName)){
-            // oh you are really asking SYSIBM, if this db is soft upgraded 
-            // from pre 52, I may have 2 versions for you, one on disk 
+            // oh you are really asking SYSIBM, if this db is soft upgraded
+            // from pre 52, I may have 2 versions for you, one on disk
             // (user SYSIBM), one imaginary (builtin). The
             // one on disk (real one, if it exists), should always be used.
             if(dictionaryVersion.checkVersion(DataDictionary.DD_VERSION_CS_5_2,null)){
@@ -5845,7 +5845,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,schemaNameOrderable);
 
-        SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
         ExecRow row=rf.makeEmptyRow();
 
         row.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_SCHEMAAID,new SQLVarchar(authorizationId));

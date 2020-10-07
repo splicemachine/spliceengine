@@ -21,7 +21,7 @@ spotbugs_errors=
 
 echo "Running spotbugs..."
 time mvn -B -e --fail-never spotbugs:check -Pcore,$platform,mem,ee | tee out_file
-for file in $(git diff origin/$branch...HEAD --name-only); do
+for file in $(git diff $branch...HEAD --name-only); do
     if new_spotbugs_errors="$(grep "\<$(basename $file)\>" out_file)"
     then
         spotbugs_errors+=$'\n'
