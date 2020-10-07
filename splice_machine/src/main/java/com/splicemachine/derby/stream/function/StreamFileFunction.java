@@ -18,7 +18,6 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
-import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.load.SpliceCsvReader;
@@ -64,7 +63,8 @@ import java.util.*;
             return Collections.<ExecRow>emptyList().iterator();
         checkPreference();
         boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
-                ConnectionUtil.getCurrentLCC(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+                operationContext.getActivation().getLanguageConnectionContext(),
+                Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
 
         return new Iterator<ExecRow>() {
                     private ExecRow nextRow;

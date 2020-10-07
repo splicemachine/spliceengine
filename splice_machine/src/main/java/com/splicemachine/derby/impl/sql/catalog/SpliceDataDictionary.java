@@ -346,6 +346,25 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
     }
 
+    public void createKeyColumnUseViewInSysIBM(TransactionController tc) throws StandardException {
+        TableDescriptor td = getTableDescriptor("SYSKEYCOLUSE", sysIBMSchemaDesc, tc);
+
+        // drop it if it exists
+        if (td != null) {
+            ViewDescriptor vd = getViewDescriptor(td);
+
+            // drop the view deifnition
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropViewDescriptor(vd, tc);
+            dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+        }
+
+        // add new view deifnition
+        createOneSystemView(tc, SYSCONSTRAINTS_CATALOG_NUM, "SYSKEYCOLUSE", 0, sysIBMSchemaDesc, SYSCONSTRAINTSRowFactory.SYSKEYCOLUSE_VIEW_IN_SYSIBM);
+
+        SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
+    }
+
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
         if(ibmConnectionTable==null){
             ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf, this));
@@ -547,6 +566,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createReplicationTables(tc);
 
         createTableColumnViewInSysIBM(tc);
+
+        createKeyColumnUseViewInSysIBM(tc);
 
         createTablesAndViewsInSysIBMADM(tc);
 

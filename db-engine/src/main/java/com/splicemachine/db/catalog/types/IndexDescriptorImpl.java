@@ -385,6 +385,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                 indexColumnTypes[i].readExternal(in);
             }
         }
+        executableExprs = new BaseExecutableIndexExpression[numIndexExpr];
     }
 
     /**

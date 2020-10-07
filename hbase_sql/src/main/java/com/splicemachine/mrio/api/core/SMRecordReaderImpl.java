@@ -224,7 +224,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> imple
 	
 	public void restart(byte[] firstRow) throws IOException {		
 		Scan newscan = scan;
-		newscan.setStartRow(firstRow);
+		newscan.withStartRow(firstRow);
         setScan(newscan);
 		if(htable != null) {
 			SIDriver driver=SIDriver.driver();

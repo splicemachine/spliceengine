@@ -85,7 +85,7 @@ public class TransactorTestUtility {
     public String scan(Txn txn, String name) throws IOException {
         byte[] key = newRowKey(name);
         DataScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
-        s = s.startKey(key).stopKey(key);
+        s = s.startKey(key).stopKey(inclusiveStopKey(key));
 
         try (Partition p = testEnv.getPersonTable(transactorSetup)){
             try(DataResultScanner results = p.openResultScanner(s)){
@@ -98,6 +98,14 @@ public class TransactorTestUtility {
                 }
             }
         }
+    }
+
+    /** Adds a null byte to the byte array, to make the endKey inclusive */
+    private static byte[] inclusiveStopKey(byte[] key) {
+        byte[] bytes = new byte[key.length + 1];
+        System.arraycopy(key, 0, bytes, 0, key.length);
+        bytes[bytes.length-1] = 0;
+        return bytes;
     }
 
     public String scanNoColumns(Txn txn, String name, boolean deleted) throws IOException {
@@ -248,7 +256,7 @@ public class TransactorTestUtility {
                                               Txn txn,String name,boolean deleted) throws IOException {
         byte[] endKey = newRowKey(name);
         DataScan s = transactorSetup.txnOperationFactory.newDataScan(txn);
-        s = s.startKey(endKey).stopKey(endKey);
+        s = s.startKey(endKey).stopKey(inclusiveStopKey(endKey));
         addPredicateFilter(s);
         transactorSetup.readController.preProcessScan(s);
         try(Partition p = transactorSetup.getPersonTable(testEnv)){
