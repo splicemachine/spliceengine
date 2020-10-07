@@ -98,7 +98,6 @@ import java.util.Properties;
 
 public class BasicDatabase implements ModuleControl, ModuleSupportable, PropertySetCallback, InternalDatabase, JarReader
 {
-    public static final ThreadLocal<Boolean> isCreate = new ThreadLocal<>();
     protected boolean    active;
     private AuthenticationService authenticationService;
     protected AccessFactory af;

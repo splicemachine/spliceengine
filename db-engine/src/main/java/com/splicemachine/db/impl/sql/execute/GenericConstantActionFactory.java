@@ -264,9 +264,7 @@ public abstract class GenericConstantActionFactory {
      *
      *  @param dbName    Name of table.
      */
-    public abstract ConstantAction getCreateDatabaseConstantAction
-    (
-            String dbName);
+    public abstract ConstantAction getCreateDatabaseConstantAction (String dbName);
 
     /**
      * Make the ConstantAction for a CREATE SCHEMA statement.

@@ -74,16 +74,16 @@ message DropIndex {
 }
 
 message DropSchema {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
+        optional int64 baseConglomerate = 1; // Unused
+        optional int64 conglomerate = 2; // Unused
         required string schemaName = 3;
         required UUID schemaUUID = 4;
         optional UUID dbUUID = 5;
 }
 
 message DropTable {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
+        optional int64 baseConglomerate = 1; // Unused
+        optional int64 conglomerate = 2; // Unused
         optional UUID tableId = 3;
 }
 
@@ -97,10 +97,8 @@ message DropRole {
 }
 
 message DropDatabase {
-        optional int64 baseConglomerate = 1;
-        optional int64 conglomerate = 2;
-        required string dbName = 3;
-        required UUID dbUUID = 4;
+        required string dbName = 1;
+        required UUID dbUUID = 2;
 }
 
 message CreateRole {

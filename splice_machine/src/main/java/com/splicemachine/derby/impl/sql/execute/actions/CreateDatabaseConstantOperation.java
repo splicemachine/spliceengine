@@ -14,37 +14,15 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.db.catalog.SystemProcedures;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.jdbc.EngineConnection;
-import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.db.BasicDatabase;
-import com.splicemachine.db.impl.drda.NetworkServerControlImpl;
 import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.derby.ddl.DDLController;
-import com.splicemachine.derby.ddl.DDLDriver;
-import com.splicemachine.derby.ddl.DDLUtils;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
-import java.sql.SQLException;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicReference;
 
 public class CreateDatabaseConstantOperation extends DDLConstantAction {
     private static final Logger LOG = Logger.getLogger(CreateDatabaseConstantOperation.class);
@@ -105,6 +83,15 @@ public class CreateDatabaseConstantOperation extends DDLConstantAction {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS, "Database" , dbName);
         }
 
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         lcc.getDataDictionary().startWriting(lcc);
         lcc.getDataDictionary().createNewDatabase(dbName);

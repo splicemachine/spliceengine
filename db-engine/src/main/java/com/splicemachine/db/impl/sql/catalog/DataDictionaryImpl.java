@@ -1972,7 +1972,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     /**
-     * Is the schema id referenced by the system table in question?
+     * Is the database id referenced by the system table in question?
      * Currently assumes that the schema id is in an index.
      * NOTE: could be generalized a bit, and possibly used
      * elsewhere...
@@ -6946,7 +6946,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     public void createSpliceSchema(TransactionController tc, UUID databaseUuid) throws StandardException {
         UUID schemaUuid;
-        if (databaseUuid == getSpliceDatabaseDescriptor().getUUID()) {
+        if (databaseUuid.equals(getSpliceDatabaseDescriptor().getUUID())) {
             schemaUuid = uuidFactory.recreateUUID(SchemaDescriptor.DEFAULT_SCHEMA_UUID);
         } else {
             schemaUuid = uuidFactory.createUUID();

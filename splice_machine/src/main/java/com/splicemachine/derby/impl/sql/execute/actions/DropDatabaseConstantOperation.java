@@ -15,15 +15,12 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
-import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -78,8 +75,6 @@ public class DropDatabaseConstantOperation extends DDLConstantOperation {
         dbDesc.drop(lcc, activation);
         DDLMessage.DDLChange ddlChange = ProtoUtil.createDropDatabase(tc.getActiveStateTxn().getTxnId(), dbName, (BasicUUID)dbDesc.getUUID());
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
-
-        //Monitor.removePersistentService(dbName);
     }
 
     public String getScopeName() {

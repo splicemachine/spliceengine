@@ -273,7 +273,8 @@ public class ContextManager
      *        false not interested of extended diagnostic information
      * @return true if the context manager is shutdown, false otherwise.
      */
-    public boolean cleanupOnError(Throwable error, boolean diagActive) {
+    public boolean cleanupOnError(Throwable error, boolean diagActive)
+	{
 		if (shutdown)
 			return true;
 
