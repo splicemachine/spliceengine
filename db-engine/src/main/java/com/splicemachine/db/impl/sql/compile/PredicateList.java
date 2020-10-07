@@ -514,7 +514,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     }
 
     @SuppressWarnings("ConstantConditions")
-    public static boolean isQualifier(Predicate pred,Optimizable optTable,boolean pushPreds) throws StandardException{
+    public static boolean isQualifier(Predicate pred, Optimizable optTable, IndexDescriptor id, boolean pushPreds) throws StandardException{
         // do not qualify a full join predicate
         if (pred.isFullJoinPredicate())
             return false;
@@ -537,9 +537,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                  */
                 return false;
             }
-        }else if(!pred.getRelop().isQualifier(optTable,pushPreds)){
-            // NOT a qualifier, go on to next predicate.
-            return false;
+        } else {
+            if (id != null && id.isOnExpression()) {
+                boolean skipProbePreds = pushPreds && optTable.getTrulyTheBestAccessPath().getJoinStrategy().isHashJoin();
+                Integer position = isIndexUseful(pred, optTable, pushPreds, skipProbePreds, id);
+                return position != null;
+            } else {
+                return pred.getRelop().isQualifier(optTable, pushPreds);
+            }
         }
         return true;
     }
@@ -896,6 +901,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
         boolean isHashableJoin = joinStrategy instanceof HashableJoinStrategy;
 
+        IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
+        if (irg != null && irg.getIndexDescriptor() == null) {
+            irg = null;
+        }
+
         /*
         ** RESOLVE: For now, not pushing any predicates for heaps.  When this
         ** changes, we also need to make the scan in
@@ -926,7 +936,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
 
-                if(isQualifier(pred,optTable,pushPreds) ||
+                if(isQualifier(pred,optTable,irg,pushPreds) ||
                         (isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds))
                         ) {
                     pred.markQualifier();
@@ -998,10 +1008,6 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             (optTable instanceof FromBaseTable && !getCompilerContext().getDataSetProcessorType().isSpark()) ||
                 getCompilerContext().getMulticolumnInlistProbeOnSparkEnabled();
 
-        IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
-        if (irg != null && irg.getIndexDescriptor() == null) {
-            irg = null;
-        }
         TreeMap<Integer, Predicate> inlistPreds = new TreeMap<>();
         List<Predicate> predicates=new ArrayList<>();
         for(int index=0;index<size;index++){
@@ -1027,7 +1033,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     usefulPredicates[usefulCount++] = pred;
                 }
             }else{
-                if(primaryKey && isQualifier(pred,optTable,pushPreds) ||
+                if(primaryKey && isQualifier(pred,optTable,irg,pushPreds) ||
                 isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
                     pred.markQualifier();
                     if(pushPreds){
@@ -1265,7 +1271,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         //we still need to mark the remaining inlist conditions
         for (Predicate pred : inListNonQualifiedPreds) {
             if (!inlistQualified || pred.getIndexPosition() < 0) {
-                if(primaryKey && isQualifier(pred,optTable,pushPreds) ||
+                if(primaryKey && isQualifier(pred,optTable,irg,pushPreds) ||
                         isHashableJoin && isQualifierForHashableJoin(pred, optTable, pushPreds)){
                     pred.markQualifier();
                     if(pushPreds){

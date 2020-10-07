@@ -330,7 +330,7 @@ public class ScanCostFunction{
             performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
-        else if (PredicateList.isQualifier(p,baseTable,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
+        else if (PredicateList.isQualifier(p,baseTable,indexDescriptor,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
             performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }

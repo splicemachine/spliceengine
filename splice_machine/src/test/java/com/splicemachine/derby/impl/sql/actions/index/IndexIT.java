@@ -1446,10 +1446,18 @@ public class IndexIT extends SpliceUnitTest{
         }
 
         // gap from the first index column
-        query = format("select c from %s --splice-properties index=%s_IDX\n where mod(i,3) = 0", tableName, tableName);
-        expected = "C  |\n" +
+        query = format("select d from %s --splice-properties index=%s_IDX\n where mod(i,3) = 0", tableName, tableName);
+
+        String[] expectedOps = new String[] {
+                "ProjectRestrict",  // directly on top of IndexScan, no other ops in between
+                "IndexScan",
+                " = 0"              // should be on the same line as IndexScan
+        };
+        rowContainsQuery(new int[]{3,4,4}, "explain " + query, methodWatcher, expectedOps);
+
+        expected = "D  |\n" +
                 "-----\n" +
-                "abc |";
+                "0.5 |";
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
