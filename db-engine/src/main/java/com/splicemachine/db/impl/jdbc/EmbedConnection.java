@@ -371,12 +371,6 @@ public abstract class EmbedConnection implements EngineConnection
             // the rest.
             tr.startTransaction();
 
-            // Add potentially newly created database in the sysdatabase table
-            if (createBoot && !shutdown && !dropDatabase) {
-                SystemProcedures.addDatabase(getDBName(), "PLACEHOLDER", tr.getLcc(), true); // XXX(arnaud multidb) different userid probably for aid?
-
-            }
-
             // now we have the database connection, we can shut down
             if (shutdown) {
                 if (!usingNoneAuth &&

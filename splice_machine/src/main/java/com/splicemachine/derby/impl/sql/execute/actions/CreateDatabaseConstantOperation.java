@@ -105,8 +105,9 @@ public class CreateDatabaseConstantOperation extends DDLConstantAction {
             throw StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS, "Database" , dbName);
         }
 
-        // XXX (arnaud multidb) Replace placeholder with actual authorization_id
-        SystemProcedures.addDatabase(dbName, "PLACEHOLDER", activation.getLanguageConnectionContext(), false);
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        lcc.getDataDictionary().startWriting(lcc);
+        lcc.getDataDictionary().createNewDatabase(dbName);
 
         if (!isDatabasePresent(activation)) {
             throw StandardException.newException(SQLState.CREATE_DATABASE_FAILED, dbName);

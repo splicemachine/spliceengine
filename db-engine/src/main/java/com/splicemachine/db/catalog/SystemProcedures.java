@@ -1733,39 +1733,6 @@ public class SystemProcedures{
 
     }
 
-    public static UUID addDatabase(String dbName, String aid, LanguageConnectionContext lcc, boolean setDatabase) throws StandardException {
-        DataDictionary dd=lcc.getDataDictionary();
-        TransactionController tc=lcc.getTransactionExecute();
-        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
-        DatabaseDescriptor dbd = dd.getDatabaseDescriptor(dbName, lcc.getTransactionExecute(), false);
-
-        // if the database already exists, do nothing, we already have a database
-        // let the admin handle that
-        if (dbd != null) {
-            return dbd.getUUID();
-        }
-
-        UUID uuid = dd.getUUIDFactory().createUUID();
-
-        /*
-         ** Inform the data dictionary that we are about to write to it.
-         ** There are several calls to data dictionary "get" methods here
-         ** that might be done in "read" mode in the data dictionary, but
-         ** it seemed safer to do this whole operation in "write" mode.
-         **
-         ** We tell the data dictionary we're done writing at the end of
-         ** the transaction.
-         */
-        dd.startWriting(lcc);
-        dbd = ddg.newDatabaseDescriptor(dbName, aid, uuid);
-        dd.addDescriptor(dbd, null, DataDictionary.SYSDATABASES_CATALOG_NUM, false, tc, false);
-        if (setDatabase) {
-            lcc.setCurrentDatabase(dbd);
-        }
-        dd.createSpliceSchema(tc, uuid);
-        return uuid;
-    }
-
     /**
      * Logic to add a new schema in the system. This is used  when we add a new user,
      * if the schema already exists do nothing, let the admin handle the privileges manually
