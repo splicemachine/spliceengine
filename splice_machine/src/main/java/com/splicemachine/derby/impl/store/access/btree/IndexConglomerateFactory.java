@@ -28,53 +28,54 @@ import org.apache.log4j.Logger;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerateFactory;
 
 public class IndexConglomerateFactory extends SpliceConglomerateFactory {
-    protected static Logger LOG = Logger.getLogger(IndexConglomerateFactory.class);
-    public IndexConglomerateFactory() {
-        super();
-    }
+	protected static Logger LOG = Logger.getLogger(IndexConglomerateFactory.class);
+	public IndexConglomerateFactory() {
+		super();
+	}
 
-    @Override
-    protected String getImplementationID() {
-        return "BTREE";
-    }
+	@Override
+	protected String getImplementationID() {
+		return "BTREE";
+	}
 
-    @Override
-    protected String getFormatUUIDString() {
-        return "C6CEEEF0-DAD3-11d0-BB01-0060973F0942";
-    }
-
-    @Override
+	@Override
+	protected String getFormatUUIDString() {
+		return "C6CEEEF0-DAD3-11d0-BB01-0060973F0942";
+	}
+	
+	@Override
     public int getConglomerateFactoryId() {
         return(ConglomerateFactory.BTREE_FACTORY_ID);
     }
 
-    /**
-     * Create the conglomerate and return a conglomerate object for it.
-     * @exception StandardException Standard exception policy.
-     * @see ConglomerateFactory#createConglomerate
-     **/
-    @Override
-    public Conglomerate createConglomerate(
-             boolean                 isExternal,
-             TransactionManager      xact_mgr,
-             long                    input_containerid,
-             DataValueDescriptor[]   template,
-             ColumnOrdering[]        columnOrder,
-             int[]                   collationIds,
-             Properties              properties,
-             int                     temporaryFlag,
-             byte[][]                splitKeys,
-             Conglomerate.Priority   priority) throws StandardException {
-        IndexConglomerate index = new IndexConglomerate();
-        index.create(isExternal,
-                xact_mgr.getRawStoreXact(), input_containerid,
-                template, columnOrder, collationIds, properties,
-                index.getTypeFormatId(),
-                temporaryFlag,operationFactory,partitionFactory,
-                splitKeys, priority);
+	/**
+	Create the conglomerate and return a conglomerate object for it.
 
-        return index;
-    }
+	@exception StandardException Standard exception policy.
+
+	@see ConglomerateFactory#createConglomerate
+	**/
+	@Override
+	public Conglomerate createConglomerate(
+	boolean 				isExternal,
+    TransactionManager      xact_mgr,
+    long                    input_containerid,
+    DataValueDescriptor[]   template,
+	ColumnOrdering[]        columnOrder,
+    int[]                   collationIds,
+    Properties              properties,
+	int                     temporaryFlag,
+	byte[][]                splitKeys) throws StandardException {
+		IndexConglomerate index = new IndexConglomerate();
+		index.create(isExternal,
+				xact_mgr.getRawStoreXact(), input_containerid,
+				template, columnOrder, collationIds, properties,
+				index.getTypeFormatId(),
+				temporaryFlag,operationFactory,partitionFactory,
+				splitKeys);
+
+		return index;
+	}
 
     /**
      * Return Conglomerate object for conglomerate with container_key.
@@ -93,15 +94,15 @@ public class IndexConglomerateFactory extends SpliceConglomerateFactory {
      * @param xact_mgr      transaction to perform the create in.
      * @param containerId The unique id of the existing conglomerate.
      *
-     * @return An instance of the conglomerate.
+	 * @return An instance of the conglomerate.
      *
-     * @exception  StandardException  Standard exception policy.
-     *
-     * FIXME: need to
+	 * @exception  StandardException  Standard exception policy.
+	 * 
+	 * FIXME: need to 
      **/
     public Conglomerate readConglomerate(TransactionManager xact_mgr,long containerId) throws StandardException {
-        return ConglomerateUtils.readConglomerate(containerId, IndexConglomerate.class, ((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
+    	return ConglomerateUtils.readConglomerate(containerId, IndexConglomerate.class, ((SpliceTransactionManager)xact_mgr).getActiveStateTxn());
     }
-
+	
 }
-
+	

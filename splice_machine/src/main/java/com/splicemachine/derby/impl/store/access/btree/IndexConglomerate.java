@@ -90,7 +90,7 @@ public class IndexConglomerate extends SpliceConglomerate{
                           int tmpFlag,
                           TxnOperationFactory opFactory,
                           PartitionFactory partitionFactory,
-                          byte[][] splitKeys, Conglomerate.Priority priority) throws StandardException{
+                          byte[][] splitKeys) throws StandardException{
         super.create(isExternal,rawtran,
                 input_containerid,
                 template,
@@ -158,7 +158,7 @@ public class IndexConglomerate extends SpliceConglomerate{
                     properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
-                    splitKeys, priority );
+                    splitKeys);
         }catch(Exception e){
             LOG.error(e.getMessage(),e);
         }

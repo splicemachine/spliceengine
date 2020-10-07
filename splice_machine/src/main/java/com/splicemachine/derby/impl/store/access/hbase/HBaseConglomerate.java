@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -67,7 +68,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                           int tmpFlag,
                           TxnOperationFactory operationFactory,
                           PartitionFactory partitionFactory,
-                          byte[][] splitKeys, Priority priority) throws StandardException{
+                          byte[][] splitKeys) throws StandardException{
         super.create(isExternal,rawtran,
                 input_containerid,
                 template,
@@ -97,7 +98,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                 properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
                 properties.getProperty(SIConstants.CATALOG_VERSION_ATTR),
                 pSize,
-                splitKeys, priority);
+                splitKeys);
     }
 
     @Override
