@@ -10,33 +10,24 @@
  * See the GNU Affero General Public License for more details.
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
- *
  */
+package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-package com.splicemachine.sparksql
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.utils.SpliceLogUtils;
 
-
-import org.apache.spark.sql.execution.SparkSqlParser
-import org.apache.spark.sql.internal.SQLConf
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.catalyst.parser.{ParseException, ParserInterface}
-import org.apache.spark.sql.types.DataType
-
-object ParserUtils {
-
-
-  def getParser: ParserInterface = {
-    SparkSession.getActiveSession.map(_.sessionState.sqlParser).getOrElse {
-      new SparkSqlParser(new SQLConf)
+public class UpgradeScriptToAddSysKeyColUseViewInSYSIBM extends UpgradeScriptBase {
+    public UpgradeScriptToAddSysKeyColUseViewInSYSIBM(SpliceDataDictionary sdd, TransactionController tc) {
+        super(sdd, tc);
     }
-  }
 
-  def getDataTypeFromString(dataTypeAsString: String): DataType = {
-    try getParser.parseDataType(dataTypeAsString)
-    catch {
-      case e: ParseException =>
-        throw new UnsupportedOperationException
+    @Override
+    protected void upgradeSystemTables() throws StandardException {
+        sdd.createKeyColumnUseViewInSysIBM(tc);
+
+        SpliceLogUtils.info(LOG, "Catalog upgraded: added syskeycoluse view in SYSIBM schema");
+
     }
-  }
-
 }
