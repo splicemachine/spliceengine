@@ -80,7 +80,6 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1971), new UpgradeScriptToAddCatalogVersion(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1974), new UpgradeScriptToAddMinRetentionPeriodColumnToSYSTABLES(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,3,0,0, 1977), new UpgradeScriptToAddSysKeyColUseViewInSYSIBM(sdd, tc));
-        scripts.put(new Splice_DD_Version(sdd,3,0,0, 1977), new UpgradeScriptForTablePriorities(sdd, tc));
     }
 
     public void run() throws StandardException{

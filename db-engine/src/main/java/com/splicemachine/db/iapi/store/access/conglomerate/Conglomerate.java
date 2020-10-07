@@ -67,11 +67,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
 public interface Conglomerate extends Storable, DataValueDescriptor
 {
-    // these are used to prioritize tables when they are re-loaded by hbase
-    enum Priority
-    {
-        NORMAL, HIGH
-    }
 
     /**
      * Add a column to the conglomerate.
@@ -297,4 +292,5 @@ public interface Conglomerate extends Storable, DataValueDescriptor
             TransactionManager              xact_manager,
             Transaction                     rawtran)
             throws StandardException;
+
 }

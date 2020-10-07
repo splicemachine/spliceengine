@@ -181,9 +181,4 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     public String getCatalogVersion(long conglomerateNumber) {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
     }
-
-    @Override
-    public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
-        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
-    }
 }
