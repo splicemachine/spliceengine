@@ -1126,11 +1126,11 @@ public class SubqueryNode extends ValueNode{
     public void generateExpression(ExpressionClassBuilder expressionBuilder,
                                    MethodBuilder mbex) throws StandardException{
 
-        generateExpression2(expressionBuilder, mbex);
+        generateExpressionCore(expressionBuilder, mbex);
         generateSubqueryResultSets(expressionBuilder);
     }
 
-    public void generateExpression2(ExpressionClassBuilder expressionBuilder,
+    public void generateExpressionCore(ExpressionClassBuilder expressionBuilder,
                                    MethodBuilder mbex) throws StandardException{
 
         ///////////////////////////////////////////////////////////////////////////
@@ -1157,7 +1157,7 @@ public class SubqueryNode extends ValueNode{
         LocalField rsFieldLF=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
         LocalField colVar=acb.newFieldDeclaration(Modifier.PRIVATE,subqueryTypeString);
 
-        generateExpressionCore(acb, mb, rsFieldLF);
+        generateCore(acb, mb, rsFieldLF);
         /* rs.openCore() */
         mb.getField(rsFieldLF);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"openCore","void",0);
@@ -1232,7 +1232,7 @@ public class SubqueryNode extends ValueNode{
          * have any subclasses, certainly! (nat 12/97)
          */
         MethodBuilder mb = createSubqueryResultSetsMb(acb);
-        generateExpressionCore(acb, mb, rsFieldLF);
+        generateCore(acb, mb, rsFieldLF);
 
         mb.getField(rsFieldLF);
         mb.methodReturn();
@@ -1240,7 +1240,7 @@ public class SubqueryNode extends ValueNode{
         acb.addSubqueryResultSet(mb);
     }
 
-    private void generateExpressionCore(ActivationClassBuilder acb,
+    private void generateCore(ActivationClassBuilder acb,
                                         MethodBuilder mb,
                                         LocalField rsFieldLF) throws StandardException {
         CompilerContext cc=getCompilerContext();
