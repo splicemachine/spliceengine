@@ -43,6 +43,7 @@ import java.util.concurrent.Callable;
 /**
  * Created by jleach on 5/20/15.
  */
+@SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", justification = "triggerRowsEncoder is used in subclasses")
 public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableWriter<T> {
     protected TxnView txn;
     protected byte[] token;
@@ -62,6 +63,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected OperationContext operationContext;
     protected boolean rollforward;
 
+    @SuppressFBWarnings(value = {"URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", "EI_EXPOSE_REP2"}, justification = "fields are used in subclasses")
     public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, long tempConglomID, String tableVersion, ExecRow execRowDefinition, OperationContext operationContext) {
         this.txn = txn;
         this.token = token;
@@ -99,6 +101,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
         return txn;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "intentional access provided to consumers")
     @Override
     public byte[] getToken() {
         return token;
@@ -121,6 +124,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
             triggerHandler.addRowToNewTableRowHolder(row, encode);
     }
 
+    @SuppressFBWarnings(value = "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", justification = "already written to by subclasses")
     public void close() throws StandardException {
 
         try {
