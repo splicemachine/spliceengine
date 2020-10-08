@@ -26,6 +26,7 @@ public class OnDeleteNoAction extends OnDeleteAbstractAction {
     @Override
     protected WriteResult handleExistingRow(byte[] indexRowId) {
         ConstraintContext context = ConstraintContext.foreignKey(constraintInfo);
+        failed = true;
         return new WriteResult(Code.FOREIGN_KEY_VIOLATION, context.withMessage(1, parentTableName));
     }
 }

@@ -68,6 +68,7 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
         if(idx != -1) {
             this.referencingIndexConglomerateNumbers.remove(conglomerateNumber);
             this.childBaseTableConglomerateNumbers.remove(idx); // at index
+            this.constraintInfos.remove(idx); // at index
         }
     }
 
