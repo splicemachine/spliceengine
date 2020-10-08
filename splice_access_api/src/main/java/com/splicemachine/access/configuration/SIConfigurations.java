@@ -108,6 +108,20 @@ public class SIConfigurations implements ConfigurationDefault {
     private static final int DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME = 60000;
 
     /**
+     * The number of queues were new timestamp requests are batched up.
+     * Defaults to 5
+     */
+    public static final String TIMESTAMP_CLIENT_QUEUES = "splice.timestamp_server.clientQueues";
+    private static final int DEFAULT_TIMESTAMP_CLIENT_QUEUES = 5;
+
+    /**
+     * Whether new timestamp requests are batched up, sacrificing latency for more throughput.
+     * Defaults to false
+     */
+    public static final String TIMESTAMP_CLIENT_BATCHED = "splice.timestamp_server.batched";
+    private static final boolean DEFAULT_TIMESTAMP_CLIENT_BATCHED = false;
+
+    /**
      * The Port to bind the Timestamp Server connection to
      * Defaults to 60012
      */
@@ -162,6 +176,8 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, -1); //TODO -sf- reset to DEFAULT once ReadResolution works
 //        builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, DEFAULT_READ_RESOLVER_QUEUE_SIZE);
         builder.timestampClientWaitTime  = configurationSource.getInt(TIMESTAMP_CLIENT_WAIT_TIME, DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME);
+        builder.timestampClientQueues = configurationSource.getInt(TIMESTAMP_CLIENT_QUEUES, DEFAULT_TIMESTAMP_CLIENT_QUEUES);
+        builder.timestampClientBatched = configurationSource.getBoolean(TIMESTAMP_CLIENT_BATCHED, DEFAULT_TIMESTAMP_CLIENT_BATCHED);
         builder.timestampServerBindPort  = configurationSource.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
         builder.activeTransactionMaxCacheSize = configurationSource.getInt(ACTIVE_TRANSACTION_MAX_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE);
         builder.activeTransactionInitialCacheSize = configurationSource.getInt(ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE);

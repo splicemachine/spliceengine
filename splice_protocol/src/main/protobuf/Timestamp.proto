@@ -18,6 +18,16 @@ message GetNextTimestampResponse {
     required int64 timestamp = 1;
 }
 
+message GetTimestampBatch {
+    required int32 batchSize = 1;
+}
+
+message GetTimestampBatchResponse {
+    required int64 firstTimestamp = 1;
+    required int32 timestampDelta = 2;
+    required int32 batchSize = 3;
+}
+
 message BumpTimestamp {
     required int64 timestamp = 1;
 }
@@ -29,6 +39,7 @@ enum TimestampRequestType {
     GET_CURRENT_TIMESTAMP = 0;
     GET_NEXT_TIMESTAMP = 1;
     BUMP_TIMESTAMP = 2;
+    GET_TIMESTAMP_BATCH = 3;
 }
 
 message TimestampRequest {
@@ -37,6 +48,7 @@ message TimestampRequest {
     optional GetCurrentTimestamp getCurrentTimestamp = 3;
     optional GetNextTimestamp getNextTimestamp = 4;
     optional BumpTimestamp bumpTimestamp = 5;
+    optional GetTimestampBatch timestampBatch = 6;
 }
 
 message TimestampResponse {
@@ -45,4 +57,6 @@ message TimestampResponse {
     optional GetCurrentTimestampResponse getCurrentTimestampResponse = 3;
     optional GetNextTimestampResponse getNextTimestampResponse = 4;
     optional BumpTimestampResponse bumpTimestampResponse = 5;
+    optional GetTimestampBatchResponse timestampBatchResponse = 6;
+    optional string errorMessage = 7;
 }
