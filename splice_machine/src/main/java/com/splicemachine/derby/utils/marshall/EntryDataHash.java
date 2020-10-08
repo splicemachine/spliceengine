@@ -51,7 +51,7 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 		}
 
 		@Override
-		public byte[] encode() throws StandardException, IOException {
+		public byte[] encode() throws StandardException {
 				if(entryEncoder==null)
 						entryEncoder = buildEntryEncoder();
 

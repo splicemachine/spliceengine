@@ -149,7 +149,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
                 }
 
                 @Override
-                public byte[] encode() throws StandardException, IOException{
+                public byte[] encode() throws StandardException {
                     return ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                 }
 

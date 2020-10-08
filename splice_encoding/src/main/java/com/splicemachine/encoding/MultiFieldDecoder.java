@@ -214,7 +214,7 @@ public class MultiFieldDecoder {
         int offset = currentOffset;
         adjustOffset(-1);
         int length = currentOffset-offset-1;
-        return Encoding.decodeBytesUnsortd(data,offset,length);
+        return Encoding.decodeBytesUnsorted(data,offset,length);
     }
 
     /**

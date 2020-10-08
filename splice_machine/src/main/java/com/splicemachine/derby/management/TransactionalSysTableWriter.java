@@ -176,7 +176,7 @@ public abstract class TransactionalSysTableWriter<T> {
         private EntryEncoder entryEncoder;
 
         @Override
-        public final byte[] encode() throws StandardException, IOException {
+        public final byte[] encode() throws StandardException {
             if(entryEncoder==null)
                 entryEncoder = buildEncoder();
 
@@ -199,7 +199,7 @@ public abstract class TransactionalSysTableWriter<T> {
         private MultiFieldEncoder entryEncoder;
 
         @Override
-        public final byte[] encode() throws StandardException, IOException {
+        public final byte[] encode() throws StandardException {
             if(entryEncoder==null)
                 entryEncoder = MultiFieldEncoder.create(getNumFields());
             else

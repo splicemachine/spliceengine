@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.output.update;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -52,23 +53,27 @@ public class ResultSupplier{
         this.result = null;
     }
 
-    public void setResult(EntryDecoder decoder) throws IOException {
-        if(result==null) {
-            //need to fetch the latest results
-            if(htable==null){
-                htable =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
-            }
-            remoteGet = SIDriver.driver().getOperationFactory().newDataGet(txnView,location,remoteGet);
+    public void setResult(EntryDecoder decoder) throws StandardException  {
+        try {
+            if (result == null) {
+                //need to fetch the latest results
+                if (htable == null) {
+                    htable = SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
+                }
+                remoteGet = SIDriver.driver().getOperationFactory().newDataGet(txnView, location, remoteGet);
 
-            remoteGet.addColumn(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES);
-            remoteGet.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL,filterBytes);
+                remoteGet.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
+                remoteGet.addAttribute(SIConstants.ENTRY_PREDICATE_LABEL, filterBytes);
 
-            dataResult = htable.get(remoteGet,dataResult);
-            result = dataResult.userData();
-            //we also assume that PACKED_COLUMN_KEY is properly set by the time we get here
+                dataResult = htable.get(remoteGet, dataResult);
+                result = dataResult.userData();
+                //we also assume that PACKED_COLUMN_KEY is properly set by the time we get here
 //								getTimer.tick(1);
+            }
+            decoder.set(result.valueArray(), result.valueOffset(), result.valueLength());
+        } catch (IOException ioe) {
+            throw StandardException.plainWrapException(ioe);
         }
-        decoder.set(result.valueArray(),result.valueOffset(),result.valueLength());
     }
 
     public void close() throws IOException {
