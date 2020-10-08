@@ -491,4 +491,8 @@ public final class ViewDescriptor extends TupleDescriptor
         return viewName;
     }
 
+	public String getDescriptorName() {
+		return viewName;
+	}
+
 }
