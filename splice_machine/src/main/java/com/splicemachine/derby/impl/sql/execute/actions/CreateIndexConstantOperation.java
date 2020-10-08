@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
@@ -875,7 +876,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              */
             conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
                     getColumnOrderings(isAscending.length), indexRowGenerator.getColumnCollationIds(
-                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys);
+                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT,
+                    splitKeys, Conglomerate.Priority.NORMAL);
 
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
             // Enable replication for index if that's enables for base table
