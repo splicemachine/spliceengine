@@ -2522,23 +2522,20 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 
         // scope value is bad, return an empty result
         if (scope < 0 || scope > 2) {
-            try (PreparedStatement ps = getPreparedQuery("getBestRowIdentifierEmpty")) {
-                return ps.executeQuery();
-            }
+            return getPreparedQuery("getBestRowIdentifierEmpty").executeQuery();
         }
 
         String constraintId = "";
         // see if there is a primary key, use it.
-        try (PreparedStatement ps = getPreparedQuery("getBestRowIdentifierPrimaryKey")) {
-            ps.setString(1, catalogPattern);
-            ps.setString(2, schemaPattern);
-            ps.setString(3, table);
+        PreparedStatement ps = getPreparedQuery("getBestRowIdentifierPrimaryKey");
+        ps.setString(1, catalogPattern);
+        ps.setString(2, schemaPattern);
+        ps.setString(3, table);
 
-            try (ResultSet rs = ps.executeQuery()) {
-                done = rs.next();
-                if (done) {
-                    constraintId = rs.getString(1);
-                }
+        try (ResultSet rs = ps.executeQuery()) {
+            done = rs.next();
+            if (done) {
+                constraintId = rs.getString(1);
             }
         }
 
@@ -2547,81 +2544,75 @@ public class EmbedDatabaseMetaData extends ConnectionChild
             // this one's it, do the real thing and return it.
             // we don't need to check catalog, schema, table name
             // or scope again.
-            try (PreparedStatement ps = getPreparedQuery(queryPrefix + "getBestRowIdentifierPrimaryKeyColumns")) {
-                ps.setString(1, constraintId);
-                ps.setString(2, constraintId);
-                // note, primary key columns aren't nullable,
-                // so we skip the nullOk parameter.
-                return ps.executeQuery();
-            }
+            ps = getPreparedQuery(queryPrefix + "getBestRowIdentifierPrimaryKeyColumns");
+            ps.setString(1, constraintId);
+            ps.setString(2, constraintId);
+            // note, primary key columns aren't nullable,
+            // so we skip the nullOk parameter.
+            return ps.executeQuery();
         }
 
         // get the unique constraint with the fewest columns.
-        try (PreparedStatement ps = getPreparedQuery("getBestRowIdentifierUniqueConstraint")) {
-            ps.setString(1, catalogPattern);
-            ps.setString(2, schemaPattern);
-            ps.setString(3, table);
+        ps = getPreparedQuery("getBestRowIdentifierUniqueConstraint");
+        ps.setString(1, catalogPattern);
+        ps.setString(2, schemaPattern);
+        ps.setString(3, table);
 
-            try (ResultSet rs = ps.executeQuery()) {
-                done = rs.next();
-                if (done) {
-                    constraintId = rs.getString(1);
-                }
-                // REMIND: we need to actually check for null columns
-                // and toss out constraints with null columns if they aren't
-                // desired... recode this as a WHILE returning at the
-                // first match or falling off the end.
+        try (ResultSet rs = ps.executeQuery()) {
+            done = rs.next();
+            if (done) {
+                constraintId = rs.getString(1);
             }
+            // REMIND: we need to actually check for null columns
+            // and toss out constraints with null columns if they aren't
+            // desired... recode this as a WHILE returning at the
+            // first match or falling off the end.
         }
         if (done)
         {
             // this one's it, do the real thing and return it.
-            try (PreparedStatement ps = getPreparedQuery(queryPrefix + "getBestRowIdentifierUniqueKeyColumns")) {
-                ps.setString(1, constraintId);
-                ps.setString(2, constraintId);
-                ps.setInt(3, nullableInIntForm);
-                return ps.executeQuery();
-            }
+            ps = getPreparedQuery(queryPrefix + "getBestRowIdentifierUniqueKeyColumns");
+            ps.setString(1, constraintId);
+            ps.setString(2, constraintId);
+            ps.setInt(3, nullableInIntForm);
+            return ps.executeQuery();
         }
 
         // second-to last try -- unique index with minimal # columns
         // (only non null columns if so required)
         long indexNum = 0;
-        try (PreparedStatement ps = getPreparedQuery("getBestRowIdentifierUniqueIndex")) {
-            ps.setString(1, catalogPattern);
-            ps.setString(2, schemaPattern);
-            ps.setString(3, table);
+        ps = getPreparedQuery("getBestRowIdentifierUniqueIndex");
+        ps.setString(1, catalogPattern);
+        ps.setString(2, schemaPattern);
+        ps.setString(3, table);
 
-            try (ResultSet rs = ps.executeQuery()) {
-                done = rs.next();
-                if (done) {
-                    indexNum = rs.getLong(1);
-                }
-                // REMIND: we need to actually check for null columns
-                // and toss out constraints with null columns if they aren't
-                // desired... recode this as a WHILE returning at the
-                // first match or falling off the end.
+        try (ResultSet rs = ps.executeQuery()) {
+            done = rs.next();
+            if (done) {
+                indexNum = rs.getLong(1);
             }
+            // REMIND: we need to actually check for null columns
+            // and toss out constraints with null columns if they aren't
+            // desired... recode this as a WHILE returning at the
+            // first match or falling off the end.
         }
         if (done) {
             // this one's it, do the real thing and return it.
-            try (PreparedStatement ps = getPreparedQuery(queryPrefix + "getBestRowIdentifierUniqueIndexColumns")) {
-                ps.setLong(1, indexNum);
-                ps.setInt(2, nullableInIntForm);
-                return ps.executeQuery();
-            }
+            ps = getPreparedQuery(queryPrefix + "getBestRowIdentifierUniqueIndexColumns");
+            ps.setLong(1, indexNum);
+            ps.setInt(2, nullableInIntForm);
+            return ps.executeQuery();
         }
 
         // last try -- just return all columns of the table
         // the not null ones if that restriction is upon us.
-        try (PreparedStatement ps = getPreparedQuery(queryPrefix + "getBestRowIdentifierAllColumns")) {
-            ps.setString(1, catalogPattern);
-            ps.setString(2, schemaPattern);
-            ps.setString(3, table);
-            ps.setInt(4, scope);
-            ps.setInt(5, nullableInIntForm);
-            return ps.executeQuery();
-        }
+        ps = getPreparedQuery(queryPrefix + "getBestRowIdentifierAllColumns");
+        ps.setString(1, catalogPattern);
+        ps.setString(2, schemaPattern);
+        ps.setString(3, table);
+        ps.setInt(4, scope);
+        ps.setInt(5, nullableInIntForm);
+        return ps.executeQuery();
     }
 
     /**
