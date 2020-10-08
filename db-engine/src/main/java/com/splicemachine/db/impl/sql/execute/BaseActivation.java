@@ -62,6 +62,7 @@ import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -198,6 +199,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     // WARNING: these fields are accessed by code generated in the
     // ExpressionClassBuilder: don't change them unless you
     // make the appropriate changes there.
+    @SuppressFBWarnings("UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD") // SpotBugs false positive
     protected ExecRow[] row;
     protected ParameterValueSet pvs;
 
@@ -246,12 +248,12 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
         lcc = (LanguageConnectionContext) cm.getContext(LanguageConnectionContext.CONTEXT_ID);
 
-        dvf = lcc.getDataValueFactory();
-
         if (SanityManager.DEBUG) {
             if (lcc == null)
                 SanityManager.THROWASSERT("lcc is null in activation type " + getClass());
         }
+
+        dvf = lcc.getDataValueFactory();
 
         // mark in use
         inUse = true;
@@ -1393,6 +1395,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
 
     //WARNING : this field name is referred in the DeleteNode generate routines.
+    @SuppressFBWarnings("UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD") // SpotBugs false positive
     protected CursorResultSet[] raParentResultSets;
 
 
