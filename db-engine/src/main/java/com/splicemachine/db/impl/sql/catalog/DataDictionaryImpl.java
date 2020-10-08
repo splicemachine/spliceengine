@@ -5845,6 +5845,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow=exFactory.getIndexableRow(1);
         keyRow.setColumn(1,schemaNameOrderable);
 
+        SYSSCHEMASRowFactory rf=(SYSSCHEMASRowFactory)ti.getCatalogRowFactory();
+
         ExecRow row=rf.makeEmptyRow();
 
         row.setColumn(SYSSCHEMASRowFactory.SYSSCHEMAS_SCHEMAAID,new SQLVarchar(authorizationId));
