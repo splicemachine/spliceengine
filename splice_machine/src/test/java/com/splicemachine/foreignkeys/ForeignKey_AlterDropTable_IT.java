@@ -188,7 +188,7 @@ public class ForeignKey_AlterDropTable_IT {
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table P (a int primary key, b int)");
 
-            assertQueryFail("create table C (a int references P(a) ON DELETE SET NULL)","Feature not implemented: ON DELETE SET NULL.");
+            s.executeUpdate("create table C (a int references P(a) ON DELETE SET NULL)");
         }
     }
 

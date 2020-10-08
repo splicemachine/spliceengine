@@ -80,10 +80,10 @@ public abstract class OnDeleteAbstractAction extends Action {
      * by 0x00 (in unsigned sort order). Therefore, we make the end key
      * [startKey | 0x00].
      */
-    private static DataScan prepareScan(TxnOperationFactory factory, TxnView txnView, KVPair needle) {
+    private static DataScan prepareScan(TxnOperationFactory factory, KVPair needle) {
         byte[] startKey = needle.getRowKey();
         byte[] stopKey = Bytes.unsignedCopyAndIncrement(startKey); // +1 from startKey.
-        DataScan scan = factory.newDataScan(txnView);
+        DataScan scan = factory.newDataScan(null); // Non-Transactional, will resolve on this side
         return scan.startKey(startKey).stopKey(stopKey);
     }
 
@@ -168,7 +168,7 @@ public abstract class OnDeleteAbstractAction extends Action {
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         assert !failed;
-        DataScan scan = prepareScan(txnOperationFactory, ctx.getTxn(), mutation);
+        DataScan scan = prepareScan(txnOperationFactory, mutation);
         Pair<SimpleTxnFilter, SimpleTxnFilter> filters;
         Partition indexTable;
         try {
