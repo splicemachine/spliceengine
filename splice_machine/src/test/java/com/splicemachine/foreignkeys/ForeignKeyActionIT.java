@@ -52,7 +52,7 @@ public class ForeignKeyActionIT {
     public void deleteTables() throws Exception {
         conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
-        new TableDAO(conn).drop(SCHEMA, "SRT", "LC", "YAC", "AC", "AP", "C", "P");
+        new TableDAO(conn).drop(SCHEMA, "SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
     }
 
     @After
@@ -90,6 +90,17 @@ public class ForeignKeyActionIT {
 
             assertQueryFail(s,"delete from P where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
             assertQueryFail(s,"update P set a=-1 where a = 2","Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
+        }
+    }
+
+    @Test
+    public void onDeleteNoActionMultipleChildrenWorks() throws Exception {
+        try(Statement s = conn.createStatement()){
+            createDatabaseObjects1(s);
+            s.executeUpdate("create table C2 (a int, b int, CONSTRAINT FK_2 FOREIGN KEY (a) REFERENCES P(a) ON DELETE NO ACTION)");
+            s.executeUpdate("insert into P values(100,100)");
+            s.executeUpdate("insert into C2 values(1,10),(100,100)");
+            assertQueryFail(s,"delete from P where a = 100","Operation on table 'P' caused a violation of foreign key constraint 'FK_2' for key (A).  The statement has been rolled back.");
         }
     }
 
