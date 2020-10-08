@@ -219,7 +219,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         }
         else {
             try {
-                retVal = Long.valueOf(sizeString);
+                retVal = Long.parseLong(sizeString);
             }
             catch (NumberFormatException e) {
                 return defaultValue;
@@ -251,7 +251,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         int executorCores = 1;
         if (executorCoresString != null) {
             try {
-                executorCores = Integer.valueOf(executorCoresString);
+                executorCores = Integer.parseInt(executorCoresString);
                 if (executorCores < 1)
                     executorCores = 1;
             } catch (NumberFormatException e) {
@@ -262,21 +262,21 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         long memSize = 8192*1024*1024, containerSize;
         if (memorySize != null) {
             try {
-                memSize = Long.valueOf(memorySize) * 1024 * 1024;
+                memSize = Long.parseLong(memorySize) * 1024 * 1024;
             }
             catch (NumberFormatException e) {
             }
         }
 
         boolean dynamicAllocation = sparkDynamicAllocationString != null &&
-                                    Boolean.valueOf(sparkDynamicAllocationString).booleanValue();
+                                    Boolean.parseBoolean(sparkDynamicAllocationString);
         int numSparkExecutorCores = executorCores;
 
         int numSparkExecutors = 0;
         if (!dynamicAllocation) {
             try {
                 numSparkExecutors = 1;
-                numSparkExecutors = Integer.valueOf(executorInstancesString);
+                numSparkExecutors = Integer.parseInt(executorInstancesString);
                 if (numSparkExecutors < 1)
                     numSparkExecutors = 1;
                 numSparkExecutorCores = numSparkExecutors * executorCores;
@@ -289,7 +289,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
             numSparkExecutors = 0;
             if (sparkDynamicAllocationMaxExecutors != null) {
                 try {
-                    numSparkExecutors = Integer.valueOf(executorInstancesString);
+                    numSparkExecutors = Integer.parseInt(executorInstancesString);
                 }
                 catch(NumberFormatException e){
                 }

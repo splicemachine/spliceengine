@@ -116,6 +116,12 @@ public class SpliceScan implements ScanManager, LazyScan{
     public void close() throws StandardException{
         try{
             if(table!=null) table.close();
+        }catch(IOException ignored){ }
+
+        // Put each close in own try block so a thrown
+        // IOException won't prevent the other item
+        // from being closed.
+        try{
             if(scanner!=null) scanner.close();
         }catch(IOException ignored){ }
     }
