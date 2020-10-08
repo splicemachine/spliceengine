@@ -399,11 +399,11 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.purgeDeletedRows = purgeDeletedRows;
     }
 
-    public Long getMinRetainedVersions() {
+    public Long getMinRetentionPeriod() {
         return minRetentionPeriod;
     }
 
-    public void setMinRetainedVersions(Long minRetentionPeriod) {
+    public void setMinRetentionPeriod(Long minRetentionPeriod) {
         this.minRetentionPeriod = minRetentionPeriod;
     }
 
