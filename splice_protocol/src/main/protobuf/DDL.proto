@@ -311,6 +311,7 @@ message FKConstraintInfo {
     optional int32 deleteRule = 6;
     optional Table table = 7;
     repeated int32 columnIndices = 8; // 1-based
+    optional int64 parentTableConglomerate = 9; // needed for checking self-referencing FKs.
 }
 
 message NotifyJarLoader {

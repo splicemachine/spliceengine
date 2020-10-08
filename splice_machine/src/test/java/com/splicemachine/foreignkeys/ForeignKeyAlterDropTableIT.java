@@ -35,9 +35,9 @@ import static org.junit.Assert.fail;
  *
  * Also contains drop table tests.
  */
-public class ForeignKey_AlterDropTable_IT {
+public class ForeignKeyAlterDropTableIT {
 
-    private static final String SCHEMA = ForeignKey_AlterDropTable_IT.class.getSimpleName();
+    private static final String SCHEMA = ForeignKeyAlterDropTableIT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
