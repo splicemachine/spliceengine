@@ -133,7 +133,7 @@ public abstract class OnDeleteAbstractAction extends Action {
         return indexTable;
     }
 
-    protected abstract WriteResult handleExistingRow(byte[] indexRow) throws Exception;
+    protected abstract WriteResult handleExistingRow(byte[] indexRow, byte[] sourceRowKey) throws Exception;
 
     protected static byte[] toChildBaseRowId(byte[] indexRowId, DDLMessage.FKConstraintInfo fkConstraintInfo) throws StandardException {
         MultiFieldDecoder multiFieldDecoder = MultiFieldDecoder.create();
@@ -190,7 +190,7 @@ public abstract class OnDeleteAbstractAction extends Action {
                     indexRow = isVisible(next, filters.getSecond());
                 }
                 if (indexRow != null) {
-                    writeResult = handleExistingRow(indexRow);
+                    writeResult = handleExistingRow(indexRow, mutation.getRowKey());
                 }
             }
         } catch (Exception e) {

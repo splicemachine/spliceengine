@@ -16,7 +16,12 @@ import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.foreignkey.ForeignKeyViolationProcessor;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 
+import java.util.Arrays;
+
 public class OnDeleteSetNull extends OnDeleteAbstractAction {
+
+    private final boolean isSelfReferencing;
+
     public OnDeleteSetNull(Long childBaseTableConglomId,
                            Long backingIndexConglomId,
                            DDLMessage.FKConstraintInfo constraintInfo,
@@ -24,6 +29,7 @@ public class OnDeleteSetNull extends OnDeleteAbstractAction {
                            TxnOperationFactory txnOperationFactory,
                            ForeignKeyViolationProcessor violationProcessor) throws Exception {
         super(childBaseTableConglomId, backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
+        isSelfReferencing = childBaseTableConglomId == constraintInfo.getParentTableConglomerate();
     }
 
     private KVPair constructUpdateToNull(byte[] rowId ) throws StandardException {
@@ -49,12 +55,15 @@ public class OnDeleteSetNull extends OnDeleteAbstractAction {
     }
 
     @Override
-    protected WriteResult handleExistingRow(byte[] indexRowId) throws Exception {
+    protected WriteResult handleExistingRow(byte[] indexRowId, byte[] sourceRowKey) throws Exception {
         byte[] baseTableRowId = new byte[0];
         try {
             baseTableRowId = toChildBaseRowId(indexRowId, constraintInfo);
         } catch (StandardException e) {
             e.printStackTrace();
+        }
+        if(isSelfReferencing && Arrays.equals(sourceRowKey, baseTableRowId)) {
+            return WriteResult.success(); // do not add an update mutation since this row will be deleted anyway.
         }
         KVPair pair = constructUpdateToNull(baseTableRowId);
         pipelineBuffer.add(pair);
