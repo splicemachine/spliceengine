@@ -45,7 +45,9 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
+
 import java.sql.Types;
+import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.List;
 import java.util.Map;
@@ -546,6 +548,21 @@ public interface DataDictionary{
      * @throws StandardException on error
      */
     boolean isSchemaEmpty(SchemaDescriptor sd) throws StandardException;
+
+    /**
+     * get the list of objects existing in the specified schema
+     * @param sd
+     * @return
+     */
+    ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException;
+
+    ArrayList<AliasDescriptor> getAliasesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<SequenceDescriptor> getSequencesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<FileInfoDescriptor> getFilesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException;
 
     /**
      * Get the descriptor for the named table within the given schema.
