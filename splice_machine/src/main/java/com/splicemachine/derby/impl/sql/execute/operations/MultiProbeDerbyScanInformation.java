@@ -187,28 +187,24 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 
     @Override
     protected Qualifier[][] populateQualifiers() throws StandardException {
-	if (isMemPlatform) {
-	    synchronized (this) {
-	        if (qualifiers == null) {
-	            return populateQualifiersMain();
-	        }
-	        else {
-	            return qualifiers;
-	        }
-	    }
-	}
-	else {
-	        if (qualifiers == null) {
-	            return populateQualifiersMain();
-	        }
-	        else {
-	            return qualifiers;
-	        }
-	}
+		if (isMemPlatform) {
+			// Mem platform would need to be synchronized if we save the
+			// result into the qualifiers field.  Just return it directly...
+			return populateQualifiersMain();
+		}
+		else {
+				if (qualifiers == null) {
+					return populateQualifiersMain();
+				}
+				else {
+					return qualifiers;
+				}
+		}
     }
 
 
     protected Qualifier[][] populateQualifiersMain() throws StandardException {
+		Qualifier[][] qualifiers;
 		qualifiers = super.populateQualifiers();
 		// With the MultiRowRangeFilter implementation of MultiProbeScan,
 		// qualifiers are no longer built for probe values.
