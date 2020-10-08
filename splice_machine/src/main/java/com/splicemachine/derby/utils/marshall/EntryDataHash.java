@@ -33,8 +33,6 @@ import java.io.IOException;
 public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 		protected EntryEncoder entryEncoder;
 		protected ExecRow currentRow;
-		protected DataValueDescriptor dvds;
-		protected KryoPool kryoPool;
 
 		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder,DescriptorSerializer[] serializers) {
 				this(keyColumns, keySortOrder, SpliceKryoRegistry.getInstance(),serializers);
@@ -42,7 +40,6 @@ public class EntryDataHash extends BareKeyHash implements DataHash<ExecRow>{
 
 		public EntryDataHash(int[] keyColumns, boolean[] keySortOrder,KryoPool kryoPool,DescriptorSerializer[] serializers) {
 				super(keyColumns, keySortOrder,true,kryoPool,serializers);
-				this.kryoPool = kryoPool;
 		}
 
 		@Override
