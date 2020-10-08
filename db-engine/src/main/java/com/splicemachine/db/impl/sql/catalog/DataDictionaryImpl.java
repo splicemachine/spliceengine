@@ -1835,6 +1835,121 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return foundRow;
     }
 
+    public ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException{
+
+        DataValueDescriptor schemaIdOrderable;
+
+        schemaIdOrderable=getIDValueAsCHAR(sd.getUUID());
+
+        TabInfoImpl ti = coreInfo[SYSTABLES_CATALOG_NUM];
+        int columnId = SYSTABLESRowFactory.SYSTABLES_SCHEMAID;
+
+        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+        scanQualifier[0][0].setQualifier(
+                columnId - 1,    /* column number */
+                schemaIdOrderable,
+                Orderable.ORDER_OP_EQUALS,
+                false,
+                false,
+                false);
+
+        ArrayList<TupleDescriptor> list = new ArrayList<>();
+        getDescriptorViaHeap(null,scanQualifier,ti,null,list);
+
+        for (int i = 0; i < list.size(); i++) {
+            list.set(i, finishTableDescriptor((TableDescriptor)(list.get(i))));
+        }
+        return list;
+    }
+
+    @Override
+    public ArrayList<AliasDescriptor> getAliasesInSchema(String schemaId) throws StandardException{
+        TabInfoImpl ti=getNonCoreTI(SYSALIASES_CATALOG_NUM);
+
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,new SQLChar(schemaId));
+
+        ArrayList<AliasDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSALIASESRowFactory.SYSALIASES_INDEX1_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
+                false);
+        return resultList;
+    }
+
+    @Override
+    public ArrayList<SequenceDescriptor> getSequencesInSchema(String schemaId) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSSEQUENCES_CATALOG_NUM);
+
+        /* Set up the start/stop position for the scan */
+        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        keyRow.setColumn(1,new SQLChar(schemaId));
+
+        ArrayList<SequenceDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSSEQUENCESRowFactory.SYSSEQUENCES_INDEX2_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
+                false);
+        return resultList;
+    }
+
+    @Override
+    public ArrayList<FileInfoDescriptor> getFilesInSchema(String schemaId) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSFILES_CATALOG_NUM);
+
+        DataValueDescriptor schemaIdOrderable;
+
+        schemaIdOrderable=new SQLChar(schemaId);
+
+        int columnId = SYSFILESRowFactory.SCHEMA_ID_COL_NUM;
+
+        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+        scanQualifier[0][0].setQualifier(
+                columnId - 1,    /* column number */
+                schemaIdOrderable,
+                Orderable.ORDER_OP_EQUALS,
+                false,
+                false,
+                false);
+
+        ArrayList<FileInfoDescriptor> list = new ArrayList<>();
+        getDescriptorViaHeap(null,scanQualifier,ti,null,list);
+
+        return list;
+    }
+
+    @Override
+    public ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException {
+        TabInfoImpl ti=getNonCoreTI(SYSTRIGGERS_CATALOG_NUM);
+
+        DataValueDescriptor schemaIdOrderable;
+
+        schemaIdOrderable=new SQLChar(schemaId);
+
+        int columnId = SYSTRIGGERSRowFactory.SYSTRIGGERS_SCHEMAID;
+
+        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+        scanQualifier[0][0].setQualifier(
+                columnId - 1,    /* column number */
+                schemaIdOrderable,
+                Orderable.ORDER_OP_EQUALS,
+                false,
+                false,
+                false);
+
+        ArrayList<TriggerDescriptor> list = new ArrayList<>();
+        getDescriptorViaHeap(null,scanQualifier,ti,null,list);
+
+        return list;
+    }
+
     /**
      * Drop the table descriptor.
      *

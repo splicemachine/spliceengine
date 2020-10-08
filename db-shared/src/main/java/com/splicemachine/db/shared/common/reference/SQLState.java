@@ -1435,6 +1435,7 @@ public interface SQLState {
 	String LANG_CREATE_SYSTEM_INDEX_ATTEMPTED                          = "X0Y28.S";
 	String LANG_PROVIDER_HAS_DEPENDENT_TABLE                            = "X0Y29.S";
 	String LANG_PROVIDER_HAS_DEPENDENT_ALIAS                            = "X0Y30.S";
+	String LANG_PROVIDER_HAS_EXTERNAL_DEPENDENCY                       = "X0Y31.S";
 	String LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT						   = "X0Y32.S";
 	String LANG_CREATE_INDEX_NO_TABLE                                  = "X0Y38.S";
 	String LANG_INVALID_FK_NO_PK                                       = "X0Y41.S";
