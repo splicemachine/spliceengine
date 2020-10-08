@@ -32,6 +32,7 @@ import com.splicemachine.si.data.hbase.coprocessor.HBaseSIEnvironment;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.hbase.ZkTimestampBlockManager;
+import com.splicemachine.timestamp.impl.TimestampOracle;
 import com.splicemachine.timestamp.impl.TimestampServer;
 import com.splicemachine.timestamp.impl.TimestampServerHandler;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -88,7 +89,8 @@ public class SpliceMasterObserver implements MasterCoprocessor, MasterObserver, 
             }
 
             TimestampBlockManager tbm= new ZkTimestampBlockManager(rzk,timestampReservedPath);
-            this.timestampServer =new TimestampServer(timestampPort,new TimestampServerHandler(tbm, timestampBlockSize));
+            this.timestampServer =new TimestampServer(timestampPort,
+                    new TimestampServerHandler(TimestampOracle.getInstance(tbm, timestampBlockSize)));
 
             this.timestampServer.startServer();
 

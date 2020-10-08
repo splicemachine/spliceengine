@@ -38,6 +38,8 @@ public class ConfigurationBuilder {
     public int readResolverQueueSize;
     public int readResolverThreads;
     public int timestampClientWaitTime;
+    public int timestampClientQueues;
+    public boolean timestampClientBatched;
     public int timestampServerBindPort;
     public int transactionKeepAliveThreads;
     public int transactionLockStripes;
