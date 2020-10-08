@@ -100,7 +100,7 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
             }
 
             @Override
-            public byte[] encode() throws StandardException, IOException {
+            public byte[] encode() {
                 //return a dummy key
                 return new byte[0];
             }
