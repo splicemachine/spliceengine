@@ -115,6 +115,11 @@ public class DataDictionaryImplTest {
 
         }
 
+        @Override
+        public long getSystablesMinRetentionPeriod() {
+            return 7*24*3600;
+        }
+
         public void testMarkSystemTablesAsVersion1(TableDescriptor td) {
             markSystemTablesAsVersion1(td);
         }

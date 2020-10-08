@@ -14,17 +14,15 @@
 
 package com.splicemachine.timestamp.impl;
 
-import com.splicemachine.timestamp.api.TimestampIOException;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.ExceptionEvent;
-import org.jboss.netty.channel.SimpleChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.SimpleChannelInboundHandler;
 
-public abstract class TimestampBaseHandler extends SimpleChannelHandler {
+public abstract class TimestampBaseHandler<T> extends SimpleChannelInboundHandler<T> {
 
-    public void exceptionCaught(ChannelHandlerContext ctx, ExceptionEvent e) throws Exception {
-        doError("exceptionCaught", e.getCause());
-        super.exceptionCaught(ctx, e);
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        doError("exceptionCaught", cause);
+        super.exceptionCaught(ctx, cause);
     }
 
     protected abstract void doError(String message, Throwable t, Object... args);
