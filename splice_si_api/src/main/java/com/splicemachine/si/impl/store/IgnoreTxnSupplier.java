@@ -22,6 +22,7 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.Pair;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -31,6 +32,7 @@ import java.util.Set;
  * Created by jyuan on 10/30/17.
  */
 public class IgnoreTxnSupplier {
+    private static final Logger LOG = Logger.getLogger(IgnoreTxnSupplier.class);
     private Set<Pair<Long, Long>> cache;
     private EntryDecoder entryDecoder;
     final private PartitionFactory partitionFactory;
@@ -101,6 +103,19 @@ public class IgnoreTxnSupplier {
                     populateIgnoreTxnCache();
                     initialized = true;
                 }
+            }
+        }
+    }
+
+    public void refresh() {
+        synchronized (this) {
+            cache.clear();
+            try {
+                populateIgnoreTxnCache();
+            } catch (IOException e) {
+                LOG.error("Couldn't populate Ignore Cache", e);
+                // Force restart
+                // System.exit(-1);
             }
         }
     }

@@ -14,16 +14,26 @@
 
 package com.splicemachine.hbase;
 
+import com.splicemachine.EngineDriver;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.access.HConfiguration;
+import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.backup.BackupMessage;
 import com.splicemachine.backup.BackupMessage.BackupJobStatus;
 import com.splicemachine.backup.BackupRestoreConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.BackupDescriptor;
+import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.pipeline.Exceptions;
+import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.storage.DataPut;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.Partition;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.backup.BackupMessage.BackupRegionStatus;
 import org.apache.hadoop.conf.Configuration;
@@ -34,6 +44,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException;
@@ -391,5 +402,46 @@ public class BackupUtils {
 
     public static String getBackupLockPath() {
         return HConfiguration.getConfiguration().getSpliceRootPath() + HBaseConfiguration.DEFAULT_BACKUP_LOCK_PATH;
+    }
+
+    public static void setIgnoreTable(List<Pair<Long, Long>> ignoreTxns) throws IOException {
+        if (ignoreTxns.isEmpty())
+            return;
+
+        PartitionFactory partitionFactory = SIDriver.driver().getTableFactory();
+        PartitionAdmin partitionAdmin = partitionFactory.getAdmin();
+        if (!partitionAdmin.tableExists(HBaseConfiguration.IGNORE_TXN_TABLE_NAME)) {
+            HBaseConnectionFactory hcf = HBaseConnectionFactory.getInstance(EngineDriver.driver().getConfiguration());
+            hcf.createRestoreTable();
+        }
+
+        Partition table = partitionFactory.getTable(HBaseConfiguration.IGNORE_TXN_TABLE_NAME);
+        TxnOperationFactory opFactory = SIDriver.driver().getOperationFactory();
+        EntryEncoder entryEncoder = getEntryEncoder();
+        MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(1);
+        for(Pair<Long, Long> ignoreTxn : ignoreTxns) {
+            keyEncoder.reset();
+            MultiFieldEncoder fieldEncoder = entryEncoder.getEntryEncoder();
+            fieldEncoder.reset();
+            long start = ignoreTxn.getFirst();
+            byte[] key = keyEncoder.encodeNext(start).build();
+            long end = ignoreTxn.getSecond();
+            fieldEncoder.encodeNext(start).encodeNext(end);
+            byte[] value = entryEncoder.encode();
+            DataPut put=opFactory.newDataPut(null,key);
+            put.addCell(SIConstants.DEFAULT_FAMILY_BYTES,SIConstants.PACKED_COLUMN_BYTES,value);
+            table.mutate(put);
+        }
+    }
+
+    private static EntryEncoder getEntryEncoder() {
+        com.carrotsearch.hppc.BitSet fields  = new com.carrotsearch.hppc.BitSet(2);
+        fields.set(0,2);
+        com.carrotsearch.hppc.BitSet scalarFields = new com.carrotsearch.hppc.BitSet(2);
+        scalarFields.set(1, 2);
+        com.carrotsearch.hppc.BitSet floatFields = new com.carrotsearch.hppc.BitSet(0);
+        com.carrotsearch.hppc.BitSet doubleFields = new com.carrotsearch.hppc.BitSet(0);
+
+        return EntryEncoder.create(SpliceKryoRegistry.getInstance(),2,fields,scalarFields,floatFields,doubleFields);
     }
 }

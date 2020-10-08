@@ -33,7 +33,7 @@ import java.io.IOException;
  *         Date: 6/18/14
  */
 public class CompletedTxnCacheSupplier implements TxnSupplier{
-    private TxnView[] cache;
+    private volatile TxnView[] cache;
     private final TxnSupplier delegate;
     private Hash32 hashFunction;
 
@@ -116,5 +116,10 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
     @Override
     public TaskId getTaskId(long txnId) throws IOException {
         return delegate.getTaskId(txnId);
+    }
+
+    @Override
+    public void invalidate() {
+        cache = new TxnView[cache.length];
     }
 }

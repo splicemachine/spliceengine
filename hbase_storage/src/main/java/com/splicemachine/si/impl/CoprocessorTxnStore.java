@@ -365,6 +365,11 @@ public class CoprocessorTxnStore implements TxnStore {
         }
     }
 
+    @Override
+    public void invalidate() {
+        cache.invalidate();
+    }
+
     /**
      * Set the underlying transaction cache to use.
      * <p/>

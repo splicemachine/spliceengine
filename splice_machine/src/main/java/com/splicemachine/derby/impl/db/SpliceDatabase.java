@@ -438,6 +438,10 @@ public class SpliceDatabase extends BasicDatabase{
                     case CREATE_ALIAS:
                     case CREATE_VIEW:
                         break;
+                    case ROLLBACK_DATABASE:
+                        SIDriver.driver().getTxnSupplier().invalidate();
+                        SIDriver.driver().getIgnoreTxnSupplier().refresh();
+                        break;
                     default:
                         break;
                 }
