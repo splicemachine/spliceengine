@@ -18,12 +18,13 @@ import java.math.BigDecimal
 import java.sql.{Time, Timestamp}
 import java.util.Date
 
-import org.apache.spark.SparkConf
+import com.splicemachine.derby.impl.SpliceSpark
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.execution.datasources.jdbc.{JDBCOptions, JdbcUtils}
-import org.apache.spark.streaming._
+import org.apache.spark.{SparkConf, SparkContext}
 import org.scalatest.{BeforeAndAfterAll, Suite}
+import org.apache.spark.streaming._
 
 import scala.collection.mutable
 

@@ -14,6 +14,8 @@
 
 package com.splicemachine.hbase;
 
+import com.splicemachine.access.HConfiguration;
+import com.splicemachine.constants.EnvUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -21,7 +23,10 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.si.api.txn.Txn;
+import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.data.hbase.coprocessor.TableType;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.regionserver.Store;
 
 import java.io.IOException;
@@ -30,9 +35,12 @@ import java.io.IOException;
  * Created by jyuan on 5/29/17.
  */
 public class SpliceCompactionUtils {
+    private interface TableDescriptorExtractor<T> {
+        T get(TableDescriptor td);
+        T getDefaultValue();
+    }
 
-    public static boolean forcePurgeDeletes(Store store) throws IOException {
-
+    private static <T> T extract(Store store, TableDescriptorExtractor<T> t) throws IOException {
         boolean prepared = false;
         SpliceTransactionResourceImpl transactionResource = null;
         Txn txn = null;
@@ -52,12 +60,12 @@ public class SpliceCompactionUtils {
                     UUID tableID = cd.getTableID();
                     TableDescriptor td = dd.getTableDescriptor(tableID);
                     if (td != null)
-                        return td.purgeDeletedRows();
+                        return t.get(td);
                 }
             }
         }
         catch (NumberFormatException e) {
-            return false;
+            return t.getDefaultValue();
         }
         catch (Exception e) {
             throw new IOException(e);
@@ -69,6 +77,71 @@ public class SpliceCompactionUtils {
                 txn.commit();
         }
 
-        return false;
+        return t.getDefaultValue();
     }
+
+    public static boolean forcePurgeDeletes(Store store) throws IOException {
+        return extract(store, new TableDescriptorExtractor<Boolean>() {
+            @Override
+            public Boolean get(TableDescriptor td) {
+                return td.purgeDeletedRows();
+            }
+            @Override
+            public Boolean getDefaultValue() {
+                return false;
+            }
+        });
+    }
+
+    private static long RETAIN_FOREVER = -1;
+
+    private static Long minRetentionPeriod(Store store) throws IOException { ;
+        return extract(store, new TableDescriptorExtractor<Long>() {
+            @Override
+            public Long get(TableDescriptor td) {
+                return td.getMinRetentionPeriod();
+            }
+            @Override
+            public Long getDefaultValue() {
+                return RETAIN_FOREVER;
+            }
+        });
+    }
+
+    public static long getTxnLowWatermark(Store store) throws IOException {
+        if(SIDriver.driver() == null || !SIDriver.driver().isEngineStarted()) {
+            return SIConstants.OLDEST_TIME_TRAVEL_TX;
+        }
+        long lowTxnWatermark = TransactionsWatcher.getLowWatermarkTransaction();
+        Long minRetentionPeriod = SpliceCompactionUtils.minRetentionPeriod(store);
+        if (minRetentionPeriod == null || minRetentionPeriod == 0L) {
+            return lowTxnWatermark;
+        }
+        if (minRetentionPeriod == RETAIN_FOREVER) {
+            return SIConstants.OLDEST_TIME_TRAVEL_TX;
+        }
+        long minRetentionTs = System.currentTimeMillis() - minRetentionPeriod * 1000;
+        long minRetentionTxnId = SIDriver.driver().getTxnStore().getTxnAt(minRetentionTs);
+        if(minRetentionTxnId == -1) {
+            return SIConstants.OLDEST_TIME_TRAVEL_TX;
+        }
+        return Math.min(lowTxnWatermark, minRetentionTxnId);
+    }
+
+    public static boolean needsSI(TableName tableName) {
+        TableType type = EnvUtils.getTableType(HConfiguration.getConfiguration(), tableName);
+        switch (type) {
+            case TRANSACTION_TABLE:
+            case ROOT_TABLE:
+            case META_TABLE:
+            case HBASE_TABLE:
+                return false;
+            case DERBY_SYS_TABLE:
+            case USER_TABLE:
+                return true;
+            default:
+                throw new RuntimeException("Unknow table type " + type);
+        }
+    }
+
 }
