@@ -825,7 +825,8 @@ public interface ResultSetFactory {
 								   int vtiProjectionNumber,
 								   int vtiRestrictionNumber,
 								   int vtiResultDescriptionNumber,
-								   String explainPlan)
+								   String explainPlan,
+								   boolean quotedEmptyIsNull)
 		 throws StandardException;
 
 	/*
@@ -852,7 +853,8 @@ public interface ResultSetFactory {
 			int vtiProjectionNumber,
 			int vtiRestrictionNumber,
 			int vtiResultDescriptionNumber,
-			String explainPlan)
+			String explainPlan,
+			boolean quotedEmptyIsNull)
 					throws StandardException;
 	/**
 		A distinct scan result set pushes duplicate elimination into

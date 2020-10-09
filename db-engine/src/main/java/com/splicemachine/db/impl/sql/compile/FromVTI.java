@@ -36,12 +36,14 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -1445,7 +1447,12 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         mb.push(printExplainInformationForActivation());
 
-        return 18;
+        boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                getLanguageConnectionContext(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+
+        mb.push(quotedEmptyIsNull);
+
+        return 19;
     }
 
     /** Store an object in the prepared statement.  Returns -1 if the object is
