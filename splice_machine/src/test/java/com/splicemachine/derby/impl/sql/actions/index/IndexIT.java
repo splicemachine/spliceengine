@@ -1477,6 +1477,22 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testIndexExpressionTernaryOperatorRewriting() throws Exception {
+        String tableName = "TEST_TERNARY_OP_EXPR";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(32), ts timestamp)", tableName));
+        methodWatcher.executeUpdate(
+                format("insert into %s values " +
+                                "('abc  ', '2014-01-01 22:00:05')," +
+                                "('def  ', '2016-05-01 12:04:30')"
+                        , tableName));
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (timestampadd(SQL_TSI_DAY, 2, ts), rtrim(vc))", tableName, tableName));
+
+        rowContainsQuery(new int[]{1}, format("select rtrim(vc) from %s --splice-properties index=%s_IDX\n" +
+                        " where timestampadd(SQL_TSI_DAY, 2, ts) = '2014-01-03 22:00:05' and rtrim(vc) like 'ab_%%'", tableName, tableName),methodWatcher,
+                "abc");
+    }
+
+    @Test
     public void testJoinOnTheSameIndexExpressionText() throws Exception {
         String tableName_1 = "TEST_SAME_EXPR_TEXT_EXPR_INDEX_1";
         methodWatcher.executeUpdate(format("create table %s (c char(4))", tableName_1));

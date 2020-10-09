@@ -1469,30 +1469,40 @@ public class TernaryOperatorNode extends OperatorNode
         if (childRCL == null) {
             return this;
         }
-        if (receiver != null) {
-            receiver = receiver.replaceIndexExpression(childRCL);
+        // this special handling for like predicate is fine because like cannot appear in index expressions
+        if (operatorType == LIKE) {
+            if (receiver != null) {
+                receiver = receiver.replaceIndexExpression(childRCL);
+            }
+            if (leftOperand != null) {
+                leftOperand = leftOperand.replaceIndexExpression(childRCL);
+            }
+            if (rightOperand != null) {
+                rightOperand = rightOperand.replaceIndexExpression(childRCL);
+            }
+            return this;
+        } else {
+            return super.replaceIndexExpression(childRCL);
         }
-        if (leftOperand != null) {
-            leftOperand = leftOperand.replaceIndexExpression(childRCL);
-        }
-        if (rightOperand != null) {
-            rightOperand = rightOperand.replaceIndexExpression(childRCL);
-        }
-        return this;
     }
 
     @Override
     public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
-        boolean result = true;
-        if (receiver != null) {
-            result = receiver.collectExpressions(exprMap);
+        // this special handling for like predicate is fine because like cannot appear in index expressions
+        if (operatorType == LIKE) {
+            boolean result = true;
+            if (receiver != null) {
+                result = receiver.collectExpressions(exprMap);
+            }
+            if (leftOperand != null) {
+                result = result && leftOperand.collectExpressions(exprMap);
+            }
+            if (rightOperand != null) {
+                result = result && rightOperand.collectExpressions(exprMap);
+            }
+            return result;
+        } else {
+            return this.collectSingleExpression(exprMap);
         }
-        if (leftOperand != null) {
-            result = result && leftOperand.collectExpressions(exprMap);
-        }
-        if (rightOperand != null) {
-            result = result && rightOperand.collectExpressions(exprMap);
-        }
-        return result;
     }
 }
