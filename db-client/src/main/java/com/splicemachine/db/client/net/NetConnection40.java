@@ -259,18 +259,19 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
     }
 
     /**
-     * <code>setClientInfo</code> will throw a
-     * <code>SQLClientInfoException</code> uless the <code>properties</code>
-     * paramenter is empty, since Derby does not support any
-     * properties. All the property keys in the
+     * <code>setClientInfo</code> will check if the properties match any of
+     * "ApplicationName", "ClientUser", or "ClientHostname".
+     * All unrecognized property keys in the
      * <code>properties</code> parameter are added to failedProperties
      * of the exception thrown, with REASON_UNKNOWN_PROPERTY as the
-     * value. 
+     * value unless the envorinment variable SPLICEMACHINE_JDBC_IGNORE_UNSUPPORTED_PROPERTIES
+     * is set to true, in that case, unrecognized properties will be ignored.
      *
      * @param properties a <code>Properties</code> object with the
      * properties to set.
-     * @exception SQLClientInfoException unless the properties
-     * parameter is null or empty.
+     * @exception SQLClientInfoException if any property is not recognized unless
+     * the envorinment variable SPLICEMACHINE_JDBC_IGNORE_UNSUPPORTED_PROPERTIES
+     * is set to true
      */
     public void setClientInfo(Properties properties)
     throws SQLClientInfoException {
@@ -282,7 +283,7 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
 	    		fp.getProperties());
 	}
 
-	if (!fp.isEmpty()) {
+	if (!fp.isEmpty() && !igoreUnsupportedProperties()) {
         SqlException se = new SqlException(agent_.logWriter_,
                 new ClientMessageId(SQLState.PROPERTY_UNSUPPORTED_CHANGE),
                 fp.getFirstKey(), fp.getFirstValue());
@@ -477,5 +478,10 @@ public class  NetConnection40 extends com.splicemachine.db.client.net.NetConnect
             }
         }
         return badProperties;
+    }
+
+    private boolean igoreUnsupportedProperties() {
+        String value = System.getenv("SPLICEMACHINE_JDBC_IGNORE_UNSUPPORTED_PROPERTIES");
+        return value != null && value.toUpperCase().equals("TRUE");
     }
 }
