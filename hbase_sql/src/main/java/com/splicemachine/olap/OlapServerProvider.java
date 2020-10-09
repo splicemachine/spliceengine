@@ -15,7 +15,7 @@
 
 package com.splicemachine.olap;
 
-import com.google.common.net.HostAndPort;
+import splice.com.google.common.net.HostAndPort;
 
 import java.io.IOException;
 

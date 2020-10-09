@@ -14,7 +14,7 @@
 
 package com.splicemachine.olap;
 
-import com.google.common.net.HostAndPort;
+import splice.com.google.common.net.HostAndPort;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
