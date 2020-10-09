@@ -15,7 +15,7 @@
 package com.splicemachine.stream;
 
 
-import com.google.common.net.HostAndPort;
+import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
