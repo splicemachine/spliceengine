@@ -62,8 +62,8 @@ public class HPartitionCreator implements PartitionCreator{
     public static int getHBasePriority(Conglomerate.Priority priority)
     {
         switch(priority){
-            case NORMAL:    return HConstants.NORMAL_QOS;
-            case HIGH:      return HConstants.ADMIN_QOS;
+            case NORMAL:    return HBaseTableDescriptor.NORMAL_TABLE_PRIORITY;
+            case HIGH:      return HBaseTableDescriptor.HIGH_TABLE_PRIORITY;
             default:        throw new RuntimeException("Not implemented priority " + priority);
         }
     }

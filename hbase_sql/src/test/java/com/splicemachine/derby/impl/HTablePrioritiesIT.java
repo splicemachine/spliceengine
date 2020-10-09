@@ -8,7 +8,6 @@ import com.splicemachine.test.SerialTest;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.*;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -77,28 +76,29 @@ public class HTablePrioritiesIT {
             // this is a double-check, adjust this if you add tables
             String tdn = td.getValue("tableDisplayName");
             switch (td.getPriority()){
-                case HConstants.HIGH_QOS:
+                case HConstants.ADMIN_QOS:
                     String arr[] = {"splice:DROPPED_CONGLOMERATES", "splice:SPLICE_CONGLOMERATE",
                             "splice:SPLICE_MASTER_SNAPSHOTS", "splice:SPLICE_REPLICATION_PROGRESS",
                             "splice:SPLICE_SEQUENCES", "splice:SPLICE_TXN", "splice:TENTATIVE_DDL"};
-                    Assert.assertTrue(td.toString(), ArrayUtils.contains(arr, td.getTableName().getNameAsString()));
-                    Assert.assertEquals(null, tdn);
-                    prioHigh++;
-                    break;
-                case HConstants.ADMIN_QOS:
-                    Assert.assertTrue(tdn.startsWith("SYS") || tdn.startsWith("splice:") ||
-                                    tdn.equals("MON_GET_CONNECTION") );
+                    if( ArrayUtils.contains(arr, td.getTableName().getNameAsString()) ) {
+                        Assert.assertEquals(null, tdn);
+                    }
+                    else {
+                        Assert.assertTrue(tdn.startsWith("SYS") || tdn.startsWith("splice:") ||
+                                tdn.equals("MON_GET_CONNECTION") );
+                    }
                     prioAdmin++;
                     break;
                 case HConstants.NORMAL_QOS:
                     prioNormal++;
                     break;
+                default:
+                    Assert.assertTrue("unknown priority", false);
             }
         }
         // assert there's actually tables we are checking
         Assert.assertTrue( prioNormal >= 4 );
-        Assert.assertTrue( prioAdmin > 5 );
-        Assert.assertTrue( prioHigh > 5 );
+        Assert.assertTrue( prioAdmin > 10 );
     }
 
     static public String getTableNameRepr(TableDescriptor td)
