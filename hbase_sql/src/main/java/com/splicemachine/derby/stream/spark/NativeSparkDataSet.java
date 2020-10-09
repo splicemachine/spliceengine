@@ -18,7 +18,6 @@ package com.splicemachine.derby.stream.spark;
 import com.google.common.base.Function;
 import com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
@@ -42,7 +41,6 @@ import com.splicemachine.sparksql.ParserUtils;
 import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
-import com.sun.xml.bind.api.impl.NameConverter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
@@ -57,18 +55,22 @@ import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
 import org.apache.hadoop.mapreduce.security.TokenCache;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
+import org.apache.spark.scheduler.*;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
+import scala.collection.JavaConverters;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 import java.util.zip.GZIPOutputStream;
 
 import static com.splicemachine.derby.stream.spark.SparkDataSetProcessor.getCsvOptions;
@@ -1114,61 +1116,95 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         return (JavaRDD<V>) dataSet.javaRDD().map(new RowToLocatedRowFunction(context));
     }
 
+    private DataSet<ExecRow> getRowsWritten(OperationContext context) {
+        ValueRow valueRow = new ValueRow(1);
+        valueRow.setColumn(1, new SQLLongint(context.getRecordsWritten()));
+        return new SparkDataSet<>(SpliceSpark.getContext()
+                .parallelize(Collections.singletonList(valueRow), 1));
+    }
+
     @Override
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp,
-                                             int[] partitionBy,
-                                             String location,
-                                             String compression,
-                                             OperationContext context) throws StandardException {
-        StructType tableSchema = SparkDataSet.generateTableSchema(context);
-
-        // construct a DF using schema of data
-        Dataset<Row> insertDF = SpliceSpark.getSession()
-                .createDataFrame(dataset.rdd(), tableSchema);
-
-        List<String> partitionByCols = new ArrayList();
-        for (int i = 0; i < partitionBy.length; i++) {
-            partitionByCols.add(tableSchema.fields()[partitionBy[i]].name());
+    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location,
+                                             String compression, OperationContext context) throws StandardException {
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(partitionBy, context)
+                    .option(SPARK_COMPRESSION_OPTION, compression)
+                    .parquet(location);
         }
-        if (partitionBy.length > 0) {
-            List<Column> repartitionCols = new ArrayList();
-            for (int i = 0; i < partitionBy.length; i++) {
-                repartitionCols.add(new Column(tableSchema.fields()[partitionBy[i]].name()));
-            }
-            insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
-        }
-        insertDF.write().option(SPARK_COMPRESSION_OPTION,compression)
-                .partitionBy(partitionByCols.toArray(new String[partitionByCols.size()]))
-                .mode(SaveMode.Append).parquet(location);
-        ValueRow valueRow=new ValueRow(1);
-        valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+
+        return getRowsWritten(context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeAvroFile(DataSetProcessor dsp,
-                                          int[] partitionBy,
-                                          String location,
-                                          String compression,
-                                          OperationContext context) throws StandardException
-    {
-        compression = SparkDataSet.getAvroCompression(compression);
-        DataFrameWriter writer = getDataFrameWriter(partitionBy, context).option(SPARK_COMPRESSION_OPTION,compression);
-        writer.mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
-        ValueRow valueRow=new ValueRow(1);
-        valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+    public DataSet<ExecRow> writeAvroFile(DataSetProcessor dsp, int[] partitionBy, String location,
+                                          String compression, OperationContext context) throws StandardException {
+        try( CountingListener counter = new CountingListener(context) ) {
+            compression = SparkDataSet.getAvroCompression(compression);
+            getDataFrameWriter(partitionBy, context)
+                    .option(SPARK_COMPRESSION_OPTION, compression)
+                    .format("com.databricks.spark.avro").save(location);
+        }
+        return getRowsWritten(context);
     }
 
-
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
+                                          OperationContext context) throws StandardException {
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(partitionBy, context)
+                    .options(getCsvOptions(csvOptions))
+                    .csv(location);
+        }
+        return getRowsWritten(context);
+    }
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                     OperationContext context) throws StandardException {
-        DataFrameWriter writer = getDataFrameWriter(partitionBy, context).option(SPARK_COMPRESSION_OPTION,compression);
-        writer.mode(SaveMode.Append).orc(location);
-        ValueRow valueRow=new ValueRow(1);
-        valueRow.setColumn(1,new SQLLongint(context.getRecordsWritten()));
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(partitionBy, context)
+                    .option(SPARK_COMPRESSION_OPTION, compression)
+                    .orc(location);
+        }
+        return getRowsWritten(context);
+    }
+
+    class CountingListener extends SparkListener implements AutoCloseable
+    {
+        OperationContext context;
+        SparkContext sc;
+        String uuid;
+        Set<Integer> stageIdsToWatch;
+
+        public CountingListener(OperationContext context) {
+            this( context, UUID.randomUUID().toString() );
+        }
+        public CountingListener(OperationContext context, String uuid) {
+            sc = SpliceSpark.getSession().sparkContext();
+            sc.getLocalProperties().setProperty("operation-uuid", uuid);
+            sc.addSparkListener(this);
+            this.context = context;
+            this.uuid = uuid;
+        }
+
+        public void onJobStart(SparkListenerJobStart jobStart) {
+            if ( !jobStart.properties().getProperty("operation-uuid", "").equals(uuid) ) {
+                return;
+            }
+
+            List<StageInfo> stageInfos = JavaConverters.seqAsJavaListConverter(jobStart.stageInfos()).asJava();
+            stageIdsToWatch = stageInfos.stream().map(s -> s.stageId()).collect(Collectors.toSet());
+        }
+
+        @Override
+        public void onTaskEnd(SparkListenerTaskEnd taskEnd) {
+            if( stageIdsToWatch != null && stageIdsToWatch.contains( taskEnd.stageId() ))
+                context.recordPipelineWrites( taskEnd.taskMetrics().outputMetrics().recordsWritten() );
+        }
+
+        @Override
+        public void close() {
+            sc.removeSparkListener(this);
+        }
     }
 
     private DataFrameWriter getDataFrameWriter(int[] partitionBy, OperationContext context) throws StandardException {
@@ -1190,17 +1226,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             }
             insertDF = insertDF.repartition(scala.collection.JavaConversions.asScalaBuffer(repartitionCols).toList());
         }
-        return insertDF.write().partitionBy(partitionByCols);
-    }
-
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
-                                          OperationContext context) throws StandardException {
-        DataFrameWriter writer = getDataFrameWriter(partitionBy, context);
-        writer.options(getCsvOptions(csvOptions)).mode(SaveMode.Append).csv(location);
-        ValueRow valueRow = new ValueRow(1);
-        valueRow.setColumn(1, new SQLLongint(context.getRecordsWritten()));
-        return new SparkDataSet<>(SpliceSpark.getContext().parallelize(Collections.singletonList(valueRow), 1));
+        return insertDF.write().partitionBy(partitionByCols).mode(SaveMode.Append);
     }
 
     @Override @SuppressWarnings({ "unchecked", "rawtypes" })
