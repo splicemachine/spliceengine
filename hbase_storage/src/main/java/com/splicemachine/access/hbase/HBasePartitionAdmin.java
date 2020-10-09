@@ -725,32 +725,17 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         return null;
     }
 
-    static public int getPriorityShouldHave(HTableDescriptor td)
-    {
-        String s = td.getValue("tableDisplayName");
-        if( s == null ) {
-            return HConstants.HIGH_QOS;
-        }
-        else {
-            if (s.startsWith("SYS") || s.startsWith("splice:") || s.equals("MON_GET_CONNECTION")) {
-                return HConstants.ADMIN_QOS;
-            } else {
-                return HConstants.NORMAL_QOS;
-            }
-        }
-    }
-
     static public int getPriorityShouldHave(org.apache.hadoop.hbase.client.TableDescriptor td)
     {
         String s = td.getValue("tableDisplayName");
         if( s == null ) {
-            return HConstants.HIGH_QOS;
+            return HBaseTableDescriptor.HIGH_TABLE_PRIORITY;
         }
         else {
             if (s.startsWith("SYS") || s.startsWith("splice:") || s.equals("MON_GET_CONNECTION")) {
-                return HConstants.ADMIN_QOS;
+                return HBaseTableDescriptor.HIGH_TABLE_PRIORITY;
             } else {
-                return HConstants.NORMAL_QOS;
+                return HBaseTableDescriptor.NORMAL_TABLE_PRIORITY;
             }
         }
     }
