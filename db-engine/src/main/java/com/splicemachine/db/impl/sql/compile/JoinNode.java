@@ -1296,19 +1296,24 @@ public class JoinNode extends TableOperatorNode{
          */
         String joinResultSetString;
 
+        AccessPath ap = ((Optimizable)rightResultSet).getTrulyTheBestAccessPath();
         if (joinType==FULLOUTERJOIN) {
-            joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
-                    getJoinStrategy().fullOuterJoinResultSetMethodName();
+            joinResultSetString=ap.getJoinStrategy().fullOuterJoinResultSetMethodName();
         } else if(joinType==LEFTOUTERJOIN){
-            joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
-                    getJoinStrategy().halfOuterJoinResultSetMethodName();
+            joinResultSetString=ap.getJoinStrategy().halfOuterJoinResultSetMethodName();
         }else{
-            joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
-                    getJoinStrategy().joinResultSetMethodName();
+            joinResultSetString=ap.getJoinStrategy().joinResultSetMethodName();
         }
 
         acb.pushGetResultSetFactoryExpression(mb);
         int nargs=getJoinArguments(acb,mb,joinClause);
+        if (RSUtils.isMJ(ap)) {
+            nargs++;
+            boolean useOldMergeJoin = (ap.getCostEstimate().partitionCount() < 4) ||
+                                       getCompilerContext().getOldMergeJoin();
+            mb.push(useOldMergeJoin);
+        }
+
 
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,joinResultSetString,ClassName.NoPutResultSet,nargs);
     }

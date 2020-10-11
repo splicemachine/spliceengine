@@ -540,6 +540,19 @@ public class GenericStatement implements Statement{
             }
             cc.setAllowOverflowSensitiveNativeSparkExpressions(allowOverflowSensitiveNativeSparkExpressions);
 
+            String useOldMergeJoinString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_OLD_MERGE_JOIN);
+            boolean useOldMergeJoin = CompilerContext.DEFAULT_SPLICE_OLD_MERGE_JOIN;
+            try {
+                if (useOldMergeJoinString != null)
+                    useOldMergeJoin =
+                        Boolean.parseBoolean(useOldMergeJoinString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setOldMergeJoin(useOldMergeJoin);
+
             String currentTimestampPrecisionString =
                     PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);
             int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;

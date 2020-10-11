@@ -1285,6 +1285,46 @@ public interface ResultSetFactory {
                                       String explainPlan)
             throws StandardException;
 
+    NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
+										 int leftNumCols,
+										 NoPutResultSet rightResultSet,
+										 int rightNumCols,
+										 int leftHashKeyItem,
+										 int rightHashKeyItem,
+										 int rightHashKeyToBaseTableMapItem,
+										 int rightHashKeySortOrderItem,
+										 GeneratedMethod joinClause,
+										 int resultSetNumber,
+										 boolean oneRowRightSide,
+										 byte semiJoinType,
+										 boolean rightFromSSQ,
+										 double optimizerEstimatedRowCount,
+										 double optimizerEstimatedCost,
+										 String userSuppliedOptimizerOverrides,
+										 String explainPlan,
+										 String sparkExpressionTreeAsString)
+					   throws StandardException;
+
+    NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
+										 int leftNumCols,
+										 NoPutResultSet rightResultSet,
+										 int rightNumCols,
+										 int leftHashKeyItem,
+										 int rightHashKeyItem,
+										 int rightHashKeyToBaseTableMapItem,
+										 int rightHashKeySortOrderItem,
+										 GeneratedMethod joinClause,
+										 int resultSetNumber,
+										 boolean oneRowRightSide,
+										 byte semiJoinType,
+										 boolean rightFromSSQ,
+										 double optimizerEstimatedRowCount,
+										 double optimizerEstimatedCost,
+										 String userSuppliedOptimizerOverrides,
+										 String explainPlan,
+										 String sparkExpressionTreeAsString,
+										 boolean useOldMergeJoin)
+					   throws StandardException;
 
     /**
      * A nested loop left outer join result set forms a result set on top of
@@ -1389,26 +1429,6 @@ public interface ResultSetFactory {
                                                  String userSuppliedOptimizerOverrides,
                                                  String explainPlan,
                                                  String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
-                                         int leftNumCols,
-                                         NoPutResultSet rightResultSet,
-                                         int rightNumCols,
-                                         int leftHashKeyItem,
-                                         int rightHashKeyItem,
-                                         int rightHashKeyToBaseTableMapItem,
-                                         int rightHashKeySortOrderItem,
-                                         GeneratedMethod joinClause,
-                                         int resultSetNumber,
-                                         boolean oneRowRightSide,
-                                         byte semiJoinType,
-                                         boolean rightFromSSQ,
-                                         double optimizerEstimatedRowCount,
-                                         double optimizerEstimatedCost,
-                                         String userSuppliedOptimizerOverrides,
-                                         String explainPlan,
-                                         String sparkExpressionTreeAsString)
             throws StandardException;
 
     NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,

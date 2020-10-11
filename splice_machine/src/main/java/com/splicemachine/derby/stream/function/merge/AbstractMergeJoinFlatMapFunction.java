@@ -23,7 +23,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.ScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
@@ -36,7 +35,6 @@ import splice.com.google.common.collect.PeekingIterator;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 import splice.com.google.common.base.Preconditions;
-import scala.reflect.internal.pickling.UnPickler;
 
 import javax.annotation.Nullable;
 import java.io.Closeable;
@@ -61,13 +59,15 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
     private Iterator<ExecRow> mergeJoinIterator;
     private static final boolean IS_MEM_PLATFORM = isMemPlatform();
     private final SIDriver driver = SIDriver.driver();
+    private boolean useOldMergeJoin = false;
 
     public AbstractMergeJoinFlatMapFunction() {
         super();
     }
 
-    public AbstractMergeJoinFlatMapFunction(OperationContext<JoinOperation> operationContext) {
+    public AbstractMergeJoinFlatMapFunction(OperationContext<JoinOperation> operationContext, boolean useOldMergeJoin) {
         super(operationContext);
+        this.useOldMergeJoin = useOldMergeJoin || isMemPlatform();
     }
 
     protected class BufferedMergeJoinIterator implements PeekingIterator<ExecRow> {
@@ -76,18 +76,34 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         private ArrayList<ExecRow> bufferedRowList = new ArrayList<>(INITIALCAPACITY);
         private PeekingIterator<ExecRow> sourceIterator;
         private boolean hasPeeked;
+        private boolean firstTime = true;
 
         // A pointer to the next row to return when next() is called.
         private int bufferPosition;
 
         private void fillBuffer() throws StandardException {
             bufferPosition = 0;
-            bufferedRowList.clear();
-            for (int i = 0; i < BUFFERSIZE && sourceIterator.hasNext(); i++ ){
-                bufferedRowList.add((ExecRow) sourceIterator.next().getClone());
+
+            if (firstTime) {
+                bufferedRowList.clear();
+                for (int i = 0; i < BUFFERSIZE && sourceIterator.hasNext(); i++) {
+                    bufferedRowList.add((ExecRow) sourceIterator.next().getClone());
+                }
             }
+            else {
+                // Re-use the buffer rows on subsequent filling of the buffer
+                // to reduce memory usage and GC pressure.
+                int i;
+                for (i = 0; i < BUFFERSIZE && sourceIterator.hasNext(); i++) {
+                    bufferedRowList.get(i).transfer(sourceIterator.next());
+                }
+                if (i < bufferedRowList.size())
+                    for (int j = bufferedRowList.size()-1; j >= i; j--)
+                        bufferedRowList.remove(j);
+            }
+            firstTime = false;
             if (!bufferedRowList.isEmpty())
-                startNewRightSideScan();
+                startNewRightSideScan(this);
         }
 
         public List<ExecRow> getBufferList() {
@@ -149,186 +165,6 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                 retval = bufferedRowList.get(bufferPosition++);
 
             return retval;
-        }
-
-
-        private void startNewRightSideScan() throws StandardException {
-            Iterator<ExecRow> rightIterator;
-
-            ArrayList<Pair<ExecRow, ExecRow>> keyRows = null;
-
-            boolean skipRightSideRead = false;
-
-            // The mem platform doesn't support the HBase MultiRangeRowFilter.
-            if (!IS_MEM_PLATFORM) {
-                keyRows = getKeyRows();
-                ((BaseActivation) joinOperation.getActivation()).setKeyRows(keyRows);
-                skipRightSideRead = (keyRows == null);
-            }
-            else
-                skipRightSideRead = !initRightScanForMemPlatform();
-
-            // If there are no join keys to look up in the right table,
-            // don't even read the right table.
-            if (skipRightSideRead)
-                rightIterator = Collections.emptyIterator();
-            else {
-                rightSide = joinOperation.getRightOperation();
-                rightSide.reset();
-                DataSetProcessor dsp =EngineDriver.driver().processorFactory().chooseProcessor(getOperation().getActivation(), rightSide);
-                rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
-                    @Override
-                    public ExecRow apply(@Nullable ExecRow locatedRow) {
-                        operationContext.recordJoinedRight();
-                        return locatedRow;
-                    }
-                });
-            }
-            ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(null); // reset to null to avoid any side effects
-            ((BaseActivation)joinOperation.getActivation()).setScanKeys(null);
-            ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(null);
-            ((BaseActivation)joinOperation.getActivation()).setKeyRows(null);
-            if (mergeJoinIterator == null) {
-                leftSide = joinOperation.getLeftOperation();
-                mergeJoinIterator =
-                    createMergeJoinIterator(this,
-                                            Iterators.peekingIterator(rightIterator),
-                                            joinOperation.getLeftHashKeys(),
-                                            joinOperation.getRightHashKeys(),
-                                            joinOperation, operationContext);
-                ((AbstractMergeJoinIterator) mergeJoinIterator).registerCloseable(new Closeable() {
-                    @Override
-                    public void close() throws IOException {
-                        try {
-                            if (leftSide != null && !leftSide.isClosed())
-                                leftSide.close();
-                            if (rightSide != null && !rightSide.isClosed())
-                                rightSide.close();
-                            initialized = false;
-                            leftSide = null;
-                            rightSide = null;
-                        } catch (StandardException e) {
-                            throw new RuntimeException(e);
-                        }
-                    }
-                });
-            }
-            else
-                ((AbstractMergeJoinIterator)mergeJoinIterator).reInitRightRS(Iterators.peekingIterator(rightIterator));
-        }
-
-        protected boolean initRightScanForMemPlatform() throws StandardException{
-
-            ExecRow firstHashRow = joinOperation.getKeyRow(peek());
-            ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
-            int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
-            int nCols = startPosition != null ? startPosition.nColumns():0;
-            ExecRow scanStartOverride;
-            boolean firstTime = true;
-
-            /* To see if we can further restrict the scan of the right table by overiding the scan
-               startPosition with the actual values of the left key if it is greater than the
-               right startPosition.  If the left key is longer than the right startPosition, then
-               expand the scan startPosition by the extra key columns from the left.
-             */
-
-            // this is 0-based array, the column positions in the array are also 0-based.
-            int[] colToBaseTableMap = ((MergeJoinOperation)joinOperation).getRightHashKeyToBaseTableMap();
-
-            // we cannot map the hash fields back to the base table column position, so cannot utilize the hash field value
-            // to restrict the rigth table scan
-            if (colToBaseTableMap == null)
-                scanStartOverride = startPosition;
-            else {
-
-                ExecRow newStartKey = new ValueRow(columnOrdering.length);
-                int[] rightHashKeys = joinOperation.getRightHashKeys();
-                int[] rightHashKeySortOrders = ((MergeJoinOperation) joinOperation).getRightHashKeySortOrders();
-                boolean rightKeyIsNull = false, leftKeyIsNull = false, replaceWithLeftRowVal = false;
-                int len = 0;
-
-                for (int i = 0; i < columnOrdering.length; i++) {
-                    int keyColumnBaseTablePosition = columnOrdering[i];
-                    int j = 0;
-                    for (; j < rightHashKeys.length; j++) {
-                        // both columnOrdering and colToBaseTableMap are 0-based
-                        if (colToBaseTableMap[j] == keyColumnBaseTablePosition) {
-                            if (firstTime) {
-                                rightKeyIsNull =
-                                    startPosition == null || i >= nCols ||
-                                    isNullDataValue(startPosition.getColumn(i + 1));
-                                leftKeyIsNull =
-                                    isNullDataValue(firstHashRow.getColumn(j + 1));
-
-                                // Replace the right key value to seek to with left row data value if:
-                                // - The right key is null, in which case left is always >= right , or
-                                // - If neither left key nor right key is null, compare
-                                //   left and right key values, and do the replacement if:
-                                //   - If the key is ascending and the current right key start
-                                //     position is less than the left data value, or
-                                //   - If the key is descending and the current right key start
-                                //     position is greater than the left data value.
-                                // As long as the left and right key column values are equal,
-                                // keep doing comparisons until we find the partial key
-                                // or full key which is truly greater than the other.
-                                if (rightKeyIsNull) {
-                                    replaceWithLeftRowVal = true;
-                                    firstTime = false;
-                                }
-                                else if (!leftKeyIsNull) {
-                                    boolean rightKeyIsAscending = isAscendingKey(rightHashKeySortOrders, j);
-                                    replaceWithLeftRowVal =
-                                        (rightKeyIsAscending ?
-                                            (startPosition.getColumn(i + 1).
-                                                compare(firstHashRow.getColumn(j + 1)) < 0) :
-                                            (startPosition.getColumn(i + 1).
-                                                compare(firstHashRow.getColumn(j + 1)) > 0));
-                                    // As long as prior parts of the key are equal, keep comparing
-                                    // latter parts of the key until we have inequality.
-                                    firstTime = startPosition.getColumn(i + 1).
-                                        compare(firstHashRow.getColumn(j + 1)) == 0;
-                                }
-                                else
-                                    firstTime = false;
-                            }
-                            if (replaceWithLeftRowVal) {
-                                // If for some reason there is no DVD created, break out right away
-                                // without building the full start key, to prevent NPE.
-                                if (firstHashRow.getColumn(j + 1) == null) {
-                                    j = rightHashKeys.length;
-                                    break;
-                                }
-                                newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
-                            } else {
-                                if (i >= nCols || startPosition.getColumn(i + 1) == null) {
-                                    j = rightHashKeys.length;
-                                    break;
-                                }
-                                newStartKey.setColumn(i + 1, startPosition.getColumn(i + 1));
-                            }
-                            len++;
-                            break;
-                        }
-                    }
-                    //no match found for the given key column position
-                    if (j >= rightHashKeys.length)
-                        break;
-                }
-
-                scanStartOverride = new ValueRow(len);
-                for (int i = 0; i < len; i++)
-                    scanStartOverride.setColumn(i + 1, newStartKey.getColumn(i + 1));
-            }
-
-            ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(scanStartOverride);
-
-            // we can only set the stop key if start key is from equality predicate like "key=constant"
-            if (startPosition != null) {
-                ScanInformation<ExecRow>  scanInfo = joinOperation.getRightResultSet().getScanInformation();
-                if (scanInfo != null && scanInfo.getSameStartStopPosition())
-                    ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(startPosition);
-            }
-            return true;
         }
 
         // Takes a cache full of left rows and makes a list of the
@@ -469,10 +305,201 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         }
     }
 
+    protected boolean initRightScanWithStartStopKeys(PeekingIterator<ExecRow> leftRows) throws StandardException{
+
+        ExecRow firstHashRow = joinOperation.getKeyRow(leftRows.peek());
+        ExecRow startPosition = joinOperation.getRightResultSet().getStartPosition();
+        int[] columnOrdering = getColumnOrdering(joinOperation.getRightResultSet());
+        int nCols = startPosition != null ? startPosition.nColumns():0;
+        ExecRow scanStartOverride;
+        boolean firstTime = true;
+
+        /* To see if we can further restrict the scan of the right table by overiding the scan
+           startPosition with the actual values of the left key if it is greater than the
+           right startPosition.  If the left key is longer than the right startPosition, then
+           expand the scan startPosition by the extra key columns from the left.
+         */
+
+        // this is 0-based array, the column positions in the array are also 0-based.
+        int[] colToBaseTableMap = ((MergeJoinOperation)joinOperation).getRightHashKeyToBaseTableMap();
+
+        // we cannot map the hash fields back to the base table column position, so cannot utilize the hash field value
+        // to restrict the rigth table scan
+        if (colToBaseTableMap == null)
+            scanStartOverride = startPosition;
+        else {
+
+            ExecRow newStartKey = new ValueRow(columnOrdering.length);
+            int[] rightHashKeys = joinOperation.getRightHashKeys();
+            int[] rightHashKeySortOrders = ((MergeJoinOperation) joinOperation).getRightHashKeySortOrders();
+            boolean rightKeyIsNull = false, leftKeyIsNull = false, replaceWithLeftRowVal = false;
+            int len = 0;
+
+            for (int i = 0; i < columnOrdering.length; i++) {
+                int keyColumnBaseTablePosition = columnOrdering[i];
+                int j = 0;
+                for (; j < rightHashKeys.length; j++) {
+                    // both columnOrdering and colToBaseTableMap are 0-based
+                    if (colToBaseTableMap[j] == keyColumnBaseTablePosition) {
+                        if (firstTime) {
+                            rightKeyIsNull =
+                                startPosition == null || i >= nCols ||
+                                isNullDataValue(startPosition.getColumn(i + 1));
+                            leftKeyIsNull =
+                                isNullDataValue(firstHashRow.getColumn(j + 1));
+
+                            // Replace the right key value to seek to with left row data value if:
+                            // - The right key is null, in which case left is always >= right , or
+                            // - If neither left key nor right key is null, compare
+                            //   left and right key values, and do the replacement if:
+                            //   - If the key is ascending and the current right key start
+                            //     position is less than the left data value, or
+                            //   - If the key is descending and the current right key start
+                            //     position is greater than the left data value.
+                            // As long as the left and right key column values are equal,
+                            // keep doing comparisons until we find the partial key
+                            // or full key which is truly greater than the other.
+                            if (rightKeyIsNull) {
+                                replaceWithLeftRowVal = true;
+                                firstTime = false;
+                            }
+                            else if (!leftKeyIsNull) {
+                                boolean rightKeyIsAscending = isAscendingKey(rightHashKeySortOrders, j);
+                                replaceWithLeftRowVal =
+                                    (rightKeyIsAscending ?
+                                        (startPosition.getColumn(i + 1).
+                                            compare(firstHashRow.getColumn(j + 1)) < 0) :
+                                        (startPosition.getColumn(i + 1).
+                                            compare(firstHashRow.getColumn(j + 1)) > 0));
+                                // As long as prior parts of the key are equal, keep comparing
+                                // latter parts of the key until we have inequality.
+                                firstTime = startPosition.getColumn(i + 1).
+                                    compare(firstHashRow.getColumn(j + 1)) == 0;
+                            }
+                            else
+                                firstTime = false;
+                        }
+                        if (replaceWithLeftRowVal) {
+                            // If for some reason there is no DVD created, break out right away
+                            // without building the full start key, to prevent NPE.
+                            if (firstHashRow.getColumn(j + 1) == null) {
+                                j = rightHashKeys.length;
+                                break;
+                            }
+                            newStartKey.setColumn(i + 1, firstHashRow.getColumn(j + 1));
+                        } else {
+                            if (i >= nCols || startPosition.getColumn(i + 1) == null) {
+                                j = rightHashKeys.length;
+                                break;
+                            }
+                            newStartKey.setColumn(i + 1, startPosition.getColumn(i + 1));
+                        }
+                        len++;
+                        break;
+                    }
+                }
+                //no match found for the given key column position
+                if (j >= rightHashKeys.length)
+                    break;
+            }
+
+            scanStartOverride = new ValueRow(len);
+            for (int i = 0; i < len; i++)
+                scanStartOverride.setColumn(i + 1, newStartKey.getColumn(i + 1));
+        }
+
+        ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(scanStartOverride);
+
+        // we can only set the stop key if start key is from equality predicate like "key=constant"
+        if (startPosition != null) {
+            ScanInformation<ExecRow>  scanInfo = joinOperation.getRightResultSet().getScanInformation();
+            if (scanInfo != null && scanInfo.getSameStartStopPosition())
+                ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(startPosition);
+        }
+        return true;
+    }
+
+    private void startNewRightSideScan(PeekingIterator<ExecRow> leftRows) throws StandardException {
+        Iterator<ExecRow> rightIterator;
+
+        ArrayList<Pair<ExecRow, ExecRow>> keyRows = null;
+
+        boolean skipRightSideRead = false;
+
+        // The mem platform doesn't support the HBase MultiRangeRowFilter.
+        if (!IS_MEM_PLATFORM && leftPeekingIterator instanceof BufferedMergeJoinIterator) {
+            BufferedMergeJoinIterator mjIter = (BufferedMergeJoinIterator)leftPeekingIterator;
+            keyRows = mjIter.getKeyRows();
+            ((BaseActivation) joinOperation.getActivation()).setKeyRows(keyRows);
+            skipRightSideRead = (keyRows == null);
+        }
+        else
+            skipRightSideRead = !initRightScanWithStartStopKeys(leftRows);
+
+        // If there are no join keys to look up in the right table,
+        // don't even read the right table.
+        if (skipRightSideRead)
+            rightIterator = Collections.emptyIterator();
+        else {
+            rightSide = joinOperation.getRightOperation();
+            rightSide.reset();
+            DataSetProcessor dsp = useOldMergeJoin ?
+                EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide) :
+                EngineDriver.driver().processorFactory().chooseProcessor(getOperation().getActivation(), rightSide);
+            rightIterator = Iterators.transform(rightSide.getDataSet(dsp).toLocalIterator(), new Function<ExecRow, ExecRow>() {
+                @Override
+                public ExecRow apply(@Nullable ExecRow locatedRow) {
+                    operationContext.recordJoinedRight();
+                    return locatedRow;
+                }
+            });
+        }
+        ((BaseActivation)joinOperation.getActivation()).setScanStartOverride(null); // reset to null to avoid any side effects
+        ((BaseActivation)joinOperation.getActivation()).setScanKeys(null);
+        ((BaseActivation)joinOperation.getActivation()).setScanStopOverride(null);
+        ((BaseActivation)joinOperation.getActivation()).setKeyRows(null);
+        if (mergeJoinIterator == null) {
+            leftSide = joinOperation.getLeftOperation();
+            mergeJoinIterator =
+                createMergeJoinIterator(leftRows,
+                                        Iterators.peekingIterator(rightIterator),
+                                        joinOperation.getLeftHashKeys(),
+                                        joinOperation.getRightHashKeys(),
+                                        joinOperation, operationContext);
+            ((AbstractMergeJoinIterator) mergeJoinIterator).registerCloseable(new Closeable() {
+                @Override
+                public void close() throws IOException {
+                    try {
+                        if (leftSide != null && !leftSide.isClosed())
+                            leftSide.close();
+                        if (rightSide != null && !rightSide.isClosed())
+                            rightSide.close();
+                        initialized = false;
+                        leftSide = null;
+                        rightSide = null;
+                    } catch (StandardException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
+        }
+        else
+            ((AbstractMergeJoinIterator)mergeJoinIterator).reInitRightRS(Iterators.peekingIterator(rightIterator));
+    }
+
     @Override
     public Iterator<ExecRow> call(Iterator<ExecRow> locatedRows) throws Exception {
         if (leftPeekingIterator == null) {
-            leftPeekingIterator = new BufferedMergeJoinIterator(locatedRows);
+            if (!useOldMergeJoin)
+                leftPeekingIterator = new BufferedMergeJoinIterator(locatedRows);
+            else {
+                leftPeekingIterator = Iterators.peekingIterator(locatedRows);
+                joinOperation = getOperation();
+                initialized = true;
+                if (!leftPeekingIterator.hasNext())
+                    return Collections.EMPTY_LIST.iterator();
+                startNewRightSideScan(leftPeekingIterator);
+            }
         }
 
         return mergeJoinIterator;

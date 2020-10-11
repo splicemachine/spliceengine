@@ -168,6 +168,7 @@ public interface CompilerContext extends Context
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
+    boolean DEFAULT_SPLICE_OLD_MERGE_JOIN = false;
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -711,4 +712,8 @@ public interface CompilerContext extends Context
     public boolean isSSQFlatteningForUpdateDisabled();
 
     public void setSSQFlatteningForUpdateDisabled(boolean onOff);
+
+    public boolean getOldMergeJoin();
+
+    public void setOldMergeJoin(boolean newValue);
 }
