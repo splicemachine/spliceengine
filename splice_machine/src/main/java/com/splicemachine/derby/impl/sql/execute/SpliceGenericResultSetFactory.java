@@ -1584,7 +1584,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
-            String explainPlan) throws StandardException {
+            String explainPlan,
+            boolean useOldMergeJoin) throws StandardException {
         return getMergeJoinResultSet(
              leftResultSet,  leftNumCols,
              rightResultSet,  rightNumCols,
@@ -1597,7 +1598,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              optimizerEstimatedCost,
              userSuppliedOptimizerOverrides,
              explainPlan,
-             null);
+             null,
+             useOldMergeJoin);
     }
 
     @Override
@@ -1613,7 +1615,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String userSuppliedOptimizerOverrides,
             String explainPlan,
-            String sparkExpressionTreeAsString) throws StandardException {
+            String sparkExpressionTreeAsString,
+            boolean useOldMergeJoin) throws StandardException {
         SpliceLogUtils.trace(LOG, "getMergeSortJoinResultSet");
         try{
             ConvertedResultSet left = (ConvertedResultSet)leftResultSet;
@@ -1622,7 +1625,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     right.getOperation(), rightNumCols, leftHashKeyItem, rightHashKeyItem,
                     rightHashKeyToBaseTableMapItem, rightHashKeySortOrderItem, leftResultSet.getActivation(), joinClause, resultSetNumber,
                     oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
-                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                    optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString, useOldMergeJoin);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){

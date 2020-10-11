@@ -46,6 +46,7 @@ public class MergeJoinOperation extends JoinOperation {
     public int[] rightHashKeys;
     public int[] rightHashKeyToBaseTableMap;
     public int[] rightHashKeySortOrders;
+    private boolean useOldMergeJoin;
 
     protected static final String NAME = MergeJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -76,7 +77,8 @@ public class MergeJoinOperation extends JoinOperation {
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
                               String userSuppliedOptimizerOverrides,
-                              String sparkExpressionTreeAsString)
+                              String sparkExpressionTreeAsString,
+                              boolean useOldMergeJoin)
             throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols,
                  activation, restriction, resultSetNumber, oneRowRightSide,
@@ -86,6 +88,7 @@ public class MergeJoinOperation extends JoinOperation {
         this.rightHashKeyItem = rightHashKeyItem;
         this.rightHashKeyToBaseTableMapItem = rightHashKeyToBaseTableMapItem;
         this.rightHashKeySortOrderItem = rightHashKeySortOrderItem;
+        this.useOldMergeJoin = useOldMergeJoin;
         init();
     }
 
@@ -141,12 +144,12 @@ public class MergeJoinOperation extends JoinOperation {
             left = left.map(new CountJoinedLeftFunction(operationContext));
             DataSet<ExecRow> joined = null;
             if (isOuterJoin())
-                joined = left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext), true);
+                joined = left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext, useOldMergeJoin), true);
             else {
                 if (isAntiJoin())
-                    joined = left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext), true);
+                    joined = left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext, useOldMergeJoin), true);
                 else {
-                    joined = left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext), true);
+                    joined = left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext, useOldMergeJoin), true);
                 }
             }
             if (isSparkExplain)

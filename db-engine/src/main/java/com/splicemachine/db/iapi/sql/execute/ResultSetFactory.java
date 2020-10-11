@@ -1304,7 +1304,8 @@ public interface ResultSetFactory {
 										 double optimizerEstimatedCost,
 										 String userSuppliedOptimizerOverrides,
 										 String explainPlan,
-										 String sparkExpressionTreeAsString)
+										 String sparkExpressionTreeAsString,
+										 boolean useOldMergeJoin)
 					   throws StandardException;
 
     NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
@@ -1661,7 +1662,8 @@ public interface ResultSetFactory {
 										 double optimizerEstimatedRowCount,
 										 double optimizerEstimatedCost,
 										 String userSuppliedOptimizerOverrides,
-										 String explainPlan)
+										 String explainPlan,
+										 boolean useOldMergeJoin)
 					   throws StandardException;
 
     NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,

@@ -276,6 +276,14 @@ public class CompilerContextImpl extends ContextImpl
         return allowOverflowSensitiveNativeSparkExpressions;
     }
 
+    public boolean getOldMergeJoin() {
+        return oldMergeJoin;
+    }
+
+    public void setOldMergeJoin(boolean newValue) {
+        oldMergeJoin = newValue;
+    }
+
     public void setCurrentTimestampPrecision(int newValue) {
         currentTimestampPrecision = newValue;
     }
@@ -1159,6 +1167,7 @@ public class CompilerContextImpl extends ContextImpl
     private int                 nextOJLevel = 1;
     private boolean             outerJoinFlatteningDisabled;
     private boolean             ssqFlatteningForUpdateDisabled;
+    private boolean             oldMergeJoin = DEFAULT_SPLICE_OLD_MERGE_JOIN;
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.
