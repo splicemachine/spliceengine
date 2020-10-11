@@ -85,6 +85,23 @@ public interface CompilerContext extends Context
             // then process the current operation using UnSafeRows, if possible.
     }
 
+    enum NewMergeJoinExecutionType {
+        SYSTEM, // Use the system-level setting (currently defaults to ON).  A null
+                // property setting is the same as specifying SYSTEM.
+        ON,     // New merge join execution is enabled, but may not be picked
+                // due to costing.
+        OFF,    // New merge join is disabled.  All merge joins will use the old merge join
+                // implementation, which neither buffers the left rows,
+                // nor uses a MultiRowRangeFilter to access the right rows.
+        FORCED,  // New merge join will be used for every merge join.
+                // However, merge joins run on the mem platform will not use
+                // the MultiRowRangeFilter because HBase is not used there.
+        SYSTEM_OFF // The system-level setting was chosen during query compilation,
+                   // but costing decided to use old merge join.  We need to check
+                   // the system setting at query execution time to see whether
+                   // merge join is forced.
+    }
+
     /**
      * this is the ID we expect compiler contexts
      * to be stored into a context manager under.
@@ -168,7 +185,7 @@ public interface CompilerContext extends Context
     int DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION = 6;
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
-    boolean DEFAULT_SPLICE_OLD_MERGE_JOIN = false;
+    NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -713,7 +730,7 @@ public interface CompilerContext extends Context
 
     public void setSSQFlatteningForUpdateDisabled(boolean onOff);
 
-    public boolean getOldMergeJoin();
+    public NewMergeJoinExecutionType getNewMergeJoin();
 
-    public void setOldMergeJoin(boolean newValue);
+    public void setNewMergeJoin(NewMergeJoinExecutionType newValue);
 }
