@@ -540,18 +540,25 @@ public class GenericStatement implements Statement{
             }
             cc.setAllowOverflowSensitiveNativeSparkExpressions(allowOverflowSensitiveNativeSparkExpressions);
 
-            String useOldMergeJoinString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_OLD_MERGE_JOIN);
-            boolean useOldMergeJoin = CompilerContext.DEFAULT_SPLICE_OLD_MERGE_JOIN;
+            String newMergeJoinString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NEW_MERGE_JOIN);
+            CompilerContext.NewMergeJoinExecutionType newMergeJoin =
+                   CompilerContext.DEFAULT_SPLICE_NEW_MERGE_JOIN;
             try {
-                if (useOldMergeJoinString != null)
-                    useOldMergeJoin =
-                        Boolean.parseBoolean(useOldMergeJoinString);
+                if (newMergeJoinString != null) {
+                    newMergeJoinString = newMergeJoinString.toLowerCase();
+                    if (newMergeJoinString.equals("on"))
+                        newMergeJoin = CompilerContext.NewMergeJoinExecutionType.ON;
+                    else if (newMergeJoinString.equals("off"))
+                        newMergeJoin = CompilerContext.NewMergeJoinExecutionType.OFF;
+                    else if (newMergeJoinString.equals("forced"))
+                        newMergeJoin = CompilerContext.NewMergeJoinExecutionType.FORCED;
+                }
             } catch (Exception e) {
-                // If the property value failed to convert to a boolean, don't throw an error,
+                // If the property value failed to get decoded to a valid value, don't throw an error,
                 // just use the default setting.
             }
-            cc.setOldMergeJoin(useOldMergeJoin);
+            cc.setNewMergeJoin(newMergeJoin);
 
             String currentTimestampPrecisionString =
                     PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);

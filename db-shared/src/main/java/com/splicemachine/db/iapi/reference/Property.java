@@ -1514,7 +1514,7 @@ public interface Property {
 
     String SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE = "splice.db2.import.empty_string_compatible";
 
-    String SPLICE_OLD_MERGE_JOIN =
-            "splice.database.oldMergeJoin";
+    String SPLICE_NEW_MERGE_JOIN =
+            "splice.execution.newMergeJoin";
 }
 

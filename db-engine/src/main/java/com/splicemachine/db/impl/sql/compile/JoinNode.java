@@ -57,6 +57,7 @@ import splice.com.google.common.collect.Lists;
 
 import java.util.*;
 
+import static com.splicemachine.db.iapi.sql.compile.CompilerContext.NewMergeJoinExecutionType.*;
 import static com.splicemachine.db.impl.sql.compile.BinaryOperatorNode.AND;
 
 /**
@@ -1309,9 +1310,17 @@ public class JoinNode extends TableOperatorNode{
         int nargs=getJoinArguments(acb,mb,joinClause);
         if (RSUtils.isMJ(ap)) {
             nargs++;
-            boolean useOldMergeJoin = (ap.getCostEstimate().partitionCount() < 4) ||
-                                       getCompilerContext().getOldMergeJoin();
-            mb.push(useOldMergeJoin);
+
+            CompilerContext.NewMergeJoinExecutionType
+                newMergeJoin = getCompilerContext().getNewMergeJoin();
+            boolean chooseOldMergeJoin = ap.getCostEstimate().partitionCount() < 4;
+            if (chooseOldMergeJoin) {
+                if (newMergeJoin == SYSTEM)
+                    newMergeJoin = SYSTEM_OFF;
+                else if (newMergeJoin == ON)
+                    newMergeJoin = OFF;
+            }
+            mb.push(newMergeJoin.ordinal());
         }
 
 
