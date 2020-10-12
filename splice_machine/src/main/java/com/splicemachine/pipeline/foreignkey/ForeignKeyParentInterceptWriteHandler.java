@@ -14,7 +14,6 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -112,7 +111,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
                 action.next(mutation, ctx);
                 if(action.hasFailed()) {
                     failed = true;
-                    ctx.failed(mutation, action.getWriteResult());
+                    ctx.failed(mutation, action.getFailedWriteResult());
                     break;
                 }
             }
