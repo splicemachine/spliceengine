@@ -14,7 +14,7 @@ echo "Running Splice Machine SQL shell"
 echo "For help: \"splice> help;\""
 
 if [ -z "${CLIENT_SSL_KEYSTORE}" ]; then
-  cd splice_machine ; ${RLWRAP} mvn  exec:java ; cd ${DIR}
+  cd splice_machine ; ${RLWRAP} mvn exec:java ; cd ${DIR}
 else
   cd splice_machine ; ${RLWRAP} mvn  exec:java \
     -Djavax.net.ssl.keyStore=${CLIENT_SSL_KEYSTORE} \
