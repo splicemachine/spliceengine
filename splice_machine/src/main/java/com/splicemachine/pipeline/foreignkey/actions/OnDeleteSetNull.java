@@ -70,8 +70,7 @@ public class OnDeleteSetNull extends OnDeleteAbstractAction {
 
     @Override
     protected WriteResult handleExistingRow(byte[] indexRowId, byte[] sourceRowKey) throws Exception {
-        byte[] baseTableRowId = new byte[0];
-        baseTableRowId = toChildBaseRowId(indexRowId, constraintInfo);
+        byte[] baseTableRowId = toChildBaseRowId(indexRowId, constraintInfo);
         if(isSelfReferencing && Arrays.equals(sourceRowKey, baseTableRowId)) {
             return WriteResult.success(); // do not add an update mutation since this row will be deleted anyway.
         }

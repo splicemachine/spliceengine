@@ -289,7 +289,7 @@ public class ForeignKeyActionIT {
     }
 
     @Test
-    public void onDeleteNoActionVilationsArePermittedWithPermissiveImport() throws Exception {
+    public void onDeleteNoActionFailsProperlyInImportDataIfMaxAllowedBadIsSetToZero() throws Exception {
         try(Statement s = conn.createStatement()) {
             createDataBaseObjects3(s);
             importData(s, "C1I", "fk_test/good.csv", false);
