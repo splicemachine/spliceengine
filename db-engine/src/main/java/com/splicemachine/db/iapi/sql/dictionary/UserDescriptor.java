@@ -30,6 +30,7 @@
  */
 
 package com.splicemachine.db.iapi.sql.dictionary;
+import com.splicemachine.db.catalog.UUID;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -39,32 +40,33 @@ import java.util.Arrays;
  */
 public final class  UserDescriptor extends TupleDescriptor 
 {
-	private String _userName;
-	private String _hashingScheme;
+    private String _userName;
+    private String _hashingScheme;
     private char[] _password;
     private Timestamp _lastModified;
-	
-	/**
-	 * Constructor for a UserDescriptor.
-	 *
-	 * @param dataDictionary		The data dictionary that this descriptor lives in.
-	 * @param userName  Name of the user.
-	 * @param hashingScheme How the password was hashed.
-	 * @param password  The user's password.
-	 * @param lastModified  Time that the password was last modified.
-	 */
+    private UUID _databaseId;
 
-	public UserDescriptor
-        (
-         DataDictionary dataDictionary,
-         String userName,
-         String hashingScheme,
-         char[] password,
-         Timestamp lastModified
-         )
-	{
-		super( dataDictionary );
-		
+    /**
+     * Constructor for a UserDescriptor.
+     *  @param dataDictionary        The data dictionary that this descriptor lives in.
+     * @param userName  Name of the user.
+     * @param hashingScheme How the password was hashed.
+     * @param password  The user's password.
+     * @param lastModified  Time that the password was last modified.
+     * @param databaseId
+     */
+
+    public UserDescriptor
+    (
+            DataDictionary dataDictionary,
+            String userName,
+            String hashingScheme,
+            char[] password,
+            Timestamp lastModified,
+            UUID databaseId)
+    {
+        super( dataDictionary );
+
         _userName = userName;
         _hashingScheme = hashingScheme;
 
@@ -77,10 +79,11 @@ public final class  UserDescriptor extends TupleDescriptor
         }
         
         _lastModified = lastModified;
-	}
+        _databaseId = databaseId;
+    }
 
-	public String getUserName(){ return _userName; }
-	public String getHashingScheme()    { return _hashingScheme; }
+    public String getUserName(){ return _userName; }
+    public String getHashingScheme()    { return _hashingScheme; }
     public  Timestamp   getLastModified()   { return _lastModified; }
 
     /**
@@ -88,27 +91,30 @@ public final class  UserDescriptor extends TupleDescriptor
      * Zero the password after getting it so that the char[] can't be memory-sniffed.
      * </p>
      */
-	public char[]   getAndZeroPassword()
-	{
-		if (_password == null)
-				return null;
-		int length = _password.length;
+    public char[]   getAndZeroPassword()
+    {
+        if (_password == null)
+                return null;
+        int length = _password.length;
         char[] retval = new char[ length ];
         System.arraycopy( _password, 0, retval, 0, length );
         Arrays.fill( _password, (char) 0 );
 
         return retval;
-	}
+    }
 
-	//
-	// class interface
-	//
+    //
+    // class interface
+    //
 
-	
-	/** @see TupleDescriptor#getDescriptorType */
-	public String getDescriptorType() { return "User"; }
 
-	/** @see TupleDescriptor#getDescriptorName */
-	public String getDescriptorName() { return _userName; }
+    /** @see TupleDescriptor#getDescriptorType */
+    public String getDescriptorType() { return "User"; }
 
+    /** @see TupleDescriptor#getDescriptorName */
+    public String getDescriptorName() { return _userName; }
+
+    public UUID getDatabaseId() {
+        return _databaseId;
+    }
 }

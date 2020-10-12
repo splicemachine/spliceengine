@@ -656,7 +656,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      */
     @Override
     public String getAuthorizationDatabaseOwner(){
-        return authorizationDatabaseOwner;
+        return authorizationDatabaseOwner; // XXX (arnaud multidb) should that be DB specific?
     }
 
     @Override
@@ -713,11 +713,22 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 databaseID);
     }
 
+    public UUID createNewDatabase(String name, String dbOwner, String dbPassword) throws StandardException {
+        UUID dbId = createNewDatabase(name);
+        TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
+        if (!tc.isElevated()) {
+            throw StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+        }
+        UserDescriptor desc = dataDescriptorGenerator.makeUserDescriptor(tc, dbOwner, dbPassword, dbId);
+        addDescriptor(desc, null, SYSUSERS_CATALOG_NUM, false, tc, false);
+        return dbId;
+    }
+
     public UUID createNewDatabase(String name) throws StandardException {
         ContextService.getFactory();
         TransactionController tc = af.getTransaction(ContextService.getCurrentContextManager());
         if (!tc.isElevated()) {
-            StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
+            throw StandardException.plainWrapException(new IOException("addStoreDependency: not writeable"));
         }
 
         UUID uuid = getUUIDFactory().createUUID();
@@ -6600,10 +6611,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void updateUser(UserDescriptor newDescriptor,TransactionController tc) throws StandardException{
         ExecIndexRow keyRow;
         TabInfoImpl ti=getNonCoreTI(SYSUSERS_CATALOG_NUM);
+        SYSUSERSRowFactory rf = (SYSUSERSRowFactory) ti.getCatalogRowFactory();
 
         /* Set up the start/stop position for the scan */
-        keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,new SQLVarchar(newDescriptor.getUserName()));
+        keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID));
+        keyRow.setColumn(1,new SQLChar(newDescriptor.getDatabaseId().toString()));
+        keyRow.setColumn(2,new SQLVarchar(newDescriptor.getUserName()));
 
         // this zeroes out the password in the UserDescriptor
         ExecRow row=ti.getCatalogRowFactory().makeRow(newDescriptor,null);
@@ -6620,7 +6633,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public UserDescriptor getUser(String userName) throws StandardException{
+    public UserDescriptor getUser(UUID databaseId, String userName) throws StandardException{
         //
         // No sense looking for the SYSUSERS congomerate until the database
         // is hard-upgraded to 10.9 or later.
@@ -6629,19 +6642,23 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         ExecIndexRow keyRow;
         TabInfoImpl ti=getNonCoreTI(SYSUSERS_CATALOG_NUM);
+        SYSUSERSRowFactory rf = (SYSUSERSRowFactory) ti.getCatalogRowFactory();
         /* Set up the start/stop position for the scan */
-        keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,new SQLVarchar(userName));
+        keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID));
+        keyRow.setColumn(1,new SQLChar(databaseId.toString()));
+        keyRow.setColumn(2,new SQLVarchar(userName));
         return (UserDescriptor)getDescriptorViaIndex(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID,keyRow,null,ti,null,null,false);
     }
 
     @Override
-    public void dropUser(String userName,TransactionController tc) throws StandardException{
+    public void dropUser(UUID databaseId, String userName, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSUSERS_CATALOG_NUM);
+        SYSUSERSRowFactory rf = (SYSUSERSRowFactory) ti.getCatalogRowFactory();
 
         /* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow1=exFactory.getIndexableRow(1);
-        keyRow1.setColumn(1,new SQLVarchar(userName));
+        ExecIndexRow keyRow1=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID));
+        keyRow1.setColumn(1,new SQLChar(databaseId.toString()));
+        keyRow1.setColumn(2,new SQLVarchar(userName));
 
         ti.deleteRow(tc,keyRow1,SYSUSERSRowFactory.SYSUSERS_INDEX1_ID);
     }

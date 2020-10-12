@@ -1701,7 +1701,7 @@ public class SystemProcedures{
             String dbo=dd.getAuthorizationDatabaseOwner();
 
             if(!dbo.equals(userName)){
-                if(dd.getUser(dbo)==null){
+                if(dd.getUser(lcc.getDatabaseId(), dbo)==null){
                     throw StandardException.newException(SQLState.DBO_FIRST);
                 }
             }else    // we are trying to create credentials for the DBO
@@ -1796,7 +1796,7 @@ public class SystemProcedures{
             ** the transaction.
             */
             dd.startWriting(lcc);
-            UserDescriptor userDescriptor=makeUserDescriptor(dd,tc,userName,password);
+            UserDescriptor userDescriptor= dd.getDataDescriptorGenerator().makeUserDescriptor(tc,userName,password, lcc.getDatabaseId());
             dd.addDescriptor(userDescriptor,null,DataDictionary.SYSUSERS_CATALOG_NUM,false,tc, false);
 
             // turn on NATIVE::LOCAL authentication
@@ -1807,30 +1807,6 @@ public class SystemProcedures{
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }
-    }
-
-    private static UserDescriptor makeUserDescriptor
-            (
-                    DataDictionary dd,
-                    TransactionController tc,
-                    String userName,
-                    String password
-            )
-            throws StandardException{
-        DataDescriptorGenerator ddg=dd.getDataDescriptorGenerator();
-        PasswordHasher hasher=dd.makePasswordHasher(tc.getProperties());
-
-        if(hasher==null){
-            throw StandardException.newException(SQLState.WEAK_AUTHENTICATION);
-        }
-
-        String hashingScheme=hasher.encodeHashingScheme();
-        String hashedPassword=hasher.hashPasswordIntoString(userName,password);
-
-        Timestamp currentTimestamp=new Timestamp((new java.util.Date()).getTime());
-
-        return ddg.newUserDescriptor
-                (userName,hashingScheme,hashedPassword.toCharArray(),currentTimestamp);
     }
 
     /**
@@ -1860,7 +1836,7 @@ public class SystemProcedures{
              */
             dd.startWriting(lcc);
             // Change system schemas to be owned by aid
-            dd.updateSystemSchemaAuthorization(aid,tc);
+            dd.updateSystemSchemaAuthorization(aid,tc); // XXX(arnaud multidb this needs to be DB specific)
         }catch(StandardException se){
             throw PublicAPI.wrapStandardException(se);
         }
@@ -1881,12 +1857,16 @@ public class SystemProcedures{
         String ip = lcc.getClientIPAddress();
         String reason = null;
         try{
-            resetAuthorizationIDPassword(normalizeUserName(userName),password);
+            resetAuthorizationIDPassword(normalizeUserName(userName),password, lcc.getDatabaseId());
             status = true;
         }catch (SQLException sqle) {
             status = false;
             reason = sqle.getMessage();
             throw sqle;
+        }catch(StandardException se){
+            status = false;
+            reason = se.getMessage();
+            throw PublicAPI.wrapStandardException(se);
         }finally {
             if (AUDITLOG.isInfoEnabled())
                 AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser, AuditEventType.RESET_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
@@ -1900,15 +1880,15 @@ public class SystemProcedures{
     private static void resetAuthorizationIDPassword
     (
             String userName,
-            String password
-    )
+            String password,
+            UUID databaseId)
             throws SQLException{
         try{
             LanguageConnectionContext lcc=ConnectionUtil.getCurrentLCC();
             DataDictionary dd=lcc.getDataDictionary();
             TransactionController tc=lcc.getTransactionExecute();
 
-            checkLegalUser(dd,userName);
+            checkLegalUser(dd,userName, databaseId);
             
             /*
             ** Inform the data dictionary that we are about to write to it.
@@ -1921,7 +1901,7 @@ public class SystemProcedures{
             */
             dd.startWriting(lcc);
 
-            UserDescriptor userDescriptor=makeUserDescriptor(dd,tc,userName,password);
+            UserDescriptor userDescriptor= dd.getDataDescriptorGenerator().makeUserDescriptor(tc,userName,password, databaseId);
 
             dd.updateUser(userDescriptor,tc);
 
@@ -1945,12 +1925,16 @@ public class SystemProcedures{
         String ip = lcc.getClientIPAddress();
         String reason = null;
         try{
-            resetAuthorizationIDPassword(currentUser,password);
+            resetAuthorizationIDPassword(currentUser,password, lcc.getDatabaseId());
             status = true;
         }catch (SQLException sqle){
             status = false;
             reason = sqle.getMessage();
             throw sqle;
+        }catch(StandardException se){
+            status = false;
+            reason = se.getMessage();
+            throw PublicAPI.wrapStandardException(se);
         }finally {
             if (AUDITLOG.isInfoEnabled())
                 AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser,AuditEventType.MODIFY_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
@@ -1982,7 +1966,7 @@ public class SystemProcedures{
                 throw StandardException.newException(SQLState.CANT_DROP_DBO);
             }
 
-            checkLegalUser(dd,userName);
+            checkLegalUser(dd,userName, lcc.getDatabaseId());
             
             /*
             ** Inform the data dictionary that we are about to write to it.
@@ -1995,7 +1979,7 @@ public class SystemProcedures{
             */
             dd.startWriting(lcc);
 
-            dd.dropUser(userName,lcc.getTransactionExecute());
+            dd.dropUser(lcc.getDatabaseId(), userName, lcc.getTransactionExecute());
             status = true;
 
         }catch(StandardException se){
@@ -2011,9 +1995,9 @@ public class SystemProcedures{
     /**
      * Raise an exception if the user doesn't exist. See commentary on DERBY-5648.
      */
-    private static void checkLegalUser(DataDictionary dd,String userName)
+    private static void checkLegalUser(DataDictionary dd, String userName, UUID databaseId)
             throws StandardException{
-        if(dd.getUser(userName)==null){
+        if(dd.getUser(databaseId, userName)==null){
             throw StandardException.newException(SQLState.NO_SUCH_USER);
         }
     }

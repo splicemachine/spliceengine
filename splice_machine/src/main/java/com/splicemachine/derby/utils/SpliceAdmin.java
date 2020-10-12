@@ -1372,7 +1372,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             DataDictionary dd = lcc.getDataDictionary();
             dd.startWriting(lcc);
             SchemaDescriptor sd = dd.getSchemaDescriptor(lcc.getDatabaseId(), schemaName, tc, /* raiseError= */true);
-            if (dd.getUser(ownerName) == null) {
+            if (dd.getUser(lcc.getDatabaseId(), ownerName) == null) {
                 throw StandardException.newException(String.format("User '%s' does not exist.", ownerName));
             }
             ((DataDictionaryImpl)dd).updateSchemaAuth(sd.getDatabaseId().toString(), schemaName, ownerName, tc);

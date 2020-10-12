@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.jdbc;
 
+import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.PublicAPI;
@@ -332,7 +333,11 @@ public abstract class EmbedConnection implements EngineConnection
                 try {
                     AccessFactory af = (AccessFactory) Monitor.findServiceModule(database, AccessFactory.MODULE);
                     af.elevateRawTransaction(Bytes.toBytes("boot"));
-                    database.getDataDictionary().createNewDatabase(getDBName());
+                    DataDictionary dd = database.getDataDictionary();
+                    dd.createNewDatabase(getDBName(),
+                                         info.getProperty(Attribute.USERNAME_ATTR),
+                                         info.getProperty(Attribute.PASSWORD_ATTR)
+                            );
                 } catch (StandardException se) {
                     throw new SQLException(SQLState.BOOT_DATABASE_FAILED, se);
                 }
@@ -342,7 +347,7 @@ public abstract class EmbedConnection implements EngineConnection
             // the database
             //
             try {
-                checkUserCredentials( false, DatabaseDescriptor.STD_DB_NAME, info ); // XXX (arnaud multidb) check against another Database?
+                checkUserCredentials( false, getDBName(), info );
             } catch (SQLException sqle) {
                 if (isStartReplicaBoot && !replicaDBAlreadyBooted) {
                     // Failing credentials check on a previously

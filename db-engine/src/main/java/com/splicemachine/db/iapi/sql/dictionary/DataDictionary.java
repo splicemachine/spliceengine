@@ -1678,19 +1678,23 @@ public interface DataDictionary{
     /**
      * Return the credentials descriptor for the named user.
      *
+     *
+     * @param databaseId
      * @param userName Name of the user whose credentials we want.
      * @throws StandardException Thrown on failure
      */
-    UserDescriptor getUser(String userName) throws StandardException;
+    UserDescriptor getUser(UUID databaseId, String userName) throws StandardException;
 
     /**
      * Drop a User from the DataDictionary
      *
+     *
+     * @param databaseId
      * @param userName The user to drop.
      * @param tc       The TransactionController
      * @throws StandardException Thrown on failure
      */
-    void dropUser(String userName,TransactionController tc) throws StandardException;
+    void dropUser(UUID databaseId, String userName, TransactionController tc) throws StandardException;
 
     /**
      * Get a FileInfoDescriptor given its id.
@@ -2312,4 +2316,6 @@ public interface DataDictionary{
     void createSpliceSchema(TransactionController tc, UUID databaseUuid) throws StandardException;
 
     UUID createNewDatabase(String name) throws StandardException;
+
+    UUID createNewDatabase(String name, String dbOwner, String dbPassword) throws StandardException;
 }

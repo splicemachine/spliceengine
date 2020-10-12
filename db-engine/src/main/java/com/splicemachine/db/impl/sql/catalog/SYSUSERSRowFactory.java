@@ -41,11 +41,7 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
-import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.*;
 
 /**
  * Factory for creating a SYSUSERS row.
@@ -57,19 +53,20 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
     public  static  final   String  SYSUSERS_UUID = "9810800c-0134-14a5-40c1-000004f61f90";
     public  static  final   String  PASSWORD_COL_NAME = "PASSWORD";
     
-    private static final int        SYSUSERS_COLUMN_COUNT = 4;
+    private static final int        SYSUSERS_COLUMN_COUNT = 5;
 
     /* Column #s (1 based) */
     public static final int        USERNAME_COL_NUM = 1;
     public static final int        HASHINGSCHEME_COL_NUM = 2;
     public static final int        PASSWORD_COL_NUM = 3;
     public static final int        LASTMODIFIED_COL_NUM = 4;
+    public static final int        DATABASEID_COL_NUM = 5;
 
     static final int        SYSUSERS_INDEX1_ID = 0;
 
     private static final int[][] indexColumnPositions =
     {
-        {USERNAME_COL_NUM},
+        {DATABASEID_COL_NUM, USERNAME_COL_NUM},
     };
 
     private    static    final    boolean[]    uniqueness = null;
@@ -115,6 +112,7 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
         String  hashingScheme = null;
         char[]  password = null;
         Timestamp   lastModified = null;
+        String  databaseId = null;
 
         ExecRow                    row;
 
@@ -129,6 +127,7 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
                 hashingScheme = descriptor.getHashingScheme();
                 password = descriptor.getAndZeroPassword();
                 lastModified = descriptor.getLastModified();
+                databaseId = descriptor.getDatabaseId().toString();
             }
 
             /* Build the row to insert  */
@@ -145,6 +144,9 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
 
             /* 4th column is LASTMODIFIED (timestamp) */
             row.setColumn( LASTMODIFIED_COL_NUM, new SQLTimestamp( lastModified ) );
+
+            /* 5th column is DATABASEID */
+            row.setColumn( DATABASEID_COL_NUM, new SQLChar( databaseId ) );
         }
         finally
         {
@@ -190,14 +192,15 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
 
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-        String    userName;
-        String    hashingScheme;
-        char[]  password = null;
-        Timestamp   lastModified;
-        DataValueDescriptor    col;
-        SQLVarchar    passwordCol = null;
+        String              userName;
+        String              hashingScheme;
+        char[]              password = null;
+        Timestamp           lastModified;
+        DataValueDescriptor col;
+        SQLVarchar          passwordCol = null;
+        String              databaseId;
 
-        UserDescriptor    result;
+        UserDescriptor      result;
 
         try {
             /* 1st column is USERNAME */
@@ -216,7 +219,16 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
             col = row.getColumn( LASTMODIFIED_COL_NUM );
             lastModified = col.getTimestamp( new java.util.GregorianCalendar() );
 
-            result = ddg.newUserDescriptor( userName, hashingScheme, password, lastModified );
+            /* 5th column is DATABASEID */
+            col = row.getColumn( DATABASEID_COL_NUM );
+            databaseId = col.getString();
+
+            result = ddg.newUserDescriptor(
+                    userName,
+                    hashingScheme,
+                    password,
+                    lastModified,
+                    getUUIDFactory().recreateUUID(databaseId));
         }
         finally
         {
@@ -243,6 +255,7 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
             SystemColumnImpl.getColumn( "HASHINGSCHEME", Types.VARCHAR, false, TypeId.VARCHAR_MAXWIDTH ),
             SystemColumnImpl.getColumn( PASSWORD_COL_NAME, Types.VARCHAR, false, TypeId.VARCHAR_MAXWIDTH ),
             SystemColumnImpl.getColumn( "LASTMODIFIED", Types.TIMESTAMP, false ),
+            SystemColumnImpl.getUUIDColumn("DATABASEID", false),
         };
     }
 }
