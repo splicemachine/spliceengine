@@ -83,9 +83,9 @@ public class BitTypeCompiler extends BaseTypeCompiler
 
         public boolean storable(TypeId otherType, ClassFactory cf)
         {
-        if (otherType.isBlobTypeId())
-          return false;
-				if (otherType.isBitTypeId())
+                if (otherType.isBlobTypeId())
+                    return false;
+				if (otherType.streamStorable())
 				{
 						return true;
 				}
