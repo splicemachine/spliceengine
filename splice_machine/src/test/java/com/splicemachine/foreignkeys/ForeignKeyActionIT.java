@@ -14,17 +14,19 @@
 
 package com.splicemachine.foreignkeys;
 
+import com.splicemachine.derby.impl.load.ImportErrorIT;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.util.StatementUtils;
 import org.junit.*;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLIntegrityConstraintViolationException;
-import java.sql.Statement;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -52,13 +54,25 @@ public class ForeignKeyActionIT {
     public void deleteTables() throws Exception {
         conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
-        new TableDAO(conn).drop(SCHEMA, "SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
+        new TableDAO(conn).drop(SCHEMA, "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
     }
 
     @After
     public void tearDown() throws Exception{
         conn.rollback();
         conn.reset();
+    }
+
+    private static File BADDIR;
+
+    @BeforeClass
+    public static void beforeClass() throws Exception {
+        BADDIR = SpliceUnitTest.createBadLogDirectory(SCHEMA);
+    }
+
+    @AfterClass
+    public static void afterClass() throws Exception {
+        SpliceUnitTest.deleteTempDirectory(BADDIR);
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -196,7 +210,11 @@ public class ForeignKeyActionIT {
     }
 
     private static void createDataBaseObjects3(Statement s) throws SQLException {
-        s.executeUpdate("");
+        s.executeUpdate("create table PI(col1 int, col2 varchar(2), primary key (col1))");
+        s.executeUpdate("create table C1I(col1 int, col2 int, constraint ci_fk_key foreign key(col1) references PI(col1) on delete no action)");
+        s.executeUpdate("create table C2I(col1 int, col2 int, constraint ci_fk_key2 foreign key(col1) references PI(col1) on delete no action)");
+        s.executeUpdate("insert into PI values (1, 'a')");
+        s.executeUpdate("insert into PI values (2, 'b')");
     }
 
     @Test
@@ -267,6 +285,21 @@ public class ForeignKeyActionIT {
             Assert.assertTrue(rs.next());
             Assert.assertEquals(44, rs.getInt(1));Assert.assertEquals(43, rs.getInt(2));
             Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void onDeleteNoActionVilationsArePermittedWithPermissiveImport() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            createDataBaseObjects3(s);
+            importData(s, "C1I", "fk_test/good.csv", false);
+            shouldContain("C1I", new int[][]{{1,1}, {2,2}});
+            importData(s, "C2I", "fk_test/good.csv", false);
+            shouldContain("C2I", new int[][]{{1,1}, {2,2}});
+            s.executeUpdate("delete from C1I");
+            s.executeUpdate("delete from C2I");
+            importData(s,"C1I", "fk_test/bad.csv", true);
+            shouldContain("C1I", new int[][]{});
         }
     }
 
@@ -344,6 +377,48 @@ public class ForeignKeyActionIT {
                 Assert.assertFalse(rs.next());
 
             }
+        }
+    }
+
+    private void importData(Statement s, String childName, String fileName, boolean shouldFail) throws IOException, SQLException {
+        try {
+            s.execute(String.format("call SYSCS_UTIL.IMPORT_DATA(" +
+                            "'%s'," +  // schema name
+                            "'%s'," +  // table name
+                            "null," +  // insert column list
+                            "'%s'," +  // file path
+                            "','," +   // column delimiter
+                            "null," +  // character delimiter
+                            "null," +  // timestamp format
+                            "null," +  // date format
+                            "null," +  // time format
+                            "%d," +    // max bad records
+                            "'%s'," +  // bad record dir
+                            "null," +  // has one line records
+                            "null)",   // char set
+                    SCHEMA, childName, SpliceUnitTest.getResourceDirectory() + fileName, 0, BADDIR.getCanonicalPath()));
+        } catch(SQLException se) {
+            if(shouldFail) {
+                Assert.assertTrue(se.getMessage().contains("Too many bad records in import, please check bad records"));
+                return;
+            } else {
+                throw se;
+            }
+        }
+        if(shouldFail) {
+            Assert.fail("expected an exception containing this message: Too many bad records in import, please check bad records");
+        }
+    }
+
+    private void shouldContain(String child, int[][] rows) throws SQLException {
+        try(Statement s = conn.createStatement()) {
+            ResultSet rs = s.executeQuery(String.format("select * from %s order by col1 asc", child));
+            for(int[] row : rows) {
+                assert row.length == 2;
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals(row[0], rs.getInt(1));Assert.assertEquals(row[1], rs.getInt(2));
+            }
+            Assert.assertFalse(rs.next());
         }
     }
 
