@@ -203,6 +203,7 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 				leftTypeId = leftOperand.getTypeId();
 			}
 		}
+
 		if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
                 (leftTypeId.isDecimalTypeId() && rightTypeId.isIntegerNumericTypeId())) {
 
