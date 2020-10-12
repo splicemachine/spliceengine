@@ -30,7 +30,6 @@ import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.protobuf.ProtoUtil;
-import com.splicemachine.si.impl.driver.SIDriver;
 
 import java.util.Iterator;
 import java.util.List;
@@ -84,7 +83,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
 
                 // check that role exists
                 RoleGrantDescriptor rdDef =
-                    dd.getRoleDefinitionDescriptor(role);
+                    dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
 
                 if (rdDef == null) {
                     throw StandardException.
@@ -124,7 +123,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
 
                 // Has it already been granted?
                 RoleGrantDescriptor rgd =
-                    dd.getRoleGrantDescriptor(role, grantee);
+                    dd.getRoleGrantDescriptor(role, grantee, lcc.getDatabaseId());
 
                 if (rgd != null &&
                         withAdminOption && !rgd.isWithAdminOption()) {
@@ -159,10 +158,10 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                 } else if (rgd == null) {
                     // Check if the grantee is a role (if not, it is a user)
                     RoleGrantDescriptor granteeDef =
-                        dd.getRoleDefinitionDescriptor(grantee);
+                        dd.getRoleDefinitionDescriptor(grantee, lcc.getDatabaseId());
 
                     if (granteeDef != null) {
-                        checkCircularity(role, grantee, tc, dd);
+                        checkCircularity(role, grantee, tc, dd, lcc);
                     }
 
                     rgd = ddg.newRoleGrantDescriptor(
@@ -171,8 +170,9 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
                         grantee,
                         grantor, // dbo for now
                         withAdminOption,
-                        false,
-                        isDefaultRole);  // not definition
+                        false, // not definition
+                        isDefaultRole,
+                        lcc.getDatabaseId());
                     dd.addDescriptor(
                         rgd,
                         null,  // parent
@@ -207,7 +207,8 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
     private void checkCircularity(String role,
                                   String grantee,
                                   TransactionController tc,
-                                  DataDictionary dd)
+                                  DataDictionary dd,
+                                  LanguageConnectionContext lcc)
             throws StandardException {
 
         // The grantee is role, not a user id, so we need to check for
@@ -217,7 +218,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
 
         // Via grant closure of grantee
         RoleClosureIterator rci =
-            dd.createRoleClosureIterator(tc, grantee, false);
+            dd.createRoleClosureIterator(tc, grantee, false, lcc.getDatabaseId());
 
         String r;
         while ((r = rci.next()) != null) {

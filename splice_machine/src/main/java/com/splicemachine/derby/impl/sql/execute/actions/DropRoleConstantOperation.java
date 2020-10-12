@@ -71,7 +71,7 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
         */
         dd.startWriting(lcc);
 
-        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName);
+        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName, lcc.getDatabaseId());
 
         if (rdDef == null) {
             throw StandardException.newException(
@@ -87,11 +87,11 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
         RoleClosureIterator rci =
             dd.createRoleClosureIterator
             (activation.getTransactionController(),
-             roleName, false);
+             roleName, false, lcc.getDatabaseId());
 
         String role;
         while ((role = rci.next()) != null) {
-            RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role);
+            RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
 
             dd.getDependencyManager().invalidateFor
                 (r, DependencyManager.REVOKE_ROLE, lcc);
@@ -109,8 +109,8 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
          * - privilege grants to this role
          */
 
-        dd.dropRoleGrantsByGrantee(roleName, tc);
-        dd.dropRoleGrantsByName(roleName, tc);
-        dd.dropAllPermsByGrantee(roleName, tc);
+        dd.dropRoleGrantsByGrantee(roleName, lcc.getDatabaseId(), tc);
+        dd.dropRoleGrantsByName(roleName, lcc.getDatabaseId(), tc);
+        dd.dropAllPermsByGrantee(roleName, tc); // XXX (arnaud, multidb) that should also be multidb specific
     }
 }

@@ -32,7 +32,6 @@
 package com.splicemachine.db.impl.jdbc;
 
 import com.splicemachine.db.iapi.db.InternalDatabase;
-import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
@@ -46,7 +45,6 @@ import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.memory.LowMemory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
@@ -57,7 +55,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.jdbc.authentication.NoneAuthenticationServiceImpl;
@@ -720,7 +717,7 @@ public abstract class EmbedConnection implements EngineConnection
         //
         AuthenticationService authenticationService = null;
         try {
-            // Retrieve appropriate authentication service handle
+            // Retrieve appropriate authentication service handle // XXX (arnaud multidb) get different authentication services for different DB?
             if (dbname == null)
                 authenticationService =
                     getLocalDriver().getAuthenticationService();
@@ -860,7 +857,7 @@ public abstract class EmbedConnection implements EngineConnection
             // Check is only performed if we have db.database.sqlAuthorization == true
             if (lcc.usesSqlAuthorization()) {
                 String failedString = MessageService.getTextMessage(MessageId.AUTH_INVALID);
-                if (dd.getRoleDefinitionDescriptor(username) != null) {
+                if (dd.getRoleDefinitionDescriptor(username, lcc.getDatabaseId()) != null) {
                     throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED, failedString);
                 }
             }

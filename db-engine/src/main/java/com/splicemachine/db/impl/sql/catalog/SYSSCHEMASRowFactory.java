@@ -72,7 +72,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
     private static final int[][] indexColumnPositions =
     {
-        {SYSSCHEMAS_SCHEMANAME, SYSSCHEMAS_DATABASEID},
+        {SYSSCHEMAS_SCHEMANAME, SYSSCHEMAS_DATABASEID}, // XXX (arnaud multidb) swap those two. DBID, SCHEMANAME makes more sense
         {SYSSCHEMAS_SCHEMAID}
     };
 

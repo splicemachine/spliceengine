@@ -358,8 +358,8 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
             // iterate over it to see if permission has
             // been granted to any of the roles the current
             // role inherits.
-            RoleClosureIterator rci = dd.createRoleClosureIterator
-                    (activation.getTransactionController(), role, true /* inverse relation*/);
+            RoleClosureIterator rci = dd.createRoleClosureIterator(
+                    activation.getTransactionController(), role, true, lcc.getDatabaseId());
             String graphGrant;
             while (permDesc == null &&
                     (graphGrant = rci.next()) != null) {
@@ -406,7 +406,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
             List<String> roleList = lcc.getCurrentRoles(activation);
             for (String role : roleList) {
                 if (role.equals(grantee)) {
-                    RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role);
+                    RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
                     dm.addDependency(dependent, rgd, lcc.getContextManager());
                     addedRoleList.add(grantee);
                     break;

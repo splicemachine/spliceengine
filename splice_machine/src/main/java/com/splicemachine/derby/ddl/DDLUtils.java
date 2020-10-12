@@ -53,7 +53,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.*;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -851,16 +850,15 @@ public class DDLUtils {
             transactionResource = new SpliceTransactionResourceImpl();
             prepared = transactionResource.marshallTransaction(txn);
             String roleName = change.getDropRole().getRoleName();
-            RoleClosureIterator rci =
-                dd.createRoleClosureIterator
-                    (transactionResource.getLcc().getTransactionCompile(),
-                     roleName, false);
+            LanguageConnectionContext lcc = transactionResource.getLcc();
+            RoleClosureIterator rci = dd.createRoleClosureIterator(
+                    lcc.getTransactionCompile(), roleName, false, lcc.getDatabaseId());
 
             String role;
             while ((role = rci.next()) != null) {
-                RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role);
+                RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
                 if (r!=null) {
-                    dm.invalidateFor(r, DependencyManager.REVOKE_ROLE, transactionResource.getLcc());
+                    dm.invalidateFor(r, DependencyManager.REVOKE_ROLE, lcc);
                 }
             }
 

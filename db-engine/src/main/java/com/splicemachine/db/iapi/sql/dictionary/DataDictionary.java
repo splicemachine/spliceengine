@@ -533,30 +533,33 @@ public interface DataDictionary{
      * @param roleName The name of the role to drop
      * @param grantee  The grantee
      * @param grantor  The grantor
+     * @param databaseId
      * @param tc       Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropRoleGrant(String roleName,String grantee,String grantor,TransactionController tc) throws StandardException;
+    void dropRoleGrant(String roleName, String grantee, String grantor, UUID databaseId, TransactionController tc) throws StandardException;
 
     /**
      * Drop all role grants corresponding to a grant of (any)
      * role to a named authentication identifier
      *
      * @param grantee The grantee
+     * @param databaseId
      * @param tc      Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropRoleGrantsByGrantee(String grantee,TransactionController tc) throws StandardException;
+    void dropRoleGrantsByGrantee(String grantee, UUID databaseId, TransactionController tc) throws StandardException;
 
     /**
      * Drop all role grants corresponding to a grant of the
      * named role to any authentication identifier
      *
      * @param roleName The role name granted
+     * @param databaseId
      * @param tc       Transaction Controller
      * @throws StandardException Thrown on failure
      */
-    void dropRoleGrantsByName(String roleName,TransactionController tc) throws StandardException;
+    void dropRoleGrantsByName(String roleName, UUID databaseId, TransactionController tc) throws StandardException;
 
     /**
      * This method creates a new iterator over the closure of role
@@ -573,11 +576,12 @@ public interface DataDictionary{
      *                closure of all roles granted <bold>to</bold> {@code role}. If
      *                {@code false}, we look at closure of all roles that have
      *                been granted {@code role}.
+     * @param databaseId
      * @throws StandardException
      */
     RoleClosureIterator createRoleClosureIterator(TransactionController tc,
                                                   String role,
-                                                  boolean inverse) throws StandardException;
+                                                  boolean inverse, UUID databaseId) throws StandardException;
 
     /**
      * Drop all permission descriptors corresponding to a grant to
@@ -2040,9 +2044,10 @@ public interface DataDictionary{
      * Get a role grant descriptor for a role definition.
      *
      * @param roleName The name of the role whose definition we seek
+     * @param databaseId
      * @throws StandardException error
      */
-    RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName) throws StandardException;
+    RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName, UUID databaseId) throws StandardException;
 
     /**
      * Get the role grant descriptor corresponding to the uuid provided
@@ -2058,9 +2063,10 @@ public interface DataDictionary{
      *
      * @param roleName The name of the role whose definition we seek
      * @param grantee  The grantee
+     * @param databaseId
      * @throws StandardException error
      */
-    RoleGrantDescriptor getRoleGrantDescriptor(String roleName,String grantee) throws StandardException;
+    RoleGrantDescriptor getRoleGrantDescriptor(String roleName, String grantee, UUID databaseId) throws StandardException;
 
 
     /**
@@ -2081,10 +2087,11 @@ public interface DataDictionary{
      * descriptor containing <code>authId</code> as its grantee.
      *
      * @param authId grantee for which a grant exists or not
+     * @param databaseId
      * @param tc     TransactionController for the transaction
      * @return boolean true if such a grant exists
      */
-    boolean existsGrantToAuthid(String authId,TransactionController tc) throws StandardException;
+    boolean existsGrantToAuthid(String authId, UUID databaseId, TransactionController tc) throws StandardException;
 
 
     /**
@@ -2257,11 +2264,13 @@ public interface DataDictionary{
     /**
      * Get default roles granted to a user
      *
+     *
+     * @param databaseId
      * @param username      the name of the user we want to find the default roles granted
      * @param tc            the transaction to use for dropping
      * @throws StandardException
      */
-    List<String> getDefaultRoles(String username, TransactionController tc) throws StandardException;
+    List<String> getDefaultRoles(UUID databaseId, String username, TransactionController tc) throws StandardException;
 
     /**
      * Get permissions for a routine (function or procedure).

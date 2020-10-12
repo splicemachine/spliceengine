@@ -44,7 +44,6 @@ import com.splicemachine.db.shared.common.reference.AuditEventType;
 import com.splicemachine.utils.StringUtils;
 import org.apache.log4j.Logger;
 
-import java.sql.CallableStatement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -53,64 +52,64 @@ import java.util.List;
  */
 
 public abstract class StatementPermission {
-	public enum Type {
-		COLUMN,
-		TABLE,
-		GENERIC,
-		SCHEMA,
-		ROUTINE,
-		ROLE;
-	}
+    public enum Type {
+        COLUMN,
+        TABLE,
+        GENERIC,
+        SCHEMA,
+        ROUTINE,
+        ROLE;
+    }
 
 
-	public static final int UNAUTHORIZED = 0;
-	public static final int AUTHORIZED = 1;
-	public static final int NONE = 2;
+    public static final int UNAUTHORIZED = 0;
+    public static final int AUTHORIZED = 1;
+    public static final int NONE = 2;
 
-	private static final Logger AUDITLOG=Logger.getLogger("splice-audit");
+    private static final Logger AUDITLOG=Logger.getLogger("splice-audit");
 
-	/**
-	 * Restrict implementations to this package to reduce
-	 * risk of external code spoofing the GRANT/REVOKE system
-	 * by providing its own fake implementations.
-	 *
-	 */
-	StatementPermission()
-	{
-	}
-	/**
-	 * @param lcc				LanguageConnectionContext
-	 * @param forGrant
-	 * @param activation        activation for statement needing check
-	 *
-	 * @exception StandardException if the permission has not been granted
-	 */
-	public abstract void check( LanguageConnectionContext lcc,
-								boolean forGrant,
-								Activation activation) throws StandardException;
+    /**
+     * Restrict implementations to this package to reduce
+     * risk of external code spoofing the GRANT/REVOKE system
+     * by providing its own fake implementations.
+     *
+     */
+    StatementPermission()
+    {
+    }
+    /**
+     * @param lcc                LanguageConnectionContext
+     * @param forGrant
+     * @param activation        activation for statement needing check
+     *
+     * @exception StandardException if the permission has not been granted
+     */
+    public abstract void check( LanguageConnectionContext lcc,
+                                boolean forGrant,
+                                Activation activation) throws StandardException;
 
-	/**
-	 * 
-	 * Get the PermissionsDescriptor for the passed authorization id for this
-	 * object. This method gets called during the execution phase of create 
-	 * view/constraint/trigger. The return value of this method is saved in
-	 * dependency system to keep track of views/constraints/triggers 
-	 * dependencies on required permissions. This happens in execution phase 
-	 * after it has been established that passed authorization id has all the 
-	 * permissions it needs to create that view/constraint/trigger. Which means 
-	 * that we can only get to writing into dependency system once all the required 
-	 * privileges are confirmed. 
-	 *   
-	 * @param authid	AuthorizationId
-	 * @param dd	DataDictionary
-	 * 
-	 * @return PermissionsDescriptor	The PermissionsDescriptor for the passed
-	 *  authorization id on this object
-	 * 
-	 * @exception StandardException
-	 */
-	public abstract PermissionsDescriptor getPermissionDescriptor(String authid, DataDictionary dd)
-	throws StandardException;
+    /**
+     *
+     * Get the PermissionsDescriptor for the passed authorization id for this
+     * object. This method gets called during the execution phase of create
+     * view/constraint/trigger. The return value of this method is saved in
+     * dependency system to keep track of views/constraints/triggers
+     * dependencies on required permissions. This happens in execution phase
+     * after it has been established that passed authorization id has all the
+     * permissions it needs to create that view/constraint/trigger. Which means
+     * that we can only get to writing into dependency system once all the required
+     * privileges are confirmed.
+     *
+     * @param authid    AuthorizationId
+     * @param dd    DataDictionary
+     *
+     * @return PermissionsDescriptor    The PermissionsDescriptor for the passed
+     *  authorization id on this object
+     *
+     * @exception StandardException
+     */
+    public abstract PermissionsDescriptor getPermissionDescriptor(String authid, DataDictionary dd)
+    throws StandardException;
 
     /**
      * Return true if the passed in permission matches the one required by this
@@ -135,158 +134,158 @@ public abstract class StatementPermission {
      * Generic logic called by check() for USAGE and EXECUTE privileges. Throws
      * an exception if the correct permission cannot be found.
      */
-	public void genericCheck
+    public void genericCheck
         (
          LanguageConnectionContext lcc,
          boolean forGrant,
          Activation activation,
          String privilegeType )
         throws StandardException
-	{
-		DataDictionary dd = lcc.getDataDictionary();
-		TransactionController tc = lcc.getTransactionExecute();
-		ExecPreparedStatement ps = activation.getPreparedStatement();
-		List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
+    {
+        DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
+        ExecPreparedStatement ps = activation.getPreparedStatement();
+        List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
 
         PermissionsDescriptor perm =
             getPermissionDescriptor( lcc.getCurrentUserId(activation), dd );
-		if( !isCorrectPermission( perm ) ) { perm = getPermissionDescriptor(Authorizer.PUBLIC_AUTHORIZATION_ID, dd ); }
+        if( !isCorrectPermission( perm ) ) { perm = getPermissionDescriptor(Authorizer.PUBLIC_AUTHORIZATION_ID, dd ); }
 
-		if( !isCorrectPermission( perm ) && currentGroupuserlist != null ) {
-			for (String currentGroupuser : currentGroupuserlist) {
-				perm = getPermissionDescriptor(currentGroupuser, dd );
-				// if the groupuser has the correct permission, we're done
-				if ( isCorrectPermission( perm ) ) { return; }
-			}
-		}
+        if( !isCorrectPermission( perm ) && currentGroupuserlist != null ) {
+            for (String currentGroupuser : currentGroupuserlist) {
+                perm = getPermissionDescriptor(currentGroupuser, dd );
+                // if the groupuser has the correct permission, we're done
+                if ( isCorrectPermission( perm ) ) { return; }
+            }
+        }
         // if the user/groupuser has the correct permission, we're done
-		if ( isCorrectPermission( perm ) ) { return; }
+        if ( isCorrectPermission( perm ) ) { return; }
 
-			boolean resolved = false;
+            boolean resolved = false;
 
-		// Since no permission exists for the current user or PUBLIC,
-		// check if a permission exists for the current role (if set).
-		List<String> currentRoles = lcc.getCurrentRoles(activation);
-		List<String> rolesToRemove = new ArrayList<>();
-		for (String role : currentRoles) {
-			// Check that role is still granted to current user or
-			// to PUBLIC: A revoked role which is current for this
-			// session, is lazily set to none when it is attemped
-			// used.
-			RoleGrantDescriptor rd = dd.getRoleGrantDescriptor
-                (role, lcc.getCurrentUserId(activation));
+        // Since no permission exists for the current user or PUBLIC,
+        // check if a permission exists for the current role (if set).
+        List<String> currentRoles = lcc.getCurrentRoles(activation);
+        List<String> rolesToRemove = new ArrayList<>();
+        for (String role : currentRoles) {
+            // Check that role is still granted to current user or
+            // to PUBLIC: A revoked role which is current for this
+            // session, is lazily set to none when it is attemped
+            // used.
+            RoleGrantDescriptor rd = dd.getRoleGrantDescriptor
+                (role, lcc.getCurrentUserId(activation), lcc.getDatabaseId());
 
-			if (rd == null) {
-				rd = dd.getRoleGrantDescriptor(
-					role,
-					Authorizer.PUBLIC_AUTHORIZATION_ID);
-			}
-			if (rd == null && currentGroupuserlist != null) {
-				for (String currentGroupuser : currentGroupuserlist) {
-					rd = dd.getRoleGrantDescriptor(role, currentGroupuser);
-					if (rd != null)
-						break;
-				}
-			}
+            if (rd == null) {
+                rd = dd.getRoleGrantDescriptor(
+                    role,
+                    Authorizer.PUBLIC_AUTHORIZATION_ID, lcc.getDatabaseId());
+            }
+            if (rd == null && currentGroupuserlist != null) {
+                for (String currentGroupuser : currentGroupuserlist) {
+                    rd = dd.getRoleGrantDescriptor(role, currentGroupuser, lcc.getDatabaseId());
+                    if (rd != null)
+                        break;
+                }
+            }
 
-			if (rd == null) {
-				// We have lost the right to set this role, so we can't
-				// make use of any permission granted to it or its
-				// ancestors.
-				rolesToRemove.add(role);
-			} else {
-				// The current role is OK, so we can make use of
-				// any permission granted to it.
-				//
-				// Look at the current role and, if necessary, the
-				// transitive closure of roles granted to current role to
-				// see if permission has been granted to any of the
-				// applicable roles.
+            if (rd == null) {
+                // We have lost the right to set this role, so we can't
+                // make use of any permission granted to it or its
+                // ancestors.
+                rolesToRemove.add(role);
+            } else {
+                // The current role is OK, so we can make use of
+                // any permission granted to it.
+                //
+                // Look at the current role and, if necessary, the
+                // transitive closure of roles granted to current role to
+                // see if permission has been granted to any of the
+                // applicable roles.
 
-				RoleClosureIterator rci =
-					dd.createRoleClosureIterator
-					(activation.getTransactionController(),
-					 role, true );
+                RoleClosureIterator rci =
+                    dd.createRoleClosureIterator
+                    (activation.getTransactionController(),
+                     role, true, lcc.getDatabaseId());
 
-				String r;
-				while (!resolved && (r = rci.next()) != null)
+                String r;
+                while (!resolved && (r = rci.next()) != null)
                 {
-					perm = getPermissionDescriptor( r, dd );
+                    perm = getPermissionDescriptor( r, dd );
 
-					if ( isCorrectPermission( perm ) ) { resolved = true; }
-				}
-			}
+                    if ( isCorrectPermission( perm ) ) { resolved = true; }
+                }
+            }
 
-			if (resolved ) {
-				// Also add a dependency on the role (qua provider), so that if
-				// role is no longer available to the current user (e.g. grant
-				// is revoked, role is dropped, another role has been set), we
-				// are able to invalidate the ps or activation (the latter is
-				// used if the current role changes).
-				DependencyManager dm = dd.getDependencyManager();
-				RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role);
-				ContextManager cm = lcc.getContextManager();
-				dm.addDependency(ps, rgd, cm);
-				dm.addDependency(activation, rgd, cm);
-				break;
-			}
-		}
-		lcc.removeRoles(activation, rolesToRemove);
+            if (resolved ) {
+                // Also add a dependency on the role (qua provider), so that if
+                // role is no longer available to the current user (e.g. grant
+                // is revoked, role is dropped, another role has been set), we
+                // are able to invalidate the ps or activation (the latter is
+                // used if the current role changes).
+                DependencyManager dm = dd.getDependencyManager();
+                RoleGrantDescriptor rgd = dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
+                ContextManager cm = lcc.getContextManager();
+                dm.addDependency(ps, rgd, cm);
+                dm.addDependency(activation, rgd, cm);
+                break;
+            }
+        }
+        lcc.removeRoles(activation, rolesToRemove);
 
-		if (!resolved)
+        if (!resolved)
         {
             PrivilegedSQLObject pso = getPrivilegedObject( dd );
 
-			try {
-				if (pso == null) {
-					throw StandardException.newException
-							(SQLState.AUTH_INTERNAL_BAD_UUID, getObjectType());
-				}
+            try {
+                if (pso == null) {
+                    throw StandardException.newException
+                            (SQLState.AUTH_INTERNAL_BAD_UUID, getObjectType());
+                }
 
-				SchemaDescriptor sd = pso.getSchemaDescriptor();
-				if (sd == null) {
-					throw StandardException.newException(
-							SQLState.AUTH_INTERNAL_BAD_UUID, "SCHEMA");
-				}
+                SchemaDescriptor sd = pso.getSchemaDescriptor();
+                if (sd == null) {
+                    throw StandardException.newException(
+                            SQLState.AUTH_INTERNAL_BAD_UUID, "SCHEMA");
+                }
 
-				throw StandardException.newException(
-						(forGrant
-								? SQLState.AUTH_NO_GENERIC_PERMISSION_FOR_GRANT
-								: SQLState.AUTH_NO_GENERIC_PERMISSION),
-						lcc.getCurrentUserId(activation),
-						privilegeType,
-						getObjectType(),
-						sd.getSchemaName(),
-						pso.getName());
-			}
-			catch(StandardException se){
-				if (AUDITLOG.isInfoEnabled()
-						&& privilegeType.equalsIgnoreCase("EXECUTE")
-						&& (!se.getMessageId().equals(SQLState.AUTH_INTERNAL_BAD_UUID))){
+                throw StandardException.newException(
+                        (forGrant
+                                ? SQLState.AUTH_NO_GENERIC_PERMISSION_FOR_GRANT
+                                : SQLState.AUTH_NO_GENERIC_PERMISSION),
+                        lcc.getCurrentUserId(activation),
+                        privilegeType,
+                        getObjectType(),
+                        sd.getSchemaName(),
+                        pso.getName());
+            }
+            catch(StandardException se){
+                if (AUDITLOG.isInfoEnabled()
+                        && privilegeType.equalsIgnoreCase("EXECUTE")
+                        && (!se.getMessageId().equals(SQLState.AUTH_INTERNAL_BAD_UUID))){
 
-					String userid = lcc.getCurrentUserId(activation);
-					boolean status = false;
-					String ip = lcc.getClientIPAddress();
-					String statement = lcc.getStatementContext().getStatementText();
-					String procedure = pso.getName();
-					String schema = pso.getSchemaDescriptor().getSchemaName();
+                    String userid = lcc.getCurrentUserId(activation);
+                    boolean status = false;
+                    String ip = lcc.getClientIPAddress();
+                    String statement = lcc.getStatementContext().getStatementText();
+                    String procedure = pso.getName();
+                    String schema = pso.getSchemaDescriptor().getSchemaName();
 
-					// Check whether the procedure in the audit procedure list
-					for (AuditEventType t : AuditEventType.values())
-					{
-						String[] p = t.getProcedure().split("\\.");
-						if (p.length == 2 && schema.equals(p[0]) && procedure.equals(p[1])) {
-							AUDITLOG.info(StringUtils.logSpliceAuditEvent(userid,t.name(),status,ip,statement,se.getMessage()));
-							break;
-						}
-					}
-				}
-				throw se;
-			}
-		}
+                    // Check whether the procedure in the audit procedure list
+                    for (AuditEventType t : AuditEventType.values())
+                    {
+                        String[] p = t.getProcedure().split("\\.");
+                        if (p.length == 2 && schema.equals(p[0]) && procedure.equals(p[1])) {
+                            AUDITLOG.info(StringUtils.logSpliceAuditEvent(userid,t.name(),status,ip,statement,se.getMessage()));
+                            break;
+                        }
+                    }
+                }
+                throw se;
+            }
+        }
 
-	} // end of genericCheck
+    } // end of genericCheck
 
 
-	public abstract Type getType() ;
+    public abstract Type getType() ;
 }

@@ -1417,24 +1417,28 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     public void dropRoleGrant(String roleName,
                               String grantee,
                               String grantor,
-                              TransactionController tc) throws StandardException{
+                              UUID databaseId, TransactionController tc) throws StandardException{
         DataValueDescriptor roleNameOrderable;
         DataValueDescriptor granteeOrderable;
         DataValueDescriptor grantorOrderable;
+        DataValueDescriptor dbIdOrderable;
 
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
 
-        roleNameOrderable=new SQLVarchar(roleName);
-        granteeOrderable=new SQLVarchar(grantee);
-        grantorOrderable=new SQLVarchar(grantor);
+        roleNameOrderable = new SQLVarchar(roleName);
+        granteeOrderable = new SQLVarchar(grantee);
+        grantorOrderable = new SQLVarchar(grantor);
+        dbIdOrderable = new SQLChar(databaseId.toString());
 
         ExecIndexRow keyRow;
 
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
         /* Set up the start/stop position for the scan */
-        keyRow=exFactory.getIndexableRow(3);
-        keyRow.setColumn(1,roleNameOrderable);
-        keyRow.setColumn(2,granteeOrderable);
-        keyRow.setColumn(3,grantorOrderable);
+        keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX));
+        keyRow.setColumn(1,dbIdOrderable);
+        keyRow.setColumn(2,roleNameOrderable);
+        keyRow.setColumn(3,granteeOrderable);
+        keyRow.setColumn(4,grantorOrderable);
 
         ti.deleteRow(tc,keyRow,SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX);
     }
@@ -2669,7 +2673,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public void dropRoleGrantsByGrantee(String grantee,TransactionController tc) throws StandardException{
+    public void dropRoleGrantsByGrantee(String grantee, UUID databaseId, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
 
@@ -2677,6 +2681,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 rf,
                 SYSROLESRowFactory.SYSROLES_GRANTEE_COLPOS_IN_INDEX_ID_EE_OR,
                 grantee,
+                SYSROLESRowFactory.SYSROLES_DATABASEID_COLPOS_IN_INDEX_ID_EE_OR,
+                databaseId,
                 tc,
                 DataDictionaryImpl.DROP);
     }
@@ -2691,7 +2697,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @return true if there exists such a grant
      * @throws StandardException Thrown on failure
      */
-    private boolean existsRoleGrantByGrantee(String grantee,TransactionController tc) throws StandardException{
+    private boolean existsRoleGrantByGrantee(String grantee, UUID databaseId, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
 
@@ -2699,12 +2705,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 rf,
                 SYSROLESRowFactory.SYSROLES_GRANTEE_COLPOS_IN_INDEX_ID_EE_OR,
                 grantee,
+                SYSROLESRowFactory.SYSROLES_DATABASEID_COLPOS_IN_INDEX_ID_EE_OR,
+                databaseId,
                 tc,
                 DataDictionaryImpl.EXISTS);
     }
 
     @Override
-    public void dropRoleGrantsByName(String roleName,TransactionController tc) throws StandardException{
+    public void dropRoleGrantsByName(String roleName, UUID databaseId, TransactionController tc) throws StandardException{
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
         dataDictionaryCache.roleCacheRemove(roleName);
@@ -2712,6 +2720,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 rf,
                 SYSROLESRowFactory.SYSROLES_ROLEID_COLPOS_IN_INDEX_ID_EE_OR,
                 roleName,
+                SYSROLESRowFactory.SYSROLES_DATABASEID_COLPOS_IN_INDEX_ID_EE_OR,
+                databaseId,
                 tc,
                 DataDictionaryImpl.DROP);
     }
@@ -2740,6 +2750,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                     SYSROLESRowFactory rf,
                                     int columnNo,
                                     String authId,
+                                    int databaseIdColumnNo,
+                                    UUID databaseId,
                                     TransactionController tc,
                                     int action) throws StandardException{
         ConglomerateController heapCC=tc.openConglomerate(
@@ -2748,11 +2760,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 TransactionController.ISOLATION_REPEATABLE_READ);
 
         DataValueDescriptor authIdOrderable=new SQLVarchar(authId);
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
+        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(2);
 
         scanQualifier[0][0].setQualifier(
                 columnNo-1,    /* to zero-based */
                 authIdOrderable,
+                Orderable.ORDER_OP_EQUALS,
+                false,
+                false,
+                false);
+
+        scanQualifier[0][1].setQualifier(
+                databaseIdColumnNo - 1,  /* to zero-based */
+                dbIdOrderable,
                 Orderable.ORDER_OP_EQUALS,
                 false,
                 false,
@@ -2815,7 +2836,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * FIXME: Need to cache graph and invalidate when role graph is modified.
      * Currently, we always read from SYSROLES.
      */
-    public Map<String, List<RoleGrantDescriptor>> getRoleGrantGraph(TransactionController tc,boolean inverse, boolean roleOnly) throws StandardException{
+    public Map<String, List<RoleGrantDescriptor>> getRoleGrantGraph(TransactionController tc,boolean inverse, boolean roleOnly, UUID databaseId) throws StandardException{
 
         Map<String, List<RoleGrantDescriptor>> hm=new HashMap<>();
 
@@ -2823,11 +2844,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SYSROLESRowFactory rf=(SYSROLESRowFactory)ti.getCatalogRowFactory();
 
         DataValueDescriptor isDefOrderable=new SQLVarchar("N");
-        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
+        ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(2);
 
         scanQualifier[0][0].setQualifier(
                 SYSROLESRowFactory.SYSROLES_ISDEF-1, /* to zero-based */
                 isDefOrderable,
+                Orderable.ORDER_OP_EQUALS,
+                false,
+                false,
+                false);
+
+        scanQualifier[0][1].setQualifier(
+                SYSROLESRowFactory.SYSROLES_DATABASE_ID -1, /* to zero-based */
+                dbIdOrderable,
                 Orderable.ORDER_OP_EQUALS,
                 false,
                 false,
@@ -2856,7 +2886,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 // Next call is potentially inefficient.  We could read in
                 // definitions first in a separate hash table limiting
                 // this to a 2-pass scan.
-                RoleGrantDescriptor granteeDef = getRoleDefinitionDescriptor(grantDescr.getGrantee());
+                RoleGrantDescriptor granteeDef = getRoleDefinitionDescriptor(grantDescr.getGrantee(), databaseId);
 
                 if (granteeDef == null) {
                     // not a role, must be user authid, skip
@@ -2887,8 +2917,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public RoleClosureIterator createRoleClosureIterator(TransactionController tc,String role,boolean inverse) throws StandardException{
-        return new RoleClosureIteratorImpl(role,inverse,this,tc);
+    public RoleClosureIterator createRoleClosureIterator(TransactionController tc, String role, boolean inverse, UUID databaseId) throws StandardException{
+        return new RoleClosureIteratorImpl(role, inverse, this, tc, databaseId);
     }
 
 
@@ -10556,9 +10586,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
          * scan.
          */
         UUIDStringOrderable=getIDValueAsCHAR(uuid);
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
 
         /* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSROLESRowFactory.SYSROLES_INDEX_UUID_IDX));
         keyRow.setColumn(1,UUIDStringOrderable);
 
         return (RoleGrantDescriptor)
@@ -10572,32 +10603,33 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Uses index on (rolename, isDef) columns.
      *
      * @param roleName The name of the role we're interested in.
+     * @param databaseId
      * @return The descriptor (row) for the role
      * @throws StandardException Thrown on error
      * @see DataDictionary#getRoleDefinitionDescriptor
      */
     @Override
-    public RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName) throws StandardException{
+    public RoleGrantDescriptor getRoleDefinitionDescriptor(String roleName, UUID databaseId) throws StandardException{
 
         Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleCacheFind(roleName);
         if (optional!=null)
             return optional.orNull();
-
-        DataValueDescriptor roleNameOrderable;
-        DataValueDescriptor isDefOrderable;
 
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
 
         /* Use aliasNameOrderable , isDefOrderable in both start
          * and stop position for scan.
          */
-        roleNameOrderable=new SQLVarchar(roleName);
-        isDefOrderable=new SQLVarchar("Y");
+        DataValueDescriptor roleNameOrderable = new SQLVarchar(roleName);
+        DataValueDescriptor isDefOrderable = new SQLVarchar("Y");
+        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
 
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
         /* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow=exFactory.getIndexableRow(2);
-        keyRow.setColumn(1,roleNameOrderable);
-        keyRow.setColumn(2,isDefOrderable);
+        ExecIndexRow keyRow=exFactory.getIndexableRow(rf.getIndexColumnCount(SYSROLESRowFactory.SYSROLES_INDEX_ID_DEF_IDX));
+        keyRow.setColumn(1, dbIdOrderable);
+        keyRow.setColumn(2, roleNameOrderable);
+        keyRow.setColumn(3, isDefOrderable);
 
         RoleGrantDescriptor rgs = (RoleGrantDescriptor)
                 getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_DEF_IDX,keyRow,null,ti,null,null,false);
@@ -10613,16 +10645,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      *
      * @param roleName The name of the role we're interested in.
      * @param grantee  The grantee
+     * @param databaseId
      * @return The descriptor for the role grant
      * @throws StandardException Thrown on error
-     * @see DataDictionary#getRoleGrantDescriptor(String,String)
+     * @see DataDictionary#getRoleGrantDescriptor(String, String, UUID)
      */
     @Override
     public RoleGrantDescriptor getRoleGrantDescriptor(String roleName,
-                                                      String grantee) throws StandardException{
-        DataValueDescriptor roleNameOrderable;
-        DataValueDescriptor granteeOrderable;
-
+                                                      String grantee, UUID databaseId) throws StandardException{
         Pair<String, String> roleGrantPair = new Pair<>(roleName, grantee);
         Optional<RoleGrantDescriptor> optional = dataDictionaryCache.roleGrantCacheFind(roleGrantPair);
         if (optional!=null)
@@ -10633,13 +10663,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         /* Use aliasNameOrderable, granteeOrderable
          * in both start and stop position for scan.
          */
-        roleNameOrderable=new SQLVarchar(roleName);
-        granteeOrderable=new SQLVarchar(grantee);
+        DataValueDescriptor roleNameOrderable = new SQLVarchar(roleName);
+        DataValueDescriptor granteeOrderable = new SQLVarchar(grantee);
+        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
 
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
         /* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow = exFactory.getIndexableRow(2);
-        keyRow.setColumn(1, roleNameOrderable);
-        keyRow.setColumn(2, granteeOrderable);
+        ExecIndexRow keyRow = exFactory.getIndexableRow(rf.getIndexColumnCount(
+                SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX) - 1); // We do not use the grantor column
+        keyRow.setColumn(1, dbIdOrderable);
+        keyRow.setColumn(2, roleNameOrderable);
+        keyRow.setColumn(3, granteeOrderable);
 
         RoleGrantDescriptor rgd = (RoleGrantDescriptor)
                 getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,keyRow,null,ti,null,null,false);
@@ -10654,35 +10688,32 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * descriptor containing <code>authId</code> as its grantee.
      *
      * @param authId grantee for which a grant exists or not
+     * @param databaseId
      * @param tc     TransactionController for the transaction
      * @return boolean true if such a grant exists
      */
     @Override
-    public boolean existsGrantToAuthid(String authId,TransactionController tc) throws StandardException{
-
+    public boolean existsGrantToAuthid(String authId, UUID databaseId, TransactionController tc) throws StandardException{
         return
                 (existsPermByGrantee(
                         authId,
                         tc,
                         SYSTABLEPERMS_CATALOG_NUM,
                         SYSTABLEPERMSRowFactory.GRANTEE_TABLE_GRANTOR_INDEX_NUM,
-                        SYSTABLEPERMSRowFactory.
-                                GRANTEE_COL_NUM_IN_GRANTEE_TABLE_GRANTOR_INDEX) ||
+                        SYSTABLEPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_TABLE_GRANTOR_INDEX) ||
                         existsPermByGrantee(
                                 authId,
                                 tc,
                                 SYSCOLPERMS_CATALOG_NUM,
                                 SYSCOLPERMSRowFactory.GRANTEE_TABLE_TYPE_GRANTOR_INDEX_NUM,
-                                SYSCOLPERMSRowFactory.
-                                        GRANTEE_COL_NUM_IN_GRANTEE_TABLE_TYPE_GRANTOR_INDEX) ||
+                                SYSCOLPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_TABLE_TYPE_GRANTOR_INDEX) ||
                         existsPermByGrantee(
                                 authId,
                                 tc,
                                 SYSROUTINEPERMS_CATALOG_NUM,
                                 SYSROUTINEPERMSRowFactory.GRANTEE_ALIAS_GRANTOR_INDEX_NUM,
-                                SYSROUTINEPERMSRowFactory.
-                                        GRANTEE_COL_NUM_IN_GRANTEE_ALIAS_GRANTOR_INDEX) ||
-                        existsRoleGrantByGrantee(authId,tc));
+                                SYSROUTINEPERMSRowFactory.GRANTEE_COL_NUM_IN_GRANTEE_ALIAS_GRANTOR_INDEX) ||
+                        existsRoleGrantByGrantee(authId, databaseId, tc));
     }
 
 
@@ -11252,7 +11283,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
     }
 
-    public List<String> getDefaultRoles(String username, TransactionController tc) throws StandardException {
+    public List<String> getDefaultRoles(UUID databaseId, String username, TransactionController tc) throws StandardException {
         // check dictionary cache first
         List<String> roleList = dataDictionaryCache.defaultRoleCacheFind(username);
         if (roleList != null)
@@ -11262,9 +11293,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
         TabInfoImpl ti=getNonCoreTI(SYSROLES_CATALOG_NUM);
         /* set up the start/stop position for the scan */
-        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        SYSROLESRowFactory rf=(SYSROLESRowFactory) ti.getCatalogRowFactory();
+        ExecIndexRow keyRow = exFactory.getIndexableRow(rf.getIndexColumnCount(SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX));
         DataValueDescriptor granteeOrderable=new SQLVarchar(username);
-        keyRow.setColumn(1, granteeOrderable);
+        DataValueDescriptor dbIdOrderable = new SQLChar(databaseId.toString());
+        keyRow.setColumn(1, dbIdOrderable);
+        keyRow.setColumn(2, granteeOrderable);
         getDescriptorViaIndex(
                 SYSROLESRowFactory.SYSROLES_INDEX_EE_DEFAULT_IDX,
                 keyRow,

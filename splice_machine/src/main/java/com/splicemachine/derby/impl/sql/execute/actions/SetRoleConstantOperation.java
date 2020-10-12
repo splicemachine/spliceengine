@@ -99,7 +99,7 @@ public class SetRoleConstantOperation implements ConstantAction {
                 // so we need to invalidate objects depends on these roles
                 List<String> roleList = lcc.getCurrentRoles(activation);
                 for (String oldRole: roleList) {
-                    rdDef = dd.getRoleDefinitionDescriptor(oldRole);
+                    rdDef = dd.getRoleDefinitionDescriptor(oldRole, lcc.getDatabaseId());
 
                     if (rdDef != null) {
                         dd.getDependencyManager().invalidateFor(
@@ -111,7 +111,7 @@ public class SetRoleConstantOperation implements ConstantAction {
             } else {
                 // we want to add another role to currentRoles list in SQLSessionContext,
                 // make sure we are granted with the privilege
-                rdDef = dd.getRoleDefinitionDescriptor(thisRoleName);
+                rdDef = dd.getRoleDefinitionDescriptor(thisRoleName, lcc.getDatabaseId());
 
                 // SQL 2003, section 18.3, General rule 4:
                 if (rdDef == null) {

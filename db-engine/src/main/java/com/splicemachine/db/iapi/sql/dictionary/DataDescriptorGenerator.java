@@ -622,7 +622,8 @@ public class DataDescriptorGenerator
                                                       String grantor,
                                                       boolean withadminoption,
                                                       boolean isDef,
-                                                      boolean isDefaultRole)
+                                                      boolean isDefaultRole,
+                                                      UUID databaseId)
         throws StandardException
     {
         return new RoleGrantDescriptor(dataDictionary,
@@ -632,7 +633,8 @@ public class DataDescriptorGenerator
                                        grantor,
                                        withadminoption,
                                        isDef,
-                                       isDefaultRole);
+                                       isDefaultRole,
+                                       databaseId);
     }
 
     /**

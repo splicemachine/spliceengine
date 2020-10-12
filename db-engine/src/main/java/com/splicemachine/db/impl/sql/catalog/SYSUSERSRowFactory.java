@@ -53,76 +53,76 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 public class SYSUSERSRowFactory extends CatalogRowFactory
 {
-	public static final String	TABLE_NAME = "SYSUSERS";
+    public static final String    TABLE_NAME = "SYSUSERS";
     public  static  final   String  SYSUSERS_UUID = "9810800c-0134-14a5-40c1-000004f61f90";
     public  static  final   String  PASSWORD_COL_NAME = "PASSWORD";
     
-    private static final int		SYSUSERS_COLUMN_COUNT = 4;
+    private static final int        SYSUSERS_COLUMN_COUNT = 4;
 
-	/* Column #s (1 based) */
-    public static final int		USERNAME_COL_NUM = 1;
-    public static final int		HASHINGSCHEME_COL_NUM = 2;
-    public static final int		PASSWORD_COL_NUM = 3;
-    public static final int		LASTMODIFIED_COL_NUM = 4;
+    /* Column #s (1 based) */
+    public static final int        USERNAME_COL_NUM = 1;
+    public static final int        HASHINGSCHEME_COL_NUM = 2;
+    public static final int        PASSWORD_COL_NUM = 3;
+    public static final int        LASTMODIFIED_COL_NUM = 4;
 
-    static final int		SYSUSERS_INDEX1_ID = 0;
+    static final int        SYSUSERS_INDEX1_ID = 0;
 
-	private static final int[][] indexColumnPositions =
-	{
-		{USERNAME_COL_NUM},
-	};
+    private static final int[][] indexColumnPositions =
+    {
+        {USERNAME_COL_NUM},
+    };
 
-    private	static	final	boolean[]	uniqueness = null;
+    private    static    final    boolean[]    uniqueness = null;
 
-	private	static	final	String[]	uuids =
-	{
-		SYSUSERS_UUID,	// catalog UUID
-		"9810800c-0134-14a5-a609-000004f61f90",	// heap UUID
-		"9810800c-0134-14a5-f1cd-000004f61f90",	// SYSUSERS_INDEX1
-	};
+    private    static    final    String[]    uuids =
+    {
+        SYSUSERS_UUID,    // catalog UUID
+        "9810800c-0134-14a5-a609-000004f61f90",    // heap UUID
+        "9810800c-0134-14a5-f1cd-000004f61f90",    // SYSUSERS_INDEX1
+    };
 
-	/////////////////////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTORS
-	//
-	/////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////
+    //
+    //    CONSTRUCTORS
+    //
+    /////////////////////////////////////////////////////////////////////////////
 
     public SYSUSERSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
-	{
-		super( uuidf, ef, dvf,dd);
-		initInfo( SYSUSERS_COLUMN_COUNT, TABLE_NAME, indexColumnPositions, uniqueness, uuids );
-	}
+    {
+        super( uuidf, ef, dvf,dd);
+        initInfo( SYSUSERS_COLUMN_COUNT, TABLE_NAME, indexColumnPositions, uniqueness, uuids );
+    }
 
-	/////////////////////////////////////////////////////////////////////////////
-	//
-	//	METHODS
-	//
-	/////////////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////////////
+    //
+    //    METHODS
+    //
+    /////////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Make a SYSUSERS row. The password in the UserDescriptor will be zeroed by
+    /**
+     * Make a SYSUSERS row. The password in the UserDescriptor will be zeroed by
      * this method.
-	 *
-	 * @return	Row suitable for inserting into SYSUSERS
-	 *
-	 * @exception   StandardException thrown on failure
-	 */
+     *
+     * @return    Row suitable for inserting into SYSUSERS
+     *
+     * @exception   StandardException thrown on failure
+     */
 
-	public ExecRow makeRow(boolean latestVersion,  TupleDescriptor td, TupleDescriptor parent )
+    public ExecRow makeRow(boolean latestVersion,  TupleDescriptor td, TupleDescriptor parent )
         throws StandardException
-	{
-		String  userName = null;
-		String  hashingScheme = null;
-		char[]  password = null;
-		Timestamp   lastModified = null;
-		
-		ExecRow        			row;
+    {
+        String  userName = null;
+        String  hashingScheme = null;
+        char[]  password = null;
+        Timestamp   lastModified = null;
+
+        ExecRow                    row;
 
         try {
-            if ( td != null )	
+            if ( td != null )
             {
-				if (!(td instanceof UserDescriptor))
-					throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+                if (!(td instanceof UserDescriptor))
+                    throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
 
                 UserDescriptor descriptor = (UserDescriptor) td;
                 userName = descriptor.getUserName();
@@ -130,7 +130,7 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
                 password = descriptor.getAndZeroPassword();
                 lastModified = descriptor.getLastModified();
             }
-	
+
             /* Build the row to insert  */
             row = getExecutionFactory().getValueRow( SYSUSERS_COLUMN_COUNT );
 
@@ -152,52 +152,52 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
             if ( password != null ) { Arrays.fill( password, (char) 0 ); }
         }
 
-		return row;
-	}
+        return row;
+    }
 
-	///////////////////////////////////////////////////////////////////////////
-	//
-	//	ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
-	//
-	///////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////////////////////////
+    //
+    //    ABSTRACT METHODS TO BE IMPLEMENTED BY CHILDREN OF CatalogRowFactory
+    //
+    ///////////////////////////////////////////////////////////////////////////
 
-	/**
-	 * Make a descriptor out of a SYSUSERS row. The password column in the
+    /**
+     * Make a descriptor out of a SYSUSERS row. The password column in the
      * row will be zeroed out.
-	 *
-	 * @param row a row
-	 * @param parentTupleDescriptor	Null for this kind of descriptor.
-	 * @param dd dataDictionary
-	 *
-	 * @return	a descriptor equivalent to a row
-	 *
-	 * @exception   StandardException thrown on failure
-	 */
-	public TupleDescriptor buildDescriptor(
-		ExecRow					row,
-		TupleDescriptor			parentTupleDescriptor,
-		DataDictionary 			dd )
-					throws StandardException
-	{
-		if (SanityManager.DEBUG)
-		{
-			if (row.nColumns() != SYSUSERS_COLUMN_COUNT)
-			{
-				SanityManager.THROWASSERT("Wrong number of columns for a SYSUSERS row: "+
-							 row.nColumns());
-			}
-		}
+     *
+     * @param row a row
+     * @param parentTupleDescriptor    Null for this kind of descriptor.
+     * @param dd dataDictionary
+     *
+     * @return    a descriptor equivalent to a row
+     *
+     * @exception   StandardException thrown on failure
+     */
+    public TupleDescriptor buildDescriptor(
+        ExecRow                    row,
+        TupleDescriptor            parentTupleDescriptor,
+        DataDictionary             dd )
+                    throws StandardException
+    {
+        if (SanityManager.DEBUG)
+        {
+            if (row.nColumns() != SYSUSERS_COLUMN_COUNT)
+            {
+                SanityManager.THROWASSERT("Wrong number of columns for a SYSUSERS row: "+
+                             row.nColumns());
+            }
+        }
 
-		DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
-		String	userName;
-		String	hashingScheme;
-		char[]  password = null;
-		Timestamp   lastModified;
-		DataValueDescriptor	col;
-		SQLVarchar	passwordCol = null;
+        String    userName;
+        String    hashingScheme;
+        char[]  password = null;
+        Timestamp   lastModified;
+        DataValueDescriptor    col;
+        SQLVarchar    passwordCol = null;
 
-		UserDescriptor	result;
+        UserDescriptor    result;
 
         try {
             /* 1st column is USERNAME */
@@ -207,7 +207,7 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
             /* 2nd column is HASHINGSCHEME */
             col = row.getColumn( HASHINGSCHEME_COL_NUM );
             hashingScheme = col.getString();
-		
+
             /* 3nd column is PASSWORD */
             passwordCol = (SQLVarchar) row.getColumn( PASSWORD_COL_NUM );
             password = passwordCol.getRawDataAndZeroIt();
@@ -225,15 +225,15 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
             if ( passwordCol != null ) { passwordCol.zeroRawData(); }
         }
         
-		return result;
-	}
+        return result;
+    }
 
-	/**
-	 * Builds a list of columns suitable for creating this Catalog.
-	 *
-	 *
-	 * @return array of SystemColumn suitable for making this catalog.
-	 */
+    /**
+     * Builds a list of columns suitable for creating this Catalog.
+     *
+     *
+     * @return array of SystemColumn suitable for making this catalog.
+     */
     public SystemColumn[]   buildColumnList()
         throws StandardException
     {
