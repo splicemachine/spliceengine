@@ -752,6 +752,7 @@ public interface SQLState {
 	String LANG_NONULL_DATATYPE                                        = "2202D";
 	String LANG_INVALID_AGGREGATION_DATATYPE                           = "2202E";
     String LANG_INVALID_TIME_SPAN_OPERATION                            = "2202F";
+	String LANG_FIELD_POSITION_ZERO                                    = "22030";
 	/*
 	** Integrity violations.
 	*/

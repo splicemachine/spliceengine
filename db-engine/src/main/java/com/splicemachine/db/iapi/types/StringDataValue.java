@@ -290,4 +290,21 @@ public interface StringDataValue extends ConcatableDataValue
 	 */
 	void setValue(Clob value)
 		throws StandardException;
+
+	/**
+	 * The SQL split_part() is used to split a given string based on a delimiter and pick out the desired field from the string, start from the left of the string.
+	 *
+	 * @param delimiter the delimiter of the defined string
+	 * @param fieldNumber number of a result field
+	 * @param result The result of a previous call to this method, null if not called yet.
+	 *
+	 * @return  A StringDataValue containing the result of the split_part()
+	 *
+	 * @exception StandardException     Thrown on error
+	 */
+	public StringDataValue split_part(
+			StringDataValue delimiter,
+			NumberDataValue fieldNumber,
+			StringDataValue result)
+			throws StandardException;
 }
