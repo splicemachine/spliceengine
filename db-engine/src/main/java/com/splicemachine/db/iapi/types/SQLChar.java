@@ -63,6 +63,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Locale;
 import java.util.MissingResourceException;
+import java.util.regex.Pattern;
 
 
 /**
@@ -2639,6 +2640,57 @@ public class SQLChar
         } else {
             stringResult.setValue(
                 getString().substring(startInt, startInt + lengthInt));
+        }
+
+        return stringResult;
+    }
+
+    /**
+     * The SQL split_part() is used to split a given string based on a delimiter and pick out the desired field from the string, start from the left of the string.
+     *
+     * @param delimiter the delimiter of the defined string
+     * @param fieldNumber number of a result field
+     * @param result The result of a previous call to this method, null if not called yet.
+     *
+     * @return  A StringDataValue containing the result of the split_part()
+     *
+     * @exception StandardException     Thrown on error
+     */
+    public StringDataValue split_part(
+            StringDataValue delimiter,
+            NumberDataValue fieldNumber,
+            StringDataValue result)
+            throws StandardException
+    {
+        StringDataValue stringResult;
+
+        if (result == null)
+        {
+            result = getNewVarchar();
+        }
+
+        stringResult = (StringDataValue) result;
+
+        // The result is null if the receiver (this) is null
+        // or either operand is null.
+
+        if (this.isNull() ||
+                delimiter == null || delimiter.isNull() || delimiter.getString() == null ||
+                fieldNumber == null || fieldNumber.isNull())
+        {
+            stringResult.setToNull();
+            return stringResult;
+        }
+
+        String valueParts[] = getString().split(Pattern.quote(delimiter.getString()));
+        int partIndex = fieldNumber.getInt();
+        if (partIndex == 0) {
+            throw StandardException.newException(SQLState.LANG_FIELD_POSITION_ZERO);
+        }
+        if (partIndex > valueParts.length) {
+            stringResult.setToNull();
+        } else {
+            stringResult.setValue(valueParts[partIndex - 1]);
         }
 
         return stringResult;
