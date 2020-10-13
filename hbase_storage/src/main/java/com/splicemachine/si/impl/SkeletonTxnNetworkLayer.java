@@ -16,10 +16,10 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.google.protobuf.RpcController;
+import com.splicemachine.access.hbase.HBaseTableDescriptor;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import com.splicemachine.ipc.SpliceRpcController;
@@ -113,7 +113,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     public TxnMessage.Txn getTxn(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
         SpliceRpcController controller = new SpliceRpcController();
-        controller.setPriority(HConstants.HIGH_QOS);
+        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
         BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
         service.getTransaction(controller,request,done);
         dealWithError(controller);
