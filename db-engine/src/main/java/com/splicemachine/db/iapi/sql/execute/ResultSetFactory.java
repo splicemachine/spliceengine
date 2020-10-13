@@ -817,6 +817,48 @@ public interface ResultSetFactory {
             String explainPlan)
             throws StandardException;
 
+    NoPutResultSet getVTIResultSet(
+            Activation activation,
+            GeneratedMethod row,
+            int resultSetNumber,
+            GeneratedMethod constructor,
+            String javaClassName,
+            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            int erdNumber,
+            int ctcNumber,
+            boolean isTarget,
+            int scanIsolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            boolean isDerbyStyleTableFunction,
+            int returnTypeNumber,
+            int vtiProjectionNumber,
+            int vtiRestrictionNumber,
+            int vtiResultDescriptionNumber,
+            String explainPlan,
+            boolean quotedEmptyIsNull)
+            throws StandardException;
+
+    public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+                                          int resultSetNumber,
+                                          GeneratedMethod constructor,
+                                          String javaClassName,
+                                          String pushedQualifiersField,
+                                          int erdNumber,
+                                          int ctcNumber,
+                                          boolean isTarget,
+                                          int scanIsolationLevel,
+                                          double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost,
+                                          boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber,
+                                          int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
+                                          String explainPlan,
+                                          boolean quotedEmptyIsNull) throws StandardException;
+
+
 	/**
 		A distinct scan result set pushes duplicate elimination into
 		the scan.
@@ -988,82 +1030,6 @@ public interface ResultSetFactory {
 								GeneratedMethod pastTxFunctor
 								)
 			throws StandardException;
-
-	/**
-		A VTI result set wraps a user supplied result set.
-
-		@param activation the activation for this result set,
-			against which the row operation is performed to
-			create the result set.
-		@param row a reference to a method in the activation
-			that creates the expected row.
-			<verbatim>
-				ExecRow row() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param constructor		The GeneratedMethod for the user's constructor
-		@param javaClassName	The java class name for the VTI
-		@param erdNumber		int for referenced column BitSet (so it can be turned back into an object)
-		@param version2			Whether or not VTI is a version 2 VTI.
-		@param isTarget			Whether or not VTI is a target VTI.
-		@param optimizerEstimatedRowCount	Estimated total # of rows by optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@param isDerbyStyleTableFunction    True if this is a Derby-style table function
-		@param returnTypeNumber	Which saved object contains the return type (a multi-set) serialized as a byte array
-		@param vtiProjectionNumber	Which saved object contains the projection for a RestrictedVTI
-		@param vtiRestrictionNumber	Which saved object contains the restriction for a RestrictedVTI
-	    @param vtiResultDescriptionNumber Which saved object contains the result description of a VTI
-		@return the row as a result set.
-		@exception StandardException thrown when unable to create the
-			result set
-	 */
-	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
-								   int resultSetNumber,
-								   GeneratedMethod constructor,
-								   String javaClassName,
-								   String pushedQualifiersField,
-								   int erdNumber,
-								   int ctcNumber,
-								   boolean isTarget,
-								   int scanIsolationLevel,
-								   double optimizerEstimatedRowCount,
-								   double optimizerEstimatedCost,
-								   boolean isDerbyStyleTableFunction,
-								   int returnTypeNumber,
-								   int vtiProjectionNumber,
-								   int vtiRestrictionNumber,
-								   int vtiResultDescriptionNumber,
-								   String explainPlan,
-								   boolean quotedEmptyIsNull)
-		 throws StandardException;
-
-	/*
-	 * This method was purely added to get some stored prepared statements to pass the validation stage of their compilation.
-	 * The existing method used a String for pushedQualifiersField.  However, nothing was done with the initial value that
-	 * was passed into the constructor.  So this method does the same thing and ignores the pushedQualifiersField which is
-	 * an com.splicemachine.db.iapi.store.access.Qualifier[][].
-	 */
-	NoPutResultSet getVTIResultSet(
-			Activation activation,
-			GeneratedMethod row,
-			int resultSetNumber,
-			GeneratedMethod constructor,
-			String javaClassName,
-			com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
-			int erdNumber,
-			int ctcNumber,
-			boolean isTarget,
-			int scanIsolationLevel,
-			double optimizerEstimatedRowCount,
-			double optimizerEstimatedCost,
-			boolean isDerbyStyleTableFunction,
-			int returnTypeNumber,
-			int vtiProjectionNumber,
-			int vtiRestrictionNumber,
-			int vtiResultDescriptionNumber,
-			String explainPlan,
-			boolean quotedEmptyIsNull)
-					throws StandardException;
 
     /**
      * A distinct scan result set pushes duplicate elimination into
@@ -1756,7 +1722,27 @@ public interface ResultSetFactory {
 												  String explainPlan,
 												  String sparkExpressionTreeAsString,
 												  int encodedNewMergeJoin)
-	throws StandardException;
+			throws StandardException;
+
+	NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+													  int leftNumCols,
+													  NoPutResultSet rightResultSet,
+													  int rightNumCols,
+													  int leftHashKeyItem,
+													  int rightHashKeyItem,
+													  boolean noCacheBroadcastJoinRight,
+													  GeneratedMethod joinClause,
+													  int resultSetNUmber,
+													  GeneratedMethod emptyRowFun,
+													  boolean wasRightOuterJoin,
+													  boolean oneRowRightSide,
+													  byte semiJoinType,
+													  boolean rightFromSSQ,
+													  double optimizerEstimatedRowCount,
+													  double optimizerEstimatedCost,
+													  String userSuppliedOptimizerOverrides,
+													  String explainPlan)
+			throws StandardException;
 
     /**
      * Support old versions of getXXXJoinResultSet, so SHOW SCHEMAS and other statements
@@ -1888,26 +1874,6 @@ public interface ResultSetFactory {
                                                       String explainPlan)
             throws StandardException;
 
-
-    NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                      int leftNumCols,
-                                                      NoPutResultSet rightResultSet,
-                                                      int rightNumCols,
-                                                      int leftHashKeyItem,
-                                                      int rightHashKeyItem,
-                                                      boolean noCacheBroadcastJoinRight,
-                                                      GeneratedMethod joinClause,
-                                                      int resultSetNUmber,
-                                                      GeneratedMethod emptyRowFun,
-                                                      boolean wasRightOuterJoin,
-                                                      boolean oneRowRightSide,
-                                                      byte semiJoinType,
-                                                      boolean rightFromSSQ,
-                                                      double optimizerEstimatedRowCount,
-                                                      double optimizerEstimatedCost,
-                                                      String userSuppliedOptimizerOverrides,
-                                                      String explainPlan)
-            throws StandardException;
 
     NoPutResultSet getMergeSortFullOuterJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
