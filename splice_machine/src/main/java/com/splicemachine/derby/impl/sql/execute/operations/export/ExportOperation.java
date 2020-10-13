@@ -147,36 +147,6 @@ public class ExportOperation extends SpliceBaseOperation {
         return this.sourceColumnDescriptors;
     }
 
-    // - - - - - - - - - - - -
-    // serialization
-    // - - - - - - - - - - - -
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        source = (SpliceOperation) in.readObject();
-        currentTemplate = (ExecRow) in.readObject();
-        exportParams = (ExportParams) in.readObject();
-        int srcColDescriptors = in.readInt();
-        sourceColumnDescriptors = new ResultColumnDescriptor[srcColDescriptors];
-
-        for (int i = 0; i < srcColDescriptors; i++) {
-            sourceColumnDescriptors[i] = (ResultColumnDescriptor) in.readObject();
-        }
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(source);
-        out.writeObject(currentTemplate);
-        out.writeObject(exportParams);
-        out.writeInt(sourceColumnDescriptors.length);
-        for (int i = 0; i < sourceColumnDescriptors.length; i++) {
-            out.writeObject(sourceColumnDescriptors[i]);
-        }
-    }
-
     @SuppressWarnings("unchecked")
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
