@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import javax.sql.DataSource;
 import java.security.MessageDigest;
@@ -388,7 +389,8 @@ public final class NativeAuthenticationServiceImpl
         throws StandardException {
         String canonicalCredentialsDBName = getCanonicalServiceName(_credentialsDB);
 
-        String canonicalDB = Monitor.getMonitor().getCanonicalServiceName(canonicalDatabaseName);
+        //String canonicalDB =
+        Monitor.getMonitor().getCanonicalServiceName(canonicalDatabaseName);
 
         return canonicalCredentialsDBName != null && canonicalCredentialsDBName.equals(canonicalDatabaseName);
     }
@@ -493,6 +495,7 @@ public final class NativeAuthenticationServiceImpl
      * @param userPassword    The user's password used to connect to JBMS system
      * @param databaseName    The database which the user wants to connect to.
      */
+    @SuppressFBWarnings(value="RV_RETURN_VALUE_IGNORED", justification = "We pretend evaluating the password. See comment below")
     private boolean authenticateLocally
         (
          String userName,
@@ -547,11 +550,11 @@ public final class NativeAuthenticationServiceImpl
         }
         
         PasswordHasher      hasher = new PasswordHasher( userDescriptor.getHashingScheme() );
-        char[]                     candidatePassword = hasher.hashPasswordIntoString( userName, userPassword ).toCharArray();
-        char[]                     actualPassword = userDescriptor.getAndZeroPassword();
+        char[]              candidatePassword = hasher.hashPasswordIntoString( userName, userPassword ).toCharArray();
+        char[]              actualPassword = userDescriptor.getAndZeroPassword();
 
         try {
-            if ( (candidatePassword == null) || (actualPassword == null)) { return false; }
+            if (actualPassword == null) { return false; }
             if ( candidatePassword.length != actualPassword.length ) { return false; }
         
             for ( int i = 0; i < candidatePassword.length; i++ )
@@ -560,7 +563,7 @@ public final class NativeAuthenticationServiceImpl
             }
         } finally
         {
-            if ( candidatePassword != null ) { Arrays.fill( candidatePassword, (char) 0 ); }
+            Arrays.fill( candidatePassword, (char) 0 );
             if ( actualPassword != null ) { Arrays.fill( actualPassword, (char) 0 ); }
         }
 

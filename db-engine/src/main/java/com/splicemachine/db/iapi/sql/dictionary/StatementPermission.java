@@ -143,7 +143,6 @@ public abstract class StatementPermission {
         throws StandardException
     {
         DataDictionary dd = lcc.getDataDictionary();
-        TransactionController tc = lcc.getTransactionExecute();
         ExecPreparedStatement ps = activation.getPreparedStatement();
         List<String> currentGroupuserlist = lcc.getCurrentGroupUser(activation);
 

@@ -95,6 +95,12 @@ public class StatementColumnPermission extends StatementTablePermission
         return false;
     }
 
+    public int hashCode()
+    {
+        return columns.hashCode();
+    }
+
+
     /**
      * @see StatementPermission#check
      */
@@ -272,8 +278,9 @@ public class StatementColumnPermission extends StatementTablePermission
         //if we are still here, then that means that we didn't find any select
         //privilege on the table or any column in the table
         if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
-            ViewDescriptor vd = dd.getViewDescriptor(td);
-            vd.getViewText();
+            //ViewDescriptor vd =
+            dd.getViewDescriptor(td);
+            //vd.getViewText();
         }
         if (privType == Authorizer.MIN_SELECT_PRIV)
             throw StandardException.newException( forGrant ? SQLState.AUTH_NO_TABLE_PERMISSION_FOR_GRANT
