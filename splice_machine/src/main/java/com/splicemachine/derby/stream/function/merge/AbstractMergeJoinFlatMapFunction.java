@@ -16,6 +16,7 @@ package com.splicemachine.derby.stream.function.merge;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
@@ -37,8 +38,7 @@ import com.splicemachine.utils.Pair;
 import splice.com.google.common.base.Preconditions;
 
 import javax.annotation.Nullable;
-import java.io.Closeable;
-import java.io.IOException;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -427,8 +427,8 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         boolean skipRightSideRead = false;
 
         // The mem platform doesn't support the HBase MultiRangeRowFilter.
-        if (!IS_MEM_PLATFORM && leftPeekingIterator instanceof BufferedMergeJoinIterator) {
-            BufferedMergeJoinIterator mjIter = (BufferedMergeJoinIterator)leftPeekingIterator;
+        if (!IS_MEM_PLATFORM && leftRows instanceof BufferedMergeJoinIterator) {
+            BufferedMergeJoinIterator mjIter = (BufferedMergeJoinIterator)leftRows;
             keyRows = mjIter.getKeyRows();
             ((BaseActivation) joinOperation.getActivation()).setKeyRows(keyRows);
             skipRightSideRead = (keyRows == null);
@@ -537,4 +537,16 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
     protected abstract AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<ExecRow> leftPeekingIterator,
                                                                          PeekingIterator<ExecRow> rightPeekingIterator,
                                                                          int[] leftHashKeys, int[] rightHashKeys, JoinOperation joinOperation, OperationContext<JoinOperation> operationContext);
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeBoolean(useOldMergeJoin);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        useOldMergeJoin = in.readBoolean();
+    }
 }

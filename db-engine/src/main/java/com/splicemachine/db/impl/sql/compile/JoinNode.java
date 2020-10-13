@@ -51,6 +51,7 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
+import org.apache.spark.sql.catalyst.optimizer.Cost;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.collect.Lists;
@@ -1166,6 +1167,12 @@ public class JoinNode extends TableOperatorNode{
         resultColumns.setResultSetNumber(getResultSetNumber());
     }
 
+    public boolean favorOldMergeJoin(CostEstimate costEstimate) {
+        double probingReductionRatio = costEstimate.singleScanRowCount() / costEstimate.getScannedBaseTableRows();
+        // Favor Old Merge Join if we estimate probing won't reduce the scanned row count much.
+        return probingReductionRatio < 2.0;
+    }
+
     /**
      * Some types of joins (e.g. outer joins) will return a different
      * number of rows than is predicted by optimizeIt() in JoinNode.
@@ -1313,7 +1320,9 @@ public class JoinNode extends TableOperatorNode{
 
             CompilerContext.NewMergeJoinExecutionType
                 newMergeJoin = getCompilerContext().getNewMergeJoin();
-            boolean chooseOldMergeJoin = ap.getCostEstimate().partitionCount() < 4;
+
+            // Favor Old Merge Join if we estimate probing won't reduce the scanned row count much.
+            boolean chooseOldMergeJoin = favorOldMergeJoin(ap.getCostEstimate());
             if (chooseOldMergeJoin) {
                 if (newMergeJoin == SYSTEM)
                     newMergeJoin = SYSTEM_OFF;
@@ -2123,6 +2132,11 @@ public class JoinNode extends TableOperatorNode{
                 .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
                 .append("n=").append(getResultSetNumber())
                 .append(attrDelim).append(getFinalCostEstimate(false).prettyProcessingString(attrDelim));
+        if (joinStrategy.getJoinStrategyType().equals(JoinStrategy.JoinStrategyType.MERGE)) {
+            if (favorOldMergeJoin(RSUtils.ap(this).getCostEstimate()) &&
+                getCompilerContext().getNewMergeJoin() != FORCED)
+                sb.append(attrDelim).append("OldMergeJoin");
+        }
         if (joinPredicates != null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (joinPreds != null && !joinPreds.isEmpty())
