@@ -14,17 +14,14 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
-import com.google.common.collect.Maps;
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.stream.Streams;
-import splice.com.google.common.collect.Lists;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
+import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 /**
  * LocalWriteFactory for ForeignKeyParentInterceptWriteHandler -- see that class for details.
@@ -33,26 +30,22 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
 
     private final String parentTableName;
     private final List<Long> referencingIndexConglomerateNumbers = Lists.newArrayList();
-    private final List<Long> childBaseTableConglomerateNumbers = Lists.newArrayList();
     private final PipelineExceptionFactory exceptionFactory;
     private final List<DDLMessage.FKConstraintInfo> constraintInfos = Lists.newArrayList();
 
     ForeignKeyParentInterceptWriteFactory(String parentTableName,
                                           List<Long> referencingIndexConglomerateNumbers,
-                                          List<Long> childBaseTableConglomerateNumbers,
                                           PipelineExceptionFactory exceptionFactory,
                                           List<DDLMessage.FKConstraintInfo> fkConstraintInfo) {
         this.parentTableName = parentTableName;
         this.exceptionFactory=exceptionFactory;
         this.referencingIndexConglomerateNumbers.addAll(referencingIndexConglomerateNumbers);
-        this.childBaseTableConglomerateNumbers.addAll(childBaseTableConglomerateNumbers);
         this.constraintInfos.addAll(fkConstraintInfo);
     }
 
     @Override
-    public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        ctx.addLast(new ForeignKeyParentInterceptWriteHandler(parentTableName, referencingIndexConglomerateNumbers,
-                childBaseTableConglomerateNumbers, constraintInfos, exceptionFactory));
+    public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) {
+        ctx.addLast(new ForeignKeyParentInterceptWriteHandler(parentTableName, referencingIndexConglomerateNumbers, constraintInfos, exceptionFactory));
     }
 
     @Override
@@ -67,16 +60,13 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
         int idx = this.referencingIndexConglomerateNumbers.indexOf(conglomerateNumber);
         if(idx != -1) {
             this.referencingIndexConglomerateNumbers.remove(conglomerateNumber);
-            this.childBaseTableConglomerateNumbers.remove(idx); // at index
             this.constraintInfos.remove(idx); // at index
         }
     }
 
     public void addReferencingIndexConglomerateNumber(List<Long> referencingIndexConglomerateNumbers,
-                                                      List<Long> childBaseTableConglomerateNumbers,
                                                       List<DDLMessage.FKConstraintInfo> fkConstraintInfos) {
         this.referencingIndexConglomerateNumbers.addAll(referencingIndexConglomerateNumbers);
-        this.childBaseTableConglomerateNumbers.addAll(childBaseTableConglomerateNumbers);
         this.constraintInfos.addAll(fkConstraintInfos);
     }
 

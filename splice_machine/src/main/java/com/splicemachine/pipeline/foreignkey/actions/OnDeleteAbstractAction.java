@@ -54,16 +54,14 @@ public abstract class OnDeleteAbstractAction extends Action {
 
     private final ForeignKeyViolationProcessor violationProcessor;
 
-    public OnDeleteAbstractAction(Long childBaseTableConglomId,
-                                  Long backingIndexConglomId,
+    public OnDeleteAbstractAction(Long backingIndexConglomId,
                                   DDLMessage.FKConstraintInfo constraintInfo,
                                   WriteContext writeContext,
                                   TxnOperationFactory txnOperationFactory, ForeignKeyViolationProcessor violationProcessor) throws Exception {
-        super(childBaseTableConglomId, backingIndexConglomId);
+        super(constraintInfo.getTable().getConglomerate(), backingIndexConglomId);
         this.txnOperationFactory = txnOperationFactory;
         assert childBaseTableConglomId != null;
         assert backingIndexConglomId != null;
-        assert constraintInfo != null;
         assert violationProcessor != null;
         this.constraintInfo = constraintInfo;
         this.mutationBuffer = new ObjectObjectHashMap<>();

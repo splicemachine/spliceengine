@@ -14,7 +14,6 @@
 
 package com.splicemachine.foreignkeys;
 
-import com.splicemachine.derby.impl.load.ImportErrorIT;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -25,8 +24,10 @@ import org.junit.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.sql.*;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -292,14 +293,12 @@ public class ForeignKeyActionIT {
     public void onDeleteNoActionFailsProperlyInImportDataIfMaxAllowedBadIsSetToZero() throws Exception {
         try(Statement s = conn.createStatement()) {
             createDataBaseObjects3(s);
+            importData(s,"C1I", "fk_test/bad.csv", true);
+            shouldContain("C1I", new int[][]{});
             importData(s, "C1I", "fk_test/good.csv", false);
             shouldContain("C1I", new int[][]{{1,1}, {2,2}});
             importData(s, "C2I", "fk_test/good.csv", false);
             shouldContain("C2I", new int[][]{{1,1}, {2,2}});
-            s.executeUpdate("delete from C1I");
-            s.executeUpdate("delete from C2I");
-            importData(s,"C1I", "fk_test/bad.csv", true);
-            shouldContain("C1I", new int[][]{});
         }
     }
 

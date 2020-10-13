@@ -36,13 +36,12 @@ public class OnDeleteSetNull extends OnDeleteAbstractAction {
 
     private final boolean isSelfReferencing;
 
-    public OnDeleteSetNull(Long childBaseTableConglomId,
-                           Long backingIndexConglomId,
+    public OnDeleteSetNull(Long backingIndexConglomId,
                            DDLMessage.FKConstraintInfo constraintInfo,
                            WriteContext writeContext,
                            TxnOperationFactory txnOperationFactory,
                            ForeignKeyViolationProcessor violationProcessor) throws Exception {
-        super(childBaseTableConglomId, backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
+        super(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
         isSelfReferencing = childBaseTableConglomId == constraintInfo.getParentTableConglomerate();
     }
 
