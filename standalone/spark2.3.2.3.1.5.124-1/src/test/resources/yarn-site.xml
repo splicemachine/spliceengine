@@ -42,6 +42,10 @@
     <value>localhost:8053</value>
   </property>
   <property>
+    <name>yarn.nodemanager.webapp.address</name>
+    <value>localhost:8042</value>
+  </property>
+  <property>
     <name>yarn.resourcemanager.hostname</name>
     <value>localhost</value>
   </property>
