@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLRef;
@@ -78,7 +79,6 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	private boolean					conglomCreated;
 	private ConglomerateController	cc;
 	private Properties				properties;
-	private ScanController			scan;
 	private	ResultDescription		resultDescription;
 	/** Activation object with local state information. */
 	Activation						activation;
@@ -91,7 +91,6 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	private ConglomerateController positionIndex_cc;
 	private DataValueDescriptor[]  uniqueIndexRow = null;
 	private DataValueDescriptor[]  positionIndexRow = null;
-	private RowLocation            destRowLocation; //row location in the temporary conglomerate
 	private SQLLongint             position_sqllong;
 	
 
@@ -159,7 +158,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	public void decrementLastArraySlot() { lastArraySlot--; }
 	public int getState() { return state; }
 	public void setState(int state) { this.state = state; }
-	public Activation getActivation() { return getActivation(); }
+	public Activation getActivation() { return activation; }
 	public long getConglomerateId() { return CID; }
 
     /* Avoid materializing a stream just because it goes through a temp table.
@@ -282,7 +281,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                     collation_ids,
                     properties,
                     TransactionController.IS_TEMPORARY | 
-                    TransactionController.IS_KEPT);
+                    TransactionController.IS_KEPT, Conglomerate.Priority.NORMAL);
 
 			conglomCreated = true;
 
@@ -345,7 +344,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                         null, // no collation needed for index on row locations.
                         props, 
                         (TransactionController.IS_TEMPORARY | 
-                         TransactionController.IS_KEPT));
+                         TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
 				uniqueIndex_cc = tc.openConglomerate(
 								uniqueIndexConglomId, 
@@ -413,7 +412,7 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
                     null, // no collation needed for index on row locations.
                     props, 
                     (TransactionController.IS_TEMPORARY | 
-                     TransactionController.IS_KEPT));
+                     TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
 			positionIndex_cc = 
                 tc.openConglomerate(
@@ -515,12 +514,6 @@ public class TemporaryRowHolderImpl implements TemporaryRowHolder
 	 */
 	public void close() throws StandardException
 	{
-		if (scan != null)
-		{
-			scan.close();
-			scan = null;
-		}
-
 		if (cc != null)
 		{
 			cc.close();
