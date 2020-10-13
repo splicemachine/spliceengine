@@ -794,6 +794,31 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                           int returnTypeNumber, int vtiProjectionNumber,
                                           int vtiRestrictionNumber,
                                           int vtiResultDescriptionNumber,
+                                          String explainPlan) throws StandardException {
+        return getVTIResultSet(activation,
+                               row, resultSetNumber,
+                               constructor, javaClassName,
+                               pushedQualifiersField, erdNumber,
+                               ctcNumber, isTarget,
+                               scanIsolationLevel, optimizerEstimatedRowCount,
+                               optimizerEstimatedCost, isDerbyStyleTableFunction,
+                               returnTypeNumber, vtiProjectionNumber,
+                               vtiRestrictionNumber,
+                               vtiResultDescriptionNumber,
+                               explainPlan,
+                               false);
+    }
+    @Override
+    public NoPutResultSet getVTIResultSet(Activation activation,
+                                          GeneratedMethod row, int resultSetNumber,
+                                          GeneratedMethod constructor, String javaClassName,
+                                          String pushedQualifiersField, int erdNumber,
+                                          int ctcNumber, boolean isTarget,
+                                          int scanIsolationLevel, double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost, boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber, int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
                                           String explainPlan,
                                           boolean quotedEmptyIsNull) throws StandardException {
 
@@ -815,6 +840,51 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 quotedEmptyIsNull);
         op.setExplainPlan(explainPlan);
         return op;
+    }
+
+    @Override
+    public NoPutResultSet getVTIResultSet(
+            Activation activation,
+            GeneratedMethod row,
+            int resultSetNumber,
+            GeneratedMethod constructor,
+            String javaClassName,
+            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            int erdNumber,
+            int ctcNumber,
+            boolean isTarget,
+            int scanIsolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            boolean isDerbyStyleTableFunction,
+            int returnTypeNumber,
+            int vtiProjectionNumber,
+            int vtiRestrictionNumber,
+            int vtiResultDescriptionNumber,
+            String explainPlan)
+            throws StandardException {
+
+        return getVTIResultSet(
+                activation,
+                row,
+                resultSetNumber,
+                constructor,
+                javaClassName,
+                (String) null,
+                erdNumber,
+                ctcNumber,
+                isTarget,
+                scanIsolationLevel,
+                optimizerEstimatedRowCount,
+                optimizerEstimatedCost,
+                isDerbyStyleTableFunction,
+                returnTypeNumber,
+                vtiProjectionNumber,
+                vtiRestrictionNumber,
+                vtiResultDescriptionNumber,
+                explainPlan,
+                false
+        );
     }
 
     @Override
@@ -1156,6 +1226,39 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
              userSuppliedOptimizerOverrides,
              explainPlan,
              null,
+             CompilerContext.NewMergeJoinExecutionType.SYSTEM.ordinal());
+    }
+
+    @Override
+    public NoPutResultSet getMergeLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            int rightHashKeyToBaseTableMapItem,
+            int rightHashKeySortOrderItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString) throws StandardException {
+
+        return getMergeLeftOuterJoinResultSet(
+             leftResultSet,  leftNumCols,
+             rightResultSet,  rightNumCols,
+             leftHashKeyItem,  rightHashKeyItem,
+             rightHashKeyToBaseTableMapItem,
+             rightHashKeySortOrderItem,
+             joinClause,  resultSetNumber,
+             emptyRowFun,  wasRightOuterJoin,
+             oneRowRightSide,  semiJoinType,
+             rightFromSSQ,
+             optimizerEstimatedRowCount,  optimizerEstimatedCost,
+             userSuppliedOptimizerOverrides,
+             explainPlan,
+             sparkExpressionTreeAsString,
              CompilerContext.NewMergeJoinExecutionType.SYSTEM.ordinal());
     }
 

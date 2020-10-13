@@ -829,6 +829,25 @@ public interface ResultSetFactory {
 								   boolean quotedEmptyIsNull)
 		 throws StandardException;
 
+	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+								   int resultSetNumber,
+								   GeneratedMethod constructor,
+								   String javaClassName,
+								   String pushedQualifiersField,
+								   int erdNumber,
+								   int ctcNumber,
+								   boolean isTarget,
+								   int scanIsolationLevel,
+								   double optimizerEstimatedRowCount,
+								   double optimizerEstimatedCost,
+								   boolean isDerbyStyleTableFunction,
+								   int returnTypeNumber,
+								   int vtiProjectionNumber,
+								   int vtiRestrictionNumber,
+								   int vtiResultDescriptionNumber,
+								   String explainPlan)
+		 throws StandardException;
+
 	/*
 	 * This method was purely added to get some stored prepared statements to pass the validation stage of their compilation.
 	 * The existing method used a String for pushedQualifiersField.  However, nothing was done with the initial value that
@@ -855,6 +874,27 @@ public interface ResultSetFactory {
 			int vtiResultDescriptionNumber,
 			String explainPlan,
 			boolean quotedEmptyIsNull)
+					throws StandardException;
+
+	NoPutResultSet getVTIResultSet(
+			Activation activation,
+			GeneratedMethod row,
+			int resultSetNumber,
+			GeneratedMethod constructor,
+			String javaClassName,
+			com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+			int erdNumber,
+			int ctcNumber,
+			boolean isTarget,
+			int scanIsolationLevel,
+			double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost,
+			boolean isDerbyStyleTableFunction,
+			int returnTypeNumber,
+			int vtiProjectionNumber,
+			int vtiRestrictionNumber,
+			int vtiResultDescriptionNumber,
+			String explainPlan)
 					throws StandardException;
 	/**
 		A distinct scan result set pushes duplicate elimination into
@@ -1762,6 +1802,28 @@ public interface ResultSetFactory {
 												  String userSuppliedOptimizerOverrides,
 												  String explainPlan)
 			throws StandardException;
+
+	NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+												  int leftNumCols,
+												  NoPutResultSet rightResultSet,
+												  int rightNumCols,
+												  int leftHashKeyItem,
+												  int rightHashKeyItem,
+												  int rightHashKeyToBaseTableMapItem,
+												  int rightHashKeySortOrderItem,
+												  GeneratedMethod joinClause,
+												  int resultSetNUmber,
+												  GeneratedMethod emptyRowFun,
+												  boolean wasRightOuterJoin,
+												  boolean oneRowRightSide,
+												  byte semiJoinType,
+												  boolean rightFromSSQ,
+												  double optimizerEstimatedRowCount,
+												  double optimizerEstimatedCost,
+												  String userSuppliedOptimizerOverrides,
+												  String explainPlan,
+                                                  String sparkExpressionTreeAsString)
+            throws StandardException;
 
 	NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 													  int leftNumCols,
