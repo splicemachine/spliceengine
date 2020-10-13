@@ -23,6 +23,8 @@ import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.primitives.Bytes;
 
+import java.io.IOException;
+
 /**
  * We intercept writes on either the parent or child table and check for the existence of referenced or referring
  * rows on the child or parent table(s).  When those writes fail the remote *CheckWriteHandler returns a failure
@@ -104,9 +106,7 @@ public class ForeignKeyViolationProcessor {
             //
             // Error message looks like: DELETE on table 'P' caused a violation of foreign key constraint 'FK_1' for key (5).
             //
-            return cause.getContext()
-                    .withoutMessage(0)                      // Remove the rowKey
-                    .withMessage(1, parentTableName);       // Add correct table name
+            return cause.getContext();
         }
     }
 

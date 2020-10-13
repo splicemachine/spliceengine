@@ -87,6 +87,12 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         return false;
     }
 
+    @Override
+    public boolean hasDependentWrites() {
+        // FK with cascading deletion causes a (remote) write on a child table.
+        return parentInterceptWriteFactory != null && parentInterceptWriteFactory.hasCascadingDeleteFK();
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // build factories from minimal information (used tasks/jobs to ALTER existing write contexts)
