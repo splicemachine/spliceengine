@@ -16,6 +16,7 @@ package com.splicemachine.pipeline.foreignkey.actions;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
@@ -32,15 +33,15 @@ import com.splicemachine.si.api.data.TxnOperationFactory;
 
 import java.util.Arrays;
 
-public class OnDeleteSetNull extends OnDeleteAbstractAction {
+public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
 
     private final boolean isSelfReferencing;
 
-    public OnDeleteSetNull(Long backingIndexConglomId,
-                           DDLMessage.FKConstraintInfo constraintInfo,
-                           WriteContext writeContext,
-                           TxnOperationFactory txnOperationFactory,
-                           ForeignKeyViolationProcessor violationProcessor) throws Exception {
+    public OnDeleteSetNullOrCascade(Long backingIndexConglomId,
+                                    DDLMessage.FKConstraintInfo constraintInfo,
+                                    WriteContext writeContext,
+                                    TxnOperationFactory txnOperationFactory,
+                                    ForeignKeyViolationProcessor violationProcessor) throws Exception {
         super(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
         isSelfReferencing = childBaseTableConglomId == constraintInfo.getParentTableConglomerate();
     }
@@ -64,7 +65,7 @@ public class OnDeleteSetNull extends OnDeleteAbstractAction {
         rowToEncode.setRowArray(execRow.getRowArray());
         entryEncoder.setRow(rowToEncode);
         byte[] value = entryEncoder.encode();
-        return new KVPair(rowId, value, KVPair.Type.UPDATE);
+        return new KVPair(rowId, value, getKvPairType());
     }
 
     @Override
@@ -77,5 +78,15 @@ public class OnDeleteSetNull extends OnDeleteAbstractAction {
         pipelineBuffer.add(pair);
         mutationBuffer.putIfAbsent(pair, pair);
         return WriteResult.success();
+    }
+
+    private KVPair.Type getKvPairType() {
+        int deleteRule = constraintInfo.getDeleteRule();
+        assert deleteRule == StatementType.RA_SETNULL || deleteRule == StatementType.RA_CASCADE;
+        if(deleteRule == StatementType.RA_SETNULL) {
+            return KVPair.Type.UPDATE;
+        } else { // CASCADE
+            return KVPair.Type.DELETE;
+        }
     }
 }

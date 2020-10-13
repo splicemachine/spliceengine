@@ -112,16 +112,12 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
             }
         }
         if(!failed) {
-            ctx.success(mutation);
             ctx.sendUpstream(mutation);
         }
     }
 
     @Override
     public void flush(WriteContext ctx) throws IOException {
-        if(failed) {
-            return;
-        }
         try {
             for(Action action : actions.values()) {
                 action.flush(ctx);

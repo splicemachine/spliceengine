@@ -55,7 +55,7 @@ public class ForeignKeyActionIT {
     public void deleteTables() throws Exception {
         conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
-        new TableDAO(conn).drop(SCHEMA, "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
+        new TableDAO(conn).drop(SCHEMA, "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
     }
 
     @After
@@ -210,7 +210,7 @@ public class ForeignKeyActionIT {
         }
     }
 
-    private static void createDataBaseObjects3(Statement s) throws SQLException {
+    private static void createDatabaseObjects3(Statement s) throws SQLException {
         s.executeUpdate("create table PI(col1 int, col2 varchar(2), primary key (col1))");
         s.executeUpdate("create table C1I(col1 int, col2 int, constraint ci_fk_key foreign key(col1) references PI(col1) on delete no action)");
         s.executeUpdate("create table C2I(col1 int, col2 int, constraint ci_fk_key2 foreign key(col1) references PI(col1) on delete no action)");
@@ -292,7 +292,7 @@ public class ForeignKeyActionIT {
     @Test
     public void onDeleteNoActionFailsProperlyInImportDataIfMaxAllowedBadIsSetToZero() throws Exception {
         try(Statement s = conn.createStatement()) {
-            createDataBaseObjects3(s);
+            createDatabaseObjects3(s);
             importData(s,"C1I", "fk_test/bad.csv", true);
             shouldContain("C1I", new int[][]{});
             importData(s, "C1I", "fk_test/good.csv", false);
@@ -302,6 +302,99 @@ public class ForeignKeyActionIT {
         }
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // FK - ON DELETE CASCADE
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    private static void createDatabaseObjects4(Statement s, boolean withGrandChildren, boolean withNoActionGrandChildren) throws SQLException {
+        s.executeUpdate("create table CP(col1 int, col2 varchar(2), col3 int, col4 int, primary key (col2, col4))");
+        s.executeUpdate("insert into CP values (1, 'a', 1, 1)");
+        s.executeUpdate("insert into CP values (2, 'b', 2, 2)");
+        s.executeUpdate("insert into CP values (3, 'c', 3, 3)");
+
+        s.executeUpdate("create table CC(col1 int primary key, col2 varchar(2), col3 int, constraint ccfkey_1 foreign key(col2, col3) references CP(col2, col4) on delete cascade)");
+        s.executeUpdate("insert into CC values (1, 'b', 2)");
+        s.executeUpdate("insert into CC values (400, 'a', 1)");
+        s.executeUpdate("insert into CC values (2, 'b', 2)");
+        s.executeUpdate("insert into CC values (800, 'c', 3)");
+
+        String clause = "cascade";
+        if(withNoActionGrandChildren) {
+            clause = "no action";
+        }
+        if(withGrandChildren) {
+            s.executeUpdate("create table GC1(col1 int references CC(col1) on delete " + clause + ", col2 varchar(2))");
+            s.executeUpdate("insert into GC1 values (1, 'z')");
+            s.executeUpdate("insert into GC1 values (1, 'z')");
+            s.executeUpdate("insert into GC1 values (1, 'z')");
+            s.executeUpdate("insert into GC1 values (400, 'y')");
+
+            s.executeUpdate("create table GC2(col1 int references CC(col1) on delete " + clause + ", col2 varchar(2))");
+            s.executeUpdate("insert into GC2 values (2, 'y')");
+            s.executeUpdate("insert into GC2 values (2, 'y')");
+            s.executeUpdate("insert into GC2 values (2, 'y')");
+            s.executeUpdate("insert into GC2 values (800, 'x')");
+        }
+
+        if(withNoActionGrandChildren) {
+
+        }
+    }
+
+    @Test
+    public void onDeleteCascadeWithChildWorks() throws SQLException {
+        try(Statement s = conn.createStatement()) {
+            createDatabaseObjects4(s, false, false);
+            s.executeUpdate("delete from CP where col1 = 2");
+            shouldContain("CP", new Object[][]{{1, "a", 1, 1}, {3, "c", 3, 3}});
+            shouldContain("CC", new Object[][]{{400, "a", 1}, {800, "c", 3}});
+        }
+    }
+
+    @Test
+    public void onDeleteCascadeRecursiveWorks() throws SQLException {
+        try(Statement s = conn.createStatement()) {
+            createDatabaseObjects4(s, true, false);
+            s.executeUpdate("delete from CP where col1 = 2");
+            shouldContain("CP", new Object[][]{{1, "a", 1, 1}, {3, "c", 3, 3}});
+            shouldContain("CC", new Object[][]{{400, "a", 1}, {800, "c", 3}});
+            shouldContain("GC1", new Object[][]{{400, "y"}});
+            shouldContain("GC2", new Object[][]{{800, "x"}});
+        }
+    }
+
+    @Test
+    public void onDeleteCascadeIsRolledbackProperlyIfRecursionFails() throws SQLException {
+        try(Statement s = conn.createStatement()) {
+            createDatabaseObjects4(s, true, true);
+            try {
+                s.executeUpdate("delete from CP where col1 = 2");
+                Assert.fail("delete should have failed with error: Operation on table 'CC' caused a violation of foreign key constraint");
+            } catch (SQLException se) {
+                Assert.assertTrue(se.getMessage().contains("Operation on table 'CC' caused a violation of foreign key constraint"));
+            }
+            shouldContain("CP", new Object[][]{{1, "a", 1, 1}, {2, "b", 2, 2}, {3, "c", 3, 3}});
+            shouldContain("CC", new Object[][]{{1, "b", 2}, {2, "b", 2}, {400, "a", 1}, {800, "c", 3}});
+            shouldContain("GC1", new Object[][]{{1, "z"}, {1, "z"}, {1, "z"}, {400, "y"}});
+            shouldContain("GC2", new Object[][]{{2, "y"}, {2, "y"}, {2, "y"}, {800, "x"}});
+        }
+    }
+
+    @Test
+    public void onDeleteCascadeWithReferencingTableWorks() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.executeUpdate("create table SRT2 (a int primary key, b int, constraint fk foreign key (B) references SRT2(a) on delete cascade)");
+            s.executeUpdate("insert into SRT2 values (42, null), (43, 42), (44,43), (45, null), (46,45)");
+            s.executeUpdate("delete from SRT2 where a = 42");
+            ResultSet rs = s.executeQuery("select * from SRT2 order by a asc");
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(45, rs.getInt(1));rs.getInt(2);Assert.assertTrue(rs.wasNull());
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(46, rs.getInt(1)); Assert.assertEquals(45, rs.getInt(2));
+            Assert.assertFalse(rs.next());
+        }
+    }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -418,6 +511,26 @@ public class ForeignKeyActionIT {
                 Assert.assertEquals(row[0], rs.getInt(1));Assert.assertEquals(row[1], rs.getInt(2));
             }
             Assert.assertFalse(rs.next());
+        }
+    }
+
+    private void shouldContain(String child, Object[][] rows) throws SQLException {
+        try(Statement s = conn.createStatement()) {
+            try (ResultSet rs = s.executeQuery(String.format("select * from %s order by col1 asc", child))) {
+                for (Object[] row : rows) {
+                    Assert.assertTrue(rs.next());
+                    Assert.assertEquals(row[0], rs.getInt(1));
+                    Assert.assertEquals(row[1], rs.getString(2));
+                    if (row.length >= 3) {
+                        Assert.assertEquals(row[2], rs.getInt(3));
+                    }
+                    if(row.length == 4) {
+                        Assert.assertEquals(row[3], rs.getInt(4));
+                    }
+                    assert row.length < 5;
+                }
+                Assert.assertFalse(rs.next());
+            }
         }
     }
 
