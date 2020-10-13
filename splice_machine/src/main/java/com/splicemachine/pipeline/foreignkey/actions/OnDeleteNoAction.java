@@ -26,14 +26,13 @@ public class OnDeleteNoAction extends OnDeleteAbstractAction {
 
     private final String parentTableName;
 
-    public OnDeleteNoAction(Long childBaseTableConglomId,
-                            Long backingIndexConglomId,
+    public OnDeleteNoAction(Long backingIndexConglomId,
                             DDLMessage.FKConstraintInfo constraintInfo,
                             WriteContext writeContext,
                             String parentTableName,
                             TxnOperationFactory txnOperationFactory,
                             ForeignKeyViolationProcessor violationProcessor) throws Exception {
-        super(childBaseTableConglomId, backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
+        super(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
         this.parentTableName = parentTableName;
     }
 

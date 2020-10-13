@@ -42,7 +42,6 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     private boolean failed;
 
     private final List<Long> referencingIndexConglomerateIds;
-    private List<Long> childBaseTableConglomerateIds;
     private boolean shouldRefreshActions;
     private final List<DDLMessage.FKConstraintInfo> constraintInfos;
     private final ForeignKeyViolationProcessor violationProcessor;
@@ -53,13 +52,11 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
 
     public ForeignKeyParentInterceptWriteHandler(String parentTableName,
                                                  List<Long> referencingIndexConglomerateIds,
-                                                 List<Long> childBaseTableConglomerateIds,
                                                  List<DDLMessage.FKConstraintInfo> constraintInfos,
                                                  PipelineExceptionFactory exceptionFactory
                                                  ) {
         this.shouldRefreshActions = true;
         this.referencingIndexConglomerateIds = referencingIndexConglomerateIds;
-        this.childBaseTableConglomerateIds = childBaseTableConglomerateIds;
         this.violationProcessor = new ForeignKeyViolationProcessor(
                 new ForeignKeyViolationProcessor.ParentFkConstraintContextProvider(parentTableName),exceptionFactory);
         this.constraintInfos = constraintInfos;
@@ -80,13 +77,11 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
 
     private void ensureBuffers(WriteContext context) throws Exception {
         if (shouldRefreshActions) {
-            assert childBaseTableConglomerateIds.size() == constraintInfos.size()
-                    && childBaseTableConglomerateIds.size() == referencingIndexConglomerateIds.size();
-            for (int i = 0; i < childBaseTableConglomerateIds.size(); i++) {
-                Pair<Long, Long> needle = new Pair<>(childBaseTableConglomerateIds.get(i), referencingIndexConglomerateIds.get(i));
+            assert referencingIndexConglomerateIds.size() == constraintInfos.size();
+            for (int i = 0; i < referencingIndexConglomerateIds.size(); i++) {
+                Pair<Long, Long> needle = new Pair<>(constraintInfos.get(i).getTable().getConglomerate(), referencingIndexConglomerateIds.get(i));
                 if(!actions.containsKey(needle)) {
-                    actions.put(needle, ActionFactory.createAction(childBaseTableConglomerateIds.get(i),
-                            referencingIndexConglomerateIds.get(i), constraintInfos.get(i), context,
+                    actions.put(needle, ActionFactory.createAction(referencingIndexConglomerateIds.get(i), constraintInfos.get(i), context,
                             parentTableName, txnOperationFactory, violationProcessor));
                 }
             }

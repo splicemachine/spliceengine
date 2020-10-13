@@ -22,8 +22,7 @@ import com.splicemachine.pipeline.foreignkey.ForeignKeyViolationProcessor;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 
 public class ActionFactory {
-    public static Action createAction(Long childBaseTableConglomId,
-                                      Long backingIndexConglomId,
+    public static Action createAction(Long backingIndexConglomId,
                                       DDLMessage.FKConstraintInfo constraintInfo,
                                       WriteContext writeContext,
                                       String parentTableName,
@@ -31,11 +30,9 @@ public class ActionFactory {
                                       ForeignKeyViolationProcessor violationProcessor) throws Exception {
         switch(constraintInfo.getDeleteRule()) {
             case StatementType.RA_SETNULL:
-                return new OnDeleteSetNull(childBaseTableConglomId,
-                        backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
+                return new OnDeleteSetNull(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
             case StatementType.RA_NOACTION:
-                return new OnDeleteNoAction(childBaseTableConglomId,
-                        backingIndexConglomId, constraintInfo, writeContext, parentTableName, txnOperationFactory, violationProcessor);
+                return new OnDeleteNoAction(backingIndexConglomId, constraintInfo, writeContext, parentTableName, txnOperationFactory, violationProcessor);
             default:
                 throw StandardException.newException(String.format("Unexpected FK action type %d", constraintInfo.getDeleteRule()));
         }

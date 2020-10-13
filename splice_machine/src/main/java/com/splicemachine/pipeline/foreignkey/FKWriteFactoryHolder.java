@@ -93,14 +93,14 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    public void addParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds, List<Long> baseTableConglomIds, List<FKConstraintInfo> fkConstraintInfos) {
+    public void addParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds, List<FKConstraintInfo> fkConstraintInfos) {
         /* One instance handles all FKs that reference this primary key or unique index */
-        assert backingIndexConglomIds.size() == baseTableConglomIds.size();
+        assert backingIndexConglomIds.size() == fkConstraintInfos.size();
         if (parentInterceptWriteFactory == null) {
-            parentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds,baseTableConglomIds, exceptionFactory,fkConstraintInfos);
+            parentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds, exceptionFactory, fkConstraintInfos);
         }
         else {
-            parentInterceptWriteFactory.addReferencingIndexConglomerateNumber(backingIndexConglomIds, baseTableConglomIds, fkConstraintInfos);
+            parentInterceptWriteFactory.addReferencingIndexConglomerateNumber(backingIndexConglomIds, fkConstraintInfos);
         }
 
     }
@@ -118,7 +118,7 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         // We are configuring a write context on the PARENT base-table or unique-index.
         if (onConglomerateNumber == tentativeFKAdd.getReferencedConglomerateNumber()) {
             addParentInterceptWriteFactory(tentativeFKAdd.getReferencedTableName(), ImmutableList.of(tentativeFKAdd.getReferencingConglomerateNumber()),
-                    ImmutableList.of(tentativeFKAdd.getFkConstraintInfo().getTable().getConglomerate()),ImmutableList.of(tentativeFKAdd.getFkConstraintInfo()));
+                    ImmutableList.of(tentativeFKAdd.getFkConstraintInfo()));
         }
         // We are configuring a write context on the CHILD fk backing index.
         if (onConglomerateNumber == tentativeFKAdd.getReferencingConglomerateNumber()) {
@@ -178,20 +178,18 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         }
         String parentTableName = cDescriptor.getTableDescriptor().getName();
         List<Long> backingIndexConglomIds = Lists.newArrayList();
-        List<Long> childBasetableConglomIds = Lists.newArrayList();
         List<DDLMessage.FKConstraintInfo> fkConstraintInfos = Lists.newArrayList();
         for (ConstraintDescriptor fk : fks) {
             ForeignKeyConstraintDescriptor foreignKeyConstraint = (ForeignKeyConstraintDescriptor) fk;
             try {
                 ConglomerateDescriptor backingIndexCd = foreignKeyConstraint.getIndexConglomerateDescriptor(null);
                 backingIndexConglomIds.add(backingIndexCd.getConglomerateNumber());
-                childBasetableConglomIds.add(fk.getTableDescriptor().getHeapConglomerateId());
                 fkConstraintInfos.add(ProtoUtil.createFKConstraintInfo(foreignKeyConstraint, td, lcc));
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }
         }
-        addParentInterceptWriteFactory(parentTableName, backingIndexConglomIds, childBasetableConglomIds, fkConstraintInfos);
+        addParentInterceptWriteFactory(parentTableName, backingIndexConglomIds, fkConstraintInfos);
     }
 
 

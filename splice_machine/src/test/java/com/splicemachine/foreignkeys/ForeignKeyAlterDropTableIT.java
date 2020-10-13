@@ -98,7 +98,7 @@ public class ForeignKeyAlterDropTableIT {
             // when -- we add the foreign key after the write contexts are initialized
             String alterSql = "alter table "+SCHEMA+".C add constraint FK_1 foreign key (a) references "+SCHEMA+".P(a)";
             String expectedError = "Foreign key constraint 'FK_1' cannot be added to or enabled on table " +
-                    "\"FOREIGNKEY_ALTERDROPTABLE_IT\".\"C\" because one or more foreign keys do not have matching referenced keys.";
+                    "\"FOREIGNKEYALTERDROPTABLEIT\".\"C\" because one or more foreign keys do not have matching referenced keys.";
             assertQueryFail(alterSql,expectedError);
 
             // then -- the foreign key constraint is NOT enforced
