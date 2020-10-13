@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.access.api.PartitionAdmin;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.ddl.DDLMessage;
@@ -190,7 +191,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         columnOrdering, //column sort order - not required for heap
                         td.getColumnCollationIds(),
                         properties,
-                        TransactionController.IS_DEFAULT);
+                        TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
 
 		    /* Set up index info to perform truncate on them*/
         int numIndexes = getAffectedIndexes(td);
@@ -277,7 +278,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                         columnOrder,
                         collationIds,
                         properties,
-                        TransactionController.IS_DEFAULT);
+                        TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
 
 
     }
