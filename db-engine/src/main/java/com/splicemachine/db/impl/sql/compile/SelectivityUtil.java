@@ -33,9 +33,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
@@ -95,13 +94,13 @@ public class SelectivityUtil {
                     return false;
                 }
 
-                // only equality join condition without expression on index column can be used by merge join to search for matching rows
+                // only equality join condition without extra expression on index column can be used by merge join to search for matching rows
                 if (predicateType == JoinPredicateType.MERGE_SEARCH) {
                     if (p.getIndexPosition() < 0) {
                         return false;
                     } else {
-                        if (!(bron.getLeftOperand() instanceof ColumnReference) ||
-                                !(bron.getRightOperand() instanceof ColumnReference))
+                        if ((!(bron.getLeftOperand() instanceof ColumnReference) && bron.leftMatchIndexExpr < 0) ||
+                                (!(bron.getRightOperand() instanceof ColumnReference) && bron.rightMatchIndexExpr < 0))
                             return false;
                     }
                 }
@@ -196,39 +195,64 @@ public class SelectivityUtil {
             return false;
         }
 
-        int[] baseColumnPositions=irg.baseColumnPositions();
-
         // Do we have an exact match on the full key
+        if (irg.isOnExpression()) {
+            assert innerTable instanceof QueryTreeNode;
+            LanguageConnectionContext lcc = ((QueryTreeNode) innerTable).getLanguageConnectionContext();
+            CompilerContext newCC = lcc.pushCompilerContext();
+            Parser p = newCC.getParser();
 
-        for(int curCol : baseColumnPositions){
-            // get the column number at this position
-            /* Is there a pushable equality predicate on this key column?
-             * (IS NULL is also acceptable)
-			 */
-            List<Predicate> optimizableEqualityPredicateList =
-                    restrictionList.getOptimizableEqualityPredicateList(innerTable, curCol, true);
-
-            // No equality predicate for this column, so this is not a one row result set
-            if (optimizableEqualityPredicateList == null)
-                return false;
-
-            // Look for equality predicate that is not a join predicate
-            boolean existsNonjoinPredicate = false;
-            for (Predicate predicate : optimizableEqualityPredicateList) {
-                if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
-                    existsNonjoinPredicate = true;
-                    break;
-                }
+            String[] exprTexts = irg.getExprTexts();
+            ValueNode[] exprAsts = new ValueNode[exprTexts.length];
+            for (String exprText : exprTexts) {
+                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprText);
+                PredicateList.setTableNumber(exprAst, innerTable);
             }
-            // If all equality predicates are join predicates, then this is NOT a one row result set
-            if (!existsNonjoinPredicate)
-                return false;
-        }
+            lcc.popCompilerContext(newCC);
 
+            for (ValueNode exprAst : exprAsts) {
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(innerTable, exprAst, true);
+
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
+
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (!existsNonJoinPredicate(optimizableEqualityPredicateList))
+                    return false;
+            }
+        } else {
+            int[] baseColumnPositions = irg.baseColumnPositions();
+            for (int curCol : baseColumnPositions) {
+                // get the column number at this position
+                /* Is there a pushable equality predicate on this key column?
+                 * (IS NULL is also acceptable)
+                 */
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(innerTable, curCol, true);
+
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
+
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (!existsNonJoinPredicate(optimizableEqualityPredicateList))
+                    return false;
+            }
+        }
         return true;
     }
 
-
+    // Look for equality predicate that is not a join predicate
+    private static boolean existsNonJoinPredicate(List<Predicate> predList) {
+        for (Predicate predicate : predList) {
+            if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     public static double getTotalHeapSize(CostEstimate innerCostEstimate,
                                           CostEstimate outerCostEstimate,

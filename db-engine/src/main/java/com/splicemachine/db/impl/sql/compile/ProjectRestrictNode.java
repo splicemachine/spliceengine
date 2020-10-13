@@ -264,7 +264,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             /* Copy child cost to this node's cost */
             costEstimate.setCost(childCost);
 
-
+            // We need to classify all predicates on childResult for its
+            // current conglomerate, no matter if they are usable or not,
+            // just to set all index expressions referencing childResult
+            // properly so that later we can use their statistics.
+            for (int i = 0; i < predList.size(); i++) {
+                PredicateList.isIndexUseful((Predicate)predList.getOptPredicate(i), (Optimizable)childResult,
+                        false, false, ((Optimizable)childResult).getCurrentAccessPath().getConglomerateDescriptor());
+            }
             // Note: we don't call "optimizer.considerCost()" here because
             // a) the child will make that call as part of its own
             // "optimizeIt()" work above, and b) the child might have

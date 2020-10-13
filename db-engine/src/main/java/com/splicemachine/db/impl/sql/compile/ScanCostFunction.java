@@ -73,6 +73,7 @@ public class ScanCostFunction{
     private static final int TOP  = 1;  // qualifier phase: FILTER_PROJECTION
 
     private final Optimizable baseTable;
+    private final ConglomerateDescriptor cd;
     private final IndexDescriptor indexDescriptor;
     private final boolean isIndex;
     private final boolean isPrimaryKey;
@@ -148,6 +149,7 @@ public class ScanCostFunction{
                             boolean forUpdate,
                             HashSet<Integer> usedNoStatsColumnIds) throws StandardException {
         this.baseTable=baseTable;
+        this.cd = cd;
         this.indexDescriptor = cd.getIndexDescriptor();
         this.isIndex = cd.isIndex();
         this.isPrimaryKey = cd.isPrimaryKey();
@@ -288,7 +290,7 @@ public class ScanCostFunction{
             for (Object o : p.getSourceInList().leftOperandList) {
                 List<ColumnReference> crList = ((ValueNode)o).getHashableJoinColumnReference();
                 for (ColumnReference cr : crList) {
-                    if (!scc.useRealBaseColumnStatistics(cr.getColumnNumber()))
+                    if (!scc.useRealColumnStatistics(cr.getGeneratedToReplaceIndexExpression(), cr.getColumnNumber()))
                         usedNoStatsColumnIds.add(cr.getColumnNumber());
                 }
             }
@@ -298,7 +300,7 @@ public class ScanCostFunction{
     private void collectNoStatsColumnsFromUnaryAndBinaryPred(Predicate p) {
         if (p.getRelop() != null) {
             ColumnReference cr = p.getRelop().getColumnOperand(baseTable);
-            if (cr != null && !scc.useRealBaseColumnStatistics(cr.getColumnNumber())) {
+            if (cr != null && !scc.useRealColumnStatistics(cr.getGeneratedToReplaceIndexExpression(), cr.getColumnNumber())) {
                 usedNoStatsColumnIds.add(cr.getColumnNumber());
             }
         }
@@ -339,7 +341,7 @@ public class ScanCostFunction{
             performQualifierSelectivity(p, QualifierPhase.FILTER_BASE, isIndexOnExpression, defaultSelectivityFactor, SCAN);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);
         }
-        else if (PredicateList.isQualifier(p,baseTable,indexDescriptor,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
+        else if (PredicateList.isQualifier(p,baseTable,cd,false)) { // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
             performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION, isIndexOnExpression, defaultSelectivityFactor, TOP);
             accumulateExprEvalCost(p);
             collectNoStatsColumnsFromUnaryAndBinaryPred(p);

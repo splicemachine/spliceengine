@@ -1528,7 +1528,7 @@ public class ColumnReference extends ValueNode {
     }
 
     public boolean useRealColumnStatistics() throws StandardException {
-        return getStoreCostController().useRealBaseColumnStatistics(columnNumber);
+        return getStoreCostController().useRealColumnStatistics(replacesIndexExpression, columnNumber);
     }
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {

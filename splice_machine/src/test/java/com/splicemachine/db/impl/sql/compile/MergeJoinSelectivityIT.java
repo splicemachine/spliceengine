@@ -51,6 +51,16 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk, ts_5_spk --splice-properties joinStrategy=MERGE\n where ts_10_spk.c1 = ts_5_spk.c1",
                     "rows=10","MergeJoin");
         }
+
+        //try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+        //    rowContainsQuery(s,
+        //            new int[]{1,3},
+        //            "explain select upper(ts_10_spk.c2), upper(ts_5_spk.c2) from --splice-properties joinOrder=fixed\n " +
+        //                    "ts_10_spk --splice-properties index=ts_10_spk_expr_idx\n, " +
+        //                    "ts_5_spk --splice-properties index=ts_5_spk_expr_idx, joinStrategy=MERGE\n " +
+        //                    "where upper(ts_10_spk.c2) = upper(ts_5_spk.c2)",
+        //            "rows=10","MergeJoin");
+        //}
     }
 
     @Test
@@ -62,6 +72,18 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_spk left outer join ts_5_spk --splice-properties joinStrategy=MERGE\n on ts_10_spk.c1 = ts_5_spk.c1",
                     "rows=10","MergeLeftOuterJoin");
         }
+
+        //try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+        //    rowContainsQuery(
+        //            s,
+        //            new int[]{1,3},
+        //            "explain select upper(ts_10_spk.c2), upper(ts_5_spk.c2) from --splice-properties joinOrder=fixed\n " +
+        //                    "ts_10_spk --splice-properties index=ts_10_spk_expr_idx\n" +
+        //                    "left outer join " +
+        //                    "ts_5_spk --splice-properties index=ts_5_spk_expr_idx, joinStrategy=MERGE\n " +
+        //                    "on ts_10_spk.c1 = ts_5_spk.c1",
+        //            "rows=10","MergeLeftOuterJoin");
+        //}
     }
 
     @Test

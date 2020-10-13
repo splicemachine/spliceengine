@@ -286,5 +286,5 @@ public interface StoreCostController extends RowCountable{
 
     boolean useRealExpressionBasedIndexStatistics();
 
-    boolean useRealBaseColumnStatistics(int columnId);
+    boolean useRealColumnStatistics(boolean fromExprIndex, int columnId);
 }

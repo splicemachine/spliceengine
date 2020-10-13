@@ -798,8 +798,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     /**
      * Is this predicate a join predicate?  In order to be so,
-     * it must be a binary relational operator node that has
-     * a column reference on both sides.
+     * it must be a binary relational operator node that has either
+     * a column reference or an index expression on both sides.
      *
      * @return Whether or not this is a join predicate.
      */
@@ -814,29 +814,39 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         ValueNode leftOperand=opNode.getLeftOperand();
         ValueNode rightOperand=opNode.getRightOperand();
-        boolean isColumnReferenceOnLeft=false;
-        boolean isColumnReferenceOnRight=false;
+        boolean leftUsableAsJoinColumn = false;
+        boolean rightUsableAsJoinColumn = false;
         int leftTableNumber=-1;
         int rightTableNumber=-1;
 
-        List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
-        if (columnReferences != null && columnReferences.size() == 1) {
-            isColumnReferenceOnLeft = true;
-            leftTableNumber = columnReferences.get(0).getTableNumber();
+        if (matchIndexExpression && opNode.leftMatchIndexExpr >= 0) {
+            leftUsableAsJoinColumn = true;
+            leftTableNumber = opNode.leftMatchIndexExpr;
+        } else {
+            List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
+            if (columnReferences != null && columnReferences.size() == 1) {
+                leftUsableAsJoinColumn = true;
+                leftTableNumber = columnReferences.get(0).getTableNumber();
+            }
         }
 
-        columnReferences = rightOperand.getHashableJoinColumnReference();
-        if (columnReferences != null && columnReferences.size() == 1) {
-            isColumnReferenceOnRight = true;
-            rightTableNumber = columnReferences.get(0).getTableNumber();
+        if (matchIndexExpression && opNode.rightMatchIndexExpr >= 0) {
+            rightUsableAsJoinColumn = true;
+            rightTableNumber = opNode.rightMatchIndexExpr;
+        } else {
+            List<ColumnReference> columnReferences = rightOperand.getHashableJoinColumnReference();
+            if (columnReferences != null && columnReferences.size() == 1) {
+                rightUsableAsJoinColumn = true;
+                rightTableNumber = columnReferences.get(0).getTableNumber();
+            }
         }
 
-        // If both sides are column references AND they point to different
+        // If both sides are one of column references or index expressions AND they point to different
         // tables, then this is a join pred.
         // Scoped predicates are nestedloop join predicate that are pushed down, if checkScope is true,
         // we should no longer treat them as join condition, but single table condition instead
-        return (isColumnReferenceOnLeft &&
-                isColumnReferenceOnRight &&
+        return (leftUsableAsJoinColumn &&
+                rightUsableAsJoinColumn &&
                 leftTableNumber!=rightTableNumber) &&
                 (!checkScope  || !isScopedForPush());
     }

@@ -504,10 +504,13 @@ public class StoreCostControllerImpl implements StoreCostController {
     }
 
     @Override
-    public boolean useRealBaseColumnStatistics(int columnNumber) {
-        if (!useRealTableStatistics || columnNumber <= 0)  // rowid column number == 0
+    public boolean useRealColumnStatistics(boolean fromExprIndex, int columnNumber) {
+        boolean useRealStats = fromExprIndex ? useRealExpressionBasedIndexStatistics : useRealTableStatistics;
+        TableStatistics stats = fromExprIndex ? exprIndexStatistics : tableStatistics;
+
+        if (!useRealStats || columnNumber <= 0)  // rowid column number == 0
             return false;
-        PartitionStatistics ps = tableStatistics.getPartitionStatistics().get(0);
+        PartitionStatistics ps = stats.getPartitionStatistics().get(0);
         return ps.getColumnStatistics(columnNumber - 1) != null;
     }
 }
