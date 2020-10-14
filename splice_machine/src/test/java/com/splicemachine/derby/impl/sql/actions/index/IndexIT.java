@@ -977,6 +977,18 @@ public class IndexIT extends SpliceUnitTest{
         // (NULL, NULL, NULL) is inserted first, it fails. With the fix, it should never fail.
         methodWatcher.executeUpdate(format("insert into %s values ('jkl', 30, 2.2), (NULL, NULL, NULL)", tableName));
         methodWatcher.executeUpdate(format("update %s set c = 'def' where i = 10", tableName));
+
+        String query = format("select c from %s order by c nulls last", tableName);
+        String expected = "C  |\n" +
+                "------\n" +
+                " def |\n" +
+                " def |\n" +
+                " jkl |\n" +
+                "NULL |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 
     @Test
