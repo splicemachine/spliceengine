@@ -3012,7 +3012,6 @@ TOKEN [IGNORE_CASE] :
 |    <WRITE: "write">
 |    <YEAR: "year">
 |    <YEARS: "years">
-|    <SPLIT_PART: "split_part">
 }
 
 /*
@@ -3303,6 +3302,7 @@ TOKEN [IGNORE_CASE] :
 |    <SHARE: "share">
 |    <SQLID: "sqlid">
 |    <SPECIFIC: "specific">
+|    <SPLIT_PART: "split_part">
 |   <SQRT: "sqrt">
 |       <STABILITY: "stability">
 |    <STATISTICS: "statistics">
@@ -18025,7 +18025,6 @@ reservedKeyword() :
 |    tok = <XMLSERIALIZE>
 |    tok = <XMLEXISTS>
 |    tok = <XMLQUERY>
-|    tok = <SPLIT_PART>
 )
     {
         // Remember whether last token was a delimited identifier
@@ -18242,6 +18241,7 @@ nonReservedKeyword()  :
     |    tok = <SIGNAL>
     |   tok = <SPECIFIC>
     |   tok = <SPLITKEYS>
+    |    tok = <SPLIT_PART>
     |    tok = <SQLID>
     |    tok = <SQL_TSI_FRAC_SECOND>
     |    tok = <SQL_TSI_SECOND>
