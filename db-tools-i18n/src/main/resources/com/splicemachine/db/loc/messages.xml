@@ -3267,6 +3267,17 @@ Guide.
             </msg>
 
             <msg>
+                <name>42ZD7</name>
+                <text>time travel query is outside the minimum retention period of {0} second(s)</text>
+                <arg>minRetentionPeriod</arg>
+            </msg>
+            <msg>
+                <name>42ZD8</name>
+                <text>time travel query requested with invalid past transaction ID {0}</text>
+                <arg>pastTxId</arg>
+            </msg>
+
+            <msg>
                 <name>43001</name>
                 <text>The truncate function was provided a null operand.</text>
             </msg>

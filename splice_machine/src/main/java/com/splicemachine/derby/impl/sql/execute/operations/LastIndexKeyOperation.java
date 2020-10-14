@@ -60,12 +60,13 @@ public class LastIndexKeyOperation extends ScanOperation {
         double optimizerEstimatedRowCount,
         double optimizerEstimatedCost,
         String tableVersion,
-        GeneratedMethod pastTxFunctor) throws StandardException {
+        GeneratedMethod pastTxFunctor,
+        long minRetentionPeriod) throws StandardException {
 
         super(conglomId, activation, resultSetNumber, null, -1, null, -1,
                 true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
                 colRefItem, -1, false, optimizerEstimatedRowCount, optimizerEstimatedCost, tableVersion, false,
-                0, null, null, null, null, null, -1, null, -1, pastTxFunctor);
+                0, null, null, null, null, null, -1, null, -1, pastTxFunctor, minRetentionPeriod);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
         this.indexName = indexName;
