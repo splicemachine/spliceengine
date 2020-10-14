@@ -166,13 +166,15 @@ public abstract class OnDeleteAbstractAction extends Action {
                 position += multiFieldDecoder.skip();
             }
         }
-        int lastKeyIndex = position - 2;
+        // position ends up 1 byte beyond the key prefix, last index is placed on the end on the prefix
+        // and 1 byte before the row key.
+        int lastKeyIndex = position - 1;
 
-        if (lastKeyIndex == indexRowId.length - 1) {
+        if (lastKeyIndex == indexRowId.length) {
             throw StandardException.newException(String.format("unexpected index rowid format %s", Bytes.toHex(indexRowId)));
         } else {
-            byte[] result = new byte[indexRowId.length - lastKeyIndex - 2];
-            System.arraycopy(indexRowId, lastKeyIndex + 2, result, 0, result.length);
+            byte[] result = new byte[indexRowId.length - lastKeyIndex - 1];
+            System.arraycopy(indexRowId, lastKeyIndex + 1, result, 0, result.length);
             return Encoding.decodeBytesUnsorted(result, 0, result.length);
         }
     }
