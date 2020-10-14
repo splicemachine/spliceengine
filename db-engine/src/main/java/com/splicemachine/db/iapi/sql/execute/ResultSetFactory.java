@@ -883,6 +883,7 @@ public interface ResultSetFactory {
      *                                       optimizer
      * @param optimizerEstimatedCost         Estimated total cost by optimizer
      * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
      * @return the table scan operation as a result set.
      * @throws StandardException thrown when unable to create the
      *                           result set
@@ -916,7 +917,8 @@ public interface ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor)
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod)
             throws StandardException;
 
     /**
@@ -978,6 +980,7 @@ public interface ResultSetFactory {
      *                                       optimizer
      * @param optimizerEstimatedCost         Estimated total cost by optimizer
      * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
      * @return the table scan operation as a result set.
      * @throws StandardException thrown when unable to create the
      *                           result set
@@ -1020,7 +1023,8 @@ public interface ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod
     )
             throws StandardException;
 
@@ -1038,6 +1042,8 @@ public interface ResultSetFactory {
      *                         table. Should not be null.
      * @param sortRequired     Which type of sort we need for the values
      *                         (ascending, descending, or none).
+     * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
      */
     NoPutResultSet getMultiProbeTableScanResultSet(
             Activation activation,
@@ -1081,7 +1087,8 @@ public interface ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod
     )
             throws StandardException;
 
@@ -1952,7 +1959,8 @@ public interface ResultSetFactory {
      * @param optimizerEstimatedRowCount     Estimated total # of rows by
      *                                       optimizer
      * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
+     * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
      * @return the scan operation as a result set.
      * @throws StandardException thrown when unable to create the
      *                           result set
@@ -1974,7 +1982,8 @@ public interface ResultSetFactory {
             double optimizerEstimatedCost,
             String tableVersion,
             String explainPlan,
-            GeneratedMethod pastTxFunctor
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod
     ) throws StandardException;
 
 

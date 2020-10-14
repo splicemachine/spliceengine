@@ -3,12 +3,15 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.utils.SpliceDateTimeFormatter;
+import org.apache.spark.sql.catalyst.expressions.WindowFunctionType;
 import org.junit.*;
 
 import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 
 import static org.junit.Assert.fail;
 
@@ -421,6 +424,53 @@ public class SelectTimeTravelIT {
         }
         try(ResultSet rs =  watcher.executeQuery(String.format("SELECT MAX(a1) FROM %s AS OF %d", someTable, txIdA))) {
             Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testTimeTravelOutsideMinRetentionPeriodWorks() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        int mrp = 2; // seconds
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
+        Thread.sleep(mrp * 1000 + 300);
+        try {
+            watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable,
+                    new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis() - (mrp + 2) * 1000))));
+            Assert.fail("expected exception with the following message: time travel query is outside the minimum retention period of 2 second(s)");
+        } catch(Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            SQLException sqlException = (SQLException)e;
+            Assert.assertEquals("42ZD7", sqlException.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("time travel query is outside the minimum retention period of 2 second(s)"));
+        }
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', null)", SCHEMA, someTable));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable,
+                new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis() - (mrp + 200) * 1000))))) {
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testTimeTravelWithinMinRetentionPeriodWorks() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        int mrp = 2000; // seconds, large value so we don't run into sporadic test failures due to slow down in query execution .
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
+        Thread.sleep(1000);
+        String timestamp = new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis()));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 200", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 400", someTable));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s') ORDER BY a1 ASC", someTable, timestamp))) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
             Assert.assertFalse(rs.next());
         }
     }
