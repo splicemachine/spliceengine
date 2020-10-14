@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
@@ -285,23 +286,11 @@ public final class DatabaseDescriptor extends TupleDescriptor implements UniqueT
         DependencyManager dm = dd.getDependencyManager();
         TransactionController tc = lcc.getTransactionExecute();
 
-        // First drop restrict the default SPLICE schema:
-        SchemaDescriptor spliceSchemaDesc = dd.getSchemaDescriptor(getUUID(), Property.DEFAULT_USER_NAME, tc, false);
-        if (spliceSchemaDesc != null) {
-            spliceSchemaDesc.drop(lcc, activation);
-        }
-
-        /*
-         ** Make sure the database is empty.
-         ** In the future we want to drop everything
-         ** in the database if it is CASCADE.
-         */
-        if (!dd.isDatabaseEmpty(this))
-        {
+        if (!dd.isDatabaseEmpty(this)) {
             throw StandardException.newException(SQLState.LANG_DATABASE_NOT_EMPTY, getDatabaseName());
         }
 
-        /* Prepare all dependents to invalidate.  (This is there chance
+        /* Prepare all dependents to invalidate.  (This is their chance
          * to say that they can't be invalidated.  For example, an open
          * cursor referencing a table/view that the user is attempting to
          * drop.) If no one objects, then invalidate any dependent objects.

@@ -111,6 +111,6 @@ public class DropDatabaseNode extends DDLStatementNode
      */
     public ConstantAction    makeConstantAction() throws StandardException
     {
-        return    getGenericConstantActionFactory().getDropDatabaseConstantAction(dbName);
+        return    getGenericConstantActionFactory().getDropDatabaseConstantAction(dbName, dropBehavior);
     }
 }
