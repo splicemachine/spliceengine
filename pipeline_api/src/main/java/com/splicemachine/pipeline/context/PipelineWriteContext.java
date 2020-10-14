@@ -134,10 +134,7 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
             }
         }
         if (!added) {
-            for (KVPair kvPair : resultsMap.keySet()) {
-                byte[] currentRowKey = kvPair.getRowKey();
-                resultsMap.put(kvPair, result);
-            }
+            resultsMap.replaceAll((p, v) -> result);
         }
     }
 
