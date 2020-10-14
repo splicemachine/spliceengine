@@ -92,12 +92,14 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         try {
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
             WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
-            if(insertOperation!=null && operationContext.isPermissive())
+            if (insertOperation != null) {
+                if (operationContext != null && operationContext.isPermissive())
                     writeConfiguration = new PermissiveInsertWriteConfiguration(writeConfiguration,
-                            operationContext,
-                            encoder, execRowDefinition);
-            if(insertOperation.skipConflictDetection() || insertOperation.skipWAL()) {
-                writeConfiguration = new UnsafeWriteConfiguration(writeConfiguration, insertOperation.skipConflictDetection(), insertOperation.skipWAL());
+                    operationContext,
+                    encoder, execRowDefinition);
+                if (insertOperation.skipConflictDetection() || insertOperation.skipWAL()) {
+                    writeConfiguration = new UnsafeWriteConfiguration(writeConfiguration, insertOperation.skipConflictDetection(), insertOperation.skipWAL());
+                }
             }
             if(rollforward)
                 writeConfiguration = new RollforwardWriteConfiguration(writeConfiguration);

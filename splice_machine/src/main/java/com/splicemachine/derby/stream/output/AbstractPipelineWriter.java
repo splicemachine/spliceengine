@@ -67,6 +67,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected OperationContext operationContext;
     protected boolean rollforward;
 
+    @SuppressFBWarnings(value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",justification = "Intentional")
     public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, long tempConglomID, String tableVersion, ExecRow execRowDefinition, OperationContext operationContext) {
         this.txn = txn;
         this.token = token;
