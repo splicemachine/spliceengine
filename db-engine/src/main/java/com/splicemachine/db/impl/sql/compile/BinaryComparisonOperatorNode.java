@@ -137,8 +137,6 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 
         TypeId leftTypeId = leftOperand.getTypeId();
 		TypeId rightTypeId = rightOperand.getTypeId();
-		DataTypeDescriptor	leftDTS = leftOperand.getTypeServices();
-		DataTypeDescriptor	rightDTS = rightOperand.getTypeServices();
 
 		/*
 		 * If we are comparing a non-string with a string type, then we
@@ -271,19 +269,13 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 	public void bindComparisonOperator()
 			throws StandardException
 	{
-		TypeId	leftType;
-		TypeId	rightType;
 		boolean				nullableResult;
-
-		leftType = leftOperand.getTypeId();
-		rightType = rightOperand.getTypeId();
 
 
 		/*
 		** Can the types be compared to each other?  If not, throw an
 		** exception.
 		*/
-		boolean forEquals = operator.equals("=") || operator.equals("<>");
 
         boolean cmp = leftOperand.getTypeServices().comparable( rightOperand.getTypeServices() );
 		// Bypass the comparable check if this is a rewrite from the 
