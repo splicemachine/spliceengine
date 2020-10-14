@@ -201,6 +201,8 @@ public class FromBaseTable extends FromTable {
 
     private ValueNode pastTxIdExpression = null;
 
+    private long minRetentionPeriod = -1;
+
     @Override
     public boolean isParallelizable(){
         return false;
@@ -1056,6 +1058,8 @@ public class FromBaseTable extends FromTable {
             else if(tableType==TableDescriptor.WITH_TYPE) {
                 throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "common table expressions");
             }
+            Long minRetentionPeriod = tableDescriptor.getMinRetentionPeriod();
+            this.minRetentionPeriod = minRetentionPeriod == null ? -1 : minRetentionPeriod;
         }
 
         if(tableDescriptor.getTableType()==TableDescriptor.VTI_TYPE){
@@ -2213,8 +2217,8 @@ public class FromBaseTable extends FromTable {
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
         generatePastTxFunc(acb, mb);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,16);
-
+        mb.push(minRetentionPeriod);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,17);
     }
 
     private void generateDistinctScan ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
@@ -2294,8 +2298,9 @@ public class FromBaseTable extends FromTable {
         mb.push(partitionReferenceItem);
         generateDefaultRow((ActivationClassBuilder)acb, mb);
         generatePastTxFunc(acb, mb);
+        mb.push(minRetentionPeriod);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,29);
+                ClassName.NoPutResultSet,30);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
@@ -2407,6 +2412,9 @@ public class FromBaseTable extends FromTable {
 
         // also add the past transaction id functor
         generatePastTxFunc(acb, mb);
+        numArgs++;
+
+        mb.push(minRetentionPeriod);
         numArgs++;
 
         return numArgs;
