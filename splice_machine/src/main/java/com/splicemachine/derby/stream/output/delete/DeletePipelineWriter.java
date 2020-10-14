@@ -64,9 +64,6 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             writeBuffer=writeCoordinator.writeBuffer(destinationTable,txn,null, PipelineUtils.noOpFlushHook, writeConfiguration, Metrics.noOpMetricFactory());
             encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
             flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
-
-        if (triggerHandler != null && triggerHandler.hasStatementTriggerWithReferencingClause())
-            triggerRowsEncoder=new PairEncoder(getTriggerKeyEncoder(),getTriggerRowHash(),KVPair.Type.INSERT);
         }catch(IOException ioe){
            throw Exceptions.parseException(ioe);
         }

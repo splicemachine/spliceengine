@@ -109,7 +109,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             if (insertOperation != null)
                 insertOperation.tableWriter = this;
             flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);
-
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -122,7 +121,10 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             beforeRow(execRow);
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
-            addRowToTriggeringResultSet(execRow, encode);
+            if (triggerRowsEncoder != null) {
+                KVPair encodeTriggerRow = triggerRowsEncoder.encode(execRow);
+                addRowToTriggeringResultSet(execRow, encodeTriggerRow);
+            }
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
         } catch (Exception e) {
             if (operationContext!=null && operationContext.isPermissive()) {
