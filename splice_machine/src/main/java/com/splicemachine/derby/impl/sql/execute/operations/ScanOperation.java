@@ -34,12 +34,13 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
+import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 
-public abstract class ScanOperation extends SpliceBaseOperation{
+public abstract class ScanOperation extends SpliceBaseOperation {
     private static final Logger LOG=Logger.getLogger(ScanOperation.class);
     private static final long serialVersionUID=7l;
     public int lockMode;
@@ -130,55 +131,6 @@ public abstract class ScanOperation extends SpliceBaseOperation{
             columnOrdering=scanInformation.getColumnOrdering();
         }
         return columnOrdering;
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        super.readExternal(in);
-        oneRowScan=in.readBoolean();
-        lockMode=in.readInt();
-        isolationLevel=in.readInt();
-        scanInformation=(ScanInformation<ExecRow>)in.readObject();
-        tableVersion=in.readUTF();
-        rowIdKey = in.readBoolean();
-        pin = in.readBoolean();
-        delimited = in.readBoolean()?in.readUTF():null;
-        escaped = in.readBoolean()?in.readUTF():null;
-        lines = in.readBoolean()?in.readUTF():null;
-        storedAs = in.readBoolean()?in.readUTF():null;
-        location = in.readBoolean()?in.readUTF():null;
-        partitionRefItem = in.readInt();
-        splits = in.readInt();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        out.writeBoolean(oneRowScan);
-        out.writeInt(lockMode);
-        out.writeInt(isolationLevel);
-        out.writeObject(scanInformation);
-        out.writeUTF(tableVersion);
-        out.writeBoolean(rowIdKey);
-        out.writeBoolean(pin);
-        out.writeBoolean(delimited!=null);
-        if (delimited!=null)
-            out.writeUTF(delimited);
-        out.writeBoolean(escaped!=null);
-        if (escaped!=null)
-            out.writeUTF(escaped);
-        out.writeBoolean(lines!=null);
-        if (lines!=null)
-            out.writeUTF(lines);
-        out.writeBoolean(storedAs!=null);
-        if (storedAs!=null)
-            out.writeUTF(storedAs);
-        out.writeBoolean(location!=null);
-        if (location!=null)
-            out.writeUTF(location);
-        out.writeInt(partitionRefItem);
-        out.writeInt(splits);
     }
 
     @Override
