@@ -506,6 +506,19 @@ public class BinaryRelationalOperatorNode
         exprOp.generateExpression(acb,mb);
     }
 
+    @Override
+    public int getMatchingExprIndexColumnPosition(int tableNumber) {
+        if (leftMatchIndexExpr >= 0 && leftMatchIndexExpr == tableNumber) {
+            assert leftMatchIndexExprColumnPosition >= 0;
+            return leftMatchIndexExprColumnPosition;
+        } else if (rightMatchIndexExpr >= 0 && rightMatchIndexExpr == tableNumber) {
+            assert rightMatchIndexExprColumnPosition >= 0;
+            return rightMatchIndexExprColumnPosition;
+        } else {
+            return -1;
+        }
+    }
+
     /**
      * @throws StandardException Thrown on error
      * @see RelationalOperator#selfComparison
@@ -1671,58 +1684,31 @@ public class BinaryRelationalOperatorNode
         double selectivity = 1.0d;
         ColumnReference innerColumn = null;
         ColumnReference outerColumn = null;
-        int innerColumnPosition = -1;
-        int outerColumnPosition = -1;
-        boolean innerUseExprIndexStats = false;
-        boolean outerUseExprIndexStats = false;
 
-        if (leftMatchIndexExpr >= 0) {
-            ColumnReference cr = leftOperand.getHashableJoinColumnReference().get(0);
-            if (leftMatchIndexExpr == innerTable.getTableNumber()) {
-                innerColumn = cr;
-                innerColumnPosition = leftMatchIndexExprColumnPosition + 1;
-                innerUseExprIndexStats = true;
-            } else {
-                outerColumn = cr;
-                outerColumnPosition = leftMatchIndexExprColumnPosition + 1;
-                outerUseExprIndexStats = true;
-            }
-        } else if (leftOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) leftOperand;
+        if (operandMayHaveStatistics(LEFT)) {
+            ColumnReference cr = getColumnOrIndexExprColumn(LEFT);
+            assert cr != null;
             if (cr.getTableNumber() == innerTable.getTableNumber()) {
                 innerColumn = cr;
-                innerColumnPosition = cr.getSource().getColumnPosition();
-            }
-            else {
+            } else {
                 outerColumn = cr;
-                outerColumnPosition = cr.getSource().getColumnPosition();
             }
         }
         else return selectivity;
 
-        if (rightMatchIndexExpr >= 0) {
-            ColumnReference cr = rightOperand.getHashableJoinColumnReference().get(0);
-            if (rightMatchIndexExpr == innerTable.getTableNumber()) {
-                innerColumn = cr;
-                innerColumnPosition = rightMatchIndexExprColumnPosition + 1;
-                innerUseExprIndexStats = true;
-            } else {
-                outerColumn = cr;
-                outerColumnPosition = rightMatchIndexExprColumnPosition + 1;
-                outerUseExprIndexStats = true;
-            }
-        } else if (rightOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) rightOperand;
+        if (operandMayHaveStatistics(RIGHT)) {
+            ColumnReference cr = getColumnOrIndexExprColumn(RIGHT);
+            assert cr != null;
             if (cr.getTableNumber() == innerTable.getTableNumber()) {
                 innerColumn = cr;
-                innerColumnPosition = cr.getSource().getColumnPosition();
-            }
-            else {
+            } else {
                 outerColumn = cr;
-                outerColumnPosition = cr.getSource().getColumnPosition();
             }
         }
         else return selectivity;
+
+        if (innerColumn == null || outerColumn == null)
+            return selectivity;
 
         StoreCostController innerTableCostController = innerColumn.getStoreCostController();
         StoreCostController outerTableCostController = outerColumn.getStoreCostController();
@@ -1735,16 +1721,18 @@ public class BinaryRelationalOperatorNode
             long rc = (long)outerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minOuterColumn = outerTableCostController.minValue(outerUseExprIndexStats, outerColumnPosition);
-            maxOuterColumn = outerTableCostController.maxValue(outerUseExprIndexStats, outerColumnPosition);
+            boolean forIndexExpr = outerColumn.getGeneratedToReplaceIndexExpression();
+            minOuterColumn = outerTableCostController.minValue(forIndexExpr, outerColumn.getColumnNumber());
+            maxOuterColumn = outerTableCostController.maxValue(forIndexExpr, outerColumn.getColumnNumber());
         }
 
         if (innerTableCostController != null) {
             long rc = (long)innerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minInnerColumn = innerTableCostController.minValue(innerUseExprIndexStats, innerColumnPosition);
-            maxInnerColumn = innerTableCostController.maxValue(innerUseExprIndexStats, innerColumnPosition);
+            boolean forIndexExpr = innerColumn.getGeneratedToReplaceIndexExpression();
+            minInnerColumn = innerTableCostController.minValue(forIndexExpr, innerColumn.getColumnNumber());
+            maxInnerColumn = innerTableCostController.maxValue(forIndexExpr, innerColumn.getColumnNumber());
         }
 
         DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
@@ -1752,8 +1740,8 @@ public class BinaryRelationalOperatorNode
 
         if (startKey!= null && minInnerColumn != null && startKey.compare(minInnerColumn) > 0 ||
                 endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
-            selectivity *= innerTableCostController.getSelectivity(innerUseExprIndexStats,
-                    innerColumnPosition, startKey, true, endKey, true, false);
+            selectivity *= innerTableCostController.getSelectivity(innerColumn.getGeneratedToReplaceIndexExpression(),
+                    innerColumn.getColumnNumber(), startKey, true, endKey, true, false);
         }
 
         return selectivity;

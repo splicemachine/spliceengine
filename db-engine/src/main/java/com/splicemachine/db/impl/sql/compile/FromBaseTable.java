@@ -438,27 +438,42 @@ public class FromBaseTable extends FromTable {
                 int[] baseColumnPositions=irg.baseColumnPositions();
                 boolean[] isAscending=irg.isAscending();
 
-                for(int i=0;i<baseColumnPositions.length;i++){
-                    if (!irg.isOnExpression()) {
+                if (irg.isOnExpression()) {
+                    if (isCoveringIndex(currentConglomerateDescriptor)) {
+                        for (int i = 0; i < isAscending.length; i++) {
+                            int rowOrderDirection = isAscending[i] ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
+                            setRowOrderingForColumn(i, rowOrderDirection, rowOrdering, predList);
+                        }
+                    }
+                    // if it's an expression-based index and not covering, nothing can be assumed
+                    // for the row ordering of base columns
+                } else {
+                    for (int i = 0; i < baseColumnPositions.length; i++) {
                         int rowOrderDirection = isAscending[i] ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
-                        int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection, getTableNumber(), baseColumnPositions[i]);
-                        if (pos == -1) {
-                            rowOrdering.nextOrderPosition(rowOrderDirection);
-                            pos = rowOrdering.addOrderedColumn(rowOrderDirection, getTableNumber(), baseColumnPositions[i]);
-                        }
-                        // check if the column has a constant predicate like "col=constant" defined on it,
-                        // if so, we can treat it as sorted as it has only one value
-                        if (pos >= 0 &&    /* a column ordering is added or exists */
-                                hasConstantPredicate(getTableNumber(), baseColumnPositions[i], predList)) {
-                            ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
-                            co.setBoundByConstant(true);
-                        }
+                        setRowOrderingForColumn(baseColumnPositions[i], rowOrderDirection, rowOrdering, predList);
                     }
                 }
             }
         }
         ap.setConglomerateDescriptor(currentConglomerateDescriptor);
         return currentConglomerateDescriptor!=null;
+    }
+
+    private void setRowOrderingForColumn(int columnPosition, int rowOrderDirection, RowOrdering rowOrdering,
+                                         OptimizablePredicateList predList) throws StandardException {
+        int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection, getTableNumber(), columnPosition);
+        if (pos == -1) {
+            rowOrdering.nextOrderPosition(rowOrderDirection);
+            pos = rowOrdering.addOrderedColumn(rowOrderDirection, getTableNumber(), columnPosition);
+        }
+        // check if the column has a constant predicate like "col=constant" defined on it,
+        // if so, we can treat it as sorted as it has only one value
+        // TODO: DB-10335, setBoundByConstant for index expressions
+        if (pos >= 0 &&    /* a column ordering is added or exists */
+                hasConstantPredicate(getTableNumber(), columnPosition, predList)) {
+            ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
+            co.setBoundByConstant(true);
+        }
     }
 
     @Override

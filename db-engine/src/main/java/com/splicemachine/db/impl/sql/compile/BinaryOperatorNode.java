@@ -1089,6 +1089,9 @@ public class BinaryOperatorNode extends OperatorNode
         }
     }
 
+    public int getLeftMatchIndexExprTableNumber() { return this.leftMatchIndexExpr; }
+    public int getRightMatchIndexExprTableNumber() { return this.rightMatchIndexExpr; }
+
     @Override
     public double getBaseOperationCost() throws StandardException { return getChildrenCost(); }
 

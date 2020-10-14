@@ -138,6 +138,17 @@ public interface OptimizablePredicate
 		throws StandardException;
 
 	/**
+	 * Returns if the predicate involves an equal operator on one of the
+	 * index expressions defined for optTable.
+	 *
+	 * @param 	optTable the table on which index expressions are defined.
+
+	 @return returns the index of the index expression that has the
+	 equality operator.
+	 */
+	int hasEqualOnIndexExpression(Optimizable optTable) throws StandardException;
+
+	/**
 	 * Get a (crude) estimate of the selectivity of this predicate.
 	 * This is to be used when no better technique is available for
 	 * estimating the selectivity - this method's estimate is a hard-

@@ -52,15 +52,15 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
                     "rows=10","MergeJoin");
         }
 
-        //try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
-        //    rowContainsQuery(s,
-        //            new int[]{1,3},
-        //            "explain select upper(ts_10_spk.c2), upper(ts_5_spk.c2) from --splice-properties joinOrder=fixed\n " +
-        //                    "ts_10_spk --splice-properties index=ts_10_spk_expr_idx\n, " +
-        //                    "ts_5_spk --splice-properties index=ts_5_spk_expr_idx, joinStrategy=MERGE\n " +
-        //                    "where upper(ts_10_spk.c2) = upper(ts_5_spk.c2)",
-        //            "rows=10","MergeJoin");
-        //}
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(s,
+                    new int[]{1,3},
+                    "explain select upper(ts_10_spk.c2), upper(ts_5_spk.c2) from --splice-properties joinOrder=fixed\n " +
+                            "ts_10_spk --splice-properties index=ts_10_spk_expr_idx\n, " +
+                            "ts_5_spk --splice-properties index=ts_5_spk_expr_idx, joinStrategy=MERGE\n " +
+                            "where upper(ts_10_spk.c2) = upper(ts_5_spk.c2)",
+                    "rows=10","MergeJoin");
+        }
     }
 
     @Test
@@ -73,17 +73,17 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
                     "rows=10","MergeLeftOuterJoin");
         }
 
-        //try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
-        //    rowContainsQuery(
-        //            s,
-        //            new int[]{1,3},
-        //            "explain select upper(ts_10_spk.c2), upper(ts_5_spk.c2) from --splice-properties joinOrder=fixed\n " +
-        //                    "ts_10_spk --splice-properties index=ts_10_spk_expr_idx\n" +
-        //                    "left outer join " +
-        //                    "ts_5_spk --splice-properties index=ts_5_spk_expr_idx, joinStrategy=MERGE\n " +
-        //                    "on ts_10_spk.c1 = ts_5_spk.c1",
-        //            "rows=10","MergeLeftOuterJoin");
-        //}
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,3},
+                    "explain select upper(ts_10_spk.c2), upper(ts_5_spk.c2) from --splice-properties joinOrder=fixed\n " +
+                            "ts_10_spk --splice-properties index=ts_10_spk_expr_idx\n" +
+                            "left outer join " +
+                            "ts_5_spk --splice-properties index=ts_5_spk_expr_idx, joinStrategy=MERGE\n " +
+                            "on upper(ts_10_spk.c2) = upper(ts_5_spk.c2)",
+                    "rows=10","MergeLeftOuterJoin");
+        }
     }
 
     @Test
@@ -95,6 +95,20 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
                     "explain select * from ts_10_spk --splice-properties joinStrategy=MERGE\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",
                     "rows=5","MergeLeftOuterJoin");
         }
+
+        // We assert output rows=6 instead of 5 here. Reason is from statistics, max value of upper(ts_10_spk.c2)
+        // returns "9", not "10". Why is that? Becasuse c2 is a varchar column, not integer. "10" sorts before "9"!
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,4},
+                    "explain select upper(ts_10_spk.c2), upper(ts_5_spk.c2) from " +
+                            "ts_10_spk --splice-properties index=ts_10_spk_expr_idx, joinStrategy=MERGE\n " +
+                            "right outer join " +
+                            "ts_5_spk --splice-properties index=ts_5_spk_expr_idx\n " +
+                            "on upper(ts_10_spk.c2) = upper(ts_5_spk.c2)",
+                    "rows=6","MergeLeftOuterJoin");
+        }
     }
 
     @Test
@@ -104,6 +118,17 @@ public class MergeJoinSelectivityIT extends BaseJoinSelectivityIT {
                     s,
                     new int[]{1,3},
                     "explain select * from --splice-properties joinOrder=fixed\n ts_3_spk, ts_10_spk --splice-properties joinStrategy=MERGE\n where ts_10_spk.c1 = ts_3_spk.c1",
+                    "rows=3","MergeJoin");
+        }
+
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(
+                    s,
+                    new int[]{1,4},  // need one extra ProjectRestrict on top of join because we select two index expressions only
+                    "explain select upper(ts_10_spk.c2), upper(ts_3_spk.c2) from --splice-properties joinOrder=fixed\n " +
+                            "ts_3_spk --splice-properties index=ts_3_spk_expr_idx\n, " +
+                            "ts_10_spk --splice-properties index=ts_10_spk_expr_idx, joinStrategy=MERGE\n " +
+                            "where upper(ts_10_spk.c2) = upper(ts_3_spk.c2)",
                     "rows=3","MergeJoin");
         }
     }

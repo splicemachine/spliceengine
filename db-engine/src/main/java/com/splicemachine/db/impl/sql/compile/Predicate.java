@@ -193,7 +193,16 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public int hasEqualOnColumnList(int[] baseColumnPositions,Optimizable optTable) throws StandardException{
+    public int hasEqualOnColumnList(int[] baseColumnPositions, Optimizable optTable) throws StandardException {
+        return hasEqualOnColumnOrIndexExpr(baseColumnPositions, optTable);
+    }
+
+    @Override
+    public int hasEqualOnIndexExpression(Optimizable optTable) throws StandardException {
+        return hasEqualOnColumnOrIndexExpr(null, optTable);
+    }
+
+    public int hasEqualOnColumnOrIndexExpr(int[] baseColumnPositions, Optimizable optTable) throws StandardException {
         RelationalOperator relop=getRelop();
         assert relop!=null;
 
@@ -203,18 +212,31 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         if(!(relop.getOperator()==RelationalOperator.EQUALS_RELOP))
             return -1;
 
-        for(int i=0;i<baseColumnPositions.length;i++){
-            ColumnReference cr=relop.getColumnOperand(optTable,baseColumnPositions[i]);
+        if (baseColumnPositions != null) {
+            for (int i = 0; i < baseColumnPositions.length; i++) {
+                ColumnReference cr = relop.getColumnOperand(optTable, baseColumnPositions[i]);
 
-            if(cr==null)
-                continue;
+                if (cr == null)
+                    continue;
 
-            if(relop.selfComparison(cr, false))
-                continue;
+                if (relop.selfComparison(cr, false))
+                    continue;
 
-            // If I made it thus far in the loop, we've found
-            // something.
-            return i;
+                // If I made it thus far in the loop, we've found
+                // something.
+                return i;
+            }
+        } else {
+            ValueNode indexExpr = relop.getExpressionOperand(optTable.getTableNumber(), -1, null, true);
+            if (indexExpr != null) {
+                ColumnReference cr = indexExpr.getHashableJoinColumnReference().get(0);
+                if (!relop.selfComparison(cr, true)) {
+                    int indexColumnPosition = relop.getMatchingExprIndexColumnPosition(optTable.getTableNumber());
+                    if (indexColumnPosition >= 0) {
+                        return indexColumnPosition;
+                    }
+                }
+            }
         }
 
         return -1;

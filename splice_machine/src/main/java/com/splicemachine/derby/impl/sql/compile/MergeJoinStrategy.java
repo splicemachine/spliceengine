@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.utils.Pair;
 
 import java.util.Arrays;
 import java.util.BitSet;
@@ -218,33 +219,38 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                                 IndexRowGenerator innerRowGenerator,
                                 OptimizablePredicateList predList,
                                 Optimizable innerTable) throws StandardException{
-        int[] keyColumnPositionMap = innerRowGenerator.baseColumnPositions();
+        boolean isIndexOnExpr = innerRowGenerator.isOnExpression();
+        int[] keyColumnPositionMap = isIndexOnExpr ? null : innerRowGenerator.baseColumnPositions();
         boolean[] keyAscending = innerRowGenerator.isAscending();
 
-        BitSet innerColumns = new BitSet(keyColumnPositionMap.length);
-        BitSet outerColumns = new BitSet(keyColumnPositionMap.length);
+        BitSet innerColumns = new BitSet(keyAscending.length);
+        BitSet outerColumns = new BitSet(keyAscending.length);
         for(int p = 0;p<predList.size();p++){
             Predicate pred = (Predicate)predList.getOptPredicate(p);
             if(pred.isJoinPredicate()) continue; //we'll deal with these later
             RelationalOperator relop=pred.getRelop();
             if(!(relop instanceof BinaryRelationalOperatorNode)) continue;
             if(relop.getOperator()==RelationalOperator.EQUALS_RELOP) {
-                int innerEquals = pred.hasEqualOnColumnList(keyColumnPositionMap, innerTable);
-                if (innerEquals >= 0) innerColumns.set(innerEquals);
-                else {
-
+                int innerEquals = isIndexOnExpr ? pred.hasEqualOnIndexExpression(innerTable)
+                                                : pred.hasEqualOnColumnList(keyColumnPositionMap, innerTable);
+                if (innerEquals >= 0) {
+                    innerColumns.set(innerEquals);
+                } else {
                     BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) relop;
-                    ValueNode vn = bron.getLeftOperand();
-                    if (!(vn instanceof ColumnReference))
-                        vn = bron.getRightOperand();
-                    if (!(vn instanceof ColumnReference)) continue;
-                    ColumnReference outerColumn = (ColumnReference) vn;
+                    int outerTableNum;
+                    int outerColNum;
+
                     /*
                      * We are still sortable if we have constant predicates on the first N keys on the outer
                      * side of the join, as long as we match the inner columns
                      */
-                    int outerTableNum = outerColumn.getTableNumber();
-                    int outerColNum = outerColumn.getColumnNumber();
+                    Pair<Integer, Integer> outerColumnInfo = getOuterColumnInfo(bron, innerTable, null);
+                    if (outerColumnInfo != null) {
+                        outerTableNum = outerColumnInfo.getFirst();
+                        outerColNum = outerColumnInfo.getSecond();
+                    } else {
+                        continue;
+                    }
                     //we don't care what the sort order for this column is, since it's an equals predicate anyway
                     int pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING, outerTableNum, outerColNum);
                     if (pos >= 0) {
@@ -259,14 +265,14 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
             }
         }
 
-        int[] innerToOuterJoinColumnMap = new int[keyColumnPositionMap.length];
+        int[] innerToOuterJoinColumnMap = new int[keyAscending.length];
         Arrays.fill(innerToOuterJoinColumnMap,-1);
-        for(int i=0;i<keyColumnPositionMap.length;i++){
+        for(int i=0;i<keyAscending.length;i++){
             /*
              * If we have equals predicates on the inner and outer columns already, then we don't
              * care about this position
              */
-            int innerColumnPosition = keyColumnPositionMap[i];
+            int innerColumnPosition = isIndexOnExpr ? i : keyColumnPositionMap[i];
             boolean ascending = keyAscending[i];
 
             for(int p=0;p<predList.size();p++){
@@ -277,29 +283,37 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                         "Programmer error: RelationalOperator of type "+ relop.getClass()+" detected";
                 BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
                 if (bron.getOperator() == RelationalOperator.EQUALS_RELOP) {
-                    ColumnReference innerColumn = relop.getColumnOperand(innerTable);
-                    ColumnReference outerColumn = getOuterColumn(bron, innerColumn);
-                    if (innerColumn == null || outerColumn == null) continue;
-                    int innerColumnNumber = innerColumn.getColumnNumber();
+                    ColumnReference innerColumn = null;
+                    int innerColumnNumber;
+                    int outerTableNum;
+                    int outerColNum;
+
+                    if (isIndexOnExpr) {
+                        innerColumnNumber = pred.hasEqualOnIndexExpression(innerTable);
+                    } else {
+                        innerColumn = relop.getColumnOperand(innerTable);
+                        if (innerColumn == null) {
+                            continue;
+                        }
+                        innerColumnNumber = innerColumn.getColumnNumber();
+                    }
+
+                    Pair<Integer, Integer> outerColumnInfo = getOuterColumnInfo(bron, innerTable, innerColumn);
+                    if (outerColumnInfo != null) {
+                        outerTableNum = outerColumnInfo.getFirst();
+                        outerColNum = outerColumnInfo.getSecond();
+                    } else {
+                        continue;
+                    }
                     if (innerColumnNumber == innerColumnPosition) {
                         innerColumns.set(i);
-                        int outerTableNum = outerColumn.getTableNumber();
-                        int outerColNum = outerColumn.getColumnNumber();
-                        if (ascending) {
-                            int outerPos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING, outerTableNum, outerColNum);
-                            if (outerPos >= 0) {
-                                outerColumns.set(outerPos);
-                                innerToOuterJoinColumnMap[i] = outerPos;
-                            } else
-                                return false;
-                        } else {
-                            int outerPos = outerRowOrdering.orderedPositionForColumn(RowOrdering.DESCENDING, outerTableNum, outerColNum);
-                            if (outerPos >= 0) {
-                                outerColumns.set(outerPos);
-                                innerToOuterJoinColumnMap[i] = outerPos;
-                            } else
-                                return false;
-                        }
+                        int rowOrdering = ascending ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
+                        int outerPos = outerRowOrdering.orderedPositionForColumn(rowOrdering, outerTableNum, outerColNum);
+                        if (outerPos >= 0) {
+                            outerColumns.set(outerPos);
+                            innerToOuterJoinColumnMap[i] = outerPos;
+                        } else
+                            return false;
                     }
                 }
             }
@@ -366,18 +380,35 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         return true;
     }
 
-    private ColumnReference getOuterColumn(BinaryRelationalOperatorNode bron,ColumnReference innerColumn){
-        if (! (bron.getRightOperand() instanceof ColumnReference)) { // Not A Column, return null
-            return null;
-        }
-        ColumnReference outerColumn = (ColumnReference)bron.getRightOperand();
-        if(outerColumn==innerColumn) {
-            if (! (bron.getLeftOperand() instanceof ColumnReference)) { // Not A Column, return null
+    private Pair<Integer, Integer> getOuterColumnInfo(BinaryRelationalOperatorNode bron, Optimizable innerTable,
+                                                      ColumnReference innerColumn) {
+        Pair<Integer, Integer> outerColumnInfo = getOuterIndexExpressionColumnInfo(bron, innerTable);
+        if (outerColumnInfo != null) {
+            return outerColumnInfo;
+        } else {
+            ValueNode vn = bron.getLeftOperand();
+            if (!(vn instanceof ColumnReference) || (innerColumn != null && vn == innerColumn) || vn.getTableNumber() == innerTable.getTableNumber()) {
+                vn = bron.getRightOperand();
+            }
+            if (!(vn instanceof ColumnReference) || (innerColumn != null && vn == innerColumn) || vn.getTableNumber() == innerTable.getTableNumber()) {
                 return null;
             }
-            outerColumn = (ColumnReference) bron.getLeftOperand();
+            ColumnReference outerColumn = (ColumnReference) vn;
+            return new Pair<>(outerColumn.getTableNumber(), outerColumn.getColumnNumber());
         }
-        return outerColumn;
+    }
+
+    private Pair<Integer, Integer> getOuterIndexExpressionColumnInfo(BinaryRelationalOperatorNode bron, Optimizable innerTable) {
+        int leftMatchTableNumber = bron.getLeftMatchIndexExprTableNumber();
+        int rightMatchTableNumber = bron.getRightMatchIndexExprTableNumber();
+        int innerTableNumber = innerTable.getTableNumber();
+        if (leftMatchTableNumber >= 0 && leftMatchTableNumber != innerTableNumber) {
+            return new Pair<>(leftMatchTableNumber, bron.getMatchingExprIndexColumnPosition(leftMatchTableNumber));
+        } else if (rightMatchTableNumber >= 0 && rightMatchTableNumber != innerTableNumber) {
+            return new Pair<>(rightMatchTableNumber, bron.getMatchingExprIndexColumnPosition(rightMatchTableNumber));
+        } else {
+            return null;
+        }
     }
 
     @Override
