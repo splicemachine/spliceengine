@@ -246,6 +246,49 @@ public class IndexIT extends SpliceUnitTest{
         SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,OrderLineTable.TABLE_NAME,OrderLineTable.INDEX_NAME,OrderLineTable.EXPR_INDEX_DEF,false);
     }
 
+    @Test
+    public void createIndexesOnExpressionsNoDuplicateIndex() throws Exception{
+        String tableName = "TEST_IDX_DUP";
+        methodWatcher.executeUpdate(format("create table %s (vc varchar(10), i int not null)", tableName));
+
+        String checkQuery = "select count(*) from sys.sysconglomerates where conglomeratename='%s'";
+        String expected1 = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        String expected0 = "1 |\n" +
+                "----\n" +
+                " 0 |";
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i, vc)", tableName, tableName));
+        try(ResultSet rs = methodWatcher.executeQuery(format(checkQuery, tableName + "_IDX"))) {
+            assertEquals(expected1, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // an index on the same set of columns but with expressions is not a duplicate
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX_1 ON %s (i * 4, upper(vc))", tableName, tableName));
+        try(ResultSet rs = methodWatcher.executeQuery(format(checkQuery, tableName + "_IDX_1"))) {
+            assertEquals(expected1, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // this is a duplicate of _IDX_1 (can't catch exception since it's just a warning)
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX_2 ON %s (i * 4, upper(vc))", tableName, tableName));
+        try(ResultSet rs = methodWatcher.executeQuery(format(checkQuery, tableName + "_IDX_2"))) {
+            // should be 0 because this index is not created
+            assertEquals(expected0, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        methodWatcher.executeUpdate(format("DROP INDEX %s_IDX", tableName));
+        try(ResultSet rs = methodWatcher.executeQuery(format(checkQuery, tableName + "_IDX"))) {
+            assertEquals(expected0, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // not a duplicate of _IDX_1
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i, vc)", tableName, tableName));
+        try(ResultSet rs = methodWatcher.executeQuery(format(checkQuery, tableName + "_IDX"))) {
+            assertEquals(expected1, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
     // ===============================================================================
     // Query Tests
     // ===============================================================================

@@ -17,17 +17,17 @@
 
 
 options {
-	STATIC = false;
-	LOOKAHEAD = 1;
-	DEBUG_PARSER = false;
-	DEBUG_TOKEN_MANAGER = false;
-	ERROR_REPORTING = true;
-	USER_TOKEN_MANAGER = false;
-	USER_CHAR_STREAM = true;
-	JAVA_UNICODE_ESCAPE = false;
-	UNICODE_INPUT = true;
-	IGNORE_CASE = true;
-	CACHE_TOKENS = true;
+    STATIC = false;
+    LOOKAHEAD = 1;
+    DEBUG_PARSER = false;
+    DEBUG_TOKEN_MANAGER = false;
+    ERROR_REPORTING = true;
+    USER_TOKEN_MANAGER = false;
+    USER_CHAR_STREAM = true;
+    JAVA_UNICODE_ESCAPE = false;
+    UNICODE_INPUT = true;
+    IGNORE_CASE = true;
+    CACHE_TOKENS = true;
 }
 
 PARSER_BEGIN(ij)
@@ -62,450 +62,1218 @@ import java.util.Locale;
 import javax.transaction.xa.XAResource;
 
 /**
-	This parser works on a statement-at-a-time basis.
-	It maintains a connection environment that is
-	set by the caller and contains a list of
-	connections for the current thread/ij session.
-	Multi-user frameworks that use this parser
-	tend to maintain multiple connectionEnv's and
-	pass in the current one to set ij up.
-	A connectionEnv has a default connection in use,
-	and the ij connect/set connection/disconnect commands 
-	are used to change the current connection.
-
-	Each connection has associated with it a list
-	of prepared statements and cursors, created by
-	the ij prepare and get cursor statements and
-	manipulated by additional ij statements.
-
-	To enable multiple display modes, this parser will
-	not output anything, but will return
-	objects that the caller can then display.
-
-	This means the caller is responsible for displaying
-	thrown exceptions and also SQLWarnings. So, our
-	return value is the JDBC object upon which warnings
-	will be hung, i.e. the one manipulated by the statement,
-	if any.
-
-	If there is no object to display, then a null is
-	returned.
-
+ *  This parser works on a statement-at-a-time basis.
+ *  It maintains a connection environment that is
+ *  set by the caller and contains a list of
+ *  connections for the current thread/ij session.
+ *  Multi-user frameworks that use this parser
+ *  tend to maintain multiple connectionEnv's and
+ *  pass in the current one to set ij up.
+ *  A connectionEnv has a default connection in use,
+ *  and the ij connect/set connection/disconnect commands
+ *  are used to change the current connection.
+ *
+ *  Each connection has associated with it a list
+ *  of prepared statements and cursors, created by
+ *  the ij prepare and get cursor statements and
+ *  manipulated by additional ij statements.
+ *
+ *  To enable multiple display modes, this parser will
+ *  not output anything, but will return
+ *  objects that the caller can then display.
+ *
+ *  This means the caller is responsible for displaying
+ *  thrown exceptions and also SQLWarnings. So, our
+ *  return value is the JDBC object upon which warnings
+ *  will be hung, i.e. the one manipulated by the statement,
+ *  if any.
+ *
+ *  If there is no object to display, then a null is
+ *  returned.
  */
 class ij {
-	static final String PROTOCOL_PROPERTY = "ij.protocol";
+    static final String PROTOCOL_PROPERTY = "ij.protocol";
     static final String URLCHECK_PROPERTY = "ij.URLCheck";
-	static final String USER_PROPERTY = "ij.user";
+    static final String USER_PROPERTY = "ij.user";
     static final String PASSWORD_PROPERTY = "ij.password";
-	static final String FRAMEWORK_PROPERTY = "framework";
+    static final String FRAMEWORK_PROPERTY = "framework";
 
-	static final String DOUBLEQUOTES = "\"\"";
+    static final String DOUBLEQUOTES = "\"\"";
 
-	boolean			elapsedTime = true;
+    boolean elapsedTime = true;
 
-	Connection theConnection = null;
-	ConnectionEnv currentConnEnv = null;
-	String urlCheck = null;
+    Connection theConnection = null;
+    ConnectionEnv currentConnEnv = null;
+    String urlCheck = null;
 
-	xaAbstractHelper xahelper = null;
-	boolean exit = false;
+    xaAbstractHelper xahelper = null;
+    boolean exit = false;
 
-	utilMain utilInstance = null;
-	Hashtable ignoreErrors = null;
-	String protocol = null;		// the (single) unnamed protocol
-	Hashtable namedProtocols;
+    utilMain utilInstance = null;
+    Hashtable ignoreErrors = null;
+    String protocol = null; // the (single) unnamed protocol
+    Hashtable namedProtocols;
 
+    /**
+     * A constructor that understands the local state that needs to be
+     * initialized.
+     *
+     * @param tm            The token manager to use
+     * @param utilInstance  The util to use
+     */
+    ij(ijTokenManager tm, utilMain utilInstance) {
+        this(tm);
+        this.utilInstance = utilInstance;
+    }
 
+    /**
+       Initialize this parser from the environment
+       (system properties). Used when ij is being run
+       as a command line program.
+    */
+    void initFromEnvironment() {
 
-	/**
-	 * A constructor that understands the local state that needs to be
-	 * initialized.
-	 *
-	 * @param tm			The token manager to use
-	 * @param utilInstance	The util to use
-	 */
-	ij(ijTokenManager tm, utilMain utilInstance) {
-		this(tm);
-		this.utilInstance = utilInstance;
-	}
-	
-	/**
-	   Initialize this parser from the environment
-	   (system properties). Used when ij is being run
-	   as a command line program.
-	*/
-	void initFromEnvironment() {
-
-		// load all protocols specified via properties
-		//
+        // load all protocols specified via properties
+        //
         Properties p = (Properties) AccessController.doPrivileged(new PrivilegedAction() {
-          	public Object run() {
-              	return System.getProperties();
+            public Object run() {
+                return System.getProperties();
             }
         });
         urlCheck = p.getProperty(URLCHECK_PROPERTY);
-		protocol = p.getProperty(PROTOCOL_PROPERTY);
-		String framework_property = p.getProperty(FRAMEWORK_PROPERTY);
-		
-		if (ij.JDBC20X() && ij.JTA() && ij.JNDI())
-		{
-			try {
-				xahelper = (xaAbstractHelper) Class.forName("com.splicemachine.dbpl.tools.ij.xaHelper").newInstance();
-				xahelper.setFramework(framework_property);
-			} catch (Exception e) {
-			}
+        protocol = p.getProperty(PROTOCOL_PROPERTY);
+        String framework_property = p.getProperty(FRAMEWORK_PROPERTY);
 
-		}
+        if (ij.JDBC20X() && ij.JTA() && ij.JNDI())
+        {
+            try {
+                xahelper = (xaAbstractHelper) Class.forName("com.splicemachine.dbpl.tools.ij.xaHelper").newInstance();
+                xahelper.setFramework(framework_property);
+            } catch (Exception e) {
+            }
+
+        }
 
 
-		namedProtocols = new Hashtable();
-		String prefix = PROTOCOL_PROPERTY + ".";
-		for (Enumeration e = p.propertyNames(); e.hasMoreElements(); )
-		{
-			String key = (String)e.nextElement();
-			if (key.startsWith(prefix)) {
-				String name = key.substring(prefix.length());
-				installProtocol(name.toUpperCase(Locale.ENGLISH), p.getProperty(key));
-			}
-		}
-	}
-	/**
-	 * Return whether or not JDBC 2.0 (and greater) extension classes can be loaded
-	 *
-	 * @return true if JDBC 2.0 (and greater) extension classes can be loaded
-	 */
-	private static boolean JDBC20X()
-	{
-		try
-		{
-			Class.forName("javax.sql.DataSource");
-			Class.forName("javax.sql.ConnectionPoolDataSource");
-			Class.forName("javax.sql.PooledConnection");
-			Class.forName("javax.sql.XAConnection");
-			Class.forName("javax.sql.XADataSource");
-		}
-		catch(ClassNotFoundException cnfe)
-		{
-			return false;
-		}
-		return true;
-	}
-	/**
-	 * Return whether or not JTA classes can be loaded
-	 *
-	 * @return true if JTA classes can be loaded
-	 */
-	private static boolean JTA()
-	{
-		try
-		{
-			Class.forName("javax.transaction.xa.Xid");
-			Class.forName("javax.transaction.xa.XAResource");
-			Class.forName("javax.transaction.xa.XAException");
-		}
-		catch(ClassNotFoundException cnfe)
-		{
-			return false;
-		}
-		return true;
-	}
+        namedProtocols = new Hashtable();
+        String prefix = PROTOCOL_PROPERTY + ".";
+        for (Enumeration e = p.propertyNames(); e.hasMoreElements(); )
+        {
+            String key = (String)e.nextElement();
+            if (key.startsWith(prefix)) {
+                String name = key.substring(prefix.length());
+                installProtocol(name.toUpperCase(Locale.ENGLISH), p.getProperty(key));
+            }
+        }
+    }
+    /**
+     * Return whether or not JDBC 2.0 (and greater) extension classes can be loaded
+     *
+     * @return true if JDBC 2.0 (and greater) extension classes can be loaded
+     */
+    private static boolean JDBC20X()
+    {
+        try
+        {
+            Class.forName("javax.sql.DataSource");
+            Class.forName("javax.sql.ConnectionPoolDataSource");
+            Class.forName("javax.sql.PooledConnection");
+            Class.forName("javax.sql.XAConnection");
+            Class.forName("javax.sql.XADataSource");
+        }
+        catch(ClassNotFoundException cnfe)
+        {
+            return false;
+        }
+        return true;
+    }
+    /**
+     * Return whether or not JTA classes can be loaded
+     *
+     * @return true if JTA classes can be loaded
+     */
+    private static boolean JTA()
+    {
+        try
+        {
+            Class.forName("javax.transaction.xa.Xid");
+            Class.forName("javax.transaction.xa.XAResource");
+            Class.forName("javax.transaction.xa.XAException");
+        }
+        catch(ClassNotFoundException cnfe)
+        {
+            return false;
+        }
+        return true;
+    }
 
-	/**
-	 * Return whether or not JNDI extension classes can be loaded
-	 *
-	 * @return true if JNDI extension classes can be loaded
-	 */
-	private static boolean JNDI()
-	{
-		try
-		{
-			Class.forName("javax.naming.spi.Resolver");
-			Class.forName("javax.naming.Referenceable");
-			Class.forName("javax.naming.directory.Attribute");
-		}
-		catch(ClassNotFoundException cnfe)
-		{
-			return false;
-		}
-		return true;
-	}
+    /**
+     * Return whether or not JNDI extension classes can be loaded
+     *
+     * @return true if JNDI extension classes can be loaded
+     */
+    private static boolean JNDI()
+    {
+        try
+        {
+            Class.forName("javax.naming.spi.Resolver");
+            Class.forName("javax.naming.Referenceable");
+            Class.forName("javax.naming.directory.Attribute");
+        }
+        catch(ClassNotFoundException cnfe)
+        {
+            return false;
+        }
+        return true;
+    }
 // FIXME: caller has to deal with ignoreErrors and handleSQLException behavior
 
-	/**
-	 * Get the "elapsedTime state".
-	 */
-	boolean getElapsedTimeState()
-	{
-		return elapsedTime;
-	}
+    /**
+        Add the warnings of wTail to the end of those of wHead.
+     */
+    SQLWarning appendWarnings(SQLWarning wHead, SQLWarning wTail) {
+        if (wHead == null) return wTail;
 
-	/**
-	   this removes the outside quotes from the string.
-	   it will also swizzle the special characters
-	   into their actual characters, like '' for ', etc.
-	 */
-	String stringValue(String s) {
-		String result = s.substring(1,s.length()-1);
-		char quotes = '\'';
-		int		index;
-	
-		/* Find the first occurrence of adjacent quotes. */
-		index = result.indexOf(quotes);
+        if (wHead.getNextException() == null) {
+            wHead.setNextException(wTail);
+        } else {
+            appendWarnings(wHead.getNextWarning(), wTail);
+        }
+        return wHead;
+    }
 
-		/* Replace each occurrence with a single quote and begin the
-		 * search for the next occurrence from where we left off.
-		 */
-		while (index != -1)
-		{
-			result = result.substring(0, index + 1) + result.substring(index + 2);
+    /**
+     * Get the "elapsedTime state".
+     */
+    boolean getElapsedTimeState()
+    {
+        return elapsedTime;
+    }
 
-			index = result.indexOf(quotes, index + 1);
-		}
+    /**
+       this removes the outside quotes from the string.
+       it will also swizzle the special characters
+       into their actual characters, like '' for ', etc.
+     */
+    String stringValue(String s) {
+        String result = s.substring(1,s.length()-1);
+        char quotes = '\'';
+        int index;
 
-		return result;
-	}
+        /* Find the first occurrence of adjacent quotes. */
+        index = result.indexOf(quotes);
 
-	void installProtocol(String name, String value) {
-	    try {
-			// `value' is a JDBC protocol;
-			// we load the "driver" in the prototypical
-			// manner, it will register itself with
-			// the DriverManager.
-			util.loadDriverIfKnown(value);
-	    } catch (ClassNotFoundException e) {
-			throw ijException.classNotFoundForProtocol(value);
-	    } catch (IllegalArgumentException e) {
-			throw ijException.classNotFoundForProtocol(value);
-	    } catch (IllegalAccessException e) {
-			throw ijException.classNotFoundForProtocol(value);
-	    } catch (InstantiationException e) {
-			throw ijException.classNotFoundForProtocol(value);
-	    }
-		if (name == null)
-			protocol = value;
-		else
-			namedProtocols.put(name, value);
-	}
-	
-	void haveConnection() {
-		JDBCDisplayUtil.checkNotNull(theConnection, "connection");
-	}
-	
-	/**
-		Find a session by its name. Throws an exception if the session does 
-		not exists.
-	*/
-	Session findSession(String name) {
-		Session session = currentConnEnv.getSession(name);
-		
-		if (session == null)
-			throw ijException.noSuchConnection(name);
-		
-		return session;
-	}
-	
-	/**
-		Find a prepared statement. Throws an exception if the session does 
-		not exists or the prepared statement can't be found.
-	*/
-	PreparedStatement findPreparedStatement(QualifiedIdentifier qi) {
-		Session session = findSession(qi.getSessionName());
-		PreparedStatement ps = session.getPreparedStatement(qi.getLocalName());
-		
-		JDBCDisplayUtil.checkNotNull(ps, "prepared statement " + qi);
-		
-		return ps;
-	}
-	
-	/**
-		Find a cursor. Throws an exception if the session does not exits or
-		it deosn't have the correspondig cursor.
-	*/
-	ResultSet findCursor(QualifiedIdentifier qi) {
-		Session 	session	= findSession(qi.getSessionName());
-		ResultSet	c		= session.getCursor(qi.getLocalName());
-		
-		JDBCDisplayUtil.checkNotNull(c, "cursor " + qi);
-		
-		return c;
-	}
+        /* Replace each occurrence with a single quote and begin the
+         * search for the next occurrence from where we left off.
+         */
+        while (index != -1)
+        {
+            result = result.substring(0, index + 1) + result.substring(index + 2);
 
-	/**
-		We do not reuse statement objects at all, because
-		some systems require you to close the object to release
-		resources (JBMS), while others will not let you reuse
-		the statement object once it is closed (WebLogic).
+            index = result.indexOf(quotes, index + 1);
+        }
 
-		If you want to reuse statement objects, you need to
-		use the ij PREPARE and EXECUTE statements.
+        return result;
+    }
 
-		@param stmt the statement
+    void installProtocol(String name, String value) {
+        try {
+            // `value' is a JDBC protocol;
+            // we load the "driver" in the prototypical
+            // manner, it will register itself with
+            // the DriverManager.
+            util.loadDriverIfKnown(value);
+        } catch (ClassNotFoundException e) {
+            throw ijException.classNotFoundForProtocol(value);
+        } catch (IllegalArgumentException e) {
+            throw ijException.classNotFoundForProtocol(value);
+        } catch (IllegalAccessException e) {
+            throw ijException.classNotFoundForProtocol(value);
+        } catch (InstantiationException e) {
+            throw ijException.classNotFoundForProtocol(value);
+        }
+        if (name == null)
+            protocol = value;
+        else
+            namedProtocols.put(name, value);
+    }
 
-	 **/
-	ijResult executeImmediate(String stmt) throws SQLException {
-		Statement aStatement = null;
-		try {
-			long	beginTime = 0;
-			long	endTime = 0;
-			boolean cleanUpStmt = false;
+    void haveConnection() {
+        JDBCDisplayUtil.checkNotNull(theConnection, "connection");
+    }
 
-			haveConnection();
-			aStatement = theConnection.createStatement();
+    /**
+        Find a session by its name. Throws an exception if the session does
+        not exists.
+    */
+    Session findSession(String name) {
+        Session session = currentConnEnv.getSession(name);
 
-			// for JCC - remove comments at the beginning of the statement
-			// and trim; do the same for Derby Clients that have versions
-			// earlier than 10.2.
-			if (currentConnEnv != null) {
-				boolean trimForDNC = currentConnEnv.getSession().getIsDNC();
-				if (trimForDNC) {
-				// we're using the Derby Client, but we only want to trim
-				// if the version is earlier than 10.2.
-					DatabaseMetaData dbmd = theConnection.getMetaData();
-					int majorVersion = dbmd.getDriverMajorVersion();
-					if ((majorVersion > 10) || ((majorVersion == 10) &&
-						(dbmd.getDriverMinorVersion() > 1)))
-					{ // 10.2 or later, so don't trim/remove comments.
-						trimForDNC = false;
-					}
-				}
-				if (currentConnEnv.getSession().getIsJCC() || trimForDNC) {
-				// remove comments and trim.
-					int nextline;
-					while(stmt.startsWith("--"))
-					{
-						nextline = stmt.indexOf('\n')+1;
-						stmt = stmt.substring(nextline);
-					}
-					stmt = stmt.trim();
-				}
-			}
+        if (session == null)
+            throw ijException.noSuchConnection(name);
 
-			aStatement.execute(stmt);
+        return session;
+    }
 
-			// FIXME: display results. return start time.
-			return new ijStatementResult(aStatement,true);
+    /**
+        Find a prepared statement. Throws an exception if the session does
+        not exists or the prepared statement can't be found.
+    */
+    PreparedStatement findPreparedStatement(QualifiedIdentifier qi) {
+        Session session = findSession(qi.getSessionName());
+        PreparedStatement ps = session.getPreparedStatement(qi.getLocalName());
 
-		} catch (SQLException e) {
+        JDBCDisplayUtil.checkNotNull(ps, "prepared statement " + qi);
+
+        return ps;
+    }
+
+    /**
+        Find a cursor. Throws an exception if the session does not exits or
+        it deosn't have the correspondig cursor.
+    */
+    ResultSet findCursor(QualifiedIdentifier qi) {
+        Session session = findSession(qi.getSessionName());
+        ResultSet c = session.getCursor(qi.getLocalName());
+
+        JDBCDisplayUtil.checkNotNull(c, "cursor " + qi);
+
+        return c;
+    }
+
+    /**
+        We do not reuse statement objects at all, because
+        some systems require you to close the object to release
+        resources (JBMS), while others will not let you reuse
+        the statement object once it is closed (WebLogic).
+
+        If you want to reuse statement objects, you need to
+        use the ij PREPARE and EXECUTE statements.
+
+        @param stmt the statement
+
+     **/
+    ijResult executeImmediate(String stmt) throws SQLException {
+        Statement aStatement = null;
+        try {
+            long beginTime = 0;
+            long endTime = 0;
+            boolean cleanUpStmt = false;
+
+            haveConnection();
+            aStatement = theConnection.createStatement();
+
+            // for JCC - remove comments at the beginning of the statement
+            // and trim; do the same for Derby Clients that have versions
+            // earlier than 10.2.
+            if (currentConnEnv != null) {
+                boolean trimForDNC = currentConnEnv.getSession().getIsDNC();
+                if (trimForDNC) {
+                // we're using the Derby Client, but we only want to trim
+                // if the version is earlier than 10.2.
+                    DatabaseMetaData dbmd = theConnection.getMetaData();
+                    int majorVersion = dbmd.getDriverMajorVersion();
+                    if ((majorVersion > 10) || ((majorVersion == 10) &&
+                        (dbmd.getDriverMinorVersion() > 1)))
+                    { // 10.2 or later, so don't trim/remove comments.
+                        trimForDNC = false;
+                    }
+                }
+                if (currentConnEnv.getSession().getIsJCC() || trimForDNC) {
+                // remove comments and trim.
+                    int nextline;
+                    while(stmt.startsWith("--"))
+                    {
+                        nextline = stmt.indexOf('\n')+1;
+                        stmt = stmt.substring(nextline);
+                    }
+                    stmt = stmt.trim();
+                }
+            }
+
+            aStatement.execute(stmt);
+
+            // FIXME: display results. return start time.
+            return new ijStatementResult(aStatement,true);
+
+        } catch (SQLException e) {
             try {
-			    if (aStatement!=null)  // free the resource
-				    aStatement.close();
+                if (aStatement!=null)  // free the resource
+                    aStatement.close();
             } catch (SQLException se) {
             }
-			throw e;
-		}
-	}
+            throw e;
+        }
+    }
 
-	ijResult quit() throws SQLException {
-		exit = true;
-		if (getExpect()) { // report stats
-			// FIXME: replace with MVC...
-			// FIXME: this is a kludgy way to quiet /0 and make 0/0=1...
-			int numExpectOr1 = (numExpect==0?1:numExpect);
-			int numPassOr1 = (numPass==numExpect && numPass==0)?1:numPass;
-			int numFailOr1 = (numFail==numExpect && numFail==0)?1:numFail;
-			int numUnxOr1 = (numUnx==numExpect && numUnx==0)?1:numUnx;
+    ijResult quit() throws SQLException {
+        exit = true;
+        if (getExpect()) { // report stats
+            // FIXME: replace with MVC...
+            // FIXME: this is a kludgy way to quiet /0 and make 0/0=1...
+            int numExpectOr1 = (numExpect==0?1:numExpect);
+            int numPassOr1 = (numPass==numExpect && numPass==0)?1:numPass;
+            int numFailOr1 = (numFail==numExpect && numFail==0)?1:numFail;
+            int numUnxOr1 = (numUnx==numExpect && numUnx==0)?1:numUnx;
 
             LocalizedResource.OutputWriter().println(LocalizedResource.getMessage("IJ_TestsRun0Pass12Fail34",
             new Object[]{
-			LocalizedResource.getNumber(numExpect), LocalizedResource.getNumber(100*(numPassOr1/numExpectOr1)),
-			LocalizedResource.getNumber(100*(numFailOr1/numExpectOr1))}));
+            LocalizedResource.getNumber(numExpect), LocalizedResource.getNumber(100*(numPassOr1/numExpectOr1)),
+            LocalizedResource.getNumber(100*(numFailOr1/numExpectOr1))}));
                         if (numUnx > 0) {
-							LocalizedResource.OutputWriter().println();
-							LocalizedResource.OutputWriter().println(LocalizedResource.getMessage("IJ_UnexpResulUnx01",
-							LocalizedResource.getNumber(numUnx), LocalizedResource.getNumber(100*(numUnxOr1/numExpectOr1))));							
-			}
-		}
-		currentConnEnv.removeAllSessions();
-		theConnection = null;
-		return null;
-	}
+                            LocalizedResource.OutputWriter().println();
+                            LocalizedResource.OutputWriter().println(LocalizedResource.getMessage("IJ_UnexpResulUnx01",
+                            LocalizedResource.getNumber(numUnx), LocalizedResource.getNumber(100*(numUnxOr1/numExpectOr1))));
+            }
+        }
+        currentConnEnv.removeAllSessions();
+        theConnection = null;
+        return null;
+    }
 
-	/**
-		Async execution wants to return results off-cycle.
-		We want to control their output, and so will hold it
-		up until it is requested with a WAIT FOR asyncName
-		statement.  WAIT FOR will return the results of
-		the async statement once they are ready.  Note that using
-		a select only waits for the execute to complete; the
-		logic to step through the result set is in the caller.
-	 **/
-	ijResult executeAsync(String stmt, QualifiedIdentifier qi) {
-		Session sn = findSession(qi.getSessionName());
-		AsyncStatement as = new AsyncStatement(sn.getConnection(), stmt);
+    /**
+        Async execution wants to return results off-cycle.
+        We want to control their output, and so will hold it
+        up until it is requested with a WAIT FOR asyncName
+        statement.  WAIT FOR will return the results of
+        the async statement once they are ready.  Note that using
+        a select only waits for the execute to complete; the
+        logic to step through the result set is in the caller.
+     **/
+    ijResult executeAsync(String stmt, QualifiedIdentifier qi) {
+        Session sn = findSession(qi.getSessionName());
+        AsyncStatement as = new AsyncStatement(sn.getConnection(), stmt);
 
-		sn.addAsyncStatement(qi.getLocalName(),as);
+        sn.addAsyncStatement(qi.getLocalName(),as);
 
-		as.start();
+        as.start();
 
-		return null;
-	}
+        return null;
+    }
 
 
-    
-	void setConnection(ConnectionEnv connEnv, boolean multipleEnvironments) {
-		Connection conn = connEnv.getConnection();
 
-		if (connEnv != currentConnEnv) // single connenv is common case
-			currentConnEnv = connEnv;
+    void setConnection(ConnectionEnv connEnv, boolean multipleEnvironments) {
+        Connection conn = connEnv.getConnection();
 
-		if (theConnection == conn) return; // not changed.
+        if (connEnv != currentConnEnv) // single connenv is common case
+            currentConnEnv = connEnv;
 
-		if ((theConnection == null) || multipleEnvironments) {
-			// must have switched env's (could check)
-			theConnection = conn;
-		} else {
-			throw ijException.needToDisconnect();
-		}
-	}
+        if (theConnection == conn) return; // not changed.
 
-	/**
-		Note the Expect Result in the output and in the stats.
+        if ((theConnection == null) || multipleEnvironments) {
+            // must have switched env's (could check)
+            theConnection = conn;
+        } else {
+            throw ijException.needToDisconnect();
+        }
+    }
 
-		FIXME
-	 */
-	int numExpect, numPass, numFail, numUnx;
-	private void noteExpect(boolean actual, boolean want) {
-		numExpect++;
-		if (actual) numPass++;
-		else numFail++;
+    /**
+        Note the Expect Result in the output and in the stats.
+
+        FIXME
+     */
+    int numExpect, numPass, numFail, numUnx;
+    private void noteExpect(boolean actual, boolean want) {
+        numExpect++;
+        if (actual) numPass++;
+        else numFail++;
 
                 LocalizedResource.OutputWriter().print(LocalizedResource.getMessage(actual?"IJ_Pass":"IJ_Fail"));
-		if (actual != want) {
-			numUnx++;
-					LocalizedResource.OutputWriter().println(LocalizedResource.getMessage("IJ_Unx"));
-		}
+        if (actual != want) {
+            numUnx++;
+                    LocalizedResource.OutputWriter().println(LocalizedResource.getMessage("IJ_Unx"));
+        }
                 else LocalizedResource.OutputWriter().println();
-	}
+    }
 
-	private boolean getExpect() {
-		String s = util.getSystemProperty("ij.expect");
-		return Boolean.valueOf(s).booleanValue();
-	}
+    private boolean getExpect() {
+        String s = util.getSystemProperty("ij.expect");
+        return Boolean.valueOf(s).booleanValue();
+    }
 
-	private	ijResult	addSession
-	(
-		Connection	newConnection,
-		String		name
-	)
-		throws SQLException
-	{
-		if (currentConnEnv.haveSession(name)) {
-			throw ijException.alreadyHaveConnectionNamed(name);
-		}
+    private ijResult addSession
+    (
+        Connection newConnection,
+        String name
+    )
+        throws SQLException
+    {
+        if (currentConnEnv.haveSession(name)) {
+            throw ijException.alreadyHaveConnectionNamed(name);
+        }
 
-		currentConnEnv.addSession( newConnection, name );
-		return new ijConnectionResult( newConnection );
-	}
+        currentConnEnv.addSession( newConnection, name );
+        return new ijConnectionResult( newConnection );
+    }
 
-	private Object makeXid(int xid)
-	{
-		return null;
-	}
+    private String[] sortConnectionNames()
+    {
+        int size = 100;
+        int count = 0;
+        String[] array = new String[size];
+        String key;
+
+                Hashtable ss = currentConnEnv.getSessions();
+        // Calculate the number of connections in the sessions list and
+        // build an array of all the connection names.
+        for (Enumeration connectionNames = ss.keys(); connectionNames.hasMoreElements();) {
+            if (count == size) {
+               // need to expand the array
+               size = size*2;
+               String[] expandedArray = new String[size];
+               System.arraycopy(array, 0, expandedArray, 0, count);
+               array = expandedArray;
+            }
+            key = (String)connectionNames.nextElement();
+            array[ count++ ] = key;
+        }
+
+        java.util.Arrays.sort(array, 0, count);
+
+        return array;
+    }
+
+        /**
+      This is used at the ij startup time to see if there are already some
+          connections made and if so, show connections made so far.
+      Following also gets executed when user types show connections command
+          in ij. In the former case, ignore0Rows is set whereas in the later cas
+      it's set to false. The reason for this is, at ij startup time, if there
+      are no connections made so far, we don't want to show anything. Only if
+      there are connections made, we show the connections. Whereas in show
+      connection command case, we want to show the connection status either way
+      ie if there are no connections, we say no connections. Otherwise we list
+      all the connections made so far.
+        */
+    public ijResult showConnectionsMethod(boolean ignore0Rows) throws SQLException {
+        Hashtable ss = currentConnEnv.getSessions();
+        Vector v = new Vector();
+        SQLWarning w = null;
+        if (ss == null || ss.size() == 0) {
+            if (!ignore0Rows)
+                v.addElement(LocalizedResource.getMessage("IJ_NoConneAvail"));
+        }
+        else {
+            boolean haveCurrent=false;
+            int count = 0;
+            for (Enumeration connectionNames = ss.keys(); connectionNames.hasMoreElements();
+                        connectionNames.nextElement())
+                count++;
+            String[] array = sortConnectionNames();
+            for ( int ictr = 0; ictr < count; ictr++ ) {
+                String connectionName = array[ ictr ];
+                Session s = (Session)ss.get(connectionName);
+                if (s.getConnection().isClosed()) {
+                    if (currentConnEnv.getSession() != null &&
+                            connectionName.equals(currentConnEnv.getSession().getName())) {
+                        currentConnEnv.removeCurrentSession();
+                        theConnection = null;
+                    }
+                    else
+                        currentConnEnv.removeSession(connectionName);
+                }
+                else {
+                    StringBuilder row = new StringBuilder();
+                    row.append(connectionName);
+                    if (currentConnEnv.getSession() != null &&
+                        connectionName.equals(currentConnEnv.getSession().getName())) {
+                        row.append('*');
+                        haveCurrent=true;
+                    }
+
+                    //If ij.dataSource property is set, show only connection names.
+                    //In this case, URL is not used to get connection, so do not append URL
+                    String dsName = util.getSystemProperty("ij.dataSource");
+                    if(dsName == null){
+                        row.append(" -  ");
+                        String url = s.getConnection().getMetaData().getURL();
+                        url = url.replace(":derby:", ":splice:");
+                        row.append(url);
+                    }
+                    // save the warnings from these connections
+                    w = appendWarnings(w,s.getConnection().getWarnings());
+                    s.getConnection().clearWarnings();
+                    v.addElement(row.toString());
+                }
+            }
+            if (haveCurrent)
+                v.addElement(LocalizedResource.getMessage("IJ_CurreConne"));
+            else
+                v.addElement(LocalizedResource.getMessage("IJ_NoCurreConne"));
+        }
+        return new ijVectorResult(v,w);
+    }
+
+    /**
+       Returns a subset of the input integer array
+
+       @param input The input integer array
+       @param start Starting index, inclusive
+       @param end   Ending index, exclusive
+     */
+    public static int[] intArraySubset(final int[] input, int start, int end) {
+        int[] res = new int[end-start];
+        System.arraycopy(input, start, res, 0, end-start);
+        return res;
+    }
+
+    /**
+       Verify that a table exists within a schema. Throws an exception
+       if table does not exist.
+
+       @param schema Schema for the table
+       @param table  Name of table to check for existence of
+     */
+    public void verifyTableExists(String schema, String table)
+    throws SQLException {
+        if(schema == null)
+            return;
+
+        ResultSet rs = null;
+        try {
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+
+            rs = dbmd.getSchemas(null,schema);
+            if (!rs.next())
+                throw ijException.noSuchSchema(schema);
+            rs.close();
+
+            rs = dbmd.getTables(null,schema,table,null);
+            if(!rs.next())
+                throw ijException.noSuchTable(table);
+        } finally {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException e) {
+            }
+        }
+    }
+
+    /**
+       Verify that a procedure exists within a schema. Throws an exception
+       if procedure does not exist.
+
+       @param schema Schema for the table
+       @param proc  Name of procedure to check for existence of
+     */
+    public void verifyProcedureExists(String schema, String proc)
+    throws SQLException {
+        if(schema == null)
+            return;
+
+        ResultSet rs = null;
+        try {
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            rs = dbmd.getProcedures(null,schema,proc);
+            if(!rs.next())
+                throw ijException.noSuchProcedure(proc);
+        } finally {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException e) {
+            }
+        }
+    }
+
+    /**
+       Return a resultset of tables (or views, procs...) in the given schema.
+
+       @param schema  Schema to get tables for, or null for search
+                      in all schemas.
+       @param tableType Types of tables to return, see
+                      {@link java.sql.DatabaseMetaData#getTableTypes}
+     */
+    public ijResult showTables(String schema, String[] tableType) throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            rs = dbmd.getTables(null,schema,null,tableType);
+
+            int[] displayColumns = new int[] {
+                rs.findColumn("TABLE_SCHEM"),
+                rs.findColumn("TABLE_NAME"),
+                rs.findColumn("CONGLOM_ID"),
+                rs.findColumn("REMARKS"),
+            };
+            int[] columnWidths = new int[] {
+                20,
+                50,
+                10,
+                20,
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Return a resultset of indexes for the given table or schema
+
+       @param schema  schema to find indexes for
+       @param table the exact name of the table to find indexes for
+    */
+    private ResultSet getIndexInfoForTable(String schema, String table)
+      throws SQLException {
+
+        haveConnection();
+
+        DatabaseMetaData dbmd = theConnection.getMetaData();
+        return dbmd.getIndexInfo(null, schema, table, false, true);
+    }
+
+    /**
+     * Used by showIndexes to get columns in correct order
+     */
+    private int[] getDisplayColumnsForIndex(String schema, ResultSet rs)
+        throws SQLException{
+        int[] displayColumns = new int[] {
+            rs.findColumn("TABLE_SCHEM"),
+            rs.findColumn("TABLE_NAME"),
+            rs.findColumn("INDEX_NAME"),
+            rs.findColumn("COLUMN_NAME"),
+            rs.findColumn("ORDINAL_POSITION"),
+            rs.findColumn("NON_UNIQUE"),
+            rs.findColumn("TYPE"),
+            rs.findColumn("ASC_OR_DESC"),
+            rs.findColumn("CONGLOM_NO"),
+        };
+        if(schema!=null) {
+            displayColumns = intArraySubset(displayColumns, 1,
+                                            displayColumns.length);
+        }
+        return displayColumns;
+    }
+
+    /**
+     * Used by showIndexes to get correct column widths
+     */
+    private int[] getColumnWidthsForIndex(String schema){
+        int[] columnWidths = new int[] {
+            20,
+            50,
+            50,
+            20,
+            8,
+            10,
+            5,
+            4,
+            10,
+        };
+        if(schema!=null) {
+            columnWidths = intArraySubset(columnWidths, 1,
+                                            columnWidths.length);
+        }
+        return columnWidths;
+    }
+
+    /**
+     * Used to show all indices.
+     *
+     * @param schema the schema indices are shown from.
+     * @param table the table name to show indices for. If <code>null</code>,
+     *      all indices of the schema are returned.
+     */
+    public ijResult showIndexes(String schema, String table)
+            throws SQLException {
+
+        ijResult result = null;
+
+        int[] displayColumns = null;
+        int[] columnWidths = null;
+
+        try {
+            ResultSet rs = getIndexInfoForTable(schema, table);
+            displayColumns = getDisplayColumnsForIndex(schema, rs);
+            columnWidths = getColumnWidthsForIndex(schema);
+            result = new ijResultSetResult(rs, displayColumns,
+                                           columnWidths);
+            return result;
+        } catch (SQLException e) {
+            try {
+                if(result!=null)
+                    result.closeStatement();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Return a resultset of procedures from database metadata
+     */
+    public ijResult showProcedures(String schema) throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            rs = dbmd.getProcedures(null,schema,null);
+
+            int[] displayColumns = new int[] {
+                rs.findColumn("PROCEDURE_SCHEM"),
+                rs.findColumn("PROCEDURE_NAME"),
+                rs.findColumn("REMARKS"),
+            };
+            int[] columnWidths = new int[] {
+                20,
+                60,
+                100,
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Return a resultset of procedure columns from database metadata
+     */
+    public ijResult showProcedureColumns(String schema, String proc) throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+            verifyProcedureExists(schema,proc);
+
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            rs = dbmd.getProcedureColumns(null,schema,proc,null);
+
+            // Small subset of the result set fields available
+            int[] displayColumns = new int[] {
+                rs.findColumn("COLUMN_NAME"),
+                rs.findColumn("TYPE_NAME"),
+                rs.findColumn("ORDINAL_POSITION")
+            };
+
+            int[] columnWidths = new int[] {
+                32,
+                16,
+                16,
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Return a resultset of primary keys from database metadata
+     */
+    public ijResult showPrimaryKeys(String schema, String table) throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            rs = dbmd.getPrimaryKeys(null,schema,table);
+
+            int[] displayColumns = new int[] {
+                rs.findColumn("TABLE_NAME"),
+                rs.findColumn("COLUMN_NAME"),
+                rs.findColumn("KEY_SEQ"),
+                rs.findColumn("PK_NAME"),
+            };
+            int[] columnWidths = new int[] {
+                30,
+                30,
+                10,
+                30
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Return a resultset of functions from database metadata.
+
+       JDBC4.0 has a method in DatabaseMetaData called getFunctions().
+       Since this method is implemented in Derby's JDBC3.0 driver
+       we can use it. But only through Java reflection.
+     */
+    public ijResult showFunctions(String schema) throws SQLException {
+        ResultSet rs = null;
+
+        try {
+            haveConnection();
+
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            Method getFunctions;
+            try {
+                getFunctions = dbmd.getClass().getMethod("getFunctions",
+                                                    new Class[] { String.class,
+                                                               String.class,
+                                                               String.class});
+                rs = (ResultSet)getFunctions.invoke(dbmd, new Object[] { null, schema, null});
+            } catch(NoSuchMethodException nsme) {
+                throw ijException.notAvailableForDriver(dbmd.getDriverName());
+            } catch(IllegalAccessException iae) {
+                throw ijException.notAvailableForDriver(dbmd.getDriverName());
+            } catch(AbstractMethodError ame) {
+                // According to http://bugs.sun.com/view_bug.do?bug_id=6531596
+                // invoke() may throw AbstractMethodError instead of
+                // InvocationTargetException on some JREs
+                throw ijException.notAvailableForDriver(dbmd.getDriverName());
+            } catch(InvocationTargetException ite) {
+                Throwable cause = ite.getCause();
+                // 'cause' *must* be an SQLException if the method is
+                // *actually* called. But may be AbstractMethodError in some
+                // cases, if the driver implements an older version of the
+                // JDBC spec (pre-JDBC 4.0). See issue DERBY-3809.
+                if (cause instanceof SQLException)
+                    throw (SQLException)cause;
+
+                // else
+                throw ijException.notAvailableForDriver(dbmd.getDriverName());
+            }
+
+            int[] displayColumns = new int[] {
+                    rs.findColumn("FUNCTION_SCHEM"),
+                    rs.findColumn("FUNCTION_NAME"),
+                    rs.findColumn("REMARKS")
+            };
+            int[] columnWidths = new int[] {
+                    14,
+                    35,
+                    80
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Return a resultset of schemas from database metadata
+     */
+    public ijResult showSchemas() throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+            rs = dbmd.getSchemas();
+
+            int[] displayColumns = new int[] {
+                rs.findColumn("TABLE_SCHEM")
+            };
+            int[] columnWidths = new int[] {
+                30
+            };
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Return a resultset of roles. No database metadata
+       available, so select from SYS.SYSROLES directly. This has
+       the side effect of starting a transaction if one is not
+       already active, so we should perhaps give warning when not
+       in autocommit mode.
+    */
+    public ijResult showRoles() throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            if (currentConnEnv.getSession().getIsDNC() ||
+                currentConnEnv.getSession().getIsEmbeddedDerby()) {
+                rs = theConnection.createStatement().executeQuery
+                    ("SELECT ROLEID FROM SYS.SYSROLES WHERE ISDEF='Y' " +
+                     "ORDER BY ROLEID ASC");
+
+                int[] displayColumns = new int[] {
+                    rs.findColumn("ROLEID")
+                };
+                int[] columnWidths = new int[] {
+                    30
+                };
+
+                return new ijResultSetResult(rs, displayColumns, columnWidths);
+            } else {
+                throw ijException.notAvailableForDriver(
+                    theConnection.getMetaData().getDriverName());
+            }
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * Return a resultset of enabled roles, sorted on ROLEID. No information
+     * schema is available, we select from VTI SYSCS_DIAG.CONTAINED_ROLES
+     * instead.
+     */
+    public ijResult showEnabledRoles() throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+
+            if (currentConnEnv.getSession().getIsDNC() ||
+                currentConnEnv.getSession().getIsEmbeddedDerby()) {
+                rs = theConnection.createStatement().executeQuery
+                    ("SELECT * FROM" +
+                    "  TABLE(" +
+                    "  SYSCS_DIAG.CONTAINED_ROLES(CURRENT_ROLE)) T " +
+                    "ORDER BY ROLEID");
+
+                int[] displayColumns = new int[] {
+                    rs.findColumn("ROLEID")
+                };
+                int[] columnWidths = new int[] {
+                    30
+                };
+
+                return new ijResultSetResult(rs, displayColumns, columnWidths);
+            } else {
+                throw ijException.notAvailableForDriver(
+                    theConnection.getMetaData().getDriverName());
+            }
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+
+    /**
+     * Return a resultset of settable roles, sorted on ROLEID.  This has the
+     * side effect of starting a transaction if one is not already active, so
+     * we should perhaps give warning when not in autocommit mode.
+     */
+    public ijResult showSettableRoles() throws SQLException {
+        ResultSet rs = null;
+        final String query  =
+            // Ordinary user is restricted to roles explicitly granted:
+            "select distinct * from (" +
+            "  select roleid from sys.sysroles s" +
+            "    where s.grantee = current_user or s.grantee = 'PUBLIC'" +
+            "  union" +
+            // Data base owner can set all roles:
+            "  select roleid from sys.sysroles s" +
+            "    where s.isdef='Y' and current_user in" +
+            "        (select authorizationid from sys.sysschemas" +
+            "             where schemaname = 'SYS')) t " +
+            "order by roleid";
+
+        try {
+            haveConnection();
+
+            if (currentConnEnv.getSession().getIsDNC() ||
+                currentConnEnv.getSession().getIsEmbeddedDerby()) {
+                rs = theConnection.createStatement().executeQuery(query);
+
+                int[] displayColumns = new int[] {
+                    rs.findColumn("ROLEID")
+                };
+                int[] columnWidths = new int[] {
+                    30
+                };
+
+                return new ijResultSetResult(rs, displayColumns, columnWidths);
+            } else {
+                throw ijException.notAvailableForDriver(
+                    theConnection.getMetaData().getDriverName());
+            }
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+    /**
+       Outputs the DDL of given table.
+     */
+    public ijResult showCreateTable(String schema, String table) throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+            Statement stmt = theConnection.createStatement();
+            rs = stmt.executeQuery("CALL SYSCS_UTIL.SHOW_CREATE_TABLE(\'" +
+                    schema + "\'," + "\'" + table + "\')" );
+            int[] displayColumns = new int[] { 1 };
+            int[] columnWidths = new int[] { 0 };
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+    /**
+       Same as SYSCS_UTIL.SYSCS_GET_VERSION_INFO()
+           and SYSCS_UTIL.SYSCS_GET_VERSION_INFO_LOCAL()
+     */
+    public ijResult showVersionLocal(boolean local) throws SQLException {
+        ResultSet rs = null;
+        String procedurePostfix = local ? "_LOCAL()" : "()";
+        try {
+            haveConnection();
+            Statement stmt = theConnection.createStatement();
+            rs = stmt.executeQuery("CALL SYSCS_UTIL.SYSCS_GET_VERSION_INFO" + procedurePostfix );
+            int[] displayColumns = new int[] { 1,2,3,4,5 };
+            int[] columnWidths = new int[] { 0,0,0,0,0};
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    /**
+       Outputs the names of all fields of given table. Outputs field
+       names and data type.
+     */
+    public ijResult describeTable(String schema, String table) throws SQLException {
+        ResultSet rs = null;
+        try {
+            haveConnection();
+            verifyTableExists(schema,table);
+
+            DatabaseMetaData dbmd = theConnection.getMetaData();
+
+            //Check if it's a synonym table
+            String getSynonymAliasInfo = "SELECT BASETABLE \n" +
+                    " FROM \n" +
+                    " SYSVW.SYSALIASTOTABLEVIEW V \n" +
+                    " WHERE \n" +
+                    " (V.SCHEMANAME LIKE ?) AND (V.ALIAS LIKE ?)";
+
+            PreparedStatement s = theConnection.prepareStatement(getSynonymAliasInfo);
+            s.setString(1, schema);
+            s.setString(2, table);
+            rs = s.executeQuery();
+
+            if (rs.next()){
+                String[] fullName = rs.getString(1).split("\\.");
+                if (fullName.length == 2) {
+                    schema = fullName[0].substring(1,fullName[0].length()-1);
+                    table = fullName[1].substring(1,fullName[1].length()-1);
+                }
+            }
+
+            rs = dbmd.getColumns(null,schema,table,null);
+
+            int[] displayColumns = new int[] {
+                rs.findColumn("TABLE_SCHEM"),
+                rs.findColumn("TABLE_NAME"),
+                rs.findColumn("COLUMN_NAME"),
+                rs.findColumn("TYPE_NAME"),
+                rs.findColumn("DECIMAL_DIGITS"),
+                rs.findColumn("NUM_PREC_RADIX"),
+                rs.findColumn("COLUMN_SIZE"),
+                rs.findColumn("COLUMN_DEF"),
+                rs.findColumn("CHAR_OCTET_LENGTH"),
+                rs.findColumn("IS_NULLABLE"),
+            };
+            int[] columnWidths = new int[] {
+                20,
+                20,
+                40,
+                9,
+                4,
+                4,
+                6,
+                10,
+                10,
+                8
+            };
+
+            //
+            // If schema is specified (if util.getSelectedSchema in
+            // DescTableStatement() returns correct value), then we
+            // don't need to output schema and table names.
+            if(schema!=null && table != null) {
+                displayColumns = intArraySubset(displayColumns, 2,
+                                                displayColumns.length);
+                columnWidths   = intArraySubset(columnWidths, 2,
+                                                columnWidths.length);
+            }
+
+            return new ijResultSetResult(rs, displayColumns, columnWidths);
+        } catch (SQLException e) {
+            try {
+                if(rs!=null)
+                    rs.close();
+            } catch (SQLException se) {
+            }
+            throw e;
+        }
+    }
+
+    private Object makeXid(int xid)
+    {
+        return null;
+    }
 
     void set_xplain_trace(boolean enable) throws SQLException{
 
         haveConnection();
-        Statement	aStatement = theConnection.createStatement();
+        Statement aStatement = theConnection.createStatement();
 
         if (enable) {
             aStatement.execute("call SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
@@ -561,19 +1329,13 @@ class ij {
         return identifier;
     }
 
-    public ijResult showConnectionsMethod(boolean ignore0Rows) throws SQLException
-    {
-        return new ijCommands(theConnection, currentConnEnv).showConnectionsMethod(ignore0Rows);
-    }
-
-
 }
 
 PARSER_END(ij)
 
 TOKEN_MGR_DECLS :
 {
-	int commentNestingDepth = 0;
+    int commentNestingDepth = 0;
 }
 
 /* WHITE SPACE */
@@ -599,172 +1361,173 @@ SPECIAL_TOKEN : /* COMMENTS */
 
 MORE :
 {
-	"/*" : IN_BRACKETED_COMMENT
+    "/*" : IN_BRACKETED_COMMENT
 }
 
 <IN_BRACKETED_COMMENT> MORE :
 {
-	"/*" { commentNestingDepth = 1; } : IN_NESTED_BRACKETED_COMMENT
+    "/*" { commentNestingDepth = 1; } : IN_NESTED_BRACKETED_COMMENT
 }
 
 <IN_BRACKETED_COMMENT> SKIP :
 {
-	"*/" : DEFAULT
+    "*/" : DEFAULT
 }
 
 <IN_NESTED_BRACKETED_COMMENT> MORE :
 {
-	"/*" { commentNestingDepth++; }
+    "/*" { commentNestingDepth++; }
 }
 
 <IN_NESTED_BRACKETED_COMMENT> MORE :
 {
-	"*/"
-	{ commentNestingDepth--; SwitchTo(commentNestingDepth == 0 ? IN_BRACKETED_COMMENT : IN_NESTED_BRACKETED_COMMENT); }
+    "*/"
+    { commentNestingDepth--; SwitchTo(commentNestingDepth == 0 ? IN_BRACKETED_COMMENT : IN_NESTED_BRACKETED_COMMENT); }
 }
 
 <IN_BRACKETED_COMMENT,IN_NESTED_BRACKETED_COMMENT> MORE :
 {
-	< ~[] >
+    < ~[] >
 }
 
 TOKEN [IGNORE_CASE] :
-{	/* ij Keywords */
-	<ABSOLUTE: "absolute">
-|	<AFTER: "after">
-|	<ALIASES: "aliases">
-|	<ALL: "all">
-|	<AS: "as">
-|	<ASYNC: "async">
-|	<ATTRIBUTES: "attributes">
-|	<AUTOCOMMIT: "autocommit">
-|	<BANG: "!">
-|	<BEFORE: "before">
-|	<CLOSE: "close">
-| 	<COMMIT: "commit">
-| 	<CONNECT: "connect">
-| 	<CONNECTION: "connection">
-| 	<CONNECTIONS: "connections">
-| 	<CREATE: "create">
-|	<CURRENT: "current">
-|	<CURSOR: "cursor">
-|	<DESCRIBE: "describe">
-|	<DISCONNECT: "disconnect">
-|	<DRIVER: "driver">
-|	<ELAPSEDTIME: "elapsedtime">
-|	<ENABLED_ROLES: "enabled_roles">
-|	<END: "end">
-|	<EQUALS_OPERATOR: "=">
-|	<EXECUTE: "execute">
-|	<EXIT: "exit">
-|	<EXPECT: "expect">
-|	<FAIL: "fail">
-|	<FIRST: "first">
-|	<FOR: "for">
-|	<FROM: "from">
-|	<FUNCTIONS: "functions">
-|	<GET: "get">
-|	<GETCURRENTROWNUMBER: "getcurrentrownumber">
-|	<HOLD: "hold">
-|	<HELP: "help">
-|	<IN: "in">
-|	<INDEXES: "indexes">
-|	<INSENSITIVE: "insensitive">
-|	<INTO: "into">
-|	<LAST: "last">
-|   <LOCAL: "local">
-|	<LOCALIZEDDISPLAY: "localizeddisplay">
-|	<MAXIMUMDISPLAYWIDTH: "maximumdisplaywidth">
-|	<NAME: "name">
-|	<NEXT: "next">
-|	<NOHOLD: "nohold">
-|	<NOHOLDFORCONNECTION: "noholdforconnection">
-|	<OFF: "off">
-|	<ON: "on">
-|	<PASSWORD: "password">
-|	<PERIOD: ".">
-|	<PREPARE: "prepare">
-|	<PREVIOUS: "previous">
-|   <PRIMARYKEYS: "primarykeys">
-|	<PROCEDURE: "procedure">
-|	<PROCEDURES: "procedures">
-|   <PROCEDURECOLS: "procedurecols">
-|	<PROPERTIES: "properties">
-|	<PROTOCOL: "protocol">
-|	<QUIT: "quit">
-|	<READONLY: "readonly">
-|	<RELATIVE: "relative">
-|	<REMOVE: "remove">
-|	<RESOURCE: "resource">
-|	<ROLES: "roles">
-|	<ROLLBACK: "rollback">
-|	<RUN: "run">
-|	<TABLE: "table">
-|	<TO: "to">
-|	<SAVEPOINT: "savepoint">
-|	<SCHEMAS: "schemas">
-|	<SCROLL: "scroll">
-|	<SENSITIVE: "sensitive">
-|	<SET: "set">
-|	<SETTABLE_ROLES: "settable_roles">
-|	<SHOW: "show">
-|	<SHUTDOWN: "shutdown">
-|	<STATEMENT: "statement">
-|	<SYNONYMS: "synonyms">
-|	<TABLES: "tables">
-|	<USER: "user">
-|	<USING: "using">
-|   <VERSION: "version">
-|	<VIEWS: "views">
-|	<WAIT: "wait">
-|	<WITH: "with">
-|	<XA_1PHASE: "XA_1phase">
-|	<XA_2PHASE: "XA_2phase">
-|	<XA_DATASOURCE: "XA_datasource">
-|	<XA_CONNECT: "XA_connect">
-|	<XA_COMMIT: "XA_commit">
-|	<XA_DISCONNECT: "XA_disconnect">
-|	<XA_END: "XA_end">
-|	<XA_ENDRSCAN: "XA_endrscan">
-|	<XA_FAIL: "XA_fail">
-|	<XA_FORGET: "XA_forget">
-|	<XA_GETCONNECTION: "XA_getconnection">
-|	<XA_JOIN: "XA_join">
-|	<XA_NOFLAGS: "XA_noflags">
-|	<XA_PREPARE: "XA_prepare">
-|	<XA_RECOVER: "XA_recover">
-|	<XA_RESUME: "XA_resume">
-|	<XA_ROLLBACK: "XA_rollback">
-|	<XA_START: "XA_start">
-|	<XA_STARTRSCAN: "XA_startrscan">
-|	<XA_SUCCESS: "XA_success">
-|	<XA_SUSPEND: "XA_suspend">
-|	<DATASOURCE: "datasource">
-|	<CP_DATASOURCE: "CP_datasource">
-|	<CP_CONNECT: "CP_connect">
-|	<CP_GETCONNECTION: "CP_getconnection">
-|	<CP_DISCONNECT: "CP_disconnect">
-|	<WORK : "work">
-|   <JSON: "JSON">
-|   <PROMPT: "prompt">
-|   <CLOCK: "clock">
-|   <SPOOL: "SPOOL">
-|   <STOP: "STOP">
-|   <CLEAR: "CLEAR">
-|   <WITHOUT: "WITHOUT">
-|   <HEADER: "HEADER">
+{ /* ij Keywords */
+    <ABSOLUTE: "absolute">
+| <AFTER: "after">
+| <ALIASES: "aliases">
+| <ALL: "all">
+| <AS: "as">
+| <ASYNC: "async">
+| <ATTRIBUTES: "attributes">
+| <AUTOCOMMIT: "autocommit">
+| <BANG: "!">
+| <BEFORE: "before">
+| <CLOSE: "close">
+| <COMMIT: "commit">
+| <CONNECT: "connect">
+| <CONNECTION: "connection">
+| <CONNECTIONS: "connections">
+| <CREATE: "create">
+| <CURRENT: "current">
+| <CURSOR: "cursor">
+| <DESCRIBE: "describe">
+| <DISCONNECT: "disconnect">
+| <DRIVER: "driver">
+| <ELAPSEDTIME: "elapsedtime">
+| <ENABLED_ROLES: "enabled_roles">
+| <END: "end">
+| <EQUALS_OPERATOR: "=">
+| <EXECUTE: "execute">
+| <EXIT: "exit">
+| <EXPECT: "expect">
+| <FAIL: "fail">
+| <FIRST: "first">
+| <FOR: "for">
+| <FROM: "from">
+| <FUNCTIONS: "functions">
+| <GET: "get">
+| <GETCURRENTROWNUMBER: "getcurrentrownumber">
+| <HOLD: "hold">
+| <HELP: "help">
+| <IN: "in">
+| <INDEXES: "indexes">
+| <INSENSITIVE: "insensitive">
+| <INTO: "into">
+| <LAST: "last">
+| <LOCAL: "local">
+| <LOCALIZEDDISPLAY: "localizeddisplay">
+| <MAXIMUMDISPLAYWIDTH: "maximumdisplaywidth">
+| <NAME: "name">
+| <NEXT: "next">
+| <NOHOLD: "nohold">
+| <NOHOLDFORCONNECTION: "noholdforconnection">
+| <OFF: "off">
+| <ON: "on">
+| <PASSWORD: "password">
+| <PERIOD: ".">
+| <PREPARE: "prepare">
+| <PREVIOUS: "previous">
+| <PRIMARYKEYS: "primarykeys">
+| <PROCEDURE: "procedure">
+| <PROCEDURES: "procedures">
+| <PROCEDURECOLS: "procedurecols">
+| <PROPERTIES: "properties">
+| <PROTOCOL: "protocol">
+| <QUIT: "quit">
+| <READONLY: "readonly">
+| <RELATIVE: "relative">
+| <REMOVE: "remove">
+| <RESOURCE: "resource">
+| <ROLES: "roles">
+| <ROLLBACK: "rollback">
+| <RUN: "run">
+| <TABLE: "table">
+| <TO: "to">
+| <SAVEPOINT: "savepoint">
+| <SCHEMAS: "schemas">
+| <SCROLL: "scroll">
+| <SENSITIVE: "sensitive">
+| <SET: "set">
+| <SETTABLE_ROLES: "settable_roles">
+| <SHOW: "show">
+| <SHUTDOWN: "shutdown">
+| <STATEMENT: "statement">
+| <SYNONYMS: "synonyms">
+| <TABLES: "tables">
+| <USER: "user">
+| <USING: "using">
+| <VERSION: "version">
+| <VIEWS: "views">
+| <WAIT: "wait">
+| <WITH: "with">
+| <XA_1PHASE: "XA_1phase">
+| <XA_2PHASE: "XA_2phase">
+| <XA_DATASOURCE: "XA_datasource">
+| <XA_CONNECT: "XA_connect">
+| <XA_COMMIT: "XA_commit">
+| <XA_DISCONNECT: "XA_disconnect">
+| <XA_END: "XA_end">
+| <XA_ENDRSCAN: "XA_endrscan">
+| <XA_FAIL: "XA_fail">
+| <XA_FORGET: "XA_forget">
+| <XA_GETCONNECTION: "XA_getconnection">
+| <XA_JOIN: "XA_join">
+| <XA_NOFLAGS: "XA_noflags">
+| <XA_PREPARE: "XA_prepare">
+| <XA_RECOVER: "XA_recover">
+| <XA_RESUME: "XA_resume">
+| <XA_ROLLBACK: "XA_rollback">
+| <XA_START: "XA_start">
+| <XA_STARTRSCAN: "XA_startrscan">
+| <XA_SUCCESS: "XA_success">
+| <XA_SUSPEND: "XA_suspend">
+| <DATASOURCE: "datasource">
+| <CP_DATASOURCE: "CP_datasource">
+| <CP_CONNECT: "CP_connect">
+| <CP_GETCONNECTION: "CP_getconnection">
+| <CP_DISCONNECT: "CP_disconnect">
+| <WORK : "work">
+| <JSON: "JSON">
+| <SPOOL: "SPOOL">
+| <STOP: "STOP">
+| <CLEAR: "CLEAR">
+| <PROMPT: "prompt">
+| <CLOCK: "clock">
+| <WITHOUT: "WITHOUT">
+| <HEADER: "HEADER">
+| <TERMINATOR: "TERMINATOR">
 }
 
 TOKEN :
-{	/* Operators and punctuation -- to avoid lexical errors for SQL-J stuff, mostly */
-	<AT: "@">
-|	<COMMA: ",">
-|   <LEFT_PAREN: "(">
-|   <RIGHT_PAREN: ")">
-|   <DOUBLE_QUOTE: "\"">
-|   <HASH: "#">
-|	<MINUS_SIGN: "-">
-|	<PLUS_SIGN: "+">
+{ /* Operators and punctuation -- to avoid lexical errors for SQL-J stuff, mostly */
+    <AT: "@">
+| <COMMA: ",">
+| <LEFT_PAREN: "(">
+| <RIGHT_PAREN: ")">
+| <DOUBLE_QUOTE: "\"">
+| <HASH: "#">
+| <MINUS_SIGN: "-">
+| <PLUS_SIGN: "+">
 }
 
 /**
@@ -1030,14 +1793,14 @@ TOKEN :
 }
 
 TOKEN :
-{	/* Literals */
-	<INTEGER: (["0" - "9"])+ >
-|	<STRING: "'"
-		(
-			"''" |
-			~["'"]
-		) *
-		"'">
+{ /* Literals */
+  <INTEGER: (["0" - "9"])+ >
+| <STRING: "'"
+        (
+            "''" |
+            ~["'"]
+        ) *
+        "'">
 }
 
 //
@@ -1045,78 +1808,78 @@ TOKEN :
 //
 
 ijResult
-ijStatement() 
+ijStatement()
 throws SQLException, IOException
 :
 {
-	ijResult r = null;
+    ijResult r = null;
 }
 {
 (
-	LOOKAHEAD(
-		{ 
-			getToken(1).kind == ROLLBACK && 
-			(!(getToken(3).kind == TO || getToken(3).kind == SAVEPOINT))			 			 
-		})  
-	r=RollbackStatement()	
-|	r=AbsoluteStatement()
-|	r=AfterLastStatement()
-|	r=AutocommitStatement()
-|	r=AsyncStatement()	
-|	r=Bang()	
-|	r=BeforeFirstStatement()
-| 	r=CloseStatement()
-| 	r=CommitStatement()
-| 	r=ConnectStatement()
-|	r=DescTableStatement()
-|	r=DisconnectStatement()
-|	r=DriverStatement()
-|	r=ElapsedTimeStatement()	
-|	r=ExecuteStatement()	
-|	r=FirstStatement()	
-|	r=ExitStatement()
-|	r=ExpectStatement()
-|	r=GetCursorStatement()	
-|	r=GetCurrentRowNumber()	
-|	r=HelpStatement()	
-|	r=LastStatement()	
-|	r=LocalizedDisplay()
-|	r=MaximumDisplayWidthStatement()	
-|	r=NextStatement()	
-|	r=NoHoldForConnectionStatement()	
-|	r=PrepareStatement()
-|	r=PreviousStatement()	
-|	r=ProtocolStatement()
-|	r=ReadOnlyStatement()
-|	r=RelativeStatement()	
-|	r=RemoveStatement()	
-|	r=RunStatement()	
-|	r=SetConnectionStatement()	
-|	r=ShowStatement()	
-|	r=WaitForStatement()	
-|	r=XA_DataSourceStatement()
-|	r=XA_ConnectStatement()
-|	r=XA_CommitStatement()
-|	r=XA_DisconnectStatement()
-|	r=XA_GetConnectionStatement()
-|	r=XA_EndStatement()
-|	r=XA_ForgetStatement()
-|	r=XA_PrepareStatement()
-|	r=XA_RecoverStatement()
-|	r=XA_RollbackStatement()
-|	r=XA_StartStatement() 
-|	r=DataSourceStatement()
-|	r=CP_DataSourceStatement()
-|	r=CP_ConnectStatement()
-|	r=CP_GetConnectionStatement()
-|	r=CP_DisconnectStatement()
-|   r=Prompt()
+    LOOKAHEAD(
+        {
+            getToken(1).kind == ROLLBACK &&
+            (!(getToken(3).kind == TO || getToken(3).kind == SAVEPOINT))
+        })
+    r=RollbackStatement()
+| r=AbsoluteStatement()
+| r=AfterLastStatement()
+| r=AutocommitStatement()
+| r=AsyncStatement()
+| r=Bang()
+| r=BeforeFirstStatement()
+| r=CloseStatement()
+| r=CommitStatement()
+| r=ConnectStatement()
+| r=DescTableStatement()
+| r=DisconnectStatement()
+| r=DriverStatement()
+| r=ElapsedTimeStatement()
+| r=ExecuteStatement()
+| r=FirstStatement()
+| r=ExitStatement()
+| r=ExpectStatement()
+| r=GetCursorStatement()
+| r=GetCurrentRowNumber()
+| r=HelpStatement()
+| r=LastStatement()
+| r=LocalizedDisplay()
+| r=MaximumDisplayWidthStatement()
+| r=NextStatement()
+| r=NoHoldForConnectionStatement()
+| r=PrepareStatement()
+| r=PreviousStatement()
+| r=ProtocolStatement()
+| r=ReadOnlyStatement()
+| r=RelativeStatement()
+| r=RemoveStatement()
+| r=RunStatement()
+| r=SetStatement()
+| r=ShowStatement()
+| r=WaitForStatement()
+| r=XA_DataSourceStatement()
+| r=XA_ConnectStatement()
+| r=XA_CommitStatement()
+| r=XA_DisconnectStatement()
+| r=XA_GetConnectionStatement()
+| r=XA_EndStatement()
+| r=XA_ForgetStatement()
+| r=XA_PrepareStatement()
+| r=XA_RecoverStatement()
+| r=XA_RollbackStatement()
+| r=XA_StartStatement()
+| r=DataSourceStatement()
+| r=CP_DataSourceStatement()
+| r=CP_ConnectStatement()
+| r=CP_GetConnectionStatement()
+| r=CP_DisconnectStatement()
 |   r=Spool()
+|   r=Prompt()
 |   r=ResultHeader()
 )? <EOF>
-	{
-		return r;
-	}
+    {
+        return r;
+    }
 }
 
 /**
@@ -1131,18 +1894,18 @@ ProtocolStatement()
 throws SQLException
 :
 {
-	Token t;
-	String n = null;
+    Token t;
+    String n = null;
 }
-{	
-	<PROTOCOL> t=<STRING> [ <AS> n=identifier() ]
-	{
-		// TODO: remove this when PROTOCOL is supported
-		return new ijUnsupportedCommandResult("PROTOCOL");
-	
-		installProtocol(n, stringValue(t.image));
-		return null;
-	}
+{
+    <PROTOCOL> t=<STRING> [ <AS> n=identifier() ]
+    {
+        // TODO: remove this when PROTOCOL is supported
+        return new ijUnsupportedCommandResult("PROTOCOL");
+
+        installProtocol(n, stringValue(t.image));
+        return null;
+    }
 }
 
 /**
@@ -1159,30 +1922,30 @@ DriverStatement()
 throws SQLException
 :
 {
-	Token t;
-	String sVal = null;
+    Token t;
+    String sVal = null;
 }
 {
-	<DRIVER> t=<STRING>
-	{
-	    try {
-		// t.image is a class name;
-		// we load the "driver" in the prototypical
-		// manner, it will register itself with
-		// the DriverManager.
-			sVal = stringValue(t.image);
-			util.loadDriver(sVal);
-	    } catch (ClassNotFoundException e) {
-			throw ijException.classNotFound(sVal);
-	    } catch (IllegalArgumentException e) {
-			throw ijException.driverNotClassName(sVal);
-	    } catch (IllegalAccessException e) {
-			throw ijException.classNotFound(sVal);
-	    } catch (InstantiationException e) {
-			throw ijException.classNotFound(sVal);
-	    }
-		return null;
-	}
+    <DRIVER> t=<STRING>
+    {
+        try {
+        // t.image is a class name;
+        // we load the "driver" in the prototypical
+        // manner, it will register itself with
+        // the DriverManager.
+            sVal = stringValue(t.image);
+            util.loadDriver(sVal);
+        } catch (ClassNotFoundException e) {
+            throw ijException.classNotFound(sVal);
+        } catch (IllegalArgumentException e) {
+            throw ijException.driverNotClassName(sVal);
+        } catch (IllegalAccessException e) {
+            throw ijException.classNotFound(sVal);
+        } catch (InstantiationException e) {
+            throw ijException.classNotFound(sVal);
+        }
+        return null;
+    }
 }
 
 ijResult
@@ -1190,27 +1953,27 @@ ConnectStatement()
 throws SQLException
 :
 {
-	ijResult	result;
+    ijResult result;
 }
 {
-	<CONNECT> (
-		<TO> ( result = dynamicConnection(true) ) |
-		( result = dynamicConnection(false) | result = staticConnection() )
-	)
-	{
-		return result;
-	}
+    <CONNECT> (
+        <TO> ( result = dynamicConnection(true) ) |
+        ( result = dynamicConnection(false) | result = staticConnection() )
+    )
+    {
+        return result;
+    }
 }
 
 
 
 /**
- * ConnectStatement is CONNECT 'url' [ PROTOCOL proto ] 
-	[ USER 	String PASSWORD String ] 
-	[ATTRIBUTES attributeName = value [, attributeName = value]* ]
-	[ AS ident ], where url is the
+ * ConnectStatement is CONNECT 'url' [ PROTOCOL proto ]
+ *  [ USER  String PASSWORD String ]
+ *  [ATTRIBUTES attributeName = value [, attributeName = value]* ]
+ *  [ AS ident ], where url is the
  * url for the database, i.e. jdbc:protocol:dbname etc.
- * Attributes are connection attributes to 
+ * Attributes are connection attributes to
  * <p>
  * There can only be one connection at a time; if there
  * is already one, it is put on hold and this one takes its place.
@@ -1228,98 +1991,98 @@ dynamicConnection(boolean simplifiedPath)
 throws SQLException
 :
 {
-	Token t;
-	Token userT = null;
-	Token passwordT = null;
-	String n = null, p = null, sVal;
+    Token t;
+    Token userT = null;
+    Token passwordT = null;
+    String n = null, p = null, sVal;
     String userS =  util.getSystemProperty(USER_PROPERTY);
     String passwordS = util.getSystemProperty(PASSWORD_PROPERTY);
-	Properties connInfo = new Properties();
+    Properties connInfo = new Properties();
 }
 {
-	t=<STRING>	[ <PROTOCOL> p=identifier() ] 
-				[ <USER> userT=<STRING> ]
-				[ <PASSWORD> passwordT=<STRING> ]
-				[ <ATTRIBUTES> [ attributeList(connInfo) ] ]
-				[ <AS> n=identifier() ]
-	{
-		// t.image is a database URL
-		// we get the connection and salt it away
-		// for use with other statements.
-		//
-		// FUTURE: we could have the syntax be
-		// CONNECT <STRING> AS <IDENTIFIER>
-		// and have a SET CONNECTION string to
-		// re-activate a named connection.
-		// Or not, and wait for SQL-J to support that
-		// statement... although then we will have to
-		// figure out if we will allow that SQL-J through
-		// JDBC or not.
-		// get the value of the string
-		// n.b. at some point this will have to deal with ''s
-		if (userT != null)
-    		userS = stringValue(userT.image);
+    t=<STRING> [ <PROTOCOL> p=identifier() ]
+                [ <USER> userT=<STRING> ]
+                [ <PASSWORD> passwordT=<STRING> ]
+                [ <ATTRIBUTES> [ attributeList(connInfo) ] ]
+                [ <AS> n=identifier() ]
+    {
+        // t.image is a database URL
+        // we get the connection and salt it away
+        // for use with other statements.
+        //
+        // FUTURE: we could have the syntax be
+        // CONNECT <STRING> AS <IDENTIFIER>
+        // and have a SET CONNECTION string to
+        // re-activate a named connection.
+        // Or not, and wait for SQL-J to support that
+        // statement... although then we will have to
+        // figure out if we will allow that SQL-J through
+        // JDBC or not.
+        // get the value of the string
+        // n.b. at some point this will have to deal with ''s
+        if (userT != null)
+            userS = stringValue(userT.image);
 
-    	if (passwordT != null)
-    		passwordS = stringValue(passwordT.image);
-    			
-    	//If ij.dataSource property is set,use DataSource to get the connection
-		String dsName = util.getSystemProperty("ij.dataSource");
-		if (dsName != null){
-    		//Check that t.image does not start with jdbc:
-    		//If it starts with jdbc:, do not use DataSource to get connection
-    		sVal = stringValue(t.image);
-    		if(!sVal.startsWith("jdbc:") ){
-    			theConnection = util.getDataSourceConnection(dsName,userS,passwordS,sVal,false);
-    			return addSession( theConnection, n );
-    		}
-    	}    			
-    	
-		if (simplifiedPath)
-			// url for the database W/O 'jdbc:protocol:', i.e. just a dbname
-			// For example,
-			//		CONNECT TO 'test'
-			// is equivalent to
-			// 		CONNECT TO 'jdbc:splice:test'
-			sVal = "jdbc:splice:" + stringValue(t.image);
-		else
-			sVal = stringValue(t.image);
+        if (passwordT != null)
+            passwordS = stringValue(passwordT.image);
 
-		// add named protocol if it was specified
-		if (p != null) {
-			String protocol = (String)namedProtocols.get(p);
-			if (protocol == null) { throw ijException.noSuchProtocol(p); }
-			sVal = protocol + sVal; 
-		}
+        //If ij.dataSource property is set,use DataSource to get the connection
+        String dsName = util.getSystemProperty("ij.dataSource");
+        if (dsName != null){
+            //Check that t.image does not start with jdbc:
+            //If it starts with jdbc:, do not use DataSource to get connection
+            sVal = stringValue(t.image);
+            if(!sVal.startsWith("jdbc:") ){
+                theConnection = util.getDataSourceConnection(dsName,userS,passwordS,sVal,false);
+                return addSession( theConnection, n );
+            }
+        }
 
-		// add protocol if no driver matches url
-		boolean noDriver = false;
-			// if we have a full URL, make sure it's loaded first
-			try {
-				if (sVal.startsWith("jdbc:"))
-					util.loadDriverIfKnown(sVal);
-			} catch (Exception e) {
-				// want to continue with the attempt
+        if (simplifiedPath)
+            // url for the database W/O 'jdbc:protocol:', i.e. just a dbname
+            // For example,
+            //  CONNECT TO 'test'
+            // is equivalent to
+            //   CONNECT TO 'jdbc:splice:test'
+            sVal = "jdbc:splice:" + stringValue(t.image);
+        else
+            sVal = stringValue(t.image);
+
+        // add named protocol if it was specified
+        if (p != null) {
+            String protocol = (String)namedProtocols.get(p);
+            if (protocol == null) { throw ijException.noSuchProtocol(p); }
+            sVal = protocol + sVal;
+        }
+
+        // add protocol if no driver matches url
+        boolean noDriver = false;
+            // if we have a full URL, make sure it's loaded first
+            try {
+                if (sVal.startsWith("jdbc:"))
+                    util.loadDriverIfKnown(sVal);
+            } catch (Exception e) {
+                // want to continue with the attempt
                         }
-			// By default perform extra checking on the URL attributes.
-			// This checking does not change the processing.
-			if (urlCheck == null || Boolean.valueOf(urlCheck).booleanValue()) {
+            // By default perform extra checking on the URL attributes.
+            // This checking does not change the processing.
+            if (urlCheck == null || Boolean.valueOf(urlCheck).booleanValue()) {
                           URLCheck aCheck = new URLCheck(sVal);
                         }
-		if (!sVal.startsWith("jdbc:") && (p == null) && (protocol != null)) {
-			sVal = protocol + sVal;
-		}
+        if (!sVal.startsWith("jdbc:") && (p == null) && (protocol != null)) {
+            sVal = protocol + sVal;
+        }
 
 
-		// If no ATTRIBUTES on the connection get them from the
-		// defaults
-		connInfo = util.updateConnInfo(userS,passwordS, connInfo);
+        // If no ATTRIBUTES on the connection get them from the
+        // defaults
+        connInfo = util.updateConnInfo(userS,passwordS, connInfo);
 
-	   
-		theConnection = DriverManager.getConnection(sVal,connInfo);
 
-		return addSession( theConnection, n );
-	}
+        theConnection = DriverManager.getConnection(sVal,connInfo);
+
+        return addSession( theConnection, n );
+    }
 }
 
 /**
@@ -1330,17 +2093,17 @@ DescTableStatement()
 throws SQLException
 :
 {
-	String i = null;
-	String i2 = null;
-	Token  s = null;
-	String schema;
-	String table;
+    String i = null;
+    String i2 = null;
+    Token  s = null;
+    String schema;
+    String table;
     String proc;
 }
 {
 
-	<DESCRIBE>
-	(
+    <DESCRIBE>
+    (
         /* DESCRIBE PROCEDURE is a splice specific enhancement */
         <PROCEDURE>
             [ i = caIdentifier() ( <PERIOD> i2 = caIdentifier() ) ]
@@ -1355,46 +2118,46 @@ throws SQLException
             if (schema == null) {
                 schema = util.getSelectedSchema(theConnection);
             }
-            return new ijCommands(theConnection, currentConnEnv).showProcedureColumns(schema, proc);
+            return showProcedureColumns(schema, proc);
         }
     |
-		( i = caIdentifier() ( <PERIOD> i2 = caIdentifier() )? )
-		{
-			if (i2 == null) {
-				schema = null;
-				table = i;
-			} else {
-				schema = i;
-				table = i2;
-			}
-		}
-	|
-		s=<STRING>
-		{
-			i2 = stringValue(s.image);
+        ( i = caIdentifier() ( <PERIOD> i2 = caIdentifier() )? )
+        {
+            if (i2 == null) {
+                schema = null;
+                table = i;
+            } else {
+                schema = i;
+                table = i2;
+            }
+        }
+    |
+        s=<STRING>
+        {
+            i2 = stringValue(s.image);
 
-			if (i2.length() == 0)
-				throw ijException.noSuchTable("(missing)");
+            if (i2.length() == 0)
+                throw ijException.noSuchTable("(missing)");
 
-			int dotPosition = i2.indexOf('.');
-			if(dotPosition!=-1) {
-				i = i2.substring(0,dotPosition);
-				i2 = i2.substring(dotPosition+1);
-			}
-			if ("*".equals(i2))
-				i2 = null;
+            int dotPosition = i2.indexOf('.');
+            if(dotPosition!=-1) {
+                i = i2.substring(0,dotPosition);
+                i2 = i2.substring(dotPosition+1);
+            }
+            if ("*".equals(i2))
+                i2 = null;
 
-			schema = i;
-			table = i2;
-		}
-	)
-	{
-		if (schema == null) {
-			schema = util.getSelectedSchema(theConnection);
-		}
+            schema = i;
+            table = i2;
+        }
+    )
+    {
+        if (schema == null) {
+            schema = util.getSelectedSchema(theConnection);
+        }
 
-		return new ijCommands(theConnection, currentConnEnv).describeTable(schema, table);
-	}
+        return describeTable(schema, table);
+    }
 }
 
 
@@ -1406,84 +2169,95 @@ staticConnection()
 throws SQLException
 :
 {
-	String			name = null;
-	Vector			idList;
-	int				idx = 0;
-	int				lastID = 0;
-	StringBuilder	buffer;
-	String			className;
-	String			methodName;
-	Class			classC;
-	Method			method;
-	int				argCount;
-	String[]		args;
-	Class			stringClass;
-	Class[]			argTypes;
-	ijResult		result = null;
+    String   name = null;
+    Vector   idList;
+    int    idx = 0;
+    int    lastID = 0;
+    StringBuilder buffer;
+    String   className;
+    String   methodName;
+    Class   classC;
+    Method   method;
+    int    argCount;
+    String[]  args;
+    Class   stringClass;
+    Class[]   argTypes;
+    ijResult  result = null;
 }
 {
-	idList = staticMethodName() args = staticMethodArgs() [ <AS> name = identifier() ]
-	{
-		lastID = idList.size() - 1;
-		buffer = new StringBuilder();
+    idList = staticMethodName() args = staticMethodArgs() [ <AS> name = identifier() ]
+    {
+        lastID = idList.size() - 1;
+        buffer = new StringBuilder();
 
-		for ( ; idx < lastID; idx++ )
-		{
-			if ( idx > 0 ) { buffer.append( "." ); }
-			buffer.append( (String) idList.elementAt( idx ) );
-		}
-		methodName = (String) idList.elementAt( idx );
-		className = buffer.toString();
+        for ( ; idx < lastID; idx++ )
+        {
+            if ( idx > 0 ) { buffer.append( "." ); }
+            buffer.append( (String) idList.elementAt( idx ) );
+        }
+        methodName = (String) idList.elementAt( idx );
+        className = buffer.toString();
 
-		try {
-			argCount = args.length;
-			argTypes = new Class[ argCount ];
-			stringClass = Class.forName( "java.lang.String" );
-			for ( idx = 0; idx < argCount; idx++ ) { argTypes[ idx ] = stringClass; }
+        try {
+            argCount = args.length;
+            argTypes = new Class[ argCount ];
+            stringClass = Class.forName( "java.lang.String" );
+            for ( idx = 0; idx < argCount; idx++ ) { argTypes[ idx ] = stringClass; }
 
-			classC = Class.forName( className );
-			method = classC.getMethod( methodName, argTypes );
-			theConnection = (Connection) method.invoke( null, args );
-			result = addSession( theConnection, name );
+            classC = Class.forName( className );
+            method = classC.getMethod( methodName, argTypes );
+            theConnection = (Connection) method.invoke( null, args );
+            result = addSession( theConnection, name );
 
-		} 
-		catch (java.lang.reflect.InvocationTargetException ite) {
-			Throwable t = ite.getTargetException();
-			if (t instanceof SQLException)
-				throw (SQLException) t;
+        }
+        catch (java.lang.reflect.InvocationTargetException ite) {
+            Throwable t = ite.getTargetException();
+            if (t instanceof SQLException)
+                throw (SQLException) t;
 
-			throw new SQLException( t.toString() );
-		}
-		catch (Exception e) { throw new SQLException( e.toString() ); }
+            throw new SQLException( t.toString() );
+        }
+        catch (Exception e) { throw new SQLException( e.toString() ); }
 
-		return result;
-	}
+        return result;
+    }
 }
 
+ijResult SetStatement() throws SQLException
+:
+{}
+{
+    <SET>
+    {
+        return HandleSetStatement();
+    }
+}
 
-/**
- * SetConnectionStatement is SET CONNECTION ident
- * <p>
- * Moves to the named session, if it exists. If it doesn't
- * exist, remains on the current session and returns an error.
- */
-ijResult
-SetConnectionStatement()
-throws SQLException
+ijResult HandleSetStatement() throws SQLException
 :
 {
-	String t;
+    String id;
+    Token t;
 }
 {
-	<SET> <CONNECTION> t=identifier()
-	{
-		if (!currentConnEnv.haveSession(t)) {
-			throw ijException.noSuchConnection(t);
-		}
-		currentConnEnv.setCurrentSession(t);
-		theConnection = currentConnEnv.getConnection();
-		return new ijConnectionResult(theConnection);
-	}
+    // SetConnectionStatement is SET CONNECTION ident
+    // Moves to the named session, if it exists. If it doesn't
+    // exist, remains on the current session and returns an error.
+    <CONNECTION> id=identifier()
+    {
+        if (!currentConnEnv.haveSession(id)) {
+            throw ijException.noSuchConnection(id);
+        }
+        currentConnEnv.setCurrentSession(id);
+        theConnection = currentConnEnv.getConnection();
+        return new ijConnectionResult(theConnection);
+    }
+|
+   <TERMINATOR> t=<STRING>
+   {
+       utilInstance.setTerminator(stringValue(t.image));
+       return new ijShellConfigResult();
+   }
 }
 
 /**
@@ -1495,55 +2269,55 @@ ShowStatement()
 throws SQLException
 :
 {
-	String schema  = null;
-	String tblname = null;
-	String str     = null;
+    String schema  = null;
+    String tblname = null;
+    String str     = null;
     String strProc = null;
-	String[] types = null;
-	Token t = null;
-	Token v = null;
-	String i = null;
+    String[] types = null;
+    Token t = null;
+    Token v = null;
+    String i = null;
     String i2 = null;
     Token  s = null;
 }
 {
-	<SHOW> (
+    <SHOW> (
 
-	<CONNECTIONS>
-	{
-		return showConnectionsMethod(false);
-	}
+    <CONNECTIONS>
+    {
+        return showConnectionsMethod(false);
+    }
 |   (t=<TABLES> | v=<VIEWS> | <SYNONYMS> | <ALIASES>)
-		[ <IN> schema=caIdentifier() ]
-	{
-		if(t!=null) {
-		    types = new String[] { "TABLE", "SYSTEM TABLE", "EXTERNAL TABLE" };
-		}
-		else if(v!=null)
-			types = new String[] { "VIEW" };
-		else
-		{
-			types = new String[] { "SYNONYM" };
-		}
-		return new ijCommands(theConnection, currentConnEnv).showTables(schema, types);
-	}
+        [ <IN> schema=caIdentifier() ]
+    {
+        if(t!=null) {
+            types = new String[] { "TABLE", "SYSTEM TABLE", "EXTERNAL TABLE" };
+        }
+        else if(v!=null)
+            types = new String[] { "VIEW" };
+        else
+        {
+            types = new String[] { "SYNONYM" };
+        }
+        return showTables(schema, types);
+    }
 |   <CREATE> <TABLE> ( i = caIdentifierForSysProcs() ( <PERIOD> i2 = caIdentifierForSysProcs() )?
 
 
-		{
-			if (i2 == null) {
-				schema = null;
-				tblname = i;
-			} else {
-				schema = i;
-				tblname = i2;
-			}
+        {
+            if (i2 == null) {
+                schema = null;
+                tblname = i;
+            } else {
+                schema = i;
+                tblname = i2;
+            }
             if (schema == null) {
                 schema = util.getSelectedSchema(theConnection);
             }
-			return new ijCommands(theConnection, currentConnEnv).showCreateTable(schema, tblname);
-		}
-	| s=<STRING>
+            return showCreateTable(schema, tblname);
+        }
+    | s=<STRING>
         {
             i2 = stringValue(s.image);
 
@@ -1562,25 +2336,25 @@ throws SQLException
             if (schema == null) {
                 schema = util.getSelectedSchema(theConnection);
             }
-            return new ijCommands(theConnection, currentConnEnv).showCreateTable(schema, tblname);
+            return showCreateTable(schema, tblname);
         })
-|	<INDEXES>
-		[ (<IN> schema=caIdentifier()) |
-		  (<FROM> tblname=caIdentifier() [ <PERIOD> str=caIdentifier() ] ) ]
-	{
-		if(str != null) {
-			// if absolute table reference given
-			schema = tblname;
-			tblname = str;
-		}
+| <INDEXES>
+        [ (<IN> schema=caIdentifier()) |
+          (<FROM> tblname=caIdentifier() [ <PERIOD> str=caIdentifier() ] ) ]
+    {
+        if(str != null) {
+            // if absolute table reference given
+            schema = tblname;
+            tblname = str;
+        }
 
-		// If user specifies a table name, then assume schema is
-		// current schema. Note that getSelectedSchema may return
-		// null for some DBMSes.
-		if(schema == null && tblname != null)
-			schema = util.getSelectedSchema(theConnection);
-		return new ijCommands(theConnection, currentConnEnv).showIndexes(schema,tblname);
-	}
+        // If user specifies a table name, then assume schema is
+        // current schema. Note that getSelectedSchema may return
+        // null for some DBMSes.
+        if(schema == null && tblname != null)
+            schema = util.getSelectedSchema(theConnection);
+        return showIndexes(schema,tblname);
+    }
 |   <PRIMARYKEYS>
         [ (<IN> schema=caIdentifier()) |
           (<FROM> tblname=caIdentifier() [ <PERIOD> str=caIdentifier() ] ) ]
@@ -1596,7 +2370,7 @@ throws SQLException
         // null for some DBMSes.
         if(schema == null && tblname != null)
             schema = util.getSelectedSchema(theConnection);
-        return new ijCommands(theConnection, currentConnEnv).showPrimaryKeys(schema,tblname);
+        return showPrimaryKeys(schema,tblname);
     }
 |   <PROCEDURECOLS>
         [ (<IN> schema=caIdentifier()    [ <FROM> strProc=caIdentifier() ] ) |
@@ -1605,7 +2379,7 @@ throws SQLException
         if(strProc != null) {
             tblname = strProc;
         }
-        
+
         if(str != null) {
             // if absolute table reference given then use it
             schema = tblname;
@@ -1617,40 +2391,40 @@ throws SQLException
         // null for some DBMSes.
         if(schema == null && tblname != null)
             schema = util.getSelectedSchema(theConnection);
-        return new ijCommands(theConnection, currentConnEnv).showProcedureColumns(schema,tblname);
+        return showProcedureColumns(schema,tblname);
     }
-|	<PROCEDURES>
-		[ <IN> schema=caIdentifier() ]
-	{
-		return new ijCommands(theConnection, currentConnEnv).showProcedures(schema);
-	}
-|	<FUNCTIONS>
-		[ <IN> schema=caIdentifier() ]
-	{
-		return new ijCommands(theConnection, currentConnEnv).showFunctions(schema);
-	}
-|	<SCHEMAS>
-	{
-		return new ijCommands(theConnection, currentConnEnv).showSchemas();
-	}
+| <PROCEDURES>
+        [ <IN> schema=caIdentifier() ]
+    {
+        return showProcedures(schema);
+    }
+| <FUNCTIONS>
+        [ <IN> schema=caIdentifier() ]
+    {
+        return showFunctions(schema);
+    }
+| <SCHEMAS>
+    {
+        return showSchemas();
+    }
 |   <ROLES>
     {
-        return new ijCommands(theConnection, currentConnEnv).showRoles();
+        return showRoles();
     }
 |   <ENABLED_ROLES>
     {
         // TODO: remove this when ROLE is supported
         return new ijUnsupportedCommandResult("SHOW ENABLED_ROLES");
-        return new ijCommands(theConnection, currentConnEnv).showEnabledRoles();
+        return showEnabledRoles();
     }
 |   <SETTABLE_ROLES>
     {
-        return new ijCommands(theConnection, currentConnEnv).showSettableRoles();
+        return showSettableRoles();
     }
 |   <VERSION>
     [ t = <LOCAL> ]
     {
-        return new ijCommands(theConnection, currentConnEnv).showVersionLocal( t != null);
+        return (t != null) ? showVersionLocal(true) : showVersionLocal(false);
     }
     )
 }
@@ -1666,12 +2440,12 @@ throws SQLException
 {
 }
 {
-	<COMMIT> [ <WORK> ]
-	{
-		haveConnection();
-		theConnection.commit();
-		return null;
-	}
+    <COMMIT> [ <WORK> ]
+    {
+        haveConnection();
+        theConnection.commit();
+        return null;
+    }
 }
 
 /**
@@ -1685,12 +2459,12 @@ throws SQLException
 {
 }
 {
-	<ROLLBACK> [ <WORK> ]
-	{
-		haveConnection();
-		theConnection.rollback();
-		return null;
-	}
+    <ROLLBACK> [ <WORK> ]
+    {
+        haveConnection();
+        theConnection.rollback();
+        return null;
+    }
 }
 
 /**
@@ -1706,33 +2480,33 @@ DisconnectStatement()
 throws SQLException
 :
 {
-	Token a = null;
-	String n = null;
+    Token a = null;
+    String n = null;
 }
 {
-	<DISCONNECT> [ ( <CURRENT> | a = <ALL> | n = identifier() ) ]
-	{
-		if ( a == null ) { 
-			if (n == null) {
-		        // only remove the current session
-			    haveConnection();
-			    // Also need to release the session object
-			    currentConnEnv.removeCurrentSession();
-			    theConnection = null;
-			}
-			else {
-			    if (! currentConnEnv.haveSession(n))
-				    throw ijException.noSuchConnection(n);
-				currentConnEnv.removeSession(n);
-			    if (currentConnEnv.getSession() == null)
-				    theConnection = null;
-			}
-		} else {
-			currentConnEnv.removeAllSessions();
-			theConnection = null;
-		}
-		return null;
-	}
+    <DISCONNECT> [ ( <CURRENT> | a = <ALL> | n = identifier() ) ]
+    {
+        if ( a == null ) {
+            if (n == null) {
+                // only remove the current session
+                haveConnection();
+                // Also need to release the session object
+                currentConnEnv.removeCurrentSession();
+                theConnection = null;
+            }
+            else {
+                if (! currentConnEnv.haveSession(n))
+                    throw ijException.noSuchConnection(n);
+                currentConnEnv.removeSession(n);
+                if (currentConnEnv.getSession() == null)
+                    theConnection = null;
+            }
+        } else {
+            currentConnEnv.removeAllSessions();
+            theConnection = null;
+        }
+        return null;
+    }
 }
 
 ijResult
@@ -1742,14 +2516,14 @@ throws SQLException
 {
 }
 {
-	<EXIT>
-	{
-		return quit();
-	}
-|	<QUIT>
-	{
-		return quit();
-	}
+    <EXIT>
+    {
+        return quit();
+    }
+| <QUIT>
+    {
+        return quit();
+    }
 }
 
 ijResult
@@ -1757,38 +2531,38 @@ PrepareStatement()
 throws SQLException
 :
 {
-	Token t;
-	QualifiedIdentifier qi;
-	PreparedStatement ps;
-	String sVal;
+    Token t;
+    QualifiedIdentifier qi;
+    PreparedStatement ps;
+    String sVal;
 }
 {
-	<PREPARE> (
+    <PREPARE> (
 
-	<PROCEDURE> <AS> t = <STRING>
-	{
-		// "procedure" is not allowed as a statement name. This is
-		// because "execute procedure" is a valid Foundation2000
-		// command.
-		throw ijException.illegalStatementName( "procedure" );
-	}
+    <PROCEDURE> <AS> t = <STRING>
+    {
+        // "procedure" is not allowed as a statement name. This is
+        // because "execute procedure" is a valid Foundation2000
+        // command.
+        throw ijException.illegalStatementName( "procedure" );
+    }
 |
-	qi=qualifiedIdentifier() <AS> t=<STRING>
-	{
-		Session session = findSession(qi.getSessionName());
+    qi=qualifiedIdentifier() <AS> t=<STRING>
+    {
+        Session session = findSession(qi.getSessionName());
 
-		sVal = stringValue(t.image);
-		ps = session.getConnection().prepareStatement(sVal);
-		JDBCDisplayUtil.checkNotNull(ps,"prepared statement");
-		session.addPreparedStatement(qi.getLocalName(),ps);
+        sVal = stringValue(t.image);
+        ps = session.getConnection().prepareStatement(sVal);
+        JDBCDisplayUtil.checkNotNull(ps,"prepared statement");
+        session.addPreparedStatement(qi.getLocalName(),ps);
 
-		// all we want callers to see are the warnings.
-		SQLWarning w = ps.getWarnings();
-		ps.clearWarnings();
-		return new ijWarningResult(w);
-	}
+        // all we want callers to see are the warnings.
+        SQLWarning w = ps.getWarnings();
+        ps.clearWarnings();
+        return new ijWarningResult(w);
+    }
 
-	)
+    )
 }
 
 ijResult
@@ -1796,60 +2570,60 @@ GetCursorStatement()
 throws SQLException
 :
 {
-	haveConnection();
-	int scrollType = ResultSet.TYPE_FORWARD_ONLY;
-	Token s;
-	Token scrolling = null;
-	Token withtoken = null;
-	int holdType = theConnection.getHoldability();
-	QualifiedIdentifier qi;
-	Statement st = null;
-	String sVal;
-	ResultSet rs = null;
-	SQLWarning warns;	
+    haveConnection();
+    int scrollType = ResultSet.TYPE_FORWARD_ONLY;
+    Token s;
+    Token scrolling = null;
+    Token withtoken = null;
+    int holdType = theConnection.getHoldability();
+    QualifiedIdentifier qi;
+    Statement st = null;
+    String sVal;
+    ResultSet rs = null;
+    SQLWarning warns;
 }
 {
-	<GET> [ scrolling = <SCROLL>  scrollType = scrollType()]
-		  [ withtoken = <WITH> holdType = holdType()] 
-	      <CURSOR> qi=qualifiedIdentifier() <AS> s=<STRING>
-	{
-	    // TODO: remove this when CURSOR is supported
-	    //return new ijUnsupportedCommandResult("CURSOR");
+    <GET> [ scrolling = <SCROLL>  scrollType = scrollType()]
+          [ withtoken = <WITH> holdType = holdType()]
+          <CURSOR> qi=qualifiedIdentifier() <AS> s=<STRING>
+    {
+        // TODO: remove this when CURSOR is supported
+        //return new ijUnsupportedCommandResult("CURSOR");
 
-		sVal = stringValue(s.image);
-		try {
-			Session sn = findSession(qi.getSessionName());
-			
-			st = sn.getConnection().createStatement(
-				scrollType, ResultSet.CONCUR_READ_ONLY, holdType);
-			JDBCDisplayUtil.checkNotNull(st,"cursor");
-			st.setCursorName(qi.getLocalName());
-			rs = st.executeQuery(sVal);
-			JDBCDisplayUtil.checkNotNull(rs,"cursor");
-			sn.addCursorStatement(qi.getLocalName(),st);
-			sn.addCursor(qi.getLocalName(),rs);
-		} catch (SQLException e) {
+        sVal = stringValue(s.image);
+        try {
+            Session sn = findSession(qi.getSessionName());
+
+            st = sn.getConnection().createStatement(
+                scrollType, ResultSet.CONCUR_READ_ONLY, holdType);
+            JDBCDisplayUtil.checkNotNull(st,"cursor");
+            st.setCursorName(qi.getLocalName());
+            rs = st.executeQuery(sVal);
+            JDBCDisplayUtil.checkNotNull(rs,"cursor");
+            sn.addCursorStatement(qi.getLocalName(),st);
+            sn.addCursor(qi.getLocalName(),rs);
+        } catch (SQLException e) {
             try {
-			    if (rs!=null) rs.close();
+                if (rs!=null) rs.close();
             } catch (SQLException se) {
             }
             try {
-    			if (st!=null) st.close();
+                if (st!=null) st.close();
             } catch (SQLException se) {
             }
-			throw e;
-		}
+            throw e;
+        }
 
-		// all we want callers to see are the warnings.
-		SQLWarning w1 = theConnection.getWarnings();
-		SQLWarning w2 = st.getWarnings();
-		SQLWarning w3 = rs.getWarnings();
-		theConnection.clearWarnings();
-		st.clearWarnings();
-		rs.clearWarnings();
-		warns = ijCommands.appendWarnings(w1,w2);
-		return new ijWarningResult(ijCommands.appendWarnings(warns,w3));
-	}
+        // all we want callers to see are the warnings.
+        SQLWarning w1 = theConnection.getWarnings();
+        SQLWarning w2 = st.getWarnings();
+        SQLWarning w3 = rs.getWarnings();
+        theConnection.clearWarnings();
+        st.clearWarnings();
+        rs.clearWarnings();
+        warns = appendWarnings(w1,w2);
+        return new ijWarningResult(appendWarnings(warns,w3));
+    }
 }
 
 int
@@ -1859,16 +2633,16 @@ throws SQLException
 {
 }
 {
-	<INSENSITIVE>
-	{
-		return ResultSet.TYPE_SCROLL_INSENSITIVE;
-	}
+    <INSENSITIVE>
+    {
+        return ResultSet.TYPE_SCROLL_INSENSITIVE;
+    }
 |
-	<SENSITIVE>
-	{
-		return ResultSet.TYPE_SCROLL_SENSITIVE;
-	}
-}	
+    <SENSITIVE>
+    {
+        return ResultSet.TYPE_SCROLL_SENSITIVE;
+    }
+}
 
 int
 holdType()
@@ -1877,34 +2651,34 @@ throws SQLException
 {
 }
 {
-	<HOLD>
-	{
-		return ResultSet.HOLD_CURSORS_OVER_COMMIT;
-	}
+    <HOLD>
+    {
+        return ResultSet.HOLD_CURSORS_OVER_COMMIT;
+    }
 |
-	<NOHOLD>
-	{
-		return ResultSet.CLOSE_CURSORS_AT_COMMIT;
-	}
-}	
+    <NOHOLD>
+    {
+        return ResultSet.CLOSE_CURSORS_AT_COMMIT;
+    }
+}
 
 ijResult
 AbsoluteStatement()
 throws SQLException
 :
 {
-	int row;
-	QualifiedIdentifier qi;
+    int row;
+    QualifiedIdentifier qi;
 }
 {
-	<ABSOLUTE> row = intLiteral() qi=qualifiedIdentifier()
-	{
-		// TODO: remove this when ABSOLUTE is supported
-		//return new ijUnsupportedCommandResult("ABSOLUTE");
-		// Verify that we have JDBC 2.0
-		ResultSet rs = findCursor(qi);
-		return utilInstance.absolute(rs, row);
-	}
+    <ABSOLUTE> row = intLiteral() qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when ABSOLUTE is supported
+        //return new ijUnsupportedCommandResult("ABSOLUTE");
+        // Verify that we have JDBC 2.0
+        ResultSet rs = findCursor(qi);
+        return utilInstance.absolute(rs, row);
+    }
 }
 
 ijResult
@@ -1912,18 +2686,18 @@ RelativeStatement()
 throws SQLException
 :
 {
-	int row;
-	QualifiedIdentifier qi;
+    int row;
+    QualifiedIdentifier qi;
 }
 {
-	<RELATIVE> row = intLiteral() qi=qualifiedIdentifier()
-	{
-		// TODO: remove this when RELATIVE is supported
-		//return new ijUnsupportedCommandResult("RELATIVE");
-		// Verify that we have JDBC 2.0
-		ResultSet rs = findCursor(qi);
-		return utilInstance.relative(rs, row);
-	}
+    <RELATIVE> row = intLiteral() qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when RELATIVE is supported
+        //return new ijUnsupportedCommandResult("RELATIVE");
+        // Verify that we have JDBC 2.0
+        ResultSet rs = findCursor(qi);
+        return utilInstance.relative(rs, row);
+    }
 }
 
 ijResult
@@ -1931,17 +2705,17 @@ BeforeFirstStatement()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi;
+    QualifiedIdentifier qi;
 }
 {
-	<BEFORE> <FIRST> qi=qualifiedIdentifier()
-	{
-		// TODO: remove this when BEFORE FIRST is supported
-		//return new ijUnsupportedCommandResult("BEFORE FIRST");
-		// Verify that we have JDBC 2.0
-		ResultSet rs = findCursor(qi);
-		return utilInstance.beforeFirst(rs);
-	}
+    <BEFORE> <FIRST> qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when BEFORE FIRST is supported
+        //return new ijUnsupportedCommandResult("BEFORE FIRST");
+        // Verify that we have JDBC 2.0
+        ResultSet rs = findCursor(qi);
+        return utilInstance.beforeFirst(rs);
+    }
 }
 
 ijResult
@@ -1949,17 +2723,17 @@ FirstStatement()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi;
+    QualifiedIdentifier qi;
 }
 {
-	<FIRST> qi=qualifiedIdentifier()
-	{
-	    // TODO: remove this when FIRST is supported
-		//return new ijUnsupportedCommandResult("FIRST");
-		// Verify that we have JDBC 2.0
-		ResultSet rs = findCursor(qi);
-		return utilInstance.first(rs);
-	}
+    <FIRST> qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when FIRST is supported
+        //return new ijUnsupportedCommandResult("FIRST");
+        // Verify that we have JDBC 2.0
+        ResultSet rs = findCursor(qi);
+        return utilInstance.first(rs);
+    }
 }
 
 ijResult
@@ -1967,17 +2741,17 @@ NextStatement()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi;
+    QualifiedIdentifier qi;
 }
 {
-	<NEXT> qi=qualifiedIdentifier()
-	{
-	    // TODO: remove this when NEXT is supported
-		//return new ijUnsupportedCommandResult("NEXT");
-		// Verify that we have JDBC 2.0
-		ResultSet rs = findCursor(qi);
-		return new ijRowResult(rs, rs.next());
-	}
+    <NEXT> qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when NEXT is supported
+        //return new ijUnsupportedCommandResult("NEXT");
+        // Verify that we have JDBC 2.0
+        ResultSet rs = findCursor(qi);
+        return new ijRowResult(rs, rs.next());
+    }
 }
 
 ijResult
@@ -1985,17 +2759,17 @@ AfterLastStatement()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi;
+    QualifiedIdentifier qi;
 }
 {
-	<AFTER> <LAST> qi=qualifiedIdentifier()
-	{
-		// TODO: remove this when AFTER LAST is supported
-		//return new ijUnsupportedCommandResult("AFTER LAST");
-		// Verify that we have JDBC 2.0
-		ResultSet rs = findCursor(qi);
-		return utilInstance.afterLast(rs);
-	}
+    <AFTER> <LAST> qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when AFTER LAST is supported
+        //return new ijUnsupportedCommandResult("AFTER LAST");
+        // Verify that we have JDBC 2.0
+        ResultSet rs = findCursor(qi);
+        return utilInstance.afterLast(rs);
+    }
 }
 
 ijResult
@@ -2003,17 +2777,17 @@ LastStatement()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi;
+    QualifiedIdentifier qi;
 }
 {
-	<LAST> qi=qualifiedIdentifier()
-	{
-		// TODO: remove this when LAST is supported
-		//return new ijUnsupportedCommandResult("LAST");
-		// Verify that we have JDBC 2.0
-		ResultSet rs = findCursor(qi);
-		return utilInstance.last(rs);
-	}
+    <LAST> qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when LAST is supported
+        //return new ijUnsupportedCommandResult("LAST");
+        // Verify that we have JDBC 2.0
+        ResultSet rs = findCursor(qi);
+        return utilInstance.last(rs);
+    }
 }
 
 ijResult
@@ -2021,17 +2795,17 @@ PreviousStatement()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi;
+    QualifiedIdentifier qi;
 }
 {
-	<PREVIOUS> qi=qualifiedIdentifier()
-	{
-		// TODO: remove this when PREVIOUS is supported
-		//return new ijUnsupportedCommandResult("PREVIOUS");
-		// Verify that we have JDBC 2.0
-		ResultSet rs = findCursor(qi);
-		return utilInstance.previous(rs);
-	}
+    <PREVIOUS> qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when PREVIOUS is supported
+        //return new ijUnsupportedCommandResult("PREVIOUS");
+        // Verify that we have JDBC 2.0
+        ResultSet rs = findCursor(qi);
+        return utilInstance.previous(rs);
+    }
 }
 
 ijResult
@@ -2039,17 +2813,17 @@ GetCurrentRowNumber()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi;
+    QualifiedIdentifier qi;
 }
 {
-	<GETCURRENTROWNUMBER> qi=qualifiedIdentifier()
-	{
-		// TODO: remove this when GETCURRENTROWNUMBER is supported
-		//return new ijUnsupportedCommandResult("GETCURRENTROWNUMBER");
-		// Verify that we have JDBC 2.0
-		ResultSet rs = findCursor(qi);
-		return new ijVectorResult(utilInstance.getCurrentRowNumber(rs), null);
-	}
+    <GETCURRENTROWNUMBER> qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when GETCURRENTROWNUMBER is supported
+        //return new ijUnsupportedCommandResult("GETCURRENTROWNUMBER");
+        // Verify that we have JDBC 2.0
+        ResultSet rs = findCursor(qi);
+        return new ijVectorResult(utilInstance.getCurrentRowNumber(rs), null);
+    }
 }
 
 ijResult
@@ -2057,27 +2831,27 @@ CloseStatement()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi;
-	Statement s;
+    QualifiedIdentifier qi;
+    Statement s;
 }
 {
-	<CLOSE> qi=qualifiedIdentifier()
-	{
-	    // TODO: remove this when CLOSE is supported
-		//return new ijUnsupportedCommandResult("CLOSE");
-		Session sn = findSession(qi.getSessionName());
-		
-		ResultSet rs = sn.getCursor(qi.getLocalName());
-		JDBCDisplayUtil.checkNotNull(rs,"cursor " + qi);
-		s = (Statement) sn.getCursorStatement(qi.getLocalName());
-		JDBCDisplayUtil.checkNotNull(s,"cursor" + qi);
-		rs.close();
-		s.close();
-		sn.removeCursor(qi.getLocalName());
-		sn.removeCursorStatement(qi.getLocalName());
+    <CLOSE> qi=qualifiedIdentifier()
+    {
+        // TODO: remove this when CLOSE is supported
+        //return new ijUnsupportedCommandResult("CLOSE");
+        Session sn = findSession(qi.getSessionName());
 
-		return null;
-	}
+        ResultSet rs = sn.getCursor(qi.getLocalName());
+        JDBCDisplayUtil.checkNotNull(rs,"cursor " + qi);
+        s = (Statement) sn.getCursorStatement(qi.getLocalName());
+        JDBCDisplayUtil.checkNotNull(s,"cursor" + qi);
+        rs.close();
+        s.close();
+        sn.removeCursor(qi.getLocalName());
+        sn.removeCursorStatement(qi.getLocalName());
+
+        return null;
+    }
 }
 
 /**
@@ -2091,198 +2865,198 @@ throws SQLException
  * Syntax:
  *   EXECUTE statementSource [ USING statementSource] ;
  *
- *	 statementSource is an identifier of a previously prepared statement
- *	 or a string containing SQL-J text.
+ *  statementSource is an identifier of a previously prepared statement
+ *  or a string containing SQL-J text.
  */
 ijResult
 ExecuteStatement()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi = null;
-	Token s = null;
-	PreparedStatement ps;
-	String sVal = null;
+    QualifiedIdentifier qi = null;
+    Token s = null;
+    PreparedStatement ps;
+    String sVal = null;
 
-	QualifiedIdentifier qiUsing = null;
-	Token sUsing = null;
-	Token	usingObject = null;
+    QualifiedIdentifier qiUsing = null;
+    Token sUsing = null;
+    Token usingObject = null;
 }
 {
-	<EXECUTE> (
+    <EXECUTE> (
 
-	// Hack to get the grammar to leave a
-	// EXECUTE STATEMENT <stmt> alone. Short
-	// circuit the ij EXECUTE built in.
-	<STATEMENT> s = <STRING>
-	{
-		return executeImmediate(stringValue(s.image));
-	}
+    // Hack to get the grammar to leave a
+    // EXECUTE STATEMENT <stmt> alone. Short
+    // circuit the ij EXECUTE built in.
+    <STATEMENT> s = <STRING>
+    {
+        return executeImmediate(stringValue(s.image));
+    }
 |
-	// Hack to get the grammar to leave a
-	// EXECUTE PROCEDURE <procSpec> alone. Short
-	// circuit the ij EXECUTE built in so that
-	// we can deploy ij against Foundation2000.
-	<PROCEDURE> s = <STRING>
-	{
-		haveConnection();
+    // Hack to get the grammar to leave a
+    // EXECUTE PROCEDURE <procSpec> alone. Short
+    // circuit the ij EXECUTE built in so that
+    // we can deploy ij against Foundation2000.
+    <PROCEDURE> s = <STRING>
+    {
+        haveConnection();
 
-		Statement	aStatement = theConnection.createStatement();
-		String		text = "execute procedure " + s;
+        Statement aStatement = theConnection.createStatement();
+        String  text = "execute procedure " + s;
 
-		aStatement.execute( text );
+        aStatement.execute( text );
 
-		return new ijStatementResult( aStatement,true );
-	}
+        return new ijStatementResult( aStatement,true );
+    }
 |
-	( qi=qualifiedIdentifier()
-	| s=<STRING>
-	)
-	( <USING> ( qiUsing=qualifiedIdentifier()
-			| sUsing=<STRING>
-			)
-	)?
-	{
-	    if (qiUsing!=null || sUsing!=null) { // parameters in use
-			String sUsingVal = null;
-			PreparedStatement psUsing;
-			SQLWarning warns = null;
+    ( qi=qualifiedIdentifier()
+    | s=<STRING>
+    )
+    ( <USING> ( qiUsing=qualifiedIdentifier()
+            | sUsing=<STRING>
+            )
+    )?
+    {
+        if (qiUsing!=null || sUsing!=null) { // parameters in use
+            String sUsingVal = null;
+            PreparedStatement psUsing;
+            SQLWarning warns = null;
 
-			// haveConnection();
+            // haveConnection();
 
-			/*
-				Steps:
-				1. find or prepare the statement
-				2. execute the using statement
-				3. push the row of the using statement into the parameters
-				4. execute the statement against those parameters
-				5. clear the parameters
-			 */
-			/*
-				get the prepared statement
-			 */
-			boolean closeWhenDone = false; // will we close the ps when done?
-    		if (qi!=null) {
-    			ps = findPreparedStatement(qi);
-    		}
-    		else { // (s!=null)
-				sVal = stringValue(s.image);
-				ps = theConnection.prepareStatement(sVal);
-				closeWhenDone = true;
-				JDBCDisplayUtil.checkNotNull(ps,"prepared statement");
-				warns = ijCommands.appendWarnings(warns, ps.getWarnings());
-				ps.clearWarnings();
-    		}
+            /*
+                Steps:
+                1. find or prepare the statement
+                2. execute the using statement
+                3. push the row of the using statement into the parameters
+                4. execute the statement against those parameters
+                5. clear the parameters
+             */
+            /*
+                get the prepared statement
+             */
+            boolean closeWhenDone = false; // will we close the ps when done?
+            if (qi!=null) {
+                ps = findPreparedStatement(qi);
+            }
+            else { // (s!=null)
+                sVal = stringValue(s.image);
+                ps = theConnection.prepareStatement(sVal);
+                closeWhenDone = true;
+                JDBCDisplayUtil.checkNotNull(ps,"prepared statement");
+                warns = appendWarnings(warns, ps.getWarnings());
+                ps.clearWarnings();
+            }
 
-			/*
-				execute the using statement
-			 */
-    		if (qiUsing!=null) {
-    			psUsing = findPreparedStatement(qiUsing);
-    		}
-    		else { // (sUsing!=null)
-				sUsingVal = stringValue(sUsing.image);
-				psUsing = theConnection.prepareStatement(sUsingVal);
-				JDBCDisplayUtil.checkNotNull(psUsing,"prepared statement");
-				warns = ijCommands.appendWarnings(warns, psUsing.getWarnings());
-				psUsing.clearWarnings();
-    		}
+            /*
+                execute the using statement
+             */
+            if (qiUsing!=null) {
+                psUsing = findPreparedStatement(qiUsing);
+            }
+            else { // (sUsing!=null)
+                sUsingVal = stringValue(sUsing.image);
+                psUsing = theConnection.prepareStatement(sUsingVal);
+                JDBCDisplayUtil.checkNotNull(psUsing,"prepared statement");
+                warns = appendWarnings(warns, psUsing.getWarnings());
+                psUsing.clearWarnings();
+            }
 
-			ResultSet rsUsing;
-			/*
-				If the USING statement is not a query, we
-				will not execute the statement; the number of
-				rows controls the execution.
-			 */
-			if (psUsing.execute()) {
-				rsUsing = psUsing.getResultSet();
+            ResultSet rsUsing;
+            /*
+                If the USING statement is not a query, we
+                will not execute the statement; the number of
+                rows controls the execution.
+             */
+            if (psUsing.execute()) {
+                rsUsing = psUsing.getResultSet();
 
-				/*
-					push the row of the using statement into the parameters
-				 */
+                /*
+                    push the row of the using statement into the parameters
+                 */
 
-				ResultSetMetaData rsmdUsing = rsUsing.getMetaData();
-				int numCols = rsmdUsing.getColumnCount();
+                ResultSetMetaData rsmdUsing = rsUsing.getMetaData();
+                int numCols = rsmdUsing.getColumnCount();
 
-				/*
-					Insufficient or too many parameters will
-					be caught at the JDBC level, and halt execution.
-				 */
-				boolean exec = false;
+                /*
+                    Insufficient or too many parameters will
+                    be caught at the JDBC level, and halt execution.
+                 */
+                boolean exec = false;
 
-				/* Only do 1 next on rsUsing if autocommit is on,
-				 * since rsUsing will be closed when ps is closed.
-				 */
-			    boolean autoCommited = false;
-				ijMultiResult result = new ijMultiResult(ps,rsUsing,closeWhenDone);
+                /* Only do 1 next on rsUsing if autocommit is on,
+                 * since rsUsing will be closed when ps is closed.
+                 */
+                boolean autoCommited = false;
+                ijMultiResult result = new ijMultiResult(ps,rsUsing,closeWhenDone);
 
-//				while (! autoCommited && rsUsing.next()) {
-//					// note the first time through
-//					if (!exec) {
-//						exec = true;
+//    while (! autoCommited && rsUsing.next()) {
+//     // note the first time through
+//     if (!exec) {
+//      exec = true;
 //
-//						// send a warning if additional results may be lost
-//						if (theConnection.getAutoCommit()) {
-//							// FIXME: currOut.println("IJ WARNING: Autocommit may close using result set");
-//							autoCommited = true;
-//						}
-//					}
-//					for (int c=1; c<=numCols; c++) {
-//						if (usingObject == null)
-//						{
-//							ps.setObject(c,rsUsing.getObject(c),
-//								rsmdUsing.getColumnType(c));
-//						} 
-//						else
-//						{
-//							ps.setObject(c,rsUsing.getObject(c));
-//						}
-//					}
+//      // send a warning if additional results may be lost
+//      if (theConnection.getAutoCommit()) {
+//       // FIXME: currOut.println("IJ WARNING: Autocommit may close using result set");
+//       autoCommited = true;
+//      }
+//     }
+//     for (int c=1; c<=numCols; c++) {
+//      if (usingObject == null)
+//      {
+//       ps.setObject(c,rsUsing.getObject(c),
+//        rsmdUsing.getColumnType(c));
+//      }
+//      else
+//      {
+//       ps.setObject(c,rsUsing.getObject(c));
+//      }
+//     }
 //
-//					/*
-//						4. execute the statement against those parameters
-//					 */
+//     /*
+//      4. execute the statement against those parameters
+//      */
 //
-//					ps.execute();
-//					result.addStatementResult(ps);
+//     ps.execute();
+//     result.addStatementResult(ps);
 //
-//					/*
-//						5. clear the parameters
-//					 */
-//					ps.clearParameters();
+//     /*
+//      5. clear the parameters
+//      */
+//     ps.clearParameters();
 //
-//				}
-//				if (!exec) {
-//					throw ijException.noUsingResults();
-//				}
+//    }
+//    if (!exec) {
+//     throw ijException.noUsingResults();
+//    }
 //
-//				if (! theConnection.getAutoCommit())
-//				{
-//					rsUsing.close();
-//				}
-//				// REMIND: any way to look for more rsUsing rows if autoCommit?
-//				// perhaps just document the behavior... 
+//    if (! theConnection.getAutoCommit())
+//    {
+//     rsUsing.close();
+//    }
+//    // REMIND: any way to look for more rsUsing rows if autoCommit?
+//    // perhaps just document the behavior...
 
-				return result;
-			}
-			else
-				throw ijException.noUsingResults();
-		}
-		else { // no parameters in use
-	    	if (qi!=null) {
-				haveConnection();
-				ps = findPreparedStatement(qi);
-				ps.execute();
+                return result;
+            }
+            else
+                throw ijException.noUsingResults();
+        }
+        else { // no parameters in use
+            if (qi!=null) {
+                haveConnection();
+                ps = findPreparedStatement(qi);
+                ps.execute();
 
-				return new ijStatementResult(ps,false);
-	    	}
-	    	else { // (s!=null)
-			    return executeImmediate(stringValue(s.image));
-	    	}
-	    }
-	}
+                return new ijStatementResult(ps,false);
+            }
+            else { // (s!=null)
+                return executeImmediate(stringValue(s.image));
+            }
+        }
+    }
 
-	)
+    )
 }
 
 /**
@@ -2291,23 +3065,23 @@ throws SQLException
  * the current connection.
  * <p>
  * Syntax:
- *   ASYNC asyncName statementSource 
+ *   ASYNC asyncName statementSource
  *
- *	 statementSource is a string containing SQL-J text.
+ *  statementSource is a string containing SQL-J text.
  */
 ijResult
 AsyncStatement()
 throws SQLException
 :
 {
-	Token s = null;
-	QualifiedIdentifier qi;
+    Token s = null;
+    QualifiedIdentifier qi;
 }
 {
-	<ASYNC> qi=qualifiedIdentifier() s=<STRING>
-	{
-	    return executeAsync(stringValue(s.image), qi);
-	}
+    <ASYNC> qi=qualifiedIdentifier() s=<STRING>
+    {
+        return executeAsync(stringValue(s.image), qi);
+    }
 }
 
 /**
@@ -2316,31 +3090,31 @@ throws SQLException
  * not row fetching.
  * <p>
  * Syntax:
- *   WAIT FOR asyncName 
+ *   WAIT FOR asyncName
  *
- *	 asyncName is a name used in an ASYNC statement previously
+ *  asyncName is a name used in an ASYNC statement previously
  */
 ijResult
 WaitForStatement()
 throws SQLException
 :
 {
-	Token s = null;
-	QualifiedIdentifier qi;
+    Token s = null;
+    QualifiedIdentifier qi;
 }
 {
-	<WAIT> <FOR> qi=qualifiedIdentifier()
-	{
-		Session sn = findSession(qi.getSessionName());
-		AsyncStatement as = sn.getAsyncStatement(qi.getLocalName());
-		if (as == null) throw ijException.noSuchAsyncStatement(qi.toString());
-		try {
-		    as.join(); // we wait for it to finish.
-		} catch (InterruptedException ie) {
-			throw ijException.waitInterrupted(ie);
-		}
-		return as.getResult();
-	}
+    <WAIT> <FOR> qi=qualifiedIdentifier()
+    {
+        Session sn = findSession(qi.getSessionName());
+        AsyncStatement as = sn.getAsyncStatement(qi.getLocalName());
+        if (as == null) throw ijException.noSuchAsyncStatement(qi.toString());
+        try {
+            as.join(); // we wait for it to finish.
+        } catch (InterruptedException ie) {
+            throw ijException.waitInterrupted(ie);
+        }
+        return as.getResult();
+    }
 }
 
 /**
@@ -2355,20 +3129,20 @@ RemoveStatement()
 throws SQLException
 :
 {
-	QualifiedIdentifier qi;
-	PreparedStatement ps;
+    QualifiedIdentifier qi;
+    PreparedStatement ps;
 }
 {
-	<REMOVE> qi=qualifiedIdentifier()
-	{
-		Session s = findSession(qi.getSessionName());
-		ps = (PreparedStatement) s.getPreparedStatement(qi.getLocalName());
-		JDBCDisplayUtil.checkNotNull(ps,"prepared statement "+qi);
-		ps.close();
-		s.removePreparedStatement(qi.getLocalName());
+    <REMOVE> qi=qualifiedIdentifier()
+    {
+        Session s = findSession(qi.getSessionName());
+        ps = (PreparedStatement) s.getPreparedStatement(qi.getLocalName());
+        JDBCDisplayUtil.checkNotNull(ps,"prepared statement "+qi);
+        ps.close();
+        s.removePreparedStatement(qi.getLocalName());
 
-		return null;
-	}
+        return null;
+    }
 }
 
 ijResult
@@ -2376,19 +3150,19 @@ RunStatement()
 throws SQLException
 :
 {
-	Token i;
+    Token i;
     Token r = null;
-	PreparedStatement ps;
+    PreparedStatement ps;
 }
 {
-	<RUN> 	[r = <RESOURCE>] i=<STRING>
-	{
-		if (utilInstance==null) return null;
-	    if (r == null)
-			utilInstance.newInput(stringValue(i.image));
-		else
+    <RUN>  [r = <RESOURCE>] i=<STRING>
+    {
+        if (utilInstance==null) return null;
+        if (r == null)
+            utilInstance.newInput(stringValue(i.image));
+        else
             utilInstance.newResourceInput(stringValue(i.image));
-		return null;
+        return null;
     }
 }
 
@@ -2405,20 +3179,20 @@ AutocommitStatement()
 throws SQLException
 :
 {
-	Token on=null;
+    Token on=null;
 }
 {
-	<AUTOCOMMIT>
-	( on=<ON>
-	| <OFF>
-	)
-	{
-		haveConnection();
-		// REMIND: want to warn if unchanged?
-		theConnection.setAutoCommit((on==null?false:true));
+    <AUTOCOMMIT>
+    ( on=<ON>
+    | <OFF>
+    )
+    {
+        haveConnection();
+        // REMIND: want to warn if unchanged?
+        theConnection.setAutoCommit((on==null?false:true));
 
-		return null;
-	}
+        return null;
+    }
 }
 
 /**
@@ -2431,15 +3205,15 @@ NoHoldForConnectionStatement()
 throws SQLException
 :
 {
-	Token on=null;
+    Token on=null;
 }
 {
-	<NOHOLDFORCONNECTION> 
-	{
-		haveConnection();
-		theConnection.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
-		return null;
-	}
+    <NOHOLDFORCONNECTION>
+    {
+        haveConnection();
+        theConnection.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
+        return null;
+    }
 }
 
 /**
@@ -2451,17 +3225,17 @@ throws SQLException
 ijResult LocalizedDisplay()
 :
 {
- 	Token on=null;
+    Token on=null;
 }
 {
-	<LOCALIZEDDISPLAY> 
-	( on=<ON>
-	| <OFF>
-	)
-	{
-		LocalizedResource.enableLocalization((on==null?false:true));
-		return null;
-	}
+    <LOCALIZEDDISPLAY>
+    ( on=<ON>
+    | <OFF>
+    )
+    {
+        LocalizedResource.enableLocalization((on==null?false:true));
+        return null;
+    }
 }
 
 /**
@@ -2477,18 +3251,18 @@ ReadOnlyStatement()
 throws SQLException
 :
 {
-	Token on=null;
+    Token on=null;
 }
 {
-	<READONLY> 
-	( on=<ON>
-	| <OFF>
-	)
-	{
-		haveConnection();
-		theConnection.setReadOnly((on==null?false:true));
-		return null;
-	}
+    <READONLY>
+    ( on=<ON>
+    | <OFF>
+    )
+    {
+        haveConnection();
+        theConnection.setReadOnly((on==null?false:true));
+        return null;
+    }
 }
 
 /**
@@ -2501,17 +3275,17 @@ throws SQLException
 ijResult
 ElapsedTimeStatement() :
 {
-	Token on=null;
+    Token on=null;
 }
 {
-	<ELAPSEDTIME> 
-	( on=<ON>
-	| <OFF>
-	)
-	{
-		elapsedTime = (on != null);
-		return null;
-	}
+    <ELAPSEDTIME>
+    ( on=<ON>
+    | <OFF>
+    )
+    {
+        elapsedTime = (on != null);
+        return null;
+    }
 }
 
 /**
@@ -2525,26 +3299,26 @@ ElapsedTimeStatement() :
 ijResult
 MaximumDisplayWidthStatement() :
 {
-	int	  maxWidth;
+    int   maxWidth;
 }
 {
-	<MAXIMUMDISPLAYWIDTH> maxWidth=intValue()
-	{
-		JDBCDisplayUtil.setMaxDisplayWidth(maxWidth);
-		return null;
-	}
+    <MAXIMUMDISPLAYWIDTH> maxWidth=intValue()
+    {
+        JDBCDisplayUtil.setMaxDisplayWidth(maxWidth);
+        return null;
+    }
 }
 
 int
 intValue() :
 {
-	Token t;
+    Token t;
 }
 {
-	t = <INTEGER>
-	{
-		return Integer.parseInt(t.image);
-	}
+    t = <INTEGER>
+    {
+        return Integer.parseInt(t.image);
+    }
 }
 
 /**
@@ -2556,80 +3330,80 @@ intValue() :
 ijResult
 Bang() :
 {
-	Token cmd=null;
+    Token cmd=null;
 }
 {
-	<BANG> cmd=<STRING>
-	{
-	  ijResult result = null;
-	  try {
-		Process p = Runtime.getRuntime().exec(stringValue(cmd.image));
-		LocalizedInput in = new LocalizedInput(p.getInputStream());
-		int c;
-		Vector v = new Vector();
-		StringBuilder output = new StringBuilder();
-		// echo output
-		while ((c = in.read()) != -1) {
-			output.append((char)c);
-		}
-		in.close();
-		// echo errors
-		in = new LocalizedInput(p.getErrorStream());
-		// echo output
-		while ((c = in.read()) != -1) {
-			output.append((char)c);
-		}
-		in.close();
-		v.addElement(output);
-		result = new ijVectorResult(v,null);
-		// wait for completion
-		try {
-			p.waitFor();
-		} catch (InterruptedException e) {
-			throw ijException.bangException(e);
-		}
-	  } catch (IOException ioe) {
-		throw ijException.bangException(ioe);
-	  }
-	  return result;
-	}
+    <BANG> cmd=<STRING>
+    {
+        ijResult result = null;
+        try {
+            Process p = Runtime.getRuntime().exec(stringValue(cmd.image));
+            LocalizedInput in = new LocalizedInput(p.getInputStream());
+            int c;
+            Vector v = new Vector();
+            StringBuilder output = new StringBuilder();
+            // echo output
+            while ((c = in.read()) != -1) {
+                output.append((char)c);
+            }
+            in.close();
+            // echo errors
+            in = new LocalizedInput(p.getErrorStream());
+            // echo output
+            while ((c = in.read()) != -1) {
+                output.append((char)c);
+            }
+            in.close();
+            v.addElement(output);
+            result = new ijVectorResult(v,null);
+            // wait for completion
+            try {
+                p.waitFor();
+            } catch (InterruptedException e) {
+                throw ijException.bangException(e);
+            }
+      } catch (IOException ioe) {
+        throw ijException.bangException(ioe);
+      }
+      return result;
+    }
 }
 
 /**
-	ExpectStatement is EXPECT [ FAIL ] {'String'}* END EXPECT
-	<p>
-	Will eventually detect the lines that the strings are without
-	special literals, but for now this is expedient (except for the
-	doubling of quotes...)
-	<p>
-	Used to test the previous statement's output. Note that ij must be
-	in "expect" mode to use this statement, otherwise it is just
-	ignored.  This is due to the overhead of tracking the prior statement's
-	output.
+    ExpectStatement is EXPECT [ FAIL ] {'String'}* END EXPECT
+    <p>
+    Will eventually detect the lines that the strings are without
+    special literals, but for now this is expedient (except for the
+    doubling of quotes...)
+    <p>
+    Used to test the previous statement's output. Note that ij must be
+    in "expect" mode to use this statement, otherwise it is just
+    ignored.  This is due to the overhead of tracking the prior statement's
+    output.
  */
 ijResult
 ExpectStatement() :
 {
-	Token f = null;
-	Vector stringVector = new Vector();
+    Token f = null;
+    Vector stringVector = new Vector();
 }
 {
-	<EXPECT> [ f = <FAIL> ] StringList(stringVector) <END> <EXPECT>
-	{
-		if (!getExpect()) return null; // don't bother processing.
+    <EXPECT> [ f = <FAIL> ] StringList(stringVector) <END> <EXPECT>
+    {
+        if (!getExpect()) return null; // don't bother processing.
 
-		// FIXME
+        // FIXME
 
-		// Do the comparison of the string list to the prior rows of
-		// output, using a row-by-row perl-regex comparison.
-		boolean result = true;
+        // Do the comparison of the string list to the prior rows of
+        // output, using a row-by-row perl-regex comparison.
+        boolean result = true;
 
-		// register the result and whether it should be true or false
-		// FIXME: how to find the expecter??
-		noteExpect(result, f==null);
+        // register the result and whether it should be true or false
+        // FIXME: how to find the expecter??
+        noteExpect(result, f==null);
 
-		return null;
-	}
+        return null;
+    }
 }
 
 void
@@ -2637,54 +3411,54 @@ StringList(Vector v) :
 {
 }
 {
-	StringItem(v) ( StringItem(v) ) *
+    StringItem(v) ( StringItem(v) ) *
 }
 
 void
 StringItem(Vector v) :
 {
-	Token s;
+    Token s;
 }
 {
-	s = <STRING>
-	{
-		v.addElement(s);
-	}
+    s = <STRING>
+    {
+        v.addElement(s);
+    }
 }
 
 /**
-	Haven't included: ASYNC, !, EXPECT
-	Don't include: XA_*
+    Haven't included: ASYNC, !, EXPECT
+    Don't include: XA_*
  **/
 ijResult
 HelpStatement() :
 {
 }
 {
-	<HELP>
-	{
-		Vector v = new Vector();
+    <HELP>
+    {
+        Vector v = new Vector();
 
         StringTokenizer st = new StringTokenizer(LocalizedResource.getMessage("IJ_HelpText"), "\n");
-		while (st.hasMoreTokens()) {
-		    v.addElement(st.nextToken());
-		}
-							 
-		return new ijVectorResult(v,null);
-	}
+        while (st.hasMoreTokens()) {
+            v.addElement(st.nextToken());
+        }
+
+        return new ijVectorResult(v,null);
+    }
 }
 
 String
 identifier() :
 {
-	Token t;
+    Token t;
 }
 {
-	t=<IDENTIFIER>
-	{
-		// identifiers are case insensitive, so we map them up.
-		return (t.image.toUpperCase(Locale.ENGLISH));
-	}
+    t=<IDENTIFIER>
+    {
+        // identifiers are case insensitive, so we map them up.
+        return (t.image.toUpperCase(Locale.ENGLISH));
+    }
 }
 
 String
@@ -2731,24 +3505,24 @@ path() :
 }
 
 /**
-	A qualified identifier is localName [ <AT> sessionName ]
+    A qualified identifier is localName [ <AT> sessionName ]
 */
 QualifiedIdentifier
 qualifiedIdentifier() :
 {
-	String	sn	= null;
-	String	ln	= null;
+    String sn = null;
+    String ln = null;
 }
 {
-	ln=identifier() [ <AT> sn=identifier() ]
-	{
-		if (sn == null) {
-			haveConnection();
-			sn = currentConnEnv.getSession().getName();
-		}
-		
-		return new QualifiedIdentifier(sn, ln);
-	}
+    ln=identifier() [ <AT> sn=identifier() ]
+    {
+        if (sn == null) {
+            haveConnection();
+            sn = currentConnEnv.getSession().getName();
+        }
+
+        return new QualifiedIdentifier(sn, ln);
+    }
 }
 
 /**
@@ -2804,80 +3578,80 @@ caIdentifierForSysProcs() throws SQLException :
 int
 intLiteral() throws SQLException :
 {
-	String	sign = "";
-	Token	tok;
+    String sign = "";
+    Token tok;
 }
 {
-	[ sign = sign() ] tok = <INTEGER>
-	{
-		/*
-		** The various java parse utilities can't handle leading +,
-		** so only concatenate leading -.
-		*/
+    [ sign = sign() ] tok = <INTEGER>
+    {
+        /*
+        ** The various java parse utilities can't handle leading +,
+        ** so only concatenate leading -.
+        */
 
-		String num = tok.image;
+        String num = tok.image;
 
-		if (sign.equals("-"))
-		{
-			num = sign.concat(num);
-		}
+        if (sign.equals("-"))
+        {
+            num = sign.concat(num);
+        }
 
-		return Integer.parseInt(num);
-	}
+        return Integer.parseInt(num);
+    }
 }
 
 Vector
 staticMethodName() throws SQLException :
 {
-	Vector	list = new Vector();
+    Vector list = new Vector();
 }
 {
-	methodLeg( list ) ( <PERIOD> methodLeg( list ) )+
-	{
-		return list;		
-	}
+    methodLeg( list ) ( <PERIOD> methodLeg( list ) )+
+    {
+        return list;
+    }
 }
 
 void
 methodLeg( Vector list ) throws SQLException :
 {
-	Token	id;
+    Token id;
 }
 {
-	id = <IDENTIFIER>
-	{
-		list.addElement( id.image );
-	}
+    id = <IDENTIFIER>
+    {
+        list.addElement( id.image );
+    }
 }
 
 String[]
 staticMethodArgs() throws SQLException :
 {
-	Vector		list = new Vector();
-	String[]	args;
+    Vector  list = new Vector();
+    String[] args;
 }
 {
-	<LEFT_PAREN>
-		[ oneStaticArg( list ) ( <COMMA> oneStaticArg( list ) )* ]
-	<RIGHT_PAREN>
-	{
-		args = new String[ list.size() ];
-		list.copyInto( args );
+    <LEFT_PAREN>
+        [ oneStaticArg( list ) ( <COMMA> oneStaticArg( list ) )* ]
+    <RIGHT_PAREN>
+    {
+        args = new String[ list.size() ];
+        list.copyInto( args );
 
-		return args;
-	}
+        return args;
+    }
 }
 
 void
 oneStaticArg( Vector list ) throws SQLException :
 {
-	Token	tok;
+    Token tok;
 }
 {
-	tok = <STRING>
-	{
-		list.addElement( stringValue( tok.image ) );
-	}
+    tok = <STRING>
+    {
+        list.addElement( stringValue( tok.image ) );
+    }
 }
 
 
@@ -2888,107 +3662,107 @@ oneStaticArg( Vector list ) throws SQLException :
 String
 sign() throws SQLException :
 {
-	Token	s;
+    Token s;
 }
 {
-	s = <PLUS_SIGN>
-	{
-		return s.image;
-	}
+    s = <PLUS_SIGN>
+    {
+        return s.image;
+    }
 |
-	s = <MINUS_SIGN>
-	{
-		return s.image;
-	}
+    s = <MINUS_SIGN>
+    {
+        return s.image;
+    }
 }
 
 /**
-	Undocumented commands to help XA testing.
+    Undocumented commands to help XA testing.
 
-	This is the grammer for the XA commands
+    This is the grammer for the XA commands
 
-	&lt;XA_DATASOURCE&gt; 'dbname' ( &lt;CREATE&gt; | shutdown ) 
-		 - get a XADataSource whose database name is dbname and make that
-		XADataSource the current XADataSource
+    &lt;XA_DATASOURCE&gt; 'dbname' ( &lt;CREATE&gt; | shutdown )
+         - get a XADataSource whose database name is dbname and make that
+        XADataSource the current XADataSource
 
-	&lt;XA_CONNECT&gt; 	[ &lt;USER&gt; 'user' ]
-			[ &lt;PASSWORD&gt; 'password' ]
-			[ &lt;AS&gt; xaconnid ] 
-		- make an XAConnection using the current XADataSource and make
-		that XAConnection the current XAConnection.  If xaconnid is 
-		given, then associate xaconnid with the XAConnection.  
-		(xaconnid not implemeneted)
-
-
-	&lt;XA_COMMIT&gt;  ( &lt;XA_1PHASE&gt; | &lt;XA_2PHASE&gt; ) xid
-		- commit a global transaction xid
+    &lt;XA_CONNECT&gt;  [ &lt;USER&gt; 'user' ]
+            [ &lt;PASSWORD&gt; 'password' ]
+            [ &lt;AS&gt; xaconnid ]
+        - make an XAConnection using the current XADataSource and make
+        that XAConnection the current XAConnection.  If xaconnid is
+        given, then associate xaconnid with the XAConnection.
+        (xaconnid not implemeneted)
 
 
-	&lt;XA_DISCONNECT&gt; [ xaconnid = identifier() ] 
-		- disconnect an XAConnection.  If xaconnid is given, then
-		disconnect the XAConnection with the given xaconnid. 
-		(xaconnid not implemeneted)
+    &lt;XA_COMMIT&gt;  ( &lt;XA_1PHASE&gt; | &lt;XA_2PHASE&gt; ) xid
+        - commit a global transaction xid
 
 
-	&lt;XA_END&gt; ( &lt;XA_SUSPEND&gt; | &lt;XA_SUCCESS&gt; | &lt;XA_FAIL&gt; ) xid
-		- dissociate a transaction from the current XAConnection or end
-		an already suspened one 
+    &lt;XA_DISCONNECT&gt; [ xaconnid = identifier() ]
+        - disconnect an XAConnection.  If xaconnid is given, then
+        disconnect the XAConnection with the given xaconnid.
+        (xaconnid not implemeneted)
 
-	&lt;XA_FORGET&gt; xid		- forget about a global transaction
 
-	&lt;XA_GETCONNECTION&gt;  [ &lt;AS&gt; connid ] 
-		- get a Connection object from the current XAConnection.
-		If connid is given, then associate connid with the connection.
-		(connid not implemented)
+    &lt;XA_END&gt; ( &lt;XA_SUSPEND&gt; | &lt;XA_SUCCESS&gt; | &lt;XA_FAIL&gt; ) xid
+        - dissociate a transaction from the current XAConnection or end
+        an already suspened one
 
-	&lt;XA_PREPARE&gt; xid	- prepare a global transaction
+    &lt;XA_FORGET&gt; xid  - forget about a global transaction
 
-	&lt;XA_RECOVER&gt; ( &lt;XA_NOFLAGS&gt; | &lt;XA_STARTRSCAN&gt; | &lt;XA_ENDRSCAN&gt; )
-	 	- return the list of in-doubt transactions
+    &lt;XA_GETCONNECTION&gt;  [ &lt;AS&gt; connid ]
+        - get a Connection object from the current XAConnection.
+        If connid is given, then associate connid with the connection.
+        (connid not implemented)
 
-	&lt;XA_ROLLBACK&gt; xid	- rollback a global transaction
+    &lt;XA_PREPARE&gt; xid - prepare a global transaction
 
-	&lt;XA_START&gt; ( &lt;XA_NOFLAGS&gt; | &lt;XA_JOIN&gt; | &lt;XA_RESUME&gt; ) xid
-		- associate a transaction or start a new global
-		transaction with the current XAConnection.
+    &lt;XA_RECOVER&gt; ( &lt;XA_NOFLAGS&gt; | &lt;XA_STARTRSCAN&gt; | &lt;XA_ENDRSCAN&gt; )
+        - return the list of in-doubt transactions
 
-	The following is for testing other JDBC2.0 ext interface, DataSource
-	and ConnectionPoolDataSource.  Strictly speaking, these are not xa, but
-	their functionality will be lumped into xaHelper because these are here
-	only for testing purposes.
+    &lt;XA_ROLLBACK&gt; xid - rollback a global transaction
 
-	&lt;DATASOURCE&gt; 'dbname'	[ &lt;PROTOCOL&gt; 'protocol' ]
-				[ &lt;USER&gt; 'user' ]
-				[ &lt;PASSWORD&gt; 'password' ]
-				[ &lt;AS&gt; n=identifier() ]
-		- get a data source whose database name is dbname and make that
-		DataSource the current DataSource.  If &lt;PROTOCOL&gt; is specified,
-		the DataSource may be remote.   Get a connection from that
-		dataSource and use the user/password if specified.
+    &lt;XA_START&gt; ( &lt;XA_NOFLAGS&gt; | &lt;XA_JOIN&gt; | &lt;XA_RESUME&gt; ) xid
+        - associate a transaction or start a new global
+        transaction with the current XAConnection.
 
-	&lt;CP_DATASOURCE&gt; 'dbname' [ &lt;PROTOCOL&gt; 'protocol' ]
-		- get a connection pool data source whose database name is
-		dbname and make that DataSource the current CPDataSource.  
-		If &lt;PROTOCOL&gt; is specified, the DataSource may be
-		remote.
+    The following is for testing other JDBC2.0 ext interface, DataSource
+    and ConnectionPoolDataSource.  Strictly speaking, these are not xa, but
+    their functionality will be lumped into xaHelper because these are here
+    only for testing purposes.
 
-	&lt;CP_CONNECT&gt;	[ &lt;USER&gt; 'user' ]
-			[ &lt;PASSWORD&gt; 'password' ]
-			[ &lt;AS&gt; cpconnid ]
-		- make a PooledConnection using the current CPDataSource and
-		make that PooledConnection the current PooledConnection.
-		If cpconnid is given, then associate cpconnid with the
-		PooledConnection. (cpconnid not implemented).
+    &lt;DATASOURCE&gt; 'dbname' [ &lt;PROTOCOL&gt; 'protocol' ]
+                [ &lt;USER&gt; 'user' ]
+                [ &lt;PASSWORD&gt; 'password' ]
+                [ &lt;AS&gt; n=identifier() ]
+        - get a data source whose database name is dbname and make that
+        DataSource the current DataSource.  If &lt;PROTOCOL&gt; is specified,
+        the DataSource may be remote.   Get a connection from that
+        dataSource and use the user/password if specified.
 
-	&lt;CP_GETCONNECTION&gt; [ &lt;AS&gt; connid ]
-		- get a Connection object from the current PooledConnection.
-		If connid is given, the associate connid with the connection.
-		(connid not implemented)
+    &lt;CP_DATASOURCE&gt; 'dbname' [ &lt;PROTOCOL&gt; 'protocol' ]
+        - get a connection pool data source whose database name is
+        dbname and make that DataSource the current CPDataSource.
+        If &lt;PROTOCOL&gt; is specified, the DataSource may be
+        remote.
 
-	&lt;CP_DISCONNECT&gt; [  cpconnid = identifier() ] 
-		- disconnect a PooledConnection.  If cpconnid is given, then
-		disconnect the PooledConnection with the given cpconnid. 
-		(cpconnid not implemented)
+    &lt;CP_CONNECT&gt; [ &lt;USER&gt; 'user' ]
+            [ &lt;PASSWORD&gt; 'password' ]
+            [ &lt;AS&gt; cpconnid ]
+        - make a PooledConnection using the current CPDataSource and
+        make that PooledConnection the current PooledConnection.
+        If cpconnid is given, then associate cpconnid with the
+        PooledConnection. (cpconnid not implemented).
+
+    &lt;CP_GETCONNECTION&gt; [ &lt;AS&gt; connid ]
+        - get a Connection object from the current PooledConnection.
+        If connid is given, the associate connid with the connection.
+        (connid not implemented)
+
+    &lt;CP_DISCONNECT&gt; [  cpconnid = identifier() ]
+        - disconnect a PooledConnection.  If cpconnid is given, then
+        disconnect the PooledConnection with the given cpconnid.
+        (cpconnid not implemented)
 
 */
 
@@ -3003,18 +3777,18 @@ XA_DataSourceStatement()
 throws SQLException
 :
 {
-	Token dbname = null;
-	Token shut = null;
-	String create = null;
+    Token dbname = null;
+    Token shut = null;
+    String create = null;
 }
 {
-	<XA_DATASOURCE> dbname=<STRING> 
-		[ ( shut = <SHUTDOWN> | create = identifier() ) ]
-	{
-		xahelper.XADataSourceStatement(this, dbname, shut, create);
+    <XA_DATASOURCE> dbname=<STRING>
+        [ ( shut = <SHUTDOWN> | create = identifier() ) ]
+    {
+        xahelper.XADataSourceStatement(this, dbname, shut, create);
 
-		return null;
-	}
+        return null;
+    }
 
 }
 
@@ -3029,40 +3803,40 @@ XA_ConnectStatement()
 throws SQLException
 :
 {
-	Token userT = null;
-	Token passwordT = null;
-	String n = null;
+    Token userT = null;
+    Token passwordT = null;
+    String n = null;
 }
 {
-	<XA_CONNECT>	[ <USER> userT=<STRING> ]
-			[ <PASSWORD> passwordT=<STRING> ]
-			[ <AS> n=identifier() ]
-	{
-		xahelper.XAConnectStatement(this, userT, passwordT, n);
-		return null;
-	}
+    <XA_CONNECT> [ <USER> userT=<STRING> ]
+            [ <PASSWORD> passwordT=<STRING> ]
+            [ <AS> n=identifier() ]
+    {
+        xahelper.XAConnectStatement(this, userT, passwordT, n);
+        return null;
+    }
 }
 
 /**
  * XA_DisconnectStatement is XA_DISCONNECT [xaconnid = identifier()]
- * disconnect the current XAConnection 
+ * disconnect the current XAConnection
  * If xaconnid is given, then disconnect XAConnection with xaconnid (xaconnid
- *	not implemented).
- * 
+ * not implemented).
+ *
  */
 ijResult
 XA_DisconnectStatement()
 throws SQLException
 :
 {
-	String n = null;
+    String n = null;
 }
 {
-	<XA_DISCONNECT>	[ n = identifier() ]
-	{
-		xahelper.XADisconnectStatement(this, n);
-		return null;
-	}
+    <XA_DISCONNECT> [ n = identifier() ]
+    {
+        xahelper.XADisconnectStatement(this, n);
+        return null;
+    }
 }
 
 /**
@@ -3074,16 +3848,16 @@ XA_CommitStatement()
 throws SQLException
 :
 {
-	Token onePhase=null;
-	Token twoPhase=null;
-	int xid = 0;
+    Token onePhase=null;
+    Token twoPhase=null;
+    int xid = 0;
 }
 {
-	<XA_COMMIT> ( onePhase=<XA_1PHASE> | twoPhase=<XA_2PHASE> ) xid=intValue()
-	{
-		xahelper.CommitStatement(this, onePhase, twoPhase, xid);
-		return null;
-	}
+    <XA_COMMIT> ( onePhase=<XA_1PHASE> | twoPhase=<XA_2PHASE> ) xid=intValue()
+    {
+        xahelper.CommitStatement(this, onePhase, twoPhase, xid);
+        return null;
+    }
 }
 
 /**
@@ -3096,15 +3870,15 @@ XA_EndStatement()
 throws SQLException
 :
 {
-	int flag = 0;
-	int xid = 0;
+    int flag = 0;
+    int xid = 0;
 }
 {
-	<XA_END> flag=xatmflag() xid=intValue()
-	{
-		xahelper.EndStatement(this, flag, xid);
-		return null;
-	}
+    <XA_END> flag=xatmflag() xid=intValue()
+    {
+        xahelper.EndStatement(this, flag, xid);
+        return null;
+    }
 }
 
 /**
@@ -3116,37 +3890,37 @@ XA_ForgetStatement()
 throws SQLException
 :
 {
-	int xid = 0;
+    int xid = 0;
 }
 {
-	<XA_FORGET> xid=intValue()
-	{
-		xahelper.ForgetStatement(this, xid);
-		return null;
-	}
+    <XA_FORGET> xid=intValue()
+    {
+        xahelper.ForgetStatement(this, xid);
+        return null;
+    }
 }
 
 
 /**
  * XA_GetConnectionStatement is XA_GETCONNECTION
  * it gets a Connection from the currentXAConnection and uses that as the
- * current connection 
+ * current connection
  */
 ijResult
 XA_GetConnectionStatement()
 throws SQLException
 :
 {
-	String n = "XA";
+    String n = "XA";
 }
 {
-	<XA_GETCONNECTION>  [ <AS> n=identifier() ]
-	{
-		theConnection = xahelper.XAGetConnectionStatement(this, n);
-		currentConnEnv.addSession(theConnection, n);
+    <XA_GETCONNECTION>  [ <AS> n=identifier() ]
+    {
+        theConnection = xahelper.XAGetConnectionStatement(this, n);
+        currentConnEnv.addSession(theConnection, n);
 
-		return new ijConnectionResult(theConnection);
-	}
+        return new ijConnectionResult(theConnection);
+    }
 }
 
 /**
@@ -3158,14 +3932,14 @@ XA_PrepareStatement()
 throws SQLException
 :
 {
-	int xid = 0;
+    int xid = 0;
 }
 {
-	<XA_PREPARE> xid = intValue()
-	{
-		xahelper.PrepareStatement(this, xid);
-		return null;
-	}
+    <XA_PREPARE> xid = intValue()
+    {
+        xahelper.PrepareStatement(this, xid);
+        return null;
+    }
 }
 
 /**
@@ -3177,13 +3951,13 @@ XA_RecoverStatement()
 throws SQLException
 :
 {
-	int flag = 0;
+    int flag = 0;
 }
 {
-	<XA_RECOVER> flag=xatmflag()
-	{
-		return xahelper.RecoverStatement(this, flag);
-	}
+    <XA_RECOVER> flag=xatmflag()
+    {
+        return xahelper.RecoverStatement(this, flag);
+    }
 }
 
 /**
@@ -3195,14 +3969,14 @@ XA_RollbackStatement()
 throws SQLException
 :
 {
-	int xid = 0;
+    int xid = 0;
 }
 {
-	<XA_ROLLBACK> xid = intValue()
-	{
-		xahelper.RollbackStatement(this, xid);
-		return null;
-	}
+    <XA_ROLLBACK> xid = intValue()
+    {
+        xahelper.RollbackStatement(this, xid);
+        return null;
+    }
 }
 
 
@@ -3213,15 +3987,15 @@ throws SQLException
 ijResult XA_StartStatement() throws SQLException
 :
 {
-	int flag = 0;
-	int xid = 0;
+    int flag = 0;
+    int xid = 0;
 }
 {
-	<XA_START> flag=xatmflag() xid=intValue()
-	{
-		xahelper.StartStatement(this, flag, xid);
-		return null;
-	}
+    <XA_START> flag=xatmflag() xid=intValue()
+    {
+        xahelper.StartStatement(this, flag, xid);
+        return null;
+    }
 }
 
 int
@@ -3231,56 +4005,56 @@ throws SQLException
 {
 }
 {
-	<XA_ENDRSCAN>
-	{
-		return XAResource.TMENDRSCAN;
-	}
+    <XA_ENDRSCAN>
+    {
+        return XAResource.TMENDRSCAN;
+    }
 |
-	<XA_FAIL>
-	{
-		return XAResource.TMFAIL;
-	}
+    <XA_FAIL>
+    {
+        return XAResource.TMFAIL;
+    }
 |
-	<XA_JOIN>
-	{
-		return XAResource.TMJOIN;
-	}
+    <XA_JOIN>
+    {
+        return XAResource.TMJOIN;
+    }
 |
-	<XA_NOFLAGS>
-	{
-		return XAResource.TMNOFLAGS;
-	}
+    <XA_NOFLAGS>
+    {
+        return XAResource.TMNOFLAGS;
+    }
 |
-	<XA_RESUME>
-	{
-		return XAResource.TMRESUME;
-	}
-|	
-	<XA_STARTRSCAN>
-	{
-		return XAResource.TMSTARTRSCAN;
-	}
+    <XA_RESUME>
+    {
+        return XAResource.TMRESUME;
+    }
 |
-	<XA_SUCCESS>
-	{
-		return XAResource.TMSUCCESS;
-	}
+    <XA_STARTRSCAN>
+    {
+        return XAResource.TMSTARTRSCAN;
+    }
 |
-	<XA_SUSPEND>
-	{
-		return XAResource.TMSUSPEND;
-	}
+    <XA_SUCCESS>
+    {
+        return XAResource.TMSUCCESS;
+    }
+|
+    <XA_SUSPEND>
+    {
+        return XAResource.TMSUSPEND;
+    }
 
 }
 
 
 /**
- * DataSourceStatement is 
- *	DataSource 'dbname' 
- *		[ &lt;PROTCOL&gt; 'protocol']
- *		[ &lt;USER&gt; 'user' ]
- *		[ &lt;PASSWORD&gt; 'password' ]
- *		[ &lt;AS&gt; n=identifier() ]
+ * DataSourceStatement is
+ * DataSource 'dbname'
+ *  [ &lt;PROTCOL&gt; 'protocol']
+ *  [ &lt;USER&gt; 'user' ]
+ *  [ &lt;PASSWORD&gt; 'password' ]
+ *  [ &lt;AS&gt; n=identifier() ]
  *
  * We new'ed an instance of DataSource as the current DataSource and set its
  * database name to dbname.  Also get a connection
@@ -3288,54 +4062,54 @@ throws SQLException
 ijResult DataSourceStatement() throws SQLException
 :
 {
-	Token dbname = null;
-	Token protocol = null;
-	Token userT = null;
-	Token passwordT = null;
-	String n = null;
+    Token dbname = null;
+    Token protocol = null;
+    Token userT = null;
+    Token passwordT = null;
+    String n = null;
 }
 {
-	<DATASOURCE> dbname=<STRING>	[ <PROTOCOL> protocol=<STRING> ]
-					[ <USER> userT=<STRING> ]
-					[ <PASSWORD> passwordT=<STRING> ]
-					[ <AS> n = identifier() ]
-	{
+    <DATASOURCE> dbname=<STRING> [ <PROTOCOL> protocol=<STRING> ]
+                    [ <USER> userT=<STRING> ]
+                    [ <PASSWORD> passwordT=<STRING> ]
+                    [ <AS> n = identifier() ]
+    {
 
-		theConnection = xahelper.DataSourceStatement(this, dbname, protocol,
-			userT, passwordT, n);
+        theConnection = xahelper.DataSourceStatement(this, dbname, protocol,
+            userT, passwordT, n);
 
-		return addSession( theConnection, n );
-	}
+        return addSession( theConnection, n );
+    }
 
 }
 
 /**
  * CP_DataSourceStatement is
- *	CP_DataSource 'dbname' [ &lt;PROTOCOL&gt; 'protocol' ]
- *		- get a connection pool data source whose database name is
- *		dbname and make that DataSource the current CPDataSource.  
- *		If &lt;PROTOCOL&gt; is specified, the DataSource may be
- *		remote.
+ * CP_DataSource 'dbname' [ &lt;PROTOCOL&gt; 'protocol' ]
+ *  - get a connection pool data source whose database name is
+ *  dbname and make that DataSource the current CPDataSource.
+ *  If &lt;PROTOCOL&gt; is specified, the DataSource may be
+ *  remote.
  */
 ijResult CP_DataSourceStatement() throws SQLException
 :
 {
-	Token dbname = null;
-	Token protocol = null;
+    Token dbname = null;
+    Token protocol = null;
 }
 {
-	<CP_DATASOURCE> dbname=<STRING> [ <PROTOCOL> protocol=<STRING> ]
-	{
-		xahelper.CPDataSourceStatement(this, dbname, protocol);
-		return null;
-	}
+    <CP_DATASOURCE> dbname=<STRING> [ <PROTOCOL> protocol=<STRING> ]
+    {
+        xahelper.CPDataSourceStatement(this, dbname, protocol);
+        return null;
+    }
 }
 
 /**
  * CP_ConnectStatement is
- *	&lt;CP_CONNECT&gt;	[ &lt;USER&gt; 'user' ]
- *			[ &lt;PASSWORD&gt; 'password' ]
- *			[ &lt;AS&gt; cpconnid ]
+ * &lt;CP_CONNECT&gt; [ &lt;USER&gt; 'user' ]
+ *   [ &lt;PASSWORD&gt; 'password' ]
+ *   [ &lt;AS&gt; cpconnid ]
  * make a PooledConnection using the current CPDataSource and
  * make that PooledConnection the current PooledConnection.
  * If cpconnid is given, then associate cpconnid with the
@@ -3344,23 +4118,23 @@ ijResult CP_DataSourceStatement() throws SQLException
 ijResult CP_ConnectStatement() throws SQLException
 :
 {
-	Token userT = null;
-	Token passwordT = null;
-	String n = null;
+    Token userT = null;
+    Token passwordT = null;
+    String n = null;
 }
 {
-	<CP_CONNECT>	[ <USER> userT=<STRING> ]
-			[ <PASSWORD> passwordT=<STRING> ]
-			[ <AS> n = identifier() ]
-	{
-		xahelper.CPConnectStatement(this, userT, passwordT, n);
-		return null;
-	}
+    <CP_CONNECT> [ <USER> userT=<STRING> ]
+            [ <PASSWORD> passwordT=<STRING> ]
+            [ <AS> n = identifier() ]
+    {
+        xahelper.CPConnectStatement(this, userT, passwordT, n);
+        return null;
+    }
 }
 
 /**
  * CP_GetConnectionStatement is
- *	&lt;CP_GETCONNECTION&gt; [ &lt;AS&gt; connid ]
+ * &lt;CP_GETCONNECTION&gt; [ &lt;AS&gt; connid ]
  * get a Connection object from the current PooledConnection.
  * If connid is given, the associate connid with the connection.
  * (connid not implemented)
@@ -3368,49 +4142,36 @@ ijResult CP_ConnectStatement() throws SQLException
 ijResult CP_GetConnectionStatement() throws SQLException
 :
 {
-	String n = "Pooled";
+    String n = "Pooled";
 }
 {
-	<CP_GETCONNECTION> [ <AS> n=identifier() ]
-	{
-		theConnection = xahelper.CPGetConnectionStatement(this, n);
-		currentConnEnv.addSession(theConnection, n);
-		return new ijConnectionResult(theConnection);
-	}
+    <CP_GETCONNECTION> [ <AS> n=identifier() ]
+    {
+        theConnection = xahelper.CPGetConnectionStatement(this, n);
+        currentConnEnv.addSession(theConnection, n);
+        return new ijConnectionResult(theConnection);
+    }
 }
 
 /**
  * CP_DisconnectStatement is
- *	&lt;CP_DISCONNECT&gt; [ cpconnid = identifier() ]
+ * &lt;CP_DISCONNECT&gt; [ cpconnid = identifier() ]
  * disconnect a PooledConnection.  If cpconnid is given, then
- * disconnect the PooledConnection with the given cpconnid. 
+ * disconnect the PooledConnection with the given cpconnid.
  * (cpconnid not implemented)
  */
 ijResult CP_DisconnectStatement() throws SQLException
 :
 {
-	String n = null;
+    String n = null;
 }
 {
-	<CP_DISCONNECT> [ n = identifier() ]
-	{
-		xahelper.CPDisconnectStatement(this, n);
-		return null;
-	}
+    <CP_DISCONNECT> [ n = identifier() ]
+    {
+        xahelper.CPDisconnectStatement(this, n);
+        return null;
+    }
 
-}
-
-ijResult Prompt() throws SQLException
-:
-{
-    Token clockOn=null;
-}
-{
-	<PROMPT> <CLOCK> ( clockOn=<ON> | <OFF> )
-	{
-		utilInstance.setPromptClock((clockOn == null ? false : true));
-		return null;
-	}
 }
 
 ijResult Spool() throws IOException
@@ -3420,6 +4181,19 @@ ijResult Spool() throws IOException
     <SPOOL>
     {
         return HandleSpool();
+    }
+}
+
+ijResult Prompt() throws SQLException
+:
+{
+    Token clockOn=null;
+}
+{
+    <PROMPT> <CLOCK> ( clockOn=<ON> | <OFF> )
+    {
+        utilInstance.setPromptClock((clockOn == null ? false : true));
+        return null;
     }
 }
 
@@ -3467,50 +4241,50 @@ ijResult ResultHeader() throws IOException
 
 void attributeList(Properties properties) :
 {
-	Token tok;
-	String value;
+    Token tok;
+    String value;
 }
 {
 
-	LOOKAHEAD({ getToken(2).kind == EQUALS_OPERATOR })
-	( property(properties) (<COMMA> property(properties) )* )
+    LOOKAHEAD({ getToken(2).kind == EQUALS_OPERATOR })
+    ( property(properties) (<COMMA> property(properties) )* )
 
-	{
-	}
+    {
+    }
 
 }
 
 void
 property(Properties properties)  :
 {
-	String key;
-	String value;
+    String key;
+    String value;
 }
 {
-	key = caseSensitiveIdentifierOrKeyword() 
-		<EQUALS_OPERATOR> value = caseSensitiveIdentifierOrKeyword() 
-	{
-		properties.put(key, value);
-	}
+    key = caseSensitiveIdentifierOrKeyword()
+        <EQUALS_OPERATOR> value = caseSensitiveIdentifierOrKeyword()
+    {
+        properties.put(key, value);
+    }
 }
 
 
 String
 caseSensitiveIdentifierOrKeyword () :
 {
-	String value=null;
-	Token tok;
+    String value=null;
+    Token tok;
 }
 {
-	value = keyword()
-	{
-		return value;
-	}
+    value = keyword()
+    {
+        return value;
+    }
 |
-	tok = <IDENTIFIER>
-	{
-		return tok.image;
-	}
+    tok = <IDENTIFIER>
+    {
+        return tok.image;
+    }
 
 
 }
@@ -3518,142 +4292,143 @@ caseSensitiveIdentifierOrKeyword () :
 String
 caseSensitiveIdentifier() :
 {
-	Token tok;
+    Token tok;
 }
 {
-	tok = <IDENTIFIER>
-	{
-		return tok.image;
-	}
+    tok = <IDENTIFIER>
+    {
+        return tok.image;
+    }
 
 }
 
-String 
+String
 keyword() :
 {
-	Token tok;
-	String value= null;
+    Token tok;
+    String value= null;
 }
 {
-	(
-	tok = <ABSOLUTE>
-|	tok = <AFTER>
-|	tok = <ALIASES>
-|	tok = <ALL>
-|	tok = <AS>
-|	tok = <ASYNC>
-|	tok = <ATTRIBUTES>
-|	tok = <AUTOCOMMIT>
-|	tok = <BANG>
-|	tok = <BEFORE>
-|	tok = <CLOSE>
-| 	tok = <COMMIT>
-| 	tok = <CONNECT>
-| 	tok = <CONNECTION>
-| 	tok = <CONNECTIONS>
-| 	tok = <CREATE>
-|	tok = <CURRENT>
-|	tok = <CURSOR>
-|	tok = <DESCRIBE>
-|	tok = <DISCONNECT>
-|	tok = <DRIVER>
-|	tok = <ELAPSEDTIME>
-|	tok = <END>
-|	tok = <EXECUTE>
-|	tok = <EXIT>
-|	tok = <EXPECT>
-|	tok = <FAIL>
-|	tok = <FIRST>
-|	tok = <FOR>
-|	tok = <FROM>
-|	tok = <GET>
-|	tok = <GETCURRENTROWNUMBER>
-|	tok = <HOLD>
-|	tok = <HELP>
-|	tok = <IN>
-|	tok = <INDEXES>
-|	tok = <INSENSITIVE>
-|	tok = <INTO>
-|	tok = <LAST>
-|   tok = <LOCAL>
-|	tok = <LOCALIZEDDISPLAY>
-|	tok = <MAXIMUMDISPLAYWIDTH>
-|	tok = <NAME>
-|	tok = <NEXT>
-|	tok = <NOHOLD>
-|	tok = <NOHOLDFORCONNECTION>
-|	tok = <OFF>
-|	tok = <ON>
-|	tok = <PASSWORD>
-|	tok = <PERIOD>
-|	tok = <PREPARE>
-|	tok = <PREVIOUS>
-|	tok = <PROCEDURE>
-|	tok = <PROCEDURES>
-|   tok = <PROCEDURECOLS>
-|	tok = <PROPERTIES>
-|	tok = <PROTOCOL>
-|	tok = <QUIT>
-|	tok = <READONLY>
-|	tok = <RELATIVE>
-|	tok = <REMOVE>
-|	tok = <RESOURCE>
-|	tok = <ROLLBACK>
-|	tok = <RUN>
-|	tok = <TO>
-|	tok = <SCHEMAS>
-|	tok = <SCROLL>
-|	tok = <SENSITIVE>
-|	tok = <SET>
-|	tok = <SHOW>
-|	tok = <SHUTDOWN>
-|	tok = <STATEMENT>
-|	tok = <SYNONYMS>
-|	tok = <TABLE>
-|	tok = <TABLES>
-|	tok = <USER>
-|	tok = <USING>
-|   tok = <VERSION>
-|	tok = <VIEWS>
-|	tok = <WAIT>
-|	tok = <WITH>
-|	tok = <XA_1PHASE>
-|	tok = <XA_2PHASE>
-|	tok = <XA_DATASOURCE>
-|	tok = <XA_CONNECT>
-|	tok = <XA_COMMIT>
-|	tok = <XA_DISCONNECT>
-|	tok = <XA_END>
-|	tok = <XA_ENDRSCAN>
-|	tok = <XA_FAIL>
-|	tok = <XA_FORGET>
-|	tok = <XA_GETCONNECTION>
-|	tok = <XA_JOIN>
-|	tok = <XA_NOFLAGS>
-|	tok = <XA_PREPARE>
-|	tok = <XA_RECOVER>
-|	tok = <XA_RESUME>
-|	tok = <XA_ROLLBACK>
-|	tok = <XA_START>
-|	tok = <XA_STARTRSCAN>
-|	tok = <XA_SUCCESS>
-|	tok = <XA_SUSPEND>
-|	tok = <DATASOURCE>
-|	tok = <CP_DATASOURCE>
-|	tok = <CP_CONNECT>
-|	tok = <CP_GETCONNECTION>
-|	tok = <CP_DISCONNECT>
-|	tok = <WORK>
-|   tok = <JSON>
-|   tok = <PROMPT>
-|   tok = <CLOCK>
-|   tok = <SPOOL>
-|   tok = <STOP>
-|   tok = <CLEAR>
+    (
+  tok = <ABSOLUTE>
+| tok = <AFTER>
+| tok = <ALIASES>
+| tok = <ALL>
+| tok = <AS>
+| tok = <ASYNC>
+| tok = <ATTRIBUTES>
+| tok = <AUTOCOMMIT>
+| tok = <BANG>
+| tok = <BEFORE>
+| tok = <CLOSE>
+| tok = <COMMIT>
+| tok = <CONNECT>
+| tok = <CONNECTION>
+| tok = <CONNECTIONS>
+| tok = <CREATE>
+| tok = <CURRENT>
+| tok = <CURSOR>
+| tok = <DESCRIBE>
+| tok = <DISCONNECT>
+| tok = <DRIVER>
+| tok = <ELAPSEDTIME>
+| tok = <END>
+| tok = <EXECUTE>
+| tok = <EXIT>
+| tok = <EXPECT>
+| tok = <FAIL>
+| tok = <FIRST>
+| tok = <FOR>
+| tok = <FROM>
+| tok = <GET>
+| tok = <GETCURRENTROWNUMBER>
+| tok = <HOLD>
+| tok = <HELP>
+| tok = <IN>
+| tok = <INDEXES>
+| tok = <INSENSITIVE>
+| tok = <INTO>
+| tok = <LAST>
+| tok = <LOCAL>
+| tok = <LOCALIZEDDISPLAY>
+| tok = <MAXIMUMDISPLAYWIDTH>
+| tok = <NAME>
+| tok = <NEXT>
+| tok = <NOHOLD>
+| tok = <NOHOLDFORCONNECTION>
+| tok = <OFF>
+| tok = <ON>
+| tok = <PASSWORD>
+| tok = <PERIOD>
+| tok = <PREPARE>
+| tok = <PREVIOUS>
+| tok = <PROCEDURE>
+| tok = <PROCEDURES>
+| tok = <PROCEDURECOLS>
+| tok = <PROPERTIES>
+| tok = <PROTOCOL>
+| tok = <QUIT>
+| tok = <READONLY>
+| tok = <RELATIVE>
+| tok = <REMOVE>
+| tok = <RESOURCE>
+| tok = <ROLLBACK>
+| tok = <RUN>
+| tok = <TO>
+| tok = <SCHEMAS>
+| tok = <SCROLL>
+| tok = <SENSITIVE>
+| tok = <SET>
+| tok = <SHOW>
+| tok = <SHUTDOWN>
+| tok = <STATEMENT>
+| tok = <SYNONYMS>
+| tok = <TABLE>
+| tok = <TABLES>
+| tok = <USER>
+| tok = <USING>
+| tok = <VERSION>
+| tok = <VIEWS>
+| tok = <WAIT>
+| tok = <WITH>
+| tok = <XA_1PHASE>
+| tok = <XA_2PHASE>
+| tok = <XA_DATASOURCE>
+| tok = <XA_CONNECT>
+| tok = <XA_COMMIT>
+| tok = <XA_DISCONNECT>
+| tok = <XA_END>
+| tok = <XA_ENDRSCAN>
+| tok = <XA_FAIL>
+| tok = <XA_FORGET>
+| tok = <XA_GETCONNECTION>
+| tok = <XA_JOIN>
+| tok = <XA_NOFLAGS>
+| tok = <XA_PREPARE>
+| tok = <XA_RECOVER>
+| tok = <XA_RESUME>
+| tok = <XA_ROLLBACK>
+| tok = <XA_START>
+| tok = <XA_STARTRSCAN>
+| tok = <XA_SUCCESS>
+| tok = <XA_SUSPEND>
+| tok = <DATASOURCE>
+| tok = <CP_DATASOURCE>
+| tok = <CP_CONNECT>
+| tok = <CP_GETCONNECTION>
+| tok = <CP_DISCONNECT>
+| tok = <WORK>
+| tok = <JSON>
+| tok = <PROMPT>
+| tok = <CLOCK>
+| tok = <SPOOL>
+| tok = <STOP>
+| tok = <CLEAR>
+| tok = <TERMINATOR>
 )
-	{
+    {
 
-		return tok.image;
+        return tok.image;
 
-	}
+    }
 }

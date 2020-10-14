@@ -40,10 +40,12 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.Serializable;
 import java.sql.ResultSetMetaData;
 import java.util.Collections;
 import java.util.HashMap;
@@ -57,8 +59,8 @@ import java.util.Map;
  *
  */
 public final class GenericResultDescription
-	implements ResultDescription, Formatable
-{
+		implements ResultDescription, Formatable, Serializable {
+	static final long serialVersionUID = 1L; //assign a long value
 
 	/********************************************************
 	**
@@ -102,8 +104,9 @@ public final class GenericResultDescription
 	 * @param columns an array of col descriptors
 	 * @param statementType the type
 	 */
-	public GenericResultDescription(ResultColumnDescriptor[] columns, 
-					String statementType) 
+	@SuppressFBWarnings("EI_EXPOSE_REP2")
+	public GenericResultDescription(ResultColumnDescriptor[] columns,
+									String statementType)
 	{
 		this.columns = columns;
 		this.statementType = statementType;
@@ -152,6 +155,7 @@ public final class GenericResultDescription
 		return (columns == null) ? 0 : columns.length;
 	}
 
+	@SuppressFBWarnings("EI_EXPOSE_REP")
 	public ResultColumnDescriptor[] getColumnInfo() {
 		return columns;
 	}
