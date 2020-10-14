@@ -14,7 +14,6 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
-import com.splicemachine.ddl.DDLMessage.*;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
@@ -22,8 +21,6 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.primitives.Bytes;
-
-import java.io.IOException;
 
 /**
  * We intercept writes on either the parent or child table and check for the existence of referenced or referring
@@ -33,12 +30,9 @@ import java.io.IOException;
  */
 public class ForeignKeyViolationProcessor {
 
-    private final FkConstraintContextProvider fkConstraintContextProvider;
     private final PipelineExceptionFactory exceptionFactory;
 
-    ForeignKeyViolationProcessor(FkConstraintContextProvider fkConstraintContextProvider,
-                                 PipelineExceptionFactory exceptionFactory) {
-        this.fkConstraintContextProvider = fkConstraintContextProvider;
+    ForeignKeyViolationProcessor(PipelineExceptionFactory exceptionFactory) {
         this.exceptionFactory = exceptionFactory;
     }
 
@@ -58,56 +52,7 @@ public class ForeignKeyViolationProcessor {
     private void doFail(WriteContext ctx, ForeignKeyViolation cause) {
         String hexEncodedFailedRowKey = cause.getContext().getMessages()[0];
         byte[] failedRowKey = Bytes.fromHex(hexEncodedFailedRowKey);
-        ConstraintContext constraintContext = fkConstraintContextProvider.get(cause);
+        ConstraintContext constraintContext = cause.getContext();
         ctx.result(failedRowKey, new WriteResult(Code.FOREIGN_KEY_VIOLATION, constraintContext));
     }
-
-
-    /**
-     * For the FK violation error message we need: table name, constraint name, and fk columns.  There is a
-     * factory method in ConstraintContext for creating a ConstraintContext with just this information from a
-     * FKConstraintInfo.  A slight complication is that how we get a FKConstraintInfo depends on where the
-     * failure happened, etc. Thus the abstraction below.
-     */
-    interface FkConstraintContextProvider {
-        ConstraintContext get(ForeignKeyViolation cause);
-    }
-
-    static class ChildFkConstraintContextProvider implements FkConstraintContextProvider {
-        private FKConstraintInfo fkConstraintInfo;
-
-        public ChildFkConstraintContextProvider(FKConstraintInfo fkConstraintInfo) {
-            this.fkConstraintInfo = fkConstraintInfo;
-        }
-
-        @Override
-        public ConstraintContext get(ForeignKeyViolation cause) {
-            // I'm on the child and thus have a local reference to the FK constraint descriptor.
-            //
-            // Error message looks like: INSERT on table 'C' caused a violation of foreign key constraint 'FK_1' for key (5).
-            //
-            return ConstraintContext.foreignKey(fkConstraintInfo);
-        }
-    }
-
-    static class ParentFkConstraintContextProvider implements FkConstraintContextProvider {
-
-        private String parentTableName;
-
-        ParentFkConstraintContextProvider(String parentTableName) {
-            this.parentTableName = parentTableName;
-        }
-
-        @Override
-        public ConstraintContext get(ForeignKeyViolation cause) {
-            // I'm on the parent table. The correct error message in this case should have the
-            // FK constraint name and keys from the child (only it knows which FK constraint actually failed)
-            // but the PARENT table name.
-            //
-            // Error message looks like: DELETE on table 'P' caused a violation of foreign key constraint 'FK_1' for key (5).
-            //
-            return cause.getContext();
-        }
-    }
-
 }

@@ -57,8 +57,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
                                                  ) {
         this.shouldRefreshActions = true;
         this.referencingIndexConglomerateIds = referencingIndexConglomerateIds;
-        this.violationProcessor = new ForeignKeyViolationProcessor(
-                new ForeignKeyViolationProcessor.ParentFkConstraintContextProvider(parentTableName),exceptionFactory);
+        this.violationProcessor = new ForeignKeyViolationProcessor(exceptionFactory);
         this.constraintInfos = constraintInfos;
         this.txnOperationFactory = SIDriver.driver().getOperationFactory();
         this.parentTableName = parentTableName;
