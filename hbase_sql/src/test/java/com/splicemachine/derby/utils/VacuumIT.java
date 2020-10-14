@@ -22,13 +22,12 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -51,6 +50,7 @@ import static org.junit.Assert.assertTrue;
  */
 @Category({SerialTest.class})
 public class VacuumIT extends SpliceUnitTest{
+    private static Logger LOG=Logger.getLogger(VacuumIT.class);
     public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
     final protected static String TABLE = "T";
     final protected static String TABLEA = "A";
@@ -100,6 +100,7 @@ public class VacuumIT extends SpliceUnitTest{
             .around(spliceTableIWatcher)
             .around(spliceTableJWatcher);
 
+    // todo: investigate/fix this https://splicemachine.atlassian.net/browse/DB-10490
     @Before
     public void waitForStaleTransactions() throws Exception
     {
@@ -111,7 +112,7 @@ public class VacuumIT extends SpliceUnitTest{
                 String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
                 if( actual.equals("") ) return;
                 Thread.sleep(1000);
-                System.out.println("VacuumIT: Waiting for active transactions:\n" + actual);
+                LOG.info("VacuumIT: Waiting for active transactions:\n" + actual);
             }
         }
         Assert.fail("VacuumIT can't run with active transactions still happening. This is a bug in other " +
