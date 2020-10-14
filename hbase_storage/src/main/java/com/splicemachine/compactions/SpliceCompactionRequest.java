@@ -69,21 +69,19 @@ public class SpliceCompactionRequest extends CompactionRequestImpl {
         }
     }
     public void afterExecute(){
-        if (memstoreAware == null || !compactionCountIncremented) {
-            // memstoreAware hasn't been set, the compaction failed before it could block and increment the counter, so don't do anything
-            return;
-        }
-        while (true) {
-            MemstoreAware latest = memstoreAware.get();
-            assert latest.currentCompactionCount > 0;
-            if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest))) {
-                if(LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "memstoreAware@" + System.identityHashCode(latest) +
-                            " 's compactionCount decremented from " + latest.currentCompactionCount +
-                            " to " + (latest.currentCompactionCount - 1));
+        if (memstoreAware != null && compactionCountIncremented) {
+            while (true) {
+                MemstoreAware latest = memstoreAware.get();
+                assert latest.currentCompactionCount > 0;
+                if (memstoreAware.compareAndSet(latest, MemstoreAware.decrementCompactionCount(latest))) {
+                    if (LOG.isDebugEnabled()) {
+                        SpliceLogUtils.debug(LOG, "memstoreAware@" + System.identityHashCode(latest) +
+                                " 's compactionCount decremented from " + latest.currentCompactionCount +
+                                " to " + (latest.currentCompactionCount - 1));
+                    }
+                    compactionCountIncremented = false;
+                    break;
                 }
-                compactionCountIncremented = false;
-                break;
             }
         }
         if(region != null) {
