@@ -16,8 +16,8 @@ package com.splicemachine.timestamp.hbase;
 
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.timestamp.api.TimestampIOException;
-import com.splicemachine.timestamp.impl.TimestampClient;
 import com.splicemachine.timestamp.api.TimestampHostProvider;
+import com.splicemachine.timestamp.impl.TimestampConnection;
 import org.apache.log4j.Logger;
 
 /**
@@ -40,7 +40,7 @@ public class HBaseTimestampHostProvider implements TimestampHostProvider {
         try {
             hostName = connectionFactory.getMasterServer().getHostname();
         } catch (Exception e) {
-            TimestampClient.throwClientError(LOG, "Unable to determine host name for active hbase master", e);
+            TimestampConnection.throwClientError(LOG, "Unable to determine host name for active hbase master", e);
         }
         return hostName;
     }

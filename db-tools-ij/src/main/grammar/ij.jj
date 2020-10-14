@@ -62,35 +62,34 @@ import java.util.Locale;
 import javax.transaction.xa.XAResource;
 
 /**
-    This parser works on a statement-at-a-time basis.
-    It maintains a connection environment that is
-    set by the caller and contains a list of
-    connections for the current thread/ij session.
-    Multi-user frameworks that use this parser
-    tend to maintain multiple connectionEnv's and
-    pass in the current one to set ij up.
-    A connectionEnv has a default connection in use,
-    and the ij connect/set connection/disconnect commands
-    are used to change the current connection.
-
-    Each connection has associated with it a list
-    of prepared statements and cursors, created by
-    the ij prepare and get cursor statements and
-    manipulated by additional ij statements.
-
-    To enable multiple display modes, this parser will
-    not output anything, but will return
-    objects that the caller can then display.
-
-    This means the caller is responsible for displaying
-    thrown exceptions and also SQLWarnings. So, our
-    return value is the JDBC object upon which warnings
-    will be hung, i.e. the one manipulated by the statement,
-    if any.
-
-    If there is no object to display, then a null is
-    returned.
-
+ *  This parser works on a statement-at-a-time basis.
+ *  It maintains a connection environment that is
+ *  set by the caller and contains a list of
+ *  connections for the current thread/ij session.
+ *  Multi-user frameworks that use this parser
+ *  tend to maintain multiple connectionEnv's and
+ *  pass in the current one to set ij up.
+ *  A connectionEnv has a default connection in use,
+ *  and the ij connect/set connection/disconnect commands
+ *  are used to change the current connection.
+ *
+ *  Each connection has associated with it a list
+ *  of prepared statements and cursors, created by
+ *  the ij prepare and get cursor statements and
+ *  manipulated by additional ij statements.
+ *
+ *  To enable multiple display modes, this parser will
+ *  not output anything, but will return
+ *  objects that the caller can then display.
+ *
+ *  This means the caller is responsible for displaying
+ *  thrown exceptions and also SQLWarnings. So, our
+ *  return value is the JDBC object upon which warnings
+ *  will be hung, i.e. the one manipulated by the statement,
+ *  if any.
+ *
+ *  If there is no object to display, then a null is
+ *  returned.
  */
 class ij {
     static final String PROTOCOL_PROPERTY = "ij.protocol";
@@ -99,7 +98,7 @@ class ij {
     static final String PASSWORD_PROPERTY = "ij.password";
     static final String FRAMEWORK_PROPERTY = "framework";
 
-	static final String DOUBLEQUOTES = "\"\"";
+    static final String DOUBLEQUOTES = "\"\"";
 
     boolean            elapsedTime = true;
 
@@ -114,8 +113,6 @@ class ij {
     Hashtable ignoreErrors = null;
     String protocol = null;        // the (single) unnamed protocol
     Hashtable namedProtocols;
-
-
 
     /**
      * A constructor that understands the local state that needs to be
@@ -585,7 +582,7 @@ class ij {
                            row.append('*');
                          haveCurrent=true;
                       }
-              
+
                       //If ij.dataSource property is set, show only connection names.
                       //In this case, URL is not used to get connection, so do not append URL
                       String dsName = util.getSystemProperty("ij.dataSource");
@@ -658,11 +655,11 @@ class ij {
     /**
        Verify that a procedure exists within a schema. Throws an exception
        if procedure does not exist.
-       
+
        @param schema Schema for the table
        @param proc  Name of procedure to check for existence of
      */
-    public void verifyProcedureExists(String schema, String proc) 
+    public void verifyProcedureExists(String schema, String proc)
     throws SQLException {
         if(schema == null)
             return;
@@ -754,7 +751,7 @@ class ij {
             rs.findColumn("CONGLOM_NO"),
         };
         if(schema!=null) {
-            displayColumns = intArraySubset(displayColumns, 1, 
+            displayColumns = intArraySubset(displayColumns, 1,
                                             displayColumns.length);
         }
         return displayColumns;
@@ -776,7 +773,7 @@ class ij {
             10,
         };
         if(schema!=null) {
-            columnWidths = intArraySubset(columnWidths, 1, 
+            columnWidths = intArraySubset(columnWidths, 1,
                                             columnWidths.length);
         }
         return columnWidths;
@@ -785,13 +782,13 @@ class ij {
     /**
      * Used to show all indices.
      *
-     * @param schema the schema indices are shown from. 
+     * @param schema the schema indices are shown from.
      * @param table the table name to show indices for. If <code>null</code>,
      *      all indices of the schema are returned.
      */
     public ijResult showIndexes(String schema, String table)
             throws SQLException {
-          
+
         ijResult result = null;
 
         int[] displayColumns = null;
@@ -802,7 +799,7 @@ class ij {
             displayColumns = getDisplayColumnsForIndex(schema, rs);
             columnWidths = getColumnWidthsForIndex(schema);
             result = new ijResultSetResult(rs, displayColumns,
-                                           columnWidths); 
+                                           columnWidths);
             return result;
         } catch (SQLException e) {
             try {
@@ -1541,13 +1538,14 @@ TOKEN [IGNORE_CASE] :
 |    <CP_DISCONNECT: "CP_disconnect">
 |    <WORK : "work">
 |   <JSON: "JSON">
-|   <PROMPT: "prompt">
-|   <CLOCK: "clock">
-|   <SPOOL: "SPOOL">
-|   <STOP: "STOP">
-|   <CLEAR: "CLEAR">
-|   <WITHOUT: "WITHOUT">
-|   <HEADER: "HEADER">
+| <SPOOL: "SPOOL">
+| <STOP: "STOP">
+| <CLEAR: "CLEAR">
+| <PROMPT: "prompt">
+| <CLOCK: "clock">
+| <WITHOUT: "WITHOUT">
+| <HEADER: "HEADER">
+| <TERMINATOR: "TERMINATOR">
 }
 
 TOKEN :
@@ -1840,7 +1838,7 @@ TOKEN :
 //
 
 ijResult
-ijStatement() 
+ijStatement()
 throws SQLException, IOException
 :
 {
@@ -1886,7 +1884,7 @@ throws SQLException, IOException
 |    r=RelativeStatement()
 |    r=RemoveStatement()
 |    r=RunStatement()
-|    r=SetConnectionStatement()
+| r=SetStatement()
 |    r=ShowStatement()
 |    r=WaitForStatement()
 |    r=XA_DataSourceStatement()
@@ -1905,8 +1903,8 @@ throws SQLException, IOException
 |    r=CP_ConnectStatement()
 |    r=CP_GetConnectionStatement()
 |    r=CP_DisconnectStatement()
-|   r=Prompt()
 |   r=Spool()
+|   r=Prompt()
 |   r=ResultHeader()
 )? <EOF>
     {
@@ -2000,12 +1998,12 @@ throws SQLException
 
 
 /**
- * ConnectStatement is CONNECT 'url' [ PROTOCOL proto ] 
-    [ USER     String PASSWORD String ]
-    [ATTRIBUTES attributeName = value [, attributeName = value]* ]
-    [ AS ident ], where url is the
+ * ConnectStatement is CONNECT 'url' [ PROTOCOL proto ]
+ *  [ USER  String PASSWORD String ]
+ *  [ATTRIBUTES attributeName = value [, attributeName = value]* ]
+ *  [ AS ident ], where url is the
  * url for the database, i.e. jdbc:protocol:dbname etc.
- * Attributes are connection attributes to 
+ * Attributes are connection attributes to
  * <p>
  * There can only be one connection at a time; if there
  * is already one, it is put on hold and this one takes its place.
@@ -2255,30 +2253,41 @@ throws SQLException
     }
 }
 
+ijResult SetStatement() throws SQLException
+:
+{}
+{
+    <SET>
+    {
+        return HandleSetStatement();
+    }
+}
 
-/**
- * SetConnectionStatement is SET CONNECTION ident
- * <p>
- * Moves to the named session, if it exists. If it doesn't
- * exist, remains on the current session and returns an error.
- */
-ijResult
-SetConnectionStatement()
-throws SQLException
+ijResult HandleSetStatement() throws SQLException
 :
 {
-    String t;
+    String id;
+    Token t;
 }
 {
-    <SET> <CONNECTION> t=identifier()
+    // SetConnectionStatement is SET CONNECTION ident
+    // Moves to the named session, if it exists. If it doesn't
+    // exist, remains on the current session and returns an error.
+    <CONNECTION> id=identifier()
     {
-        if (!currentConnEnv.haveSession(t)) {
-            throw ijException.noSuchConnection(t);
+        if (!currentConnEnv.haveSession(id)) {
+            throw ijException.noSuchConnection(id);
         }
-        currentConnEnv.setCurrentSession(t);
+        currentConnEnv.setCurrentSession(id);
         theConnection = currentConnEnv.getConnection();
         return new ijConnectionResult(theConnection);
     }
+|
+   <TERMINATOR> t=<STRING>
+   {
+       utilInstance.setTerminator(stringValue(t.image));
+       return new ijShellConfigResult();
+   }
 }
 
 /**
@@ -2398,7 +2407,7 @@ throws SQLException
         if(strProc != null) {
             tblname = strProc;
         }
-        
+
         if(str != null) {
             // if absolute table reference given then use it
             schema = tblname;
@@ -3088,7 +3097,7 @@ throws SQLException
  * the current connection.
  * <p>
  * Syntax:
- *   ASYNC asyncName statementSource 
+ *   ASYNC asyncName statementSource
  *
  *     statementSource is a string containing SQL-J text.
  */
@@ -3113,7 +3122,7 @@ throws SQLException
  * not row fetching.
  * <p>
  * Syntax:
- *   WAIT FOR asyncName 
+ *   WAIT FOR asyncName
  *
  *     asyncName is a name used in an ASYNC statement previously
  */
@@ -3842,7 +3851,7 @@ throws SQLException
 
 /**
  * XA_DisconnectStatement is XA_DISCONNECT [xaconnid = identifier()]
- * disconnect the current XAConnection 
+ * disconnect the current XAConnection
  * If xaconnid is given, then disconnect XAConnection with xaconnid (xaconnid
  *    not implemented).
  * 
@@ -3927,7 +3936,7 @@ throws SQLException
 /**
  * XA_GetConnectionStatement is XA_GETCONNECTION
  * it gets a Connection from the currentXAConnection and uses that as the
- * current connection 
+ * current connection
  */
 ijResult
 XA_GetConnectionStatement()
@@ -4180,7 +4189,7 @@ ijResult CP_GetConnectionStatement() throws SQLException
  * CP_DisconnectStatement is
  *    &lt;CP_DISCONNECT&gt; [ cpconnid = identifier() ]
  * disconnect a PooledConnection.  If cpconnid is given, then
- * disconnect the PooledConnection with the given cpconnid. 
+ * disconnect the PooledConnection with the given cpconnid.
  * (cpconnid not implemented)
  */
 ijResult CP_DisconnectStatement() throws SQLException
@@ -4197,6 +4206,16 @@ ijResult CP_DisconnectStatement() throws SQLException
 
 }
 
+ijResult Spool() throws IOException
+:
+{}
+{
+    <SPOOL>
+    {
+        return HandleSpool();
+    }
+}
+
 ijResult Prompt() throws SQLException
 :
 {
@@ -4207,16 +4226,6 @@ ijResult Prompt() throws SQLException
     {
         utilInstance.setPromptClock((clockOn == null ? false : true));
         return null;
-    }
-}
-
-ijResult Spool() throws IOException
-:
-{}
-{
-    <SPOOL>
-    {
-        return HandleSpool();
     }
 }
 
@@ -4325,7 +4334,7 @@ caseSensitiveIdentifier() :
 
 }
 
-String 
+String
 keyword() :
 {
     Token tok;
@@ -4448,6 +4457,7 @@ keyword() :
 |   tok = <SPOOL>
 |   tok = <STOP>
 |   tok = <CLEAR>
+| tok = <TERMINATOR>
 )
     {
 

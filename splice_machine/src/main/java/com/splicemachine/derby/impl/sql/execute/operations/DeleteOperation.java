@@ -31,12 +31,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
 
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
@@ -138,20 +132,5 @@ public class DeleteOperation extends DMLWriteOperation {
             finalizeNestedTransaction();
             operationContext.popScope();
         }
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        writeNullableString(bulkDeleteDirectory,out);
-        out.writeInt(colMapRefItem);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException{
-        super.readExternal(in);
-        bulkDeleteDirectory = readNullableString(in);
-        colMapRefItem = in.readInt();
     }
 }

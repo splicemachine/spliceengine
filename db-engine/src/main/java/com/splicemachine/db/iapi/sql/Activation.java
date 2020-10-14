@@ -58,9 +58,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.utils.Pair;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Vector;
 import java.util.Hashtable;
@@ -632,6 +630,10 @@ public interface Activation extends Dependent
     Activation getParentActivation();
 
     void materialize() throws StandardException;
+
+    default Vector getSubqueryResultSets() throws StandardException{
+        return null;
+    }
 
     boolean isMaterialized();
 

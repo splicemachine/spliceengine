@@ -31,14 +31,15 @@
 
 package com.splicemachine.db.iapi.sql;
 
+import java.io.Serializable;
+
 /**
  * The ResultDescription interface provides methods to get metadata on the
  * results returned by a statement.
  *
  */
 
-public interface ResultDescription
-{
+public interface ResultDescription extends Serializable {
 	/**
 	 * Returns an identifier that tells what type of statement has been
 	 * executed. This can be used to determine what other methods to call

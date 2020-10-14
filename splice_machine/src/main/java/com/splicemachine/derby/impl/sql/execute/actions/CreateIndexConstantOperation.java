@@ -23,6 +23,8 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -32,10 +34,12 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
 import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.RowUtil;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -470,6 +474,28 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                         irg.excludeDefaults() != excludeDefaults) {
                     continue;
                 }
+
+                if (irg.isOnExpression() && exprBytecode.length > 0 && irg.getExprTexts().length == exprTexts.length) {
+                    CompilerContext newCC = lcc.pushCompilerContext();
+                    Parser p = newCC.getParser();
+
+                    boolean duplicateExprIndex = true;
+                    for (int i = 0; i < exprTexts.length; i++) {
+                        ValueNode currentExprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
+                        ValueNode existingExprAst = (ValueNode) p.parseSearchCondition(irg.getExprTexts()[i]);
+                        if (!currentExprAst.equals(existingExprAst)) {
+                            duplicateExprIndex = false;
+                            break;
+                        }
+                    }
+                    lcc.popCompilerContext(newCC);
+
+                    if (duplicateExprIndex) {
+                        activation.addWarning(StandardException.newWarning(SQLState.LANG_INDEX_DUPLICATE, cd.getConglomerateName()));
+                        return;
+                    }
+                }
+
                 int[] bcps = irg.baseColumnPositions();
                 boolean[] ia = irg.isAscending();
                 int j = 0;
@@ -512,7 +538,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     }
                 }
 
-                if (j == baseColumnPositions.length) {  // share
+                if (j == baseColumnPositions.length && !irg.isOnExpression() && exprBytecode.length <= 0) {  // share
                     /*
                      * Don't allow users to create a duplicate index. Allow if being done internally
                      * for a constraint
@@ -850,7 +876,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              */
             conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
                     getColumnOrderings(isAscending.length), indexRowGenerator.getColumnCollationIds(
-                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys);
+                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT,
+                    splitKeys, Conglomerate.Priority.NORMAL);
 
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
             // Enable replication for index if that's enables for base table

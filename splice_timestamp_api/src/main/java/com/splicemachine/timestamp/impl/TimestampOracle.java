@@ -17,6 +17,7 @@ package com.splicemachine.timestamp.impl;
 import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.api.TimestampIOException;
 import com.splicemachine.timestamp.api.TimestampOracleStatistics;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.lang.management.ManagementFactory;
@@ -64,7 +65,8 @@ public class TimestampOracle implements TimestampOracleStatistics{
         return to;
     }
 
-    private TimestampOracle(TimestampBlockManager timestampBlockManager, int blockSize) throws TimestampIOException {
+    /** Visible for testing */
+    TimestampOracle(TimestampBlockManager timestampBlockManager, int blockSize) throws TimestampIOException {
         this.timestampBlockManager=timestampBlockManager;
         this.blockSize = blockSize * TIMESTAMP_INCREMENT;
         initialize();
@@ -113,6 +115,16 @@ public class TimestampOracle implements TimestampOracleStatistics{
                 }
             }
         }
+    }
+
+    public Pair<Long, Integer> getTimestampBatch(int batchSize) throws TimestampIOException {
+        long nextTS = _timestampCounter.addAndGet(TIMESTAMP_INCREMENT * batchSize);
+        if (nextTS > _maxReservedTimestamp) {
+            reserveNextBlock(nextTS);
+        }
+        _numTimestampsCreated.addAndGet(batchSize); // JMX metric
+
+        return new Pair(nextTS - TIMESTAMP_INCREMENT * (batchSize - 1), (int)TIMESTAMP_INCREMENT);
     }
 
     public long getNextTimestamp() throws TimestampIOException {
