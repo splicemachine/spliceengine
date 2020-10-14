@@ -68,7 +68,7 @@ public class DropSchemaIT extends SpliceUnitTest {
     @Test
     public void testDropSchemaWithVariousObjects() throws Exception {
         /* create objects with the following dependencies in SCHEMA_A:
-                          View v2                                      Sequence S1
+                          View v2                                      Sequence S1                 T6 (with self-referencing PK)
                             |
                          --------------------------
                          |                        |
@@ -104,6 +104,8 @@ public class DropSchemaIT extends SpliceUnitTest {
         adminConn.execute(format("create view %s.V2 as select a1, a4 from %s.AS_V1, %s.AS_T4 where a1=a4", SCHEMA_A, SCHEMA_A, SCHEMA_A));
 
         adminConn.execute(format("create sequence %s.s1", SCHEMA_A));
+
+        adminConn.execute(format("create table %s.T6(a6 int primary key, b6 int, constraint fk6 foreign key(b6) references %s.T6(a6))", SCHEMA_A, SCHEMA_A));
 
         // user 1 can see the schema but does not have permission to drop the schema
         adminConn.execute(format("grant access on schema %s to %s", SCHEMA_A, USER1));
