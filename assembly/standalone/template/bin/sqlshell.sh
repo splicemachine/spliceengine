@@ -9,7 +9,17 @@ if [[ -z ${SPID} || -z ${ZPID} ]] || [[ -z ${YPID} ]]; then
      echo "Splice Machine is not running.  Make sure the database is started."
      exit 1;
 fi
-
+if [ -z "$JAVA_HOME" ]; then
+    cat 1>&2 <<EOF
++======================================================================+
+|                    Error: JAVA_HOME is not set                       |
++----------------------------------------------------------------------+
+|                Please download and configure Java                    |
+|              sqlshell requires Java 1.8 or openjdk8                  |
++======================================================================
+EOF
+    exit 1
+fi
 
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 source ${BASE_DIR}/bin/functions.sh
