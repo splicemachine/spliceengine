@@ -2367,8 +2367,8 @@ public class SQLChar
 
         int repeatedTimes;
         if (rightOperand == null || rightOperand.isNull()) {
-            throw StandardException.newException(
-                    SQLState.LANG_INVALID_FUNCTION_ARGUMENT, "NULL", "REPEAT");
+            result.setToNull();
+            return result;
         } else {
             try {
                 repeatedTimes = rightOperand.getInt();
