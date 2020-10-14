@@ -435,7 +435,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         }else if(dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
             return dataValue.getLong();
         }else {
-            throw StandardException.newException(SQLState.NOT_IMPLEMENTED); // fix me, we should read SqlTime as well.
+            throw StandardException.newException(SQLState.NOT_IMPLEMENTED, dataValue.getClass().getSimpleName() + " can not be used with time travel query"); // fix me, we should read SqlTime as well.
         }
     }
 
