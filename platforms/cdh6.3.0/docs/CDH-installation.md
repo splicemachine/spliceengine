@@ -456,6 +456,7 @@ com.splicemachine.hbase.BackupEndpointObserver</code>
    <property><name>hbase.coprocessor.regionserver.classes</name><value>com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices</value></property>
    <property><name>hbase.hstore.defaultengine.compactionpolicy.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactionPolicy</value></property>
    <property><name>hbase.hstore.defaultengine.compactor.class</name><value>com.splicemachine.compactions.SpliceDefaultCompactor</value></property>
+   <property><name>hbase.hstore.defaultengine.storeflusher.class</name><value>com.splicemachine.compactions.SpliceDefaultFlusher</value></property>
    <property><name>hbase.htable.threads.max</name><value>96</value></property>
    <property><name>hbase.ipc.warn.response.size</name><value>-1</value></property>
    <property><name>hbase.ipc.warn.response.time</name><value>-1</value></property>
