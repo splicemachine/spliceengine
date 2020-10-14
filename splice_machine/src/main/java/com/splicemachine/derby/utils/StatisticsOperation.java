@@ -40,6 +40,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -221,6 +222,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         out.writeDouble(sampleFraction);
         out.writeBoolean(mergeStats);
         out.writeObject(dtds);
+        out.writeObject(operationInformation);
     }
 
     @Override
@@ -237,6 +239,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         } catch (StandardException se) {
             throw new IOException(se.getMessage(),se);
         }
+        operationInformation = (OperationInformation)in.readObject();
     }
 
     public double getSampleFraction() {

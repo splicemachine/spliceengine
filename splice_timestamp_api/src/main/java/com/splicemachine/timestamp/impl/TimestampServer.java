@@ -18,10 +18,16 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.jboss.netty.bootstrap.ServerBootstrap;
-import org.jboss.netty.channel.Channel;
-import org.jboss.netty.channel.ChannelFactory;
-import org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory;
+import io.netty.bootstrap.ChannelFactory;
+import io.netty.bootstrap.ServerBootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
+import io.netty.channel.EventLoopGroup;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioServerSocketChannel;
 import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -29,20 +35,12 @@ import org.apache.log4j.Logger;
 public class TimestampServer {
     private static final Logger LOG = Logger.getLogger(TimestampServer.class);
 
-    /**
-     * Fixed number of bytes in the message we expect to receive from the client.
-     */
-    static final int FIXED_MSG_RECEIVED_LENGTH = 3; // 2 byte client id + 1 byte refresh boolean
-
-    /**
-     * Fixed number of bytes in the message we expect to send back to the client.
-     */
-    static final int FIXED_MSG_SENT_LENGTH = 10; // 2 byte client id + 8 byte timestamp
-
     private int port;
-    private ChannelFactory factory;
     private Channel channel;
     private final TimestampServerHandler handler;
+
+    private EventLoopGroup bossGroup;
+    private EventLoopGroup workerGroup;
 
     public TimestampServer(int port, TimestampServerHandler handler) {
         this.port = port;
@@ -50,35 +48,27 @@ public class TimestampServer {
     }
 
     public void startServer() {
-
-        ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("TimestampServer-%d").setDaemon(true).build());
-        this.factory = new NioServerSocketChannelFactory(executor, executor);
+        bossGroup = new NioEventLoopGroup(2, new ThreadFactoryBuilder().setNameFormat("TimestampServer-boss-%d").setDaemon(true).build());
+        workerGroup = new NioEventLoopGroup(5, new ThreadFactoryBuilder().setNameFormat("TimestampServer-worker-%d").setDaemon(true).build());
 
         SpliceLogUtils.info(LOG, "Timestamp Server starting (binding to port %s)...", port);
 
-        ServerBootstrap bootstrap = new ServerBootstrap(factory);
+        ServerBootstrap bootstrap = new ServerBootstrap();
+        bootstrap.group(bossGroup, workerGroup)
+                .channel(NioServerSocketChannel.class)
+                .localAddress(port)
+                .childOption(ChannelOption.TCP_NODELAY, true)
+                .childOption(ChannelOption.SO_KEEPALIVE, true)
+                .childOption(ChannelOption.SO_REUSEADDR, true)
+                .childHandler(new TimestampPipelineFactoryLite(handler));
 
-        // If we end up needing to use one of the memory aware executors,
-        // do so with code like this (leave commented out for reference).
-        // But for now we can use the 'lite' implementation.
-        //
-        // final ThreadPoolExecutor pipelineExecutor = new OrderedMemoryAwareThreadPoolExecutor(
-        //     5 /* threads */, 1048576, 1073741824,
-        //     100, TimeUnit.MILLISECONDS, // Default would have been 30 SECONDS
-        //     Executors.defaultThreadFactory());
-        // bootstrap.setPipelineFactory(new TimestampPipelineFactory(pipelineExecutor, handler));
-
-        bootstrap.setPipelineFactory(new TimestampPipelineFactoryLite(handler));
-
-        bootstrap.setOption("tcpNoDelay", true);
-        // bootstrap.setOption("child.sendBufferSize", 1048576);
-        // bootstrap.setOption("child.receiveBufferSize", 1048576);
-        bootstrap.setOption("child.tcpNoDelay", true);
-        bootstrap.setOption("child.keepAlive", true);
-        bootstrap.setOption("child.reuseAddress", true);
-        // bootstrap.setOption("child.connectTimeoutMillis", 120000);
-
-        this.channel = bootstrap.bind(new InetSocketAddress(getPortNumber()));
+        try {
+            ChannelFuture f = bootstrap.bind().sync();
+            channel = f.channel();
+        } catch (InterruptedException e) {
+            LOG.error("Interrupted while starting", e);
+            throw new RuntimeException(e);
+        }
 
         SpliceLogUtils.info(LOG, "Timestamp Server started.");
     }
@@ -88,15 +78,16 @@ public class TimestampServer {
     }
 
     int getBoundPort() {
-        return ((InetSocketAddress) channel.getLocalAddress()).getPort();
+        return ((InetSocketAddress) channel.localAddress()).getPort();
     }
 
-    public void stopServer() {
-        try {
-            this.channel.close().await(5000);
-        } catch (Exception e) {
-            LOG.error("unexpected exception during stop server", e);
-        }
-        this.factory.shutdown();
+    public void stopServer() throws InterruptedException {
+        // Shut down all event loops to terminate all threads.
+        bossGroup.shutdownGracefully();
+        workerGroup.shutdownGracefully();
+
+        // Wait until all threads are terminated.
+        bossGroup.terminationFuture().sync();
+        workerGroup.terminationFuture().sync();
     }
 }

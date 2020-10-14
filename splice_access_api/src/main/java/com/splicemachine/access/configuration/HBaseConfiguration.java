@@ -235,17 +235,19 @@ public class HBaseConfiguration implements ConfigurationDefault {
     ));
 
     // Splice Internal Tables
-    public static final String TEST_TABLE = "SPLICE_TEST";
     public static final String TRANSACTION_TABLE = "SPLICE_TXN";
     public static final String TENTATIVE_TABLE = "TENTATIVE_DDL";
-    public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
-    public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
     public static final String SEQUENCE_TABLE_NAME = "SPLICE_SEQUENCES";
     public static final String IGNORE_TXN_TABLE_NAME = "SPLICE_IGNORE_TXN";
     public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
     public static final String MASTER_SNAPSHOTS_TABLE_NAME = "SPLICE_MASTER_SNAPSHOTS";
     public static final String REPLICA_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
-    public static final String REPLICATION_PROGRESS_ROWKEY = "ReplicationProgress";
+
+    public static final String[] internalTablesArr = {
+            TRANSACTION_TABLE, TENTATIVE_TABLE, SEQUENCE_TABLE_NAME, IGNORE_TXN_TABLE_NAME,
+            DROPPED_CONGLOMERATES_TABLE_NAME, MASTER_SNAPSHOTS_TABLE_NAME, REPLICA_REPLICATION_PROGRESS_TABLE_NAME
+    };
+
     public static final byte[] REPLICATION_PROGRESS_ROWKEY_BYTES = Bytes.toBytes("ReplicationProgress");
     public static final byte[] REPLICATION_PROGRESS_TSCOL_BYTES = Bytes.toBytes("Timestamp");
     public static final byte[] REPLICATION_SNAPSHOT_TSCOL_BYTES = Bytes.toBytes("Timestamp");

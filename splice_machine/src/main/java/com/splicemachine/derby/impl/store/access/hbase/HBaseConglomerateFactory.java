@@ -72,6 +72,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
      * @param collationIds         collation ids of columns in the conglomerate.
      * @param properties           Properties associated with the conglomerate.
      * @param temporaryFlag
+     * @param priority
      * @return
      * @throws StandardException
      *
@@ -90,7 +91,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
             int[] collationIds,
             Properties properties,
             int temporaryFlag,
-            byte[][] splitKeys)
+            byte[][] splitKeys, Conglomerate.Priority priority)
             throws StandardException{
         HBaseConglomerate hbase=new HBaseConglomerate();
 
@@ -106,7 +107,7 @@ public class HBaseConglomerateFactory extends SpliceConglomerateFactory{
                 temporaryFlag,
                 driver.getOperationFactory(),
                 driver.getTableFactory(),
-                splitKeys);
+                splitKeys, priority);
 
         return hbase;
     }

@@ -30,8 +30,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 
 public class CrossJoinOperation extends JoinOperation{
@@ -83,27 +81,8 @@ public class CrossJoinOperation extends JoinOperation{
         init();
     }
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException{
-        super.readExternal(in);
-        sequenceId = in.readLong();
-        broadcastRightSide = in.readBoolean();
-        leftHashKeyItem=in.readInt();
-        rightHashKeyItem=in.readInt();
-    }
-
     public long getRightSequenceId() {
         return sequenceId;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        out.writeLong(sequenceId);
-        out.writeBoolean(broadcastRightSide);
-        out.writeInt(leftHashKeyItem);
-        out.writeInt(rightHashKeyItem);
     }
 
     @Override
