@@ -553,8 +553,9 @@ public abstract class GenericConstantActionFactory {
      *    Make the ConstantAction for a DROP SCHEMA statement.
      *
      *    @param    schemaName            Table name.
+     *    @param    dropBehavior          Restrict or Cascade
      */
-    public abstract ConstantAction    getDropSchemaConstantAction(String schemaName);
+    public abstract ConstantAction    getDropSchemaConstantAction(String    schemaName, int dropBehavior);
 
 
     /**
