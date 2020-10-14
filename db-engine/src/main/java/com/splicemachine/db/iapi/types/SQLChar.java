@@ -2684,7 +2684,7 @@ public class SQLChar
 
         String valueParts[] = getString().split(Pattern.quote(delimiter.getString()));
         int partIndex = fieldNumber.getInt();
-        if (partIndex == 0) {
+        if (partIndex <= 0) {
             throw StandardException.newException(SQLState.LANG_FIELD_POSITION_ZERO);
         }
         if (partIndex > valueParts.length) {

@@ -488,7 +488,7 @@ public class TernaryOperationIT {
         String sCell2 = null;
         ResultSet rs;
 
-        rs = methodWatcher.executeQuery(String.format("select split_part(e, ' ', %d), e from ", fieldNumber) + tableWatcherB);
+        rs = methodWatcher.executeQuery(String.format("select split_part(e, ' ', %d), e from %s", fieldNumber, tableWatcherB));
         count = 0;
         while (rs.next()) {
             sCell1 = rs.getString(1);
@@ -511,19 +511,23 @@ public class TernaryOperationIT {
         Assert.assertEquals("Incorrect row count", 5, count);
     }
 
+    private void executeAndCheckErrorSplitPart(int fieldNumber) throws SQLException {
+        try {
+            methodWatcher.executeQuery(String.format("select split_part(e, ' ', %d), e from %s", fieldNumber, tableWatcherB));
+            Assert.fail(String.format("Query is expected to fail with {}", SQLState.LANG_FIELD_POSITION_ZERO));
+        } catch (SQLDataException e) {
+            Assert.assertEquals(SQLState.LANG_FIELD_POSITION_ZERO, e.getSQLState());
+        }
+    }
+
     @Test
     public void testSplitPartFunction() throws Exception {
         executeAndCheckSplitPart(1);
         executeAndCheckSplitPart(3);
         executeAndCheckSplitPart(4);
         executeAndCheckSplitPart(8);
-
-        try {
-            methodWatcher.executeQuery(String.format("select split_part(e, ' ', %d), e from ", 0) + tableWatcherB);
-            Assert.fail(String.format("Query is expected to fail with {}", SQLState.LANG_FIELD_POSITION_ZERO));
-        } catch (SQLDataException e) {
-            Assert.assertEquals(SQLState.LANG_FIELD_POSITION_ZERO, e.getSQLState());
-        }
+        executeAndCheckErrorSplitPart(0);
+        executeAndCheckErrorSplitPart(-1);
     }
 }
 
