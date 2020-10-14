@@ -2388,6 +2388,10 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         ) {
                     if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
                         defaultText = "'" + defaultText + "'";
+                    if (columnDescriptor.getType().getTypeId().isBitTypeId() &&
+                            defaultText.startsWith("X'")) {
+                        defaultText = "X'" + defaultText.substring(1) + "'";
+                    }
                 }
             }
             colDef.append(defaultText);
