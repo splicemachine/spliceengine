@@ -48,7 +48,7 @@ public class SpliceDatabaseWatcher extends TestWatcher {
         LOG.info(tag("Finished", dbName));
         try (Connection connection = SpliceNetConnection.newBuilder().build()) {
             try(Statement statement = connection.createStatement()){
-                statement.execute(String.format("drop database %s restrict", dbName));
+                statement.execute(String.format("drop database %s cascade", dbName));
             }catch(Exception e){
                 e.printStackTrace();
                 connection.rollback();

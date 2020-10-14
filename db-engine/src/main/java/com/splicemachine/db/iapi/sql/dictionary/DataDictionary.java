@@ -621,6 +621,8 @@ public interface DataDictionary{
      */
     boolean isSchemaEmpty(SchemaDescriptor sd) throws StandardException;
 
+    ArrayList<SchemaDescriptor> getSchemasInDatabase(DatabaseDescriptor dbDesc) throws StandardException;
+
     /**
      * get the list of objects existing in the specified schema
      * @param sd

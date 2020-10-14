@@ -561,9 +561,10 @@ public abstract class GenericConstantActionFactory {
     /**
      *    Make the ConstantAction for a DROP SCHEMA statement.
      *
-     *    @param dbName Table name.
+     * @param dbName Table name.
+     * @param dropBehavior
      */
-    public abstract ConstantAction    getDropDatabaseConstantAction(String dbName);
+    public abstract ConstantAction    getDropDatabaseConstantAction(String dbName, int dropBehavior);
 
 
     /**
