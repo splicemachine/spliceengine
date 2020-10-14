@@ -17,23 +17,29 @@ package com.splicemachine.derby.impl.sql.catalog;
 import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.DatabaseVersion;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.access.api.SConfiguration;
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.access.configuration.SIConfigurations;
 import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -64,6 +70,7 @@ import org.apache.log4j.Logger;
 
 import java.sql.Types;
 import java.util.*;
+import java.util.function.Function;
 
 /**
  * @author Scott Fines
@@ -585,8 +592,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // Check splice data dictionary version to decide if upgrade is necessary
         upgradeIfNecessary(tc);
-
-
     }
 
     /**
@@ -1354,6 +1359,34 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 "SYS.SYSDEPENDS updated: Foreign keys dependencies on RoleDescriptors or permission descriptors deleted, total rows deleted: " + rowsToDelete.size());
     }
 
+    public int upgradeTablePriorities(TransactionController tc) throws Exception {
+        PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+        ArrayList<String> toUpgrade = new ArrayList<>();
+        Function<TabInfoImpl, Void> addTabInfo =  (TabInfoImpl info ) ->
+                {
+                    toUpgrade.add( Long.toString(info.getHeapConglomerate()) );
+                    for( int j = 0; j < info.getNumberOfIndexes(); j++ )
+                        toUpgrade.add( Long.toString(info.getIndexConglomerate(j)) );
+                    return null;
+                };
+        for (int i = 0; i < coreInfo.length; ++i) {
+            assert coreInfo[i] != null;
+            addTabInfo.apply(coreInfo[i]);
+        }
+        for (int i = 0; i < NUM_NONCORE; ++i) {
+            // noncoreInfo[x] will be null otherwise
+            addTabInfo.apply( getNonCoreTI(i+NUM_CORE) );
+        }
+
+        for( String s : HBaseConfiguration.internalTablesArr) {
+            toUpgrade.add(s);
+        }
+        toUpgrade.add("16"); // splice:16 core table
+        toUpgrade.add(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+
+        return admin.upgradeTablePrioritiesFromList(toUpgrade);
+    }
+
     public void upgradeSysColumnsWithUseExtrapolationColumn(TransactionController tc) throws StandardException {
         SchemaDescriptor sd = getSystemSchemaDescriptor();
         TableDescriptor td = getTableDescriptor(SYSCOLUMNSRowFactory.TABLENAME_STRING, sd, tc);
@@ -1713,7 +1746,63 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                     sysViewSchemaDesc, SYSTABLESRowFactory.SYSTABLE_VIEW_SQL);
             SpliceLogUtils.info(LOG, String.format("%s upgraded: added a column: %s.", SYSTABLESRowFactory.SYSTABLE_VIEW_NAME,
                     SYSTABLESRowFactory.MIN_RETENTION_PERIOD));
+
+            // finally, set the minimum retention period for SYS tables to 1 week.
+            TabInfoImpl ti=coreInfo[SYSTABLES_CATALOG_NUM];
+            faultInTabInfo(ti);
+
+            FormatableBitSet columnToReadSet=new FormatableBitSet(SYSTABLESRowFactory.SYSTABLES_COLUMN_COUNT);
+            FormatableBitSet columnToUpdateSet=new FormatableBitSet(SYSTABLESRowFactory.SYSTABLES_COLUMN_COUNT);
+            for(int i=0;i<SYSTABLESRowFactory.SYSTABLES_COLUMN_COUNT;i++){
+                columnToUpdateSet.set(i);
+                if(i+1 == SYSTABLESRowFactory.SYSTABLES_SCHEMAID || i+1 == SYSTABLESRowFactory.SYSTABLES_MIN_RETENTION_PERIOD) {
+                    columnToReadSet.set(i);
+                }
+            }
+            /* Set up a couple of row templates for fetching CHARS */
+            DataValueDescriptor[] rowTemplate = new DataValueDescriptor[SYSTABLESRowFactory.SYSTABLES_COLUMN_COUNT];
+            DataValueDescriptor[] replaceRow= new DataValueDescriptor[SYSTABLESRowFactory.SYSTABLES_COLUMN_COUNT];
+            DataValueDescriptor authIdOrderable=new SQLVarchar(sd.getUUID().toString());
+            ScanQualifier[][] scanQualifier=exFactory.getScanQualifier(1);
+            scanQualifier[0][0].setQualifier(
+                    SYSTABLESRowFactory.SYSTABLES_SCHEMAID - 1,    /* to zero-based */
+                    authIdOrderable,
+                    Orderable.ORDER_OP_EQUALS,
+                    false,
+                    false,
+                    false);
+            /* Scan the entire heap */
+            ScanController sc=
+                    tc.openScan(
+                            ti.getHeapConglomerate(),
+                            false,
+                            TransactionController.OPENMODE_FORUPDATE,
+                            TransactionController.MODE_TABLE,
+                            TransactionController.ISOLATION_REPEATABLE_READ,
+                            columnToReadSet,
+                            null,
+                            ScanController.NA,
+                            scanQualifier,
+                            null,
+                            ScanController.NA);
+
+            while(sc.fetchNext(rowTemplate)){
+                /* Replace the column in the table */
+                for (int i=0; i<rowTemplate.length; i++) {
+                    if (i+1 == SYSTABLESRowFactory.SYSTABLES_MIN_RETENTION_PERIOD)
+                        replaceRow[i] = new SQLLongint(getSystablesMinRetentionPeriod());
+                    else
+                        replaceRow[i] = rowTemplate[i].cloneValue(false);
+                }
+                sc.replace(replaceRow,columnToUpdateSet);
+            }
+            sc.close();
         }
+    }
+
+    @Override
+    public long getSystablesMinRetentionPeriod() {
+        return SIDriver.driver().getConfiguration().getSystablesMinRetentionPeriod();
     }
 
     @Override

@@ -2277,5 +2277,7 @@ public interface DataDictionary{
 
     String getCatalogVersion(long conglomerateNumber) throws StandardException;
 
+    long getSystablesMinRetentionPeriod();
+
     boolean useTxnAwareCache();
 }

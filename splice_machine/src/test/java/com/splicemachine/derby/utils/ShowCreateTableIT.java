@@ -396,6 +396,28 @@ public class ShowCreateTableIT extends SpliceUnitTest
                 ") ;", rs.getString(1));
 
     }
+
+    @Test
+    public void testTableWithQLBitColumnType() throws Exception
+    {
+        String DDL = "CREATE TABLE SHOWCREATETABLEIT.T20\n" +
+                "(A20 INT, " +
+                "B20 char(10) for bit data default, " +
+                "C20 varchar(10) for bit data default, " +
+                "D20 long varchar for bit data default, " +
+                "E20 clob default)";
+        methodWatcher.executeUpdate(DDL);
+        ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','T20')");
+        rs.next();
+        Assert.assertEquals("CREATE TABLE \"SHOWCREATETABLEIT\".\"T20\" (\n" +
+                "\"A20\" INTEGER\n" +
+                ",\"B20\" CHAR (10) FOR BIT DATA DEFAULT X'00000000000000000000'\n" +
+                ",\"C20\" VARCHAR (10) FOR BIT DATA DEFAULT X''\n" +
+                ",\"D20\" LONG VARCHAR FOR BIT DATA DEFAULT X''\n" +
+                ",\"E20\" CLOB(2147483647) DEFAULT \n" +
+                ") ;", rs.getString(1));
+    }
+
     @Test
     public void testTextDefaultUserRole() throws Exception
     {
