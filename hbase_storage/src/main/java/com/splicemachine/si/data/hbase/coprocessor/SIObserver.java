@@ -37,9 +37,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.data.hbase.ExtendedOperationStatus;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.si.impl.server.PurgeConfigBuilder;
-import com.splicemachine.si.impl.server.SICompactionState;
-import com.splicemachine.si.impl.server.SimpleCompactionContext;
+import com.splicemachine.si.impl.server.*;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -177,32 +175,35 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
         }
     }
 
+    private static boolean defaultFlusherIsSetProperly(FlushLifeCycleTracker tracker, Store store) {
+        boolean result = tracker instanceof FlushLifeCycleTrackerWithConfig;
+        if(!result) {
+            SpliceLogUtils.warn(LOG, "Splice store flusher is not set, as a result, flush will not " +
+                    "purge. To set Splice flusher review documentation and revise HBase configuration: " +
+                    DefaultStoreEngine.DEFAULT_STORE_FLUSHER_CLASS_KEY);
+        }
+        return result;
+    }
+
     @Override
-    public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner, FlushLifeCycleTracker tracker) throws IOException {
+    public InternalScanner preFlush(ObserverContext<RegionCoprocessorEnvironment> c, Store store, InternalScanner scanner,
+                                    FlushLifeCycleTracker tracker) throws IOException {
         SIDriver driver=SIDriver.driver();
         // We must make sure the engine is started, otherwise we might try to resolve transactions against SPLICE_TXN which
         // hasn't been loaded yet, causing a deadlock
-        if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted() && driver.getConfiguration().getResolutionOnFlushes()){
+        if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted() && driver.getConfiguration().getResolutionOnFlushes()
+                && defaultFlusherIsSetProperly(tracker, store)) {
             SimpleCompactionContext context = new SimpleCompactionContext();
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
                     driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
             SConfiguration conf = driver.getConfiguration();
-            PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
-            if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
-                purgeConfig.purgeDeletesDuringFlush();
-            } else {
-                purgeConfig.noPurgeDeletes();
-            }
-            purgeConfig.transactionLowWatermark(TransactionsWatcher.getLowWatermarkTransaction());
-            purgeConfig.purgeUpdates(conf.getOlapCompactionAutomaticallyPurgeOldUpdates());
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
-            SICompactionScanner siScanner = new SICompactionScanner(
-                    state, scanner, purgeConfig.build(), conf.getFlushResolutionShare(),
-                    conf.getOlapCompactionResolutionBufferSize(), context);
+            SICompactionScanner siScanner = new SICompactionScanner( state, scanner, ((FlushLifeCycleTrackerWithConfig) tracker).getConfig(),
+                    conf.getFlushResolutionShare(), conf.getOlapCompactionResolutionBufferSize(), context);
             siScanner.start();
             return siScanner;
-        }else {
+        } else {
             return scanner;
         }
     }

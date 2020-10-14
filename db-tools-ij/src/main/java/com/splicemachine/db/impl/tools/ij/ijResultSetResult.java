@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.impl.tools.ij;
 
+import com.splicemachine.db.tools.JDBCDisplayUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
@@ -40,6 +43,7 @@ import java.sql.SQLWarning;
  * This impl is intended to be used with a resultset,
  * where the execution of the statement is already complete.
  */
+@SuppressFBWarnings({"NM_CLASS_NAMING_CONVENTION", "EI_EXPOSE_REP"})
 public class ijResultSetResult extends ijResultImpl {
 
 	ResultSet resultSet;
@@ -66,6 +70,7 @@ public class ijResultSetResult extends ijResultImpl {
 	 * @param widths  The widths of the columns specified in 'display', or
 	 *                null to display using default column sizes.
 	 */
+	@SuppressFBWarnings("EI_EXPOSE_REP2")
 	public ijResultSetResult(ResultSet r, int[] display,
 							 int[] widths) throws SQLException {
 		resultSet = r;
@@ -73,6 +78,44 @@ public class ijResultSetResult extends ijResultImpl {
 
 		displayColumns = display;
 		columnWidths   = widths;
+	}
+
+	static class ColumnParameters
+	{
+		public int pos, preferredWidth;
+		public int maxWidth = 0; // 0 meaning no maximum
+
+		public ColumnParameters(ResultSet rs, String name, int preferredWidth) throws SQLException {
+			this.pos = rs.findColumn(name);
+			this.preferredWidth = preferredWidth;
+		}
+		public ColumnParameters maxWidth(int val)
+		{
+			this.maxWidth = val;
+			return this;
+		}
+	}
+
+	public ijResultSetResult(ResultSet r, ColumnParameters[] columnParameters) throws SQLException {
+		resultSet = r;
+		statement = resultSet.getStatement();
+		this.displayColumns = new int[columnParameters.length];
+		this.columnWidths = new int[columnParameters.length];
+		for(int i=0; i<columnParameters.length; i++)
+		{
+			displayColumns[i] = columnParameters[i].pos;
+			int colWidth = columnParameters[i].preferredWidth;
+			int maxColWidth  = columnParameters[i].maxWidth;
+			int max = JDBCDisplayUtil.getMaxDisplayWidth();
+			if( max != 256 )
+			{
+				if (maxColWidth != 0 && (max == 0 || max > maxColWidth))
+					colWidth = maxColWidth;
+				else
+					colWidth = max;
+			}
+			columnWidths[i] = colWidth;
+		}
 	}
 
 	public boolean isResultSet() throws SQLException { return statement==null || statement.getUpdateCount() == -1; }
