@@ -39,7 +39,6 @@ import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -117,16 +116,11 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         //get all the table/view/alias
         ArrayList<TupleDescriptor> tableList = dd.getTablesInSchema(sd);
 
-        // drop all the table/view/alias that have no dependents, but leave the ones that have dependents
-        // and their dependents in the pendingDropList
+        // get all the table/view/alias and their dependents in the pendingDropList
         ArrayList<TupleDescriptor> pendingDropList = new ArrayList<>();
         HashSet<UUID> droppedList = new HashSet<>();
         for (TupleDescriptor td: tableList) {
-            // replace TableDescriptor with the corresponding view or alias descriptor
-            if (!getDependenciesForTable(td, sd, pendingDropList, dd)) {
-                dropObject(td, sd, lcc, tc, activation);
-                droppedList.add(td.getUUID());
-            }
+            getDependenciesForTable(td, sd, pendingDropList, dd);
         }
 
         // drop the objects in the pendingDropList in the reverse order
@@ -152,7 +146,7 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         // drop sequences
         ArrayList<SequenceDescriptor> sequenceList = dd.getSequencesInSchema(sd.getUUID().toString());
         for (SequenceDescriptor sequenceDescriptor: sequenceList) {
-                dropObject(sequenceDescriptor, sd, lcc, tc, activation);
+            dropObject(sequenceDescriptor, sd, lcc, tc, activation);
         }
 
         // drop triggers
@@ -229,87 +223,109 @@ public class DropSchemaConstantOperation extends DDLConstantOperation {
         }
     }
 
-    private boolean getDependenciesForTable(TupleDescriptor td, SchemaDescriptor sd, ArrayList<TupleDescriptor> pendingDropList, DataDictionary dd) throws StandardException {
+    private void walkDependencyTree(TupleDescriptor tupleDescriptor,
+                                    SchemaDescriptor sd,
+                                    ArrayList<TupleDescriptor> pendingDropList,
+                                    HashSet<UUID> ancestors,
+                                    DataDictionary dd) throws StandardException {
 
-        ArrayDeque<TupleDescriptor> queue = new ArrayDeque<>();
-        queue.add(td);
-        boolean hasDependency = false;
-        while (queue.peek() != null) {
-            TupleDescriptor tupleDescriptor = queue.poll();
-
-            // check dependency in sys.sysdepends
-            String providerID = null;
-            if (tupleDescriptor instanceof TableDescriptor) {
-                // TableDescriptor could be for a view or alias
-                if (((TableDescriptor) tupleDescriptor).getTableType() == TableDescriptor.SYNONYM_TYPE) {
-                    // we need to get the alias UUID for dependency check
-                    AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(sd.getUUID().toString(), ((TableDescriptor) tupleDescriptor).getName(), AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR);
-                    if (aliasDescriptor != null)
-                        providerID = aliasDescriptor.getUUID().toString();
-                } else {
-                    providerID = tupleDescriptor.getUUID().toString();
-                }
-            } else if (tupleDescriptor instanceof ViewDescriptor) {
-                providerID = tupleDescriptor.getUUID().toString();
-            } else if (tupleDescriptor instanceof AliasDescriptor) {
-                providerID = tupleDescriptor.getUUID().toString();
+        // check dependency in sys.sysdepends
+        String providerID = null;
+        if (tupleDescriptor instanceof TableDescriptor) {
+            // TableDescriptor could be for a view or alias
+            if (((TableDescriptor) tupleDescriptor).getTableType() == TableDescriptor.SYNONYM_TYPE) {
+                // we need to get the alias UUID for dependency check
+                AliasDescriptor aliasDescriptor = dd.getAliasDescriptor(sd.getUUID().toString(), ((TableDescriptor) tupleDescriptor).getName(), AliasInfo.ALIAS_TYPE_SYNONYM_AS_CHAR);
+                if (aliasDescriptor != null)
+                    providerID = aliasDescriptor.getUUID().toString();
             } else {
-                continue;
+                providerID = tupleDescriptor.getUUID().toString();
             }
+        } else if (tupleDescriptor instanceof ViewDescriptor) {
+            providerID = tupleDescriptor.getUUID().toString();
+        } else if (tupleDescriptor instanceof AliasDescriptor) {
+            providerID = tupleDescriptor.getUUID().toString();
+        } else {
+            return;
+        }
 
-            List<DependencyDescriptor> providersDescriptorList = dd.getProvidersDescriptorList(providerID);
-            List<Dependent> storedList = getDependencyDescriptorList(providersDescriptorList, dd);
-            for (int j = 0; j < storedList.size(); j++) {
-                TupleDescriptor dependentTupleDescriptor = (TupleDescriptor)storedList.get(j);
-                // check whether the dependent objects are within the same schema
-                checkSchema(sd, tupleDescriptor, dependentTupleDescriptor, dd);
+        List<DependencyDescriptor> providersDescriptorList = dd.getProvidersDescriptorList(providerID);
+        List<Dependent> storedList = getDependencyDescriptorList(providersDescriptorList, dd);
+        for (int j = 0; j < storedList.size(); j++) {
+            TupleDescriptor dependentTupleDescriptor = (TupleDescriptor)storedList.get(j);
+            // check whether the dependent objects are within the same schema
+            checkSchema(sd, tupleDescriptor, dependentTupleDescriptor, dd);
 
-                // only add table/view/alias to the pendingDropList, the other dependencies are secondary and can be dropped
-                // at the time the primary objects(table/view/alias) are dropped
-                if (dependentTupleDescriptor instanceof TableDescriptor ||
+            // only add table/view/alias to the pendingDropList, the other dependencies are secondary and can be dropped
+            // at the time the primary objects(table/view/alias) are dropped
+            if (dependentTupleDescriptor instanceof TableDescriptor ||
                     dependentTupleDescriptor instanceof ViewDescriptor ||
                     dependentTupleDescriptor instanceof AliasDescriptor) {
-                    if (!hasDependency) {
-                        pendingDropList.add(td);
-                        hasDependency = true;
-                    }
-                    pendingDropList.add(dependentTupleDescriptor);
-                    queue.add(dependentTupleDescriptor);
+                // ignore self-dependency
+                if (dependentTupleDescriptor.getUUID().equals(tupleDescriptor.getUUID()))
+                    continue;
+
+                // check cyclic dependency
+                if (ancestors.contains(dependentTupleDescriptor.getUUID())) {
+                    throw StandardException.newException(SQLState.LANG_CYCLIC_DEPENDENCY_DETECTED,
+                            sd.getSchemaName(), tupleDescriptor.getDescriptorName(), dependentTupleDescriptor.getDescriptorName());
                 }
+                pendingDropList.add(dependentTupleDescriptor);
+                ancestors.add(dependentTupleDescriptor.getUUID());
+                walkDependencyTree(dependentTupleDescriptor, sd, pendingDropList, ancestors, dd);
+                ancestors.remove(dependentTupleDescriptor.getUUID());
             }
+        }
 
 
-            // check FK constraints for TableDescriptor
-            if (tupleDescriptor instanceof TableDescriptor) {
-                ConstraintDescriptorList cdl = dd.getConstraintDescriptors((TableDescriptor)tupleDescriptor);
-                for (int i = 0; i < cdl.size(); i++) {
-                    ConstraintDescriptor cd = cdl.elementAt(i);
-                    if (cd instanceof ReferencedKeyConstraintDescriptor) {
-                        // get the FK tables that depend on it
-                        providersDescriptorList = dd.getProvidersDescriptorList(cd.getObjectID().toString());
-                        storedList = getDependencyDescriptorList(providersDescriptorList, dd);
-                        for (int j = 0; j < storedList.size(); j++) {
-                            if (storedList.get(j) instanceof ForeignKeyConstraintDescriptor) {
-                                // get the corresponding table and check if it is in the same schema
-                                ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor = (ForeignKeyConstraintDescriptor) storedList.get(j);
-                                TableDescriptor dependentTableDescriptor = foreignKeyConstraintDescriptor.getTableDescriptor();
-                                checkSchema(sd, tupleDescriptor, dependentTableDescriptor, dd);
+        // check FK constraints for TableDescriptor
+        if (tupleDescriptor instanceof TableDescriptor) {
+            ConstraintDescriptorList cdl = dd.getConstraintDescriptors((TableDescriptor)tupleDescriptor);
+            for (int i = 0; i < cdl.size(); i++) {
+                ConstraintDescriptor cd = cdl.elementAt(i);
+                if (cd instanceof ReferencedKeyConstraintDescriptor) {
+                    // get the FK tables that depend on it
+                    providersDescriptorList = dd.getProvidersDescriptorList(cd.getObjectID().toString());
+                    storedList = getDependencyDescriptorList(providersDescriptorList, dd);
+                    for (int j = 0; j < storedList.size(); j++) {
+                        if (storedList.get(j) instanceof ForeignKeyConstraintDescriptor) {
+                            // get the corresponding table and check if it is in the same schema
+                            ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor = (ForeignKeyConstraintDescriptor) storedList.get(j);
+                            TableDescriptor dependentTableDescriptor = foreignKeyConstraintDescriptor.getTableDescriptor();
 
-                                if (!hasDependency) {
-                                    pendingDropList.add(td);
-                                    hasDependency = true;
-                                }
-                                pendingDropList.add(dependentTableDescriptor);
-                                queue.add(dependentTableDescriptor);
+                            // ignore self-dependency
+                            if (dependentTableDescriptor.getUUID().equals(tupleDescriptor.getUUID()))
+                                continue;
+
+                            checkSchema(sd, tupleDescriptor, dependentTableDescriptor, dd);
+
+                            // check cyclic dependency
+                            if (ancestors.contains(dependentTableDescriptor.getUUID())) {
+                                throw StandardException.newException(SQLState.LANG_CYCLIC_DEPENDENCY_DETECTED,
+                                        sd.getSchemaName(), tupleDescriptor.getDescriptorName(), dependentTableDescriptor.getDescriptorName());
                             }
+                            pendingDropList.add(dependentTableDescriptor);
+                            ancestors.add(dependentTableDescriptor.getUUID());
+                            walkDependencyTree(dependentTableDescriptor, sd, pendingDropList, ancestors, dd);
+                            ancestors.remove(dependentTableDescriptor.getUUID());
                         }
                     }
                 }
             }
         }
-
-        return hasDependency;
     }
+
+    private void getDependenciesForTable(TupleDescriptor td, SchemaDescriptor sd, ArrayList<TupleDescriptor> pendingDropList, DataDictionary dd) throws StandardException {
+        // the dependency among the objects is supposed to be a DAG, we will walk through it using pre-order tree traversal from the root
+        // keep a hashset of the path to the root, if during the traversal, we get a child which also appears as an ancestor on the path
+        // to the root, then there is a cyclic dependency
+        HashSet<UUID> ancestors = new HashSet<>();
+        pendingDropList.add(td);
+        ancestors.add(td.getUUID());
+        walkDependencyTree(td, sd, pendingDropList, ancestors, dd);
+        ancestors.remove(td.getUUID());
+    }
+
 
     private List<Dependent> getDependencyDescriptorList(List<DependencyDescriptor> storedList,
                                                           DataDictionary dd) throws StandardException {

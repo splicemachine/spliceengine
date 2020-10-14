@@ -128,6 +128,9 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 		ExecRow        			row;
 
 		if (td != null) {
+			if (!(td instanceof FileInfoDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+			
 			FileInfoDescriptor descriptor = (FileInfoDescriptor)td;
 			id_S = descriptor.getUUID().toString();
 			schemaId_S = descriptor.getSchemaDescriptor().getUUID().toString();
