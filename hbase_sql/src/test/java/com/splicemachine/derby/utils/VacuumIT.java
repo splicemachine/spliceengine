@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.test.LongerThanTwoMinutes;
@@ -37,6 +38,9 @@ import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.apache.hadoop.hbase.client.*;
+import org.junit.*;
+
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -59,7 +63,7 @@ import static org.junit.Assert.assertTrue;
  * @author Scott Fines
  * Date: 3/19/14
  */
-@Category({SerialTest.class, LongerThanTwoMinutes.class})
+@Category({SerialTest.class})
 public class VacuumIT extends SpliceUnitTest{
     public static final String CLASS_NAME = VacuumIT.class.getSimpleName().toUpperCase();
     protected static String TABLE = "T";
@@ -109,6 +113,24 @@ public class VacuumIT extends SpliceUnitTest{
             .around(spliceTableHWatcher)
             .around(spliceTableIWatcher)
             .around(spliceTableJWatcher);
+
+    @Before
+    public void waitForStaleTransactions() throws Exception
+    {
+        // wait at max 60s for other transactions to finish
+        // we have defined SerialTest.class, so no other test should run in parallel
+        for(int i=0; i<60; i++) {
+            try (ResultSet rs = methodWatcher.executeQuery(
+                    "call SYSCS_UTIL.SYSCS_GET_ACTIVE_TRANSACTION_IDS()")) {
+                String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
+                if( actual.equals("") ) return;
+                Thread.sleep(1000);
+                System.out.println("VacuumIT: Waiting for active transactions:\n" + actual);
+            }
+        }
+        Assert.fail("VacuumIT can't run with active transactions still happening. This is a bug in other " +
+                "tests failing to close their transactions.");
+    }
 
     @Test
     public void testVacuumDoesNotBreakStuff() throws Exception {
