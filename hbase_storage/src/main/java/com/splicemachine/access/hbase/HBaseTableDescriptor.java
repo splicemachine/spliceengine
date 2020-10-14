@@ -15,6 +15,7 @@
 package com.splicemachine.access.hbase;
 
 import com.splicemachine.si.constants.SIConstants;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 
 /**
@@ -23,6 +24,9 @@ import org.apache.hadoop.hbase.client.TableDescriptor;
 public class HBaseTableDescriptor implements com.splicemachine.access.api.TableDescriptor{
 
     TableDescriptor tableDescriptor;
+
+    static public final int NORMAL_TABLE_PRIORITY = HConstants.NORMAL_QOS;
+    static public final int HIGH_TABLE_PRIORITY = HConstants.ADMIN_QOS;
 
     public HBaseTableDescriptor(TableDescriptor tableDescriptor) {
         this.tableDescriptor = tableDescriptor;

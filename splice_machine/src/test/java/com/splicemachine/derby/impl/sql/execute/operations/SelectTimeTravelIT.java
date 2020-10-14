@@ -1,11 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Test;
+import org.junit.*;
 
+import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
@@ -28,6 +28,17 @@ public class SelectTimeTravelIT {
         result = rs.getLong(1);
         Assert.assertFalse(rs.next());
         return result;
+    }
+
+    static File tempDir;
+    @BeforeClass
+    public static void createTempDirectory() throws Exception {
+        tempDir = SpliceUnitTest.createTempDirectory(SCHEMA);
+    }
+
+    @AfterClass
+    public static void deleteTempDirectory() throws Exception {
+        SpliceUnitTest.deleteTempDirectory(tempDir);
     }
 
     static int counter = 0;
@@ -274,8 +285,9 @@ public class SelectTimeTravelIT {
     @Test
     public void testTimeTravelWithExternalTablesIsNotAllowed() throws Exception {
         String externalTable = generateTableName();
+        String externalTableLocation = tempDir.toString() + "/testTimeTravelWithExternalTablesIsNotAllowed";
         watcher.executeUpdate("CREATE EXTERNAL TABLE " + externalTable + "(a INT, b INT) PARTITIONED BY (a) " +
-                "STORED AS PARQUET LOCATION '/tmp/bla'");
+                "STORED AS PARQUET LOCATION '" + externalTableLocation + "'");
 
         try {
             watcher.executeQuery("SELECT * FROM " + externalTable + " AS OF 42");

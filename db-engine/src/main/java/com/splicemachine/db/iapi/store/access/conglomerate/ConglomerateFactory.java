@@ -60,40 +60,42 @@ public interface ConglomerateFactory extends MethodFactory
      * gist btree, gist rtree, hash, others? ).
      * <p>
      *
-	 * @return an unique identifier used to the factory into the conglomid.
+     * @return an unique identifier used to the factory into the conglomid.
      *
      **/
     int getConglomerateFactoryId();
 
-	/**
-	Create the conglomerate and return a conglomerate object
-	for it.  It is expected that the caller of this method will place the
-    the resulting object in the conglomerate directory.
-
-    @param xact_mgr             transaction to perform the create in.
-    @param input_containerid    containerid to assign the container, or
-                                ContainerHandle.DEFAULT_ASSIGN_ID if you want
-                                raw store to assign an id.
-    @param template             Template of row in the conglomerate.
-	@param columnOrder          columns sort order for Index creation
-    @param collationIds         collation ids of columns in the conglomerate.
-    @param properties           Properties associated with the conglomerate.
-
- 	@exception StandardException if the conglomerate could not be
-	opened for some reason, or if an error occurred in one of
-	the lower level modules.
-	**/
-	Conglomerate createConglomerate(
-	boolean					isExternal,
-    TransactionManager      xact_mgr,
-    long                    input_containerid,
-    DataValueDescriptor[]   template,
-	ColumnOrdering[]		columnOrder,
-    int[]                   collationIds,
-    Properties              properties,
-	int						temporaryFlag,
-	byte[][]                splitKeys)
-            throws StandardException;
+    /**
+     *
+     * Create the conglomerate and return a conglomerate object
+     * for it.  It is expected that the caller of this method will place the
+     * the resulting object in the conglomerate directory.
+     *
+     * @param xact_mgr             transaction to perform the create in.
+     * @param input_containerid    containerid to assign the container, or
+     *                             ContainerHandle.DEFAULT_ASSIGN_ID if you want
+     *                             raw store to assign an id.
+     * @param template             Template of row in the conglomerate.
+     * @param columnOrder          columns sort order for Index creation
+     * @param collationIds         collation ids of columns in the conglomerate.
+     * @param properties           Properties associated with the conglomerate.
+     * @param priority             Priority to be used when loading table e.g. after recovery
+     *
+     * @exception StandardException if the conglomerate could not be
+     * opened for some reason, or if an error occurred in one of
+     * the lower level modules.
+    **/
+    Conglomerate createConglomerate(
+        boolean                      isExternal,
+        TransactionManager           xact_mgr,
+        long                         input_containerid,
+        DataValueDescriptor[]        template,
+        ColumnOrdering[]             columnOrder,
+        int[]                        collationIds,
+        Properties                   properties,
+        int                          temporaryFlag,
+        byte[][]                     splitKeys,
+        Conglomerate.Priority        priority) throws StandardException;
     /**
      * Return Conglomerate object for conglomerate with container_key.
      * <p>
@@ -111,12 +113,11 @@ public interface ConglomerateFactory extends MethodFactory
      * @param xact_mgr      transaction to perform the create in.
      * @param containerID The unique id of the existing conglomerate.
      *
-	 * @return An instance of the conglomerate.
+     * @return An instance of the conglomerate.
      *
-	 * @exception  StandardException  Standard exception policy.
+     * @exception  StandardException  Standard exception policy.
      **/
     Conglomerate readConglomerate(
-    TransactionManager      xact_mgr,
-    long            containerID)
-		throws StandardException;
+        TransactionManager      xact_mgr,
+        long                    containerID) throws StandardException;
 }

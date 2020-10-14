@@ -28,8 +28,6 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 
@@ -112,37 +110,6 @@ public class SelfReferenceOperation extends SpliceBaseOperation {
     @Override
     public void close() throws StandardException {
         super.close();
-    }
-
-    // - - - - - - - - - - - - - - - - - - -
-    // serialization
-    // - - - - - - - - - - - - - - - - - - -
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        this.recursiveUnionReference = (SpliceOperation) in.readObject();
-        if(in.readBoolean())
-            rowMethodName=in.readUTF();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(this.recursiveUnionReference);
-        out.writeBoolean(rowMethodName!=null);
-        if(rowMethodName!=null) {
-            out.writeUTF(rowMethodName);
-        }
-    }
-
-    public void writeExternalWithoutChild(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(null);
-        out.writeBoolean(rowMethodName!=null);
-        if(rowMethodName!=null) {
-            out.writeUTF(rowMethodName);
-        }
     }
 
     public ExecRow getRow() throws StandardException{
