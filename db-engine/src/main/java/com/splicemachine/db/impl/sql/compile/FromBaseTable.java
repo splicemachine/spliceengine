@@ -1236,7 +1236,7 @@ public class FromBaseTable extends FromTable {
         boolean authorizeSYSTOKENS= dataDictionary.usesSqlAuthorization() &&
                 tableDescriptor.getUUID().toString().equals(SYSTOKENSRowFactory.SYSTOKENS_UUID);
         if(authorizeSYSUSERS || authorizeSYSTOKENS){
-            String databaseOwner=dataDictionary.getAuthorizationDatabaseOwner();
+            String databaseOwner=dataDictionary.getAuthorizationDatabaseOwner(getLanguageConnectionContext().getDatabaseId());
             String currentUser=getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentUser();
             List<String> groupuserlist = getLanguageConnectionContext().getStatementContext().getSQLSessionContext().getCurrentGroupUser();
 

@@ -15,14 +15,11 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.ddl.DDLMessage;
@@ -100,6 +97,12 @@ public class DropDatabaseConstantOperation extends DDLConstantOperation {
         for (SchemaDescriptor schema : dd.getSchemasInDatabase(dbDesc)) {
             new DropSchemaConstantOperation(
                     dbDesc.getUUID(), schema.getSchemaName(), StatementType.DROP_CASCADE).executeConstantAction(activation);
+        }
+        for (UserDescriptor user: dd.getUsersInDatabase(dbDesc)) {
+            user.drop(lcc, true);
+        }
+        for (RoleGrantDescriptor role: dd.getRoleGrantsInDatabase(dbDesc)) {
+            new DropRoleConstantOperation(role.getRoleName(), dbDesc.getUUID()).executeConstantAction(activation);
         }
     }
 

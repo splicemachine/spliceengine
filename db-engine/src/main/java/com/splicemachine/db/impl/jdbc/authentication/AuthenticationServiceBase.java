@@ -495,7 +495,7 @@ public abstract class AuthenticationServiceBase
                 try {
                     LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
                     DataDictionary dd = getDataDictionary();
-                    String dbo = dd.getAuthorizationDatabaseOwner();
+                    String dbo = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
                     UserDescriptor userCredentials = dd.getUser(lcc.getDatabaseId(), dbo);
 
                     if (userCredentials == null) {

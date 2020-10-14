@@ -1698,7 +1698,7 @@ public class SystemProcedures{
         // can add them
         try{
             DataDictionary dd=lcc.getDataDictionary();
-            String dbo=dd.getAuthorizationDatabaseOwner();
+            String dbo=dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
 
             if(!dbo.equals(userName)){
                 if(dd.getUser(lcc.getDatabaseId(), dbo)==null){
@@ -1800,7 +1800,7 @@ public class SystemProcedures{
             dd.addDescriptor(userDescriptor,null,DataDictionary.SYSUSERS_CATALOG_NUM,false,tc, false);
 
             // turn on NATIVE::LOCAL authentication
-            if(dd.getAuthorizationDatabaseOwner().equals(userName)){
+            if(dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId()).equals(userName)){
                 //    tc.setProperty
                 //        ( Property.AUTHENTICATION_PROVIDER_PARAMETER, Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL, true );
             }
@@ -1959,27 +1959,11 @@ public class SystemProcedures{
         String reason = null;
         try{
             DataDictionary dd=lcc.getDataDictionary();
-            String dbo=dd.getAuthorizationDatabaseOwner();
-
-            // you can't drop the credentials of the dbo
-            if(dbo.equals(userName)){
-                throw StandardException.newException(SQLState.CANT_DROP_DBO);
-            }
 
             checkLegalUser(dd,userName, lcc.getDatabaseId());
-            
-            /*
-            ** Inform the data dictionary that we are about to write to it.
-            ** There are several calls to data dictionary "get" methods here
-            ** that might be done in "read" mode in the data dictionary, but
-            ** it seemed safer to do this whole operation in "write" mode.
-            **
-            ** We tell the data dictionary we're done writing at the end of
-            ** the transaction.
-            */
-            dd.startWriting(lcc);
 
-            dd.dropUser(lcc.getDatabaseId(), userName, lcc.getTransactionExecute());
+            UserDescriptor desc = dd.getUser(lcc.getDatabaseId(), userName);
+            desc.drop(lcc, false);
             status = true;
 
         }catch(StandardException se){

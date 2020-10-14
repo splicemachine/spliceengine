@@ -178,7 +178,7 @@ public class SpliceNetConnection {
 
         public Connection build() throws SQLException {
             Properties info = new Properties();
-            info.put("user", user != null ? user : jdbcUser);
+            info.put("user", (user != null ? user : jdbcUser).toUpperCase());
             info.put("password", password != null ? password : jdbcPassword);
             if (create != null || jdbcCreate != null)
                 info.put("create", create != null ? create : jdbcCreate);

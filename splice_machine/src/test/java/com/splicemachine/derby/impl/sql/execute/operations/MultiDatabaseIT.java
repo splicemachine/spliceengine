@@ -42,6 +42,9 @@ public class MultiDatabaseIT {
     private static String OTHER_DB = MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String SCHEMA = MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String TABLE = MultiDatabaseIT.class.getSimpleName().toUpperCase();
+    private static String ROLE = "ROLE_" + MultiDatabaseIT.class.getSimpleName().toUpperCase();
+    private static String USER = "USER_" + MultiDatabaseIT.class.getSimpleName().toUpperCase();
+
 
     protected static SpliceDatabaseWatcher otherDbWatcher = new SpliceDatabaseWatcher(OTHER_DB);
     protected static SpliceSchemaWatcher spliceDbSchemaWatcher = new SpliceSchemaWatcher(null, SCHEMA);
@@ -183,5 +186,21 @@ public class MultiDatabaseIT {
                 "select databasename from sys.sysdatabases where databasename = '%s'", dbName))) {
             assertFalse(rs.next());
         }
+    }
+
+    @Test
+    public void testRoles() throws SQLException {
+        spliceDbConn.createStatement().execute(String.format("CREATE ROLE %s", ROLE));
+        otherDbConn.createStatement().execute(String.format("CREATE ROLE %s", ROLE));
+        spliceDbConn.createStatement().execute(String.format("DROP ROLE %s", ROLE));
+        otherDbConn.createStatement().execute(String.format("DROP ROLE %s", ROLE));
+    }
+
+    @Test
+    public void testUsers() throws SQLException {
+        spliceDbConn.createStatement().execute(String.format("call syscs_util.syscs_create_user('%s', 'pw')", USER));
+        otherDbConn.createStatement().execute(String.format("call syscs_util.syscs_create_user('%s', 'pw')", USER));
+        spliceDbConn.createStatement().execute(String.format("call syscs_util.syscs_drop_user('%s')", USER));
+        otherDbConn.createStatement().execute(String.format("call syscs_util.syscs_drop_user('%s')", USER));
     }
 }

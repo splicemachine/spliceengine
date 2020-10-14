@@ -19,8 +19,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.Pair;
+import org.apache.commons.codec.language.bm.Lang;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -68,9 +70,10 @@ public class OperationManagerImpl implements OperationManager {
         if (op == null)
             return false;
         Activation activation = op.getOperation().getActivation();
-        String databaseOwner = activation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
-        String runningUserId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-        List<String> groupuserlist = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        String databaseOwner = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+        String runningUserId = lcc.getCurrentUserId(activation);
+        List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 
         if (!userId.equals(databaseOwner) && !userId.equals(runningUserId)) {
             if (groupuserlist != null) {
@@ -102,9 +105,10 @@ public class OperationManagerImpl implements OperationManager {
         if (op == null)
             return false;
         Activation activation = op.getOperation().getActivation();
-        String databaseOwner = activation.getLanguageConnectionContext().getDataDictionary().getAuthorizationDatabaseOwner();
-        String runningUserId = activation.getLanguageConnectionContext().getCurrentUserId(activation);
-        List<String> groupuserlist = activation.getLanguageConnectionContext().getCurrentGroupUser(activation);
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        String databaseOwner = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+        String runningUserId = lcc.getCurrentUserId(activation);
+        List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 
         if (!userId.equals(databaseOwner) && !userId.equals(runningUserId)) {
             if (groupuserlist != null) {

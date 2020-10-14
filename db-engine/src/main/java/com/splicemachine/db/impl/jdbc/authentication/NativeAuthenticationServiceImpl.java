@@ -582,7 +582,7 @@ public final class NativeAuthenticationServiceImpl
             if ( remainingLifetime <= 0L )
             {
                 // The DBO's password never expires.
-                if ( !dd.getAuthorizationDatabaseOwner().equals( userName ) ) { return false; }
+                if ( !dd.getAuthorizationDatabaseOwner(databaseId).equals( userName ) ) { return false; }
                 else { remainingLifetime = 0L; }
             }
 
@@ -590,7 +590,7 @@ public final class NativeAuthenticationServiceImpl
             
             if ( remainingLifetime <= expirationThreshold )
             {
-                if ( dd.getAuthorizationDatabaseOwner().equals( userName ) )
+                if ( dd.getAuthorizationDatabaseOwner(databaseId).equals( userName ) )
                 {
                     throw SQLWarningFactory.newSQLWarning( SQLState.DBO_PASSWORD_EXPIRES_SOON, databaseName );
                 }

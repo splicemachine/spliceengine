@@ -67,7 +67,7 @@ public class GrantRoleConstantOperation extends DDLConstantOperation {
         DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
         final String grantor = lcc.getCurrentUserId(activation);
         final List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
+        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
 
         dd.startWriting(lcc);
         for (Iterator rIter = roleNames.iterator(); rIter.hasNext();) {

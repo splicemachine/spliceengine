@@ -161,7 +161,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
         String currentUser = lcc.getCurrentUserId(activation);
         List<String> dependedRoleList = new ArrayList<>();
         List<String> groupuserList = lcc.getCurrentGroupUser(activation);
-        String dbo = dd.getAuthorizationDatabaseOwner();
+        String dbo = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         if (! currentUser.equals(dbo)
                 && !(groupuserList != null && groupuserList.contains(dbo))) {
             PermissionsDescriptor permDesc;
@@ -453,7 +453,7 @@ public abstract class DDLConstantOperation implements ConstantAction, ScopeNamed
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
-        String dbo = dd.getAuthorizationDatabaseOwner();
+        String dbo = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         String currentUser = lcc.getCurrentUserId(activation);
         List<String> dependedRoleList = new ArrayList<>();
         List<String> groupuserList = lcc.getCurrentGroupUser(activation);

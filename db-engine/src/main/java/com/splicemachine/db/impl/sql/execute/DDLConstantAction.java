@@ -318,7 +318,7 @@ public abstract class DDLConstantAction implements ConstantAction
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
-        String dbo = dd.getAuthorizationDatabaseOwner();
+        String dbo = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         String currentUser = lcc.getCurrentUserId(activation);
         List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
         SettableBoolean roleDepAdded = new SettableBoolean();
@@ -635,7 +635,7 @@ public abstract class DDLConstantAction implements ConstantAction
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
-        String dbo = dd.getAuthorizationDatabaseOwner();
+        String dbo = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         String currentUser = lcc.getCurrentUserId(activation);
         SettableBoolean roleDepAdded = new SettableBoolean();
 

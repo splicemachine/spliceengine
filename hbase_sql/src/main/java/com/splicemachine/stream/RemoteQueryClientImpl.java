@@ -36,7 +36,6 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.util.concurrent.ListenableFuture;
 import splice.com.google.common.util.concurrent.MoreExecutors;
 import java.io.IOException;
-import java.net.ConnectException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -180,7 +179,7 @@ public class RemoteQueryClientImpl implements RemoteQueryClient {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 
         List<String> userGroups = lcc.getCurrentGroupUser(activation);
-        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner();
+        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         if(lcc.getCurrentUserId(activation).equals(dbo) || (userGroups != null && userGroups.contains(dbo))) {
             if(requestedQueue != null) {
                 return requestedQueue;

@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -116,5 +119,33 @@ public final class  UserDescriptor extends TupleDescriptor
 
     public UUID getDatabaseId() {
         return _databaseId;
+    }
+
+    public boolean isDbOwner(DataDictionary dd) {
+        String dbo = dd.getAuthorizationDatabaseOwner(_databaseId);
+
+        return dbo.equals(this._userName);
+    }
+
+    public void drop(LanguageConnectionContext lcc, boolean dropIfOwner) throws StandardException {
+        DataDictionary dd=lcc.getDataDictionary();
+
+        // you can't drop the credentials of the dbo
+        if (!dropIfOwner && isDbOwner(dd)) {
+            throw StandardException.newException(SQLState.CANT_DROP_DBO);
+        }
+
+        /*
+         ** Inform the data dictionary that we are about to write to it.
+         ** There are several calls to data dictionary "get" methods here
+         ** that might be done in "read" mode in the data dictionary, but
+         ** it seemed safer to do this whole operation in "write" mode.
+         **
+         ** We tell the data dictionary we're done writing at the end of
+         ** the transaction.
+         */
+        dd.startWriting(lcc);
+
+        dd.dropUser(_databaseId, _userName, lcc.getTransactionExecute());
     }
 }

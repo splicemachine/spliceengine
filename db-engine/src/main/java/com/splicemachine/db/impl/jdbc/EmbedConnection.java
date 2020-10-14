@@ -31,7 +31,6 @@
 
 package com.splicemachine.db.impl.jdbc;
 
-import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.PublicAPI;
@@ -896,8 +895,13 @@ public abstract class EmbedConnection implements EngineConnection
     {
         final LanguageConnectionContext lcc = getLanguageConnection();
         final String actualId = lcc.getSessionUserId();
-        final String dbOwnerId = lcc.getDataDictionary().
-            getAuthorizationDatabaseOwner();
+        final String dbOwnerId;
+        try {
+            dbOwnerId = lcc.getDataDictionary().
+                    getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+        } catch (StandardException e) {
+            throw PublicAPI.wrapStandardException(e);
+        }
         if (!actualId.equals(dbOwnerId)) {
             switch (operation) {
             case OP_ENCRYPT:

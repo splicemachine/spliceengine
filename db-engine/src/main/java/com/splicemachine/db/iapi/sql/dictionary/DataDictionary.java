@@ -336,8 +336,9 @@ public interface DataDictionary{
      * Get authorizationID of Database Owner
      *
      * @return authorizationID
+     * @param dbId
      */
-    String getAuthorizationDatabaseOwner();
+    String getAuthorizationDatabaseOwner(UUID dbId);
 
     /**
      * Get authorization model in force, SqlStandard or legacy mode
@@ -626,6 +627,8 @@ public interface DataDictionary{
     boolean isSchemaEmpty(SchemaDescriptor sd) throws StandardException;
 
     ArrayList<SchemaDescriptor> getSchemasInDatabase(DatabaseDescriptor dbDesc) throws StandardException;
+    ArrayList<UserDescriptor> getUsersInDatabase(DatabaseDescriptor dbDesc) throws StandardException;
+    ArrayList<RoleGrantDescriptor> getRoleGrantsInDatabase(DatabaseDescriptor dbDesc) throws StandardException;
 
     /**
      * get the list of objects existing in the specified schema
@@ -644,8 +647,8 @@ public interface DataDictionary{
 
     /**
      * Indicate whether there is anything in the
-     * particular database.  Checks for schemas in the
-     * the database
+     * particular database.
+     * Checks for schemas, users, roles in the the database
      * XXX(arnaud multidb) check for other objects in the DB?
      *
      * @param dd database descriptor

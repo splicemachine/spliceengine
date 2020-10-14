@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -36,6 +37,7 @@ import com.splicemachine.protobuf.ProtoUtil;
 
 public class DropRoleConstantOperation extends DDLConstantOperation {
     private final String roleName;
+    private final UUID dbId;
     /**
      *  Make the ConstantAction for a DROP ROLE statement.
      *
@@ -43,11 +45,30 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
      *
      */
     public DropRoleConstantOperation(String roleName) {
+        this(roleName, null);
+    }
+
+    /**
+     *  Make the ConstantAction for a DROP ROLE statement.
+     *
+     *  @param  roleName  role name to be dropped
+     *  @param  dbId the database id for that role
+     *
+     */
+    public DropRoleConstantOperation(String roleName, UUID dbId) {
         this.roleName = roleName;
+        this.dbId = dbId;
     }
 
     public String toString() {
         return "DROP ROLE " + roleName;
+    }
+
+    private UUID getDatabaseId(LanguageConnectionContext lcc) throws StandardException {
+        if (dbId == null) {
+            return lcc.getDatabaseId();
+        }
+        return dbId;
     }
 
     /**
@@ -71,7 +92,7 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
         */
         dd.startWriting(lcc);
 
-        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName, lcc.getDatabaseId());
+        RoleGrantDescriptor rdDef = dd.getRoleDefinitionDescriptor(roleName, getDatabaseId(lcc));
 
         if (rdDef == null) {
             throw StandardException.newException(
@@ -87,11 +108,11 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
         RoleClosureIterator rci =
             dd.createRoleClosureIterator
             (activation.getTransactionController(),
-             roleName, false, lcc.getDatabaseId());
+             roleName, false, getDatabaseId(lcc));
 
         String role;
         while ((role = rci.next()) != null) {
-            RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role, lcc.getDatabaseId());
+            RoleGrantDescriptor r = dd.getRoleDefinitionDescriptor(role, getDatabaseId(lcc));
 
             dd.getDependencyManager().invalidateFor
                 (r, DependencyManager.REVOKE_ROLE, lcc);
@@ -109,8 +130,8 @@ public class DropRoleConstantOperation extends DDLConstantOperation {
          * - privilege grants to this role
          */
 
-        dd.dropRoleGrantsByGrantee(roleName, lcc.getDatabaseId(), tc);
-        dd.dropRoleGrantsByName(roleName, lcc.getDatabaseId(), tc);
+        dd.dropRoleGrantsByGrantee(roleName, getDatabaseId(lcc), tc);
+        dd.dropRoleGrantsByName(roleName, getDatabaseId(lcc), tc);
         dd.dropAllPermsByGrantee(roleName, tc); // XXX (arnaud, multidb) that should also be multidb specific
     }
 }

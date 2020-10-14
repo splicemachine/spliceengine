@@ -63,6 +63,8 @@ public class SYSUSERSRowFactory extends CatalogRowFactory
     public static final int        DATABASEID_COL_NUM = 5;
 
     static final int        SYSUSERS_INDEX1_ID = 0;
+    static final int        SYSUSERS_INDEX1_DATABASEID = 1;
+    static final int        SYSUSERS_INDEX1_USERNAME = 2;
 
     private static final int[][] indexColumnPositions =
     {

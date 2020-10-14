@@ -134,7 +134,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Dictionary version of the currently running engine
      */
     protected DD_Version softwareVersion;
-    protected String authorizationDatabaseOwner;
+    protected Map<UUID, String> authorizationDatabasesOwner = new HashMap<>();
     protected boolean usesSqlAuthorization;
 
     /**
@@ -451,7 +451,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
             if(create) {
                 String userName = IdUtil.getUserNameFromURLProps(startParams);
-                authorizationDatabaseOwner = IdUtil.getUserAuthorizationId(userName);
+                authorizationDatabasesOwner.put(spliceDbDesc.getUUID(), IdUtil.getUserAuthorizationId(userName));
                 newlyCreatedRoutines = new HashSet();
 
                 // create any required tables.
@@ -478,7 +478,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 aggregateGenerator.createAggregates(bootingTC);
 
                 // now grant execute permission on some of these routines
-                grantPublicAccessToSystemRoutines(newlyCreatedRoutines,bootingTC,authorizationDatabaseOwner);
+                grantPublicAccessToSystemRoutines(newlyCreatedRoutines,bootingTC, getAuthorizationDatabaseOwner(spliceDbDesc.getUUID()));
                 // log the current dictionary version
                 dictionaryVersion=softwareVersion;
                 
@@ -551,7 +551,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 createSpliceSchema(bootingTC, getSpliceDatabaseDescriptor().getUUID());
             }
 
-            assert authorizationDatabaseOwner!=null:"Failed to get Database Owner authorization";
+            assert authorizationDatabasesOwner.containsKey(spliceDbDesc.getUUID()) :"Failed to get Database Owner authorization";
 
             // Update (or create) the system stored procedures if requested.
             updateSystemProcedures(bootingTC);
@@ -654,10 +654,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * Get authorizationID of Database Owner
      *
      * @return authorizationID
+     * @param dbId
      */
     @Override
-    public String getAuthorizationDatabaseOwner(){
-        return authorizationDatabaseOwner; // XXX (arnaud multidb) should that be DB specific?
+    public String getAuthorizationDatabaseOwner(UUID dbId){
+        return authorizationDatabasesOwner.get(dbId);
     }
 
     @Override
@@ -722,6 +723,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
         UserDescriptor desc = dataDescriptorGenerator.makeUserDescriptor(tc, dbOwner, dbPassword, dbId);
         addDescriptor(desc, null, SYSUSERS_CATALOG_NUM, false, tc, false);
+        authorizationDatabasesOwner.put(dbId, IdUtil.getUserAuthorizationId(dbOwner));
         return dbId;
     }
 
@@ -1907,6 +1909,20 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return false;
         }
 
+        if(isDatabaseReferenced(tc, getNonCoreTI(SYSUSERS_CATALOG_NUM),
+                SYSUSERSRowFactory.SYSUSERS_INDEX1_ID,
+                SYSUSERSRowFactory.SYSUSERS_INDEX1_DATABASEID,
+                dbIdOrderable)){
+            return false;
+        }
+
+        if(isDatabaseReferenced(tc, getNonCoreTI(SYSROLES_CATALOG_NUM),
+                SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,
+                SYSROLESRowFactory.SYSROLES_DATABASEID_COLPOS_IN_INDEX_ID_EE_OR,
+                dbIdOrderable)){
+            return false;
+        }
+
         // XXX (arnaud multidb) Check other things as we add DATABASEID columns to other sys tables
 
         return true;
@@ -2134,6 +2150,36 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         keyRow.setColumn(1, getIDValueAsCHAR(dbDesc.getUUID()));
         ArrayList<SchemaDescriptor> resultList = new ArrayList<>();
         getDescriptorViaIndex(SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
+                false);
+        return resultList;
+    }
+
+    public ArrayList<UserDescriptor> getUsersInDatabase(DatabaseDescriptor dbDesc) throws StandardException {
+        TabInfoImpl ti = getNonCoreTI(SYSUSERS_CATALOG_NUM);
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, getIDValueAsCHAR(dbDesc.getUUID()));
+        ArrayList<UserDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSUSERSRowFactory.SYSUSERS_INDEX1_ID,
+                keyRow,
+                null,
+                ti,
+                null,
+                resultList,
+                false);
+        return resultList;
+    }
+
+    public ArrayList<RoleGrantDescriptor> getRoleGrantsInDatabase(DatabaseDescriptor dbDesc) throws StandardException {
+        TabInfoImpl ti = getNonCoreTI(SYSROLES_CATALOG_NUM);
+        ExecIndexRow keyRow = exFactory.getIndexableRow(1);
+        keyRow.setColumn(1, getIDValueAsCHAR(dbDesc.getUUID()));
+        ArrayList<RoleGrantDescriptor> resultList = new ArrayList<>();
+        getDescriptorViaIndex(SYSROLESRowFactory.SYSROLES_INDEX_ID_EE_OR_IDX,
                 keyRow,
                 null,
                 ti,
@@ -6852,13 +6898,14 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @throws StandardException Thrown on error
      */
     public void resetDatabaseOwner(TransactionController tc) throws StandardException{
-        SchemaDescriptor sd=locateSchemaRow(spliceDbDesc.getUUID(), SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc);
-        authorizationDatabaseOwner=sd.getAuthorizationId();
+        SchemaDescriptor sd=locateSchemaRow(spliceDbDesc.getUUID(), SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME, tc); // XXX(arnaud multidb) this should be DB specific
+        String owner = sd.getAuthorizationId();
+        authorizationDatabasesOwner.put(spliceDbDesc.getUUID(), owner);
 
-        systemSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
-        sysIBMSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
-        sysIBMADMSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
-        systemUtilSchemaDesc.setAuthorizationId(authorizationDatabaseOwner);
+        systemSchemaDesc.setAuthorizationId(owner);
+        sysIBMSchemaDesc.setAuthorizationId(owner);
+        sysIBMADMSchemaDesc.setAuthorizationId(owner);
+        systemUtilSchemaDesc.setAuthorizationId(owner);
     }
 
     /**
@@ -7151,10 +7198,11 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                                              String schema_uuid,
                                              TransactionController tc) throws StandardException{
         // create the descriptor
-        UUID oid=uuidFactory.recreateUUID(schema_uuid);
+        UUID oid = uuidFactory.recreateUUID(schema_uuid);
+        UUID dbId = spliceDbDesc.getUUID();
         SchemaDescriptor schema_desc=new SchemaDescriptor(
-                this, schema_name, authorizationDatabaseOwner,
-                oid, getSpliceDatabaseDescriptor().getUUID(), true);
+                this, schema_name, getAuthorizationDatabaseOwner(dbId),
+                oid, dbId, true);
 
         // add it to the catalog.
         addDescriptor(schema_desc,null,SYSSCHEMAS_CATALOG_NUM,false,tc,false);
@@ -8948,15 +8996,17 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     private SchemaDescriptor newSystemSchemaDesc(String name,String uuid){
+        UUID dbId = spliceDbDesc.getUUID();
         return new SchemaDescriptor(
-                this, name, authorizationDatabaseOwner,
-                uuidFactory.recreateUUID(uuid), getSpliceDatabaseDescriptor().getUUID(), true);
+                this, name, getAuthorizationDatabaseOwner(dbId),
+                uuidFactory.recreateUUID(uuid), dbId, true);
     }
 
     private SchemaDescriptor newDeclaredGlobalTemporaryTablesSchemaDesc(String name){
+        UUID dbId = spliceDbDesc.getUUID();
         return new SchemaDescriptor(
-                this, name, authorizationDatabaseOwner,
-                uuidFactory.createUUID(), getSpliceDatabaseDescriptor().getUUID(), false);
+                this, name, getAuthorizationDatabaseOwner(dbId),
+                uuidFactory.createUUID(), dbId, false);
     }
 
     /**
@@ -10923,7 +10973,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SystemProcedureGenerator procedureGenerator=getSystemProcedures();
 
         procedureGenerator.createProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
+        // XXX (arnaud multidb) make this DB specific?
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc, getAuthorizationDatabaseOwner(spliceDbDesc.getUUID()));
     }
 
     /**
@@ -10943,7 +10994,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SystemProcedureGenerator procedureGenerator=getSystemProcedures();
 
         procedureGenerator.dropProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
+        // XXX (arnaud multidb) make this db specific?
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc, getAuthorizationDatabaseOwner(spliceDbDesc.getUUID()));
     }
 
     /**
@@ -10961,7 +11013,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         SystemProcedureGenerator procedureGenerator=getSystemProcedures();
 
         procedureGenerator.createOrUpdateProcedure(schemaName,procName,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
+        // XXX (arnaud multidb) make this db specific?
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc, getAuthorizationDatabaseOwner(spliceDbDesc.getUUID()));
     }
 
     /**
@@ -10980,7 +11033,8 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SYSTEM_UTIL_SCHEMA_NAME,tc,newlyCreatedRoutines);
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.STD_SQLJ_SCHEMA_NAME,tc,newlyCreatedRoutines);
         procedureGenerator.createOrUpdateAllProcedures(SchemaDescriptor.IBM_SYSTEM_FUN_SCHEMA_NAME,tc,newlyCreatedRoutines);
-        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc,authorizationDatabaseOwner);
+        // XXX (arnaud multidb) make this db specific?
+        grantPublicAccessToSystemRoutines(newlyCreatedRoutines,tc, getAuthorizationDatabaseOwner(spliceDbDesc.getUUID()));
     }
 
     /**

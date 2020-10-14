@@ -48,130 +48,130 @@ import java.util.List;
  */
 
 public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
-	// Action types
-	public static final int SELECT_ACTION = 0;
-	public static final int DELETE_ACTION = 1;
-	public static final int INSERT_ACTION = 2;
-	public static final int UPDATE_ACTION = 3;
-	public static final int REFERENCES_ACTION = 4;
-	public static final int TRIGGER_ACTION = 5;
-	public static final int MODIFY_ACTION = 6;
-	public static final int ACCESS_ACTION = 7;
-	public static final int ACTION_COUNT = 8;
+    // Action types
+    public static final int SELECT_ACTION = 0;
+    public static final int DELETE_ACTION = 1;
+    public static final int INSERT_ACTION = 2;
+    public static final int UPDATE_ACTION = 3;
+    public static final int REFERENCES_ACTION = 4;
+    public static final int TRIGGER_ACTION = 5;
+    public static final int MODIFY_ACTION = 6;
+    public static final int ACCESS_ACTION = 7;
+    public static final int ACTION_COUNT = 8;
 
-	protected static final String YES_WITH_GRANT_OPTION = "Y";
-	protected static final String YES_WITHOUT_GRANT_OPTION = "y";
-	protected static final String NO = "N";
+    protected static final String YES_WITH_GRANT_OPTION = "Y";
+    protected static final String YES_WITHOUT_GRANT_OPTION = "y";
+    protected static final String NO = "N";
 
-	protected static final String[][] actionString =
-			{{"s", "S"}, {"d", "D"}, {"i", "I"}, {"u", "U"}, {"r", "R"}, {"t", "T"}, {"m", "M"}, {"a", "A"}};
+    protected static final String[][] actionString =
+            {{"s", "S"}, {"d", "D"}, {"i", "I"}, {"u", "U"}, {"r", "R"}, {"t", "T"}, {"m", "M"}, {"a", "A"}};
 
-	protected boolean[] actionAllowed;
-	protected FormatableBitSet[] columnBitSets;
-	protected List descriptorList;
-
-
-	protected String getPermString(int action, boolean forGrantOption) {
-		if (actionAllowed[action] && columnBitSets[action] == null)
-			return forGrantOption ? YES_WITH_GRANT_OPTION : YES_WITHOUT_GRANT_OPTION;
-		else
-			return NO;
-	} // end of getPermString
-
-	protected String getActionString(int action, boolean forGrantOption) {
-		return actionString[action][forGrantOption ? 1 : 0];
-	}
+    protected boolean[] actionAllowed;
+    protected FormatableBitSet[] columnBitSets;
+    protected List descriptorList;
 
 
-	/**
-	 * Determine the schema for a particular table and then
-	 * determine is the user is the owner.
-	 * There is some specific logic to determine the schema depending
-	 * of the nature of the table
-	 * @param user
-	 * @param groupuserlist
-	 * @param td
-	 * @param sd
-	 * @param dd
-	 * @param lcc
-	 * @param grant
-	 * @throws StandardException
-	 */
-	protected void checkOwnership(String user,
-								  List<String> groupuserlist,
-								  TableDescriptor td,
-								  SchemaDescriptor sd,
-								  DataDictionary dd,
-								  LanguageConnectionContext lcc,
-								  boolean grant)
-			throws StandardException {
-		super.checkOwnership(user, groupuserlist, sd, dd);
+    protected String getPermString(int action, boolean forGrantOption) {
+        if (actionAllowed[action] && columnBitSets[action] == null)
+            return forGrantOption ? YES_WITH_GRANT_OPTION : YES_WITHOUT_GRANT_OPTION;
+        else
+            return NO;
+    } // end of getPermString
 
-		// additional check specific to this subclass
-		if (grant) {
-			checkPrivileges(user, groupuserlist, td, sd, dd, lcc);
-		}
-	}
-
-	/**
-	 * Determines if the user is the ownership of the schema
-	 * Throws a exception if the user is not
-	 * @see BasicPrivilegeInfo#checkOwnership(String, SchemaDescriptor, DataDictionary, LanguageConnectionContext, boolean)
-	 *
-	 * Basically the same but we set the table descriptor to null
-	 * @param user
-	 * @param groupuserlist
-	 * @param sd
-	 * @param dd
-	 * @param lcc
-	 * @param grant
-	 * @throws StandardException
-	 */
-
-	protected void checkOwnership(String user,
-								  List<String> groupuserlist,
-								  SchemaDescriptor sd,
-								  DataDictionary dd,
-								  LanguageConnectionContext lcc,
-								  boolean grant)
-			throws StandardException{
-		checkOwnership(user, groupuserlist,null,sd,dd,lcc,grant);
-	}
+    protected String getActionString(int action, boolean forGrantOption) {
+        return actionString[action][forGrantOption ? 1 : 0];
+    }
 
 
-	/**
-	 * Determines if the privilege is grantable by this grantor
-	 * for the given view.
-	 * <p>
-	 * Note that the database owner can access database objects
-	 * without needing to be their owner.  This method should only
-	 * be called if it is a GRANT.
-	 *
-	 * @param user authorizationId of current user
-	 * @param groupuserlist groupId list of current user
-	 * @param td   TableDescriptor to be checked against
-	 * @param sd   SchemaDescriptor
-	 * @param dd   DataDictionary
-	 * @param lcc  LanguageConnectionContext
-	 * @throws StandardException if user does not have permission to grant
-	 */
-	protected void checkPrivileges(String user,
-								   List<String> groupuserlist,
-								   TableDescriptor td,
-								   SchemaDescriptor sd,
-								   DataDictionary dd,
-								   LanguageConnectionContext lcc)
-			throws StandardException {
-		if (user.equals(dd.getAuthorizationDatabaseOwner())) return;
-		if (groupuserlist != null && groupuserlist.contains(dd.getAuthorizationDatabaseOwner()))
-			return;
+    /**
+     * Determine the schema for a particular table and then
+     * determine is the user is the owner.
+     * There is some specific logic to determine the schema depending
+     * of the nature of the table
+     * @param user
+     * @param groupuserlist
+     * @param td
+     * @param sd
+     * @param dd
+     * @param lcc
+     * @param grant
+     * @throws StandardException
+     */
+    protected void checkOwnership(String user,
+                                  List<String> groupuserlist,
+                                  TableDescriptor td,
+                                  SchemaDescriptor sd,
+                                  DataDictionary dd,
+                                  LanguageConnectionContext lcc,
+                                  boolean grant)
+            throws StandardException {
+        super.checkOwnership(user, groupuserlist, sd, dd);
 
-		if (td == null) return;
-		//  check view specific
-		if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
-			if (descriptorList != null) {
-				TransactionController tc = lcc.getTransactionExecute();
-				int siz = descriptorList.size();
+        // additional check specific to this subclass
+        if (grant) {
+            checkPrivileges(user, groupuserlist, td, sd, dd, lcc);
+        }
+    }
+
+    /**
+     * Determines if the user is the ownership of the schema
+     * Throws a exception if the user is not
+     * @see BasicPrivilegeInfo#checkOwnership(String, SchemaDescriptor, DataDictionary, LanguageConnectionContext, boolean)
+     *
+     * Basically the same but we set the table descriptor to null
+     * @param user
+     * @param groupuserlist
+     * @param sd
+     * @param dd
+     * @param lcc
+     * @param grant
+     * @throws StandardException
+     */
+
+    protected void checkOwnership(String user,
+                                  List<String> groupuserlist,
+                                  SchemaDescriptor sd,
+                                  DataDictionary dd,
+                                  LanguageConnectionContext lcc,
+                                  boolean grant)
+            throws StandardException{
+        checkOwnership(user, groupuserlist,null,sd,dd,lcc,grant);
+    }
+
+
+    /**
+     * Determines if the privilege is grantable by this grantor
+     * for the given view.
+     * <p>
+     * Note that the database owner can access database objects
+     * without needing to be their owner.  This method should only
+     * be called if it is a GRANT.
+     *
+     * @param user authorizationId of current user
+     * @param groupuserlist groupId list of current user
+     * @param td   TableDescriptor to be checked against
+     * @param sd   SchemaDescriptor
+     * @param dd   DataDictionary
+     * @param lcc  LanguageConnectionContext
+     * @throws StandardException if user does not have permission to grant
+     */
+    protected void checkPrivileges(String user,
+                                   List<String> groupuserlist,
+                                   TableDescriptor td,
+                                   SchemaDescriptor sd,
+                                   DataDictionary dd,
+                                   LanguageConnectionContext lcc)
+            throws StandardException {
+        if (user.equals(dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId()))) return;
+        if (groupuserlist != null && groupuserlist.contains(dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId())))
+            return;
+
+        if (td == null) return;
+        //  check view specific
+        if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
+            if (descriptorList != null) {
+                TransactionController tc = lcc.getTransactionExecute();
+                int siz = descriptorList.size();
                 for (Object aDescriptorList : descriptorList) {
                     TupleDescriptor p;
                     SchemaDescriptor s = null;
@@ -200,20 +200,20 @@ public abstract class BasicPrivilegeInfo extends PrivilegeInfo {
                     // FUTURE: if object is not own by grantor then check if
                     //         the grantor have grant option.
                 }
-			}
-		}
+            }
+        }
 
 
-	}
+    }
 
-	public boolean hasColumns() {
-		if(columnBitSets != null && columnBitSets.length>0){
+    public boolean hasColumns() {
+        if(columnBitSets != null && columnBitSets.length>0){
             for (FormatableBitSet columnBitSet : columnBitSets) {
                 if (columnBitSet != null) return true;
             }
-		}
-		return false;
-	}
+        }
+        return false;
+    }
 }
 
 
