@@ -121,7 +121,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
     public static KryoPool getInstance(){
         KryoPool kp = spliceKryoPool;
         if(kp==null){
-            synchronized(SpliceKryoRegistry.class){
+            synchronized(SpliceSparkKryoRegistrator.class){
                 kp = spliceKryoPool;
                 if(kp==null){
                     EngineDriver driver = EngineDriver.driver();
@@ -856,5 +856,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(StringBuilder.class);
         instance.register(Vector.class);
+        instance.register(KafkaReadFunction.Message.class,EXTERNALIZABLE_SERIALIZER);
     }
 }

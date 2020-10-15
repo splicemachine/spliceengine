@@ -19,25 +19,24 @@ import java.io.Externalizable
 import java.util
 import java.util.{Collections, Properties, UUID}
 
-import com.splicemachine.db.impl.sql.execute.ValueRow
-import com.splicemachine.derby.stream.spark.ExternalizableDeserializer
+import com.splicemachine.derby.impl.kryo.KryoSerialization
+import com.splicemachine.derby.stream.spark.KafkaReadFunction.Message
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
 import org.apache.kafka.common.TopicPartition
-import org.apache.kafka.common.serialization.IntegerDeserializer
+import org.apache.kafka.common.serialization.{ByteArrayDeserializer, IntegerDeserializer}
 
 import scala.collection.JavaConverters._
 
 object KafkaUtils {
-
-  private def getConsumer(bootstrapServers: String): KafkaConsumer[Integer, Externalizable] = {
+  private def getConsumer(bootstrapServers: String): KafkaConsumer[Integer, Array[Byte]] = {
     val props = new Properties
     val groupId = "spark-consumer-nsdsk-ku"
     props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers)
     props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
     props.put(ConsumerConfig.CLIENT_ID_CONFIG, groupId + "-" + UUID.randomUUID)
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
-    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
-    new KafkaConsumer[Integer, Externalizable](props)
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ByteArrayDeserializer].getName)
+    new KafkaConsumer[Integer, Array[Byte]](props)
   }
 
   def messageCount(bootstrapServers: String, topicName: String): Long = {
@@ -72,16 +71,26 @@ object KafkaUtils {
     nextOffset - firstOffset
   }
   
-  def lastMessageOf(bootstrapServers: String, topicName: String, partition: Int): Externalizable = {
+  def lastMessageOf(bootstrapServers: String, topicName: String, partition: Int): Option[Externalizable] = {
     @transient lazy val consumer = getConsumer(bootstrapServers)
 
     val topicPartition = new TopicPartition(topicName, partition)
     val partitions = Seq(topicPartition)
     consumer.assign(partitions.asJava)
-    consumer.seek(topicPartition, consumer.endOffsets(partitions.asJava).get(topicPartition) - 1 )
-    
-    consumer.poll(java.time.Duration.ofMillis(100L)).asScala
-      .headOption.map(_.value).getOrElse(new ValueRow())
+    val end = consumer.endOffsets(partitions.asJava).get(topicPartition)
+    if( end == 0L ) {
+      None
+    } else {
+      consumer.seek(topicPartition, end-1)
+      consumer.poll(java.time.Duration.ofMillis(1000L)).asScala
+        .headOption.map( r => {
+          val kryo = new KryoSerialization()
+          kryo.init
+          val m = kryo.deserialize(r.value).asInstanceOf[Message]
+          kryo.close
+          m
+        })
+    }
   }
 
   def messagesFrom(bootstrapServers: String, topicName: String, partition: Int): Seq[Externalizable] = {
@@ -92,8 +101,8 @@ object KafkaUtils {
     val expectedMsgCt = messageCount(bootstrapServers, topicName, partition)
     
     val timeout = java.time.Duration.ofMillis(1000L)
-    var records = Iterable.empty[ConsumerRecord[Integer, Externalizable]]
-    var newRecords = consumer.poll(timeout).asScala // newRecords: Iterable[ConsumerRecord[Integer, Externalizable]]
+    var records = Iterable.empty[ConsumerRecord[Integer, Array[Byte]]]
+    var newRecords = consumer.poll(timeout).asScala // newRecords: Iterable[ConsumerRecord[Integer, Array[Byte]]]
     records = records ++ newRecords
 
     var retries = 0
@@ -109,12 +118,15 @@ object KafkaUtils {
     }
     consumer.close
     
-    println( s"KafkaUtils.msgs record count: ${records.size}" )
+    //println( s"KafkaUtils.msgs record count: ${records.size}" )
 
     val seqBuilder = Seq.newBuilder[Externalizable]
+    val kryo = new KryoSerialization()
+    kryo.init
     for (record <- records.iterator) {
-      seqBuilder += record.value
+      seqBuilder += kryo.deserialize(record.value).asInstanceOf[Message]
     }
+    kryo.close
 
     seqBuilder.result
   }
