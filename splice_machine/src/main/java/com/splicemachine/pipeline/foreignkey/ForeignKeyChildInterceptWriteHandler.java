@@ -142,7 +142,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
                 i++;
             }
         } catch (Exception e) {
-            violationProcessor.failWrite(e, ctx);
+            violationProcessor.failWrite(e, ctx, null);
         }finally{
             if(table!=null)
                 table.close();

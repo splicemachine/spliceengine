@@ -262,7 +262,7 @@ public class ProtoUtil {
                 .setDeleteRule(fKConstraintDescriptor.getRaDeleteRule())
                 .setTable(createTable(td.getHeapConglomerateId(),td,lcc))
                 .addAllColumnIndices(Ints.asList(fKConstraintDescriptor.getReferencedColumns()))
-                .setParentTableConglomerate(fKConstraintDescriptor.getTableDescriptor().getHeapConglomerateId())
+                .setParentTableConglomerate(fKConstraintDescriptor.getReferencedConstraint().getTableDescriptor().getHeapConglomerateId())
                 .build();
         } catch (StandardException se) {
             throw new RuntimeException(se);

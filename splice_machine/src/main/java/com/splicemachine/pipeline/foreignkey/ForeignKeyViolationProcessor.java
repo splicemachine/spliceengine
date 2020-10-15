@@ -22,6 +22,8 @@ import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.primitives.Bytes;
 
+import java.util.Map;
+
 /**
  * We intercept writes on either the parent or child table and check for the existence of referenced or referring
  * rows on the child or parent table(s).  When those writes fail the remote *CheckWriteHandler returns a failure
@@ -42,17 +44,36 @@ public class ForeignKeyViolationProcessor {
      * how error details are passed between FK CheckWriteHandlers and FK InterceptWriteHandlers.
      */
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
-    public void failWrite(Exception originalException, WriteContext ctx) {
+    public void failWrite(Exception originalException, WriteContext ctx, Map<String, byte[]> originators) {
         Throwable t =exceptionFactory.processPipelineException(originalException);
         if(t instanceof ForeignKeyViolation){
-            doFail(ctx,(ForeignKeyViolation)t);
+            doFail(ctx,(ForeignKeyViolation)t, originators);
         }
     }
 
-    private void doFail(WriteContext ctx, ForeignKeyViolation cause) {
-        String hexEncodedFailedRowKey = cause.getContext().getMessages()[0];
+    /**
+     *
+     * @param ctx The write context
+     * @param cause The cause, if the cause if coming from another pipeline, then we peek its messages looking for an originator
+     *              which is a rowKey of a local mutation caused a failure on a (remote) pipeline.
+     * @param originators childTableBaseRow -> parentTableBaseRow mapping for also failing any originating row in the current
+     *                    pipeline.
+     */
+    private void doFail(WriteContext ctx, ForeignKeyViolation cause, Map<String, byte[]> originators) {
+        String hexEncodedFailedRowKey;
+        if(cause.getContext().getMessages().length == 5) {
+            hexEncodedFailedRowKey = cause.getContext().getMessages()[4];
+        } else {
+            hexEncodedFailedRowKey = cause.getContext().getMessages()[0];
+        }
         byte[] failedRowKey = Bytes.fromHex(hexEncodedFailedRowKey);
         ConstraintContext constraintContext = cause.getContext();
         ctx.result(failedRowKey, new WriteResult(Code.FOREIGN_KEY_VIOLATION, constraintContext));
+        if(originators != null) {
+            byte[] originator = originators.remove(hexEncodedFailedRowKey);
+            if (originator != null) {
+                ctx.result(originator, new WriteResult(Code.FOREIGN_KEY_VIOLATION, constraintContext));
+            }
+        }
     }
 }

@@ -124,18 +124,14 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     @Override
     public void result(byte[] resultRowKey, WriteResult result) {
-        boolean added = false;
         for (KVPair kvPair : resultsMap.keySet()) {
             byte[] currentRowKey = kvPair.getRowKey();
             if (Arrays.equals(currentRowKey, resultRowKey)) {
                 resultsMap.put(kvPair, result);
-                added = true;
-                break;
+                return;
             }
         }
-        if (!added) {
-            resultsMap.replaceAll((p, v) -> result);
-        }
+        throw new IllegalArgumentException("expected existing value in resultsMap");
     }
 
     @Override
