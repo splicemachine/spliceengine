@@ -144,21 +144,30 @@ public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
     private boolean mergeable(IndexRowGenerator innerRowGenerator,
                               OptimizablePredicateList predList,
                               Optimizable innerTable) throws StandardException {
-        int[] keyColumnPositionMap = innerRowGenerator.baseColumnPositions();
+        boolean isIndexOnExpr = innerRowGenerator.isOnExpression();
+        int[] keyColumnPositionMap = isIndexOnExpr ? null : innerRowGenerator.baseColumnPositions();
+        boolean[] keyAscending = innerRowGenerator.isAscending();
 
-        BitSet innerColumns = new BitSet(keyColumnPositionMap.length);
+        BitSet innerColumns = new BitSet(keyAscending.length);
         for(int p=0;p<predList.size();p++) {
             Predicate pred = (Predicate) predList.getOptPredicate(p);
             RelationalOperator relop = pred.getRelop();
             if (pred.isJoinPredicate()) {
                 assert relop instanceof BinaryRelationalOperatorNode :
                         "Programmer error: RelationalOperator of type " + relop.getClass() + " detected";
-                BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) relop;
-                ColumnReference innerColumn = relop.getColumnOperand(innerTable);
-                if (innerColumn == null) continue;
-                int innerColumnNumber = innerColumn.getColumnNumber();
-                for (int i = 0; i < keyColumnPositionMap.length; ++i) {
-                    if (innerColumnNumber == keyColumnPositionMap[i]) {
+                int innerColumnNumber;
+                if (isIndexOnExpr) {
+                    innerColumnNumber = pred.hasEqualOnIndexExpression(innerTable);
+                } else {
+                    ColumnReference innerColumn = relop.getColumnOperand(innerTable);
+                    if (innerColumn == null) {
+                        continue;
+                    }
+                    innerColumnNumber = innerColumn.getColumnNumber();
+                }
+                for (int i = 0; i < keyAscending.length; ++i) {
+                    int keyColumnPosition = isIndexOnExpr ? i : keyColumnPositionMap[i];
+                    if (innerColumnNumber == keyColumnPosition) {
                         innerColumns.set(i);
                     }
                 }
@@ -166,7 +175,8 @@ public class HalfMergeSortJoinStrategy extends HashableJoinStrategy {
                 if(!(relop instanceof BinaryRelationalOperatorNode)) continue;
                 if(relop.getOperator()!=RelationalOperator.EQUALS_RELOP) continue;
 
-                int innerEquals = pred.hasEqualOnColumnList(keyColumnPositionMap, innerTable);
+                int innerEquals = isIndexOnExpr ? pred.hasEqualOnIndexExpression(innerTable)
+                                                : pred.hasEqualOnColumnList(keyColumnPositionMap, innerTable);
                 if (innerEquals >= 0) innerColumns.set(innerEquals);
             }
         }

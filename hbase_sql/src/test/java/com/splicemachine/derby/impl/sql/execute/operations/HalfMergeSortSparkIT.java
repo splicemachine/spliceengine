@@ -17,17 +17,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.HBaseTestUtils;
-import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -40,9 +36,7 @@ import java.util.List;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 /**
  * ITs for HalfMergeSort on Spark, exercise HBasePartitioner etc.
@@ -132,6 +126,7 @@ public class HalfMergeSortSparkIT {
     protected static final String A = "A";
     protected static final String B = "B";
     protected static final String A_IDX = "A_IDX";
+    protected static final String A_EXPR_IDX = "A_EXPR_IDX";
     protected static final String T1 = "T1";
     protected static final String T2 = "T2";
 
@@ -156,6 +151,7 @@ public class HalfMergeSortSparkIT {
             "(c1 int, c2 int, c3 int, c4 int)");
 
     protected static SpliceIndexWatcher aIndex = new SpliceIndexWatcher(A, CLASS_NAME, A_IDX,CLASS_NAME,"(c1 desc, c2 asc, c3 desc)");
+    protected static SpliceIndexWatcher aExprIndex = new SpliceIndexWatcher(A, CLASS_NAME, A_EXPR_IDX, CLASS_NAME, "(c1+1 desc, c2 asc, abs(c3) desc)");
 
     protected static SpliceTableWatcher bTable = new SpliceTableWatcher(B, CLASS_NAME,
             "(c1 int, c2 int, c3 int, primary key(c1, c2))");
@@ -164,10 +160,19 @@ public class HalfMergeSortSparkIT {
             " %s.%s b inner join %s.%s a --SPLICE-PROPERTIES index=%s, joinStrategy=HALFSORTMERGE, useSpark=true\n" +
             " on b.c1 = a.c3 and a.c1=1",CLASS_NAME,B,CLASS_NAME,A,A_IDX);
 
+    protected static String MERGE_INDEX_RIGHT_SIDE_EXPR_INDEX_NEGATIVE_TEST = format("select sum(b.c3) from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            " %s.%s b inner join %s.%s a --SPLICE-PROPERTIES index=%s, joinStrategy=HALFSORTMERGE, useSpark=true\n" +
+            " on b.c1 = abs(a.c3) and a.c1+1=2",CLASS_NAME,B,CLASS_NAME,A,A_EXPR_IDX);
+
     protected static String MERGE_INDEX_RIGHT_SIDE_POSITIVE_TEST = format("select sum(a.c4) from --SPLICE-PROPERTIES joinOrder=fixed\n" +
             " a --SPLICE-PROPERTIES index=%s\n" +
             " inner join b --SPLICE-PROPERTIES joinStrategy=HALFSORTMERGE, useSpark=true\n" +
             " on b.c1 = a.c3 and a.c1=1",A_IDX);
+
+    protected static String MERGE_INDEX_RIGHT_SIDE_EXPR_INDEX_POSITIVE_TEST = format("select sum(b.c3) from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            " a --SPLICE-PROPERTIES index=%s\n" +
+            " inner join b --SPLICE-PROPERTIES joinStrategy=HALFSORTMERGE, useSpark=true\n" +
+            " on b.c1 = abs(a.c3) and a.c1+1=2",A_EXPR_IDX);
 
     protected static String MERGE_INDEX_RIGHT_SIDE_TEST = format("select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
             " %s.%s inner join %s.%s --SPLICE-PROPERTIES index=%s, joinStrategy=HALFSORTMERGE, useSpark=true\n" +
@@ -315,12 +320,23 @@ public class HalfMergeSortSparkIT {
         catch (Exception e) {
             Assert.assertTrue(e.getMessage().compareTo("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.")==0);
         }
+
+        try {
+            TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_EXPR_INDEX_NEGATIVE_TEST));
+            fail("Expected infeasible join strategy exception");
+        }
+        catch (Exception e) {
+            Assert.assertTrue(e.getMessage().compareTo("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.")==0);
+        }
     }
 
     @Test
     public void testHalfSortMergeWithRightIndexPositive() throws Exception {
-        List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_POSITIVE_TEST));
-        Assert.assertEquals("does not return 1 rows for merge, position problems in MergeSortJoinStrategy/Operation?",1, data.size());
+        List<Object[]> data1 = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_POSITIVE_TEST));
+        Assert.assertEquals("does not return 1 rows for merge, position problems in MergeSortJoinStrategy/Operation?",1, data1.size());
+
+        List<Object[]> data2 = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_EXPR_INDEX_POSITIVE_TEST));
+        Assert.assertEquals("does not return 1 rows for merge, position problems in MergeSortJoinStrategy/Operation?",1, data2.size());
     }
 
     @Test
