@@ -28,12 +28,11 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggreg
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -87,24 +86,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		public boolean nativeSparkUsed() { return nativeSparkUsed; }
 
 		@Override
-		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-				SpliceLogUtils.trace(LOG,"readExternal");
-				super.readExternal(in);
-				this.nativeSparkMode = CompilerContext.NativeSparkModeType.values()[in.readInt()];
-				this.aggregateContext = (AggregateContext)in.readObject();
-				source = (SpliceOperation)in.readObject();
-		}
-
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				SpliceLogUtils.trace(LOG,"writeExternal");
-				super.writeExternal(out);
-				out.writeInt(nativeSparkMode.ordinal());
-				out.writeObject(aggregateContext);
-				out.writeObject(source);
-		}
-
-		@Override
 		public List<SpliceOperation> getSubOperations() {
 				SpliceLogUtils.trace(LOG, "getSubOperations");
 				List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
@@ -133,6 +114,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		}
 
 		//	@Override
+		@SuppressFBWarnings(value = "NM_VERY_CONFUSING", justification = "DB-9844")
 		public void cleanup() {
 				if (LOG.isTraceEnabled())
 						LOG.trace("cleanup");

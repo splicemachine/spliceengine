@@ -201,7 +201,7 @@ public class OptimizerImpl implements Optimizer{
         this.numTablesInQuery=numTablesInQuery;
         numOptimizables=optimizableList.size();
         proposedJoinOrder=new int[numOptimizables];
-        if(numOptimizables>6 && optimizableList.optimizeJoinOrder()){
+        if(numOptimizables>optimizableList.getTableLimitForExhaustiveSearch() && optimizableList.optimizeJoinOrder()){
             permuteState=READY_TO_JUMP;
             firstLookOrder=new int[numOptimizables];
         }else
@@ -1231,7 +1231,7 @@ public class OptimizerImpl implements Optimizer{
     }
 
     @Override
-    public void modifyAccessPaths() throws StandardException{
+    public void modifyAccessPaths(JBitSet outerSet) throws StandardException{
         OptimizerTrace tracer = tracer();
         if(optimizerTrace){
             tracer.trace(OptimizerFlag.MODIFYING_ACCESS_PATHS,0,0,0.0);
@@ -1244,6 +1244,8 @@ public class OptimizerImpl implements Optimizer{
 
         /* Form a bit map of the tables as they are put into the join order */
         JBitSet outerTables=new JBitSet(numOptimizables);
+        if (outerSet != null)
+            outerTables.or(outerSet);
 
         /* Modify the access path of each table, as necessary */
         for(int ictr=0;ictr<numOptimizables;ictr++){
@@ -2462,7 +2464,7 @@ public class OptimizerImpl implements Optimizer{
          ** no timeout.
          */
         if(noTimeout) return false;
-        if(timeExceeded || numOptimizables<=6) return timeExceeded;
+        if(timeExceeded || numOptimizables<=optimizableList.getTableLimitForExhaustiveSearch()) return timeExceeded;
 
         // All of the following are assumed to be in milliseconds,
         // even if originally derived from a different unit:

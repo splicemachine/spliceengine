@@ -45,13 +45,13 @@ public class HScan implements DataScan {
 
     @Override
     public DataScan startKey(byte[] startKey){
-        scan.setStartRow(startKey);
+        scan.withStartRow(startKey);
         return this;
     }
 
     @Override
     public DataScan stopKey(byte[] stopKey){
-        scan.setStopRow(stopKey);
+        scan.withStopRow(stopKey);
         return this;
     }
 

@@ -36,13 +36,14 @@ import com.splicemachine.db.impl.load.ColumnInfo;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.EngineUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -660,6 +661,14 @@ public class HdfsImport {
                 skipSampling = "false";
 
             LanguageConnectionContext lcc = ((EmbedConnection)conn).getLanguageConnection();
+
+            try {
+                TableDescriptor td = DataDictionaryUtils.getTableDescriptor(lcc, schemaName, tableName);
+                tableName = td.getName();
+            }
+            catch (StandardException e) {
+                throw new SQLException(e);
+            }
 
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String selectList = generateColumnList(lcc,schemaName,tableName,insertColumnList, true, null);

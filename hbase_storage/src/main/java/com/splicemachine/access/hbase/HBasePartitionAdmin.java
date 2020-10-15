@@ -22,7 +22,11 @@ import java.nio.charset.Charset;
 import java.sql.SQLException;
 import java.sql.SQLWarning;
 import java.util.*;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -53,9 +57,9 @@ import org.apache.hadoop.hbase.security.access.UserPermission;
 import org.apache.hadoop.hbase.shaded.protobuf.generated.AdminProtos;
 import org.apache.hadoop.hbase.util.HBaseFsckRepair;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import org.apache.hadoop.hbase.*;
-import org.spark_project.guava.collect.Collections2;
+import splice.com.google.common.collect.Collections2;
 
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionCreator;
@@ -595,6 +599,48 @@ public class HBasePartitionAdmin implements PartitionAdmin{
         return false;
     }
 
+    @Override
+    public void setCatalogVersion(long conglomerateNumber, String version) throws IOException {
+
+        TableName tn = tableInfoFactory.getTableInfo(Long.toString(conglomerateNumber));
+        try {
+            org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
+            ((TableDescriptorBuilder.ModifyableTableDescriptor) td).setValue(SIConstants.CATALOG_VERSION_ATTR, version);
+            boolean tableEnabled = admin.isTableEnabled(tn);
+            if (tableEnabled) {
+                admin.disableTable(tn);
+            }
+            admin.modifyTable(td);
+        }
+        finally {
+            int wait = 0;
+            if (tn != null && !admin.isTableEnabled(tn)) {
+                admin.enableTable(tn);
+                while (wait < 2000 && !admin.isTableEnabled(tn)) {
+                    try {
+                        Thread.sleep(100);
+                        wait++;
+                    } catch (InterruptedException e) {
+                        throw new IOException(e);
+                    }
+                }
+            }
+            if (!admin.isTableEnabled(tn)) {
+                throw new IOException("Table " + tn.getNameAsString() + " is not enabled");
+            }
+        }
+    }
+
+    @Override
+    public String getCatalogVersion(long conglomerateNumber) throws StandardException {
+        try {
+            TableName tn = tableInfoFactory.getTableInfo(Long.toString(conglomerateNumber));
+            org.apache.hadoop.hbase.client.TableDescriptor td = admin.getDescriptor(tn);
+            return td.getValue(SIConstants.CATALOG_VERSION_ATTR);
+        }catch (Exception e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
     private boolean grantCreatePrivilege(String tableName, String userName) throws Throwable{
 
         if (hasCreatePrivilege(tableName, userName)){
@@ -677,5 +723,74 @@ public class HBasePartitionAdmin implements PartitionAdmin{
             }
         }
         return null;
+    }
+
+    static public int getPriorityShouldHave(org.apache.hadoop.hbase.client.TableDescriptor td)
+    {
+        String s = td.getValue("tableDisplayName");
+        if( s == null ) {
+            return HBaseTableDescriptor.HIGH_TABLE_PRIORITY;
+        }
+        else {
+            if (s.startsWith("SYS") || s.startsWith("splice:") || s.equals("MON_GET_CONNECTION")) {
+                return HBaseTableDescriptor.HIGH_TABLE_PRIORITY;
+            } else {
+                return HBaseTableDescriptor.NORMAL_TABLE_PRIORITY;
+            }
+        }
+    }
+    public static void setHTablePriority(Admin admin, TableName tn,
+                                         org.apache.hadoop.hbase.client.TableDescriptor td,
+                                         int priority) throws IOException {
+        boolean tableEnabled = admin.isTableEnabled(tn);
+        if (tableEnabled) {
+            admin.disableTable(tn);
+        }
+        ((TableDescriptorBuilder.ModifyableTableDescriptor) td).setPriority(priority);
+        admin.modifyTable(td);
+        admin.enableTable(tn);
+    }
+
+    public static int upgradeTablePrioritiesFromList(Admin admin,
+                                                     List<org.apache.hadoop.hbase.client.TableDescriptor> tableDescriptors)
+            throws Exception
+    {
+        final int NUM_THREADS = 10;
+        ExecutorService executor = null;
+        try {
+
+            List<Callable<Void>> upgradeTasks = tableDescriptors.stream()
+                    .filter( td -> td.getPriority() != getPriorityShouldHave(td))
+                    .map( td -> (Callable<Void>) () -> {
+                        setHTablePriority(admin, td.getTableName(), td, getPriorityShouldHave(td));
+                        return null;
+                    })
+                    .collect(Collectors.toList());
+            executor = Executors.newFixedThreadPool( NUM_THREADS );
+            executor.invokeAll( upgradeTasks );
+            return upgradeTasks.size();
+        } catch (InterruptedException e) {
+            throw e;
+        }
+        finally
+        {
+            if(executor != null)
+                executor.shutdown();
+        }
+    }
+    @Override
+    public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
+        List<org.apache.hadoop.hbase.client.TableDescriptor> tableDescriptorList =
+                conglomerateIdList.stream()
+                        .map( conglomerateId -> {
+                            TableName tn = tableInfoFactory.getTableInfo(conglomerateId);
+                            try {
+                                return admin.getDescriptor(tn);
+                            } catch (IOException e) {
+                                return null;
+                            } } )
+                        .filter( td -> td != null )
+                        .collect(Collectors.toList());
+        return upgradeTablePrioritiesFromList( admin, tableDescriptorList );
     }
 }

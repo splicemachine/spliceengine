@@ -24,6 +24,29 @@
  */
 package com.splicemachine.db.client.net;
 
+import com.splicemachine.db.client.ClientPooledConnection;
+import com.splicemachine.db.client.am.CallableStatement;
+import com.splicemachine.db.client.am.ClientDatabaseMetaData;
+import com.splicemachine.db.client.am.PreparedStatement;
+import com.splicemachine.db.client.am.Statement;
+import com.splicemachine.db.client.am.*;
+import com.splicemachine.db.iapi.reference.Attribute;
+import com.splicemachine.db.jdbc.ClientBaseDataSource;
+import com.splicemachine.db.jdbc.ClientDriver;
+import com.splicemachine.db.shared.common.i18n.MessageUtil;
+import com.splicemachine.db.shared.common.reference.MessageId;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.ietf.jgss.GSSContext;
+import org.ietf.jgss.GSSManager;
+import org.ietf.jgss.GSSName;
+import org.ietf.jgss.Oid;
+
+import javax.security.auth.Subject;
+import javax.security.auth.kerberos.KerberosPrincipal;
+import javax.security.auth.login.Configuration;
+import javax.security.auth.login.LoginContext;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
@@ -34,34 +57,10 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.Executor;
 
-import com.splicemachine.db.client.am.*;
-import com.splicemachine.db.client.am.CallableStatement;
-import com.splicemachine.db.client.am.DatabaseMetaData;
-import com.splicemachine.db.client.am.PreparedStatement;
-import com.splicemachine.db.client.am.Statement;
-import com.splicemachine.db.shared.common.reference.MessageId;
-import com.splicemachine.db.shared.common.i18n.MessageUtil;
-import com.splicemachine.db.iapi.reference.Attribute;
-import com.splicemachine.db.jdbc.ClientBaseDataSource;
-import com.splicemachine.db.jdbc.ClientDriver;
-import com.splicemachine.db.client.ClientPooledConnection;
-
-import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.db.shared.common.sanity.SanityManager;
-import org.ietf.jgss.GSSContext;
-import org.ietf.jgss.GSSManager;
-import org.ietf.jgss.GSSName;
-import org.ietf.jgss.Oid;
-
-import javax.security.auth.Subject;
-import javax.security.auth.kerberos.KerberosPrincipal;
-import javax.security.auth.login.Configuration;
-import javax.security.auth.login.*;
-
-public class NetConnection extends com.splicemachine.db.client.am.Connection {
+public class NetConnection extends ClientConnection {
     
     // Use this to get internationalized strings...
-    protected static MessageUtil msgutil = SqlException.getMessageUtil();
+    protected static final MessageUtil msgutil = SqlException.getMessageUtil();
     protected Properties properties_;
     protected NetConnection sideConnection_;
 
@@ -73,9 +72,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     //appropriate events.
     private final ClientPooledConnection pooledConnection_;
     private final boolean closeStatementsOnClose;
-
-    // For XA Transaction
-    protected int pendingEndXACallinfoOffset_ = -1;
 
     //-----------------------------state------------------------------------------
 
@@ -107,7 +103,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     // it is set by the parseExcsatrd method but not really used for much at this
     // time.  one possible use is for logging purposes and in the future it
     // may be placed in the trace.
-    String targetExtnam_;
+    // String targetExtnam_;
     String extnam_;
 
     // Server Class Name of the target server returned in excsatrd.
@@ -123,7 +119,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     // Again this is something which we don't currently use but
     // keep it in case we want to log it in some problem determination
     // trace/dump later.
-    protected String targetSrvnam_;
+    // protected String targetSrvnam_;
 
     // Server Product Release Level of the target server returned in excsatrd.
     // specifies the procuct release level of a ddm server.
@@ -203,10 +199,9 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         return password;
     }
 
-    protected byte[] cnntkn_ = null;
+    // protected byte[] cnntkn_ = null;
 
     // resource manager Id for XA Connections.
-    private int rmId_ = 0;
     protected NetXAResource xares_ = null;
     protected java.util.Hashtable indoubtTransactions_ = null;
     protected int currXACallInfoOffset_ = 0;
@@ -337,7 +332,6 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         setDeferredResetPassword(password);
         checkDatabaseName();
         dataSource_ = dataSource;
-        this.rmId_ = rmId;
         this.isXAConnection_ = isXAConn;
         flowConnect(password, securityMechanism_);
         // it's possible that the internal Driver.connect() calls returned null,
@@ -369,9 +363,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         // do not reset managers on a connection reset.  this information shouldn't
         // change and can be used to check secmec support.
 
-        targetExtnam_ = null;
         targetSrvclsnm_ = null;
-        targetSrvnam_ = null;
         targetSrvrlslv_ = null;
         publicKey_ = null;
         targetPublicKey_ = null;
@@ -482,7 +474,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
             default:
                 throw new SqlException(agent_.logWriter_, 
                     new ClientMessageId(SQLState.SECMECH_NOT_SUPPORTED),
-                    new Integer(securityMechanism));
+                        securityMechanism);
             }
         } catch (java.lang.Throwable e) { // if *anything* goes wrong, make sure the connection is destroyed
             // always mark the connection closed in case of an error.
@@ -605,7 +597,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
             default:
                 throw new SqlException(agent_.logWriter_, 
                     new ClientMessageId(SQLState.SECMECH_NOT_SUPPORTED),
-                    new Integer(securityMechanism));
+                        securityMechanism);
             }
         } catch (SqlException sqle) {            // this may not be needed because on method up the stack
             open_ = false;                       // all reset exceptions are caught and wrapped in disconnect exceptions
@@ -619,12 +611,13 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         }
     }
 
+    @SuppressFBWarnings(value="FI_USELESS", justification="NetXAConnection needs it")
     protected void finalize() throws java.lang.Throwable {
         super.finalize();
     }
 
     protected byte[] getCnnToken() {
-        return cnntkn_;
+        return null; // should return cnntkn_;
     }
 
     protected short getSequenceNumber() {
@@ -1155,9 +1148,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
                                 String srvclsnm,
                                 String srvnam,
                                 String srvrlslv) {
-        targetExtnam_ = extnam;          // any of these could be null
-        targetSrvclsnm_ = srvclsnm;      // since then can be optionally returned from the
-        targetSrvnam_ = srvnam;          // server
+        // any of these could be null since then can be optionally returned from the server
+        targetSrvclsnm_ = srvclsnm;
         targetSrvrlslv_ = srvrlslv;
     }
 
@@ -1315,7 +1307,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     }
 
 
-    protected DatabaseMetaData newDatabaseMetaData_() {
+    protected ClientDatabaseMetaData newDatabaseMetaData_() {
             return ClientDriver.getFactory().newNetDatabaseMetaData(netAgent_, this);
     }
 
@@ -1335,8 +1327,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         if ((usridLength == 0) || (usridLength > NetConfiguration.USRID_MAXSIZE)) {
             throw new SqlException(netAgent_.logWriter_, 
                 new ClientMessageId(SQLState.CONNECT_USERID_LENGTH_OUT_OF_RANGE),
-                new Integer(usridLength), 
-                new Integer(NetConfiguration.USRID_MAXSIZE));
+                    usridLength,
+                    NetConfiguration.USRID_MAXSIZE);
         }
     }
 
@@ -1345,8 +1337,8 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         if ((passwordLength == 0) || (passwordLength > NetConfiguration.PASSWORD_MAXSIZE)) {
             throw new SqlException(netAgent_.logWriter_,
                 new ClientMessageId(SQLState.CONNECT_PASSWORD_LENGTH_OUT_OF_RANGE),
-                new Integer(passwordLength),
-                new Integer(NetConfiguration.PASSWORD_MAXSIZE));
+                    passwordLength,
+                    NetConfiguration.PASSWORD_MAXSIZE);
         }
     }
 
@@ -1390,7 +1382,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
         if (!secmecSupported) {
             throw new SqlException(agent_.logWriter_, 
                 new ClientMessageId(SQLState.SECMECH_NOT_SUPPORTED),
-                new Integer(securityMechanism));
+                    securityMechanism);
         }
     }
 
@@ -1849,7 +1841,7 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
             (String collection,
              com.splicemachine.db.client.am.Agent agent,
              String databaseName) {
-        return new com.splicemachine.db.client.am.SectionManager(collection, agent, databaseName);
+        return new com.splicemachine.db.client.am.SectionManager(agent);
     }
 
     public boolean willAutoCommitGenerateFlow() {

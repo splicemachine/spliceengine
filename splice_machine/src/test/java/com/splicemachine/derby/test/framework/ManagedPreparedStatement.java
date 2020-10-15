@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.io.InputStream;
 import java.io.Reader;

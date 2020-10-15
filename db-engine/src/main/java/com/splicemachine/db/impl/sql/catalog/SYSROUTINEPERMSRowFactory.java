@@ -91,13 +91,13 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
 		,"08264012-010c-bc85-060d-000000109ab8" // index3
     };
 
-    public SYSROUTINEPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSROUTINEPERMSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo( COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, indexUniqueness, uuids);
 	}
 
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException
 	{
 		UUID oid;
         String routinePermID = null;
@@ -112,6 +112,9 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
         }
         else
         {
+            if (!(td instanceof RoutinePermsDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             RoutinePermsDescriptor rpd = (RoutinePermsDescriptor) td;
             oid = rpd.getUUID();
             if ( oid == null )
@@ -182,33 +185,35 @@ public class SYSROUTINEPERMSRowFactory extends PermissionsCatalogRowFactory
         
         switch( indexNumber)
         {
-        case GRANTEE_ALIAS_GRANTOR_INDEX_NUM:
-            // RESOLVE We do not support the FOR GRANT OPTION, so rougine permission rows are unique on the
-            // grantee and alias UUID columns. The grantor column will always have the name of the owner of the
-            // routine. So the index key, used for searching the index, only has grantee and alias UUID columns.
-            // It does not have a grantor column.
-            //
-            // If we support FOR GRANT OPTION then there may be multiple routine permissions rows for a
-            // (grantee, aliasID) combination. Since there is only one kind of routine permission (execute)
-            // execute permission checking need not worry about multiple routine permission rows for a
-            // (grantee, aliasID) combination, it only cares whether there are any. Grant and revoke must
-            // look through multiple rows to see if the current user has grant/revoke permission and use
-            // the full key in checking for the pre-existence of the permission being granted or revoked.
-            row = getExecutionFactory().getIndexableRow( 2);
-            row.setColumn(1, getAuthorizationID( perm.getGrantee()));
-            String routineUUIDStr = ((RoutinePermsDescriptor) perm).getRoutineUUID().toString();
-            row.setColumn(2, new SQLChar(routineUUIDStr));
-            break;
-        case ROUTINEPERMSID_INDEX_NUM:
-            row = getExecutionFactory().getIndexableRow( 1);
-            String routinePermsUUIDStr = perm.getObjectID().toString();
-            row.setColumn(1, new SQLChar(routinePermsUUIDStr));
-            break;
-        case ALIASID_INDEX_NUM:
-            row = getExecutionFactory().getIndexableRow( 1);
-            routineUUIDStr = ((RoutinePermsDescriptor) perm).getRoutineUUID().toString();
-            row.setColumn(1, new SQLChar(routineUUIDStr));
-            break;
+            case GRANTEE_ALIAS_GRANTOR_INDEX_NUM:
+                // RESOLVE We do not support the FOR GRANT OPTION, so rougine permission rows are unique on the
+                // grantee and alias UUID columns. The grantor column will always have the name of the owner of the
+                // routine. So the index key, used for searching the index, only has grantee and alias UUID columns.
+                // It does not have a grantor column.
+                //
+                // If we support FOR GRANT OPTION then there may be multiple routine permissions rows for a
+                // (grantee, aliasID) combination. Since there is only one kind of routine permission (execute)
+                // execute permission checking need not worry about multiple routine permission rows for a
+                // (grantee, aliasID) combination, it only cares whether there are any. Grant and revoke must
+                // look through multiple rows to see if the current user has grant/revoke permission and use
+                // the full key in checking for the pre-existence of the permission being granted or revoked.
+                row = getExecutionFactory().getIndexableRow( 2);
+                row.setColumn(1, getAuthorizationID( perm.getGrantee()));
+                String routineUUIDStr = ((RoutinePermsDescriptor) perm).getRoutineUUID().toString();
+                row.setColumn(2, new SQLChar(routineUUIDStr));
+                break;
+            case ROUTINEPERMSID_INDEX_NUM:
+                row = getExecutionFactory().getIndexableRow( 1);
+                String routinePermsUUIDStr = perm.getObjectID().toString();
+                row.setColumn(1, new SQLChar(routinePermsUUIDStr));
+                break;
+            case ALIASID_INDEX_NUM:
+                row = getExecutionFactory().getIndexableRow( 1);
+                routineUUIDStr = ((RoutinePermsDescriptor) perm).getRoutineUUID().toString();
+                row.setColumn(1, new SQLChar(routineUUIDStr));
+                break;
+            default:
+                break;
         }
         return row;
     } // end of buildIndexKeyRow

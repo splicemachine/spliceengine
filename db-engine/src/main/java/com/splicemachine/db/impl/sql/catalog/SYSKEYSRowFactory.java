@@ -35,18 +35,14 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.KeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SubKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLChar;
+
+import javax.xml.crypto.Data;
 
 /**
  * Factory for creating a SYSKEYS row.
@@ -83,9 +79,9 @@ public class SYSKEYSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    public SYSKEYSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSKEYSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo(SYSKEYS_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids );
 	}
 
@@ -102,7 +98,7 @@ public class SYSKEYSRowFactory extends CatalogRowFactory
 	 *
 	 * @exception   StandardException thrown on failure
 	 */
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
 					throws StandardException 
 	{
 		DataValueDescriptor		col;
@@ -113,6 +109,9 @@ public class SYSKEYSRowFactory extends CatalogRowFactory
 
 		if (td != null)
 		{
+			if (!(td instanceof KeyConstraintDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
 			KeyConstraintDescriptor	constraint = (KeyConstraintDescriptor)td;
 
 			/*
@@ -180,8 +179,6 @@ public class SYSKEYSRowFactory extends CatalogRowFactory
 		UUID					conglomerateUUID;
 		String				constraintUUIDString;
 		String				conglomerateUUIDString;
-
-		ddg = dd.getDataDescriptorGenerator();
 
 		/* 1st column is CONSTRAINTID (UUID - char(36)) */
 		col = row.getColumn(SYSKEYS_CONSTRAINTID);

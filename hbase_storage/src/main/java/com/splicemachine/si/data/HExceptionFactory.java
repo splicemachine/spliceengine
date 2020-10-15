@@ -32,7 +32,7 @@ import org.apache.hadoop.hbase.regionserver.NoSuchColumnFamilyException;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.ipc.RemoteException;
 import org.apache.spark.SparkException;
-import org.spark_project.guava.base.Throwables;
+import splice.com.google.common.base.Throwables;
 
 import java.io.IOException;
 import java.lang.reflect.Constructor;

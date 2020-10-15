@@ -63,9 +63,9 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSTOKENSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.base.Predicates;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.base.Predicates;
+import splice.com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -117,6 +117,8 @@ public class FromBaseTable extends FromTable {
     private boolean pin;
     int updateOrDelete;
     boolean skipStats;
+    boolean useRealTableStats;
+    HashSet<Integer> usedNoStatsColumnIds;
     int splits;
     long defaultRowCount;
     double defaultSelectivityFactor = -1d;
@@ -197,7 +199,7 @@ public class FromBaseTable extends FromTable {
 
     private boolean isBulkDelete = false;
 
-    private long pastTxId = -1;
+    private ValueNode pastTxIdExpression = null;
 
     @Override
     public boolean isParallelizable(){
@@ -211,15 +213,13 @@ public class FromBaseTable extends FromTable {
      * @param rclOrUD update/delete flag or result column list
      * @param propsOrRcl properties or result column list
      * @param isBulkDelete bulk delete flag or past tx id.
-     * @param pastTxId the ID of the past transaction.
+     * @param pastTxIdExpr the past transaction expression.
      */
     @Override
-    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxId){
+    public void init(Object tableName,Object correlationName,Object rclOrUD,Object propsOrRcl, Object isBulkDelete, Object pastTxIdExpr){
         this.isBulkDelete = (Boolean) isBulkDelete;
-        if(pastTxId != null) {
-            this.pastTxId = (Long) pastTxId;
-        } else {
-            this.pastTxId = -1;
+        if(pastTxIdExpr != null) {
+            this.pastTxIdExpression = (ValueNode) pastTxIdExpr;
         }
         init(tableName, correlationName, rclOrUD, propsOrRcl);
     }
@@ -239,6 +239,7 @@ public class FromBaseTable extends FromTable {
 
         setOrigTableName(this.tableName);
         templateColumns=resultColumns;
+        usedNoStatsColumnIds=new HashSet<>();
     }
 
     /**
@@ -270,6 +271,7 @@ public class FromBaseTable extends FromTable {
                     && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
                 return false;
             }
+            return currentConglomerateDescriptor.getIndexDescriptor().getExprBytecode().length <= 0;
         }
         return true;
     }
@@ -714,6 +716,8 @@ public class FromBaseTable extends FromTable {
                 }
                 if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
+            } else if (key.equals("broadcastCrossRight")) {
+                // no op since parseBoolean never throw
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
@@ -810,6 +814,7 @@ public class FromBaseTable extends FromTable {
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
+        useRealTableStats=scc.useRealTableStatistics();
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);
         costEstimate.setPredicateList(baseTableRestrictionList);
@@ -863,7 +868,8 @@ public class FromBaseTable extends FromTable {
                 rowTemplate,
                 baseColumnPositions,
                 forUpdate(),
-                resultColumns);
+                resultColumns,
+                usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable
         currentAccessPath.setSpecialMaxScan(false);
@@ -1039,7 +1045,7 @@ public class FromBaseTable extends FromTable {
         TableDescriptor tableDescriptor=bindTableDescriptor();
 
         int tableType = tableDescriptor.getTableType();
-        if(pastTxId >= 0)
+        if(pastTxIdExpression != null)
         {
             if(tableType==TableDescriptor.VIEW_TYPE) {
                 throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "views");
@@ -1390,7 +1396,6 @@ public class FromBaseTable extends FromTable {
         return this;
     }
 
-
     /**
      * Bind the table descriptor for this table.
      * <p/>
@@ -1439,10 +1444,19 @@ public class FromBaseTable extends FromTable {
      */
     @Override
     public void bindExpressions(FromList fromListParam) throws StandardException{
-        /* No expressions to bind for a FromBaseTable.
-         * NOTE - too involved to optimize so that this method
-         * doesn't get called, so just do nothing.
-         */
+        if(pastTxIdExpression != null)
+        {
+            // not sure if this is necessary
+            ValueNode result = pastTxIdExpression.bindExpression(fromListParam, null, null);
+            // the result of the expression should either be:
+            // a. timestamp (then we have to map it to closest tx id).
+            // b. numeric (representing the tx id itself).
+            TypeId typeId = result.getTypeId();
+            if(!typeId.isDateTimeTimeStampTypeID() && !typeId.isNumericTypeId())
+            {
+                throw StandardException.newException(SQLState.DATA_TYPE_NOT_SUPPORTED, typeId.getSQLTypeName());
+            }
+        }
     }
 
     /**
@@ -1491,12 +1505,18 @@ public class FromBaseTable extends FromTable {
 
         if(exposedTableName.getSchemaName()==null && correlationName==null)
             exposedTableName.bind(this.getDataDictionary());
+
+        TableName temporaryTableName = (TableName) getNodeFactory().getNode(
+                                           C_NodeTypes.TABLE_NAME,
+                                           exposedTableName.getSchemaName(),
+                                           getLanguageConnectionContext().mangleTableName(exposedTableName.getTableName()),
+                                           exposedTableName.getContextManager());
         /*
         ** If the column did not specify a name, or the specified name
         ** matches the table we're looking at, see whether the column
         ** is in this table.
         */
-        if(columnsTableName==null || columnsTableName.equals(exposedTableName)){
+        if(columnsTableName==null || columnsTableName.equals(exposedTableName) || columnsTableName.equals(temporaryTableName)){
             resultColumn=resultColumns.getResultColumn(columnReference.getColumnName());
             /* Did we find a match? */
             if(resultColumn!=null){
@@ -1629,7 +1649,7 @@ public class FromBaseTable extends FromTable {
      * @throws StandardException Thrown on error
      * @see ResultSetNode#changeAccessPath
      */
-    public ResultSetNode changeAccessPath() throws StandardException{
+    public ResultSetNode changeAccessPath(JBitSet joinedTableSet) throws StandardException{
         ResultSetNode retval;
         AccessPath ap=getTrulyTheBestAccessPath();
         ConglomerateDescriptor trulyTheBestConglomerateDescriptor= ap.getConglomerateDescriptor();
@@ -1683,6 +1703,7 @@ public class FromBaseTable extends FromTable {
         requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         trulyTheBestJoinStrategy.divideUpPredicateLists(
                 this,
+                joinedTableSet,
                 restrictionList,
                 storeRestrictionList,
                 nonStoreRestrictionList,
@@ -2275,6 +2296,20 @@ public class FromBaseTable extends FromTable {
                 ClassName.NoPutResultSet,28);
     }
 
+    private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
+        if(pastTxIdExpression != null) {
+            MethodBuilder pastTxExpr = acb.newUserExprFun();
+            pastTxIdExpression.generateExpression(acb, pastTxExpr);
+            pastTxExpr.methodReturn();
+            pastTxExpr.complete();
+            acb.pushMethodReference(mb, pastTxExpr);
+        }
+        else
+        {
+            mb.pushNull(ClassName.GeneratedMethod);
+        }
+    }
+
     private int getScanArguments(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException{
         // get a function to allocate scan rows of the right shape and size
         MethodBuilder resultRowAllocator= resultColumns.generateHolderMethod(acb, referencedCols, null);
@@ -2368,8 +2403,8 @@ public class FromBaseTable extends FromTable {
         // compute the default row
         numArgs += generateDefaultRow((ActivationClassBuilder)acb, mb);
 
-        // also add the past transaction id
-        mb.push(pastTxId);
+        // also add the past transaction id functor
+        generatePastTxFunc(acb, mb);
         numArgs++;
 
         return numArgs;
@@ -2653,6 +2688,16 @@ public class FromBaseTable extends FromTable {
     public boolean referencesSessionSchema() throws StandardException{
         //If base table is a SESSION schema table, then return true.
         return isSessionSchema(tableDescriptor.getSchemaDescriptor());
+    }
+
+    /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return tableDescriptor.isTemporary();
     }
 
 
@@ -3423,13 +3468,9 @@ public class FromBaseTable extends FromTable {
     private String getClassName(String niceIndexName) throws StandardException {
         String cName = "";
         if(niceIndexName!=null){
-            cName = "IndexScan["+niceIndexName;
+            cName = "IndexScan["+niceIndexName+"]";
         }else{
-            cName = "TableScan["+getPrettyTableName();
-            if(pastTxId >= 0){
-                cName += " timeTravelTx(" + pastTxId + ")";
-            }
-            cName += "]";
+            cName = "TableScan["+getPrettyTableName()+"]";
         }
         if(isMultiProbing())
             cName = "MultiProbe"+cName;
@@ -3461,7 +3502,7 @@ public class FromBaseTable extends FromTable {
            When searching the current FromBaseTable node for subqueries, we may get duplicate SubqueryNodes.
            So collect the subqueries directly from ResultColumns, storeRestrictionList and nonStoreRestrictionList.
         */
-        org.spark_project.guava.base.Predicate<Object> onAxis = Predicates.not(isRSN);
+        splice.com.google.common.base.Predicate<Object> onAxis = Predicates.not(isRSN);
         CollectingVisitorBuilder<SubqueryNode> builder = CollectingVisitorBuilder.forClass(SubqueryNode.class).onAxis(onAxis);
         builder.collect(resultColumns);
         builder.collect(nonStoreRestrictionList);
@@ -3547,5 +3588,11 @@ public class FromBaseTable extends FromTable {
 
     public AggregateNode getAggregateForSpecialMaxScan() {
         return aggrForSpecialMaxScan;
+    }
+
+    public boolean useRealTableStats() { return useRealTableStats; }
+
+    public List<Integer> getNoStatsColumnIds() {
+        return new ArrayList<>(usedNoStatsColumnIds);
     }
 }

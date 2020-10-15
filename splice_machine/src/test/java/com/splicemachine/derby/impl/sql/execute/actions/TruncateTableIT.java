@@ -14,18 +14,16 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.Arrays;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -34,7 +32,7 @@ import static com.splicemachine.test_tools.Rows.rows;
  * @author Scott Fines
  *         Date: 9/2/14
  */
-public class TruncateTableIT {
+public class TruncateTableIT extends SpliceUnitTest {
 
     public static String CLASS_NAME = TruncateTableIT.class.getSimpleName().toUpperCase();
 
@@ -78,6 +76,12 @@ public class TruncateTableIT {
                 .withRows(rows(
                         row(1, "SFO"),
                         row(2, "SJC")))
+                .create();
+
+        new TableCreator(conn1)
+                .withCreate("create table t1_with_indexes(a1 int , b1 int, c1 int, primary key(a1))")
+                .withIndex("create index idx_t1_non_unique on t1_with_indexes(b1)")
+                .withIndex("create unique index idx_t1_unique on t1_with_indexes(c1)")
                 .create();
     }
 
@@ -236,4 +240,85 @@ public class TruncateTableIT {
         // child table is truncated, all rows in parent table should be allowed to delete
         Assert.assertTrue("wrong number of rows deleted n = " + n, n == 2);
     }
+
+    @Test
+    public void testTruncateTableDeleteStatistics() throws Exception {
+        long tableConglom = TestUtils.baseTableConglomerateId(conn1, table.getSchema(), table.tableName);
+
+        String tableStatsQuery = format("select count(*) from sys.systablestats group by conglomerateid having conglomerateid = %d", tableConglom);
+        String columnStatsQuery = format("select count(*) from sys.syscolumnstats group by conglom_id having conglom_id = %d", tableConglom);
+
+        // make sure both table and column stats are empty
+        try (ResultSet rs = methodWatcher.executeQuery(tableStatsQuery)) {
+            if (rs.next())
+                Assert.fail("expect empty result set");
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(columnStatsQuery)) {
+            if (rs.next())
+                Assert.fail("expect empty result set");
+        }
+
+        // analyze table
+        methodWatcher.execute("analyze table " + table);
+
+        String expectedTableStatsCount = "1 |\n" +
+                "----\n" +
+                " 1 |";
+        testQuery(tableStatsQuery, expectedTableStatsCount, methodWatcher);
+
+        String expectedColumnStatsCount = "1 |\n" +
+                "----\n" +
+                " 2 |";
+        testQuery(columnStatsQuery, expectedColumnStatsCount, methodWatcher);
+
+        // truncate table should delete stats entries
+        methodWatcher.execute("truncate table "+ table);
+        try (ResultSet rs = methodWatcher.executeQuery(tableStatsQuery)) {
+            if (rs.next())
+                Assert.fail("expect empty result set");
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(columnStatsQuery)) {
+            if (rs.next())
+                Assert.fail("expect empty result set");
+        }
+
+        // test deleting expression-based indexes' statistics
+        methodWatcher.executeUpdate("create index test_idx_1 on " + table + " (b * 5, a - 1, a + b)");
+        methodWatcher.execute("analyze table " + table);
+
+        String indexColumnStatsQuery = "select count(*) from sys.sysconglomerates c, sys.syscolumnstats sc " +
+                "where c.conglomeratenumber = sc.conglom_id and c.isindex = true and c.conglomeratename='TEST_IDX_1'";
+
+        String expectedIndexColumnStatsCount = "1 |\n" +
+                "----\n" +
+                " 3 |";
+
+        testQuery(indexColumnStatsQuery, expectedIndexColumnStatsCount, methodWatcher);
+
+        methodWatcher.execute("truncate table "+ table);
+
+        expectedIndexColumnStatsCount = "1 |\n" +
+                "----\n" +
+                " 0 |";
+
+        testQuery(indexColumnStatsQuery, expectedIndexColumnStatsCount, methodWatcher);
+    }
+
+    @Test
+    public void testTruncateTableWithIndexes() throws Exception {
+        conn1.createStatement().execute("truncate table t1_with_indexes");
+        conn1.execute("insert into t1_with_indexes values (1,1,1)");
+
+        for (String indexName: Arrays.asList("idx_t1_non_unique", "idx_t1_unique")) {
+            PreparedStatement ps = conn1.prepareStatement(format("select * from t1_with_indexes --splice-properties index=%s", indexName));
+            ResultSet rs = ps.executeQuery();
+
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertEquals(1, rs.getInt(2));
+            Assert.assertEquals(1, rs.getInt(3));
+        }
+        conn1.commit();
+    }
+
 }

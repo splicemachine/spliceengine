@@ -18,15 +18,16 @@ import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.*;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.spark_project.guava.base.Strings.isNullOrEmpty;
+import static splice.com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * A TestWatcher that provides Connections, Statements, and ResultSets and then closes them when finished() is called.
@@ -56,6 +57,65 @@ public class SpliceWatcher extends TestWatcher {
         this.defaultSchema = defaultSchema == null ? null : defaultSchema.toUpperCase();
     }
 
+    public class ConnectionBuilder {
+        SpliceNetConnection.ConnectionBuilder delegate = SpliceNetConnection.newBuilder();
+        boolean schemaSet = false;
+
+        public ConnectionBuilder host(String host) {
+            delegate.host(host);
+            return this;
+        }
+        public ConnectionBuilder port(int port) {
+            delegate.port(port);
+            return this;
+        }
+        public ConnectionBuilder database(String database) {
+            delegate.database(database);
+            return this;
+        }
+        public ConnectionBuilder create(boolean create) {
+            delegate.create(create);
+            return this;
+        }
+        public ConnectionBuilder user(String user) {
+            delegate.user(user);
+            return this;
+        }
+        public ConnectionBuilder password(String password) {
+            delegate.password(password);
+            return this;
+        }
+        public ConnectionBuilder schema(String schema) {
+            delegate.schema(schema);
+            schemaSet = true;
+            return this;
+        }
+        public ConnectionBuilder ssl(boolean ssl) {
+            delegate.ssl(ssl);
+            return this;
+        }
+        public ConnectionBuilder useOLAP(boolean useOLAP) {
+            delegate.useOLAP(useOLAP);
+            return this;
+        }
+
+        /**
+         * Always creates a new connection, replacing this class's reference to the current connection, if any.
+         */
+        public TestConnection build() throws SQLException {
+            if (!schemaSet && !isNullOrEmpty(defaultSchema)) {
+                delegate.schema(defaultSchema);
+            }
+            currentConnection = new TestConnection(delegate.build());
+            connections.add(currentConnection);
+            return currentConnection;
+        }
+    }
+
+    public ConnectionBuilder connectionBuilder() {
+        return new ConnectionBuilder();
+    }
+
     public void setConnection(Connection connection) throws SQLException{
         currentConnection = new TestConnection(connection);
     }
@@ -73,7 +133,7 @@ public class SpliceWatcher extends TestWatcher {
     public TestConnection getOrCreateConnection() {
         try {
             if (currentConnection == null || currentConnection.isClosed()) {
-                createConnection();
+                connectionBuilder().build();
             }
             return currentConnection;
         } catch (Exception e) {
@@ -85,45 +145,7 @@ public class SpliceWatcher extends TestWatcher {
      * Always creates a new connection, replacing this class's reference to the current connection, if any.
      */
     public TestConnection createConnection() throws Exception {
-        return createConnection(SpliceNetConnection.DEFAULT_USER, SpliceNetConnection.DEFAULT_USER_PASSWORD);
-    }
-
-
-    /**
-     * Always creates a new connection, replacing this class's reference to the current connection, if any.
-     */
-    public TestConnection createConnection(boolean useSpark) throws Exception {
-        return createConnection(SpliceNetConnection.DEFAULT_USER, SpliceNetConnection.DEFAULT_USER_PASSWORD, useSpark);
-    }
-
-    /**
-     * Always creates a new connection, replacing this class's reference to the current connection, if any.
-     */
-    public TestConnection createConnection(String userName, String password) throws Exception {
-        currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password));
-        connections.add(currentConnection);
-        if (!isNullOrEmpty(defaultSchema)) {
-            setSchema(defaultSchema);
-        }
-        return currentConnection;
-    }
-    
-    public TestConnection createConnection(String userName, String password, boolean useSpark) throws Exception {
-        currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password, useSpark));
-        connections.add(currentConnection);
-        if (!isNullOrEmpty(defaultSchema)) {
-            setSchema(defaultSchema);
-        }
-        return currentConnection;
-    }
-
-    public TestConnection createConnection(String providedURL, String userName, String password) throws Exception {
-        currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(providedURL, userName, password));
-        connections.add(currentConnection);
-        if (!isNullOrEmpty(defaultSchema)) {
-            setSchema(defaultSchema);
-        }
-        return currentConnection;
+        return connectionBuilder().build();
     }
 
     public PreparedStatement prepareStatement(String sql) throws SQLException {
@@ -274,7 +296,7 @@ public class SpliceWatcher extends TestWatcher {
     }
 
     public Statement getStatement(String userName, String password) throws Exception {
-        Statement s = createConnection(userName, password).createStatement();
+        Statement s = connectionBuilder().user(userName).password(password).build().createStatement();
         statements.add(s);
         return s;
     }

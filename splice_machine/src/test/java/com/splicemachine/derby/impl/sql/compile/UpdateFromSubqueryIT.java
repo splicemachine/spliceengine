@@ -26,7 +26,7 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -140,6 +140,18 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
                 .withInsert("INSERT INTO DIM_PROFILE_NN VALUES(?,?,?,?)")
                 .withRows(rows(row("1", 1, "username@email.com", 11), row("2", 2, "mj@nike.com", 22),
                                row("3", 3, "blightyear@pixar.com", 33), row("4", 4, "prot@kpax.pnt", 44)))
+                .create();
+
+        new TableCreator(connection)
+                .withCreate("create table tab5 (a5 int, b5 int, c5 int)")
+                .withInsert("insert into tab5 values (?,?,?)")
+                .withRows(rows(row(1, 10, 100)))
+                .create();
+
+        new TableCreator(connection)
+                .withCreate("create table tab6 (a6 int, b6 int, c6 int)")
+                .withInsert("insert into tab6 values (?,?,?)")
+                .withRows(rows(row(2, 20, 200)))
                 .create();
     }
 
@@ -442,4 +454,23 @@ public class UpdateFromSubqueryIT extends SpliceUnitTest {
         testUpdateFail(sqlText, expectedErrors, spliceClassWatcher);
 
     }
+
+    @Test
+    public void testNonFlattenedSubqueryShouldNotConsiderJoin() throws Exception {
+        if (this.joinStrategy.equals("SORTMERGE") || this.joinStrategy.equals("BROADCAST") || this.joinStrategy.equals("MERGE")) {
+            return;
+        }
+        spliceClassWatcher.executeUpdate(format("update tab6 set b6=(select a5 from tab5 --splice-properties useSpark=%s\n" +
+                                                "where a6=a5+1)", this.useSparkString));
+        String sql = "select * from tab6";
+
+        String expected = "A6 |B6 |C6  |\n" +
+                "-------------\n" +
+                " 2 | 1 |200 |";
+        try (ResultSet rs = spliceClassWatcher.executeQuery(sql)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        spliceClassWatcher.rollback();
+    }
+
 }

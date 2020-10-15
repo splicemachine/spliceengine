@@ -15,7 +15,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import scala.Tuple2;
 
 import java.io.IOException;

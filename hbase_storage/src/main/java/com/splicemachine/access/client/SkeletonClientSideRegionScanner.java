@@ -42,7 +42,7 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Throwables;
+import splice.com.google.common.base.Throwables;
 
 import java.io.IOException;
 import java.util.*;
@@ -210,8 +210,7 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
                 if (restartRow != null) {
                     if (LOG.isDebugEnabled())
                         SpliceLogUtils.debug(LOG, "setting start row to %s", Hex.encodeHexString(restartRow));
-                    //noinspection deprecation
-                    scan.setStartRow(restartRow);
+                    scan.withStartRow(restartRow);
                 }
             }
             memScannerList.add(getMemStoreScanner());

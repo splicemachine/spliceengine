@@ -57,6 +57,7 @@ import com.splicemachine.derby.stream.output.update.UpdateTableWriterBuilder;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.IteratorUtils;
@@ -67,12 +68,12 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.base.Predicate;
-import org.spark_project.guava.collect.Iterators;
-import org.spark_project.guava.collect.Sets;
-import org.spark_project.guava.io.Closeables;
-import org.spark_project.guava.util.concurrent.Futures;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.base.Predicate;
+import splice.com.google.common.collect.Iterators;
+import splice.com.google.common.collect.Sets;
+import splice.com.google.common.io.Closeables;
+import splice.com.google.common.util.concurrent.Futures;
 import scala.Tuple2;
 
 import javax.annotation.Nullable;
@@ -547,16 +548,10 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     /**
-     *
-     * Not Supported
-     *
-     * @param dsp
-     * @param partitionBy
-     * @param location
-     * @param context
-     * @return
+     * ControlDataSet.writeParquetFile is used in EXPORT_BINARY
      */
     @Override
+    @SuppressFBWarnings(value="REC_CATCH_EXCEPTION", justification="DB-9846")
     public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location, String compression, OperationContext context) {
 
         try {
@@ -591,7 +586,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                     ValueRow vr = (ValueRow) iterator.next();
                     context.recordWrite();
 
-                    rw.write(null, encoder.toRow(vr));
+                    rw.write(null, ParquetWriterService.getFactory().encodeToRow(tableSchema, vr, encoder));
                 }
             } finally {
                 rw.close(null);
@@ -636,19 +631,10 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     /**
-     *
      * Not Supported
-     *
-     * @param op
-     * @param location
-     * @param characterDelimiter
-     * @param columnDelimiter
-     * @param baseColumnMap
-     * @param context
-     * @return
      */
     @Override
-    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,  OperationContext context) {
+    public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions, OperationContext context) {
         throw new UnsupportedOperationException("Cannot write text files");
     }
 

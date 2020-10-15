@@ -42,11 +42,9 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -134,44 +132,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         this.defaultRowMethodName = defaultRowFunc==null? null: defaultRowFunc.getMethodName();
         this.defaultValueMapItem = defaultValueMapItem;
         init();
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        scociItem = in.readInt();
-        conglomId = in.readLong();
-        heapColRefItem = in.readInt();
-        allColRefItem = in.readInt();
-        heapOnlyColRefItem = in.readInt();
-        indexColMapItem = in.readInt();
-        source = (SpliceOperation) in.readObject();
-        accessedCols = (FormatableBitSet) in.readObject();
-        resultRowAllocatorMethodName = in.readUTF();
-        indexName = in.readUTF();
-        restrictionMethodName = readNullableString(in);
-        tableVersion = in.readUTF();
-        defaultRowMethodName = readNullableString(in);
-        defaultValueMapItem = in.readInt();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeInt(scociItem);
-        out.writeLong(conglomId);
-        out.writeInt(heapColRefItem);
-        out.writeInt(allColRefItem);
-        out.writeInt(heapOnlyColRefItem);
-        out.writeInt(indexColMapItem);
-        out.writeObject(source);
-        out.writeObject(accessedCols);
-        out.writeUTF(resultRowAllocatorMethodName);
-        out.writeUTF(indexName);
-        writeNullableString(restrictionMethodName, out);
-        out.writeUTF(tableVersion);
-        writeNullableString(defaultRowMethodName, out);
-        out.writeInt(defaultValueMapItem);
     }
 
     @Override

@@ -130,6 +130,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * join with its left table indicated in the dependencyMap */
     protected int outerJoinLevel;
     PredicateList postJoinPredicates;
+
+    protected boolean hasJoinPredicatePushedDownFromOuter = false;
     /**
      * Initializer for a table in a FROM list.
      *
@@ -402,6 +404,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                         dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
                     }
                     break;
+                case "broadcastCrossRight": {
+                    // no op since parseBoolean never throw
+                    break;
+                }
                 case "useSpark":
                 case "useOLAP":
                     dataSetProcessorType = dataSetProcessorType.combine(
@@ -1440,5 +1446,15 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     public void setPostJoinPredicates(PredicateList pList) {
         postJoinPredicates = pList;
+    }
+
+    @Override
+    public boolean hasJoinPredicatePushedDownFromOuter() {
+        return hasJoinPredicatePushedDownFromOuter;
+    }
+
+    @Override
+    public void setHasJoinPredicatePushedDownFromOuter(boolean value) {
+        hasJoinPredicatePushedDownFromOuter = value;
     }
 }

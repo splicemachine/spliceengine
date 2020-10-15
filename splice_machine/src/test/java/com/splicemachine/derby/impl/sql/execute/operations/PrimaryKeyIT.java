@@ -25,7 +25,7 @@ import java.util.List;
 
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.pipeline.ErrorState;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;

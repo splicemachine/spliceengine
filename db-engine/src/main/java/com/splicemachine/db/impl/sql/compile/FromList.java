@@ -56,6 +56,8 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     // true by default.
     boolean useStatistics=true;
 
+    int tableLimitForExhaustiveSearch;
+
     // FromList could have a view in it's list. If the view is defined in SESSION
     // schema, then we do not want to cache the statement's plan. This boolean
     // will help keep track of such a condition.
@@ -89,6 +91,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     public void init(Object optimizeJoinOrder){
         fixedJoinOrder=!((Boolean)optimizeJoinOrder);
         isTransparent=false;
+        tableLimitForExhaustiveSearch = getLanguageConnectionContext().getTableLimitForExhaustiveSearch();
     }
 
     /**
@@ -220,6 +223,28 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
             }
         }
 
+        return found;
+    }
+
+    /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        FromTable fromTable;
+        boolean found=false;
+
+        int size=size();
+        for(int index=0;index<size;index++){
+            fromTable=(FromTable)elementAt(index);
+
+            if(fromTable.referencesTemporaryTable()){
+                found=true;
+                break;
+            }
+        }
         return found;
     }
 
@@ -787,6 +812,15 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
                     }else{
                         throw StandardException.newException(SQLState.LANG_INVALID_STATISTICS_SPEC,value);
                     }
+                    break;
+                case "tableLimitForExhaustiveSearch":
+                    try {
+                        tableLimitForExhaustiveSearch = Integer.parseInt(value);
+                    } catch (NumberFormatException nfe) {
+                        throw StandardException.newException(SQLState.LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH, value);
+                    }
+                    if (tableLimitForExhaustiveSearch <= 0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH, value);
                     break;
                 default:
                     throw StandardException.newException(SQLState.LANG_INVALID_FROM_LIST_PROPERTY,key,value);
@@ -1448,5 +1482,11 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
     {
         aliases.clear();
         aliasesUsable = false;
+    }
+
+    @Override
+    public int getTableLimitForExhaustiveSearch()
+    {
+        return tableLimitForExhaustiveSearch;
     }
 }

@@ -19,7 +19,7 @@ import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
 import org.junit.Assert;
 import org.junit.runner.Description;
-import org.spark_project.guava.base.Joiner;
+import splice.com.google.common.base.Joiner;
 
 import java.io.*;
 import java.net.URL;
@@ -219,6 +219,11 @@ public class SpliceUnitTest {
                                               +resultSet.getString(1),resultSet.getString(1).contains(contains[k]));
                         k++;
                     }
+                }
+            }
+            for (int level : levels){
+                if (level > i) {
+                    Assert.fail("Try to compare at level " + level + " but result set has only " + i + " levels.");
                 }
             }
         }

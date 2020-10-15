@@ -17,7 +17,7 @@ package com.splicemachine.derby.hbase;
 import org.apache.hadoop.hbase.client.NoServerForRegionException;
 import org.apache.hadoop.hbase.ipc.ServerNotRunningYetException;
 import org.apache.hadoop.net.ConnectTimeoutException;
-import org.spark_project.guava.base.Throwables;
+import splice.com.google.common.base.Throwables;
 import com.splicemachine.access.api.CallTimeoutException;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.RegionBusyException;

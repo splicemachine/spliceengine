@@ -16,7 +16,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.splicemachine</groupId>
     <artifactId>spliceengine-parent</artifactId>
-    <version>3.1.0.1967-SNAPSHOT</version>
+    <version>3.1.0.1979-SNAPSHOT</version>
     <packaging>pom</packaging>
     <name>${project.artifactId}</name>
     <description>Splice Engine Parent POM</description>
@@ -90,6 +90,10 @@
         <spark.version>2.4.3</spark.version>
         <scala.version>2.11.6</scala.version>
         <netty-all.version>4.1.17.Final</netty-all.version>
+        <scalatest.version>2.2.4</scalatest.version>
+        <scalamock.version>3.1.4</scalamock.version>
+        <commons.lang3.version>3.3.2</commons.lang3.version>
+        <fasterxml.jackson.version>2.9.9</fasterxml.jackson.version>
         <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
         <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
     </properties>
@@ -302,7 +306,7 @@
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
-                <version>3.3.2</version>
+                <version>${commons.lang3.version}</version>
             </dependency>
             <dependency>
                 <groupId>javax.servlet</groupId>
@@ -385,12 +389,12 @@
             <dependency>
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-core</artifactId>
-                <version>2.9.9</version>
+                <version>${fasterxml.jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.fasterxml.jackson.module</groupId>
-                <artifactId>jackson-module-scala_2.11</artifactId>
-                <version>2.9.9</version>
+                <artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
+                <version>${fasterxml.jackson.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.codehaus.jackson</groupId>
@@ -432,6 +436,11 @@
                 <groupId>org.glassfish</groupId>
                 <artifactId>javax.el</artifactId>
                 <version>3.0.1-b11</version>
+            </dependency>
+            <dependency>
+                <groupId>org.scalatest</groupId>
+                <artifactId>scalatest_${scala.binary.version}</artifactId>
+                <version>${scalatest.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -902,6 +911,7 @@
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
                 <module>scala_util</module>
@@ -939,6 +949,7 @@
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
                 <module>scala_util</module>
@@ -977,6 +988,50 @@
                 <module>standalone</module>
                 <module>platform_it</module>
                 <module>spark_sql</module>
+                <module>splice_ck</module>
+                <module>splice_spark</module>
+                <module>splice_spark2</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
+        <profile>
+            <id>dbaas3.0</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>dbaas3.0</value>
+                </property>
+            </activation>
+            <properties>
+                <cdh.parcel.version>6.3.2</cdh.parcel.version>
+                <envClassifier>dbaas3.0</envClassifier>
+                <envHbase>hbase2.1.4</envHbase>
+                <hadoop.version>3.0.0-cdh6.3.2</hadoop.version>
+                <hbase.version>2.1.0-cdh6.3.2</hbase.version>
+                <hive.version>2.1.1-cdh6.3.2</hive.version>
+                <zookeeper.version>3.4.5-cdh6.3.2</zookeeper.version>
+                <scala.binary.version>2.12</scala.binary.version>
+                <scala.version>2.12.12</scala.version>
+                <spark.version>3.0.0</spark.version>
+                <spark.major.version>spark3.0</spark.major.version>
+                <kafka.version>2.2.1-cdh6.3.2</kafka.version>
+                <splice.lib.dir>/opt/cloudera/parcels/SPLICEMACHINE/lib</splice.lib.dir>
+                <parquet.version>orc-spark-3.0</parquet.version>
+                <netty-all.version>4.1.17.Final</netty-all.version>
+                <scalatest.version>3.0.0</scalatest.version>
+                <scalamock.version>3.4.1</scalamock.version>
+                <commons.lang3.version>3.9</commons.lang3.version>
+                <fasterxml.jackson.version>2.10.0</fasterxml.jackson.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>standalone</module>
+                <module>platform_it</module>
+                <module>spark_sql</module>
+                <module>splice_ck</module>
                 <module>splice_spark</module>
                 <module>splice_spark2</module>
                 <module>scala_util</module>

@@ -74,6 +74,7 @@ import com.splicemachine.db.impl.sql.compile.FromSubquery;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
+import com.splicemachine.db.impl.sql.compile.IndexExpression;
 import com.splicemachine.db.impl.sql.compile.JavaToSQLValueNode;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.MethodCallNode;
@@ -1202,7 +1203,9 @@ public class SQLParser
             tokKind == NOW ||
             tokKind == CURRENT && (isDATETIME(getToken(2).kind)) ||
             tokKind == CURRENT && getToken(2).kind == SERVER ||
-            tokKind == CURRENT_SERVER)
+            tokKind == CURRENT_SERVER ||
+            tokKind == CURRENT && getToken(2).kind == DATABASE ||
+            tokKind == CURRENT_DATABASE)
         {
             return false;
         }
@@ -1251,6 +1254,45 @@ public class SQLParser
     }
 
     /**
+     * Check if this MIN/MAX an aggregate function.
+     * We need this check because MIN/MAX also has an scalar version.
+     */
+    private boolean isMinMaxAggregate()
+    {
+      boolean seeComma = false;
+      boolean seeRightParen = false;
+      int leftParenCount = 0;
+
+      if (getToken(2).kind != LEFT_PAREN)
+        return false;
+
+      for (int i = 3; i < Integer.MAX_VALUE; i++) {
+        if (getToken(i).kind == LEFT_PAREN) {
+          leftParenCount++;
+        } else if (getToken(i).kind == RIGHT_PAREN) {
+          if (leftParenCount > 0) {
+            leftParenCount--;
+          } else {
+            seeRightParen = true;
+            break;
+          }
+        } else if (getToken(i).kind == COMMA) {
+          if (leftParenCount == 0) {
+            seeComma = true;
+            break;
+          }
+        } else if (getToken(i).kind == EOF) {
+          break;
+        }
+      }
+
+      if (seeRightParen && !seeComma)
+        return true;
+
+      return false;
+    }
+
+    /**
      * Determine whether the next sequence of tokens can be the beginning
      * of an aggregateNode()() rule.  aggregateNodes() start with one
      * of the built-in aggregate names, or with an identifier followed
@@ -1272,8 +1314,10 @@ public class SQLParser
         switch (getToken(1).kind)
         {
           case MAX:
-          case AVG:
           case MIN:
+            retval = isMinMaxAggregate();
+            break;
+          case AVG:
           case SUM:
             // This is a built-in aggregate
             retval = true;
@@ -1304,8 +1348,9 @@ public class SQLParser
         switch (getToken(1).kind)
         {
           case MAX:
-          case AVG:
           case MIN:
+            return isMinMaxAggregate();
+          case AVG:
           case SUM:
           case COUNT:
           case STRING_AGG:
@@ -1409,12 +1454,13 @@ public class SQLParser
           case CURRENT_TIME:
           case CURRENT_TIMESTAMP:
           case CURRENT_SERVER:
+          case CURRENT_DATABASE:
           case NOW:
               retval = true;
             break;
 
           case CURRENT:
-            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER)
+            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER || getToken(2).kind == DATABASE)
                 retval = true;
             break;
 
@@ -2289,6 +2335,7 @@ public class SQLParser
      * For temporary table validation and creation.
      */
     private StatementNode verifySyntaxAndCreate(Object[] declareTableClauses,
+                                                Boolean isGlobal,
                                                 TableName tableName,
                                                 TableElementList tableElementList,
                                                 Integer createBehavior) throws StandardException {
@@ -2402,6 +2449,10 @@ public class SQLParser
         // place the newline later on.
         src = src.replaceAll("(--)(?i)(?=splice-properties)(.*?)(\\n|\\r|\\r\\n)",
                                "$1$2$3"+Character.toString(endOfHintMarker));
+
+        // If there is a comment before the statement, replacement ops above produce spaces before the
+        // CREATE token. The first string after split below would be empty, causing charAt(0) to fail.
+        src = src.trim();
 
         for (String part : src.split("\\s+")) {
             if (part.charAt(0) == endOfHintMarker)
@@ -2764,6 +2815,7 @@ TOKEN [IGNORE_CASE] :
 |    <CROSS: "cross">
 |    <CURRENT: "current">
 |    <CURRENT_DATE: "current_date">
+|    <CURRENT_DATABASE: "current_database">
 |    <CURRENT_SERVER: "current_server">
 |    <CURRENT_TIME: "current_time">
 |    <CURRENT_TIMESTAMP: "current_timestamp">
@@ -2847,6 +2899,7 @@ TOKEN [IGNORE_CASE] :
 |    <NATURAL: "natural">
 |    <NCHAR: "nchar">
 |    <NEXT: "next">
+|    <NEXTVAL: "nextval">
 |    <NO: "no">
 |    <NOLOGGING: "nologging">
 |    <NOT: "not">
@@ -2990,6 +3043,7 @@ TOKEN [IGNORE_CASE] :
 |   <EXTRACT: "extract">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
+|    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
 |   <GROUPING: "grouping">
 |   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
@@ -3126,8 +3180,10 @@ TOKEN [IGNORE_CASE] :
 |    <CURTIME: "curtime">
 |    <DATABASE: "database">
 |    <DENSERANK: "dense_rank">
-|    <GET_CURRENT_CONNECTION: "getCurrentConnection">
 |    <EXPLAIN: "explain">
+|    <GET_CURRENT_CONNECTION: "getCurrentConnection">
+|    <GREATEST: "greatest">
+|    <LEAST: "least">
 |    <SPARKEXPLAIN: "sparkexplain">
 |    <SPARKEXPLAIN_LOGICAL: "sparkexplain_logical">
 |    <SPARKEXPLAIN_OPTIMIZED: "sparkexplain_optimized">
@@ -4047,13 +4103,15 @@ explainStatement() throws StandardException :
 {
     StatementNode   statementNode;
     StatementNode    explainStatement;
+    Token           getToken = null;
 }
 {
-    <EXPLAIN> statementNode = preparableSQLDataStatement()
+    <EXPLAIN> [getToken = <GET> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.NONE,
+                                   (getToken != null),
                                    getContextManager());
     }
     | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
@@ -4061,6 +4119,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.EXECUTED,
+                                   false,
                                    getContextManager());
     }
     | <SPARKEXPLAIN_LOGICAL> statementNode = preparableSQLDataStatement()
@@ -4068,6 +4127,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.LOGICAL,
+                                   false,
                                    getContextManager());
     }
     | <SPARKEXPLAIN_ANALYZED> statementNode = preparableSQLDataStatement()
@@ -4075,6 +4135,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.ANALYZED,
+                                   false,
                                    getContextManager());
     }
     | <SPARKEXPLAIN_OPTIMIZED> statementNode = preparableSQLDataStatement()
@@ -4082,6 +4143,7 @@ explainStatement() throws StandardException :
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.OPTIMIZED,
+                                   false,
                                    getContextManager());
     }
 }
@@ -4252,7 +4314,7 @@ deleteBody() throws StandardException :
                                                 FromBaseTable.DELETE),
                                         null,
                                         isBulkDelete,
-                                        -1L,
+                                        null,
                                         getContextManager());
 
 
@@ -4801,7 +4863,7 @@ declareTemporaryTableDeclaration() throws StandardException :
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, true, tableName, tableElementList,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
@@ -4823,17 +4885,18 @@ createTemporaryTableDeclaration() throws StandardException :
     TableName            tableName;
     TableElementList tableElementList;
     Object[] declareTableClauses = new Object[3];
+    Token localTok = null;
     Token ifTok = null;
     Token ifTok2 = null;
 }
 {
-    ( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
+    ( localTok = <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, (localTok == null), tableName, tableElementList,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
@@ -7721,8 +7784,8 @@ coalesceFunction(String coalesceOrValue) throws StandardException :
 }
 {
     <LEFT_PAREN>
-        coalesceExpression(expressionList)
-        ( <COMMA> coalesceExpression(expressionList) )*
+        argumentExpression(expressionList)
+        ( <COMMA> argumentExpression(expressionList) )*
     <RIGHT_PAREN>
     {
         return (ValueNode)nodeFactory.getNode(
@@ -7734,10 +7797,34 @@ coalesceFunction(String coalesceOrValue) throws StandardException :
 }
 
 /*
- * <A NAME="coalesceExpression">coalesceExpression</A>
+ * <A NAME="scalarMinMaxFunction">scalarMinMaxFunction</A>
+ */
+ValueNode
+scalarMinMaxFunction(String minOrMax) throws StandardException :
+{
+    ValueNodeList args = (ValueNodeList) nodeFactory.getNode(
+        C_NodeTypes.VALUE_NODE_LIST,
+        getContextManager());
+}
+{
+    <LEFT_PAREN>
+        argumentExpression(args)
+        ( <COMMA> argumentExpression(args) )+
+    <RIGHT_PAREN>
+    {
+        return (ValueNode)nodeFactory.getNode(
+                C_NodeTypes.SCALAR_MIN_MAX_FUNCTION_NODE,
+                minOrMax,
+                args,
+                getContextManager());
+    }
+}
+
+/*
+ * <A NAME="argumentExpression">argumentExpression</A>
  */
 void
-coalesceExpression(ValueNodeList expressionList) throws StandardException :
+argumentExpression(ValueNodeList expressionList) throws StandardException :
 {
     ValueNode    expression;
 }
@@ -8184,8 +8271,8 @@ valueExpressionPrimary() throws StandardException :
         return value;
     }
 |
-        // This LOOKAHEAD is required to distinguish an
-        // window/aggregate function from
+    // This LOOKAHEAD is required to distinguish an
+    // window/aggregate function from
     // miscBuiltins(). Both can start with an identifier.
 
     LOOKAHEAD( { windowOrAggregateFunctionFollows() } )
@@ -8305,6 +8392,10 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == COALESCE ||
                 getToken(1).kind == NVL ||
                 getToken(1).kind == VALUE ||
+                getToken(1).kind == MIN ||
+                getToken(1).kind == MAX ||
+                getToken(1).kind == LEAST ||
+                getToken(1).kind == GREATEST ||
                 getToken(1).kind == SUBSTRING ||
                 getToken(1).kind == SUBSTR ||
                 getToken(1).kind == RIGHT ||
@@ -8355,7 +8446,8 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLQUERY ||
                 getToken(1).kind == GROUPING ||
                 getToken(1).kind == TO_INSTANT ||
-                getToken(1).kind == TO_HBASE_ESCAPED ) &&
+                getToken(1).kind == TO_HBASE_ESCAPED ||
+                getToken(1).kind == GET_NEAREST_TRANSACTION ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -8485,6 +8577,16 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                                         getContextManager());
     }
 |
+    ( <MIN> | <LEAST> ) value = scalarMinMaxFunction("MIN")
+    {
+        return value;
+    }
+|
+    ( <MAX> | <GREATEST> ) value = scalarMinMaxFunction("MAX")
+    {
+        return value;
+    }
+|
     value = xmlFunction()
     {
         return value;
@@ -8504,6 +8606,11 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                     C_NodeTypes.TO_HBASE_ESCAPED_NODE,
                                     value,
                                     getContextManager());
+    }
+|
+    value = getNearestTransaction()
+    {
+        return value;
     }
 }
 
@@ -9348,7 +9455,6 @@ newInvocation() throws StandardException :
                                        C_NodeTypes.NEW_INVOCATION_NODE,
                                        javaClassName,
                                        parameterList,
-                                       lastTokenDelimitedIdentifier,
                                        getContextManager());
 
         /*
@@ -9416,7 +9522,6 @@ vtiTableConstruct() throws StandardException :
             vtiTableName,  // TableName
             null,          // TableDescriptor
             parameterList,
-            lastTokenDelimitedIdentifier,
             getContextManager());
 
         if ( newNode.isBuiltinVTI() ) { invocationNode = newNode; }
@@ -10954,21 +11059,21 @@ optionalTableClauses() throws StandardException :
     Properties       tableProperties = null;
     ResultColumnList derivedRCL = null;
     String           correlationName = null;
-    Long             txnId = -1L;
+    ValueNode        txnIdExpression = null;
 }
 {
     otc = optionalTableProperties()
     {
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
         return otc;
     }
 |
     LOOKAHEAD( { getToken(1).kind != AS || getToken(2).kind != OF })
     [ [ <AS> ]
         correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
-        [txnId = asOfClause()]
+        [txnIdExpression = asOfClause()]
         [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
         [tableProperties = propertyList(true) <CHECK_PROPERTIES>] ]
     {
@@ -10976,11 +11081,11 @@ optionalTableClauses() throws StandardException :
         otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
         return otc;
     }
 |
-    txnId = asOfClause()
+    txnIdExpression = asOfClause()
     [ <LEFT_PAREN> derivedRCL = derivedColumnList() <RIGHT_PAREN> ]
     [tableProperties = propertyList(true) <CHECK_PROPERTIES>]
     {
@@ -10988,7 +11093,7 @@ optionalTableClauses() throws StandardException :
         otc[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] = tableProperties;
         otc[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL] = derivedRCL;
         otc[OPTIONAL_TABLE_CLAUSES_CORRELATION_NAME] = correlationName;
-        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnId;
+        otc[OPTIONAL_TABLE_CLAUSES_TXN_ID] = txnIdExpression;
         return otc;
     }
 }
@@ -11080,7 +11185,7 @@ FromTable tableFactor() throws StandardException :
                                             (ResultColumnList) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_DERIVED_RCL],
                                             (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES],
                                             false,
-                                            (Long) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
+                                            (ValueNode) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TXN_ID],
                                             getContextManager());
         return fromTable;
     }
@@ -11229,29 +11334,40 @@ columnNameItem(ResultColumnList columnList) throws StandardException :
  * <A NAME="indexColumnList">indexColumnList</A>
  */
 void
-indexColumnList(Vector columnList) throws StandardException :
-{}
+indexColumnList(Vector columnList, Token beginToken) throws StandardException :
 {
-    indexColumnItem(columnList) ( <COMMA> indexColumnItem(columnList) ) *
+    Token commaToken = null;
+}
+{
+    indexColumnItem(columnList, beginToken) ( commaToken = <COMMA> indexColumnItem(columnList, commaToken) ) *
 }
 
 /*
  * <A NAME="indexColumnItem">indexColumnItem</A>
  */
 void
-indexColumnItem(Vector columnList) throws StandardException :
+indexColumnItem(Vector columnList, Token beginToken) throws StandardException :
 {
-    String        columnName;
+    ValueNode expr;
+    Token ascToken = null;
+    Token descToken = null;
+    Token endToken = null;
 }
 {
-    /* identifier never ends with a space; appending a space meaning desc */
-    columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) [<ASC> | <DESC> {columnName = columnName + ' ';}]
+    expr = valueExpression() [ascToken = <ASC> | descToken = <DESC>]
     {
-        /*
-        ** Store the column names for the index columns in the
-        ** index column list.
-        */
-        columnList.addElement(columnName);
+        endToken = getToken(0);
+        int endOffset = endToken.endOffset;
+        if (ascToken != null || descToken != null) {
+            endOffset = endToken.beginOffset - 1;
+        }
+
+        columnList.addElement(
+            new IndexExpression(
+                StringUtil.slice(statementSQLText, beginToken.endOffset + 1, endOffset, false),
+                expr,
+                (descToken == null)  // default is ASC
+            ));
     }
 }
 
@@ -11573,17 +11689,34 @@ currentServerFunction() throws StandardException :
 {
 }
 {
-    LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == SERVER)}) <CURRENT> <SERVER>
+    (
+        LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == SERVER)}) <CURRENT> <SERVER>
+    |
+        <CURRENT_SERVER>
+    |
+        LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == DATABASE)}) <CURRENT> <DATABASE>
+    |
+        <CURRENT_DATABASE>
+    )
     {
         return (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.CURRENT_SERVER_NODE,
                                 getContextManager());
     }
-    | <CURRENT_SERVER>
+}
+
+ValueNode
+getNearestTransaction() throws StandardException :
+{
+    ValueNode value;
+}
+{
+    <GET_NEAREST_TRANSACTION> <LEFT_PAREN> value = primaryExpression() <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_SERVER_NODE,
-                                getContextManager());
+          return (ValueNode) nodeFactory.getNode(
+                                  C_NodeTypes.GET_NEAREST_TRANSACTION,
+                                  value,
+                                  getContextManager());
     }
 }
 
@@ -12043,7 +12176,7 @@ nextValueExpression() throws StandardException :
     TableName sequenceName;
 }
 {
-       <NEXT> <VALUE> <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+       (<NEXT> <VALUE> | <NEXTVAL>) <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
        {
         checkVersion(DataDictionary.DD_VERSION_DERBY_10_6, "NEXT VALUE");
         nextValue = (ValueNode) nodeFactory.getNode(
@@ -12331,15 +12464,15 @@ windowDefinition(WindowList wl) throws StandardException :
     }
 }
 
-Long
+ValueNode
 asOfClause() throws StandardException :
 {
-    Long txId = null;
+    ValueNode txIdExpression = null;
 }
 {
-    <AS> <OF> txId = exactNumber()
+    <AS> <OF> txIdExpression = primaryExpression()
     {
-        return txId;
+        return txIdExpression;
     }
 }
 
@@ -13004,6 +13137,7 @@ indexDefinition() throws StandardException :
     Boolean     preSplit = Boolean.FALSE;
     Vector        indexColumnList = new Vector();
     Boolean     isLogicalKey = Boolean.TRUE;
+    Token       beginToken = null;
 }
 {
     /*
@@ -13012,7 +13146,7 @@ indexDefinition() throws StandardException :
     */
     [ unique = unique() ] <INDEX>
         indexName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-                <LEFT_PAREN> indexColumnList(indexColumnList) <RIGHT_PAREN>
+                beginToken = <LEFT_PAREN> indexColumnList(indexColumnList, beginToken) <RIGHT_PAREN>
         [ properties = propertyList(false) <CHECK_PROPERTIES>]
         [ <EXCLUDE>
             [ <NULL> <KEYS> { excludeNulls = true;} ]
@@ -13675,6 +13809,7 @@ void withClause(Vector parameterList) throws StandardException :
                                     offsetClauses[ FETCH_FIRST_CLAUSE ],
                                     Boolean.valueOf( hasJDBClimitClause ),
                                     Boolean.valueOf(isRecursive),
+                                    Boolean.valueOf(true),  // is dynamic
                                     getContextManager()));
     }
 }
@@ -13745,6 +13880,7 @@ viewDefinition(Token beginToken) throws StandardException :
                                 offsetClauses[ FETCH_FIRST_CLAUSE ],
                                 Boolean.valueOf( hasJDBClimitClause ),
                                 Boolean.valueOf(isRecursive),
+                                Boolean.valueOf(false),  // not dynamic
                                 getContextManager());
     }
 }
@@ -16104,19 +16240,34 @@ dropRoleStatement() throws StandardException :
     }
 }
 
+Boolean
+restrictOrCascade() :
+{}
+{
+    <RESTRICT>
+    {
+        return Boolean.TRUE;
+    }
+|
+    <CASCADE>
+    {
+        return Boolean.FALSE;
+    }
+}
 
 StatementNode
 dropSchemaStatement() throws StandardException :
 {
     String schemaName;
+    Boolean option;
 }
 {
-    <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) <RESTRICT>
+    <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) option = restrictOrCascade()
     {
         StatementNode stmt =  (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.DROP_SCHEMA_NODE,
                             schemaName,
-                            new Integer(StatementType.DROP_RESTRICT),
+                            new Integer(option ? StatementType.DROP_RESTRICT : StatementType.DROP_CASCADE),
                             getContextManager());
 
         return stmt;
@@ -17753,6 +17904,7 @@ reservedKeyword() :
 |    tok = <NCHAR>
 |    tok = <NVARCHAR>
 |    tok = <NEXT>
+|    tok = <NEXTVAL>
 |    tok = <NO>
 |    tok = <NOLOGGING>
 |   tok = <NONE>
@@ -17951,6 +18103,8 @@ nonReservedKeyword()  :
     |    tok = <FORTRAN>
     |    tok = <FRACTION>
     |    tok = <GENERATED>
+    |    tok = <GET_NEAREST_TRANSACTION>
+    |    tok = <GREATEST>
     |    tok = <GROUPING>
     |    tok = <HFILE>
     |    tok = <IDENTITY_VAL_LOCAL>
@@ -17970,6 +18124,7 @@ nonReservedKeyword()  :
     |    tok = <LASTVALUE>
     |    tok = <LCASE>
     |    tok = <LEAD>
+    |    tok = <LEAST>
     |    tok = <LENGTH>
     |    tok = <LEVEL>
     |   tok = <LIMIT>

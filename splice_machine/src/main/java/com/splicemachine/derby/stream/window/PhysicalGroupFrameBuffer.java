@@ -18,7 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.window.FrameDefinition;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
-import org.spark_project.guava.collect.PeekingIterator;
+import splice.com.google.common.collect.PeekingIterator;
 import java.io.IOException;
 
 /**
@@ -42,7 +42,7 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer {
             start = (int) frameStart;
         }
 
-        for (int i = 0; i <= frameEnd; ++i) {
+        for (int i = 0; i <= (frameEnd<0?0:frameEnd); ++i) {
             if (!source.hasNext()) {
                 break;
             }
@@ -52,11 +52,11 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer {
 
             // if the next row belongs to the same partition and falls
             // into the window range
-            if (i >= frameStart)
+            if (i >= frameStart && i<=frameEnd)
                 add(clonedRow);
         }
         current = 0;
-        end = rows.size() -1;
+        end = (int)frameEnd;
     }
 
     @Override
@@ -96,7 +96,8 @@ public class PhysicalGroupFrameBuffer extends BaseFrameBuffer {
                     rows.add(clonedRow);
                     // One more row is added into the frame buffer, include one more row into the window frame
                     end++;
-                    add(rows.get(end));
+                    if (end >=0)
+                        add(rows.get(end));
                 }
             }
         }

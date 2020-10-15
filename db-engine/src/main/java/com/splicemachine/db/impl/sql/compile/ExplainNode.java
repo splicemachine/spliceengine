@@ -33,19 +33,24 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
 
 /**
  * @author Jun Yuan
@@ -55,6 +60,10 @@ public class ExplainNode extends DMLStatementNode {
 
     StatementNode node;
     private SparkExplainKind sparkExplainKind;
+    private boolean showNoStatsObjects;
+
+    private final List<SQLVarchar> noStatsTables  = new ArrayList<>();
+    private final List<SQLVarchar> noStatsColumns = new ArrayList<>();
 
     public enum SparkExplainKind {
         NONE("none"),
@@ -84,9 +93,11 @@ public class ExplainNode extends DMLStatementNode {
     public String statementToString() { return "Explain"; }
 
     public void init(Object statementNode,
-                     Object sparkExplainKind) {
+                     Object sparkExplainKind,
+                     Object showNoStatsObjects) {
         node = (StatementNode)statementNode;
         this.sparkExplainKind = (SparkExplainKind)sparkExplainKind;
+        this.showNoStatsObjects = (Boolean)showNoStatsObjects;
     }
 
     /**
@@ -104,6 +115,12 @@ public class ExplainNode extends DMLStatementNode {
             getCompilerContext().setDataSetProcessorType(DataSetProcessorType.FORCED_SPARK);
         }
         node.optimizeStatement();
+
+        // collect tables and columns that are missing statistics only for splice explain
+        // showNoStatsObjects == false for all kinds of spark explain
+        if (showNoStatsObjects) {
+            collectNoStatsTablesAndColumns();
+        }
     }
 
     @Override
@@ -121,7 +138,14 @@ public class ExplainNode extends DMLStatementNode {
         int resultSetNumber = getCompilerContext().getNextResultSetNumber();
         mb.push(resultSetNumber);
         mb.push(sparkExplainKind.toString());
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null, "getExplainResultSet", ClassName.NoPutResultSet, 4);
+
+        int noStatsTablesRef = acb.addItem(new FormatableArrayHolder(noStatsTables.toArray()));
+        mb.push(noStatsTablesRef);
+
+        int noStatsColumnsRef = acb.addItem(new FormatableArrayHolder(noStatsColumns.toArray()));
+        mb.push(noStatsColumnsRef);
+
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null, "getExplainResultSet", ClassName.NoPutResultSet, 6);
     }
 
     @Override
@@ -170,5 +194,45 @@ public class ExplainNode extends DMLStatementNode {
     public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         if ( node!= null)
             node.buildTree(tree,depth);
+    }
+
+    private void collectNoStatsTablesAndColumns() throws StandardException {
+        HashSet<String> noStatsColumnSet = new HashSet<>();
+
+        // collect no stats columns used to estimate scan cost
+        CollectNodesVisitor cnv = new CollectNodesVisitor(FromBaseTable.class);
+        node.accept(cnv);
+        List<FromBaseTable> baseTableNodes = cnv.getList();
+        for (FromBaseTable t : baseTableNodes) {
+            String tableName = t.getExposedName();
+            if (!t.useRealTableStats()) {
+                noStatsTables.add(new SQLVarchar(tableName));
+            } else if (!t.getNoStatsColumnIds().isEmpty()) {
+                TableDescriptor td = t.getTableDescriptor();
+                for (int columnId : t.getNoStatsColumnIds()) {
+                    noStatsColumnSet.add(tableName + "." + td.getColumnDescriptor(columnId).getColumnName());
+                }
+            }
+        }
+
+        // collect no stats columns used to estimate join selectivity
+        cnv = new CollectNodesVisitor(BinaryRelationalOperatorNode.class);
+        node.accept(cnv);
+        List<BinaryRelationalOperatorNode> binaryOpNodes = cnv.getList();
+        for (BinaryRelationalOperatorNode bop : binaryOpNodes) {
+            noStatsColumnSet.addAll(bop.getNoStatsColumns());
+        }
+
+        // collect no stats columns used to estimate grouping cardinality
+        cnv = new CollectNodesVisitor(GroupByNode.class);
+        node.accept(cnv);
+        List<GroupByNode> groupByNodes = cnv.getList();
+        for (GroupByNode gbn : groupByNodes) {
+            noStatsColumnSet.addAll(gbn.getNoStatsColumns());
+        }
+
+        for (String columnName : noStatsColumnSet) {
+            noStatsColumns.add(new SQLVarchar(columnName));
+        }
     }
 }

@@ -27,7 +27,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.StatementType;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
@@ -42,16 +41,14 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode;
+import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.SortedSet;
-
-import static com.splicemachine.db.impl.sql.compile.CreateTriggerNode.bindWhenClause;
 
 /**
  * @author Scott Fines
@@ -118,8 +115,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
              * We need to scan the table to find out how many rows
              * there are.
              */
-            if ((aColumnInfo.action == ColumnInfo.CREATE) && !(aColumnInfo.dataType.isNullable()) &&
-                    (aColumnInfo.defaultInfo == null) && (aColumnInfo.autoincInc == 0)) {
+            if (aColumnInfo.action == ColumnInfo.CREATE && !aColumnInfo.dataType.isNullable() &&
+                    aColumnInfo.defaultInfo == null && aColumnInfo.defaultValue == null && aColumnInfo.autoincInc == 0) {
                 tableNeedsScanning = true;
             }
         }
@@ -360,11 +357,14 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     private void updateNewColumnToDefault(ColumnDescriptor columnDescriptor, TableDescriptor td, LanguageConnectionContext lcc)
         throws StandardException {
         DefaultInfo defaultInfo = columnDescriptor.getDefaultInfo();
-        String  columnName = columnDescriptor.getColumnName();
-        String  defaultText;
+        String columnName = columnDescriptor.getColumnName();
+        String defaultText;
 
-        if ( defaultInfo.isGeneratedColumn() ) { defaultText = "default"; }
-        else { defaultText = columnDescriptor.getDefaultInfo().getDefaultText(); }
+        if ( defaultInfo == null || defaultInfo.isGeneratedColumn() ) {
+            defaultText = "default";
+        } else {
+            defaultText = defaultInfo.getDefaultText();
+        }
 
         /* Need to use delimited identifiers for all object names
          * to ensure correctness.
@@ -373,7 +373,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
             " SET " + IdUtil.normalToDelimited(columnName) + "=" +
             defaultText;
-
 
         executeUpdate(lcc, updateStmt);
     }
@@ -1188,8 +1187,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             //    FOR EACH ROW
             //    SELECT oldt.c11 from DERBY4998_SOFT_UPGRADE_RESTRICT
 
-            SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc)
-                                             : trd.getActionSPS(lcc, index);
+            SPSDescriptor sps = isWhenClause ? trd.getWhenClauseSPS(lcc, null)
+                                             : trd.getActionSPS(lcc, index, null);
             int[] referencedColsInTriggerAction = new int[td.getNumberOfColumns()];
             java.util.Arrays.fill(referencedColsInTriggerAction, -1);
             String newText = dd.getTriggerActionString(node,

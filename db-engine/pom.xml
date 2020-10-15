@@ -33,7 +33,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1967-SNAPSHOT</version>
+        <version>3.1.0.1979-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>db-engine</artifactId>
@@ -54,12 +54,12 @@
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
-            <artifactId>db-shared</artifactId>
-            <version>${project.version}</version>
+            <artifactId>utilities</artifactId>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
-            <artifactId>utilities</artifactId>
+            <artifactId>db-shared</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>joda-time</groupId>
@@ -87,19 +87,6 @@
             <artifactId>spark-sql_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <!-- org.spark_project.guava -->
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                    <artifactId>jackson-annotations</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>com.google.code.findbugs</groupId>

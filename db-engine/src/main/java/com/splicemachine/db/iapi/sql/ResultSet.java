@@ -32,12 +32,12 @@
 package com.splicemachine.db.iapi.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 
-import java.sql.Timestamp;
 import java.sql.SQLWarning;
+import java.sql.Timestamp;
+import java.util.UUID;
 
 /**
  * The ResultSet interface provides a method to tell whether a statement
@@ -370,4 +370,11 @@ public interface ResultSet
 	 @return true if the ResultSet has timed out.
 	 */
     boolean isTimedout();
+
+	/**
+	 * Get the UUID of the underlying operation.
+	 *
+	 * @return UUID of the underlying operation.
+	 */
+	default UUID getUuid() { return null; }
 }

@@ -43,6 +43,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 			int rightNumCols,
 			int leftHashKeyItem,
 			int rightHashKeyItem,
+			boolean noCacheBroadcastJoinRight,
 			Activation activation,
 			GeneratedMethod restriction,
 			int resultSetNumber,
@@ -56,6 +57,7 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 			String userSuppliedOptimizerOverrides,
 			String sparkExpressionTreeAsString) throws StandardException {
                 super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
+						noCacheBroadcastJoinRight,
                         activation, restriction, resultSetNumber, oneRowRightSide, semiJoinType, rightFromSSQ,
                         optimizerEstimatedRowCount, optimizerEstimatedCost,userSuppliedOptimizerOverrides,
                         sparkExpressionTreeAsString);

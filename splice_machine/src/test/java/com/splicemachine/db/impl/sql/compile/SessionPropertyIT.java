@@ -84,6 +84,23 @@ public class SessionPropertyIT extends SpliceUnitTest {
                         row(10,10,10)))
                 .create();
 
+        // t2: 20 rows
+        new TableCreator(conn)
+                .withCreate("create table t2(a2 int, b2 int, c2 int)")
+                .create();
+
+        for (int i = 0; i < 2; i++) {
+            spliceClassWatcher.executeUpdate("insert into t2 select * from t1");
+        }
+
+        // t3: 10 rows
+        new TableCreator(conn)
+                .withCreate("create table t3(a3 int, b3 int, c3 int)")
+                .create();
+
+        spliceClassWatcher.executeUpdate("insert into t3 select * from t1");
+
+        // t1: 40 rows
         for (int i = 0; i < 2; i++) {
             spliceClassWatcher.executeUpdate("insert into t1 select * from t1");
         }
@@ -207,6 +224,46 @@ public class SessionPropertyIT extends SpliceUnitTest {
 
         conn.close();
 
+    }
+
+    @Test
+    public void TestTableLimitForExhaustiveSearchSessionProperty() throws Exception {
+        TestConnection conn = methodWatcher.createConnection();
+        String testQuery = "explain select * from %s\n t1 inner join t2 on a1=a2 inner join t3 on a2=a3";
+
+        conn.execute("set session_property tableLimitForExhaustiveSearch=1");
+        String sqlText = "values current session_property";
+        try (ResultSet rs = conn.query(sqlText)) {
+            String expected = "1                |\n" +
+                    "----------------------------------\n" +
+                    "TABLELIMITFOREXHAUSTIVESEARCH=1; |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+        // number of tables (3) > tableLimitForExhaustiveSearch (1), use heuristic instead of enumerating,
+        // intermediate result size is less satisfying
+        // DB-10054
+        // Disable the following test for now because the number of join orders enumerated under jump mode
+        // before timeout exceeded is quite nondeterministic.
+        //rowContainsQuery(5, String.format(testQuery, ""), "outputRows=80", conn);
+
+        // overwrite session property by using a query hint
+        // intermediate result size should be better
+        rowContainsQuery(6, String.format(testQuery, "--SPLICE-PROPERTIES tableLimitForExhaustiveSearch=3"), "outputRows=40", conn);
+
+        // set session property to null
+        conn.execute("set session_property tableLimitForExhaustiveSearch=null");
+        sqlText = "values current session_property";
+        try (ResultSet rs = conn.query(sqlText)) {
+            String expected = "1 |\n" +
+                    "----\n" +
+                    "   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+
+        // default value is 6, we should achieve the same good plan without using the hint now
+        rowContainsQuery(6, String.format(testQuery, ""), "outputRows=40", conn);
+
+        conn.close();
     }
 
     @Test

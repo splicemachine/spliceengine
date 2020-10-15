@@ -44,6 +44,10 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.impl.sql.execute.CurrentDatetime;
+import org.apache.spark.sql.types.DataTypes;
+import org.apache.spark.sql.types.DecimalType;
+import org.apache.spark.sql.types.StructField;
 
 import java.sql.Types;
 
@@ -295,15 +299,9 @@ public class TypeId{
                     XML_ID,
             };
 
-    /**
-     * Implementation of DECIMAL datatype for generating holders through getNull.
-     * Set by the booted DataValueFactory implementation.
-     */
-    static DataValueDescriptor decimalImplementation;
-
-        /*
-        ** Static methods to obtain TypeIds
-        */
+    /*
+    ** Static methods to obtain TypeIds
+    */
 
     /**
      * Create a TypeId for the given format identifiers using
@@ -1384,9 +1382,6 @@ public class TypeId{
      *
      * @return SQL null value for this type.
      */
-    // SpotBugs reports decimalImplementation is never written to,
-    // but is written DataValueFactoryImpl.java / J2SEDataValueFactory.java
-    @SuppressWarnings("UWF_UNWRITTEN_FIELD")
     public DataValueDescriptor getNull(){
         switch(formatId){
             case StoredFormatIds.BIT_TYPE_ID:
@@ -1403,10 +1398,7 @@ public class TypeId{
 
             // Implementation of DECIMAL can change.
             case StoredFormatIds.DECIMAL_TYPE_ID:
-                if (decimalImplementation == null) {
-                    return new SQLDecimal();
-                }
-                return decimalImplementation.getNewNull();
+                return new SQLDecimal();
 
             case StoredFormatIds.DOUBLE_TYPE_ID:
                 return new SQLDouble();
@@ -1481,22 +1473,14 @@ public class TypeId{
      */
     public DataValueDescriptor getDefault() throws StandardException {
         switch(formatId){
-            case StoredFormatIds.BIT_TYPE_ID:
-                return new SQLBit(new byte[0]);
-
             case StoredFormatIds.BOOLEAN_TYPE_ID:
                 return new SQLBoolean(false);
 
             case StoredFormatIds.CHAR_TYPE_ID:
                 return new SQLChar("");
 
-            // Implementation of DECIMAL can change.
             case StoredFormatIds.DECIMAL_TYPE_ID:
-                if (decimalImplementation == null) {
-                    return new SQLDecimal("0");
-                }
-                throw new UnsupportedOperationException(StandardException.newException(
-                        SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + decimalImplementation));
+                return new SQLDecimal("0");
 
             case StoredFormatIds.DOUBLE_TYPE_ID:
                 return new SQLDouble(0);
@@ -1528,19 +1512,32 @@ public class TypeId{
             case StoredFormatIds.TINYINT_TYPE_ID:
                 return new SQLTinyint((byte) 0);
 
-            case StoredFormatIds.USERDEFINED_TYPE_ID_V3:
-                return new UserType();
-
             case StoredFormatIds.VARBIT_TYPE_ID:
                 return new SQLVarbit(new byte[0]);
 
             case StoredFormatIds.VARCHAR_TYPE_ID:
                 return new SQLVarchar("");
 
+            case StoredFormatIds.DATE_TYPE_ID:
+            case StoredFormatIds.TIME_TYPE_ID:
+            case StoredFormatIds.TIMESTAMP_TYPE_ID:
+                assert false: "Date, time and timestamp can't have empty defaults. They should be generated to current instead";
+                break;
+
+            case StoredFormatIds.BIT_TYPE_ID:
+                assert false: "BIT empty default should be filled in DataTypeDescriptor.getDefault where maximumWidth is known";
+                break;
+
+            case StoredFormatIds.LIST_TYPE_ID:
+            case StoredFormatIds.REF_TYPE_ID:
+            case StoredFormatIds.XML_TYPE_ID:
+            case StoredFormatIds.ARRAY_TYPE_ID:
+            case StoredFormatIds.USERDEFINED_TYPE_ID_V3:
             default:
-                throw new UnsupportedOperationException(
-                        StandardException.newException(SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + formatId) );
+                break;
         }
+        throw new UnsupportedOperationException(
+                StandardException.newException(SQLState.SPLICE_NOT_IMPLEMENTED,"Empty default for " + formatId) );
     }
 
     /**
@@ -1716,6 +1713,80 @@ public class TypeId{
             default:
                 return false;
         }
+    }
+
+
+    /* this function is consistent with the getStructField() function in each child class of DataType
+     */
+    public StructField getStructField(String columnName, int precision, int scale, StructField childStructField) {
+        StructField structField;
+        switch (formatId) {
+            case StoredFormatIds.BIT_TYPE_ID:
+            case StoredFormatIds.VARBIT_TYPE_ID:
+            case StoredFormatIds.LONGVARBIT_TYPE_ID:
+            case StoredFormatIds.BLOB_TYPE_ID:
+            case StoredFormatIds.LIST_TYPE_ID:
+            case StoredFormatIds.REF_TYPE_ID:
+            case StoredFormatIds.USERDEFINED_TYPE_ID_V3:
+                structField = DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+                break;
+            case StoredFormatIds.BOOLEAN_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.BooleanType, true);
+                break;
+            case StoredFormatIds.CHAR_TYPE_ID:
+            case StoredFormatIds.VARCHAR_TYPE_ID:
+            case StoredFormatIds.LONGVARCHAR_TYPE_ID:
+            case StoredFormatIds.CLOB_TYPE_ID:
+            case StoredFormatIds.XML_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.StringType, true);
+                break;
+            case StoredFormatIds.INT_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.IntegerType, true);
+                break;
+
+            case StoredFormatIds.DECIMAL_TYPE_ID:
+                if (precision == -1 || scale == -1) {
+                    structField = DataTypes.createStructField(columnName, DecimalType.SYSTEM_DEFAULT(),true);
+                } else {
+                    structField = DataTypes.createStructField(columnName, DataTypes.createDecimalType(precision, scale), true);
+                }
+                break;
+            case StoredFormatIds.DOUBLE_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.DoubleType, true);
+                break;
+            case StoredFormatIds.LONGINT_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.LongType, true);
+                break;
+            case StoredFormatIds.REAL_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.FloatType, true);
+                break;
+            case StoredFormatIds.SMALLINT_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.ShortType, true);
+                break;
+            case StoredFormatIds.TINYINT_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.ByteType, true);
+                break;
+            case StoredFormatIds.DATE_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.DateType, true);
+                break;
+            case StoredFormatIds.TIME_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.TimestampType, true);
+                break;
+            case StoredFormatIds.TIMESTAMP_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.TimestampType, true);
+                break;
+            case StoredFormatIds.ARRAY_TYPE_ID:
+                if (childStructField == null)
+                    throw new RuntimeException("type" + this.getSQLTypeName() + "with no child type set not supported");
+
+                structField = DataTypes.createStructField(columnName, DataTypes.createArrayType(childStructField.dataType()), true);
+                break;
+            default:
+                throw new RuntimeException("type" + this.getSQLTypeName() + " not supported");
+
+        }
+
+        return structField;
     }
 }
 

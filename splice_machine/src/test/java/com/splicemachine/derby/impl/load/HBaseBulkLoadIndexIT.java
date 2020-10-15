@@ -23,7 +23,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
-import org.spark_project.guava.base.Throwables;
+import splice.com.google.common.base.Throwables;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -514,6 +514,29 @@ public class HBaseBulkLoadIndexIT extends SpliceUnitTest {
                 Assert.assertEquals(0, count);
             }
         }
+    }
+
+    @Test
+    public void testBulkLoadWithIndexOnExpressions() throws Exception {
+        if (notSupported)
+            return;
+        String sql = "CREATE TABLE NATION_IDXEXPR (\n" +
+                "  N_NATIONKEY INTEGER NOT NULL,\n" +
+                "  N_NAME      VARCHAR(25),\n" +
+                "  N_REGIONKEY INTEGER NOT NULL,\n" +
+                "  N_COMMENT   VARCHAR(152),\n" +
+                "  PRIMARY KEY (N_NATIONKEY)\n" +
+                ")";
+        methodWatcher.execute(sql);
+        sql = "CREATE INDEX IDX_NATION_IDXEXPR ON NATION_IDXEXPR (LOWER(N_NAME || '.CODE'), ROUND(LN(N_REGIONKEY + N_NATIONKEY + 1), 2))";
+        methodWatcher.execute(sql);
+
+        spliceClassWatcher.prepareStatement(
+                format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)",
+                        SCHEMA_NAME, "NATION_IDXEXPR", getResource("nation.tbl"), BULKLOADDIR)
+        ).execute();
+
+        assertEquals(25L, (long) spliceClassWatcher.query("select count(*) from nation_idxexpr"));
     }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 

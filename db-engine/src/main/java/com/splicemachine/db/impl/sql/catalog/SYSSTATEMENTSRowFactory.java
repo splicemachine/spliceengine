@@ -33,15 +33,8 @@ package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.iapi.reference.Property;
 
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.raw.RawStoreFactory;
-
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-
-import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
@@ -113,9 +106,9 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
-    public SYSSTATEMENTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    public SYSSTATEMENTSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf,DataDictionary dd)
 	{
-		super(uuidf,ef,dvf);
+		super(uuidf,ef,dvf,dd);
 		initInfo(SYSSTATEMENTS_COLUMN_COUNT, TABLENAME_STRING, 
 				 indexColumnPositions, uniqueness, uuids);
 	}
@@ -265,7 +258,6 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
         Timestamp time = null;
         ExecPreparedStatement preparedStatement = null;
         boolean initiallyCompilable;
-        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(row.nColumns() == SYSSTATEMENTS_COLUMN_COUNT,
@@ -351,6 +343,18 @@ public class SYSSTATEMENTSRowFactory extends CatalogRowFactory
 
         return descriptor;
     }
+
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException
+	{
+		if (td != null) {
+			if (!(td instanceof SPSDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+			return makeSYSSTATEMENTSrow(latestVersion, (SPSDescriptor) td);
+		}
+		else {
+			return makeEmptyRow();
+		}
+	}
 
 	public ExecRow makeEmptyRow()
 		throws StandardException

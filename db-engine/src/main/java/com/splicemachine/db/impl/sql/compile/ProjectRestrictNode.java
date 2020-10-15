@@ -48,8 +48,8 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -100,6 +100,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      */
     private boolean getTableNumberHere;
 
+    private HashMap scopedPredCache;
+    private PredicateList predicatesPushedToDT;
+
     /**
      * Initializer for a ProjectRestrictNode.
      *
@@ -134,8 +137,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          */
         if(tableProperties!=null &&
                 (childResult instanceof Optimizable)){
-            ((Optimizable)childResult).setProperties(getProperties());
-            setProperties(null);
+            ((Optimizable)childResult).setProperties(super.getProperties());
+            super.setProperties(null);
         }
 
         if (childResult instanceof ResultSetNode && ((ResultSetNode) childResult).getContainsSelfReference())
@@ -281,6 +284,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 }
             }
 
+            if (childResult instanceof SelectNode) {
+                if (getCurrentAccessPath().getJoinStrategy().allowsJoinPredicatePushdown())
+                    mapJoinPredicatesPushableToDT();
+            }
             // Set outer table rows to be 1, because select node should be evaluated independently with outer table
             childResult=childResult.optimize(optimizer.getDataDictionary(), restrictionList, 1, optimizer.isForSpark());
 
@@ -347,6 +354,100 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         return costEstimate;
     }
 
+    private boolean mapJoinPredicatesPushableToDT() throws StandardException {
+        boolean disablePushDown = getLanguageConnectionContext().isNLJPredicatePushDownDisabled();
+        if (disablePushDown) {
+            return false;
+        }
+
+        // We only handle certain types of predicates here; if the received
+        // predicate doesn't qualify, then don't push it.
+        if (!(childResult instanceof SelectNode))
+            return false;
+
+        if (restrictionList == null)
+            return false;
+
+        PredicateList pushablePredicates = null;
+
+        boolean canPush = false;
+        for(int i=restrictionList.size()-1;i>=0;i--){
+            Predicate pred = (Predicate)restrictionList.getOptPredicate(i);
+
+            if (!pred.pushableToSubqueries())
+                continue;
+
+            JBitSet tableNums = new JBitSet(getReferencedTableMap().size());
+            BaseTableNumbersVisitor btnVis =
+                    new BaseTableNumbersVisitor(tableNums, true);
+
+            childResult.accept(btnVis);
+            if (tableNums.getFirstSetBit() == -1)
+                continue;
+
+            int [] whichRC = { -1 };
+
+            // See if we already have a scoped version of the predicate cached,
+            // and if so just use that.
+            Predicate scopedPred = null;
+            if (scopedPredCache == null)
+                scopedPredCache = new HashMap();
+            else
+                scopedPred = (Predicate)scopedPredCache.get(pred);
+            if (scopedPred == null)
+            {
+                scopedPred = pred.getPredScopedForResultSet(
+                        tableNums, childResult, whichRC);
+                // we are not able to generate a scoped predicate, so continue
+                if (scopedPred == pred)
+                    continue;
+                scopedPredCache.put(pred, scopedPred);
+            }
+            if (pushablePredicates == null) {
+                pushablePredicates = new PredicateList();
+            }
+            pushablePredicates.addOptPredicate(scopedPred);
+            restrictionList.removeOptPredicate(pred);
+            canPush = true;
+
+            if (predicatesPushedToDT == null) {
+                predicatesPushedToDT = new PredicateList();
+            }
+            predicatesPushedToDT.addOptPredicate(pred);
+        }
+
+        // append the scoped predicates at the end
+        if (pushablePredicates != null && !pushablePredicates.isEmpty())
+            restrictionList.destructiveAppend(pushablePredicates);
+
+        return canPush;
+    }
+
+    private void unmapJoinPredicatesPushedToDT() throws StandardException {
+        if (!(childResult instanceof SelectNode))
+            return;
+
+        if (predicatesPushedToDT == null || predicatesPushedToDT.isEmpty())
+            return;
+
+        Predicate pred;
+        for (int i = restrictionList.size()-1; i>=0; i--) {
+            pred = (Predicate) restrictionList.getOptPredicate(i);
+            if (pred.isScopedForPush())
+                restrictionList.removeOptPredicate(pred);
+        }
+
+        RemapCRsVisitor rcrv = new RemapCRsVisitor(false);
+        for (int i = predicatesPushedToDT.size() - 1; i >= 0; i--) {
+            pred = (Predicate) predicatesPushedToDT.getOptPredicate(i);
+            if (pred.isScopedForPush()) {
+                pred.getAndNode().accept(rcrv);
+            }
+            restrictionList.addOptPredicate(pred);
+        }
+        predicatesPushedToDT.removeAllPredicates();
+    }
+
     private void collectBaseTables(ResultSetNode node, List<FromBaseTable> baseTables) {
 
         if (node == null) {
@@ -392,6 +493,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
             return ((Optimizable)childResult).feasibleJoinStrategy(restrictionList,optimizer,outerCost);
         }else{
+            if (childResult instanceof SelectNode)
+                unmapJoinPredicatesPushedToDT();
+
             return super.feasibleJoinStrategy(restrictionList,optimizer,outerCost);
         }
     }
@@ -501,6 +605,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public void pullOptPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
+        if (childResult instanceof SelectNode)
+            unmapJoinPredicatesPushedToDT();
+
         // DERBY-4001: Don't pull predicates if this node is part of a NOT
         // EXISTS join. For example, in the query below, if we allowed the
         // predicate 1<>1 (always false) to be pulled, no rows would be
@@ -605,6 +712,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
              * paths to ensure we generate the same plans the optimizer
              * chose.
              */
+            if (childResult instanceof SelectNode) {
+                if (trulyTheBestAccessPath.getJoinStrategy().allowsJoinPredicatePushdown())
+                    mapJoinPredicatesPushableToDT();
+            }
             childResult=childResult.modifyAccessPaths(restrictionList);
 
             /* Mark this node as having the truly ... for
@@ -694,7 +805,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         */
         if(origChildOptimizable){
             processRowIdReferenceInFromBaseTableChild();
-            childResult=childResult.changeAccessPath();
+            childResult=childResult.changeAccessPath(outerTables);
         }
         accessPathModified=true;
 
@@ -705,7 +816,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         */
         if(trulyTheBestAccessPath.getJoinStrategy()!=null &&
                 trulyTheBestAccessPath.getJoinStrategy().isHashJoin()){
-            return replaceWithHashTableNode();
+            return replaceWithHashTableNode(outerTables);
         }
 
         /* We consider materialization into a temp table as a last step.
@@ -714,6 +825,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
          * will consider materialization as a cost based option.
          */
         return (Optimizable)considerMaterialization(outerTables);
+    }
+
+    @Override
+    public Properties getProperties() {
+        // see comment in init()
+        if (childResult instanceof Optimizable)
+            return ((Optimizable)childResult).getProperties();
+        return super.getProperties();
     }
 
     /**
@@ -726,7 +845,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * @return The new (same) top of our result set tree.
      * @throws StandardException Thrown on error
      */
-    private Optimizable replaceWithHashTableNode() throws StandardException{
+    private Optimizable replaceWithHashTableNode(JBitSet joinedTableSet) throws StandardException{
         // If this PRN has TTB access path for its child, store that access
         // path in the child here, so that we can find it later when it
         // comes time to generate qualifiers for the hash predicates (we
@@ -780,6 +899,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         PredicateList joinQualifierList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         PredicateList requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         trulyTheBestAccessPath.getJoinStrategy().divideUpPredicateLists(this,
+                joinedTableSet,
                 restrictionList,
                 searchRestrictionList,
                 joinQualifierList,
@@ -1516,6 +1636,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             mb.pushNull(ClassName.GeneratedMethod);
         }
 
+        resultColumns.generateResultColumnDataType(acb, mb);
+
         mb.push(resultSetNumber);
 
         // if there is no constant restriction, we just want to pass null.
@@ -1567,7 +1689,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         ProjectRestrictNode.generateExpressionsArrayOnStack(acb, mb, canUseSparkSQLExpressions ? resultColumns : null);
         mb.push(hasGroupingFunction);
         mb.push(subqueryText);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,16);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getProjectRestrictResultSet", ClassName.NoPutResultSet,17);
     }
 
     /**
@@ -1886,7 +2008,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         if (childResult.isNotExists())
             return false;
 
-        if (restrictionList != null && restrictionList.isUnsatisfiable()) {
+        if (restrictionList != null && restrictionList.isUnsatisfiable(false)) {
             sat = Satisfiability.UNSAT;
             return true;
         }
@@ -1938,4 +2060,11 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         return childResult.isOneRowResultSet();
     }
 
+    @Override
+    public boolean hasJoinPredicatePushedDownFromOuter() {
+        if (!hasTrulyTheBestAccessPath)
+            return ((FromTable)childResult).hasJoinPredicatePushedDownFromOuter();
+
+        return hasJoinPredicatePushedDownFromOuter;
+    }
 }

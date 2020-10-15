@@ -31,13 +31,14 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.impl.driver.SIDriver;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,8 +49,8 @@ import java.util.Set;
  */
 public class ExternalTableUtils {
 
-    /*
-     check for Avro date type conversion. Databricks' spark-avro support does not handle date.
+    /**
+     * check for Avro date type conversion. Databricks' spark-avro support does not handle date.
      */
     public static StructType supportAvroDateType(StructType schema, String storedAs) {
         if (storedAs.toLowerCase().equals("a")) {
@@ -64,14 +65,17 @@ public class ExternalTableUtils {
         return schema;
     }
 
-    public static void supportAvroDateTypeColumns(ExecRow execRow) throws StandardException {
-        for(int i=0; i < execRow.size(); i++){
-            if (execRow.getColumn(i + 1).getTypeName().equals("DATE")) {
-                execRow.setColumn(i + 1, new SQLVarchar());
+    public static Dataset<Row> castDateTypeInAvroDataSet(Dataset<Row> dataset, StructType tableSchema) {
+        int i = 0;
+        for (StructField sf : tableSchema.fields()) {
+            if (sf.dataType().sameType(DataTypes.DateType)) {
+                String colName = dataset.schema().fields()[i].name();
+                dataset = dataset.withColumn(colName, dataset.col(colName).cast(DataTypes.DateType));
             }
+            i++;
         }
+        return dataset;
     }
-
 
     public static StructType getSchema(Activation activation, long conglomerateId) throws StandardException {
 
@@ -193,7 +197,7 @@ public class ExternalTableUtils {
 
     private static StructType getDataSchema(DataSetProcessor dsp, StructType tableSchema, int[] partitionColumnMap,
                                      String location, String storeAs, boolean mergeSchema) throws StandardException {
-        StructType dataSchema =dsp.getExternalFileSchema(storeAs, location, mergeSchema);
+        StructType dataSchema =dsp.getExternalFileSchema(storeAs, location, mergeSchema, null);
         tableSchema =  ExternalTableUtils.supportAvroDateType(tableSchema, storeAs);
         if (dataSchema != null) {
             ExternalTableUtils.checkSchema(tableSchema, dataSchema, partitionColumnMap, location);

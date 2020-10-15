@@ -17,8 +17,9 @@ package com.splicemachine.si.impl;
 import com.carrotsearch.hppc.LongArrayList;
 import com.carrotsearch.hppc.LongHashSet;
 import com.splicemachine.si.constants.SIConstants;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.primitives.Longs;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.primitives.Longs;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.LongStripedSynchronizer;
 import com.splicemachine.si.api.data.ExceptionFactory;
@@ -44,6 +45,7 @@ import java.util.concurrent.locks.ReadWriteLock;
  * @author Scott Fines
  *         Date: 6/23/14
  */
+@SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "DB-9968")
 public class MemTxnStore implements TxnStore{
     private LongStripedSynchronizer<ReadWriteLock> lockStriper;
     private final ConcurrentMap<Long, TxnHolder> txnMap;
@@ -87,6 +89,7 @@ public class MemTxnStore implements TxnStore{
         }
     }
 
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "DB-9844")
     private Txn getSubTransaction(Txn txn, long subTxnId) {
         return new ForwardingTxnView(txn) {
             @Override
@@ -194,6 +197,7 @@ public class MemTxnStore implements TxnStore{
         }
     }
 
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "DB-9844")
     private Txn getRolledbackSubtxns(long txnId, Txn txn, LongHashSet subtransactions) {
         final LongHashSet subs = subtransactions.clone();
         return new ForwardingTxnView(txn){
@@ -204,6 +208,7 @@ public class MemTxnStore implements TxnStore{
         };
     }
 
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "DB-9844")
     protected Txn getRolledbackTxn(long realTxnId,final Txn txn){
         return new ForwardingTxnView(txn){
             @Override
@@ -233,6 +238,7 @@ public class MemTxnStore implements TxnStore{
     }
 
     @Override
+    @SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification = "DB-9844")
     public long commit(long txnId) throws IOException{
         ReadWriteLock readWriteLock=lockStriper.get(txnId);
         Lock wl=readWriteLock.writeLock();
@@ -391,6 +397,11 @@ public class MemTxnStore implements TxnStore{
             }
         });
         return txns;
+    }
+
+    @Override
+    public long getTxnAt(long ts) throws IOException {
+        return 0;
     }
 
     @Override

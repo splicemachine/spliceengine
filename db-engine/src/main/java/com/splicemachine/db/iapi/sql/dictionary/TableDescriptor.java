@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
-import java.util.TreeMap;
-
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
@@ -56,7 +54,9 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.primitives.Ints;
+
+import java.util.TreeMap;
 
 /**
  * This class represents a table descriptor. The external interface to this
@@ -105,7 +105,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     public static final int BASE_TABLE_TYPE=0;
     public static final int SYSTEM_TABLE_TYPE=1;
     public static final int VIEW_TYPE=2;
-    public static final int GLOBAL_TEMPORARY_TABLE_TYPE=3;
+    public static final int LOCAL_TEMPORARY_TABLE_TYPE =3;
     public static final int SYNONYM_TYPE=4;
     public static final int VTI_TYPE=5;
     /* Supports with clauses for TPCDS*/
@@ -167,6 +167,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     @Deprecated
     private boolean isPinned;
     private boolean purgeDeletedRows;
+    private Long minRetentionPeriod;
 
     /**
      * <p>
@@ -227,18 +228,17 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @param dataDictionary       The data dictionary that this descriptor lives in
      * @param tableName            The name of the temporary table
      * @param schema               The schema descriptor for this table.
-     * @param tableType            An integer identifier for the type of the table : declared global temporary table
+     * @param tableType            An integer identifier for the type of the table : temporary table
      * @param onCommitDeleteRows   If true, on commit delete rows else on commit preserve rows of temporary table.
      * @param onRollbackDeleteRows If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
      */
-
     public TableDescriptor(DataDictionary dataDictionary,
                            String tableName,
                            SchemaDescriptor schema,
                            int tableType,
                            boolean onCommitDeleteRows,
                            boolean onRollbackDeleteRows, int numberOfColumns){
-        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false,false);
+        this(dataDictionary,tableName,schema,tableType,'\0',numberOfColumns,null,null,null,null,null,null,false,false, null);
         this.onCommitDeleteRows=onCommitDeleteRows;
         this.onRollbackDeleteRows=onRollbackDeleteRows;
     }
@@ -249,11 +249,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @param dataDictionary  The data dictionary that this descriptor lives in
      * @param tableName       The name of the table
      * @param schema          The schema descriptor for this table.
-     * @param tableType       An integer identifier for the type of the table
-     *                        (base table, view, etc.)
+     * @param tableType       An integer identifier for the type of the table (base table, view, etc.)
      * @param lockGranularity The lock granularity.
      */
-
     public TableDescriptor(DataDictionary dataDictionary,
                            String tableName,
                            SchemaDescriptor schema,
@@ -266,7 +264,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                            String location,
                            String compression,
                            boolean isPinned,
-                           boolean purgeDeletedRows
+                           boolean purgeDeletedRows,
+                           Long minRetentionPeriod
     ){
         super(dataDictionary);
 
@@ -288,6 +287,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         // NOT USED ANYMORE, for backward compatibility only
         this.isPinned = isPinned;
         this.purgeDeletedRows = purgeDeletedRows;
+        this.minRetentionPeriod = minRetentionPeriod;
     }
 
     //
@@ -399,6 +399,14 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         this.purgeDeletedRows = purgeDeletedRows;
     }
 
+    public Long getMinRetentionPeriod() {
+        return minRetentionPeriod;
+    }
+
+    public void setMinRetentionPeriod(Long minRetentionPeriod) {
+        this.minRetentionPeriod = minRetentionPeriod;
+    }
+
     /**
      * Gets the SchemaDescriptor for this TableDescriptor.
      *
@@ -451,7 +459,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
     /**
      * Gets an identifier telling what type of table this is
-     * (base table, declared global temporary table, view, etc.)
+     * (base table, global/local temporary table, view, etc.)
      *
      * @return An identifier telling what type of table this is.
      */
@@ -474,7 +482,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         //
 
         if (tableType != BASE_TABLE_TYPE && tableType != SYSTEM_TABLE_TYPE &&
-                tableType != EXTERNAL_TYPE && tableType != GLOBAL_TEMPORARY_TABLE_TYPE) {
+                tableType != EXTERNAL_TYPE && tableType != LOCAL_TEMPORARY_TABLE_TYPE) {
             return -1;
         }
 
@@ -621,18 +629,18 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     }
 
     /**
-     * Gets the on rollback behavior for the declared global temporary table.
+     * Gets the on rollback behavior for the temporary table.
      *
-     * @return A boolean representing the on rollback behavior for the declared global temporary table.
+     * @return A boolean representing the on rollback behavior for the temporary table.
      */
     public boolean isOnRollbackDeleteRows(){
         return onRollbackDeleteRows;
     }
 
     /**
-     * Gets the on commit behavior for the declared global temporary table.
+     * Gets the on commit behavior for the temporary table.
      *
-     * @return A boolean representing the on commit behavior for the declared global temporary table.
+     * @return A boolean representing the on commit behavior for the temporary table.
      */
     public boolean isOnCommitDeleteRows(){
         return onCommitDeleteRows;
@@ -643,7 +651,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * and hence its conglomerate id has changed. This is used for temporary table descriptors only
      */
     public void resetHeapConglomNumber(){
-        assert tableType==TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE:"tableType expected to be GLOBAL_TEMPORARY_TABLE_TYPE";
+        assert tableType==TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE :"tableType expected to be LOCAL_TEMPORARY_TABLE_TYPE";
         heapConglomNumber=-1;
     }
 
@@ -730,7 +738,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      */
     @Override
     public boolean isPersistent(){
-        return tableType!=TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE && (super.isPersistent());
+        return tableType!=TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE && (super.isPersistent());
     }
 
     /**
@@ -953,7 +961,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                             "columnDescriptorList: "+columnDescriptorList+"\n"+
                             "constraintDescriptorList: "+constraintDescriptorList+"\n"+
                             "heapConglomNumber: "+heapConglomNumber+"\n";
-            if(tableType==TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE){
+            if(tableType==TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE){
                 tempString=tempString+"onCommitDeleteRows: "+"\n"+
                         onCommitDeleteRows+"\n";
                 tempString=tempString+"onRollbackDeleteRows: "+"\n"+
@@ -1428,6 +1436,10 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
     public boolean isExternal() {
         return tableType == EXTERNAL_TYPE;
+    }
+
+    public boolean isTemporary() {
+        return tableType == LOCAL_TEMPORARY_TABLE_TYPE;
     }
 
         /*

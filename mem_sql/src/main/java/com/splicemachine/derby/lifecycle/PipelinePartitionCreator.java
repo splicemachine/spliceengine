@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.lifecycle;
 
-import org.spark_project.guava.base.Function;
+import splice.com.google.common.base.Function;
 import com.splicemachine.access.api.PartitionCreator;
 import com.splicemachine.lifecycle.DatabaseLifecycleManager;
 import com.splicemachine.lifecycle.PipelineLoadService;
@@ -25,6 +25,7 @@ import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
 import com.splicemachine.si.MemSIEnvironment;
 import com.splicemachine.storage.MServerControl;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
@@ -42,6 +43,11 @@ public class PipelinePartitionCreator implements PartitionCreator{
     }
 
     public PartitionCreator withName(String name){
+        return withName(name, Conglomerate.Priority.NORMAL);
+    }
+
+    public PartitionCreator withName(String name, Conglomerate.Priority priority){
+        // mem can ignore priority
         baseCreator=baseCreator.withName(name);
         try{
             //noinspection ResultOfMethodCallIgnored
@@ -78,6 +84,12 @@ public class PipelinePartitionCreator implements PartitionCreator{
     @Override
     public PartitionCreator withSplitKeys(byte[][] splitKeys) {
         baseCreator = baseCreator.withSplitKeys(splitKeys);
+        return this;
+    }
+
+    @Override
+    public PartitionCreator withCatalogVersion(String version) {
+        baseCreator = baseCreator.withCatalogVersion(version);
         return this;
     }
 

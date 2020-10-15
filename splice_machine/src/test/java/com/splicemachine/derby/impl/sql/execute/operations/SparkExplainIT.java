@@ -27,7 +27,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.SQLSyntaxErrorException;
@@ -805,11 +805,57 @@ public class SparkExplainIT extends SpliceUnitTest {
     }
 
     @Test
-    public void testCrossJoinBroadcastLeft() throws Exception {
+    public void testCrossJoinNeverBroadcastLeft() throws Exception {
+        /* DB-9579
+         * In case of a cross join, we only check if the right side can be broadcast and never broadcast the left
+         * side. Reason is that when the plan reaches Spark and it doesn't have a sort node, it might be the case
+         * that there are sort keys but the sort node is optimized away because the left side row order satisfies
+         * the sort keys. If we broadcast the left side, resulting row order might be different.
+         */
         if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
         String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
                 "        big --splice-properties useSpark=true, joinStrategy=cross\n" +
                 "        inner join t1 on 1=1";
-        testQueryContains(sqlText, "BroadcastNestedLoopJoin BuildLeft, Cross", methodWatcher, true);
+        testQueryContains(sqlText, "CartesianProduct", methodWatcher, true);
+    }
+
+    @Test
+    public void testCrossJoinBroadcastRightNoHint() throws Exception {
+        if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
+        String sqlText = "explain select count(*) from\n" +
+                "        t1 --splice-properties useSpark=true\n" +
+                "        inner join big on 1=1";
+        // BIG table should be on the left side (bigger row index)
+        String[] expectedList = {"CrossJoin", "TableScan[T1(", "TableScan[BIG("};
+        rowContainsQuery(new int[]{6, 7, 9}, sqlText, methodWatcher, expectedList);
+
+        sqlText = "sparkexplain select count(*) from\n" +
+                "        t1 --splice-properties useSpark=true\n" +
+                "        inner join big on 1=1";
+        // expecting broadcast on the right side and BIG table is on the left side
+        String[] expectedList2 = {"BroadcastNestedLoopJoin BuildRight, Cross", ":- Scan ExistingRDD[]", "-> TableScan[BIG("};
+        rowContainsQuery(new int[]{5, 6, 7}, sqlText, methodWatcher, expectedList2);
+    }
+
+    @Test
+    public void testCrossJoinForceBroadcastRight() throws Exception {
+        if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
+        // use the same query as testCrossJoinCartesianProduct, not broadcasting right side based on cost,
+        // but we force it by giving broadcastCrossRight=true hint
+        String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
+                "        big --splice-properties useSpark=true, joinStrategy=cross, broadcastCrossRight=true\n" +
+                "        inner join big on 1=1";
+        testQueryContains(sqlText, "BroadcastNestedLoopJoin BuildRight, Cross", methodWatcher, true);
+    }
+
+    @Test
+    public void testCrossJoinForceCartesianProduct() throws Exception {
+        if (useSpark.equalsIgnoreCase("false")) return; // cross join only has Spark implementation
+        // use the same query as testCrossJoinBroadcastRight, broadcasting right side based on cost,
+        // but we force not to by giving broadcastCrossRight=false
+        String sqlText = "sparkexplain select count(*) from --splice-properties joinOrder=fixed\n" +
+                "        t1 --splice-properties useSpark=true, joinStrategy=cross, broadcastCrossRight=false\n" +
+                "        inner join big on 1=1";
+        testQueryContains(sqlText, "CartesianProduct", methodWatcher, true);
     }
 }

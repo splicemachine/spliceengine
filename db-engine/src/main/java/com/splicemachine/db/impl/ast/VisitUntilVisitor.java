@@ -35,7 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
-import org.spark_project.guava.base.Predicate;
+import splice.com.google.common.base.Predicate;
 
 /**
  * Visitor that applies a visitor until a stopping point defined by a predicate. Parameters of the traversal

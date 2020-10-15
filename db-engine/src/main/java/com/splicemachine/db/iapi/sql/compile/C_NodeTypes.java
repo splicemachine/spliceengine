@@ -62,7 +62,7 @@ public interface C_NodeTypes
     int NOP_STATEMENT_NODE = 19;
     int DB2_LENGTH_OPERATOR_NODE = 20;
     int SET_TRANSACTION_ISOLATION_NODE = 21;
-    // 22 is available
+    int GET_NEAREST_TRANSACTION = 22;
     int CHAR_LENGTH_OPERATOR_NODE = 23;
     int IS_NOT_NULL_NODE = 24;
     int IS_NULL_NODE = 25;
@@ -199,6 +199,7 @@ public interface C_NodeTypes
     int INTERSECT_OR_EXCEPT_NODE = 157;
     int REPLACE_OPERATOR_NODE = 158;
     // 159 - 183 available
+    int SCALAR_MIN_MAX_FUNCTION_NODE = 183;
     int TIMESTAMP_ADD_FN_NODE = 184;
     int TIMESTAMP_DIFF_FN_NODE = 185;
     int MODIFY_COLUMN_TYPE_NODE = 186;

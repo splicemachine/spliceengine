@@ -17,7 +17,7 @@ package com.splicemachine.storage;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.Durability;
-import org.spark_project.guava.collect.Iterables;
+import splice.com.google.common.collect.Iterables;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Mutation;

@@ -25,7 +25,7 @@ import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.wal.WAL;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableList;
 
 import java.io.IOException;
 import java.util.ArrayList;

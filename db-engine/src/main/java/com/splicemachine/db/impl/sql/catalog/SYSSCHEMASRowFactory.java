@@ -53,7 +53,7 @@ import java.util.List;
 
 public class SYSSCHEMASRowFactory extends CatalogRowFactory
 {
-	private	static	final	String	TABLENAME_STRING = "SYSSCHEMAS";
+	public static	final	String	TABLENAME_STRING = "SYSSCHEMAS";
 
 	public	static	final	int		SYSSCHEMAS_COLUMN_COUNT = 3;
 	/* Column #s for sysinfo (1 based) */
@@ -87,6 +87,13 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	//
 	/////////////////////////////////////////////////////////////////////////////
 
+	SYSSCHEMASRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
+	{
+		super(uuidf,ef,dvf, dd);
+		initInfo(SYSSCHEMAS_COLUMN_COUNT, TABLENAME_STRING,
+				indexColumnPositions, uniqueness, uuids );
+	}
+
     SYSSCHEMASRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
 	{
 		super(uuidf,ef,dvf);
@@ -108,7 +115,7 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 	 * @exception   StandardException thrown on failure
 	 */
 
-	public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+	public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
 					throws StandardException
 	{
 		DataTypeDescriptor		dtd;
@@ -121,6 +128,9 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
 		if (td != null)
 		{
+			if (!(td instanceof SchemaDescriptor))
+				throw new RuntimeException("Unexpected SchemaDescriptor " + td.getClass().getName());
+
 			SchemaDescriptor	schemaDescriptor = (SchemaDescriptor)td;
 
 			name = schemaDescriptor.getSchemaName();
@@ -137,7 +147,12 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
 		/* Build the row to insert */
 		row = getExecutionFactory().getValueRow(SYSSCHEMAS_COLUMN_COUNT);
+		setRowColumns(row, name, uuid, aid);
 
+		return row;
+	}
+
+	public static void setRowColumns(ExecRow row, String name, String uuid, String aid) {
 		/* 1st column is SCHEMAID */
 		row.setColumn(1, new SQLChar(uuid));
 
@@ -146,8 +161,6 @@ public class SYSSCHEMASRowFactory extends CatalogRowFactory
 
 		/* 3rd column is SCHEMAAID */
 		row.setColumn(3, new SQLVarchar(aid));
-
-		return row;
 	}
 
 

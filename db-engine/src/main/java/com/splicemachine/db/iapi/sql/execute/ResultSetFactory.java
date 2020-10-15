@@ -351,7 +351,9 @@ public interface ResultSetFactory {
 	 */
 	NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                GeneratedMethod restriction,
-                                               GeneratedMethod projection, int resultSetNumber,
+                                               GeneratedMethod projection,
+                                               int resultColumnTypeArrayItem,
+                                               int resultSetNumber,
                                                GeneratedMethod constantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
@@ -367,7 +369,9 @@ public interface ResultSetFactory {
 
         NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                        GeneratedMethod restriction,
-                                                       GeneratedMethod projection, int resultSetNumber,
+                                                       GeneratedMethod projection,
+                                                       int resultColumnTypeArrayItem,
+                                                       int resultSetNumber,
                                                        GeneratedMethod constantRestriction,
                                                        int mapArrayItem,
                                                        int cloneMapItem,
@@ -384,7 +388,9 @@ public interface ResultSetFactory {
 	// can handle old versions of this method that were serialized to disk.
 	NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                GeneratedMethod restriction,
-                                               GeneratedMethod projection, int resultSetNumber,
+                                               GeneratedMethod projection,
+                                               int resultColumnTypeArrayItem,
+                                               int resultSetNumber,
                                                GeneratedMethod constantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
@@ -398,7 +404,9 @@ public interface ResultSetFactory {
 
 	NoPutResultSet getProjectRestrictResultSet(NoPutResultSet source,
                                                GeneratedMethod restriction,
-                                               GeneratedMethod projection, int resultSetNumber,
+                                               GeneratedMethod projection,
+                                               int resultColumnTypeArrayItem,
+                                               int resultSetNumber,
                                                GeneratedMethod constantRestriction,
                                                int mapArrayItem,
                                                int cloneMapItem,
@@ -420,7 +428,7 @@ public interface ResultSetFactory {
 			filtered by this operation.
 		@param singleTableRestriction restriction, if any, applied to
 			input of hash table.
-		@param equijoinQualifiers Qualifier[] for look up into hash table
+		@param equijoinQualifiersField Qualifier[] for look up into hash table
 		@param projection a reference to a method in the activation
 			that is applied to the activation's "current row" field
 			to project out the expected result row.
@@ -951,7 +959,7 @@ public interface ResultSetFactory {
 			the scan
 		@param sameStartStopPosition	Re-use the startKeyGetter for the stopKeyGetter
 										(Exact match search.)
-		@param qualifiers the array of Qualifiers for the scan.
+		@param qualifiersField the array of Qualifiers for the scan.
 			Null or an array length of zero means there are no qualifiers.
 		@param tableName		The full name of the table
 		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
@@ -970,7 +978,7 @@ public interface ResultSetFactory {
 		@param optimizerEstimatedRowCount	Estimated total # of rows by
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@param pastTxId                     The ID of a past transaction for time-travel queries
+	    @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
 
 		@return the table scan operation as a result set.
 		@exception StandardException thrown when unable to create the
@@ -1014,7 +1022,7 @@ public interface ResultSetFactory {
 								int partitionByRefItem,
 								GeneratedMethod defaultRowFunc,
 								int defaultValueMapItem,
-								long pastTxId
+								GeneratedMethod pastTxFunctor
 								)
 			throws StandardException;
 
@@ -1075,7 +1083,7 @@ public interface ResultSetFactory {
 								int partitionByRefItem,
 								GeneratedMethod defaultRowFunc,
 								int defaultValueMapItem,
-								long pastTxId
+								GeneratedMethod pastTxFunctor
 								)
 			throws StandardException;
     /**
@@ -1233,6 +1241,7 @@ public interface ResultSetFactory {
 										 boolean oneRowRightSide,
 										 byte semiJoinType,
 										 boolean rightFromSSQ,
+										 boolean broadcastRightSide,
 										 double optimizerEstimatedRowCount,
 										 double optimizerEstimatedCost,
 										 String userSuppliedOptimizerOverrides,
@@ -1302,6 +1311,7 @@ public interface ResultSetFactory {
 											 int rightNumCols,
 											 int leftHashKeyItem,
 											 int rightHashKeyItem,
+											 boolean noCacheBroadcastJoinRight,
 											 GeneratedMethod joinClause,
 											 int resultSetNumber,
 											 boolean oneRowRightSide,
@@ -1465,35 +1475,35 @@ public interface ResultSetFactory {
 											double optimizerEstimatedCost,
 											String explainPlan) 
 		throws StandardException;
-	/**
-	 A left outer join using a sort merge join.
 
-	 @return the sortmerge join operation as a result set.
-	@exception StandardException thrown when unable to create the 
-		result set
-	 * @param resultSetNumber	The resultSetNumber for the ResultSet
-	 * @param leftResultSet    Outer ResultSet for join.
-	 * @param leftNumCols        Number of columns in the leftResultSet
-	 * @param rightResultSet    Inner ResultSet for join.
-	 * @param rightNumCols        Number of columns in the rightResultSet
-	 * @param joinClause a reference to a method in the activation
-    that is applied to the activation's "current row" field
-    to determine whether the joinClause is staisfied or not.
-    The signature of this method is
-    <verbatim>
-        Boolean joinClause() throws StandardException;
-    </verbatim>
-	 * @param emptyRowFun a reference to a method in the activation
-    that is called if the right child returns no rows
-	 * @param wasRightOuterJoin    Whether or not this was originally a right outer join
-	 * @param oneRowRightSide    boolean, whether or not the right side returns
-    a single row. (No need to do 2nd next() if it does.)
+	/**
+	 * A left outer join using a sort merge join.
+	 *
+	 * @param resultSetNumber                The resultSetNumber for the ResultSet
+	 * @param leftResultSet                  Outer ResultSet for join.
+	 * @param leftNumCols                    Number of columns in the leftResultSet
+	 * @param rightResultSet                 Inner ResultSet for join.
+	 * @param rightNumCols                   Number of columns in the rightResultSet
+	 * @param joinClause                     a reference to a method in the activation
+	 *                                       that is applied to the activation's "current row" field
+	 *                                       to determine whether the joinClause is staisfied or not.
+	 *                                       The signature of this method is
+	 *                                       <verbatim>
+	 *                                       Boolean joinClause() throws StandardException;
+	 *                                       </verbatim>
+	 * @param emptyRowFun                    a reference to a method in the activation
+	 *                                       that is called if the right child returns no rows
+	 * @param wasRightOuterJoin              Whether or not this was originally a right outer join
+	 * @param oneRowRightSide                boolean, whether or not the right side returns
+	 *                                       a single row. (No need to do 2nd next() if it does.)
 	 * @param semiJoinType
-	 * @param optimizerEstimatedRowCount    Estimated total # of rows by
-         optimizer
-	 * @param optimizerEstimatedCost    Estimated total cost by optimizer
-	 * @param userSuppliedOptimizerOverrides    Overrides specified by the user on the sql
-	*/
+	 * @param optimizerEstimatedRowCount     Estimated total # of rows by
+	 *                                       optimizer
+	 * @param optimizerEstimatedCost         Estimated total cost by optimizer
+	 * @param userSuppliedOptimizerOverrides Overrides specified by the user on the sql
+	 * @return the sortmerge join operation as a result set.
+	 * @throws StandardException thrown when unable to create the result set
+	 */
 	NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
 													  int leftNumCols,
 													  NoPutResultSet rightResultSet,
@@ -1501,7 +1511,7 @@ public interface ResultSetFactory {
 													  int leftHashKeyItem,
 													  int rightHashKeyItem,
 													  GeneratedMethod joinClause,
-													  int resultSetNUmber,
+													  int resultSetNumber,
 													  GeneratedMethod emptyRowFun,
 													  boolean wasRightOuterJoin,
 													  boolean oneRowRightSide,
@@ -1562,6 +1572,7 @@ public interface ResultSetFactory {
 													  int rightNumCols,
 													  int leftHashKeyItem,
 													  int rightHashKeyItem,
+													  boolean noCacheBroadcastJoinRight,
 													  GeneratedMethod joinClause,
 													  int resultSetNUmber,
 													  GeneratedMethod emptyRowFun,
@@ -1607,6 +1618,7 @@ public interface ResultSetFactory {
 										 boolean oneRowRightSide,
 										 byte semiJoinType,
 										 boolean rightFromSSQ,
+										 boolean broadcastRightSide,
 										 double optimizerEstimatedRowCount,
 										 double optimizerEstimatedCost,
 										 String userSuppliedOptimizerOverrides,
@@ -1656,6 +1668,7 @@ public interface ResultSetFactory {
 											 int rightNumCols,
 											 int leftHashKeyItem,
 											 int rightHashKeyItem,
+											 boolean noCacheBroadcastJoinRight,
 											 GeneratedMethod joinClause,
 											 int resultSetNumber,
 											 boolean oneRowRightSide,
@@ -1731,6 +1744,7 @@ public interface ResultSetFactory {
 													  int rightNumCols,
 													  int leftHashKeyItem,
 													  int rightHashKeyItem,
+													  boolean noCacheBroadcastJoinRight,
 													  GeneratedMethod joinClause,
 													  int resultSetNUmber,
 													  GeneratedMethod emptyRowFun,
@@ -1777,6 +1791,7 @@ public interface ResultSetFactory {
 													  int rightNumCols,
 													  int leftHashKeyItem,
 													  int rightHashKeyItem,
+													  boolean noCacheBroadcastJoinRight,
 													  GeneratedMethod joinClause,
 													  int resultSetNUmber,
 													  GeneratedMethod leftEmptyRowFun,
@@ -1798,6 +1813,7 @@ public interface ResultSetFactory {
 													  int rightNumCols,
 													  int leftHashKeyItem,
 													  int rightHashKeyItem,
+													  boolean noCacheBroadcastJoinRight,
 													  GeneratedMethod joinClause,
 													  int resultSetNUmber,
 													  GeneratedMethod leftEmptyRowFun,
@@ -2100,9 +2116,13 @@ public interface ResultSetFactory {
 			double optimizerEstimatedCost,
 			String explainPlan) throws StandardException;
 
-    NoPutResultSet getExplainResultSet(ResultSet source, Activation activation, int resultSetNumber, String sparkExplainKind) throws StandardException;
+    NoPutResultSet getExplainResultSet(ResultSet source, Activation activation,
+									   int resultSetNumber, String sparkExplainKind,
+									   int noStatsTablesRef, int noStatsColumnsRef) throws StandardException;
 
-    NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation, int resultSetNumber, String sparkExplainKind) throws StandardException;
+    NoPutResultSet getExplainResultSet(NoPutResultSet source, Activation activation,
+									   int resultSetNumber, String sparkExplainKind,
+									   int noStatsTablesRef, int noStatsColumnsRef) throws StandardException;
 
     /**
      * Export

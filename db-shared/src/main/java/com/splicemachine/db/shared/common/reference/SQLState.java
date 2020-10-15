@@ -820,7 +820,7 @@ public interface SQLState {
     String LANG_DB2_OPERATION_NOT_SUPPORTED_IN_READ_ONLY_MODE       = "51045";
 	String LANG_DB2_STRING_CONSTANT_TOO_LONG                    = "54002";
 	String LANG_DB2_NUMBER_OF_ARGS_INVALID                   = "42605";
-	String LANG_DB2_COALESCE_FUNCTION_ALL_PARAMS                   = "42610";
+	String LANG_DB2_MULTINARY_FUNCTION_ALL_PARAMS                   = "42610";
 	String LANG_DB2_LENGTH_PRECISION_SCALE_VIOLATION                   = "42611";
 	String LANG_DB2_MULTIPLE_ELEMENTS								   = "42613";
 	String LANG_DB2_INVALID_CHECK_CONSTRAINT                           = "42621";
@@ -830,7 +830,7 @@ public interface SQLState {
 	String LANG_DB2_ADD_UNIQUE_OR_PRIMARY_KEY_ON_NULL_COLS			   = "42831";
 	String LANG_ADD_PRIMARY_KEY_ON_NULL_COLS                           = "42831.S.1";
 	String LANG_DB2_REPLACEMENT_ERROR								   = "42815.S.713";
-	String LANG_DB2_COALESCE_DATATYPE_MISMATCH								   = "42815.S.171";
+	String LANG_DB2_MULTINARY_DATATYPE_MISMATCH                        = "42815.S.171";
 	String LANG_DB2_TOO_LONG_FLOATING_POINT_LITERAL			           = "42820";
 	String LANG_DB2_LIKE_SYNTAX_ERROR 						           = "42824";
 	String LANG_INVALID_FK_COL_FOR_SETNULL                             = "42834";
@@ -846,6 +846,7 @@ public interface SQLState {
 	String LANG_TABLE_REQUIRES_COLUMN_NAMES                            = "42909";
 	String LANG_DELETE_RULE_VIOLATION		   					       = "42915";
 	String LANG_SYNONYM_CIRCULAR   		   					           = "42916";
+	String LANG_INVALID_INDEX_EXPRESSION                               = "429BX";  // DB2 compatible code
 	String LANG_SYNTAX_ERROR                                           = "42X01";
 	String LANG_LEXICAL_ERROR                                          = "42X02";
 	String LANG_AMBIGUOUS_COLUMN_NAME                                  = "42X03";
@@ -1180,12 +1181,18 @@ public interface SQLState {
 
 	String LANG_ILLEGAL_TIME_TRAVEL = "42ZD2";
 
+	String LANG_INVALID_INTERNAL_TEMP_TABLE_NAME                       = "42ZD3";
+	String LANG_NAME_CLASH_WITH_LOCAL_TEMP_TABLE                       = "42ZD4";
+
+	String LANG_INVALID_TABLE_LIMIT_FOR_EXHAUSTIVE_SEARCH              = "42ZD5";
+	String LANG_UNSUPPORTED_TYPE_FOR_SCALAR_MIN_MAX                    = "42ZD6";
+
 	//following 3 matches the DB2 sql states
 	String LANG_DECLARED_GLOBAL_TEMP_TABLE_ONLY_IN_SESSION_SCHEMA = "428EK";
 	String LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED = "428C2";
 	String LANG_TEMP_TABLE_NO_FOREIGN_KEYS = "428C3";
 	String LANG_TEMP_TABLES_CANNOT_BE_IN_VIEWS = "428C4";
-	String LANG_NOT_ALLOWED_FOR_DECLARED_GLOBAL_TEMP_TABLE = "42995";
+	String LANG_NOT_ALLOWED_FOR_TEMP_TABLE = "42995";
 	String LANG_LONG_DATA_TYPE_NOT_ALLOWED = "42962";
 
 	String LANG_MULTIPLE_AUTOINCREMENT_COLUMNS                         = "428C1";
@@ -1380,6 +1387,7 @@ public interface SQLState {
 
 	// INTERNAL EXCEPTIONS
 	String LANG_UNABLE_TO_GENERATE                                     = "42Z50";
+	String LANG_UNABLE_TO_LOAD_GENERATE_CODE                           = "42Z51";
 	String LANG_UNAVAILABLE_ACTIVATION_NEED                            = "42Z53";
 	String LANG_PARSE_ONLY                                             = "42Z54.U";
 	String LANG_STOP_AFTER_PARSING                                     = "42Z55.U";
@@ -1427,7 +1435,9 @@ public interface SQLState {
 	String LANG_CREATE_SYSTEM_INDEX_ATTEMPTED                          = "X0Y28.S";
 	String LANG_PROVIDER_HAS_DEPENDENT_TABLE                            = "X0Y29.S";
 	String LANG_PROVIDER_HAS_DEPENDENT_ALIAS                            = "X0Y30.S";
+	String LANG_PROVIDER_HAS_EXTERNAL_DEPENDENCY                       = "X0Y31.S";
 	String LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT						   = "X0Y32.S";
+	String LANG_CYCLIC_DEPENDENCY_DETECTED                             = "X0Y33.S";
 	String LANG_CREATE_INDEX_NO_TABLE                                  = "X0Y38.S";
 	String LANG_INVALID_FK_NO_PK                                       = "X0Y41.S";
 	String LANG_INVALID_FK_COL_TYPES_DO_NOT_MATCH                      = "X0Y42.S";

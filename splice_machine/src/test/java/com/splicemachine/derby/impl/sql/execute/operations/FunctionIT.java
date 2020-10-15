@@ -18,10 +18,7 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.ErrorState;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -50,6 +47,7 @@ public class FunctionIT extends SpliceUnitTest {
     protected static double [] roundVals = {1.2, 2.53, 3.225, 4.1352, 5.23412, 53.2315093704, 205.130295341296824,
             13.21958329568391029385, 12.132435242330192856728391029584, 1.9082847283940982746172849098273647589099};
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("B",FunctionIT.class.getSimpleName(),"(col decimal(14,4))");
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("TMM",FunctionIT.class.getSimpleName(),"(i int, db double, dc decimal(3,1), c char(4), vc varchar(4), ts timestamp, bl blob(1K), cl clob(1K))");  // XML column not implemented
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -57,6 +55,7 @@ public class FunctionIT extends SpliceUnitTest {
         .around(spliceUserWatcher1)
         .around(spliceTableWatcher)
         .around(spliceTableWatcher1)
+        .around(spliceTableWatcher2)
         .around(spliceFunctionWatcher)
         .around(new SpliceDataWatcher(){
             @Override
@@ -84,6 +83,15 @@ public class FunctionIT extends SpliceUnitTest {
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 
+    @BeforeClass
+    public static void addData() throws Exception {
+        String insertPrefix = "insert into "+ FunctionIT.class.getSimpleName() + ".TMM values ";
+        spliceClassWatcher.executeUpdate("delete from " + FunctionIT.class.getSimpleName() + ".TMM");
+        spliceClassWatcher.executeUpdate(insertPrefix + "(1,1.0,1.2,'aa','aa','1960-01-01 23:03:20',null,null)");
+        spliceClassWatcher.executeUpdate(insertPrefix + "(2,2.0,2.2,'bb','bb','1960-01-02 23:03:20',null,null)");
+        spliceClassWatcher.executeUpdate(insertPrefix + "(3,3.0,3.2,'cc','cc','1960-01-04 23:03:20',null,null)");
+        spliceClassWatcher.commit();
+    }
 
     @Test
     public void testSinFunction() throws Exception{
@@ -183,7 +191,7 @@ public class FunctionIT extends SpliceUnitTest {
 
     @Test
     public void testCallToSystemFunctionFromUserWithoutDefaultSchema() throws Exception {
-        TestConnection user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+        TestConnection user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
 
         PreparedStatement ps = user1Conn.prepareStatement("VALUES rand(10)");
         ResultSet rs = ps.executeQuery();
@@ -248,6 +256,8 @@ public class FunctionIT extends SpliceUnitTest {
         String[] sqlTexts = {
                 "values current server", "values current_server",
                 "select current server", "select current_server",
+                "values current database", "values current_database",
+                "select current database", "select current_database",
                 "select (select current_server)"};
         String expected = "1    |\n" +
                 "----------\n" +
@@ -257,6 +267,246 @@ public class FunctionIT extends SpliceUnitTest {
             try (ResultSet rs = methodWatcher.executeQuery(sql)) {
                 assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
             }
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxNotAnAggregate() {
+        try {
+            methodWatcher.executeQuery("select min(i, 2) from " + spliceTableWatcher2 + " group by db");
+            Assert.fail("expect failure since scalar min function is not an aggregate");
+        } catch (SQLException e) {
+            assertEquals("42Y36", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeQuery("select max(i, 2) from " + spliceTableWatcher2 + " group by db");
+            Assert.fail("expect failure since scalar min function is not an aggregate");
+        } catch (SQLException e) {
+            assertEquals("42Y36", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxNull() throws Exception {
+        String expected = "1  |\n" +
+                "------\n" +
+                "NULL |\n" +
+                "NULL |\n" +
+                "NULL |";
+        try (ResultSet rs = methodWatcher.executeQuery("select min(cast(NULL as integer), 3) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery("select max(2, cast(NULL as integer)) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxSynonym() throws Exception {
+        String expected = "1 |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 1 |\n" +
+                " 1 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select least(3, 5, 1, 4, 2) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 5 |\n" +
+                " 5 |\n" +
+                " 5 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select greatest(3, 5, 1, 4, 2) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxInteger() throws Exception {
+        String expected = "1 |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 1 |\n" +
+                " 1 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select min(3, 5, 1, 4, 2) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 5 |\n" +
+                " 5 |\n" +
+                " 5 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select max(3, 5, 1, 4, 2) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 2 |\n" +
+                " 2 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select min(i, 2) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        expected = "1 |\n" +
+                "----\n" +
+                " 2 |\n" +
+                " 2 |\n" +
+                " 3 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select max(i, 2) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxDouble() throws Exception {
+        String expected = "1  |\n" +
+                "-----\n" +
+                "1.0 |\n" +
+                "2.0 |\n" +
+                "2.0 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select min(db, double('2.0')) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        expected = "1  |\n" +
+                "-----\n" +
+                "2.0 |\n" +
+                "2.0 |\n" +
+                "3.0 |";
+        try (ResultSet rs = methodWatcher.executeQuery("select max(db, double('2.0')) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxDecimal() throws Exception {
+        String expected = "1  |\n" +
+                "------\n" +
+                "1.20 |\n" +
+                "2.20 |\n" +
+                "2.25 |";
+
+        // note that dc is DECIMAL(3,1) and 2.25 is DECIMAL(3,2), see result type has scale = 2 above
+        try (ResultSet rs = methodWatcher.executeQuery("select min(dc, 2.25) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        expected = "1  |\n" +
+                "------\n" +
+                "2.25 |\n" +
+                "2.25 |\n" +
+                "3.20 |";
+
+        // note that dc is DECIMAL(3,1) and 2.25 is DECIMAL(3,2), see result type has scale = 2 above
+        try (ResultSet rs = methodWatcher.executeQuery("select max(dc, 2.25) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxChar() throws Exception {
+        String expected = "1 |\n" +
+                "----\n" +
+                "aa |\n" +
+                "bb |\n" +
+                "bb |";
+
+        try (ResultSet rs = methodWatcher.executeQuery("select min('bb', c) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        expected = "1 |\n" +
+                "----\n" +
+                "bb |\n" +
+                "bb |\n" +
+                "cc |";
+
+        try (ResultSet rs = methodWatcher.executeQuery("select max('bb', c) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxVarchar() throws Exception {
+        String expected = "1 |\n" +
+                "----\n" +
+                "aa |\n" +
+                "bb |\n" +
+                "bb |";
+
+        try (ResultSet rs = methodWatcher.executeQuery("select min('bb', vc) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        expected = "1 |\n" +
+                "----\n" +
+                "bb |\n" +
+                "bb |\n" +
+                "cc |";
+
+        try (ResultSet rs = methodWatcher.executeQuery("select max('bb', vc) from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxTimestamp() throws Exception {
+        String expected = "1           |\n" +
+                "-----------------------\n" +
+                "1960-01-01 23:03:20.0 |\n" +
+                "1960-01-02 20:00:00.0 |\n" +
+                "1960-01-02 20:00:00.0 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery("select min(ts, '1960-01-02 20:00:00') from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        expected = "1           |\n" +
+                "-----------------------\n" +
+                "1960-01-02 20:00:00.0 |\n" +
+                "1960-01-02 23:03:20.0 |\n" +
+                "1960-01-04 23:03:20.0 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery("select max(ts, '1960-01-02 20:00:00') from " + spliceTableWatcher2)) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScalarMinMaxUnsupportedTypes() {
+        // blob
+        try {
+            methodWatcher.executeQuery("select min(bl, bl) from " + spliceTableWatcher2);
+            Assert.fail("expect failure since scalar min function is not an aggregate");
+        } catch (SQLException e) {
+            assertEquals("42ZD6", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeQuery("select max(bl, bl) from " + spliceTableWatcher2);
+            Assert.fail("expect failure since scalar min function is not an aggregate");
+        } catch (SQLException e) {
+            assertEquals("42ZD6", e.getSQLState());
+        }
+
+        // clob
+        try {
+            methodWatcher.executeQuery("select min(cl, cl) from " + spliceTableWatcher2);
+            Assert.fail("expect failure since scalar min function is not an aggregate");
+        } catch (SQLException e) {
+            assertEquals("42ZD6", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeQuery("select max(cl, cl) from " + spliceTableWatcher2);
+            Assert.fail("expect failure since scalar min function is not an aggregate");
+        } catch (SQLException e) {
+            assertEquals("42ZD6", e.getSQLState());
         }
     }
 }

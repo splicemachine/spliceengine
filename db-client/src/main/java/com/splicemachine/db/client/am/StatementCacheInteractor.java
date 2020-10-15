@@ -63,7 +63,7 @@ public final class StatementCacheInteractor {
      * with this cache interactor to ensure the interactor methods are not
      * invoked if the logical statement has been closed.
      */
-    private final Connection physicalConnection;
+    private final ClientConnection physicalConnection;
     /** List of open logical statements created by this cache interactor. */
     //@GuardedBy("this")
     private final ArrayList openLogicalStatements = new ArrayList();
@@ -81,7 +81,7 @@ public final class StatementCacheInteractor {
      * @param physicalConnection associated physical connection
      */
     StatementCacheInteractor(JDBCStatementCache cache,
-                             Connection physicalConnection) {
+                             ClientConnection physicalConnection) {
         this.cache = cache;
         this.physicalConnection = physicalConnection;
     }

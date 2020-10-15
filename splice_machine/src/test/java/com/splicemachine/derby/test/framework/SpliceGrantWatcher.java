@@ -24,45 +24,49 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 
 public class SpliceGrantWatcher extends TestWatcher {
-	private static final Logger LOG = Logger.getLogger(SpliceGrantWatcher.class);
-	protected String createString;
-	private String userName;
-	private String password;
-	public SpliceGrantWatcher(String createString) {
-		this.createString = createString;		
-	}
+    private static final Logger LOG = Logger.getLogger(SpliceGrantWatcher.class);
+    protected String createString;
+    private String userName;
+    private String password;
+    public SpliceGrantWatcher(String createString) {
+        this.createString = createString;
+    }
 
-	public SpliceGrantWatcher(String createString, String userName, String password) {
-		this.createString = createString;		
-		this.userName = userName;
-		this.password = password;
-	}
-	
-	@Override
-	protected void starting(Description description) {
-		LOG.trace("Starting");
-		Connection connection = null;
-		Statement statement = null;
-		ResultSet rs = null;
-		try {
-			connection = userName == null?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
-			statement = connection.createStatement();
-			statement.execute(createString);
-			connection.commit();
-		} catch (Exception e) {
-			LOG.error("Grant statement is invalid ");
-			e.printStackTrace();
-			throw new RuntimeException(e);
-		} finally {
-			DbUtils.closeQuietly(rs);
-			DbUtils.closeQuietly(statement);
-			DbUtils.commitAndCloseQuietly(connection);
-		}
-		super.starting(description);
-	}
-	@Override
-	protected void finished(Description description) {
-		LOG.trace("finished");
-	}
-	
+    public SpliceGrantWatcher(String createString, String userName, String password) {
+        this.createString = createString;
+        this.userName = userName;
+        this.password = password;
+    }
+
+    @Override
+    protected void starting(Description description) {
+        LOG.trace("Starting");
+        Connection connection = null;
+        Statement statement = null;
+        ResultSet rs = null;
+        try {
+            SpliceNetConnection.ConnectionBuilder connectionBuilder = SpliceNetConnection.newBuilder();
+            if (userName != null) {
+                connectionBuilder.user(userName).password(password);
+            }
+            connection = connectionBuilder.build();
+            statement = connection.createStatement();
+            statement.execute(createString);
+            connection.commit();
+        } catch (Exception e) {
+            LOG.error("Grant statement is invalid ");
+            e.printStackTrace();
+            throw new RuntimeException(e);
+        } finally {
+            DbUtils.closeQuietly(rs);
+            DbUtils.closeQuietly(statement);
+            DbUtils.commitAndCloseQuietly(connection);
+        }
+        super.starting(description);
+    }
+    @Override
+    protected void finished(Description description) {
+        LOG.trace("finished");
+    }
+
 }

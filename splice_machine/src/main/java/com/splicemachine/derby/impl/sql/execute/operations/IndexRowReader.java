@@ -17,9 +17,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.InterruptibleIterator;
 import org.apache.spark.TaskContext;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.access.api.PartitionFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -110,6 +111,7 @@ public class IndexRowReader implements Iterator<ExecRow>, Iterable<ExecRow>{
     }
 
     @Override
+    @SuppressFBWarnings(value = "IT_NO_SUCH_ELEMENT", justification = "DB-9844")
     public ExecRow next(){
         return heapRowToReturn;
     }

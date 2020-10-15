@@ -215,6 +215,8 @@ public interface SConfiguration {
     int getRollforwardSecondThreads();
 
     int getTimestampClientWaitTime();
+    int getTimestampClientQueues();
+    boolean isTimestampClientBatched();
 
     int getTimestampServerBindPort();
 
@@ -227,6 +229,8 @@ public interface SConfiguration {
     long getTransactionTimeout();
 
     boolean getIgnoreMissingTxns();
+
+    long getSystablesMinRetentionPeriod();
 
     // Olap configurations
 
@@ -276,6 +280,8 @@ public interface SConfiguration {
     boolean upgradeForced();
 
     int getImportMaxQuotedColumnLines();
+
+    long getImportCsvScanThreshold();
 
     int getIndexBatchSize();
 

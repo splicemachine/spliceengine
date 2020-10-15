@@ -92,6 +92,14 @@ public class SessionPropertiesImpl implements SessionProperties {
                 int sparkResultStreamingBatchSize = Integer.parseInt(valString);
                 properties[SPARK_RESULT_STREAMING_BATCH_SIZE.getId()] = sparkResultStreamingBatchSize;
                 break;
+            case TABLELIMITFOREXHAUSTIVESEARCH:
+                int tableLimitForExhaustiveSearch = Integer.parseInt(valString);
+                properties[TABLELIMITFOREXHAUSTIVESEARCH.getId()] = tableLimitForExhaustiveSearch;
+                break;
+            case DISABLE_NLJ_PREDICATE_PUSH_DOWN:
+                boolean disablePushDown = Boolean.valueOf(valString);
+                properties[DISABLE_NLJ_PREDICATE_PUSH_DOWN.getId()] = disablePushDown;
+                break;
             default:
                 break;
         }

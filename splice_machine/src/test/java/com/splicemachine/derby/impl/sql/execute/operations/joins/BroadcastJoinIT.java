@@ -25,7 +25,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -780,6 +780,19 @@ public class BroadcastJoinIT extends SpliceUnitTest {
                 String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
                 assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
             }
+        }
+    }
+
+    @Test
+    public void testBroadcastJoinInNonFlattenedCorrelatedSubquery() throws Exception {
+        String sqlText = "select * from tab4 where a in (select tab5.a from tab6, tab5 --splice-properties joinStrategy=broadcast\n" +
+                "where tab5.a=tab6.a and tab4.a=tab5.a)";
+        String expected = "A |    B     |\n" +
+                "---------------\n" +
+                " 3 |abcdefghi |";
+        try (ResultSet rs = classWatcher.executeQuery(sqlText)) {
+            String resultString = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            assertEquals("\n" + sqlText + "\n" + "expected result: " + expected + "\n, actual result: " + resultString, expected, resultString);
         }
     }
 }

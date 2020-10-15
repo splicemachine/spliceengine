@@ -28,7 +28,7 @@ import com.splicemachine.si.testenv.*;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.util.List;

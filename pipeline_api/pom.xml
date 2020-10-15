@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1967-SNAPSHOT</version>
+        <version>3.1.0.1979-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -42,18 +42,16 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>annotations</artifactId>
+            <scope>provided</scope>
+        </dependency>
 
         <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo-shaded</artifactId>
             <version>3.0.3</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <!-- org.spark_project.guava -->
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

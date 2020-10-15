@@ -1426,7 +1426,8 @@ Guide.
 
             <msg>
                 <name>42610</name>
-                <text>All the arguments to the COALESCE/VALUE function cannot be parameters. The function needs at least one argument that is not a parameter.</text>
+                <text>All the arguments to the '{0}' function cannot be parameters. The function needs at least one argument that is not a parameter.</text>
+                <arg>functionName</arg>
             </msg>
 
             <msg>
@@ -1664,7 +1665,14 @@ Guide.
 
             <msg>
                 <name>42995</name>
-                <text>The requested function does not apply to global temporary tables.</text>
+                <text>The requested function does not apply to temporary tables.</text>
+            </msg>
+
+            <msg>
+                <name>429BX</name>
+                <text>Invalid index expression: '{0}'. An index expression must contain at least one column reference and not any subqueries, aggregate functions, window functions, nondeterminstic functions, user-defined functions, sequence references, parameters, or disallowed functions. Also, it must return a scalar value which can be indexed.
+                </text>
+                <arg>value</arg>
             </msg>
 
             <msg>
@@ -2943,6 +2951,12 @@ Guide.
             </msg>
 
             <msg>
+                <name>42Z51</name>
+                <text>INTERNAL ERROR: Unable to load generate code for {0}.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
                 <name>42Z53</name>
                 <text>INTERNAL ERROR: Type of activation to generate for node choice {0} is unknown.</text>
                 <arg>value</arg>
@@ -3220,6 +3234,30 @@ Guide.
                 <name>42ZD2</name>
                 <text>Using time travel clause with {0} is not allowed</text>
                 <arg>artifactName</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD3</name>
+                <text>INTERNAL ERROR: Invalid internal local temporary table name: '{0}'</text>
+                <arg>tableName</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD4</name>
+                <text>Table '{0}'.'{1}' exists as a local temporary table in another session</text>
+                <arg>schemaName</arg>
+                <arg>tableName</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD5</name>
+                <text>In the Properties list, the invalid value '{0}' was specified for the tableLimitForExhaustiveSearch property. Expecting a positive integer.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD6</name>
+                <text>Scalar MIN and MAX functions do not accept arguments of type LOB, XML, array, cursor, row, or structured type.</text>
             </msg>
 
             <msg>
@@ -3632,12 +3670,28 @@ Guide.
             </msg>
 
             <msg>
+                <name>X0Y31.S</name>
+                <text>Operation 'DROP SCHEMA {0} CASCADE' is not successful, because {1} '{2}' has dependent(s) from outside the schema.</text>
+                <arg>schemaName</arg>
+                <arg>objectType</arg>
+                <arg>objectName</arg>
+            </msg>
+
+            <msg>
                 <name>X0Y32.S</name>
                 <text>{0} '{1}' already exists in {2} '{3}'.</text>
                 <arg>value</arg>
                 <arg>value</arg>
                 <arg>value</arg>
                 <arg>value</arg>
+            </msg>
+
+            <msg>
+                <name>X0Y33.S</name>
+                <text>Operation 'DROP SCHEMA {0} CASCADE' is not successful, because cyclic dependency between '{1}' and '{2}' has been detected.</text>
+                <arg>schemaName</arg>
+                <arg>objectName1</arg>
+                <arg>objectName2</arg>
             </msg>
 
             <msg>
@@ -9046,7 +9100,8 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
            </msg>
            <msg>
                <name>BR014</name>
-               <text>A concurrent backup with ID {0} is running. Please wait until it completes or call syscs_util.syscs_cancel_backup() to cancel it.</text>
+               <text>A concurrent backup with ID {0} is running. Please wait until it completes or call syscs_util.syscs_cancel_backup({1}) to cancel it.</text>
+               <arg>backupId</arg>
                <arg>backupId</arg>
            </msg>
            <msg>
@@ -9265,7 +9320,7 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
            <msg>
                <name>EXT23</name>
-               <text>Only '{0}' attributes defined but '{1}' present in the external file : '{2}'. Suggested Schema is '{3}'.</text>
+               <text>{0} attribute(s) defined but {1} present in the external file : '{2}'. Suggested Schema is '{3}'.</text>
                <arg>definedAttributeCount</arg>
                <arg>externalAttributeCount</arg>
                <arg>location</arg>

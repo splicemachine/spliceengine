@@ -36,8 +36,8 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Maps;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -124,7 +124,7 @@ public class BatchedOperationsIT {
 
     @Test
     public void testBatchedInserts() throws Exception {
-        try (TestConnection conn = methodWatcher.createConnection(useSpark)) {
+        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(useSpark).build()) {
             conn.setAutoCommit(false);
 
             // Insert 10 rows into a PK table in a single batch
@@ -182,7 +182,7 @@ public class BatchedOperationsIT {
     public void testMultiBatchedInserts() throws Exception {
         if (useSpark) return; // execution time is too long
 
-        try (TestConnection conn = methodWatcher.createConnection(useSpark)) {
+        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(useSpark).build()) {
             conn.setAutoCommit(false);
 
             // Insert 100 rows into a PK table in 10 batches
@@ -246,7 +246,7 @@ public class BatchedOperationsIT {
     @Ignore("DB-7961")
     public void testFailuresInBatchedInserts() throws Exception {
 
-        try (TestConnection conn = methodWatcher.createConnection(useSpark);
+        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(useSpark).build();
              Statement statement = conn.createStatement()) {
             conn.setAutoCommit(false);
 
@@ -290,7 +290,7 @@ public class BatchedOperationsIT {
 
     @Test
     public void testBatchedUpdates() throws Exception {
-        try (TestConnection conn = methodWatcher.createConnection(useSpark);
+        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(true).build();
              Statement statement = conn.createStatement()) {
             conn.setAutoCommit(false);
 
@@ -358,7 +358,7 @@ public class BatchedOperationsIT {
 
     @Test
     public void testBatchedDeletes() throws Exception {
-        try (TestConnection conn = methodWatcher.createConnection(useSpark);
+        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(useSpark).build();
              Statement statement = conn.createStatement()) {
             conn.setAutoCommit(false);
 

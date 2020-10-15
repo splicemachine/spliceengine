@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.types.SQLBlob;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -24,14 +25,13 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.io.File;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 public class CreateTableIT extends SpliceUnitTest {
     public static final String CLASS_NAME = CreateTableIT.class.getSimpleName().toUpperCase();
@@ -169,13 +169,18 @@ public class CreateTableIT extends SpliceUnitTest {
     }
 
     private void testCreateTableIfNotExists(String tableType) throws Exception {
-        String tableName = String.format("TEST_CREATE_%s_TABLE_IF_NOT_EXISTS_07061143", tableType.replaceAll(" ", "_").toUpperCase());
+        String tableName = String.format("TESTCREATE%sTABLEIFNOTEXISTS07061143", tableType.replaceAll(" ", "").toUpperCase());
+        String tableNamePattern = tableName;
+
+        if (tableType.equals("local temporary") || tableType.equals("global temporary")) {
+            tableNamePattern += "____________________%";
+        }
 
         try {
             methodWatcher.executeUpdate(String.format("drop table if exists %s.%s", schema.schemaName, tableName));
             methodWatcher.executeUpdate(appendStorage(String.format("create %s table if not exists %s.%s (c int)", tableType, schema.schemaName, tableName), tableType));
 
-            ResultSet rs = methodWatcher.executeQuery(String.format("select tablename from sys.systables where tablename = '%s'", tableName));
+            ResultSet rs = methodWatcher.executeQuery(String.format("select tablename from sys.systables where tablename like '%s'", tableNamePattern));
             String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
             Assert.assertTrue(tableName + " has not been created", s.contains(tableName));
 
@@ -223,5 +228,67 @@ public class CreateTableIT extends SpliceUnitTest {
     @Test
     public void testCreateTableIfNotExists_ExternalTable() throws Exception {
         testCreateTableIfNotExists("external");
+    }
+
+    @Test
+    public void testCommentBeforeCreateTableAs() throws Exception {
+        methodWatcher.executeUpdate("create table test_comment_before_create_as_dep_tbl (col int)");
+
+        String createStmt = "create table %s as select * from test_comment_before_create_as_dep_tbl";
+        methodWatcher.executeUpdate("-- some SQL-style comment here\n" + String.format(createStmt, generateTableName()));
+        methodWatcher.executeUpdate("/* some C-style comment here */\n" + String.format(createStmt, generateTableName()));
+        methodWatcher.executeUpdate("/* some mixed */\n-- comments\n" + String.format(createStmt, generateTableName()));
+    }
+
+    @Test
+    public void testCreateTableWithDefault() throws Exception {
+        methodWatcher.executeUpdate("create table test_create_table_with_default (col int not null"
+            + ",a boolean not null with default"
+            + ",b char(5) not null with default"
+            + ",c decimal(15,2) not null with default"
+            + ",d double not null with default"
+            + ",e int not null with default"
+            + ",f bigint not null with default"
+            + ",g long varchar not null with default"
+            + ",h real not null with default"
+            + ",i smallint not null with default"
+            + ",j tinyint not null with default"
+            + ",k varchar(5) not null with default"
+            + ",l float not null with default"
+            + ",m numeric not null with default"
+            + ",n date not null with default"
+            + ",n_fixed date not null"
+            + ",o time not null with default"
+            + ",o_fixed time not null"
+            + ",p timestamp not null with default"
+            + ",p_fixed timestamp not null"
+            + ",q char(5) for bit data not null with default"
+            + ",r long varchar for bit data not null with default"
+            + ",s blob not null with default"
+            + ",t clob not null with default"
+            + ",u varchar(5) for bit data not null with default"
+        + ")");
+        methodWatcher.executeUpdate("insert into test_create_table_with_default (col, n_fixed, o_fixed, p_fixed) values (42, current date, current time, current timestamp)");
+        try (ResultSet rs = methodWatcher.executeQuery("select a,b,c,d,e,f,g,h,i,j,k,l,m from test_create_table_with_default")) {
+            String s = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            String expected = "A   | B |  C  | D  | E | F | G | H  | I | J | K | L  | M |\n" +
+                    "------------------------------------------------------------\n" +
+                    "false |   |0.00 |0.0 | 0 | 0 |   |0.0 | 0 | 0 |   |0.0 | 0 |";
+            Assert.assertEquals(expected, s);
+        }
+        try (ResultSet rs = methodWatcher.executeQuery("select n, n_fixed, o, o_fixed, p, p_fixed from test_create_table_with_default")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(rs.getDate(1), rs.getDate(2));
+            Assert.assertEquals(rs.getTime(3), rs.getTime(4));
+            Assert.assertEquals(rs.getTimestamp(5), rs.getTimestamp(6));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery("select q,r,s,t,u from test_create_table_with_default")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("0000000000", rs.getString(1));
+            Assert.assertEquals(-1, rs.getBinaryStream(2).read());
+            Assert.assertEquals(0, rs.getBlob(3).length());
+            Assert.assertEquals(0, rs.getClob(4).length());
+            Assert.assertEquals(-1, rs.getBinaryStream(5).read());
+        }
     }
 }

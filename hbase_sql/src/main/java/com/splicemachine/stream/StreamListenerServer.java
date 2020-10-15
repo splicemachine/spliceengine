@@ -15,7 +15,7 @@
 package com.splicemachine.stream;
 
 
-import com.google.common.net.HostAndPort;
+import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -27,7 +27,7 @@ import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.util.concurrent.ThreadFactoryBuilder;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;

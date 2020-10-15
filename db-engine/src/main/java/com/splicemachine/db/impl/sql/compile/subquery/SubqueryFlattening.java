@@ -37,9 +37,9 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
 import com.splicemachine.db.impl.sql.compile.subquery.exists.ExistsSubqueryFlatteningVisitor;
 import com.splicemachine.db.impl.sql.compile.subquery.ssq.ScalarSubqueryFlatteningVisitor;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Multimap;
-import org.spark_project.guava.collect.Multimaps;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Multimap;
+import splice.com.google.common.collect.Multimaps;
 
 import java.util.Collection;
 import java.util.Collections;

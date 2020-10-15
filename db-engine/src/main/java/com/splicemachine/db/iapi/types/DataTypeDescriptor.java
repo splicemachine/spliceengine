@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import org.apache.spark.sql.types.StructField;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -810,7 +811,7 @@ public class DataTypeDescriptor implements Formatable{
             scale=higherType.getScale();
         }
 
-        if (higherType != null && higherType.getChildren() == null && lowerType!=null && lowerType.getChildren()!=null) // set children
+        if (higherType.getChildren() == null && lowerType.getChildren()!=null) // set children
             higherType.setChildren(lowerType.getChildren());
 
         higherType=new DataTypeDescriptor(higherType, precision,scale,nullable,maximumWidth);
@@ -1190,6 +1191,11 @@ public class DataTypeDescriptor implements Formatable{
         return DataTypeDescriptor.getRowMultiSet(
                 catalogType.getRowColumnNames(),
                 newTypes);
+    }
+
+    @Override
+    public int hashCode() {
+        return typeDescriptor.getTypeName().hashCode();
     }
 
     /**
@@ -1750,7 +1756,25 @@ public class DataTypeDescriptor implements Formatable{
      }
 
     public DataValueDescriptor getDefault() throws StandardException {
+        if (typeId.getTypeFormatId() == StoredFormatIds.BIT_TYPE_ID) {
+            return new SQLBit(new byte[typeDescriptor.getMaximumWidth()]);
+        }
+
         return typeId.getDefault();
+    }
+
+    public StructField getStructField(String columnName) {
+        StructField childStructField = null;
+        if (typeId.isArray()) {
+            // get the child type descriptor & struct field
+            assert typeDescriptor.getChildren() != null:"ArrayType should have the child type specified";
+            TypeDescriptorImpl childTypeDescriptor = (TypeDescriptorImpl) typeDescriptor.getChildren()[0];
+            TypeId childTypeId = TypeId.getBuiltInTypeId(childTypeDescriptor.getTypeId().getJDBCTypeId());
+            childStructField = childTypeId.getStructField("co", childTypeDescriptor.getPrecision(), childTypeDescriptor.getScale(), null);
+
+        }
+        return typeId.getStructField(columnName, getPrecision(), getScale(), childStructField);
+
     }
 }
 

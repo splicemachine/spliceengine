@@ -114,7 +114,7 @@ public abstract class TableOperatorNode extends FromTable{
                  * modified, and that could lead to incorrect behavior for
                  * certain queries.  DERBY-1852.
                  */
-                leftOptimizer.modifyAccessPaths();
+                leftOptimizer.modifyAccessPaths(null);
                 leftResultSet=(ResultSetNode)leftOptimizer.getOptimizableList().getOptimizable(0);
             }else{
                 leftResultSet= (ResultSetNode)((FromTable)leftResultSet).modifyAccessPath(outerTables);
@@ -131,7 +131,7 @@ public abstract class TableOperatorNode extends FromTable{
                  * set node, which sits at position "0" in rightOptimizer's
                  * list.
                  */
-                rightOptimizer.modifyAccessPaths();
+                rightOptimizer.modifyAccessPaths(leftResultSet.getReferencedTableMap());
                 rightResultSet=(ResultSetNode)rightOptimizer.getOptimizableList().getOptimizable(0);
             }else{
                 rightResultSet= (ResultSetNode)((FromTable)rightResultSet).modifyAccessPath(outerTables);
@@ -651,7 +651,7 @@ public abstract class TableOperatorNode extends FromTable{
                  * modified, and that could lead to incorrect behavior for
                  * certain queries.  DERBY-1852.
                  */
-                leftOptimizer.modifyAccessPaths();
+                leftOptimizer.modifyAccessPaths(null);
                 leftResultSet=(ResultSetNode)leftOptimizer.getOptimizableList().getOptimizable(0);
             }else{
                 // If this is a SetOperatorNode then we may have pushed
@@ -674,7 +674,7 @@ public abstract class TableOperatorNode extends FromTable{
                  * set node, which sits at position "0" in rightOptimizer's
                  * list.
                  */
-                rightOptimizer.modifyAccessPaths();
+                rightOptimizer.modifyAccessPaths(leftResultSet.getReferencedTableMap());
                 rightResultSet=(ResultSetNode)rightOptimizer.getOptimizableList().getOptimizable(0);
             }else{
                 if(this instanceof SetOperatorNode){
@@ -710,6 +710,16 @@ public abstract class TableOperatorNode extends FromTable{
     @Override
     public boolean referencesSessionSchema() throws StandardException{
         return leftResultSet.referencesSessionSchema() || rightResultSet.referencesSessionSchema();
+    }
+
+    /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return leftResultSet.referencesTemporaryTable() || rightResultSet.referencesTemporaryTable();
     }
 
     /**

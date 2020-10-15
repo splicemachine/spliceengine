@@ -84,6 +84,8 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
 
     public static final	String	IBM_SYSTEM_SCHEMA_NAME      = "SYSIBM";
 
+    public static final	String  IBM_SYSTEM_ADM_SCHEMA_NAME  = "SYSIBMADM";
+
     /*
      * Names of system schemas.
      * The following schemas exist in a standard empty DB2 database.  For
@@ -148,6 +150,8 @@ public final class SchemaDescriptor extends TupleDescriptor implements UniqueTup
         "8000000d-00d0-fd77-3ed8-000a0a0b1900";
 	public static final	String SYSIBM_SCHEMA_UUID =  
         "c013800d-00f8-5b53-28a9-00000019ed88";
+	public static final	String SYSIBMADM_SCHEMA_UUID =
+        "62bfdcdb-ea53-4339-bd1b-018e411b8852";
 	public static final	String DEFAULT_SCHEMA_UUID = 
         "80000000-00d2-b38f-4cda-000a0a412c00";
 	public static final	String SYSVW_SCHEMA_UUID =

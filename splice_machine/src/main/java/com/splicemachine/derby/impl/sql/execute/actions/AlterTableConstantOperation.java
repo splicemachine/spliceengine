@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
@@ -356,8 +357,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             throw StandardException.newException(SQLState.LANG_MODIFYING_PRIMARY_KEY_ON_NON_EMPTY_TABLE,tableDescriptor.getQualifiedName());
         }
 
-        List<String> constraintColumnNames = Arrays.asList(cd.getColumnDescriptors().getColumnNames());
-
         ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
         int nColumns = columnDescriptorList.size();
 
@@ -366,11 +365,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         //   o create array of collation id's to tell collation id of each
         //     column in table.
         ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
-
-        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
-
-        // How were the columns ordered before?
-        int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
 
         // We're adding a uniqueness constraint. Column sort order will change.
         int[] collation_ids = new int[nColumns];
@@ -410,9 +404,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             columnSortOrder, //column sort order
             collation_ids,
             properties, // properties
-            tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
+            tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
                 (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
-                TransactionController.IS_DEFAULT);
+                TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
 
         // follow thru with remaining constraint actions, create, store, etc.
         constraint.executeConstantAction(activation);
@@ -530,7 +524,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
                 ModifyColumnConstantOperation updateNullabilityAction =
                         new ModifyColumnConstantOperation(td.getSchemaDescriptor(), td.getName(), td.getUUID(),
-                                pkColumnInfo, new ConstantAction[0], new Character('\0'), behavior, null);
+                                pkColumnInfo, new ConstantAction[0], Character.valueOf('\0'), behavior, null);
                 updateNullabilityAction.executeConstantAction(activation);
                 hasColumnUpdate = true;
             }
@@ -579,11 +573,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
         //     column in table.
         ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
 
-        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
-
-        // How were the columns ordered before?
-         int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
-
         // We're adding a uniqueness constraint. Column sort order will change.
         int[] collation_ids = new int[nColumns];
         ColumnOrdering[] columnSortOrder = new IndexColumnOrder[constraintColumnNames.size()];
@@ -627,9 +616,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
             columnSortOrder, //column sort order - not required for heap
             collation_ids,
             properties, // properties
-            tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
+            tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE ?
                 (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
-                TransactionController.IS_DEFAULT);
+                TransactionController.IS_DEFAULT, Conglomerate.Priority.NORMAL);
 
         /*
          * modify the conglomerate descriptor with the new conglomId
@@ -859,13 +848,18 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
 
                 boolean[] isAscending = curIndex.isAscending();
 
-                int numColumnOrderings = baseColumnPositions.length + 1;
+                int numColumnOrderings = baseColumnPositions.length;
+                if (!curIndex.isUnique())
+                    numColumnOrderings ++;
                 ordering[index] = new ColumnOrdering[numColumnOrderings];
 
-                for (int ii =0; ii < numColumnOrderings - 1; ii++) {
-                    ordering[index][ii] = new IndexColumnOrder(ii, isAscending[ii]);
+                for (int ii =0; ii < numColumnOrderings; ii++) {
+                    if (!curIndex.isUnique() && ii == numColumnOrderings -1)
+                        ordering[index][ii] = new IndexColumnOrder(ii);
+                    else
+                        ordering[index][ii] = new IndexColumnOrder(ii, isAscending[ii]);
                 }
-                ordering[index][numColumnOrderings - 1] = new IndexColumnOrder(numColumnOrderings - 1);
+
                 collation[index] = curIndex.getColumnCollationIds(td.getColumnDescriptorList());
             }
         }

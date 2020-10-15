@@ -16,6 +16,7 @@ package com.splicemachine.access.configuration;
 
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Map;
 
@@ -26,6 +27,8 @@ import java.util.Map;
  * builder so that it's set in the configuration constructor:
  * {@link SConfigurationImpl#SConfigurationImpl(ConfigurationBuilder, ConfigurationSource)}
  */
+@SuppressFBWarnings(value = "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", justification = "intentional," +
+        "setting fields is split across different subsystem configurations such as SQLConfiguration and AuthenticateConfiguration")
 public class ConfigurationBuilder {
     // SIConfigurations
     public int activeTransactionMaxCacheSize;
@@ -35,12 +38,15 @@ public class ConfigurationBuilder {
     public int readResolverQueueSize;
     public int readResolverThreads;
     public int timestampClientWaitTime;
+    public int timestampClientQueues;
+    public boolean timestampClientBatched;
     public int timestampServerBindPort;
     public int transactionKeepAliveThreads;
     public int transactionLockStripes;
     public long transactionKeepAliveInterval;
     public long transactionTimeout;
     public boolean ignoreMissingTxns;
+    public long systablesMinRetentionPeriod;
 
     // OperationConfiguration
     public int sequenceBlockSize;
@@ -136,6 +142,7 @@ public class ConfigurationBuilder {
     public boolean ignoreSavePoints;
     public boolean upgradeForced;
     public int importMaxQuotedColumnLines;
+    public long importCsvScanLimit;
     public int indexBatchSize;
     public int indexLookupBlocks;
     public int kryoPoolSize;

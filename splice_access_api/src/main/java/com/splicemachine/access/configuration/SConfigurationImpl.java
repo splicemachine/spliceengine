@@ -183,12 +183,15 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  int readResolverQueueSize;
     private final  int readResolverThreads;
     private final  int timestampClientWaitTime;
+    private final  int timestampClientQueues;
+    private final  boolean timestampClientBatched;
     private final  int timestampServerBindPort;
     private final  int transactionKeepAliveThreads;
     private final  int transactionLockStripes;
     private final  long transactionKeepAliveInterval;
     private final  long transactionTimeout;
     private final boolean ignoreMissingTxns;
+    private final long systablesMinRetentionPeriod;
 
     // SQLConfiguration
     private final  boolean debugDumpBindTree;
@@ -198,6 +201,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  boolean ignoreSavePoints;
     private final  boolean upgradeForced;
     private final  int importMaxQuotedColumnLines;
+    private final  long importCsvScanLimit;
     private final  int indexBatchSize;
     private final  int indexLookupBlocks;
     private final  int kryoPoolSize;
@@ -728,6 +732,14 @@ public final class SConfigurationImpl implements SConfiguration {
         return timestampClientWaitTime;
     }
     @Override
+    public int getTimestampClientQueues() {
+        return timestampClientQueues;
+    }
+    @Override
+    public boolean isTimestampClientBatched() {
+        return timestampClientBatched;
+    }
+    @Override
     public int getTimestampServerBindPort() {
         return timestampServerBindPort;
     }
@@ -750,6 +762,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public boolean getIgnoreMissingTxns() {
         return ignoreMissingTxns;
+    }
+    @Override
+    public long getSystablesMinRetentionPeriod() {
+        return systablesMinRetentionPeriod;
     }
 
     // SQLConfiguration
@@ -780,6 +796,10 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public int getImportMaxQuotedColumnLines() {
         return importMaxQuotedColumnLines;
+    }
+    @Override
+    public long getImportCsvScanThreshold() {
+        return importCsvScanLimit;
     }
     @Override
     public int getIndexBatchSize() {
@@ -948,6 +968,8 @@ public final class SConfigurationImpl implements SConfiguration {
         readResolverQueueSize = builder.readResolverQueueSize;
         readResolverThreads = builder.readResolverThreads;
         timestampClientWaitTime = builder.timestampClientWaitTime;
+        timestampClientQueues = builder.timestampClientQueues;
+        timestampClientBatched = builder.timestampClientBatched;
         timestampServerBindPort = builder.timestampServerBindPort;
         transactionKeepAliveThreads = builder.transactionKeepAliveThreads;
         transactionLockStripes = builder.transactionLockStripes;
@@ -1030,6 +1052,7 @@ public final class SConfigurationImpl implements SConfiguration {
         ignoreSavePoints = builder.ignoreSavePoints;
         upgradeForced = builder.upgradeForced;
         importMaxQuotedColumnLines = builder.importMaxQuotedColumnLines;
+        importCsvScanLimit = builder.importCsvScanLimit;
         indexBatchSize = builder.indexBatchSize;
         indexLookupBlocks = builder.indexLookupBlocks;
         kryoPoolSize = builder.kryoPoolSize;
@@ -1107,6 +1130,7 @@ public final class SConfigurationImpl implements SConfiguration {
         bulkImportTasksPerRegion = builder.bulkImportTasksPerRegion;
         regionToLoadPerTask = builder.regionToLoadPerTask;
         ignoreMissingTxns = builder.ignoreMissingTxns;
+        systablesMinRetentionPeriod = builder.systablesMinRetentionPeriod;
         maxCheckTableErrors = builder.maxCheckTableErrors;
         rollForwardQueueSize = builder.rollForwardQueueSize;
         rollForwardFirstWait = builder.rollForwardFirstWait;

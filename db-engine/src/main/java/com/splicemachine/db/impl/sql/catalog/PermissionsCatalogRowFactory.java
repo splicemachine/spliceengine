@@ -34,6 +34,7 @@ package com.splicemachine.db.impl.sql.catalog;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -44,9 +45,9 @@ import com.splicemachine.db.iapi.types.SQLVarchar;
 
 abstract class PermissionsCatalogRowFactory extends CatalogRowFactory
 {
-    PermissionsCatalogRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf)
+    PermissionsCatalogRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd)
     {
-        super(uuidf,ef,dvf);
+        super(uuidf,ef,dvf, dd);
     }
 
     DataValueDescriptor getAuthorizationID( String value)

@@ -190,11 +190,11 @@ public final class SQLLongint extends NumberDataType {
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternal(ObjectInput in) throws IOException {
 		setIsNull(in.readBoolean());
-		setValue(in.readLong());
+		value = in.readLong();
 	}
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 		setIsNull(in.readBoolean());
-		setValue(in.readLong());
+		value = in.readLong();
 	}
 
 	/**

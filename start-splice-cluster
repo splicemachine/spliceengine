@@ -47,6 +47,18 @@ wait_for () {
 	echo
 }
 
+function is_port_open
+{
+  host1=$1
+  port2=$2
+  # note there's two versions of nc: GNU and OpenBSD
+  # OpenBSD supports -z (only check port), but GNU not.
+  # GNU would work with 'exit', OpenBSD needs 'exit\n'
+  # this one works in both and on mac
+  echo 'exit\n' | nc ${host1} ${port2} > /dev/null 2> /dev/null
+}
+
+
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 DEFAULT_PROFILE="cdh6.3.0"  # default hbase platform profile
 PROFILE=$DEFAULT_PROFILE
@@ -171,7 +183,7 @@ if [[ ${HBASE_PROFILE} == ${IN_MEM_PROFILE} ]]; then
   echo "Starting MEM. Log file is ${MEM_LOG}"
   (MAVEN_OPTS="${MAVEN_OPTS} -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=4000" ${MVN} -Pmem exec:java > ${MEM_LOG} 2>&1) &    ## IN MEMORY
   echo -n "wait until ready . "
-  until nc -z localhost 1527 2> /dev/null; do echo -n ". " ; sleep 2; done
+  until is_port_open localhost 1527; do echo -n ". " ; sleep 2; done
   echo "MEM Started!"
   exit 0;
 fi
@@ -236,7 +248,7 @@ else
 fi
 
 echo -n "  Waiting. "
-until nc -z localhost 1527 2> /dev/null; do echo -n ". " ; sleep 2; done
+until is_port_open localhost 1527; do echo -n ". " ; sleep 2; done
 echo
 
 if [[ ${MEMBERS} -gt 0 ]]; then
@@ -246,7 +258,7 @@ if [[ ${MEMBERS} -gt 0 ]]; then
     ## (region server, splice on 1528, 1529, ...)
     (${MVN} exec:exec -Denv=${HBASE_PROFILE} -P${PROFILE},spliceClusterMember ${SYSTEM_PROPS} -DmemberNumber=${MEMBER} -Dxml.plan.debug.path=${DEBUG_PATH} > ${REGION_SVR_LOG} 2>&1) &
     echo -n "  Waiting. "
-    until nc -z localhost $(( 1527 + ${MEMBER} )) 2> /dev/null; do echo -n ". " ; sleep 2; done
+    until is_port_open localhost $(( 1527 + ${MEMBER} )); do echo -n ". " ; sleep 2; done
     echo
   done
 fi

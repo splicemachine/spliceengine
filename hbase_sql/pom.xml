@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1967-SNAPSHOT</version>
+        <version>3.1.0.1979-SNAPSHOT</version>
     </parent>
     <properties>
         <argLine>-Xmx4g ${jacocoAgent}</argLine>
@@ -49,9 +49,9 @@
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
-	    <artifactId>scala_util</artifactId>
+            <artifactId>scala_util</artifactId>
             <version>${project.version}</version>
-	    <classifier>${envClassifier}-${spark.version}_${scala.binary.version}</classifier>
+            <classifier>${envClassifier}-${spark.version}_${scala.binary.version}</classifier>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
@@ -90,18 +90,18 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-remote_${scala.binary.version}</artifactId>
-            <version>2.4.8</version>
+            <version>2.4.12</version>
         </dependency>
         <dependency>
             <groupId>io.airlift</groupId>
             <artifactId>units</artifactId>
             <version>1.0</version>
-	    <exclusions>
-            <exclusion>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-annotations</artifactId>
-            </exclusion>
-        </exclusions>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.airlift</groupId>
@@ -112,12 +112,12 @@
             <groupId>io.airlift</groupId>
             <artifactId>stats</artifactId>
             <version>0.144</version>
-	    <exclusions>
-		<exclusion>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-annotations</artifactId>
-        </exclusion>
- 	    </exclusions>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-annotations</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.airlift</groupId>
@@ -149,16 +149,15 @@
             <scope>provided</scope>
         </dependency>
 
-
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>2.9.9</version>
+            <version>${fasterxml.jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>2.9.9</version>
+            <version>${fasterxml.jackson.version}</version>
         </dependency>
 
         <dependency>
@@ -295,6 +294,13 @@
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-hive_${scala.binary.version}</artifactId>
             <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Some annotations, like @Public, are used from hive-classification  -->
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-classification</artifactId>
+            <version>${hive.version}</version>
             <scope>provided</scope>
         </dependency>
 

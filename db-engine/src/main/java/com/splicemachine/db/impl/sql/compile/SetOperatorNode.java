@@ -306,6 +306,11 @@ abstract class SetOperatorNode extends TableOperatorNode
     public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate)
         throws StandardException
     {
+        boolean disablePushDown = getLanguageConnectionContext().isNLJPredicatePushDownDisabled();
+        if (disablePushDown) {
+            return false;
+        }
+
         // This method was added to SetOperatorNode as part of DERBY-805,
         // which was only targeted for UnionNodes.  So for now, we don't
         // do anything if "this" isn't a Union.  This check can be removed

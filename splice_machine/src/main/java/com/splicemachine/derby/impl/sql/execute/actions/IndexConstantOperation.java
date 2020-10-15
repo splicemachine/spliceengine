@@ -47,7 +47,7 @@ import com.splicemachine.storage.PartitionLoad;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.primitives.Ints;
 
 import java.io.IOException;
 import java.util.Collection;

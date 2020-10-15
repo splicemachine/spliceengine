@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SlowTest;

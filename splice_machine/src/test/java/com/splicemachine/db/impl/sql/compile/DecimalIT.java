@@ -25,7 +25,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -134,6 +134,20 @@ public class DecimalIT  extends SpliceUnitTest {
         new TableCreator(conn)
                 .withCreate("create table preparedDecimal (a dec(38,5))")
                 .create();
+
+        new TableCreator(conn)
+                .withCreate("create table DB_9425_TBL (quantity decimal (22,4), units decimal (19,9), price decimal(19,9), factor decimal(19,9))")
+                .withInsert("insert into DB_9425_TBL values (?, ?, ?, ?)")
+                .withRows(rows(
+                        row(1333333333.1111, 1, 150000.555555, 15.5555555)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table DB_9425_TBL_2 (a decimal (37,0), b decimal(22,11), c decimal(25,19))")
+                .withInsert("insert into DB_9425_TBL_2 values (?, ?, ?)")
+                .withRows(rows(
+                        row(new BigDecimal("9999999999999999999999999999999999999"), 1333333333.1111, 150000.555555)))
+                .create();
     }
 
     @BeforeClass
@@ -183,9 +197,9 @@ public class DecimalIT  extends SpliceUnitTest {
         sqlText = format("select avg(a*a) from ts_decimal --splice-properties useSpark=%s", useSpark);
 
         expected =
-                "1                |\n" +
-                "---------------------------------\n" +
-                "99999999996666666666.7033333333 |";
+                "1              |\n" +
+                "-----------------------------\n" +
+                "99999999996666666666.703333 |";
 
         testQuery(sqlText, expected, methodWatcher);
 
@@ -235,11 +249,12 @@ public class DecimalIT  extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
 
         sqlText = format("select sum(a*a) from ts_decimal --splice-properties useSpark=%s", useSpark);
+        // DECIMAL(38,5) * DECIMAL(38,5), result scale is reduced to MIN_DECIMAL_MULTIPLICATION_SCALE from 10
 
         expected =
-                "1                |\n" +
-                "----------------------------------\n" +
-                "299999999990000000000.1100000000 |";
+                "1              |\n" +
+                "------------------------------\n" +
+                "299999999990000000000.110000 |";
 
         testQuery(sqlText, expected, methodWatcher);
 
@@ -675,6 +690,63 @@ public class DecimalIT  extends SpliceUnitTest {
                 "A    |\n" +
                 "----------\n" +
                 "14.51000 |";
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testReduceFractionalDigitsForIntegralPartSum() throws Exception {
+        /* We don't have enough digits for the whole result but only integral part.
+         * Returning an integral value should be better than throws an exception.
+         */
+        String sqlText = String.format("select a + b\n" +
+                "from DB_9425_TBL_2 --splice-properties useSpark=%s", useSpark);
+
+        String expected = "1                   |\n" +
+                "----------------------------------------\n" +
+                "10000000000000000000000000001333333332 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testReduceFractionalDigitsForIntegralPartTimes() throws Exception {
+        /* DECIMAL(22,11) * DECIMAL(25,19), initial result type is DECIMAL(38,30).
+         * Integral part needs at maximum 22 - 11 + 25 - 19 + 1 = 18 digits. Result type has 8.
+         */
+        String sqlText = String.format("select b * c\n" +
+                "from DB_9425_TBL_2 --splice-properties useSpark=%s", useSpark);
+
+        String expected = "1                  |\n" +
+                "--------------------------------------\n" +
+                "200000740706664.87653716050000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testReduceFractionalDigitsForIntegralPartDivide() throws Exception {
+        /* DECIMAL(22,4) / DECIMAL(19,9), initial result type is DECIMAL(38,15).
+         * Integral part needs at maximum 22 - 4 + 9 = 27 digits. Result type has 23.
+         */
+        String sqlText = String.format("select quantity / units\n" +
+                "from DB_9425_TBL --splice-properties useSpark=%s", useSpark);
+
+        String expected = "1           |\n" +
+                "------------------------\n" +
+                "1333333333.11110000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+    }
+
+    @Test
+    public void testReduceFractionalDigitsForIntegralPartCustomerCase() throws Exception {
+        String sqlText = String.format("select cast(COALESCE(((quantity/units) * ( price / units)* cast(factor AS decimal(10,2)) ),0 ) AS NUMERIC(31,10))\n" +
+                "from DB_9425_TBL --splice-properties useSpark=%s", useSpark);
+
+        String expected = "1              |\n" +
+                "-----------------------------\n" +
+                "3112011525395705.4789160000 |";
+
         testQuery(sqlText, expected, methodWatcher);
     }
 }

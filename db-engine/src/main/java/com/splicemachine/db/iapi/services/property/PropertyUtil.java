@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.iapi.services.property;
 
-import org.spark_project.guava.base.Optional;
+import splice.com.google.common.base.Optional;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.EngineType;
@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.Serializable;
 import java.util.Dictionary;
@@ -50,35 +51,36 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 /**
-	There are 5 property objects within a JBMS system.
+    There are 5 property objects within a JBMS system.
 
-	1) JVM - JVM set - those in System.getProperties
-	2) SPLICE - Application set - db.properties file
-	3) SRV - Persistent Service set - Those stored in service.properties
-	4) TRAN - Persistent Transactional set - Those stored via the AccessManager interface
-	5) BOOT - Set by a boot method (rare)
+    1) JVM - JVM set - those in System.getProperties
+    2) SPLICE - Application set - db.properties file
+    3) SRV - Persistent Service set - Those stored in service.properties
+    4) TRAN - Persistent Transactional set - Those stored via the AccessManager interface
+    5) BOOT - Set by a boot method (rare)
 
-	This class has a set of static methods to find a property using a consistent search order
-	from the above set.
-	<BR>
-	getSystem*() methods use the search order.
-	<OL>
-	<LI> JVM
-	<LI> SPLICE
-	</OL>
-	<BR>
-	getService* methods use the search order
-	<OL>
-	<LI> JVM
-	<LI> TRAN
-	<LI> SRV
-	<LI> SPLICE
-	</OL>
+    This class has a set of static methods to find a property using a consistent search order
+    from the above set.
+    <BR>
+    getSystem*() methods use the search order.
+    <OL>
+    <LI> JVM
+    <LI> SPLICE
+    </OL>
+    <BR>
+    getService* methods use the search order
+    <OL>
+    <LI> JVM
+    <LI> TRAN
+    <LI> SRV
+    <LI> SPLICE
+    </OL>
 
 */
 public class PropertyUtil {
 
-	// List of properties that are stored in the service.properties file
+    // List of properties that are stored in the service.properties file
+    @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     public static final String[] servicePropertyList = {
             EngineType.PROPERTY,
             Property.NO_AUTO_BOOT,
@@ -101,129 +103,131 @@ public class PropertyUtil {
     };
 
     /**
-		Property is set in JVM set
-	*/
-	public static final int SET_IN_JVM = 0;	
-	/**
-		Property is set in DATABASE set
-	*/
-	public static final int SET_IN_DATABASE = 1;
-	/**
-		Property is set in APPLICATION (db.properties) set
-	*/
-	public static final int SET_IN_APPLICATION = 2;
+        Property is set in JVM set
+    */
+    public static final int SET_IN_JVM = 0;
+    /**
+        Property is set in DATABASE set
+    */
+    public static final int SET_IN_DATABASE = 1;
+    /**
+        Property is set in APPLICATION (db.properties) set
+    */
+    public static final int SET_IN_APPLICATION = 2;
 
-	/**
-		Property is not set.
-	*/
-	public static final int NOT_SET = -1;
+    /**
+        Property is not set.
+    */
+    public static final int NOT_SET = -1;
 
 
-	static int whereSet(String key, Dictionary set) {
+    static int whereSet(String key, Dictionary set) {
 
-		boolean dbOnly = isDBOnly(set);
+        boolean dbOnly = isDBOnly(set);
 
-		if (!dbOnly) {
-			if (Monitor.getMonitor().getJVMProperty(key) != null) {
-				return SET_IN_JVM;
-			}
-		}
-		
-		if ((set != null) && (set.get(key) != null))
-				return SET_IN_DATABASE;
+        if (!dbOnly) {
+            if (Monitor.getMonitor().getJVMProperty(key) != null) {
+                return SET_IN_JVM;
+            }
+        }
 
-		if (!dbOnly) {
-			if (PropertyUtil.getSystemProperty(key) != null)
-				return SET_IN_APPLICATION;
-		}
+        if ((set != null) && (set.get(key) != null))
+                return SET_IN_DATABASE;
 
-		return NOT_SET;
-	}
+        if (!dbOnly) {
+            if (PropertyUtil.getSystemProperty(key) != null)
+                return SET_IN_APPLICATION;
+        }
 
-	public static boolean isDBOnly(Dictionary set) {
+        return NOT_SET;
+    }
 
-		if (set == null)
-			return false;
+    @SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE", justification = "DB-9844")
+    public static boolean isDBOnly(Dictionary set) {
 
-		String value = (String) set.get(Property.DATABASE_PROPERTIES_ONLY);
+        if (set == null)
+            return false;
 
-		return Boolean.valueOf(
+        String value = (String) set.get(Property.DATABASE_PROPERTIES_ONLY);
+
+        return Boolean.parseBoolean(
                 (value != null ? value.trim() : value));
-	}
+    }
 
-	public static boolean isDBOnly(Properties set) {
+    @SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE", justification = "DB-9844")
+    public static boolean isDBOnly(Properties set) {
 
-		if (set == null)
-			return false;
+        if (set == null)
+            return false;
 
-		String value = set.getProperty(Property.DATABASE_PROPERTIES_ONLY);
+        String value = set.getProperty(Property.DATABASE_PROPERTIES_ONLY);
 
-		return Boolean.valueOf(
+        return Boolean.parseBoolean(
                 (value != null ? value.trim() : value));
-	}
-	
-	/**
-		Find a system wide property.
+    }
 
-		@return the value of the property or null if it does not exist.
-		@see #getSystemProperty(String,String)
-	*/
-	public static String getSystemProperty(String key) {
-		return PropertyUtil.getSystemProperty(key, (String) null);
-	}
+    /**
+        Find a system wide property.
 
-	/**
-		Find a system wide property with a default. Search order is
+        @return the value of the property or null if it does not exist.
+        @see #getSystemProperty(String,String)
+    */
+    public static String getSystemProperty(String key) {
+        return PropertyUtil.getSystemProperty(key, (String) null);
+    }
 
-		<OL>
-		<LI> JVM property
-		<LI> db.properties
-		</OL>
+    /**
+        Find a system wide property with a default. Search order is
 
-		<P>
-		This method can be used by a system that is not running Derby,
-		just to maintain the same lookup logic and security manager concerns
-		for finding db.properties and reading system properties.
+        <OL>
+        <LI> JVM property
+        <LI> db.properties
+        </OL>
 
-		@return the value of the property or defaultValue if it does not exist.
-	*/
-	public static String getSystemProperty(String key, String defaultValue) {
+        <P>
+        This method can be used by a system that is not running Derby,
+        just to maintain the same lookup logic and security manager concerns
+        for finding db.properties and reading system properties.
 
-		ModuleFactory monitor = Monitor.getMonitorLite();
+        @return the value of the property or defaultValue if it does not exist.
+    */
+    public static String getSystemProperty(String key, String defaultValue) {
 
-		String value = monitor.getJVMProperty(key);
+        ModuleFactory monitor = Monitor.getMonitorLite();
 
-		if (value == null) {
+        String value = monitor.getJVMProperty(key);
 
-			Properties applicationProperties =
-				monitor.getApplicationProperties();
+        if (value == null) {
 
-			if (applicationProperties != null)
-				value = applicationProperties.getProperty(key);
-		}
-		return value == null ? defaultValue : value;
-	}
+            Properties applicationProperties =
+                monitor.getApplicationProperties();
+
+            if (applicationProperties != null)
+                value = applicationProperties.getProperty(key);
+        }
+        return value == null ? defaultValue : value;
+    }
 
 
-	/**
-		Get a property from the passed in set. The passed in set is
-		either:
-		
-		  <UL>
-		  <LI> The properties object passed into ModuleControl.boot()
-		  after the database has been booted. This set will be a DoubleProperties
-		  object with the per-database transaction set as the read set
-		  and the service.properties as the write set.
-		  <LI>
-		  The Dictionary set returned/passed in by a method of BasicService.Properties.
-		  </UL>
-		<BR>
-		This method uses the same search order as the getService() calls.
+    /**
+        Get a property from the passed in set. The passed in set is
+        either:
 
-	*/
-	public static String getPropertyFromSet(Properties set, String key) {
-	
-		boolean dbOnly = set != null && isDBOnly(set);
+          <UL>
+          <LI> The properties object passed into ModuleControl.boot()
+          after the database has been booted. This set will be a DoubleProperties
+          object with the per-database transaction set as the read set
+          and the service.properties as the write set.
+          <LI>
+          The Dictionary set returned/passed in by a method of BasicService.Properties.
+          </UL>
+        <BR>
+        This method uses the same search order as the getService() calls.
+
+    */
+    public static String getPropertyFromSet(Properties set, String key) {
+
+        boolean dbOnly = set != null && isDBOnly(set);
 
         //
         // Once NATIVE authentication has been set in the database, it cannot
@@ -236,166 +240,183 @@ public class PropertyUtil {
             if ( nativeAuthenticationEnabled( dbValue ) ) { return dbValue; }
         }
 
-		return PropertyUtil.getPropertyFromSet(dbOnly, set, key);
-	}
+        return PropertyUtil.getPropertyFromSet(dbOnly, set, key);
+    }
 
-	public static Serializable getPropertyFromSet(Dictionary set, String key) {
-	
-		boolean dbOnly = set != null && isDBOnly(set);
+    public static Serializable getPropertyFromSet(Dictionary set, String key) {
 
-		return PropertyUtil.getPropertyFromSet(dbOnly, set, key);
-	}
+        boolean dbOnly = set != null && isDBOnly(set);
 
-	public static Serializable getPropertyFromSet(boolean dbOnly, Dictionary set, String key) {
+        return PropertyUtil.getPropertyFromSet(dbOnly, set, key);
+    }
 
-		if (set != null) {
+    public static Serializable getPropertyFromSet(boolean dbOnly, Dictionary set, String key) {
 
-			Serializable value;
+        if (set != null) {
 
-			if (!dbOnly) {
-				value = Monitor.getMonitor().getJVMProperty(key);
-				if (value != null)
-					return value;
-			}
-		
-			value = (Serializable) set.get(key);
-			if (value != null)
-				return value;
+            Serializable value;
 
-			if (dbOnly)
-				return null;
-		}
+            if (!dbOnly) {
+                value = Monitor.getMonitor().getJVMProperty(key);
+                if (value != null)
+                    return value;
+            }
 
-		return PropertyUtil.getSystemProperty(key);
-	}
+            value = (Serializable) set.get(key);
+            if (value != null)
+                return value;
 
-	public static String getPropertyFromSet(boolean dbOnly, Properties set, String key) {
+            if (dbOnly)
+                return null;
+        }
 
-		if (set != null) {
+        return PropertyUtil.getSystemProperty(key);
+    }
 
-			String value;
+    public static String getPropertyFromSet(boolean dbOnly, Properties set, String key) {
 
-			if (!dbOnly) {
-				value = Monitor.getMonitor().getJVMProperty(key);
-				if (value != null)
-					return value;
-			}
-		
-			value = set.getProperty(key);
-			if (value != null)
-				return value;
+        if (set != null) {
 
-			if (dbOnly)
-				return null;
-		}
+            String value;
 
-		return PropertyUtil.getSystemProperty(key);
-	}
+            if (!dbOnly) {
+                value = Monitor.getMonitor().getJVMProperty(key);
+                if (value != null)
+                    return value;
+            }
 
-	/**
-		Get a property only looking in the Persistent Transactional (database) set.
+            value = set.getProperty(key);
+            if (value != null)
+                return value;
 
-		@exception StandardException Standard Derby error handling. 
-	*/
-	public static String getDatabaseProperty(PersistentSet set, String key) 
-		throws StandardException {
+            if (dbOnly)
+                return null;
+        }
 
-		if (set == null)
-			return null;
+        return PropertyUtil.getSystemProperty(key);
+    }
 
-		Object obj = set.getProperty(key);
- 		if (obj == null) { return null; }
- 		return obj.toString();
-	}
+    /**
+        Get a property only looking in the Persistent Transactional (database) set.
 
-	/**
-	 Get a property from data dictionary cache, if not found, look in the Persistent Transactional (database) set.
+        @exception StandardException Standard Derby error handling.
+    */
+    public static String getDatabaseProperty(PersistentSet set, String key)
+        throws StandardException {
 
-	 @exception StandardException Standard Derby error handling.
-	 */
-	public static String getCachedDatabaseProperty(LanguageConnectionContext lcc, String key)
-			throws StandardException {
-		PersistentSet set = lcc.getTransactionCompile();
-		if (set == null)
-			return null;
-		//look in dictionary cache first
+        if (set == null)
+            return null;
 
-		Optional<String> optional = lcc.getDataDictionary().getDataDictionaryCache().propertyCacheFind(key);
-		if (optional!=null) {
-			return optional.orNull();
-		}
+        Object obj = set.getProperty(key);
+         if (obj == null) { return null; }
+         return obj.toString();
+    }
 
-		Object obj = set.getProperty(key);
+    /**
+     Get a property from data dictionary cache, if not found, look in the Persistent Transactional (database) set.
 
-		// save in cache
-		lcc.getDataDictionary().getDataDictionaryCache().propertyCacheAdd(key, obj==null? Optional.<String>absent():Optional.of(obj.toString()));
-		if (obj == null) { return null; }
-		return obj.toString();
-	}
-	/**
-		Find a service wide property with a default. Search order is
+     @exception StandardException Standard Derby error handling.
+     */
+    public static String getCachedDatabaseProperty(LanguageConnectionContext lcc, String key)
+            throws StandardException {
+        PersistentSet set = lcc.getTransactionCompile();
+        if (set == null)
+            return null;
+        //look in dictionary cache first
 
-		The service is the persistent service associated with the
-		current context stack.
+        Optional<String> optional = lcc.getDataDictionary().getDataDictionaryCache().propertyCacheFind(key);
+        if (optional!=null) {
+            return optional.orNull();
+        }
 
-		@return the value of the property or defaultValue if it does not exist.
+        Object obj = set.getProperty(key);
 
-		@exception StandardException Standard Derby error handling. 
-	*/
-	public static String getServiceProperty(PersistentSet set, String key, String defaultValue) 
-		throws StandardException {
+        // save in cache
+        lcc.getDataDictionary().getDataDictionaryCache().propertyCacheAdd(key, obj==null? Optional.<String>absent():Optional.of(obj.toString()));
+        if (obj == null) { return null; }
+        return obj.toString();
+    }
+
+    /**
+     Get a property from data dictionary cache and return it as a boolean.
+     If not found, look in the Persistent Transactional (database) set.
+
+     @exception StandardException Standard Derby error handling.
+     */
+    public static boolean getCachedDatabaseBoolean(LanguageConnectionContext lcc, String key) throws StandardException {
+        String value = getCachedDatabaseProperty(lcc, key);
+        if (value == null) {
+            return false;
+        } else {
+            return Boolean.parseBoolean(value.trim());
+        }
+    }
+
+    /**
+        Find a service wide property with a default. Search order is
+
+        The service is the persistent service associated with the
+        current context stack.
+
+        @return the value of the property or defaultValue if it does not exist.
+
+        @exception StandardException Standard Derby error handling.
+    */
+    @SuppressFBWarnings(value = "NP_LOAD_OF_KNOWN_NULL_VALUE", justification = "DB-9844")
+    public static String getServiceProperty(PersistentSet set, String key, String defaultValue)
+        throws StandardException {
 
 
-		String value =
-			PropertyUtil.getDatabaseProperty(
+        String value =
+            PropertyUtil.getDatabaseProperty(
                 set, Property.DATABASE_PROPERTIES_ONLY);
 
-		boolean dbOnly =
-                Boolean.valueOf(
+        boolean dbOnly =
+                Boolean.parseBoolean(
                         (value != null ? value.trim() : value));
 
-		if (!dbOnly) {
-			value = Monitor.getMonitor().getJVMProperty(key);
-			if (value != null)
-				return value;
-		}
+        if (!dbOnly) {
+            value = Monitor.getMonitor().getJVMProperty(key);
+            if (value != null)
+                return value;
+        }
 
-		value = PropertyUtil.getDatabaseProperty(set, key);
-		if (value != null)
-			return value;
+        value = PropertyUtil.getDatabaseProperty(set, key);
+        if (value != null)
+            return value;
 
-		if (dbOnly) {
-			return defaultValue;
-		}
+        if (dbOnly) {
+            return defaultValue;
+        }
 
-		return PropertyUtil.getSystemProperty(key, defaultValue);
-	}
+        return PropertyUtil.getSystemProperty(key, defaultValue);
+    }
 
 
-	/**
-		Find a service wide property. 
+    /**
+        Find a service wide property.
 
-		The service is the persistent service associated with the
-		current context stack.
+        The service is the persistent service associated with the
+        current context stack.
 
-		@return the value of the property or null if it does not exist.
+        @return the value of the property or null if it does not exist.
 
-			@exception StandardException Standard Derby error handling. 
-	*/
-	public static String getServiceProperty(PersistentSet set, String key)
-		throws StandardException {
-		return PropertyUtil.getServiceProperty(set, key, (String) null);
-	}
+            @exception StandardException Standard Derby error handling.
+    */
+    public static String getServiceProperty(PersistentSet set, String key)
+        throws StandardException {
+        return PropertyUtil.getServiceProperty(set, key, (String) null);
+    }
 
-	/**
-		Get a system wide property as a boolean.
+    /**
+        Get a system wide property as a boolean.
 
-		@param key The name of the system property
-		@return true of the property is set to 'true, TRUE', false otherwise
-	*/
-	public static boolean getSystemBoolean(String key) {
-		return getSystemBoolean(key, false);
-	}
+        @param key The name of the system property
+        @return true of the property is set to 'true, TRUE', false otherwise
+    */
+    public static boolean getSystemBoolean(String key) {
+        return getSystemBoolean(key, false);
+    }
 
     /**
      * Get a system wide property as a boolean.
@@ -411,239 +432,239 @@ public class PropertyUtil {
         if (value == null) {
             return defaultValue;
         } else {
-            return (Boolean.valueOf(value.trim()));
+            return (Boolean.parseBoolean(value.trim()));
         }
     }
 
-	/**
-		Get a service wide property as a boolean.
+    /**
+        Get a service wide property as a boolean.
 
-		@return true of the property is set to 'true, TRUE', false otherwise
+        @return true of the property is set to 'true, TRUE', false otherwise
 
-		@exception StandardException Standard Derby error handling. 
-	*/
-	public static boolean getServiceBoolean(PersistentSet set, String key, boolean defValue) 
-		throws StandardException {
+        @exception StandardException Standard Derby error handling.
+    */
+    public static boolean getServiceBoolean(PersistentSet set, String key, boolean defValue)
+        throws StandardException {
 
         String value = PropertyUtil.getServiceProperty(set, key);
 
-		return booleanProperty(key, value, defValue);
-	}
+        return booleanProperty(key, value, defValue);
+    }
 
-	/**s
-		Get a system wide property as a int.
+    /**s
+        Get a system wide property as a int.
 
-		@return value of the property if set subject to min and max, defaultValue if
-		it is not set or set to a non-integer value.
-	*/
-	public static int getSystemInt(String key, int min, int max, int defaultValue) {
-		return PropertyUtil.handleInt(PropertyUtil.getSystemProperty(key), min, max, defaultValue);
-	}
+        @return value of the property if set subject to min and max, defaultValue if
+        it is not set or set to a non-integer value.
+    */
+    public static int getSystemInt(String key, int min, int max, int defaultValue) {
+        return PropertyUtil.handleInt(PropertyUtil.getSystemProperty(key), min, max, defaultValue);
+    }
 
-	/**
-		Get a service wide property as a int.
+    /**
+        Get a service wide property as a int.
 
-		@return value of the property if set subject to min and max, defaultValue if
-		it is not set or set to a non-integer value.
+        @return value of the property if set subject to min and max, defaultValue if
+        it is not set or set to a non-integer value.
 
-		@exception StandardException Standard Derby error handling. 
+        @exception StandardException Standard Derby error handling.
 
-	*/
-	public static int getServiceInt(PersistentSet set, String key, int min, int max, int defaultValue)
-		throws StandardException {
-		//return PropertyUtil.intPropertyValue(key, PropertyUtil.getServiceProperty(set, key), min, max, defaultValue);
-		return PropertyUtil.handleInt(PropertyUtil.getServiceProperty(set, key), min, max, defaultValue);
-	}
+    */
+    public static int getServiceInt(PersistentSet set, String key, int min, int max, int defaultValue)
+        throws StandardException {
+        //return PropertyUtil.intPropertyValue(key, PropertyUtil.getServiceProperty(set, key), min, max, defaultValue);
+        return PropertyUtil.handleInt(PropertyUtil.getServiceProperty(set, key), min, max, defaultValue);
+    }
 
-	/**
-		Get a service wide property as a int. The passed in Properties
-		set overrides any system, applcation or per-database properties.
+    /**
+        Get a service wide property as a int. The passed in Properties
+        set overrides any system, applcation or per-database properties.
 
-		@return value of the property if set subject to min and max, defaultValue if
-		it is not set or set to a non-integer value.
+        @return value of the property if set subject to min and max, defaultValue if
+        it is not set or set to a non-integer value.
 
-		@exception StandardException Standard Derby error handling. 
+        @exception StandardException Standard Derby error handling.
 
-	*/
-	public static int getServiceInt(PersistentSet set, Properties props, String key, int min, int max, int defaultValue)
-		throws StandardException {
+    */
+    public static int getServiceInt(PersistentSet set, Properties props, String key, int min, int max, int defaultValue)
+        throws StandardException {
 
-		String value = null;
+        String value = null;
 
-		if (props != null)
-			value = props.getProperty(key);
+        if (props != null)
+            value = props.getProperty(key);
 
-		if (value == null)
-			value = PropertyUtil.getServiceProperty(set, key);
+        if (value == null)
+            value = PropertyUtil.getServiceProperty(set, key);
 
-		return PropertyUtil.handleInt(value, min, max, defaultValue);
-	}
+        return PropertyUtil.handleInt(value, min, max, defaultValue);
+    }
 
-	/**
-		Get a system wide property as a int.
+    /**
+        Get a system wide property as a int.
 
-		@return value of the property if, defaultValue if
-		it is not set or set to a non-integer value.
-	*/
-	public static int getSystemInt(String key, int defaultValue) {
-		return PropertyUtil.getSystemInt(key, 0, Integer.MAX_VALUE, defaultValue);
-	}
+        @return value of the property if, defaultValue if
+        it is not set or set to a non-integer value.
+    */
+    public static int getSystemInt(String key, int defaultValue) {
+        return PropertyUtil.getSystemInt(key, 0, Integer.MAX_VALUE, defaultValue);
+    }
 
-	/**
-		Parse an string as an int based property value.
-	*/
-	public static int handleInt(String value, int min, int max, int defaultValue) {
+    /**
+        Parse an string as an int based property value.
+    */
+    public static int handleInt(String value, int min, int max, int defaultValue) {
 
-		if (value == null)
-			return defaultValue;
+        if (value == null)
+            return defaultValue;
 
-		try {
-			int intValue = Integer.parseInt(value);
-			if ((intValue >= min) && (intValue <= max))
-				return intValue;
-		}
-		catch (NumberFormatException nfe)
-		{
-			// just leave the default.
-		}
-		return defaultValue;
-	}
+        try {
+            int intValue = Integer.parseInt(value);
+            if ((intValue >= min) && (intValue <= max))
+                return intValue;
+        }
+        catch (NumberFormatException nfe)
+        {
+            // just leave the default.
+        }
+        return defaultValue;
+    }
 
-	/**
-	  Parse and validate and return a boolean property value. If the value is invalid
-	  raise an exception.
+    /**
+      Parse and validate and return a boolean property value. If the value is invalid
+      raise an exception.
 
-	  <P>
-	  The following are valid property values.
-	  <UL>
-	  <LI> null - returns defaultValue
-	  <LI> "true" - returns true (in any case without the quotes)
-	  <LI> "false" - return true (in any case without the quotes)
-	  </UL>
-	  @exception StandardException Oops
-	  */
-	public static boolean booleanProperty(String p, Serializable v, boolean defaultValue)
-		 throws StandardException
-	{
-		if (v==null)
-			return defaultValue;
+      <P>
+      The following are valid property values.
+      <UL>
+      <LI> null - returns defaultValue
+      <LI> "true" - returns true (in any case without the quotes)
+      <LI> "false" - return true (in any case without the quotes)
+      </UL>
+      @exception StandardException Oops
+      */
+    public static boolean booleanProperty(String p, Serializable v, boolean defaultValue)
+         throws StandardException
+    {
+        if (v==null)
+            return defaultValue;
 
-		String vS = ((String) v).trim();
+        String vS = ((String) v).trim();
 
-		if ("TRUE".equals(StringUtil.SQLToUpperCase(vS)))
-			return true;
+        if ("TRUE".equals(StringUtil.SQLToUpperCase(vS)))
+            return true;
         if ("FALSE".equals(StringUtil.SQLToUpperCase(vS)))
-			return false;
+            return false;
 
-		throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, p,vS);
-	}
+        throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, p,vS);
+    }
 
-	/**
-	  Parse, validate and return an integer property value. If the value is invalid
-	  raise an exception. If the value passed in is null return a default value.
+    /**
+      Parse, validate and return an integer property value. If the value is invalid
+      raise an exception. If the value passed in is null return a default value.
 
-	  @exception StandardException Oops
-	  */
-	public static int intPropertyValue(String p, Serializable v,
-									   int minValue, int maxValue, int defaultValue)
-		 throws StandardException
-	{
-		if (v==null)
-			return defaultValue;
+      @exception StandardException Oops
+      */
+    public static int intPropertyValue(String p, Serializable v,
+                                       int minValue, int maxValue, int defaultValue)
+         throws StandardException
+    {
+        if (v==null)
+            return defaultValue;
 
-		String vs = ((String)v).trim();
-		try {
-			int result = Integer.parseInt(vs);
-			if (result < minValue || result > maxValue)
-				throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, p,vs);
-			return result;
-		}
-		catch (NumberFormatException nfe) {
-			throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, p,vs);
-		}
-	}
+        String vs = ((String)v).trim();
+        try {
+            int result = Integer.parseInt(vs);
+            if (result < minValue || result > maxValue)
+                throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, p,vs);
+            return result;
+        }
+        catch (NumberFormatException nfe) {
+            throw StandardException.newException(SQLState.PROPERTY_INVALID_VALUE, p,vs);
+        }
+    }
 
-	/**
-	  Return true iff the key is the name of a database property that is 
-	  stored in services.properties.
-	  */ 
-	public static boolean isServiceProperty(String key)
-	{
-		for (int i = 0; i < PropertyUtil.servicePropertyList.length; i++) 
-			if (key.equals(PropertyUtil.servicePropertyList[i])) return true;
-		return false;
-	}
+    /**
+      Return true iff the key is the name of a database property that is
+      stored in services.properties.
+      */
+    public static boolean isServiceProperty(String key)
+    {
+        for (int i = 0; i < PropertyUtil.servicePropertyList.length; i++)
+            if (key.equals(PropertyUtil.servicePropertyList[i])) return true;
+        return false;
+    }
 
 
-	/**
-	 * Return {@code true} if {@code username} is defined as a built-in user
-	 * i.e. there exists a property {@code db.user.}&lt;userid&gt; in the
-	 * database (or, possibly, in system properties if not forbidden by {@code
-	 * db.database.propertiesOnly}). Note that &lt;userid&gt; found in a
-	 * property will be normalized to case normal form before comparison is
-	 * performed against username, which is presumed normalized already.
-	 *
-	 * @param set object which implements PersistentSet interface
-	 *        (TransactionController)
-	 * @param username Normalized authorization identifier
-	 *
-	 * @return {@code true} if match found
-	 *
-	 * @exception StandardException
-	 */
-	public static boolean existsBuiltinUser (
-		PersistentSet set,
-		String username)
-			throws StandardException
-	{
-		if (propertiesContainsBuiltinUser(set.getProperties(), username)) {
-			return true;
-		}
-		
-		// check system level propery, if allowed by
-		// db.database.propertiesOnly
-		boolean dbOnly = false;
-		dbOnly = Boolean.valueOf(
+    /**
+     * Return {@code true} if {@code username} is defined as a built-in user
+     * i.e. there exists a property {@code db.user.}&lt;userid&gt; in the
+     * database (or, possibly, in system properties if not forbidden by {@code
+     * db.database.propertiesOnly}). Note that &lt;userid&gt; found in a
+     * property will be normalized to case normal form before comparison is
+     * performed against username, which is presumed normalized already.
+     *
+     * @param set object which implements PersistentSet interface
+     *        (TransactionController)
+     * @param username Normalized authorization identifier
+     *
+     * @return {@code true} if match found
+     *
+     * @exception StandardException
+     */
+    public static boolean existsBuiltinUser (
+        PersistentSet set,
+        String username)
+            throws StandardException
+    {
+        if (propertiesContainsBuiltinUser(set.getProperties(), username)) {
+            return true;
+        }
+
+        // check system level propery, if allowed by
+        // db.database.propertiesOnly
+        boolean dbOnly = false;
+        dbOnly = Boolean.parseBoolean(
                 PropertyUtil.getDatabaseProperty(
                         set,
                         Property.DATABASE_PROPERTIES_ONLY));
 
-		return !dbOnly &&
-				systemPropertiesExistsBuiltinUser(username);
+        return !dbOnly &&
+                systemPropertiesExistsBuiltinUser(username);
 
-	}
+    }
 
-	/**
+    /**
      *Return true if NATIVE authentication has been enabled in the passed-in properties.
      */
-	public static boolean nativeAuthenticationEnabled( Properties properties )
+    public static boolean nativeAuthenticationEnabled( Properties properties )
     {
-		String authenticationProvider = getPropertyFromSet
+        String authenticationProvider = getPropertyFromSet
             (
              properties,
              Property.AUTHENTICATION_PROVIDER_PARAMETER
              );
 
         return nativeAuthenticationEnabled( authenticationProvider );
-	}
+    }
 
-	/**
+    /**
      *Return true if NATIVE authentication is turned on for the passed-in
      * value of Property.AUTHENTICATION_PROVIDER_PARAMETER.
      */
-	private static boolean nativeAuthenticationEnabled( String authenticationProvider ) {
+    private static boolean nativeAuthenticationEnabled( String authenticationProvider ) {
         return authenticationProvider != null && StringUtil.SQLToUpperCase(authenticationProvider).startsWith(Property.AUTHENTICATION_PROVIDER_NATIVE);
 
     }
     
-	/**
-		Return true if the passed-in properties specify NATIVE authentication using LOCAL credentials.
-	*/
-	public static boolean localNativeAuthenticationEnabled( Properties properties )
+    /**
+        Return true if the passed-in properties specify NATIVE authentication using LOCAL credentials.
+    */
+    public static boolean localNativeAuthenticationEnabled( Properties properties )
     {
         if ( ! nativeAuthenticationEnabled( properties ) ) { return false; }
         
-		String authenticationProvider = getPropertyFromSet
+        String authenticationProvider = getPropertyFromSet
             (
              properties,
              Property.AUTHENTICATION_PROVIDER_PARAMETER
@@ -651,74 +672,74 @@ public class PropertyUtil {
 
         return StringUtil.SQLToUpperCase( authenticationProvider ).endsWith
             ( Property.AUTHENTICATION_PROVIDER_LOCAL_SUFFIX );
-	}
+    }
 
-	/**
-	 * Return true if the passed-in properties specify that the NATIVE authentication credentials database will be created.
-	 */
-	public static boolean createNativeAuthenticationCredentialsDatabaseEnabled(Properties properties)
-	{
+    /**
+     * Return true if the passed-in properties specify that the NATIVE authentication credentials database will be created.
+     */
+    public static boolean createNativeAuthenticationCredentialsDatabaseEnabled(Properties properties)
+    {
         return "true".equals(getPropertyFromSet(properties, Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE));
-	}
+    }
 
-	/**
-	 * Return true if username is defined as a system property
-	 * i.e. there exists a property {@code db.user.}&lt;userid&gt;
-	 * in the system properties. Note that &lt;userid&gt; will be
-	 * normalized to case normal form before comparison is performed
-	 * against username, which is presumed normalized already.
-	 * @param username Normalized authorization identifier
-	 * @return {@code true} if match found
-	 */
-	private static boolean systemPropertiesExistsBuiltinUser(String username)
-	{
-		ModuleFactory monitor = Monitor.getMonitorLite();
+    /**
+     * Return true if username is defined as a system property
+     * i.e. there exists a property {@code db.user.}&lt;userid&gt;
+     * in the system properties. Note that &lt;userid&gt; will be
+     * normalized to case normal form before comparison is performed
+     * against username, which is presumed normalized already.
+     * @param username Normalized authorization identifier
+     * @return {@code true} if match found
+     */
+    private static boolean systemPropertiesExistsBuiltinUser(String username)
+    {
+        ModuleFactory monitor = Monitor.getMonitorLite();
 
-		try {
-			Properties JVMProperties = System.getProperties();
+        try {
+            Properties JVMProperties = System.getProperties();
 
-			if (propertiesContainsBuiltinUser(JVMProperties, username)) {
-				return true;
-			}
-		} catch (SecurityException e) {
-			// Running with security manager and we can't get at all
-			// JVM properties, to try to map the back the authid to
-			// how the user may have specified a matching id (1->many,
-			// since userids are subject to SQL up-casing).
-			String key= Property.USER_PROPERTY_PREFIX +
-				IdUtil.SQLIdentifier2CanonicalPropertyUsername(username);
+            if (propertiesContainsBuiltinUser(JVMProperties, username)) {
+                return true;
+            }
+        } catch (SecurityException e) {
+            // Running with security manager and we can't get at all
+            // JVM properties, to try to map the back the authid to
+            // how the user may have specified a matching id (1->many,
+            // since userids are subject to SQL up-casing).
+            String key= Property.USER_PROPERTY_PREFIX +
+                IdUtil.SQLIdentifier2CanonicalPropertyUsername(username);
 
-			if (monitor.getJVMProperty(key) != null) {
-				return true;
-			}
-		}
+            if (monitor.getJVMProperty(key) != null) {
+                return true;
+            }
+        }
 
-		Properties applicationProperties = monitor.getApplicationProperties();
+        Properties applicationProperties = monitor.getApplicationProperties();
 
-		return propertiesContainsBuiltinUser(applicationProperties, username);
-	}
+        return propertiesContainsBuiltinUser(applicationProperties, username);
+    }
 
-	private static boolean propertiesContainsBuiltinUser(Properties props,
-														 String username)
-	{
-		if (props != null) {
-			Enumeration e = props.propertyNames();
-		
-			while (e.hasMoreElements()) {
-				String p = (String)e.nextElement();
+    private static boolean propertiesContainsBuiltinUser(Properties props,
+                                                         String username)
+    {
+        if (props != null) {
+            Enumeration e = props.propertyNames();
 
-				if (p.startsWith(Property.USER_PROPERTY_PREFIX)) {
-					String userAsSpecified = StringUtil.normalizeSQLIdentifier(
-						p.substring(Property.USER_PROPERTY_PREFIX.length()));
+            while (e.hasMoreElements()) {
+                String p = (String)e.nextElement();
 
-					if (username.equals(userAsSpecified)) {
-						return true;
-					}
-				}
-			}
-		}
+                if (p.startsWith(Property.USER_PROPERTY_PREFIX)) {
+                    String userAsSpecified = StringUtil.normalizeSQLIdentifier(
+                        p.substring(Property.USER_PROPERTY_PREFIX.length()));
 
-		return false;
-	}
+                    if (username.equals(userAsSpecified)) {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
+    }
 }
 

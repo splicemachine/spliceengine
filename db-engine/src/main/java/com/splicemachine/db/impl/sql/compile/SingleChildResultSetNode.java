@@ -222,6 +222,16 @@ public abstract class SingleChildResultSetNode extends FromTable{
     }
 
     /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return childResult.referencesTemporaryTable();
+    }
+
+    /**
      * Set the (query block) level (0-based) for this FromTable.
      *
      * @param level The query block level for this FromTable.
@@ -394,8 +404,8 @@ public abstract class SingleChildResultSetNode extends FromTable{
     }
 
     @Override
-    public ResultSetNode changeAccessPath() throws StandardException{
-        childResult=childResult.changeAccessPath();
+    public ResultSetNode changeAccessPath(JBitSet joinedTableSet) throws StandardException{
+        childResult=childResult.changeAccessPath(joinedTableSet);
         return this;
     }
 

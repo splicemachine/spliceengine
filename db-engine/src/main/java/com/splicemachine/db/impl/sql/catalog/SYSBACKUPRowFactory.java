@@ -79,13 +79,13 @@ public class SYSBACKUPRowFactory extends CatalogRowFactory {
             "6e205c88-4c1e-464a-b0ab-865d64b3279d"
     };
 
-    public SYSBACKUPRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
-        super(uuidf, ef, dvf);
+    public SYSBACKUPRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf, DataDictionary dd) {
+        super(uuidf, ef, dvf, dd);
         initInfo(BACKUP_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
 
     @Override
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException {
 
         long backupId = 0;
         DateTime beginTimestamp = null;
@@ -98,6 +98,8 @@ public class SYSBACKUPRowFactory extends CatalogRowFactory {
         int items = 0;
 
         if (td != null) {
+            if (!(td instanceof BackupDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
             BackupDescriptor d = (BackupDescriptor)td;
             backupId = d.getBackupId();
             beginTimestamp = d.getBeginTimestamp();

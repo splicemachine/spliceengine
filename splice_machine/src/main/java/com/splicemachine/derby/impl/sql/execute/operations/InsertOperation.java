@@ -35,7 +35,6 @@ import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.load.ImportUtils;
-import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -47,21 +46,17 @@ import com.splicemachine.derby.stream.output.WriteReadUtils;
 import com.splicemachine.derby.stream.output.insert.InsertPipelineWriter;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
-import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.server.ClusterHealth;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.Partition;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.*;
 
 
 /**
@@ -233,12 +228,12 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         long nextIdentityColumnValue;
         assert activation!=null && spliceSequences!=null:"activation or sequences are null";
         nextIdentityColumnValue=((BaseActivation)activation).ignoreSequence()?-1:spliceSequences[columnPosition-1].getNext();
-        this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
         if(rowTemplate==null)
             rowTemplate=getExecRowDefinition();
         DataValueDescriptor dvd=rowTemplate.cloneColumn(columnPosition);
         dvd.setValue(nextIdentityColumnValue);
         synchronized (this) {
+            this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
             if (increment > 0) {
                 if (nextIdentityColumnValue > nextIncrement)
                     nextIncrement = nextIdentityColumnValue;
@@ -275,81 +270,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
         }catch(IOException ioe){
             throw StandardException.plainWrapException(ioe);
         }
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        super.readExternal(in);
-        autoIncrementRowLocationArray=new RowLocation[in.readInt()];
-        for(int i=0;i<autoIncrementRowLocationArray.length;i++){
-            autoIncrementRowLocationArray[i]=(HBaseRowLocation)in.readObject();
-        }
-        insertMode=InsertNode.InsertMode.valueOf(in.readUTF());
-        if(in.readBoolean())
-            statusDirectory=in.readUTF();
-        failBadRecordCount=in.readInt();
-        delimited = in.readBoolean()?in.readUTF():null;
-        escaped = in.readBoolean()?in.readUTF():null;
-        lines = in.readBoolean()?in.readUTF():null;
-        storedAs = in.readBoolean()?in.readUTF():null;
-        location = in.readBoolean()?in.readUTF():null;
-        compression = in.readBoolean()?in.readUTF():null;
-        bulkImportDirectory = in.readBoolean()?in.readUTF():null;
-        skipConflictDetection=in.readBoolean();
-        skipWAL=in.readBoolean();
-        samplingOnly = in.readBoolean();
-        outputKeysOnly = in.readBoolean();
-        skipSampling = in.readBoolean();
-        if (in.readBoolean())
-            indexName = in.readUTF();
-        partitionByRefItem = in.readInt();
-        sampleFraction = in.readDouble();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        int length=autoIncrementRowLocationArray.length;
-        out.writeInt(length);
-        for(int i=0;i<length;i++){
-            out.writeObject(autoIncrementRowLocationArray[i]);
-        }
-        out.writeUTF(insertMode.toString());
-        out.writeBoolean(statusDirectory!=null);
-        if(statusDirectory!=null)
-            out.writeUTF(statusDirectory);
-        out.writeInt(failBadRecordCount);
-        out.writeBoolean(delimited!=null);
-        if (delimited!=null)
-            out.writeUTF(delimited);
-        out.writeBoolean(escaped!=null);
-        if (escaped!=null)
-            out.writeUTF(escaped);
-        out.writeBoolean(lines!=null);
-        if (lines!=null)
-            out.writeUTF(lines);
-        out.writeBoolean(storedAs!=null);
-        if (storedAs!=null)
-            out.writeUTF(storedAs);
-        out.writeBoolean(location!=null);
-        if (location!=null)
-            out.writeUTF(location);
-        out.writeBoolean(compression!=null);
-        if (compression!=null)
-            out.writeUTF(compression);
-        out.writeBoolean(bulkImportDirectory!=null);
-        if (bulkImportDirectory!=null)
-            out.writeUTF(bulkImportDirectory);
-        out.writeBoolean(skipConflictDetection);
-        out.writeBoolean(skipWAL);
-        out.writeBoolean(samplingOnly);
-        out.writeBoolean(outputKeysOnly);
-        out.writeBoolean(skipSampling);
-        out.writeBoolean(indexName != null);
-        if (indexName != null)
-            out.writeUTF(indexName);
-        out.writeInt(partitionByRefItem);
-        out.writeDouble(sampleFraction);
     }
 
     @SuppressWarnings({ "unchecked" })
@@ -408,9 +328,9 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 else if (storedAs.toLowerCase().equals("o"))
                     return set.writeORCFile(IntArrays.count(execRowTypeFormatIds.length),partitionBy,location, compression, operationContext);
                 else if (storedAs.toLowerCase().equals("t"))
-                    return set.writeTextFile(this,location,delimited,lines,IntArrays.count(execRowTypeFormatIds.length), operationContext);
+                    return set.writeTextFile(partitionBy, location, new CsvOptions(delimited, escaped, lines), operationContext);
                 else
-                    new RuntimeException("storedAs type not supported -> " + storedAs);
+                    throw new RuntimeException("storedAs type not supported -> " + storedAs);
             }
             InsertDataSetWriterBuilder writerBuilder = null;
             if (bulkImportDirectory!=null && bulkImportDirectory.compareToIgnoreCase("NULL") !=0) {

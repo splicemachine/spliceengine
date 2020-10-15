@@ -447,4 +447,11 @@ public interface Optimizable {
     void setAccumulatedCostForSortAvoidancePlan(CostEstimate cost);
     CostEstimate getAccumulatedCost();
     CostEstimate getAccumulatedCostforSortAvoidancePlan();
+
+    default boolean hasJoinPredicatePushedDownFromOuter() {
+        return false;
+    }
+
+    default void setHasJoinPredicatePushedDownFromOuter(boolean value) {
+    }
 }

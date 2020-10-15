@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.EngineDriver;
+import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -39,7 +40,8 @@ import com.splicemachine.pipeline.callbuffer.CallBuffer;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.tools.EmbedConnectionMaker;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -125,6 +127,7 @@ public class TriggerHandler {
         return null;
     }
 
+    @SuppressFBWarnings(value = "URF_UNREAD_FIELD", justification = "DB-9844")
     public void setTxn(TxnView txn) {
         this.txn = txn;
         if (triggerRowHolder != null)
@@ -159,6 +162,7 @@ public class TriggerHandler {
         return 0;
     }
 
+    @SuppressFBWarnings(value = {"EI_EXPOSE_REP2","URF_UNREAD_FIELD"}, justification = "DB-9844")
     public void initTriggerRowHolders(boolean isSpark, TxnView txn, byte[] token, long ConglomID) throws StandardException {
         this.isSpark = isSpark;
         this.txn = txn;
@@ -242,7 +246,7 @@ public class TriggerHandler {
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
-                    null, SIDriver.driver().getExecutorService(), withContext, heapList);
+                    null, SIDriver.driver().getExecutorService(), withContext, heapList, !SpliceClient.isRegionServer);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;

@@ -159,6 +159,15 @@ message ActiveTxnResponse{
     repeated Txn txns = 1;
 }
 
+message TxnAtRequest {
+    optional int64 ts = 1;
+}
+
+message TxnAtResponse {
+    optional int64 txnId = 1;
+    optional int64 ts = 2;
+}
+
 message TaskId {
     required int32 stageId = 3;
     required int32 partitionId = 4;
@@ -215,4 +224,6 @@ service TxnLifecycleService{
     rpc getActiveTransactions(ActiveTxnRequest) returns (ActiveTxnResponse);
 
     rpc rollbackTransactionsAfter(TxnRequest) returns (VoidResponse);
+
+    rpc getTxnAt(TxnAtRequest) returns (TxnAtResponse);
 }

@@ -49,6 +49,7 @@ public class SIConstants {
     public static final long TRASANCTION_INCREMENT = 0x100l;
     public static final long SUBTRANSANCTION_ID_MASK = 0xFFl;
     public static final long TRANSANCTION_ID_MASK= 0xFFFFFFFFFFFFFF00l;
+    public static final long OLDEST_TIME_TRAVEL_TX = TRASANCTION_INCREMENT;
 
     public static final String REPLICATION_ROLE_REPLICA = "REPLICA";
     public static final String REPLICATION_ROLE_PRIMARY = "PRIMARY";
@@ -111,6 +112,7 @@ public class SIConstants {
     public static final String SCHEMA_DISPLAY_NAME_ATTR = "schemaDisplayName";
     public static final String TABLE_DISPLAY_NAME_ATTR = "tableDisplayName";
     public static final String INDEX_DISPLAY_NAME_ATTR = "indexDisplayName";
+    public static final String CATALOG_VERSION_ATTR = "catalogVersion";
     public static final String TRANSACTION_ID_ATTR = "createTransactionId";
     public static final String DROPPED_TRANSACTION_ID_ATTR = "droppedTransactionId";
 

@@ -16,8 +16,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.client.am.Types;
 import com.splicemachine.db.iapi.reference.Limits;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;

@@ -468,11 +468,38 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
                 "        FROM (select * from t4) S\n" +
                 "        UNION\n" +
                 "        SELECT *\n" +
-                "        FROM (select X.* from t4 as X, t4 as Y where X.a4=Y.a4) S) V --splice-properties joinStrategy=nestedloop\n" +
+                "        FROM (select X.* from --splice-properties joinOrder=fixed\n" +
+                "t4 as Y, t4 as X --splice-properties joinStrategy=broadcast\n" +
+                " where X.a4=Y.a4) S) V --splice-properties joinStrategy=nestedloop\n" +
                 "        WHERE t3.a3 = V.a4 AND b3 LIKE '%'";
         String expected = "B3 |\n" +
                 "----\n" +
                 " a |";
+
+        /* plan should looks like below where T3.A3[1:1] = S.A4[7:1] is pushed down
+        Plan
+        ----
+        Cursor(n=21,rows=182,updateMode=READ_ONLY (1),engine=OLTP (query hint))
+          ->  ScrollInsensitive(n=21,totalCost=1144.672,outputRows=182,outputHeapSize=964 B,partitions=1)
+            ->  ProjectRestrict(n=20,totalCost=981.824,outputRows=182,outputHeapSize=964 B,partitions=1)
+              ->  NestedLoopJoin(n=18,totalCost=981.824,outputRows=182,outputHeapSize=964 B,partitions=1)
+                ->  ProjectRestrict(n=17,totalCost=981.824,outputRows=182,outputHeapSize=964 B,partitions=1)
+                  ->  Distinct(n=16,totalCost=981.824,outputRows=182,outputHeapSize=964 B,partitions=1)
+                    ->  Union(n=14,totalCost=16.336,outputRows=18,outputHeapSize=60 B,partitions=2)
+                      ->  ProjectRestrict(n=11,totalCost=12.296,outputRows=16,outputHeapSize=56 B,partitions=1)
+                        ->  BroadcastJoin(n=9,totalCost=12.296,outputRows=16,outputHeapSize=56 B,partitions=1,preds=[(X.A4[9:2] = Y.A4[9:1])])
+                          ->  TableScan[T4(1712)](n=7,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=56 B,partitions=1,preds=[(T3.A3[1:1] = X.A4[7:1])])
+                          ->  TableScan[T4(1712)](n=5,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
+                      ->  TableScan[T4(1712)](n=2,totalCost=4.04,scannedRows=20,outputRows=2,outputHeapSize=4 B,partitions=1,preds=[(T3.A3[1:1] = T4.A4[2:1])])
+                ->  ProjectRestrict(n=1,totalCost=4.04,outputRows=10,outputHeapSize=20 B,partitions=1,preds=[like(B3[0:2], %) ])
+                  ->  TableScan[T3(1696)](n=0,totalCost=4.04,scannedRows=20,outputRows=20,outputHeapSize=20 B,partitions=1)
+
+         */
+        rowContainsQuery(new int[]{9, 10, 11, 12}, "explain " + sql, methodWatcher,
+                new String[]{"BroadcastJoin", "preds=[(X.A4[9:2] = Y.A4[9:1])]"},
+                new String[]{"TableScan[T4", "preds=[(T3.A3[1:1] = X.A4[7:1])]"},
+                new String[]{"TableScan[T4"},
+                new String[]{"TableScan[T4", "preds=[(T3.A3[1:1] = T4.A4[2:1])]"});
 
         ResultSet rs = methodWatcher.executeQuery(sql);
         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -491,5 +518,35 @@ public class NestedLoopJoinOperationIT extends SpliceUnitTest {
         rs = methodWatcher.executeQuery(sql);
         assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         rs.close();
+    }
+
+    @Test
+    public void testNLJWithValuesOnTheLeft() throws Exception {
+                /* test control path */
+        String sql = "select * from (values (1,5)) ctx(c1,c3) inner join t1 --splice-properties useDefaultRowCount=3000\n" +
+                "on ctx.c1=t1.a1";
+        String expected = "C1 |C3 |A1 |B1 |C1 |\n" +
+                "--------------------\n" +
+                " 1 | 5 | 1 | 1 | 1 |";
+
+        /* check the plan using nestedloop join with values on the left
+        Plan
+        ----
+        Cursor(n=7,rows=300,updateMode=READ_ONLY (1),engine=OLTP (default))
+          ->  ScrollInsensitive(n=7,totalCost=18.916,outputRows=300,outputHeapSize=900 B,partitions=1)
+            ->  NestedLoopJoin(n=4,totalCost=11.908,outputRows=300,outputHeapSize=900 B,partitions=1)
+              ->  TableScan[T1(1888)](n=2,totalCost=4.6,scannedRows=300,outputRows=300,outputHeapSize=900 B,partitions=1,preds=[(CTX.SQLCol1[1:1] = T1.A1[2:1])])
+              ->  Values(n=0,totalCost=0,outputRows=1,outputHeapSize=0 B,partitions=1)
+         */
+
+        rowContainsQuery(new int[]{3, 4, 5}, "explain " + sql, methodWatcher,
+                new String[]{"NestedLoopJoin"},
+                new String[]{"TableScan[T1", "preds=[(CTX.SQLCol1[1:1] = T1.A1[2:1])]"},
+                new String[]{"Values", "outputRows=1"});
+
+        ResultSet rs = methodWatcher.executeQuery(sql);
+        assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
     }
 }

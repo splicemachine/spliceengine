@@ -120,7 +120,7 @@ public class LogicalDatabaseMetaData40
     /** See DatabaseMetaData javadoc */
     public  boolean generatedKeyAlwaysReturned() throws SQLException
     {
-        return ((com.splicemachine.db.client.am.DatabaseMetaData) getRealMetaDataObject()).generatedKeyAlwaysReturned();
+        return ((ClientDatabaseMetaData) getRealMetaDataObject()).generatedKeyAlwaysReturned();
     }
 
 	/**
@@ -131,7 +131,7 @@ public class LogicalDatabaseMetaData40
         ( String catalog, String schemaPattern, String tableNamePattern, String columnNamePattern )
         throws SQLException
 	{
-		return ((com.splicemachine.db.client.am.DatabaseMetaData) getRealMetaDataObject()).getPseudoColumns
+		return ((ClientDatabaseMetaData) getRealMetaDataObject()).getPseudoColumns
             ( catalog, schemaPattern, tableNamePattern, columnNamePattern );
 	}
 

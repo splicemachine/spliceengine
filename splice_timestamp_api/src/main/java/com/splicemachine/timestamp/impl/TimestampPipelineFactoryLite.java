@@ -15,14 +15,17 @@
 package com.splicemachine.timestamp.impl;
 
 import com.splicemachine.utils.SpliceLogUtils;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
+import io.netty.handler.codec.LengthFieldPrepender;
+import io.netty.handler.codec.protobuf.ProtobufDecoder;
+import io.netty.handler.codec.protobuf.ProtobufEncoder;
 import org.apache.log4j.Logger;
-import org.jboss.netty.channel.ChannelHandler;
-import org.jboss.netty.channel.ChannelPipeline;
-import org.jboss.netty.channel.ChannelPipelineFactory;
-import org.jboss.netty.channel.Channels;
-import org.jboss.netty.handler.codec.frame.FixedLengthFrameDecoder;
 
-public class TimestampPipelineFactoryLite implements ChannelPipelineFactory {
+public class TimestampPipelineFactoryLite extends ChannelInitializer {
 
     // This pipeline factory is called "lite" to distinguish it from
     // more sophisticated implementations that might do things like
@@ -37,14 +40,14 @@ public class TimestampPipelineFactoryLite implements ChannelPipelineFactory {
     }
 
     @Override
-    public ChannelPipeline getPipeline() throws Exception {
+    protected void initChannel(Channel ch) throws Exception {
         SpliceLogUtils.debug(LOG, "Creating new channel pipeline...");
-        ChannelPipeline pipeline = Channels.pipeline();
-        ((TimestampServerHandler) tsHandler).initializeIfNeeded();
-        pipeline.addLast("decoder", new FixedLengthFrameDecoder(TimestampServer.FIXED_MSG_RECEIVED_LENGTH));
-        pipeline.addLast("handler", tsHandler);
+        ch.pipeline()
+                .addLast("frameDecoder", new LengthFieldBasedFrameDecoder(1048576, 0, 4, 0, 4))
+                .addLast("protobufDecoder", new ProtobufDecoder(TimestampMessage.TimestampRequest.getDefaultInstance()))
+                .addLast("frameEncoder", new LengthFieldPrepender(4))
+                .addLast("protobufEncoder", new ProtobufEncoder())
+                .addLast("handler", tsHandler);
         SpliceLogUtils.debug(LOG, "Done creating channel pipeline");
-        return pipeline;
     }
-    
 }

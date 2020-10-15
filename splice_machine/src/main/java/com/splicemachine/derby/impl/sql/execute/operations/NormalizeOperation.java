@@ -31,11 +31,9 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
@@ -82,25 +80,6 @@ public class NormalizeOperation extends SpliceBaseOperation{
         this.erdNumber=erdNumber;
         this.forUpdate=forUpdate;
         init();
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException{
-        super.readExternal(in);
-        forUpdate=in.readBoolean();
-        erdNumber=in.readInt();
-        source=(SpliceOperation)in.readObject();
-        requireNotNull = in.readBoolean();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        out.writeBoolean(forUpdate);
-        out.writeInt(erdNumber);
-        out.writeObject(source);
-        out.writeBoolean(requireNotNull);
     }
 
     @Override

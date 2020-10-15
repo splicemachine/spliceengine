@@ -61,9 +61,9 @@ import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Function;
-import org.spark_project.guava.collect.FluentIterable;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.FluentIterable;
+import splice.com.google.common.collect.Lists;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
@@ -71,6 +71,7 @@ import java.io.ObjectInputStream;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 
 import static com.splicemachine.derby.utils.EngineUtils.getSchemaDescriptor;
 import static com.splicemachine.derby.utils.EngineUtils.verifyTableExists;
@@ -261,7 +262,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         new GenericColumnDescriptor("partitionSize", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
         new GenericColumnDescriptor("partitionCount", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
         new GenericColumnDescriptor("statsType", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
-        new GenericColumnDescriptor("sampleFraction", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE))
+        new GenericColumnDescriptor("sampleFraction", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.DOUBLE)),
+        new GenericColumnDescriptor("skippedColumnIds", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR))
     };
 
     private static final ResultColumnDescriptor[] COLUMN_STATS_OUTPUT_COLUMNS = new GenericColumnDescriptor[]{
@@ -309,8 +311,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             HashMap<Long, Pair<String, String>> display = new HashMap<>();
             ArrayList<StatisticsOperation> statisticsOperations = new ArrayList<>(tds.size());
             for (TableDescriptor td : tds) {
-                display.put(td.getHeapConglomerateId(), Pair.newPair(schema, td.getName()));
-                statisticsOperations.add(createCollectTableStatisticsOperation(td, false, 0, true, txn, conn));
+                createCollectStatisticsOperationsForTable(conn, txn, schema, td, false, 0, true, display, statisticsOperations);
             }
 
             IteratorNoPutResultSet resultsToWrap = wrapResults(conn,
@@ -476,7 +477,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
 
             statsRow = StatisticsAdmin.generateRowFromStats(conglomerateId, "-All-", rowCount, rowCount*meanRowWidth, meanRowWidth, numPartitions, statsType, 0.0d);
             dd.addTableStatistics(statsRow, tc);
-            ExecRow resultRow = generateOutputRow(schema, table, statsRow);
+            ExecRow resultRow = generateOutputRow(schema, table, statsRow, new HashSet<>());
 
             IteratorNoPutResultSet resultsToWrap = wrapResults(
                     conn,
@@ -589,15 +590,15 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             dropTableStatistics(tds,dd,tc);
             ddlNotification(tc, tds);
             TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
+
             HashMap<Long,Pair<String,String>> display = new HashMap<>();
-            display.put(tableDesc.getHeapConglomerateId(),Pair.newPair(schema,table));
+            ArrayList<StatisticsOperation> ops = new ArrayList<>();
+            createCollectStatisticsOperationsForTable(conn, txn, schema, tableDesc, useSample, samplePercent, mergeStats, display, ops);
+
             IteratorNoPutResultSet resultsToWrap = wrapResults(
                     conn,
-                    displayTableStatistics(Lists.newArrayList(
-                            createCollectTableStatisticsOperation(tableDesc, useSample, samplePercent/100, mergeStats, txn, conn)
-                            ),
-                            mergeStats,
-                            dd, tc, display), COLLECTED_STATS_OUTPUT_COLUMNS);
+                    displayTableStatistics(ops, mergeStats, dd, tc, display),
+                    COLLECTED_STATS_OUTPUT_COLUMNS);
             outputResults[0] = new EmbedResultSet40(conn, resultsToWrap, false, null, true);
         } catch (StandardException se) {
             throw PublicAPI.wrapStandardException(se);
@@ -606,12 +607,38 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
+    private static void createCollectStatisticsOperationsForTable(EmbedConnection conn,
+                                                                  TxnView txn,
+                                                                  String schemaName,
+                                                                  TableDescriptor td,
+                                                                  boolean useSample,
+                                                                  double samplePercent,
+                                                                  boolean mergeStats,
+                                                                  HashMap<Long,Pair<String,String>> display,
+                                                                  ArrayList<StatisticsOperation> ops)
+            throws StandardException, ExecutionException
+    {
+        display.put(td.getHeapConglomerateId(), Pair.newPair(schemaName, td.getName()));
+        ops.add(createCollectTableStatisticsOperation(td, useSample, samplePercent/100, mergeStats, txn, conn));
+
+        List<ConglomerateDescriptor> cds = td.getConglomerateDescriptorList();
+        if (cds != null) {
+            for (ConglomerateDescriptor cd : cds) {
+                IndexRowGenerator irg = cd.getIndexDescriptor();
+                if (irg != null && irg.isOnExpression()) {
+                    display.put(cd.getConglomerateNumber(), Pair.newPair(schemaName, cd.getConglomerateName()));
+                    ops.add(createCollectExprIndexStatisticsOperation(cd, td.getVersion(), useSample, samplePercent/100, mergeStats, txn, conn));
+                }
+            }
+        }
+    }
+
     private static StatisticsOperation createCollectTableStatisticsOperation(TableDescriptor table,
                                                                              boolean useSample,
                                                                              double sampleFraction,
                                                                              boolean mergeStats,
                                                                              TxnView txn,
-                                                                             EmbedConnection conn) throws StandardException, ExecutionException {
+                                                                             EmbedConnection conn) throws StandardException {
         long heapConglomerateId = table.getHeapConglomerateId();
         Activation activation = conn.getLanguageConnection().getLastActivation();
         DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
@@ -635,8 +662,38 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return op;
     }
 
-    private static final String getScopeName(TableDescriptor td) {
-        return String.format(OperationContext.Scope.COLLECT_STATS.displayName(), td.getName());
+    private static StatisticsOperation createCollectExprIndexStatisticsOperation(ConglomerateDescriptor cd,
+                                                                                 String tableVersion,
+                                                                                 boolean useSample,
+                                                                                 double sampleFraction,
+                                                                                 boolean mergeStats,
+                                                                                 TxnView txn,
+                                                                                 EmbedConnection conn)
+            throws StandardException
+    {
+        long congId = cd.getConglomerateNumber();
+        Activation activation = conn.getLanguageConnection().getLastActivation();
+        DistributedDataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
+
+        ScanSetBuilder ssb = dsp.newScanSet(null,Long.toString(congId));
+        ssb.tableVersion(tableVersion);
+        ScanSetBuilder scanSetBuilder = createExprIndexScanner(ssb,conn,cd,tableVersion,txn,mergeStats);
+        String scope = getScopeName(cd.getConglomerateName());
+        // no sample stats support on mem platform
+        if (dsp.getType() != DataSetProcessor.Type.SPARK) {
+            useSample = false;
+            sampleFraction = 0.0d;
+        }
+        DataTypeDescriptor[] dtds = cd.getIndexDescriptor().getIndexColumnTypes();
+        return new StatisticsOperation(scanSetBuilder,useSample,sampleFraction,mergeStats,scope,activation,dtds);
+    }
+
+    private static String getScopeName(TableDescriptor td) {
+        return getScopeName(td.getName());
+    }
+
+    private static String getScopeName(String name) {
+        return String.format(OperationContext.Scope.COLLECT_STATS.displayName(), name);
     }
 
     private static DataScan createScan (TxnView txn) {
@@ -672,10 +729,74 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             allColumnLengths[descriptor.getPosition() - 1] = descriptor.getType().getMaximumWidth();
         }
 
+        return setScanSetBuilder(
+                builder,
+                conn,
+                table,
+                table.getHeapConglomerateId(),
+                row,
+                accessedColumns,
+                allColumnLengths,
+                columnPositionMap,
+                table.getVersion(),
+                txn,
+                mergeStats);
+    }
+
+    private static ScanSetBuilder createExprIndexScanner(ScanSetBuilder builder,
+                                                         EmbedConnection conn,
+                                                         ConglomerateDescriptor index,
+                                                         String tableVersion,
+                                                         TxnView txn, boolean mergeStats)
+            throws StandardException
+    {
+        IndexRowGenerator irg = index.getIndexDescriptor();
+        DataTypeDescriptor[] indexColumnTypes = irg.getIndexColumnTypes();
+        int numColumns = indexColumnTypes.length;
+
+        ExecRow row = new ValueRow(numColumns);
+        BitSet accessedColumns = new BitSet(numColumns);
+        int[] columnPositionMap = new int[numColumns];
+        int[] allColumnLengths = new int[numColumns];
+        for (int i = 0; i < numColumns; i++) {
+            accessedColumns.set(i);
+            row.setColumn(i + 1, indexColumnTypes[i].getNull());
+            columnPositionMap[i] = i + 1;
+            allColumnLengths[i] = indexColumnTypes[i].getMaximumWidth();
+        }
+
+        return setScanSetBuilder(
+                builder,
+                conn,
+                null,
+                index.getConglomerateNumber(),
+                row,
+                accessedColumns,
+                allColumnLengths,
+                columnPositionMap,
+                tableVersion,
+                txn,
+                mergeStats);
+    }
+
+    private static ScanSetBuilder setScanSetBuilder(ScanSetBuilder builder,
+                                                    EmbedConnection conn,
+                                                    TableDescriptor table,
+                                                    long conglomId,
+                                                    ExecRow templateRow,
+                                                    BitSet accessedColumns,
+                                                    int[] allColumnLengths,
+                                                    int[] columnPositionMap,
+                                                    String tableVersion,
+                                                    TxnView txn,
+                                                    boolean mergeStats)
+            throws StandardException
+    {
+        int numColumns = templateRow.nColumns();
         int[] rowDecodingMap = new int[accessedColumns.length()];
         int[] fieldLengths = new int[accessedColumns.length()];
         Arrays.fill(rowDecodingMap, -1);
-        outputCol = 0;
+        int outputCol = 0;
         for (int i = accessedColumns.nextSetBit(0); i >= 0; i = accessedColumns.nextSetBit(i + 1)) {
             rowDecodingMap[i] = outputCol;
             fieldLengths[outputCol] = allColumnLengths[i];
@@ -683,7 +804,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
         TransactionController transactionExecute = conn.getLanguageConnection().getTransactionExecute();
         SpliceConglomerate conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) transactionExecute)
-                .findConglomerate(table.getHeapConglomerateId());
+                .findConglomerate(conglomId);
         boolean[] keyColumnSortOrder = conglomerate.getAscDescInfo();
         int[] keyColumnEncodingOrder = conglomerate.getColumnOrdering();
         int[] formatIds = conglomerate.getFormat_ids();
@@ -694,7 +815,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             keyColumnTypes = new int[keyColumnEncodingOrder.length];
             keyDecodingMap = new int[keyColumnEncodingOrder.length];
             Arrays.fill(keyDecodingMap, -1);
-            collectedKeyColumns = new FormatableBitSet(table.getNumberOfColumns());
+            collectedKeyColumns = new FormatableBitSet(numColumns);
             for (int i = 0; i < keyColumnEncodingOrder.length; i++) {
                 int keyColumn = keyColumnEncodingOrder[i];
                 keyColumnTypes[i] = formatIds[keyColumn];
@@ -706,29 +827,32 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             }
         }
         DataScan scan = createScan(txn);
-        return builder.transaction(txn)
+        ScanSetBuilder result = builder.transaction(txn)
                 .metricFactory(Metrics.basicMetricFactory())
-                .template(row)
+                .template(templateRow)
                 .scan(scan)
                 .rowDecodingMap(rowDecodingMap)
                 .keyColumnEncodingOrder(keyColumnEncodingOrder)
                 .keyColumnSortOrder(keyColumnSortOrder)
                 .keyColumnTypes(keyColumnTypes)
                 .keyDecodingMap(keyDecodingMap)
-                .baseTableConglomId(table.getHeapConglomerateId())
+                .baseTableConglomId(conglomId)
                 .accessedKeyColumns(collectedKeyColumns)
-                .tableVersion(table.getVersion())
+                .tableVersion(tableVersion)
                 .fieldLengths(fieldLengths)
                 .columnPositionMap(columnPositionMap)
-                .oneSplitPerRegion(!mergeStats)
-                .storedAs(table.getStoredAs())
-                .location(table.getLocation())
-                .compression(table.getCompression())
-                .delimited(table.getDelimited())
-                .lines(table.getLines())
-                .escaped(table.getEscaped())
-                .partitionByColumns(table.getPartitionBy())
-                ;
+                .oneSplitPerRegion(!mergeStats);
+
+        if (table != null) {
+            result = result.storedAs(table.getStoredAs())
+                    .location(table.getLocation())
+                    .compression(table.getCompression())
+                    .delimited(table.getDelimited())
+                    .lines(table.getLines())
+                    .escaped(table.getEscaped())
+                    .partitionByColumns(table.getPartitionBy());
+        }
+        return result;
     }
 
     private static IteratorNoPutResultSet wrapResults(EmbedConnection conn, Iterable<ExecRow> rows, ResultColumnDescriptor[] columnDescriptors) throws
@@ -963,8 +1087,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         return row;
     }
 
-    public static ExecRow generateOutputRow(String schemaName, String tableName, ExecRow partitionRow) throws StandardException {
-        ExecRow row = new ValueRow(8);
+    public static ExecRow generateOutputRow(String schemaName, String tableName, ExecRow partitionRow, HashSet<Integer> skippedColIds) throws StandardException {
+        ExecRow row = new ValueRow(9);
         row.setColumn(1,new SQLVarchar(schemaName));
         row.setColumn(2,new SQLVarchar(tableName));
         row.setColumn(3,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.PARTITIONID));
@@ -973,6 +1097,12 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         row.setColumn(6,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.NUMBEROFPARTITIONS));
         row.setColumn(7,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.STATSTYPE));
         row.setColumn(8,partitionRow.getColumn(SYSTABLESTATISTICSRowFactory.SAMPLEFRACTION));
+
+        int cutOffLimit = 5;
+        String skippedColIdsStr = skippedColIds.stream().limit(cutOffLimit).map(Object::toString).collect(Collectors.joining(", "));
+        if (skippedColIds.size() > cutOffLimit)
+            skippedColIdsStr += " ...";
+        row.setColumn(9,new SQLVarchar(skippedColIdsStr));
         return row;
     }
 
@@ -1030,6 +1160,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                             private long numberOfPartitions = 0;
                             private int statsType = SYSTABLESTATISTICSRowFactory.REGULAR_NONMERGED_STATS;
                             private double sampleFraction = 0.0d;
+                            private final HashSet<Integer> skippedColIds = new HashSet<>();
 
                             @Override
                             @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "SpotBugs is confused, we rethrow the exception")
@@ -1045,8 +1176,20 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                                 ObjectInputStream ois = new ObjectInputStream(bais);
                                                 // compose the entry for a given column
                                                 ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", columnId, (ColumnStatisticsImpl) ois.readObject());
-                                                dataDictionary.addColumnStatistics(statsRow, tc);
-                                                bais.close();
+                                                try {
+                                                    dataDictionary.addColumnStatistics(statsRow, tc);
+                                                } catch (StandardException e) {
+                                                    // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
+                                                    if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                                        SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
+                                                                conglomId, columnId);
+                                                        skippedColIds.add(columnId);
+                                                    } else {
+                                                        throw e;
+                                                    }
+                                                } finally {
+                                                    bais.close();
+                                                }
                                             } else {
                                                 // process tablestats row
                                                 conglomId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getLong();
@@ -1084,15 +1227,25 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                     Pair<String, String> pair = displayPair.get(conglomId);
                                     SchemaDescriptor sd = dataDictionary.getSchemaDescriptor(pair.getFirst(), tc, true);
                                     TableDescriptor td = dataDictionary.getTableDescriptor(pair.getSecond(), sd, tc);
+                                    ConglomerateDescriptor cd = null;
+                                    if (td == null) {
+                                        cd = dataDictionary.getConglomerateDescriptor(conglomId);
+                                        assert cd.getConglomerateName().equals(pair.getSecond());
+                                    }
                                     // instead of using the numberOfPartitions which is really the number of splits for
                                     // merged stats, directly fetch the number of regions
                                     long numOfRegions = numberOfPartitions;
-                                    if (!td.isExternal())
-                                        numOfRegions = getNumOfPartitions(td);
+                                    if (td != null) {
+                                        if (!td.isExternal()) {
+                                            numOfRegions = getNumOfPartitions(td.getBaseConglomerateDescriptor());
+                                        }
+                                    } else {
+                                        numOfRegions = getNumOfPartitions(cd);
+                                    }
                                     statsRow = StatisticsAdmin.generateRowFromStats(conglomId, "-All-", rowCount, totalSize, avgRowWidth, numOfRegions, statsType, sampleFraction);
                                     dataDictionary.addTableStatistics(statsRow, tc);
 
-                                    return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow);
+                                    return generateOutputRow(pair.getFirst(), pair.getSecond(), statsRow, skippedColIds);
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
                                 }
@@ -1113,13 +1266,27 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                         final Iterator iterator = new Iterator<ExecRow>() {
                             private ExecRow nextRow;
                             private boolean fetched = false;
+                            private final HashSet<Integer> skippedColIds = new HashSet<>();
                             @Override
                             public boolean hasNext() {
                                 try {
                                     if (!fetched) {
                                         nextRow = input.getNextRowCore();
                                         while (nextRow != null && nextRow.nColumns() == SYSCOLUMNSTATISTICSRowFactory.SYSCOLUMNSTATISTICS_COLUMN_COUNT) {
-                                            dataDictionary.addColumnStatistics(nextRow, tc);
+                                            try {
+                                                dataDictionary.addColumnStatistics(nextRow, tc);
+                                            } catch (StandardException e) {
+                                                // DB-9890 Skip a column if its statistics object doesn't fit into HBase cell.
+                                                if (e.getCause().getMessage().contains("KeyValue size too large")) {
+                                                    int columnId = nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.COLUMNID).getInt();
+                                                    SpliceLogUtils.warn(LOG, "Statistics object of [ConglomID=%d, ColumnID=%d] exceeds max KeyValue size. Try increase hbase.client.keyvalue.maxsize.",
+                                                            nextRow.getColumn(SYSCOLUMNSTATISTICSRowFactory.CONGLOMID).getInt(),
+                                                            columnId);
+                                                    skippedColIds.add(columnId);
+                                                } else {
+                                                    throw e;
+                                                }
+                                            }
                                             nextRow = input.getNextRowCore();
                                         }
                                         fetched = true;
@@ -1136,7 +1303,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                                     fetched = false;
                                     dataDictionary.addTableStatistics(nextRow, tc);
                                     Pair<String,String> pair = displayPair.get(nextRow.getColumn(SYSTABLESTATISTICSRowFactory.CONGLOMID).getLong());
-                                    return generateOutputRow(pair.getFirst(),pair.getSecond(),nextRow);
+                                    return generateOutputRow(pair.getFirst(),pair.getSecond(),nextRow,skippedColIds);
                                 } catch (Exception e) {
                                     throw new RuntimeException(e);
                                 }
@@ -1151,8 +1318,8 @@ public class StatisticsAdmin extends BaseAdminProcedures {
         }
     }
 
-    private static long getNumOfPartitions(TableDescriptor td) throws StandardException {
-        String tableId = Long.toString(td.getBaseConglomerateDescriptor().getConglomerateNumber());
+    private static long getNumOfPartitions(ConglomerateDescriptor cd) throws StandardException {
+        String tableId = Long.toString(cd.getConglomerateNumber());
         byte[] table = Bytes.toBytes(tableId);
         try (Partition root = SIDriver.driver().getTableFactory().getTable(table)) {
             return root != null ? root.subPartitions(true).size() : 1;

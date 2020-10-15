@@ -20,14 +20,14 @@ import java.sql.SQLSyntaxErrorException;
 import java.sql.Timestamp;
 import java.util.*;
 
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Maps;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import static com.splicemachine.homeless.TestUtils.*;
 import static org.junit.Assert.assertEquals;

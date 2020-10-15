@@ -510,6 +510,11 @@ public class ColumnReference extends ValueNode {
         return columnName;
     }
 
+    public String getSchemaQualifiedColumnName() throws StandardException
+    {
+        return source.getSchemaName() + "." + source.getFullName();
+    }
+
     /**
      * Get the table number for this ColumnReference.
      *
@@ -1106,18 +1111,25 @@ public class ColumnReference extends ValueNode {
 
         if (SanityManager.DEBUG)
         {
-            if (sourceResultSetNumber < 0)
+            if (!(acb instanceof ExecutableIndexExpressionClassBuilder) && sourceResultSetNumber < 0)
             {
                 SanityManager.THROWASSERT("sourceResultSetNumber expected to be >= 0 for " + getTableName() + "." + getColumnName());
             }
         }
 
-        /* The ColumnReference is from an immediately underlying ResultSet.
+        /*
+         * For select statements:
+         * The ColumnReference is from an immediately underlying ResultSet.
          * The Row for that ResultSet is Activation.row[sourceResultSetNumber],
          * where sourceResultSetNumber is the resultSetNumber for that ResultSet.
          *
          * The generated java is the expression:
          *    (<interface>) this.row[sourceResultSetNumber].getColumn(#columnId);
+         *
+         * For expression-based index creation:
+         * The ColumnReference refers to a column in the input base table ExecRow.
+         * The generated java expression is:
+         *    (<interface>) baseRow.getColumn(#columnId);
          *
          * where <interface> is the appropriate Datatype protocol interface
          * for the type of the column.
@@ -1478,6 +1490,10 @@ public class ColumnReference extends ValueNode {
      */
     public double rowCountEstimate() throws StandardException {
         return getStoreCostController().rowCount();
+    }
+
+    public boolean useRealColumnStatistics() throws StandardException {
+        return getStoreCostController().useRealColumnStatistics(columnNumber);
     }
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {

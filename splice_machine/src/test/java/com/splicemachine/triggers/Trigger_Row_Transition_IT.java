@@ -24,7 +24,7 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.*;
 import java.util.Collection;
@@ -186,20 +186,20 @@ public class Trigger_Row_Transition_IT {
     public void afterUpdateTransitionNewTwoTriggers() throws Exception {
         // DB-3570: transition values - always seeing old (event being cleared prematurely)
         try(Statement s = conn.createStatement()){
-            s.executeUpdate("create table t_master(id int, col1 int, col2 int, col3 int, col4 char(10), col5 varchar(20))");
-            s.executeUpdate("insert into t_master values(1,1,1,1,'01','Master01')");
-            s.executeUpdate("create table t_slave2(id int ,description varchar(20),tm_time timestamp)");
+            s.executeUpdate("create table t_first(id int, col1 int, col2 int, col3 int, col4 char(10), col5 varchar(20))");
+            s.executeUpdate("insert into t_first values(1,1,1,1,'01','First01')");
+            s.executeUpdate("create table t_second2(id int ,description varchar(20),tm_time timestamp)");
 
-            s.executeUpdate(tb.named("Master45").after().update().on("t_master").referencing("NEW AS newt")
-                    .row().then("INSERT INTO t_slave2 VALUES(newt.id,'Master45',CURRENT_TIMESTAMP)")
+            s.executeUpdate(tb.named("First45").after().update().on("t_first").referencing("NEW AS newt")
+                    .row().then("INSERT INTO t_second2 VALUES(newt.id,'First45',CURRENT_TIMESTAMP)")
                     .build());
-            s.executeUpdate(tb.named("Master48").after().update().of("col1").on("t_master").referencing("NEW AS newt")
-                    .row().then("INSERT INTO t_slave2 VALUES(newt.id,'Master48',CURRENT_TIMESTAMP)").build());
+            s.executeUpdate(tb.named("First48").after().update().of("col1").on("t_first").referencing("NEW AS newt")
+                    .row().then("INSERT INTO t_second2 VALUES(newt.id,'First48',CURRENT_TIMESTAMP)").build());
 
             // when - update a row
-            s.executeUpdate("update t_master set id=778, col1=778,col4='778' where id=1");
+            s.executeUpdate("update t_first set id=778, col1=778,col4='778' where id=1");
 
-            Assert.assertEquals(2L,StatementUtils.onlyLong(s,"select count(*) from t_slave2 where id=778"));
+            Assert.assertEquals(2L,StatementUtils.onlyLong(s,"select count(*) from t_second2 where id=778"));
         }
     }
 

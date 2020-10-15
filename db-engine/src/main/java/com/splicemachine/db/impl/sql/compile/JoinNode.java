@@ -51,9 +51,9 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
-import org.spark_project.guava.base.Joiner;
-import org.spark_project.guava.base.Predicates;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.base.Predicates;
+import splice.com.google.common.collect.Lists;
 
 import java.util.*;
 
@@ -1937,6 +1937,12 @@ public class JoinNode extends TableOperatorNode{
                 numArgs++;
             }
 
+            if (isBroadcastJoin()) {
+                boolean noCacheBroadcastJoinRight = ((Optimizable)rightResultSet).hasJoinPredicatePushedDownFromOuter();
+                mb.push(noCacheBroadcastJoinRight);
+                numArgs++;
+            }
+
         }
         // Get our final cost estimate based on child estimates.
         costEstimate=getFinalCostEstimate(false);
@@ -2005,6 +2011,21 @@ public class JoinNode extends TableOperatorNode{
         // Is the right from SSQ
         mb.push(rightResultSet.getFromSSQ());
 
+        if (isCrossJoin()) {
+            Optimizable rightRS = (Optimizable)rightResultSet;
+            Properties rightProperties = rightRS.getProperties();
+            String hintedValue = null;
+            if (rightProperties != null) {
+                hintedValue = rightProperties.getProperty("broadcastCrossRight");
+            }
+            if (hintedValue == null) {
+                mb.push(rightRS.getTrulyTheBestAccessPath().getJoinStrategy().getBroadcastRight(rightResultSet.getFinalCostEstimate(true).getBase()));
+            } else {
+                mb.push(Boolean.parseBoolean(hintedValue));
+            }
+            numArgs++;
+        }
+
         // estimated row count
         mb.push(costEstimate.rowCount());
 
@@ -2067,6 +2088,15 @@ public class JoinNode extends TableOperatorNode{
         if (rightResultSet instanceof Optimizable) {
             Optimizable nodeOpt=(Optimizable)rightResultSet;
             result=nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.MERGE;
+        }
+        return result;
+    }
+
+    public boolean isBroadcastJoin() {
+        boolean result = false;
+        if (rightResultSet instanceof Optimizable) {
+            Optimizable nodeOpt=(Optimizable)rightResultSet;
+            result=nodeOpt.getTrulyTheBestAccessPath().getJoinStrategy().getJoinStrategyType() == JoinStrategy.JoinStrategyType.BROADCAST;
         }
         return result;
     }

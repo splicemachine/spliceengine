@@ -15,7 +15,7 @@
 package com.splicemachine.tools.version;
 
 import com.splicemachine.access.api.DatabaseVersion;
-import org.spark_project.guava.base.Splitter;
+import splice.com.google.common.base.Splitter;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.regex.Matcher;

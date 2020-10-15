@@ -16,33 +16,17 @@
 package com.splicemachine.jdbc;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceNetConnection;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import com.splicemachine.derby.test.framework.*;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.rules.Timeout;
 import org.junit.runner.Description;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.SQLTimeoutException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class JdbcApiIT {
 
@@ -117,10 +101,7 @@ public class JdbcApiIT {
 
     @Test
     public void testUrlWithSchema() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;schema=" + CLASS_NAME;
-        try (Connection connection = SpliceNetConnection.getConnectionAs(url,
-                SpliceNetConnection.DEFAULT_USER,
-                SpliceNetConnection.DEFAULT_USER_PASSWORD)) {
+        try (Connection connection = SpliceNetConnection.newBuilder().schema(CLASS_NAME).build()) {
             try (Statement statement = connection.createStatement()) {
                 statement.executeQuery("select * from a");
             }
@@ -129,10 +110,7 @@ public class JdbcApiIT {
 
     @Test
     public void testUrlWithNonExistSchema() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;schema=nonexist";
-         try (Connection connection = SpliceNetConnection.getConnectionAs(url,
-                SpliceNetConnection.DEFAULT_USER,
-                SpliceNetConnection.DEFAULT_USER_PASSWORD)) {
+         try (Connection connection = SpliceNetConnection.newBuilder().schema("nonexist").build()) {
              Assert.fail("Connect to non exist schema should fail");
          } catch (SQLException e) {
              Assert.assertEquals("Upexpected failure: "+ e.getMessage(), e.getSQLState(),
@@ -175,5 +153,16 @@ public class JdbcApiIT {
         }
     }
 
+    @Test
+    public void testSetClientInfo() throws Exception {
+        conn.setClientInfo("ApplicationName", "SampleJDBCTest");
+        conn.setClientInfo("ClientUser", "test");
+        conn.setClientInfo("ClientHostname", "localhost");
 
+        try {
+            conn.setClientInfo("ClientID", "1234");
+        } catch (SQLException e) {
+            assertEquals("XCY02", e.getSQLState());
+        }
+    }
 }

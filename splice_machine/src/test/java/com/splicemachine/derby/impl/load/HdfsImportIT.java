@@ -27,8 +27,8 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.collect.Maps;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.collect.Maps;
 
 import java.io.File;
 import java.nio.charset.Charset;
@@ -73,6 +73,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     protected static String TABLE_24 = "X";
     protected static String TABLE_25 = "Y";
     protected static String TABLE_26 = "Z";
+    protected static String TABLE_27 = "A1";
 
     private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
@@ -169,6 +170,10 @@ public class HdfsImportIT extends SpliceUnitTest {
             .schemaName, "(c1 varchar(6), c2 char(6), c3 int)");
     protected static SpliceTableWatcher spliceTableWatcher26 = new SpliceTableWatcher(TABLE_26, spliceSchemaWatcher
             .schemaName, "(c1 int, c2 clob(1k))");
+    protected static SpliceTableWatcher spliceTableWatcher27 = new SpliceTableWatcher(TABLE_27, spliceSchemaWatcher
+            .schemaName, "(c1 int, c2 VARCHAR (10) FOR BIT DATA NOT NULL DEFAULT, " +
+            "c3 long varchar for bit data not null default, c4 char for bit data not null default, primary key(c1))");
+
 
     private static SpliceTableWatcher  multiLine = new SpliceTableWatcher("mytable",spliceSchemaWatcher.schemaName,
             "(a int, b char(10),c timestamp, d varchar(100),e bigint)");
@@ -210,6 +215,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             .around(spliceTableWatcher24)
             .around(spliceTableWatcher25)
             .around(spliceTableWatcher26)
+            .around(spliceTableWatcher27)
             .around(multiLine)
             .around(multiPK)
             .around(autoIncTableWatcher);
@@ -2072,4 +2078,43 @@ public class HdfsImportIT extends SpliceUnitTest {
         Assert.assertEquals(count1, count2);
         Assert.assertEquals(1999, count1);
     }
+
+    @Test
+    public void testVarbitColumn() throws Exception {
+        try (PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA(" +
+                        "'%s'," +  // schema name
+                        "'%s'," +  // table name
+                        "null," +  // column list
+                        "'%s'," +  // file path
+                        "'|'," +   // column delimiter
+                        "null," +  // character delimiter
+                        "null," +  // timestamp format
+                        "null," +  // date format
+                        "null," +  // time format
+                        "-1," +    // max bad records
+                        "'%s'," +  // bad record dir
+                        "false," + // has one line records
+                        "null)",   // char set
+                spliceSchemaWatcher.schemaName, spliceTableWatcher27.tableName,
+                getResourceDirectory() + "varbit.csv",
+                BADDIR.getCanonicalPath()))) {
+            ps.execute();
+        }
+
+        StringBuffer sb = new StringBuffer();
+        try (ResultSet rs = methodWatcher.executeQuery(format("select * from %s order by 1", spliceTableWatcher27.tableName))) {
+            while(rs.next()) {
+                int c1 = rs.getInt(1);
+                String c2 = rs.getString(2);
+                String c3 = rs.getString(3);
+                String c4 = rs.getString(4);
+                sb.append(String.format("%d,%s,%s,%s", c1, c2, c3, c4)).append("\n");
+            }
+        }
+        String result = sb.toString();
+        String expected = "100,accd,accd,aa\n" +
+                "200,,,00\n";
+        Assert.assertEquals(expected, result);
+    }
+
 }

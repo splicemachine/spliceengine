@@ -105,12 +105,13 @@ public class SYSROLESRowFactory extends CatalogRowFactory
      * @param dvf   DataValueFactory
      */
     public SYSROLESRowFactory(UUIDFactory uuidf,
-                       ExecutionFactory ef,
-                       DataValueFactory dvf)
+                              ExecutionFactory ef,
+                              DataValueFactory dvf,
+                              DataDictionary dd)
     {
-        super(uuidf,ef,dvf);
+        super(uuidf,ef,dvf,dd);
         initInfo(SYSROLES_COLUMN_COUNT, TABLENAME_STRING,
-                 indexColumnPositions, uniqueness, uuids );
+                indexColumnPositions, uniqueness, uuids );
     }
 
     /**
@@ -124,7 +125,7 @@ public class SYSROLESRowFactory extends CatalogRowFactory
      * @exception   StandardException thrown on failure
      */
 
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
         throws StandardException
     {
         ExecRow                 row;
@@ -138,6 +139,9 @@ public class SYSROLESRowFactory extends CatalogRowFactory
 
         if (td != null)
         {
+            if (!(td instanceof RoleGrantDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             RoleGrantDescriptor rgd = (RoleGrantDescriptor)td;
 
             roleid = rgd.getRoleName();

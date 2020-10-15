@@ -15,7 +15,6 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import org.junit.Test;
 
 /**
  * @author Jeff Cunningham
@@ -29,6 +28,7 @@ public class OrderTable extends SpliceTableWatcher {
     public static final String INDEX_ORDER_DEF = "(o_carrier_id,o_id,o_d_id,o_c_id)";
     public static final String INDEX_ORDER_DEF_ASC = "(o_carrier_id,o_id ASC,o_d_id,o_c_id)";
     public static final String INDEX_ORDER_DEF_DESC = "(o_carrier_id,o_id DESC,o_d_id,o_c_id)";
+    public static final String EXPR_INDEX_DEF = "(o_carrier_id,mod(o_id, 7) - 3 DESC,sqrt(cast(o_ol_cnt as double)))";
 
     private static String PK = "PRIMARY KEY (o_w_id,o_d_id,o_id)";
 

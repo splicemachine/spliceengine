@@ -21,8 +21,8 @@ import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-import org.spark_project.guava.collect.Lists;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.collect.Lists;
+import splice.com.google.common.primitives.Ints;
 
 import java.io.File;
 import java.sql.*;
@@ -883,9 +883,7 @@ public class UpportIT extends SpliceUnitTest {
     }
 
     private static TestConnection createConnection() throws Exception {
-        Connection baseConn = SpliceNetConnection.getConnectionAs(
-                SpliceNetConnection.DEFAULT_USER,
-                SpliceNetConnection.DEFAULT_USER_PASSWORD);
+        Connection baseConn = SpliceNetConnection.getDefaultConnection();
         TestConnection conn = new TestConnection(baseConn);
         conn.setSchema(schema.schemaName);
         return conn;

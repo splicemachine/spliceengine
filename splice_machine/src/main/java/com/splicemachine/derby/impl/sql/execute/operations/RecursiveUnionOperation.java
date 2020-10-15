@@ -25,11 +25,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import splice.com.google.common.base.Strings;
 
 /**
  * Created by yxia on 3/22/19.
@@ -63,18 +59,6 @@ public class RecursiveUnionOperation extends UnionOperation {
             SConfiguration configuration = EngineDriver.driver().getConfiguration();
             this.iterationLimit = configuration.getRecursiveQueryIterationLimit();
         }
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        iterationLimit = in.readInt();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeInt(iterationLimit);
     }
 
     @Override

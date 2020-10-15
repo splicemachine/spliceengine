@@ -23,7 +23,7 @@ import com.splicemachine.derby.utils.marshall.dvd.DateV4DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV3DescriptorSerializer;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import org.spark_project.guava.base.Charsets;
+import splice.com.google.common.base.Charsets;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;

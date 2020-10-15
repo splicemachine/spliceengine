@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1967-SNAPSHOT</version>
+        <version>3.1.0.1979-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -34,10 +34,8 @@
         </dependency>
 
         <dependency>
-            <!-- org.spark_project.guava -->
-            <groupId>org.apache.spark</groupId>
-            <artifactId>spark-network-common_${scala.binary.version}</artifactId>
-            <version>${spark.version}</version>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
             <scope>provided</scope>
         </dependency>
         <dependency>

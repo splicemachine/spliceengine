@@ -96,9 +96,10 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
      * @param dvf   DataValueFactory
      */
     public SYSPERMSRowFactory(UUIDFactory uuidf,
-                       ExecutionFactory ef,
-                       DataValueFactory dvf) {
-        super(uuidf, ef, dvf);
+                              ExecutionFactory ef,
+                              DataValueFactory dvf,
+                              DataDictionary dd) {
+        super(uuidf, ef, dvf, dd);
         initInfo(SYSPERMS_COLUMN_COUNT, TABLENAME_STRING,
                 indexColumnPositions, uniqueness, uuids);
     }
@@ -112,21 +113,23 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
         ExecIndexRow row = null;
 
         switch (indexNumber) {
-        case GRANTEE_OBJECTID_GRANTOR_INDEX_NUM:
-            // RESOLVE We do not support the FOR GRANT OPTION, so generic permission rows are unique on the
-            // grantee and object UUID columns. The grantor column will always have the name of the owner of the
-            // object. So the index key, used for searching the index, only has grantee and object UUID columns.
-            // It does not have a grantor column.
-            row = getExecutionFactory().getIndexableRow( 2 );
-            row.setColumn(1, getAuthorizationID( perm.getGrantee()));
-            String protectedObjectsIDStr = ((PermDescriptor) perm).getPermObjectId().toString();
-            row.setColumn(2, new SQLChar(protectedObjectsIDStr));
-            break;
+            case GRANTEE_OBJECTID_GRANTOR_INDEX_NUM:
+                // RESOLVE We do not support the FOR GRANT OPTION, so generic permission rows are unique on the
+                // grantee and object UUID columns. The grantor column will always have the name of the owner of the
+                // object. So the index key, used for searching the index, only has grantee and object UUID columns.
+                // It does not have a grantor column.
+                row = getExecutionFactory().getIndexableRow( 2 );
+                row.setColumn(1, getAuthorizationID( perm.getGrantee()));
+                String protectedObjectsIDStr = ((PermDescriptor) perm).getPermObjectId().toString();
+                row.setColumn(2, new SQLChar(protectedObjectsIDStr));
+                break;
 
-        case PERMS_UUID_IDX_NUM:
+            case PERMS_UUID_IDX_NUM:
                 row = getExecutionFactory().getIndexableRow(1);
                 String permUUIDStr = ((PermDescriptor) perm).getUUID().toString();
                 row.setColumn(1, new SQLChar(permUUIDStr));
+                break;
+            default:
                 break;
         }
         return row;
@@ -185,7 +188,7 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
      * @throws com.splicemachine.db.iapi.error.StandardException
      *          thrown on failure
      */
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
             throws StandardException {
         ExecRow row;
         String permIdString = null;
@@ -198,6 +201,9 @@ public class SYSPERMSRowFactory extends PermissionsCatalogRowFactory {
 
 
         if (td != null) {
+            if (!(td instanceof PermDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             PermDescriptor sd = (PermDescriptor) td;
             UUID pid = sd.getUUID();
             if ( pid == null )

@@ -20,7 +20,7 @@ object SpliceJDBCUtil {
   def listColumns(columns: Array[String]): String = {
     val sb = new StringBuilder()
     columns.foreach(x => sb.append(",").append(x))
-    if (sb.isEmpty) "1" else sb.substring(1)
+    if (sb.isEmpty) "*" else sb.substring(1)
   }
 
   /**

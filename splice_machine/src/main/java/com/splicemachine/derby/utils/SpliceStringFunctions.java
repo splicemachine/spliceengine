@@ -18,11 +18,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 import com.splicemachine.db.iapi.util.StringUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.text.WordUtils;
 
-import org.spark_project.guava.cache.CacheBuilder;
-import org.spark_project.guava.cache.CacheLoader;
-import org.spark_project.guava.cache.LoadingCache;
+import splice.com.google.common.cache.CacheBuilder;
+import splice.com.google.common.cache.CacheLoader;
+import splice.com.google.common.cache.LoadingCache;
 
 /**
  * Implementation of standard Splice String functions,
@@ -133,6 +134,7 @@ public class SpliceStringFunctions {
      * @param s An expression that returns a value with a maximum length of 16 336 bytes.
      * @return Returns a hexadecimal representation of a value as a character string
      */
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-9844")
     public static String HEX(String s)
     {
         if (s == null)

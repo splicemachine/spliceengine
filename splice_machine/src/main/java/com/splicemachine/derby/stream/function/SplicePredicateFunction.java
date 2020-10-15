@@ -16,7 +16,7 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.spark_project.guava.base.Predicate;
+import splice.com.google.common.base.Predicate;
 
 /**
  * Created by jleach on 4/22/15.

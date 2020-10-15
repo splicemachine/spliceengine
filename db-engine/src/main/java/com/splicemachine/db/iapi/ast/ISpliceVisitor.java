@@ -127,6 +127,7 @@ public interface ISpliceVisitor {
     Visitable visit(FromList node) throws StandardException;
     Visitable visit(GenerationClauseNode node) throws StandardException;
     Visitable visit(GetCurrentConnectionNode node) throws StandardException;
+    Visitable visit(GetNearestTransactionNode node) throws StandardException;
     Visitable visit(GrantNode node) throws StandardException;
     Visitable visit(GrantRoleNode node) throws StandardException;
     Visitable visit(GroupByColumn node) throws StandardException;
@@ -166,6 +167,7 @@ public interface ISpliceVisitor {
     Visitable visit(RevokeRoleNode node) throws StandardException;
     Visitable visit(RowNumberFunctionNode node) throws StandardException;
     Visitable visit(SavepointNode node) throws StandardException;
+    Visitable visit(ScalarMinMaxFunctionNode node) throws StandardException;
     Visitable visit(SetRoleNode node) throws StandardException;
     Visitable visit(SetSchemaNode node) throws StandardException;
     Visitable visit(SetTransactionIsolationNode node) throws StandardException;

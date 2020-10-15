@@ -14,66 +14,86 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.commons.collections.iterators.SingletonIterator;
 
 import javax.annotation.concurrent.NotThreadSafe;
-import java.io.*;
+import java.io.Reader;
+import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
 /**
- *
  * Function for parsing CSV files that are splittable by Hadoop.  The tokenizer swaps in and out
  * the line to be tokenized.
- *
+ * <p>
  * Special attention should be paid to permissive execution of the OperationContext.  This occurs
  * during imports so that failures are <i>handled</i>.
- *
- *
  */
 @NotThreadSafe
 public class FileFunction extends AbstractFileFunction<String> {
     boolean initialized = false;
     MutableCSVTokenizer tokenizer;
+    private boolean oneLineRecord;
+
     public FileFunction() {
         super();
     }
+
     public FileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex, String timeFormat,
-                        String dateTimeFormat, String timestampFormat, OperationContext operationContext) {
+                        String dateTimeFormat, String timestampFormat, boolean oneLineRecord, OperationContext operationContext) {
         super(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat,
                 dateTimeFormat, timestampFormat, operationContext);
+        this.oneLineRecord = oneLineRecord;
     }
 
     /**
+     * Call Method for parsing the string into either a singleton List with a ExecRow or an empty list.
      *
-     * Call Method for parsing the string into either a singleton List with a ExecRow or
-     * an empty list.
-     *
-     * @param s
-     * @return
-     * @throws Exception
+     * @param s the input string, e.g. comma-separated.
+     * @return Iterator on parsed row(s) of the string.
      */
     @Override
     public Iterator<ExecRow> call(final String s) throws Exception {
         if (operationContext.isFailed())
             return Collections.<ExecRow>emptyList().iterator();
         if (!initialized) {
-            Reader reader = new StringReader(s);
+            Reader reader = new StringReader(""); // no need to pass the string here, rely on setLine() method to
+            // pass the string to CSV tokenizer, this allows us to immediately
+            // get rid of the string after reading it.
             checkPreference();
-            tokenizer= new MutableCSVTokenizer(reader,preference);
+            List<Integer> valueSizeHints = null;
+            SpliceOperation op = operationContext.getOperation();
+            if (op instanceof VTIOperation) { // Currently, only VTI can provide the result set data types.
+                valueSizeHints = new ArrayList<>(execRow.nColumns());
+                DataTypeDescriptor[] dvds = ((VTIOperation) op).getResultColumnTypes();
+                for (DataTypeDescriptor dtd : dvds) {
+                    valueSizeHints.add(dtd.getMaximumWidth());
+                }
+            }
+            boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                    operationContext.getActivation().getLanguageConnectionContext(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+            tokenizer = new MutableCSVTokenizer(reader, preference, oneLineRecord, quotedEmptyIsNull,
+                    EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
             initialized = true;
         }
         try {
             tokenizer.setLine(s);
-            List<String> read=tokenizer.read();
-            BooleanList quotedColumns=tokenizer.getQuotedColumns();
-            ExecRow lr =  call(read,quotedColumns);
-            return lr==null?Collections.<ExecRow>emptyList().iterator():new SingletonIterator(lr);
+            List<String> read = tokenizer.read();
+            BooleanList quotedColumns = tokenizer.getQuotedColumns();
+            ExecRow lr = call(read, quotedColumns);
+            return lr == null ? Collections.<ExecRow>emptyList().iterator() : new SingletonIterator(lr);
         } catch (Exception e) {
             if (operationContext.isPermissive()) {
                 operationContext.recordBadRecord(e.getLocalizedMessage(), e);

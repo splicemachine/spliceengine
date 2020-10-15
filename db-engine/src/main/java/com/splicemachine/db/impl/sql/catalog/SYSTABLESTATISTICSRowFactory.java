@@ -98,13 +98,13 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                     {CONGLOMID},
             };
 
-    public SYSTABLESTATISTICSRowFactory(UUIDFactory uuidf,ExecutionFactory ef,DataValueFactory dvf) {
-        super(uuidf, ef, dvf);
+    public SYSTABLESTATISTICSRowFactory(UUIDFactory uuidf,ExecutionFactory ef,DataValueFactory dvf,DataDictionary dd) {
+        super(uuidf, ef, dvf, dd);
         initInfo(SYSTABLESTATISTICS_COLUMN_COUNT,TABLENAME_STRING,indexColumnPositions,uniqueness,uuids);
     }
 
     @Override
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent) throws StandardException {
         long conglomId = 0;
         String partitionId = null;
         long timestamp = 0;
@@ -118,6 +118,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         double sampleFraction = 0.0d;
 
         if(td!=null){
+            if (!(td instanceof PartitionStatisticsDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             PartitionStatisticsDescriptor tsd = (PartitionStatisticsDescriptor)td;
             conglomId = tsd.getConglomerateId();
             partitionId = tsd.getPartitionId();

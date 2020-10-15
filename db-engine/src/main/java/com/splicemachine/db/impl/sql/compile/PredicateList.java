@@ -2759,13 +2759,15 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     @Override
     public void transferPredicates(OptimizablePredicateList otherList,
                                    JBitSet referencedTableMap,
-                                   Optimizable table) throws StandardException{
+                                   Optimizable table,
+                                   JBitSet joinedTableSet) throws StandardException{
         Predicate predicate;
         PredicateList theOtherList=(PredicateList)otherList;
 
             /* Walk list backwards since we can delete while
            * traversing the list.
              */
+        boolean hasNestedLoopJoinPredicatePushedFromOuter = false;
         for(int index=size()-1;index>=0;index--){
             predicate=elementAt(index);
 
@@ -2778,7 +2780,20 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
             }
 
-            if(referencedTableMap.contains(predicate.getReferencedSet())){
+            // there could be nestedloop join condition pushed from outer block that should be treated as
+            // single table conditions, however, they would contain table number from tables from the outer block,
+            // so use joinedTableSet to mask out those table numbers
+            JBitSet maskedReferencedSet = (JBitSet)predicate.getReferencedSet().clone();
+            int numBitsSet = maskedReferencedSet.cardinality();
+            maskedReferencedSet.and(joinedTableSet);
+            int maskedNumBitsSet = maskedReferencedSet.cardinality();
+
+            // may not be fully covered by the current joined table set, however,
+            if(referencedTableMap.contains(maskedReferencedSet)){
+                if (maskedNumBitsSet < numBitsSet) {
+                    hasNestedLoopJoinPredicatePushedFromOuter = true;
+                }
+                
                 // We need to keep the counters up to date when removing a predicate
                 if(predicate.isStartKey())
                     numberOfStartPredicates--;
@@ -2796,6 +2811,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 removeElementAt(index);
             }
         }
+
+        if (hasNestedLoopJoinPredicatePushedFromOuter)
+            table.setHasJoinPredicatePushedDownFromOuter(true);
 
         // order the useful predicates on the other list
         AccessPath ap=table.getTrulyTheBestAccessPath();
@@ -4392,10 +4410,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
     }
 
-    public boolean isUnsatisfiable() {
-        for (int i=0; i<size(); i++)
-            if (elementAt(i).isUnsatisfiable())
+    public boolean isUnsatisfiable(boolean checkOJCond) {
+        for (int i=0; i<size(); i++) {
+            Predicate pred = elementAt(i);
+            if (checkOJCond && pred.getOuterJoinLevel() > 0)
+                continue;
+            if (pred.isUnsatisfiable())
                 return true;
+        }
         return false;
     }
     @Override

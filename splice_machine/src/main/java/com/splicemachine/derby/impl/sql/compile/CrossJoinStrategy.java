@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -131,8 +132,14 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
 
 
     @Override
-    public void divideUpPredicateLists(Optimizable innerTable, OptimizablePredicateList originalRestrictionList, OptimizablePredicateList storeRestrictionList, OptimizablePredicateList nonStoreRestrictionList, OptimizablePredicateList requalificationRestrictionList, DataDictionary dd) throws StandardException {
-       originalRestrictionList.transferPredicates(storeRestrictionList, innerTable.getReferencedTableMap(), innerTable);
+    public void divideUpPredicateLists(Optimizable innerTable,
+                                       JBitSet joinedTableSet,
+                                       OptimizablePredicateList originalRestrictionList,
+                                       OptimizablePredicateList storeRestrictionList,
+                                       OptimizablePredicateList nonStoreRestrictionList,
+                                       OptimizablePredicateList requalificationRestrictionList,
+                                       DataDictionary dd) throws StandardException {
+       originalRestrictionList.transferPredicates(storeRestrictionList, innerTable.getReferencedTableMap(), innerTable, joinedTableSet);
        originalRestrictionList.copyPredicatesToOtherList(nonStoreRestrictionList);
     }
 
@@ -295,6 +302,14 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
 
     protected boolean validForOutermostTable() {
         return true;
+    }
+
+    @Override
+    public boolean getBroadcastRight(CostEstimate rightCost) {
+        double estimatedRowCount = rightCost.getEstimatedRowCount();
+        SConfiguration configuration=EngineDriver.driver().getConfiguration();
+        long rowCountThreshold = configuration.getBroadcastRegionRowThreshold();
+        return estimatedRowCount < rowCountThreshold;
     }
 }
 

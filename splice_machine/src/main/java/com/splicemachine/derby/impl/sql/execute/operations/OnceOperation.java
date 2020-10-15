@@ -16,7 +16,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.sql.conn.ResubmitDistributedException;
 import com.splicemachine.derby.stream.function.CloneFunction;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -34,8 +34,6 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -79,28 +77,6 @@ public class OnceOperation extends SpliceBaseOperation {
     @Override
     public String getName() {
         return NAME;
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        SpliceLogUtils.trace(LOG, "readExternal");
-        super.readExternal(in);
-        source = (SpliceOperation) in.readObject();
-        emptyRowFunMethodName = readNullableString(in);
-        cardinalityCheck = in.readInt();
-        subqueryNumber = in.readInt();
-        pointOfAttachment = in.readInt();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        SpliceLogUtils.trace(LOG, "writeExternal");
-        super.writeExternal(out);
-        out.writeObject(source);
-        writeNullableString(emptyRowFunMethodName, out);
-        out.writeInt(cardinalityCheck);
-        out.writeInt(subqueryNumber);
-        out.writeInt(pointOfAttachment);
     }
 
     @Override

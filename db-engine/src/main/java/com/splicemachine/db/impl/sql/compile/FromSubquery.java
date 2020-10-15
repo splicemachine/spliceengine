@@ -43,7 +43,8 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.ColumnCollectingVisitor;
-import org.spark_project.guava.base.Predicates;
+import splice.com.google.common.base.Predicates;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.HashMap;
 import java.util.List;
@@ -402,6 +403,7 @@ public class FromSubquery extends FromTable
      * @exception StandardException        Thrown on error
      */
 
+    @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH", justification = "DB-9844")
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
                                     FromList fromList)
@@ -433,6 +435,8 @@ public class FromSubquery extends FromTable
                 }
             }
         }
+
+        assert subquery != null;
 
         // Push the order by list down to the ResultSet
         if (orderByList != null)
@@ -787,10 +791,21 @@ public class FromSubquery extends FromTable
      *
      * @exception StandardException        Thrown on error
      */
+    @Override
     public boolean referencesSessionSchema()
         throws StandardException
     {
         return subquery.referencesSessionSchema();
+    }
+
+    /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return subquery.referencesTemporaryTable();
     }
 
     /**
@@ -878,7 +893,8 @@ public class FromSubquery extends FromTable
         return this;
     }
 
+    @SuppressFBWarnings(value = "DM_STRING_CTOR", justification = "DB-9844")
     private String getNewAnonymousCorrelationName() {
-        return new String("_spliceinternal_anonym_subquery_" + anonymousSubqueries++);
+        return "_spliceinternal_anonym_subquery_" + anonymousSubqueries++;
     }
 }

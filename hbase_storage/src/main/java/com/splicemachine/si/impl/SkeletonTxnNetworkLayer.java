@@ -16,10 +16,10 @@ package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
 import com.google.protobuf.RpcController;
+import com.splicemachine.access.hbase.HBaseTableDescriptor;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
 import com.splicemachine.ipc.SpliceRpcController;
@@ -113,7 +113,7 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     public TxnMessage.Txn getTxn(byte[] rowKey,TxnMessage.TxnRequest request) throws IOException{
         TxnMessage.TxnLifecycleService service=getLifecycleService(rowKey);
         SpliceRpcController controller = new SpliceRpcController();
-        controller.setPriority(HConstants.HIGH_QOS);
+        controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
         BlockingRpcCallback<TxnMessage.Txn> done=new BlockingRpcCallback<>();
         service.getTransaction(controller,request,done);
         dealWithError(controller);
@@ -128,6 +128,48 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
         service.getTaskId(controller,request,done);
         dealWithError(controller);
         return done.get();
+    }
+
+    @Override
+    public TxnMessage.TxnAtResponse getTxnAt(final TxnMessage.TxnAtRequest request) throws IOException {
+        Map<byte[], TxnMessage.TxnAtResponse> data=coprocessorService(TxnMessage.TxnLifecycleService.class,
+                HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW, instance -> {
+                    ServerRpcController controller=new ServerRpcController();
+                    BlockingRpcCallback<TxnMessage.TxnAtResponse> response=new BlockingRpcCallback<>();
+
+                    instance.getTxnAt(controller,request,response);
+                    dealWithError(controller);
+                    return response.get();
+                });
+        TxnMessage.TxnAtResponse.Builder result = TxnMessage.TxnAtResponse.newBuilder();
+        result.setTs(Long.MAX_VALUE);
+        result.setTxnId(-1);
+        boolean allAfter = true;
+        for(TxnMessage.TxnAtResponse response : data.values())
+        {
+            if(response.getTxnId() != -1)
+            {
+                allAfter = false;
+                break;
+            }
+        }
+        if(allAfter) {
+            return result.build();
+        }
+
+        for(TxnMessage.TxnAtResponse response : data.values())
+        {
+            if(response.getTxnId() == -1)
+            {
+                continue;
+            }
+            if(Math.abs(response.getTs() - request.getTs()) <= Math.abs(result.getTs() - request.getTs()))
+            {
+                result.setTs(response.getTs());
+                result.setTxnId(response.getTxnId());
+            }
+        }
+        return result.build();
     }
 
 

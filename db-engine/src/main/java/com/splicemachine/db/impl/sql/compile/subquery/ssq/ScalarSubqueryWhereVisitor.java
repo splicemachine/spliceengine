@@ -37,11 +37,11 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.ColumnUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.util.List;
 
-import static org.spark_project.guava.collect.Iterables.filter;
+import static splice.com.google.common.collect.Iterables.filter;
 
 /**
  * Created by yxia on 10/11/17.

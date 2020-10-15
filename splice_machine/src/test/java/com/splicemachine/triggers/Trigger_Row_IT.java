@@ -25,7 +25,7 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.spark_project.guava.collect.Lists;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.*;
 import java.util.Collection;
@@ -307,10 +307,21 @@ public class Trigger_Row_IT {
     }
 
     @Test
-    public void beforeInsert() throws Exception {
+    public void beforeInsertShouldFail() throws Exception {
         createTrigger(tb.before().insert().on("T").row().then("select 1/0 from sys.systables"));
         try(Statement s = conn.createStatement()){
             assertQueryFails(s,"insert into T values(8,8,8)","Attempt to divide by zero.");
+        }
+    }
+
+    @Test
+    public void beforeInsertShouldSucceed() throws Exception {
+        createTrigger(tb.before().insert().on("T").row().then("select * from sys.systables {limit 1}"));
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("insert into T select * from (values (1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5)) dt");
+            ResultSet rs = s.executeQuery("select count(*) from T");
+            rs.next();
+            Assert.assertEquals(11, rs.getInt(1));
         }
     }
 

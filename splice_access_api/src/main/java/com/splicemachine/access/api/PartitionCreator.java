@@ -14,6 +14,7 @@
 
 package com.splicemachine.access.api;
 
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.storage.Partition;
 
 import java.io.IOException;
@@ -25,6 +26,7 @@ import java.io.IOException;
 public interface PartitionCreator{
 
     PartitionCreator withName(String name);
+    PartitionCreator withName(String name, Conglomerate.Priority priority);
 
     PartitionCreator withDisplayNames(String[] displayNames);
 
@@ -45,6 +47,8 @@ public interface PartitionCreator{
     PartitionCreator withTransactionId(long txnId) throws IOException;
 
     PartitionCreator withSplitKeys(byte[][] splitKeys);
+
+    PartitionCreator withCatalogVersion(String version);
 
     Partition create() throws IOException;
 

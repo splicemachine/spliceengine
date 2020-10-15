@@ -237,12 +237,23 @@ public class HNIOFileSystem extends DistributedFileSystem{
         // Note: we need to be sure that the underlying filesystem can support recursive listdir efficiently.
         // this is done for S3 and HDFS has this anyhow. If this is not the case, it would be better to not use
         // (cached, but recursive) listRoot() here, but to just list the root (without recursive).
+        private List<FileStatus> rootFileStatusFlat;
+
         @Override
         public boolean isEmptyDirectory() {
             if( !exists() ) return false;
             if( !isDirectory() ) return false;
             try {
-                for (FileStatus s : listRoot() ) {
+                List<? extends FileStatus> files;
+                if(rootFileStatusList != null )
+                    files = rootFileStatusList;
+                else
+                {
+                    if( rootFileStatusFlat == null )
+                        rootFileStatusFlat = Arrays.asList(fs.listStatus(path));
+                    files = rootFileStatusFlat;
+                }
+                for (FileStatus s : files ) {
                     if (s.getPath().getName().equals("_SUCCESS") || s.getPath().getName().equals("_SUCCESS.crc") ) continue;
                     return false;
                 }

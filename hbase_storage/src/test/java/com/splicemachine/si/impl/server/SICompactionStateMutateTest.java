@@ -20,18 +20,21 @@ import static org.junit.Assert.*;
 public class SICompactionStateMutateTest {
     private long watermark = 1000;
     private SICompactionStateMutate cutNoPurge = new SICompactionStateMutate(
-            new PurgeConfigBuilder().noPurge().build(), watermark);
+            new PurgeConfigBuilder().noPurge().transactionLowWatermark(watermark).build());
     private SICompactionStateMutate cutForcePurge = new SICompactionStateMutate(
-            new PurgeConfigBuilder().forcePurgeDeletes().purgeUpdates(true).build(), watermark);
+            new PurgeConfigBuilder().forcePurgeDeletes().purgeUpdates(true).transactionLowWatermark(watermark).build());
     private SICompactionStateMutate cutPurgeDuringFlush = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).build(), watermark);
+            new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).transactionLowWatermark(watermark).build());
     private SICompactionStateMutate cutPurgeDuringMajorCompaction = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringMajorCompaction().purgeUpdates(true).build(), watermark);
+            new PurgeConfigBuilder().purgeDeletesDuringMajorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build());
     private SICompactionStateMutate cutPurgeDuringMinorCompaction = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringMinorCompaction().purgeUpdates(true).build(), watermark);
+            new PurgeConfigBuilder().purgeDeletesDuringMinorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build());
     private List<Cell> inputCells = new ArrayList<>();
     private List<TxnView> transactions = new ArrayList<>();
     private List<Cell> outputCells = new ArrayList<>();
+
+    public SICompactionStateMutateTest() throws IOException {
+    }
 
     private List<Cell> getNewlyAddedCells(List<Cell> inputCells, List<Cell> outputCells) {
         Set<Cell> set = new HashSet<>(outputCells);
@@ -750,5 +753,23 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockValueCell(100, new boolean[]{}),
                 SITestUtils.getMockCommitCell(100, 110)
         ));
+    }
+
+    @Test
+    public void mutateCalculatesSizeCorrectly() throws IOException {
+        inputCells.addAll(Arrays.asList(
+                SITestUtils.getMockCommitCell(200, 210),
+                SITestUtils.getMockCommitCell(100, 110),
+                SITestUtils.getMockTombstoneCell(200),
+                SITestUtils.getMockValueCell(100)
+        ));
+        transactions.addAll(Arrays.asList(
+                null,
+                null,
+                TxnTestUtils.getMockCommittedTxn(200, 210),
+                TxnTestUtils.getMockCommittedTxn(100, 110)
+        ));
+        long actualSize = cutForcePurge.mutate(inputCells, transactions, outputCells);
+        assertThat(actualSize, equalTo(SITestUtils.getSize(inputCells)));
     }
 }

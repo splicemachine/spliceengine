@@ -274,7 +274,8 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                 targetTableId,
                 targetTableName,
                 aiCounters,
-                null);
+                null,
+                false);
     }
 
     public TriggerExecutionContext getTriggerExecutionContext(ConnectionContext cc,
@@ -284,7 +285,8 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                                                               UUID targetTableId,
                                                               String targetTableName,
                                                               Vector<AutoincrementCounter> aiCounters,
-                                                              FormatableBitSet heapList) throws StandardException {
+                                                              FormatableBitSet heapList,
+                                                              boolean fromSparkExecution) throws StandardException {
         return new TriggerExecutionContext(cc,
                 statementText,
                 changedColIds,
@@ -292,7 +294,8 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                 targetTableId,
                 targetTableName,
                 aiCounters,
-                heapList);
+                heapList,
+                fromSparkExecution);
     }
     /*
         Old RowFactory interface

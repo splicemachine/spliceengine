@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.tester;
 
+import com.splicemachine.db.client.am.Types;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SlowTest;
 import org.junit.*;
@@ -23,12 +24,13 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 
-@Category(SlowTest.class)
 public class DataTypeCorrectnessIT extends SpliceUnitTest {
 
     private static boolean done;
@@ -937,37 +939,37 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
     public void testFieldCharForBITData() throws Exception {
 
         runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + "CC" + " where charforbitdata1 = X'bcdefa2020202020' or charforbitdata1 = X'cdefab2020202020' ", 2, "retval");
-//        for (String bTable : bTables) {
-//            runAndTestQueryRS("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata1 = X'bcdefa2020202020'", "bcdefa2020202020", "charforbitdata1");
-//            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata1 between X'abcdef2020202020' and X'cdefab2020202020'", "abcdef2020202020", "bcdefa2020202020", "cdefab2020202020", "charforbitdata1");
-//            System.out.println(bTable);
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 = X'bcdefa2020202020' or charforbitdata1 = X'cdefab2020202020' ", 2, "retval");
-//            runAndTestQueryRS("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata2 = X'bcdefa2020202020'", "bcdefa2020202020", "charforbitdata2");
-//            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata2 between X'abcdef2020202020' and X'cdefab2020202020'", "abcdef2020202020", "bcdefa2020202020", "cdefab2020202020", "charforbitdata2");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 = X'bcdefa2020202020' or charforbitdata2 = X'cdefab2020202020' ", 2, "retval");
-//            runAndTestQueryRS("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata3 = X'bcdefa2020202020'", "bcdefa2020202020", "charforbitdata3");
-//            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata3 between X'abcdef2020202020' and X'cdefab2020202020'", "abcdef2020202020", "bcdefa2020202020", "cdefab2020202020", "charforbitdata3");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 = X'bcdefa2020202020' or charforbitdata3 = X'cdefab2020202020' ", 2, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 > X'abcdef2020202020' or charforbitdata1 < X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 > X'abcdef2020202020' or charforbitdata1 <= X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 >= X'abcdef2020202020' or charforbitdata1 <= X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 > X'abcdef2020202020' and charforbitdata1 < X'cdefab2020202020' ", 1, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 > X'abcdef2020202020' and charforbitdata1 <= X'cdefab2020202020' ", 2, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 >= X'abcdef2020202020' and charforbitdata1 <= X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 > X'abcdef2020202020' or charforbitdata3 < X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 > X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 >= X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 > X'abcdef2020202020' and charforbitdata3 < X'cdefab2020202020' ", 1, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 > X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ", 2, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 >= X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 > X'abcdef2020202020' or charforbitdata3 < X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 > X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 >= X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 > X'abcdef2020202020' and charforbitdata3 < X'cdefab2020202020' ", 1, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 > X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ", 2, "retval");
-//            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 >= X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
-//
-//        }
+        for (String bTable : bTables) {
+            runAndTestQueryRS("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata1 = X'bcdefa2020202020'", "bcdefa2020202020", "charforbitdata1");
+            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata1 between X'abcdef2020202020' and X'cdefab2020202020'", "abcdef2020202020", "bcdefa2020202020", "cdefab2020202020", "charforbitdata1");
+            System.out.println(bTable);
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 = X'bcdefa2020202020' or charforbitdata1 = X'cdefab2020202020' ", 2, "retval");
+            runAndTestQueryRS("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata2 = X'bcdefa2020202020'", "bcdefa2020202020", "charforbitdata2");
+            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata2 between X'abcdef2020202020' and X'cdefab2020202020'", "abcdef2020202020", "bcdefa2020202020", "cdefab2020202020", "charforbitdata2");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 = X'bcdefa2020202020' or charforbitdata2 = X'cdefab2020202020' ", 2, "retval");
+            runAndTestQueryRS("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata3 = X'bcdefa2020202020'", "bcdefa2020202020", "charforbitdata3");
+            runAndTestQueryR3S("select * from " + CLASS_NAME + "." + bTable + " where charforbitdata3 between X'abcdef2020202020' and X'cdefab2020202020'", "abcdef2020202020", "bcdefa2020202020", "cdefab2020202020", "charforbitdata3");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 = X'bcdefa2020202020' or charforbitdata3 = X'cdefab2020202020' ", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 > X'abcdef2020202020' or charforbitdata1 < X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 > X'abcdef2020202020' or charforbitdata1 <= X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 >= X'abcdef2020202020' or charforbitdata1 <= X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 > X'abcdef2020202020' and charforbitdata1 < X'cdefab2020202020' ", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 > X'abcdef2020202020' and charforbitdata1 <= X'cdefab2020202020' ", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata1 >= X'abcdef2020202020' and charforbitdata1 <= X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 > X'abcdef2020202020' or charforbitdata3 < X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 > X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 >= X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 > X'abcdef2020202020' and charforbitdata3 < X'cdefab2020202020' ", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 > X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata2 >= X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 > X'abcdef2020202020' or charforbitdata3 < X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 > X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 >= X'abcdef2020202020' or charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 > X'abcdef2020202020' and charforbitdata3 < X'cdefab2020202020' ", 1, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 > X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ", 2, "retval");
+            runAndTestQueryRI("select count(*) as retval from " + CLASS_NAME + "." + bTable + " where charforbitdata3 >= X'abcdef2020202020' and charforbitdata3 <= X'cdefab2020202020' ", 3, "retval");
+
+        }
 
     }
 
@@ -1265,4 +1267,13 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
         runAndTestQueryRI3(query, lf, "retval");
     }
 
+    @Test
+    public void testGetColumnsMetadataTpe() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery(
+                String.format("call SYSIBM.SQLCOLUMNS(null, '%s', '%s', null, null)", CLASS_NAME, TABLE_1))) {
+            ResultSetMetaData metaData = rs.getMetaData();
+            int t = metaData.getColumnType(16);
+            Assert.assertEquals(Types.INTEGER, t);
+        }
+    }
 }

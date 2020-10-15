@@ -45,12 +45,9 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
-import org.joda.time.DateTime;
 
 import java.sql.Types;
-import java.util.Dictionary;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * The DataDictionary interface is used with the data dictionary to get
@@ -63,7 +60,6 @@ import java.util.Map;
  *
  * @version 0.1
  */
-
 public interface DataDictionary{
     String MODULE="com.splicemachine.db.iapi.sql.dictionary.DataDictionary";
 
@@ -213,6 +209,7 @@ public interface DataDictionary{
 
     /**
      * Catalog numbers for non core system catalogs.
+     * All these entries are for system tables, not views.
      */
     int SYSCONSTRAINTS_CATALOG_NUM=4;
     int SYSKEYS_CATALOG_NUM=5;
@@ -233,18 +230,17 @@ public interface DataDictionary{
     int SYSPERMS_CATALOG_NUM=20;
     int SYSUSERS_CATALOG_NUM=21;
     int SYSBACKUP_CATALOG_NUM=22;
-    int SYSBACKUPFILESET_CATALOG_NUM=23;
-    int SYSBACKUPITEMS_CATALOG_NUM=24;
-    int SYSBACKUPJOBS_CATALOG_NUM=25;
-    int SYSCOLUMNSTATS_CATALOG_NUM=26;
-    int SYSPHYSICALSTATS_CATALOG_NUM=27;
-    int SYSTABLESTATS_CATALOG_NUM=28;
-    int SYSDUMMY1_CATALOG_NUM=29;
-    int SYSSCHEMAPERMS_CATALOG_NUM=30;
-    int SYSSOURCECODE_CATALOG_NUM=31;
-    int SYSSNAPSHOT_NUM=32;
-    int SYSTOKENS_NUM=33;
-    int SYSREPLICATION_CATALOG_NUM=34;
+    int SYSBACKUPITEMS_CATALOG_NUM=23;
+    int SYSCOLUMNSTATS_CATALOG_NUM=24;
+    int SYSPHYSICALSTATS_CATALOG_NUM=25;
+    int SYSTABLESTATS_CATALOG_NUM=26;
+    int SYSDUMMY1_CATALOG_NUM=27;
+    int SYSSCHEMAPERMS_CATALOG_NUM=28;
+    int SYSSOURCECODE_CATALOG_NUM=29;
+    int SYSSNAPSHOT_NUM=30;
+    int SYSTOKENS_NUM=31;
+    int SYSREPLICATION_CATALOG_NUM=32;
+    int SYSMONGETCONNECTION_CATALOG_NUM=33;
     /* static finals for constraints
      * (Here because they are needed by parser, compilation and execution.)
      */
@@ -254,6 +250,43 @@ public interface DataDictionary{
     int CHECK_CONSTRAINT=4;
     int DROP_CONSTRAINT=5;
     int FOREIGNKEY_CONSTRAINT=6;
+
+    List<String> catalogVersions = Collections.unmodifiableList(Arrays.asList(
+            "1", // SYSCONGLOMERATES
+            "1", // SYSTABLES
+            "1", // SYSCOLUMNS
+            "1", // SYSSCHEMAS
+            "1", // SYSCONSTRAINTS
+            "1", // SYSKEYS
+            "1", // SYSPRIMARYKEYS
+            "1", // SYSDEPENDS
+            "1", // SYSALIASES
+            "1", // SYSVIEWS
+            "1", // SYSCHECKS
+            "1", // SYSFOREIGNKEYS
+            "1", // SYSSTATEMENTS
+            "1", // SYSFILES
+            "1", // SYSTRIGGERS
+            "1", // SYSTABLEPERMS
+            "1", // SYSCOLPERMS
+            "1", // SYSROUTINEPERMS
+            "1", // SYSROLES
+            "1", // SYSSEQUENCES
+            "1", // SYSPERMS
+            "1", // SYSUSERS
+            "1", // SYSBACKUP
+            "1", // SYSBACKUPITEMS
+            "1", // SYSCOLUMNSTATS
+            "1", // SYSPHYSICALSTATS
+            "1", // SYSTABLESTATS
+            "1", // SYSDUMMY1
+            "1", // SYSSCHEMAPERMS
+            "1", // SYSSOURCECODE
+            "1", // SYSSNAPSHOT
+            "1", // SYSTOKENS
+            "1", // SYSREPLICATION
+            "1"  // SYSMONGETCONNECTION_CATALOG_NUM
+    ));
 
     /**
      * Modes returned from startReading()
@@ -551,6 +584,21 @@ public interface DataDictionary{
     boolean isSchemaEmpty(SchemaDescriptor sd) throws StandardException;
 
     /**
+     * get the list of objects existing in the specified schema
+     * @param sd
+     * @return
+     */
+    ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException;
+
+    ArrayList<AliasDescriptor> getAliasesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<SequenceDescriptor> getSequencesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<FileInfoDescriptor> getFilesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException;
+
+    /**
      * Get the descriptor for the named table within the given schema.
      * If the schema parameter is NULL, it looks for the table in the
      * current (default) schema. Table descriptors include object ids,
@@ -583,6 +631,19 @@ public interface DataDictionary{
      * @throws StandardException Thrown on failure
      */
     TableDescriptor getTableDescriptor(UUID tableID) throws StandardException;
+
+    /**
+     * Get a list of TableDescriptors whose table names are in a given range within the given schema.
+     *
+     * @param tableNameStart Starting table name, inclusive.
+     * @param tableNameEnd Ending table name, exclusive.
+     * @param schema The descriptor for the schema the table lives in.
+     *               If null, use the system schema.
+     * @return A list of TableDescriptors whose table names are in range of [tableNameStart, tableNameEnd) in given schema.
+     * @throws StandardException
+     */
+    List<TableDescriptor> getTableDescriptors(String tableNameStart,String tableNameEnd,
+                                              SchemaDescriptor schema) throws StandardException;
 
     /**
      * Drop the table descriptor.
@@ -2197,4 +2258,11 @@ public interface DataDictionary{
     boolean databaseReplicationEnabled() throws StandardException;
 
     boolean schemaReplicationEnabled(String schemaName) throws StandardException;
+
+
+    String getCatalogVersion(long conglomerateNumber) throws StandardException;
+
+    long getSystablesMinRetentionPeriod();
+
+    boolean useTxnAwareCache();
 }

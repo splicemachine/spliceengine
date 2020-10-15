@@ -173,4 +173,17 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
     public boolean replicationEnabled(String tableName) throws IOException {
         return false;
     }
+    @Override
+    public void setCatalogVersion(long conglomerateNumber, String version) throws IOException {
+        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
+    @Override
+    public String getCatalogVersion(long conglomerateNumber) {
+        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
+
+    @Override
+    public int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception {
+        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    }
 }

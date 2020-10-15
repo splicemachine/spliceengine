@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.jdbc;
 
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Attribute;
@@ -39,9 +39,12 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -139,7 +142,7 @@ public final class TransactionResourceImpl
     private String ipAddress;
     private String defaultSchema;
     // set these up after constructor, called by EmbedConnection
-    protected Database database;
+    protected InternalDatabase database;
     protected LanguageConnectionContext lcc;
     private Properties sessionProperties;
 
@@ -234,7 +237,7 @@ public final class TransactionResourceImpl
      * The Local Connection sets up the database in its constructor and sets it
      * here.
      */
-    void setDatabase(Database db)
+    void setDatabase(InternalDatabase db)
     {
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(database == null,
@@ -286,7 +289,7 @@ public final class TransactionResourceImpl
     String getUrl() {
         return  url;
     }
-    Database getDatabase() {
+    InternalDatabase getDatabase() {
         return  database;
     }
 
@@ -489,33 +492,76 @@ public final class TransactionResourceImpl
 
         if (thrownException instanceof StandardException) {
 
-            StandardException se = (StandardException) thrownException;
+            try {
+                StandardException se = (StandardException) thrownException;
+                LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+                if (lcc != null) {
+                    String s = lcc.getTransactionCompile().getActiveStateTxIdString();
+                    if (s != null) {
+                        String spliceDB2ErrorCompatible =
+                                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_ERROR_COMPATIBLE);
+                        if (spliceDB2ErrorCompatible != null && spliceDB2ErrorCompatible.equalsIgnoreCase("TRUE")) {
+                            setDB2ErrorCode(se);
+                        }
+                    }
+                }
 
-            if (SQLState.CONN_INTERRUPT.equals(se.getSQLState())) {
-                Thread.currentThread().interrupt();
+                if (SQLState.CONN_INTERRUPT.equals(se.getSQLState())) {
+                    Thread.currentThread().interrupt();
+                }
+
+                if (se.getCause() == null) {
+                    // se is a single, unchained exception. Just convert it to an
+                    // SQLException.
+                    return Util.generateCsSQLException(se);
+                }
+
+                // se contains a non-empty exception chain. We want to put all of
+                // the exceptions (including Java exceptions) in the next-exception
+                // chain. Therefore, call wrapInSQLException() recursively to
+                // convert the cause chain into a chain of SQLExceptions.
+                return Util.seeNextException(se.getMessageId(),
+                        se.getArguments(), wrapInSQLException(se.getCause()));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
-
-            if (se.getCause() == null) {
-                // se is a single, unchained exception. Just convert it to an
-                // SQLException.
-                return Util.generateCsSQLException(se);
-            }
-
-            // se contains a non-empty exception chain. We want to put all of
-            // the exceptions (including Java exceptions) in the next-exception
-            // chain. Therefore, call wrapInSQLException() recursively to
-            // convert the cause chain into a chain of SQLExceptions.
-            return Util.seeNextException(se.getMessageId(),
-                    se.getArguments(), wrapInSQLException(se.getCause()));
         }
 
         // thrownException is a Java exception
         return Util.javaException(thrownException);
     }
 
-    /*
-     * TransactionResource methods
-     */
+    private static void setDB2ErrorCode(StandardException se) {
+
+        String sqlState = se.getSQLState();
+        if (sqlState.equals(SQLState.LANG_SCALAR_SUBQUERY_CARDINALITY_VIOLATION)) {
+            se.setSeverity(-811);
+        }
+        else if (sqlState.startsWith(SQLState.NO_CURRENT_CONNECTION)){
+            se.setSeverity(-1024);
+        }
+        else if (sqlState.equals(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT)){
+            se.setSeverity(-803);
+        }
+        else if (sqlState.equals(SQLState.LANG_DB2_DUPLICATE_NAMES)) {
+            se.setSeverity(-601);
+        }
+        else if (sqlState.equals(SQLState.LANG_CHECK_CONSTRAINT_VIOLATED)) {
+            se.setSeverity(-545);
+        }
+        else if (sqlState.equals(SQLState.LANG_FK_VIOLATION)) {
+            se.setSeverity(-530);
+        }
+        else if (sqlState.equals(SQLState.DRDA_CURSOR_NOT_OPEN)) {
+            se.setSeverity(-501);
+        }
+        else if (sqlState.equals(SQLState.ROW_DELETED)) {
+            se.setSeverity(-222);
+        }
+    }
+	/*
+	 * TransactionResource methods
+	 */
 
     String getUserName() {
         return  username;

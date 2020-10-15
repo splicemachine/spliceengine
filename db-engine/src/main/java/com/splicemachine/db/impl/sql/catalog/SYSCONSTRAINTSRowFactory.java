@@ -39,8 +39,11 @@ import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Factory for creating a SYSCONTRAINTS row.
@@ -90,8 +93,8 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
     //
     /////////////////////////////////////////////////////////////////////////////
 
-    public SYSCONSTRAINTSRowFactory(UUIDFactory uuidf,ExecutionFactory ef,DataValueFactory dvf){
-        super(uuidf,ef,dvf);
+    public SYSCONSTRAINTSRowFactory(UUIDFactory uuidf,ExecutionFactory ef,DataValueFactory dvf, DataDictionary dd){
+        super(uuidf,ef,dvf,dd);
         initInfo(SYSCONSTRAINTS_COLUMN_COUNT,TABLENAME_STRING,
                 indexColumnPositions,uniqueness,uuids);
     }
@@ -108,7 +111,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * @throws StandardException thrown on failure
      * @return Row suitable for inserting into SYSCONTRAINTS.
      */
-    public ExecRow makeRow(TupleDescriptor td,TupleDescriptor parent)
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td,TupleDescriptor parent)
             throws StandardException{
         DataValueDescriptor col;
         ExecRow row;
@@ -123,6 +126,9 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         int referenceCount=0;
 
         if(td!=null){
+            if (!(td instanceof ConstraintDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+
             ConstraintDescriptor constraint=(ConstraintDescriptor)td;
             /*
 			** We only allocate a new UUID if the descriptor doesn't already have one.
@@ -213,6 +219,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
      * @param dd                    dataDictionary
      * @throws StandardException thrown on failure
      */
+    @SuppressFBWarnings(value="SF_SWITCH_FALLTHROUGH")
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,
@@ -245,19 +252,13 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         int referenceCount;
         String constraintUUIDString;
         String schemaUUIDString;
-        SubConstraintDescriptor scd;
+        SubConstraintDescriptor scd = null;
 
-        if(SanityManager.DEBUG){
-            if(!(parentTupleDescriptor instanceof SubConstraintDescriptor)){
-                SanityManager.THROWASSERT(
-                        "parentTupleDescriptor expected to be instanceof "+
-                                "SubConstraintDescriptor, not "+
-                                parentTupleDescriptor.getClass().getName());
-            }
+        if (parentTupleDescriptor != null) {
+            if (!(parentTupleDescriptor instanceof SubConstraintDescriptor))
+                throw new RuntimeException("Unexpected TupleDescriptor " + parentTupleDescriptor.getClass().getName());
+            scd = (SubConstraintDescriptor) parentTupleDescriptor;
         }
-
-        scd=(SubConstraintDescriptor)parentTupleDescriptor;
-
         ddg=dd.getDataDescriptorGenerator();
 
 		/* 1st column is CONSTRAINTID (UUID - char(36)) */
@@ -484,6 +485,8 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
                         schema,
                         constraintEnabled);
                 break;
+            default:
+                break;
         }
         return constraintDesc;
     }
@@ -615,4 +618,68 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory{
         };
     }
 
+    public List<ColumnDescriptor[]> getViewColumns(TableDescriptor view, UUID viewId) throws StandardException {
+        List<ColumnDescriptor[]> cdsl = new ArrayList<>();
+
+        // SYSIBM.SYSKEYCOLUSE
+        cdsl.add(
+            new ColumnDescriptor[]{
+                new ColumnDescriptor("CONSTNAME",1,1,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("TBCREATOR",2,2,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("TBNAME",3,3,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("COLNAME",4,4,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, false, 128),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("COLSEQ",5,5,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT, false),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("COLNO",6,6,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.SMALLINT, false),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("IBMREQD",7,7,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                        null,null,view,viewId,0,0,0),
+                new ColumnDescriptor("PERIOD",8,8,
+                        DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.CHAR, false, 1),
+                        null,null,view,viewId,0,0,0)
+            });
+        return cdsl;
+    }
+
+    public static String SYSKEYCOLUSE_VIEW_IN_SYSIBM = "create view SYSKEYCOLUSE as \n" +
+            "SELECT\n" +
+            "  C.CONSTRAINTNAME AS CONSTNAME,\n" +
+            "  S.SCHEMANAME AS TBCREATOR,\n" +
+            "  T.TABLENAME AS TBNAME,\n" +
+            "  COLS.COLUMNNAME AS COLNAME,\n" +
+            "  CAST(CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) AS SMALLINT) AS COLSEQ,\n" +
+            "  CAST(COLS.COLUMNNUMBER AS SMALLINT) AS COLNO,\n" +
+            "  'N' AS IBMREQD, -- IBM release depencency indicators, default 'N'\n" +
+            "  '' AS PERIOD    -- indicates whether the column is the start or end column for the BUSINESS_TIME period, default blank\n" +
+            "FROM\n" +
+            "  (SELECT SC.CONSTRAINTNAME, SC.SCHEMAID, SC.TABLEID, K.CONGLOMERATEID\n" +
+            "     FROM SYS.SYSCONSTRAINTS SC, SYS.SYSKEYS K   -- get all unique constraint conglomerate IDs\n" +
+            "     WHERE K.CONSTRAINTID = SC.CONSTRAINTID\n" +
+            "   UNION\n" +
+            "   SELECT SC.CONSTRAINTNAME, SC.SCHEMAID, SC.TABLEID, PK.CONGLOMERATEID\n" +
+            "     FROM SYS.SYSCONSTRAINTS SC, SYS.SYSPRIMARYKEYS PK\n" +
+            "     WHERE PK.CONSTRAINTID = SC.CONSTRAINTID) C, -- get all primary key conglomerate IDs\n" +
+            "  SYS.SYSSCHEMAS S,\n" +
+            "  SYS.SYSTABLES T,\n" +
+            "  SYS.SYSCONGLOMERATES CONGLOMS,\n" +
+            "  SYS.SYSCOLUMNS COLS\n" +
+            "WHERE\n" +
+            "  C.SCHEMAID = S.SCHEMAID AND\n" +
+            "  C.TABLEID = T.TABLEID AND\n" +
+            "  C.TABLEID = COLS.REFERENCEID AND\n" +
+            "  C.CONGLOMERATEID = CONGLOMS.CONGLOMERATEID AND\n" +
+            "  (CASE WHEN CONGLOMS.DESCRIPTOR IS NOT NULL THEN\n" +
+            "    CONGLOMS.DESCRIPTOR.getKeyColumnPosition(COLS.COLUMNNUMBER) ELSE\n" +
+            "    0 END) <> 0\n";
 }

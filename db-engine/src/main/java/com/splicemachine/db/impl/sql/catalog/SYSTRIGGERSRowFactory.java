@@ -106,7 +106,6 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                     , "c013800d-00d7-c025-480d-000a0a411200"    // SYSTRIGGERS_INDEX3
             };
 
-    private final DataDictionary dataDictionary;
 
     /////////////////////////////////////////////////////////////////////////////
     //
@@ -120,8 +119,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
             ExecutionFactory ef,
             DataValueFactory dvf)
         throws StandardException {
-        super(uuidf, ef, dvf);
-        this.dataDictionary = dd;
+        super(uuidf, ef, dvf, dd);
         initInfo(SYSTRIGGERS_COLUMN_COUNT, TABLENAME_STRING, indexColumnPositions, uniqueness, uuids);
     }
 
@@ -132,14 +130,14 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
     /////////////////////////////////////////////////////////////////////////////
 
     @Override
-    public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent)
+    public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
         throws StandardException
     {
         return makeRow(td, getHeapColumnCount());
     }
 
     @Override
-    public ExecRow makeEmptyRowForCurrentVersion() throws StandardException {
+    public ExecRow makeEmptyRowForLatestVersion() throws StandardException {
         return makeRow(null, SYSTRIGGERS_COLUMN_COUNT);
     }
 

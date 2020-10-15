@@ -14,8 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -32,8 +30,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 
 public class CrossJoinOperation extends JoinOperation{
@@ -43,6 +39,7 @@ public class CrossJoinOperation extends JoinOperation{
     protected int[] leftHashKeys;
     protected int rightHashKeyItem;
     protected int[] rightHashKeys;
+    protected boolean broadcastRightSide;
     protected long sequenceId;
     protected static final String NAME = CrossJoinOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -67,6 +64,7 @@ public class CrossJoinOperation extends JoinOperation{
                               boolean oneRowRightSide,
                               byte semiJoinType,
                               boolean rightFromSSQ,
+                              boolean broadcastRightSide,
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
                               String userSuppliedOptimizerOverrides,
@@ -78,29 +76,13 @@ public class CrossJoinOperation extends JoinOperation{
                 sparkExpressionTreeAsString);
         this.leftHashKeyItem=leftHashKeyItem;
         this.rightHashKeyItem=rightHashKeyItem;
+        this.broadcastRightSide=broadcastRightSide;
         this.sequenceId = Bytes.toLong(operationInformation.getUUIDGenerator().nextBytes());
         init();
     }
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException{
-        super.readExternal(in);
-        sequenceId = in.readLong();
-        leftHashKeyItem=in.readInt();
-        rightHashKeyItem=in.readInt();
-    }
-
     public long getRightSequenceId() {
         return sequenceId;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        out.writeLong(sequenceId);
-        out.writeInt(leftHashKeyItem);
-        out.writeInt(rightHashKeyItem);
     }
 
     @Override
@@ -128,17 +110,7 @@ public class CrossJoinOperation extends JoinOperation{
         if (usesNativeSparkDataSet)
             dsp.finalizeTempOperationStrings();
 
-        SConfiguration configuration = EngineDriver.driver().getConfiguration();
-
-        double leftCount = leftResultSet.getEstimatedRowCount();
-        double rightCount = rightResultSet.getEstimatedRowCount();
-        long threshold = configuration.getBroadcastRegionRowThreshold();
-
-        DataSet.Broadcast type =
-                leftCount <= rightCount && leftCount < threshold ? DataSet.Broadcast.LEFT :
-                rightCount < threshold ? DataSet.Broadcast.RIGTH :
-                DataSet.Broadcast.NONE;
-
+        DataSet.Broadcast rightBroadcastType = broadcastRightSide ? DataSet.Broadcast.RIGHT : DataSet.Broadcast.NONE;
         DataSet<ExecRow> leftDataSet = leftResultSet.getDataSet(dsp);
         dsp.finalizeTempOperationStrings();
         DataSet<ExecRow> rightDataSet = rightResultSet.getDataSet(dsp);
@@ -150,7 +122,7 @@ public class CrossJoinOperation extends JoinOperation{
         DataSet<ExecRow> result;
 
         if (usesNativeSparkDataSet) {
-            result = leftDataSet.crossJoin(operationContext, rightDataSet, type);
+            result = leftDataSet.crossJoin(operationContext, rightDataSet, rightBroadcastType);
             if (restriction != null) {
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));
             }
@@ -161,7 +133,7 @@ public class CrossJoinOperation extends JoinOperation{
             }
             if (this.leftHashKeys.length != 0)
                 leftDataSet = leftDataSet.filter(new InnerJoinNullFilterFunction(operationContext,this.leftHashKeys));
-            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext))
+            result = leftDataSet.mapPartitions(new BroadcastJoinFlatMapFunction(operationContext, false))
                     .map(new InnerJoinFunction<SpliceOperation>(operationContext));
             if (restriction != null) { // with restriction
                 result = result.filter(new JoinRestrictionPredicateFunction(operationContext));

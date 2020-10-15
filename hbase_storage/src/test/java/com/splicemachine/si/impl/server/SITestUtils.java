@@ -5,10 +5,13 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.kryo.KryoPool;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.util.List;
 
 public class SITestUtils {
     private static final KryoPool kp = new KryoPool(1);
@@ -71,5 +74,9 @@ public class SITestUtils {
 
     public static KeyValue getMockDeleteRightAfterFirstWriteCell(long timestamp) {
         return generateKV(row, SIConstants.FIRST_OCCURRENCE_TOKEN_COLUMN_BYTES, timestamp, SIConstants.DELETE_RIGHT_AFTER_FIRST_WRITE_VALUE_BYTES);
+    }
+
+    public static long getSize(List<Cell> keyValueList) {
+        return keyValueList.stream().mapToLong(KeyValueUtil::length).sum();
     }
 }

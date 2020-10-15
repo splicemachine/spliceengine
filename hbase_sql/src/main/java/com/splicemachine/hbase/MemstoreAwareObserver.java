@@ -52,10 +52,12 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
 
     private static final Logger LOG = Logger.getLogger(MemstoreAwareObserver.class);
     protected AtomicReference<MemstoreAware> memstoreAware =new AtomicReference<>(new MemstoreAware());
+    protected Optional<RegionObserver> optionalRegionObserver = Optional.empty();
 
     @Override
     public void start(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.of(this);
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"starting [%s]",((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
         } catch (Throwable t) {
@@ -66,6 +68,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
     @Override
     public void stop(CoprocessorEnvironment e) throws IOException {
         try {
+            optionalRegionObserver = Optional.empty();
             if (LOG.isDebugEnabled())
                 SpliceLogUtils.debug(LOG,"stopping [%s]", ((RegionCoprocessorEnvironment) e).getRegion().getRegionInfo().getRegionNameAsString());
         } catch (Throwable t) {
@@ -138,7 +141,7 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
 
     @Override
     public Optional<RegionObserver> getRegionObserver() {
-        return Optional.of(this);
+        return optionalRegionObserver;
     }
 
     @Override
@@ -199,6 +202,9 @@ public class MemstoreAwareObserver implements RegionCoprocessor, RegionObserver,
                     InternalScan iscan = new InternalScan(scan);
                     iscan.checkOnlyMemStore();
                     HRegion region = (HRegion) c.getEnvironment().getRegion();
+                    // We substitute the pre-created scanner, must close it to avoid a memory leak
+                    if (s != null)
+                        s.close();
                     return new MemStoreFlushAwareScanner(region, store, ((HStore)store).getScanInfo(), iscan, targetCols, getReadpoint(region), memstoreAware, memstoreAware.get());
                 } else { // Partition Miss
                     while (true) {

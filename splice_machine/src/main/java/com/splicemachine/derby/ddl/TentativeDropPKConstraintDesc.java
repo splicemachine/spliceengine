@@ -17,7 +17,7 @@ package com.splicemachine.derby.ddl;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import org.spark_project.guava.primitives.Ints;
+import splice.com.google.common.primitives.Ints;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;

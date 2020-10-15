@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
@@ -50,6 +51,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.Util;
+import com.splicemachine.db.impl.sql.catalog.ManagedCache;
+import splice.com.google.common.cache.CacheBuilder;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -100,6 +103,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private long conglomId;
 
     protected CursorResultSet  triggeringResultSet;
+    private ManagedCache<UUID, SPSDescriptor> spsCache = null;
+    private boolean fromSparkExecution;
 
     /*
     ** Used to track all the result sets we have given out to
@@ -141,7 +146,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                                    UUID targetTableId,
                                    String targetTableName,
                                    List<AutoincrementCounter> aiCounters,
-                                   FormatableBitSet heapList) throws StandardException {
+                                   FormatableBitSet heapList,
+                                   boolean fromSparkExecution) throws StandardException {
 
         this.changedColIds = changedColIds;
         this.changedColNames = changedColNames;
@@ -152,6 +158,11 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         this.heapList = heapList;
         this.resultSetVector = new Vector<>();
         this.cc = cc;
+
+        this.fromSparkExecution = fromSparkExecution;
+        // only use the local cache for spark execution
+        if (fromSparkExecution)
+            this.spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build(), 100);
 
         if (SanityManager.DEBUG) {
             if ((changedColIds == null) != (changedColNames == null)) {
@@ -616,6 +627,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (hasTableVersion)
             out.writeUTF(tableVersion);
         out.writeLong(conglomId);
+        out.writeBoolean(fromSparkExecution);
     }
 
     @Override
@@ -642,6 +654,9 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (in.readBoolean())
             tableVersion = in.readUTF();
         conglomId = in.readLong();
+        fromSparkExecution = in.readBoolean();
+        if (fromSparkExecution)
+            spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build(), 100);
     }
 
     /**
@@ -763,8 +778,10 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                 } catch (Exception e) {
                 }
             }
+            
+            resultSetVector.clear();
         }
-        resultSetVector.clear();
+
 
         /*
         ** We should have already closed our underlying
@@ -776,5 +793,17 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         {
             triggeringResultSet.close();
         }
+    }
+
+    public SPSDescriptor getSPSDescriptor(UUID uuid) {
+        return spsCache.getIfPresent(uuid);
+    }
+
+    public void setSPSDescriptor(SPSDescriptor desc) {
+        spsCache.put(desc.getUUID(), desc);
+    }
+
+    public ManagedCache<UUID, SPSDescriptor> getSpsCache() {
+        return spsCache;
     }
 }

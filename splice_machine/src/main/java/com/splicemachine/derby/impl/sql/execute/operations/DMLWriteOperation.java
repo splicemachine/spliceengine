@@ -51,12 +51,11 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-import org.spark_project.guava.base.Strings;
+import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.*;
 
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
@@ -186,6 +185,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         return txn;
     }
 
+    @SuppressFBWarnings(value = "RCN_REDUNDANT_NULLCHECK_OF_NONNULL_VALUE", justification = "DB-9844")
      public void finalizeNestedTransaction() throws StandardException {
         try {
              if (nestedTxn != null) {
@@ -220,31 +220,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     }
 
     public String getTableVersion() { return tableVersion; }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException{
-        super.readExternal(in);
-        source=(SpliceOperation)in.readObject();
-        writeInfo=(DMLWriteInfo)in.readObject();
-        generationClausesFunMethodName=readNullableString(in);
-        checkGMFunMethodName=readNullableString(in);
-        heapConglom=in.readLong();
-        tableVersion=in.readUTF();
-        isSpark = in.readBoolean();
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        out.writeObject(source);
-        out.writeObject(writeInfo);
-        writeNullableString(generationClausesFunMethodName,out);
-        writeNullableString(checkGMFunMethodName,out);
-        out.writeLong(heapConglom);
-        out.writeUTF(tableVersion);
-        out.writeBoolean(isOlapServer());
-    }
 
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException{

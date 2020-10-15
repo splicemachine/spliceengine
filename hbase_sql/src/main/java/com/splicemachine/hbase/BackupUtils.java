@@ -215,13 +215,10 @@ public class BackupUtils {
                 }
                 boolean isRestoreMode = SIDriver.driver().lifecycleManager().isRestoreMode();
                 if (!isRestoreMode) {
-                    if (BackupUtils.existsDatabaseBackup(fs, rootDir)) {
-                        if (LOG.isDebugEnabled()) {
-                            SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
-                        }
-                        shouldRegister = true;
-                    } else {
-                        List<String> backupJobs = zooKeeper.getChildren(spliceBackupPath, false);
+                    // check whether there is running backup first. If so, no need to check SYSBACKUPS file and
+                    // avoid read/write contention on it
+                    List<String> backupJobs = zooKeeper.getChildren(spliceBackupPath, false);
+                    if (backupJobs.size() > 0) {
                         for (String backupId : backupJobs) {
                             String path = spliceBackupPath + "/" + backupId;
                             byte[] data = zooKeeper.getData(path, false, null);
@@ -233,6 +230,12 @@ public class BackupUtils {
                                 shouldRegister = true;
                             }
                         }
+                    }
+                    if (!shouldRegister && BackupUtils.existsDatabaseBackup(fs, rootDir)) {
+                        if (LOG.isDebugEnabled()) {
+                            SpliceLogUtils.debug(LOG, "There exists a successful full or incremental backup in the system");
+                        }
+                        shouldRegister = true;
                     }
                 }
             }
@@ -266,9 +269,9 @@ public class BackupUtils {
         return false;
     }
 
-    public static boolean backupCanceled() throws KeeperException, InterruptedException {
+    public static boolean backupCanceled(long backupId) throws KeeperException, InterruptedException {
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
-        String path = BackupUtils.getBackupPath();
+        String path = BackupUtils.getBackupPath() + "/" + backupId;
         return zooKeeper.exists(path, false) == null;
     }
 
