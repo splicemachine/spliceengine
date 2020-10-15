@@ -29,7 +29,7 @@ import com.splicemachine.primitives.Bytes;
  * to us in the form of an exception.  This class is used by the intercept write handlers (*InterceptWriteHandler) to
  * take the remote exception and translate it into a user-friendly foreign key violation error message.
  */
-class ForeignKeyViolationProcessor {
+public class ForeignKeyViolationProcessor {
 
     private final FkConstraintContextProvider fkConstraintContextProvider;
     private final PipelineExceptionFactory exceptionFactory;
