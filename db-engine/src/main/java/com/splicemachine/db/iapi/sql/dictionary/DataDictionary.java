@@ -584,6 +584,21 @@ public interface DataDictionary{
     boolean isSchemaEmpty(SchemaDescriptor sd) throws StandardException;
 
     /**
+     * get the list of objects existing in the specified schema
+     * @param sd
+     * @return
+     */
+    ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException;
+
+    ArrayList<AliasDescriptor> getAliasesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<SequenceDescriptor> getSequencesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<FileInfoDescriptor> getFilesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException;
+
+    /**
      * Get the descriptor for the named table within the given schema.
      * If the schema parameter is NULL, it looks for the table in the
      * current (default) schema. Table descriptors include object ids,
