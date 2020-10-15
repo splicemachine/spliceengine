@@ -13,8 +13,6 @@
  */
 package com.splicemachine.spark2.splicemachine
 
-import java.io.Externalizable
-import java.security.SecureRandom
 import java.sql.{Connection, ResultSetMetaData}
 import java.util.Properties
 
@@ -28,7 +26,7 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.serialization.IntegerSerializer
+import org.apache.kafka.common.serialization.{ByteArraySerializer, IntegerSerializer}
 import com.splicemachine.db.iapi.types.SQLInteger
 import com.splicemachine.db.iapi.types.SQLLongint
 import com.splicemachine.db.iapi.types.SQLDouble
@@ -42,16 +40,17 @@ import com.splicemachine.db.iapi.types.SQLTimestamp
 import com.splicemachine.db.iapi.types.SQLDate
 import com.splicemachine.db.iapi.types.SQLDecimal
 import com.splicemachine.db.impl.sql.execute.ValueRow
-import com.splicemachine.derby.stream.spark.ExternalizableSerializer
-import com.splicemachine.nsds.kafka.KafkaTopics
-import com.splicemachine.nsds.kafka.KafkaUtils
+import com.splicemachine.derby.impl.kryo.KryoSerialization
+import com.splicemachine.derby.stream.spark.KafkaReadFunction
+import com.splicemachine.nsds.kafka.{KafkaTopics, KafkaUtils}
+import com.splicemachine.spark2.splicemachine.SplicemachineContext.RowForKafka
 import org.apache.log4j.Logger
 import org.apache.spark.TaskContext
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 import scala.collection.JavaConverters._
 
-@SerialVersionUID(20200517241L)
+@SerialVersionUID(20200517301L)
 private object Holder extends Serializable {
   @transient lazy val log = Logger.getLogger(getClass.getName)
 }
@@ -59,6 +58,52 @@ private object Holder extends Serializable {
 object KafkaOptions {
   val KAFKA_SERVERS = "KAFKA_SERVERS"
   val KAFKA_POLL_TIMEOUT = "KAFKA_POLL_TIMEOUT"
+  val KAFKA_TOPIC_PARTITIONS = "KAFKA_TOPIC_PARTITIONS"
+}
+
+object SplicemachineContext {
+  @SerialVersionUID(20200922301L)
+  class RowForKafka(
+      topicName: String,
+      partition: Int,
+      schema: StructType
+    ) extends Serializable
+  {
+    var sparkRow: Option[Row] = None
+    var valueRow: Option[ValueRow] = None
+    var msgCount: Int = -1
+    
+    def topicName(): String = topicName
+    def partition(): Int = partition
+    def schema(): StructType = schema
+    
+    override def toString(): String =
+      if( valueRow.isDefined ) {
+        valueRow.toString
+      } else {
+        "None"
+      }
+
+    def send(producer: KafkaProducer[Integer, Array[Byte]], kryo: KryoSerialization, last: Boolean = false): Unit =
+      if( valueRow.isDefined ) {
+        producer.send( new ProducerRecord(
+          topicName,
+          partition,
+          partition,
+          kryo.serialize(
+            new KafkaReadFunction.Message(
+              valueRow.get,
+              msgCount,
+              if(last) { msgCount } else -1
+            )
+          )
+        ))
+      }
+  }
+}
+
+object Options {
+  val USE_FLOW_MARKERS = "USE_FLOW_MARKERS"
 }
 
 /**
@@ -66,9 +111,10 @@ object KafkaOptions {
   * Context for Splice Machine.
   *
   * @param options Supported options are JDBCOptions.JDBC_URL (required), JDBCOptions.JDBC_INTERNAL_QUERIES,
-  *                JDBCOptions.JDBC_TEMP_DIRECTORY, KafkaOptions.KAFKA_SERVERS, KafkaOptions.KAFKA_POLL_TIMEOUT
+  *                JDBCOptions.JDBC_TEMP_DIRECTORY, KafkaOptions.KAFKA_SERVERS, KafkaOptions.KAFKA_POLL_TIMEOUT,
+  *                KafkaOptions.KAFKA_TOPIC_PARTITIONS, Options.USE_FLOW_MARKERS
   */
-@SerialVersionUID(20200517242L)
+@SerialVersionUID(20200517302L)
 @SuppressFBWarnings(value = Array("NP_ALWAYS_NULL","NP_LOAD_OF_KNOWN_NULL_VALUE","EI_EXPOSE_REP2","SE_BAD_FIELD"), justification = "These fields usually are not null|These fields usually are not null|The nonKeys value is needed and is used read-only|The meta and itrRow objects are not used in serialization")
 class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] val url = options(JDBCOptions.JDBC_URL) + ";useSpark=true"
@@ -77,9 +123,26 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   println(s"Splice Kafka: $kafkaServers")
 
   private[this] val kafkaPollTimeout = options.getOrElse(KafkaOptions.KAFKA_POLL_TIMEOUT, "20000").toLong
-  
-  private[this] val kafkaTopics = new KafkaTopics(kafkaServers)
 
+  private[this] val insertTopicPartitions = options.getOrElse(KafkaOptions.KAFKA_TOPIC_PARTITIONS, "1").toInt
+
+  @transient lazy private[this] val kafkaTopics = new KafkaTopics(
+    kafkaServers,
+    insertTopicPartitions
+  )
+
+  private[this] val useFlowMarkers = options.getOrElse(Options.USE_FLOW_MARKERS, "false").toBoolean
+  
+  private[this] val (fmColList, fmSchemaStr, fmCount) = if( useFlowMarkers ) {
+    (",PTN_NSDS,TM_NSDS", ", PTN_NSDS INTEGER, TM_NSDS BIGINT", 2)
+  } else {
+    ("", "", 0)
+  }
+
+  private[this] val insAccum = SparkSession.builder.getOrCreate.sparkContext.longAccumulator("NSDSv2_Ins")
+  private[this] val lastRowsToSend = 
+    SparkSession.builder.getOrCreate.sparkContext.collectionAccumulator[RowForKafka]("LastRowsToSend")
+  
   /**
    *
    * Context for Splice Machine, specifying only the JDBC url.
@@ -369,7 +432,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @return Dataset[Row] with the result of the query
     */
   def df(sql: String): Dataset[Row] = {
-    val topicName = kafkaTopics.create
+    val topicName = kafkaTopics.create()
     try {
       sendSql(sql, topicName)
       new KafkaToDF(kafkaServers, kafkaPollTimeout, getSchemaOfQuery(sql)).df(topicName)
@@ -410,7 +473,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
                   columnProjection: Seq[String] = Nil): RDD[Row] = {
     val columnList = SpliceJDBCUtil.listColumns(columnProjection.toArray)
     val sqlText = s"SELECT $columnList FROM ${schemaTableName}"
-    val topicName = kafkaTopics.create
+    val topicName = kafkaTopics.create()
     try {
       sendSql(sqlText, topicName)
       new KafkaToDF(kafkaServers, kafkaPollTimeout, getSchemaOfQuery(sqlText)).rdd(topicName)
@@ -446,7 +509,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param statusDirectory status directory where bad records file will be created
    * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
    */
-  def insert(dataFrame: DataFrame, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit =
+  def insert(dataFrame: DataFrame, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Long =
     insert(dataFrame.rdd, dataFrame.schema, schemaTableName, statusDirectory, badRecordsAllowed)
 
   /**
@@ -463,7 +526,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param badRecordsAllowed how many bad records are allowed. -1 for unlimited
    *
    */
-  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Unit =
+  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, statusDirectory: String, badRecordsAllowed: Integer): Long =
     insert(rdd, schema, schemaTableName, Map("insertMode"->"INSERT","statusDirectory"->statusDirectory,"badRecordsAllowed"->badRecordsAllowed.toString) )
 
   /**
@@ -475,7 +538,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dataFrame input data
     * @param schemaTableName output table
     */
-  def insert(dataFrame: DataFrame, schemaTableName: String): Unit = insert(dataFrame.rdd, dataFrame.schema, schemaTableName)
+  def insert(dataFrame: DataFrame, schemaTableName: String): Long = insert(dataFrame.rdd, dataFrame.schema, schemaTableName)
 
   /**
    * Insert a RDD into a table (schema.table).  The schema is required since RDD's do not have schema.
@@ -484,68 +547,269 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
    * @param schema
    * @param schemaTableName
    */
-  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = insert(rdd, schema, schemaTableName, Map[String,String]())
+  def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Long = insert(rdd, schema, schemaTableName, Map[String,String]())
 
   private[this] def columnList(schema: StructType): String = SpliceJDBCUtil.listColumns(schema.fieldNames)
   private[this] def schemaString(schema: StructType): String = SpliceJDBCUtil.schemaWithoutNullableString(schema, url).replace("\"","")
 
-  private[this] def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, spliceProperties: scala.collection.immutable.Map[String,String]): Unit = {
-    val topicName = kafkaTopics.create
+  private[this] def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, 
+                           spliceProperties: scala.collection.immutable.Map[String,String]): Long = /*if( ! rdd.isEmpty )*/ {
+    println(s"${java.time.Instant.now} SMC.ins get topic name")
+    val topicName = kafkaTopics.create()
 //    println( s"SMC.insert topic $topicName" )
 
     // hbase user has read/write permission on the topic
     try {
+      insAccum.reset
+      lastRowsToSend.reset
+      println(s"${java.time.Instant.now} SMC.ins sendData")
       sendData(topicName, rdd, schema)
+      sendData(lastRowsToSend.value.asScala, true)
 
-      val colList = columnList(schema)
-      val sProps = spliceProperties.map({ case (k, v) => k + "=" + v }).fold("--splice-properties useSpark=true")(_ + ", " + _)
-      val sqlText = "insert into " + schemaTableName + " (" + colList + ") " + sProps + "\nselect " + colList + " from " +
-        "new com.splicemachine.derby.vti.KafkaVTI('" + topicName + "') " +
-        "as SpliceDatasetVTI (" + schemaString(schema) + ")"
+      if( ! insAccum.isZero ) {
+        println(s"${java.time.Instant.now} SMC.ins prepare sql")
+        val colList = columnList(schema) + fmColList
+        val sProps = spliceProperties.map({ case (k, v) => k + "=" + v }).fold("--splice-properties useSpark=true")(_ + ", " + _)
+        val sqlText = "insert into " + schemaTableName + " (" + colList + ") " + sProps + "\nselect " + colList + " from " +
+          "new com.splicemachine.derby.vti.KafkaVTI('" + topicName + "') " +
+          "as SpliceDatasetVTI (" + schemaString(schema) + fmSchemaStr + ")"
 
-      //println( s"SMC.insert sql $sqlText" )
-      executeUpdate(sqlText)
+        println( s"SMC.insert sql $sqlText" )
+        println(s"${java.time.Instant.now} SMC.ins executeUpdate")
+        executeUpdate(sqlText)
+        println(s"${java.time.Instant.now} SMC.ins done")
+      }
+      
+      insAccum.sum
     } finally {
       kafkaTopics.delete(topicName)
     }
   }
 
-  private[this] def sendData(topicName: String, rdd: JavaRDD[Row], schema: StructType): Unit =
+  private[this] val activePartitionAcm =
+    SparkSession.builder.getOrCreate.sparkContext.collectionAccumulator[String]("ActivePartitions")
+
+  def activePartitions(df: DataFrame): Seq[Int] = {
+    activePartitionAcm.reset
+    df.rdd.mapPartitionsWithIndex((p, itr) => {
+      activePartitionAcm.add( s"$p ${itr.nonEmpty}" )
+      Iterator.apply("OK")
+    }).collect
+  
+    activePartitionAcm.value.asScala.filter( _.endsWith("true") ).map( _.split(" ")(0).toInt )
+  }
+
+  var insertSql: String => String = _
+  
+  /* Sets up insertSql to be used by insert_streaming */
+  def setTable(schemaTableName: String, schema: StructType): Unit = {
+    val colList = columnList(schema) + fmColList
+    val schStr = schemaString(schema)
+    // Line break at the end of the first line and before select is required, other line breaks aren't required
+    insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList)
+                                       select $colList from 
+      new com.splicemachine.derby.vti.KafkaVTI('$topicName') 
+      as SpliceDatasetVTI ($schStr$fmSchemaStr)"""
+  }
+  
+  private[this] def log(msg: String): Unit = {
+    Holder.log.info(msg)
+    println(s"${java.time.Instant.now} $msg")
+  }
+
+  def insert_streaming(topicInfo: String, retries: Int = 0): Unit = {
+    val topicName = if( topicInfo.contains("::") ) {
+      topicInfo.split("::")(0)
+    } else {
+      topicInfo
+    }
+    try {
+      log("SMC.inss prepare sql")
+      val sqlText = insertSql(topicInfo)
+      log(s"SMC.inss sql $sqlText")
+      
+      //log( s"SMC.inss topicCount preex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
+      
+      log("SMC.inss executeUpdate")
+      executeUpdate(sqlText)
+      log("SMC.inss done")
+
+      log( s"SMC.inss topicCount postex ${KafkaUtils.messageCount(kafkaServers, topicName)}")
+    } catch {
+      case e: java.sql.SQLNonTransientConnectionException => 
+        if( retries < 2 ) {
+          insert_streaming(topicInfo, retries + 1)
+        }
+    } finally {
+      kafkaTopics.delete(topicName)
+    }
+  }
+
+  def newTopic_streaming(): String = {
+    log("SMC.nit get topic name")
+    kafkaTopics.create()
+  }
+  
+  def sendData_streaming(dataFrame: DataFrame, topicName: String): (Seq[RowForKafka], Long) = {
+    insAccum.reset
+    lastRowsToSend.reset
+    println(s"${java.time.Instant.now} SMC.sds sendData")
+    sendData(topicName, dataFrame.rdd, dataFrame.schema)
+
+    val rows = lastRowsToSend.value.asScala
+    //println(s"${java.time.Instant.now} SMC.sds last rows ${rows.mkString("\n")}")
+
+    (rows, insAccum.sum)
+  }
+  
+  /** checkRecovery was written to help debug an issue and normally won't need to be called. */
+  private[this] def checkRecovery(
+     id: String,
+     topicName: String, 
+     partition: Int, 
+     itr: Iterator[Row],
+     schema: StructType
+   ): Unit = {
+
+    val lastVR = KafkaUtils.lastMessageOf(kafkaServers, topicName, partition)
+      .asInstanceOf[KafkaReadFunction.Message].vr
+    val cols = if( lastVR.length > 0) { Range(0,lastVR.length-1).toArray } else { Array(0) }
+    val lastKHash = lastVR.hashCode(cols)
+
+    val khashcodes = KafkaUtils.messagesFrom(kafkaServers, topicName, partition)
+      .map( _.asInstanceOf[KafkaReadFunction.Message].vr.hashCode(cols) )
+
+    println(s"$id SMC.checkRecovery 1st Kafka hashcode ${khashcodes.headOption.getOrElse(-1)}" )
+    
+    var i = 0
+    var res = Seq.empty[String]
+    while( itr.hasNext ) {
+      val hashcode = externalizable(itr.next, schema, partition).hashCode(cols)
+      res = res :+ s"$i,${khashcodes.indexOf(hashcode)}\t${hashcode==lastKHash}"
+      i += 1
+    }
+    
+    println(s"$id SMC.checkRecovery res: Kafka count ${khashcodes.size}\n${res.mkString("\n")}")
+  }
+  
+  private[this] var sendDataTimestamp: Long = _
+  
+  private[this] def sendData(topicName: String, rdd: JavaRDD[Row], schema: StructType): Unit = {
+    sendDataTimestamp = System.currentTimeMillis
     rdd.rdd.mapPartitionsWithIndex(
       (partition, itrRow) => {
-        val taskContext = TaskContext.get
+        val id = topicName.substring(0,5)+":"+partition.toString
+        //println(s"$id SMC.sendData p== $partition")
 
-        var msgIdx = 0
-        if (taskContext != null && taskContext.attemptNumber > 0) {
-          val entriesInKafka = KafkaUtils.messageCount(kafkaServers, topicName, partition)
-          for(i <- (1: Long) to entriesInKafka) {
-            itrRow.next
+        var msgCount = 0
+        val taskContext = TaskContext.get
+        val itr = if (taskContext != null && taskContext.attemptNumber > 0) {
+          // Recover from previous task failure
+          // Be sure the iterator is advanced past the items previously published to Kafka
+          
+          println(s"$id SMC.sendData Retry $partition ${taskContext.attemptNumber} ${insAccum.sum}")
+
+          //val itr12 = itrRow //.duplicate
+          //checkRecovery(id, topicName, partition, itr12._1, schema)
+
+          val lastMsg = KafkaUtils.lastMessageOf(kafkaServers, topicName, partition)
+          if( lastMsg.isEmpty ) {
+            itrRow
+          } else {
+            val lastVR = lastMsg.get.asInstanceOf[KafkaReadFunction.Message].vr
+            val hashCols = if( lastVR.length > 0) { Range(0,lastVR.length-1).toArray } else { Array(0) }
+            val lastKHash = lastVR.hashCode(hashCols)
+            def hash: Row => Int = row => externalizable(row, schema, partition).hashCode(hashCols)
+            
+            //val itr34 = itr12._2.duplicate
+            val itr34 = itrRow.duplicate   //itr12.duplicate
+            
+            val inKafka_NotInKafka = itr34._1.span( hash(_) != lastKHash )
+            if( inKafka_NotInKafka._2.hasNext ) {
+              inKafka_NotInKafka._2.next  // matches the last item in Kafka, get past it
+              //println(s"$id SMC.sendData Retry skip ${hash(r)} $lastKHash")
+              msgCount = inKafka_NotInKafka._1.size + 1  // this message count was lost during previous task failure
+              inKafka_NotInKafka._2
+            } else {  // itrRow starts after the last item added to Kafka
+              itr34._2
+            }
           }
-          msgIdx = entriesInKafka.asInstanceOf[Int]
+        } else {
+          itrRow
         }
 
         val props = new Properties
         props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
         props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-s2s-smc-"+java.util.UUID.randomUUID() )
         props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, classOf[IntegerSerializer].getName)
-        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[ExternalizableSerializer].getName)
+        props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[ByteArraySerializer].getName)
+//        // Throughput performance?
+//        println(s"SMC.sendData batch 1MB linger 750ms")
+//        props.put(ProducerConfig.BATCH_SIZE_CONFIG, (1000*1000).toString )
+//        props.put(ProducerConfig.LINGER_MS_CONFIG, "500")
 
-        val producer = new KafkaProducer[Integer, Externalizable](props)
-
-        while( itrRow.hasNext ) {
-          producer.send( new ProducerRecord(topicName, msgIdx, externalizable(itrRow.next, schema)) )
-          msgIdx += 1
+        val producer = new KafkaProducer[Integer, Array[Byte]](props)
+        
+        val rowK = new RowForKafka(topicName, partition, schema)
+        rowK.sparkRow = if( itr.hasNext ) {
+          msgCount += 1
+          Some(itr.next)
+        } else None
+        rowK.msgCount = msgCount
+        
+        val kryo = new KryoSerialization()
+        kryo.init
+        
+        while( itr.hasNext ) {
+          rowK.valueRow = Some(externalizable(rowK.sparkRow.get, schema, partition))
+          rowK.send(producer, kryo)
+          msgCount += 1
+          rowK.sparkRow = Some(itr.next)
+          rowK.msgCount = msgCount
         }
+        lastRowsToSend.add(rowK)
+        
+        kryo.close
 
+        insAccum.add(msgCount)
+
+        println(s"$id SMC.sendData t $topicName p $partition records $msgCount")
+        
+        producer.flush
         producer.close
 
         java.util.Arrays.asList("OK").iterator().asScala
       }
     ).collect
+  }
+  
+  def sendData(rows: Seq[RowForKafka], last: Boolean = false): Unit = {
+    val props = new Properties
+    props.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
+    props.put(ProducerConfig.CLIENT_ID_CONFIG, "spark-producer-s2s-smcrfk-"+java.util.UUID.randomUUID() )
+    props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, classOf[IntegerSerializer].getName)
+    props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, classOf[ByteArraySerializer].getName)
+    val producer = new KafkaProducer[Integer, Array[Byte]](props)
+
+    val kryo = new KryoSerialization()
+    kryo.init
+    
+    rows.foreach( r => {
+      if( r.sparkRow.isDefined ) {
+        r.valueRow = Some(externalizable(r.sparkRow.get, r.schema, r.partition))
+        r.send(producer, kryo, last)
+      }
+    })
+    
+    kryo.close
+    
+    producer.flush
+    producer.close
+  }
 
   /** Convert org.apache.spark.sql.Row to Externalizable. */
-  def externalizable(row: Row, schema: StructType): ValueRow = {
-    val valRow = new ValueRow(row.length);
+  def externalizable(row: Row, schema: StructType, partition: Int): ValueRow = {
+    val valRow = new ValueRow(row.length + fmCount)
     for (i <- 1 to row.length) {  // convert each column of the row
       val fieldDef = schema(i-1)
       spliceType( fieldDef.dataType , row , i-1 ) match {
@@ -554,6 +818,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         case None =>
           throw new IllegalArgumentException(s"Can't get Splice type for ${fieldDef.dataType.simpleString}")
       }
+    }
+    if( useFlowMarkers ) {
+      valRow.setColumn(row.length + 1, new SQLInteger(partition))
+      valRow.setColumn(row.length + 2, new SQLLongint(sendDataTimestamp))
     }
     valRow
   }
@@ -662,13 +930,13 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     keys: Array[String],
     sqlStart: String
   ): Unit = {
-    val topicName = kafkaTopics.create
+    val topicName = kafkaTopics.create()
     //println( s"SMC.modifyOnKeys topic $topicName" )
     try {
       sendData(topicName, rdd, schema)
 
       val sqlText = sqlStart +
-        " from new com.splicemachine.derby.vti.KafkaVTI('" + topicName + "') " +
+        " from new com.splicemachine.derby.vti.KafkaVTI('"+topicName+"') " +
         "as SDVTI (" + schemaString(schemaTableName, schema) + ") where "
       val dialect = JdbcDialects.get(url)
       val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
@@ -892,14 +1160,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       throw new IllegalArgumentException( "Dataframe is empty." )
     }
 
-    val topicName = kafkaTopics.create
+    val topicName = kafkaTopics.create()
     //println( s"SMC.export topic $topicName" )
     try {
       val schema = dataFrame.schema
       sendData(topicName, dataFrame.rdd, schema)
 
       val sqlText = exportCmd + s" select " + columnList(schema) + " from " +
-        s"new com.splicemachine.derby.vti.KafkaVTI('" + topicName + s"') as SpliceDatasetVTI (${schemaString(schema)})"
+        s"new com.splicemachine.derby.vti.KafkaVTI('"+topicName+s"') as SpliceDatasetVTI (${schemaString(schema)})"
       //println( s"SMC.export sql $sqlText" )
       execute(sqlText)
     } finally {
