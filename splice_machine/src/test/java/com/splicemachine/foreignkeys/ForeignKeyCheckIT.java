@@ -33,9 +33,9 @@ import static org.junit.Assert.*;
  * Foreign key tests for *checking* that the FK constraint is enforced in various scenarios.
  */
 @Category(LongerThanTwoMinutes.class)
-public class ForeignKey_Check_IT {
+public class ForeignKeyCheckIT {
 
-    private static final String SCHEMA = ForeignKey_Check_IT.class.getSimpleName();
+    private static final String SCHEMA = ForeignKeyCheckIT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);

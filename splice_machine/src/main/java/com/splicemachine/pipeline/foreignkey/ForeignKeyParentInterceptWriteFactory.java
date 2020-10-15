@@ -15,10 +15,10 @@
 package com.splicemachine.pipeline.foreignkey;
 
 import com.splicemachine.ddl.DDLMessage;
-import splice.com.google.common.collect.Lists;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
+import splice.com.google.common.collect.Lists;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,7 +35,8 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
 
     ForeignKeyParentInterceptWriteFactory(String parentTableName,
                                           List<Long> referencingIndexConglomerateNumbers,
-                                          PipelineExceptionFactory exceptionFactory, List<DDLMessage.FKConstraintInfo> fkConstraintInfo) {
+                                          PipelineExceptionFactory exceptionFactory,
+                                          List<DDLMessage.FKConstraintInfo> fkConstraintInfo) {
         this.parentTableName = parentTableName;
         this.exceptionFactory=exceptionFactory;
         this.referencingIndexConglomerateNumbers.addAll(referencingIndexConglomerateNumbers);
@@ -43,8 +44,8 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
     }
 
     @Override
-    public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        ctx.addLast(new ForeignKeyParentInterceptWriteHandler(parentTableName, referencingIndexConglomerateNumbers,exceptionFactory,constraintInfos));
+    public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) {
+        ctx.addLast(new ForeignKeyParentInterceptWriteHandler(parentTableName, referencingIndexConglomerateNumbers, constraintInfos, exceptionFactory));
     }
 
     @Override
@@ -56,11 +57,17 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
      * If a FK is dropped or the child table is dropped remove it from the list of conglomerates we check.
      */
     public void removeReferencingIndexConglomerateNumber(long conglomerateNumber) {
-        this.referencingIndexConglomerateNumbers.remove(conglomerateNumber);
+        int idx = this.referencingIndexConglomerateNumbers.indexOf(conglomerateNumber);
+        if(idx != -1) {
+            this.referencingIndexConglomerateNumbers.remove(conglomerateNumber);
+            this.constraintInfos.remove(idx); // at index
+        }
     }
 
-    public void addReferencingIndexConglomerateNumber(List<Long> conglomerateNumbers) {
-        this.referencingIndexConglomerateNumbers.addAll(conglomerateNumbers);
+    public void addReferencingIndexConglomerateNumber(List<Long> referencingIndexConglomerateNumbers,
+                                                      List<DDLMessage.FKConstraintInfo> fkConstraintInfos) {
+        this.referencingIndexConglomerateNumbers.addAll(referencingIndexConglomerateNumbers);
+        this.constraintInfos.addAll(fkConstraintInfos);
     }
 
     @Override
