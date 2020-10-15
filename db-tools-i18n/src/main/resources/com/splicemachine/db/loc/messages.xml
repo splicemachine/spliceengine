@@ -3670,12 +3670,28 @@ Guide.
             </msg>
 
             <msg>
+                <name>X0Y31.S</name>
+                <text>Operation 'DROP SCHEMA {0} CASCADE' is not successful, because {1} '{2}' has dependent(s) from outside the schema.</text>
+                <arg>schemaName</arg>
+                <arg>objectType</arg>
+                <arg>objectName</arg>
+            </msg>
+
+            <msg>
                 <name>X0Y32.S</name>
                 <text>{0} '{1}' already exists in {2} '{3}'.</text>
                 <arg>value</arg>
                 <arg>value</arg>
                 <arg>value</arg>
                 <arg>value</arg>
+            </msg>
+
+            <msg>
+                <name>X0Y33.S</name>
+                <text>Operation 'DROP SCHEMA {0} CASCADE' is not successful, because cyclic dependency between '{1}' and '{2}' has been detected.</text>
+                <arg>schemaName</arg>
+                <arg>objectName1</arg>
+                <arg>objectName2</arg>
             </msg>
 
             <msg>
