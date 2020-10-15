@@ -696,10 +696,11 @@ public class InsertOperationIT {
         // table DB10493 has two columns (c0 time, c1 date)
         // with this insert, SQLCol2 column name beccomes NULL
         String sqlText = "insert into DB10493(c1) values ('1969-12-28'), (NULL), ('1969-12-25')";
-        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(true).build()) {
-            try( Statement s = conn.createStatement() ) {
-                s.execute(sqlText);
-            }
+
+        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useOLAP=true";
+        try( ExplainPlanIT.ConnectionStatementWrapper s = new ExplainPlanIT.ConnectionStatementWrapper(DriverManager.getConnection(url, new Properties()), SCHEMA.toUpperCase()) )
+        {
+            s.execute(sqlText);
         }
     }
 }
