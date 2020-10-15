@@ -19,6 +19,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.io.FileUtils;
 import org.junit.*;
 import org.spark_project.guava.collect.Maps;
@@ -40,10 +41,10 @@ public class InsertOperationIT {
     private static final String SCHEMA = InsertOperationIT.class.getSimpleName();
 
     @ClassRule
-    public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
+    public static final SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 
     @ClassRule
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
     @BeforeClass
     public static void createSharedTables() throws Exception {
@@ -262,7 +263,7 @@ public class InsertOperationIT {
          */
         long insertCount = methodWatcher.executeUpdate(String.format("insert into %1$s select " +
                 "%2$s.a,%3$s.c,%2$s.b,%3$s.d " +
-                "from %2$s --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n" +
+                "from %2$s --SPLICE-PROPERTIES joinStrategy=SORTMERGE %n" +
                 "right join %3$s on %2$s.a=%3$s.c", "T5", "T3", "T4"));
         Assert.assertEquals("Incorrect number of rows inserted!", 2, insertCount);
         ResultSet rs = methodWatcher.executeQuery("select * from T5");
@@ -377,10 +378,10 @@ public class InsertOperationIT {
         ResultSet rs = methodWatcher.executeQuery(sql);
 
         if (rs.next()) {
-            Assert.assertTrue("expect column 1 to be 'abc  ', actual is: " + rs.getString(1), rs.getString(1).equals("abc  "));
-            Assert.assertTrue("expect column 2 to be the bit string for 'abc  ', actual is: " + rs.getBytes(2), Arrays.equals(rs.getBytes(2), "abc  ".getBytes()));
-            Assert.assertTrue("expect column 3 to be the bit string for 'abc', actual is: " + rs.getBytes(3), Arrays.equals(rs.getBytes(3), "abc".getBytes()));
-            Assert.assertTrue("expect column 4 to be the bit string for 'abc', actual is: " + rs.getBytes(4), Arrays.equals(rs.getBytes(4), "abc".getBytes()));
+            Assert.assertTrue("error in column 1", rs.getString(1).equals("abc  "));
+            Assert.assertEquals("expect column 2 to be the bit string for 'abc  '", Arrays.toString(rs.getBytes(2)), "[97, 98, 99, 32, 32]" );
+            Assert.assertEquals("expect column 3 to be the bit string for 'abc'", Arrays.toString(rs.getBytes(3)), "[97, 98, 99]" );
+            Assert.assertEquals("expect column 4 to be the bit string for 'abc'", Arrays.toString(rs.getBytes(4)), "[97, 98, 99]" );
         } else {
             Assert.fail("expected one row to be returned!");
         }
@@ -469,13 +470,15 @@ public class InsertOperationIT {
         Assert.assertEquals("Incorrect number of groups returned!", nameCountMap.size(), groupCount);
     }
 
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED_BAD_PRACTICE") // delete/createNewFile
     @Test
     public void testInsertBlob() throws Exception {
-        InputStream fin = new FileInputStream(getResourceDirectory() + "order_line_500K.csv");
-        PreparedStatement ps = methodWatcher.prepareStatement("insert into FILES (name, doc) values (?,?)");
-        ps.setString(1, "csv_file");
-        ps.setBinaryStream(2, fin);
-        ps.execute();
+        try(InputStream fin = new FileInputStream(getResourceDirectory() + "order_line_500K.csv")) {
+            PreparedStatement ps = methodWatcher.prepareStatement("insert into FILES (name, doc) values (?,?)");
+            ps.setString(1, "csv_file");
+            ps.setBinaryStream(2, fin);
+            ps.execute();
+        }
         ResultSet rs = methodWatcher.executeQuery("SELECT doc FROM FILES WHERE name = 'csv_file'");
         byte buff[] = new byte[1024];
         while (rs.next()) {
@@ -486,12 +489,12 @@ public class InsertOperationIT {
             }
             newFile.createNewFile();
             InputStream is = ablob.getBinaryStream();
-            FileOutputStream fos = new FileOutputStream(newFile);
-            for (int b = is.read(buff); b != -1; b = is.read(buff)) {
-                fos.write(buff, 0, b);
+            try(FileOutputStream fos = new FileOutputStream(newFile)) {
+                for (int b = is.read(buff); b != -1; b = is.read(buff)) {
+                    fos.write(buff, 0, b);
+                }
+                is.close();
             }
-            is.close();
-            fos.close();
         }
         File file1 = new File(getResourceDirectory() + "order_line_500K.csv");
         File file2 = new File(getBaseDirectory() + "/target/order_line_500K.csv");
@@ -515,23 +518,22 @@ public class InsertOperationIT {
 
     @Test
     public void testRepeatedInsertOverSelectReportsCorrectNumbers() throws Exception {
-        Connection conn = methodWatcher.getOrCreateConnection();
         //insert a single record
-        conn.createStatement().executeUpdate("insert into T2 (a,b) values (1,1)");
-        PreparedStatement ps = conn.prepareStatement("insert into T2 (a,b) select * from T2");
+        methodWatcher.execute("insert into T2 (a,b) values (1,1)");
         int iterCount = 10;
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into T2 (a,b) select * from T2");
         for (int i = 0; i < iterCount; i++) {
             int updateCount = ps.executeUpdate();
             System.out.printf("updateCount=%d%n", updateCount);
 //            Assert.assertEquals("Reported incorrect value!",(1<<i),count);
-            ResultSet rs = conn.createStatement().executeQuery("select count(*) from T2");
+            ResultSet rs = methodWatcher.executeQuery("select count(*) from T2");
             Assert.assertTrue("Did not return rows for a count query!", rs.next());
             long count = rs.getLong(1);
             System.out.printf("scanCount=%d%n", count);
             Assert.assertEquals("Incorrect inserted records!", (1 << (i + 1)), count);
         }
 
-        ResultSet rs = conn.createStatement().executeQuery("select count(*) from T2");
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from T2");
         Assert.assertTrue("Did not return rows for a count query!", rs.next());
         long count = rs.getLong(1);
         Assert.assertEquals("Incorrect inserted records!", (1 << iterCount), count);
@@ -539,10 +541,10 @@ public class InsertOperationIT {
 
     @Test
     public void testBatchInsert() throws Exception {
-        Connection conn = methodWatcher.getOrCreateConnection();
         //insert a single record
-        conn.setAutoCommit(false);
-        PreparedStatement ps = conn.prepareStatement("insert into batch_test (col1,col2,col3) values (?,?,?)");
+        methodWatcher.setAutoCommit(false);
+
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into batch_test (col1,col2,col3) values (?,?,?)");
         int iterCount = 10;
         for (int i = 0; i < iterCount; i++) {
             ps.setInt(1,i);
@@ -553,17 +555,18 @@ public class InsertOperationIT {
         int[] results = ps.executeBatch();
         Assert.assertEquals("results returned correct",10,results.length);
         ps.close();
-        ps = conn.prepareStatement("select count(*) from batch_test");
-        ResultSet rs = ps.executeQuery();
-        rs.next();
-        Assert.assertEquals("results returned correct",10,rs.getInt(1));
-        conn.rollback();
+        ps = methodWatcher.prepareStatement("select count(*) from batch_test");
+        try(ResultSet rs = ps.executeQuery()) {
+            rs.next();
+            Assert.assertEquals("results returned correct", 10, rs.getInt(1));
+        }
+        methodWatcher.rollback();
+        methodWatcher.setAutoCommit(true);
     }
 
     @Test
     public void testInsertFromSubselectWithCast() throws Exception {
-        Connection conn = methodWatcher.getOrCreateConnection();
-        PreparedStatement ps = conn.prepareStatement("insert into t7 values ('Jackson')");
+        PreparedStatement ps = methodWatcher.prepareStatement("insert into t7 values ('Jackson')");
         ps.execute();
         String sql = "insert into T6\n" +
                 "SELECT \n" +
@@ -575,48 +578,48 @@ public class InsertOperationIT {
                 ") T1";
 
         // Make sure insert works with a subselect and instr
-        ps = conn.prepareStatement(sql);
+        ps = methodWatcher.prepareStatement(sql);
         int count = ps.executeUpdate();
         Assert.assertTrue(count == 1);
 
         // verify results
-        ps = conn.prepareStatement("select * from t6");
-        ResultSet rs = ps.executeQuery();
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue(rs.getInt(1) == 2);
+        ps = methodWatcher.prepareStatement("select * from t6");
+        try(ResultSet rs = ps.executeQuery()) {
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getInt(1) == 2);
+        }
     }
 
     @Test
     public void testInsertFromJoinWithImplicitCast() throws Exception {
-        Connection conn = methodWatcher.getOrCreateConnection();
         String sql = "insert into TABLE_RESULT select A.CUSTOMER_ID from TABLE_BIGINT A " +
                 "where NOT EXISTS (SELECT * from TABLE_DECIMAL B where A.CUSTOMER_ID = B.CUSTOMER_ID)";
-        PreparedStatement ps = conn.prepareStatement(sql);
+        PreparedStatement ps = methodWatcher.prepareStatement(sql);
         ps.execute();
 
-        ps = conn.prepareStatement("select * from TABLE_RESULT order by 1");
-        ResultSet rs = ps.executeQuery();
-        int i = 1;
-        while(rs.next()) {
-            Assert.assertEquals("Wrong result", i++, rs.getInt(1));
+        ps = methodWatcher.prepareStatement("select * from TABLE_RESULT order by 1");
+        try(ResultSet rs = ps.executeQuery()) {
+            int i = 1;
+            while (rs.next()) {
+                Assert.assertEquals("Wrong result", i++, rs.getInt(1));
+            }
         }
-        rs.close();
 
-        ps = conn.prepareStatement("truncate table TABLE_RESULT");
+        ps = methodWatcher.prepareStatement("truncate table TABLE_RESULT");
         ps.execute();
 
         sql = "insert into TABLE_RESULT select A.CUSTOMER_ID from TABLE_BIGINT A " +
                 "where NOT EXISTS (SELECT * from TABLE_DECIMAL B where B.CUSTOMER_ID = A.CUSTOMER_ID)";
-        ps = conn.prepareStatement(sql);
+        ps = methodWatcher.prepareStatement(sql);
         ps.execute();
 
-        ps = conn.prepareStatement("select * from TABLE_RESULT order by 1");
-        rs = ps.executeQuery();
-        i = 1;
-        while(rs.next()) {
-            Assert.assertEquals("Wrong result", i++, rs.getInt(1));
+        ps = methodWatcher.prepareStatement("select * from TABLE_RESULT order by 1");
+        try( ResultSet rs = ps.executeQuery()) {
+            int i = 1;
+            while (rs.next()) {
+                Assert.assertEquals("Wrong result", i++, rs.getInt(1));
+            }
         }
-        rs.close();
     }
 
     @Test
@@ -694,8 +697,7 @@ public class InsertOperationIT {
         // with this insert, SQLCol2 column name beccomes NULL
         String sqlText = "insert into DB10493(c1) values ('1969-12-28'), (NULL), ('1969-12-25')";
         try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(true).build()) {
-            try( Statement s = conn.createStatement() )
-            {
+            try( Statement s = conn.createStatement() ) {
                 s.execute(sqlText);
             }
         }
