@@ -66,7 +66,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 		SpliceLogUtils.trace(LOG, "CreateAliasConstantOperation with alias {%s} on schema %s with aliasInfo %s",aliasName, schemaName, aliasInfo);
 		this.aliasName = aliasName;
 		this.schemaName = schemaName;
-		this.javaClassName = javaClassName;
+		this.javaClassName = javaClassName == null ? "NULL" : javaClassName;
 		this.aliasInfo = aliasInfo;
 		this.aliasType = aliasType;
 		switch (aliasType) {
