@@ -16120,19 +16120,34 @@ dropRoleStatement() throws StandardException :
     }
 }
 
+Boolean
+restrictOrCascade() :
+{}
+{
+    <RESTRICT>
+    {
+        return Boolean.TRUE;
+    }
+|
+    <CASCADE>
+    {
+        return Boolean.FALSE;
+    }
+}
 
 StatementNode
 dropSchemaStatement() throws StandardException :
 {
     String schemaName;
+    Boolean option;
 }
 {
-    <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) <RESTRICT>
+    <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) option = restrictOrCascade()
     {
         StatementNode stmt =  (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.DROP_SCHEMA_NODE,
                             schemaName,
-                            new Integer(StatementType.DROP_RESTRICT),
+                            new Integer(option ? StatementType.DROP_RESTRICT : StatementType.DROP_CASCADE),
                             getContextManager());
 
         return stmt;

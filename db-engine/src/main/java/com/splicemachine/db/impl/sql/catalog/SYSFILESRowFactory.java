@@ -66,7 +66,7 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 	/* Column #s (1 based) */
     private static final int		ID_COL_NUM = 1;
     private static final String   ID_COL_NAME = "FILEID";
-    private static final int		SCHEMA_ID_COL_NUM = 2;
+    public static final int		SCHEMA_ID_COL_NUM = 2;
     private static final String   SCHEMA_ID_COL_NAME = "SCHEMAID";
     private static final int		NAME_COL_NUM = 3;
     private static final String   NAME_COL_NAME = "FILENAME";
@@ -128,6 +128,9 @@ public class SYSFILESRowFactory extends CatalogRowFactory {
 		ExecRow        			row;
 
 		if (td != null) {
+			if (!(td instanceof FileInfoDescriptor))
+				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
+			
 			FileInfoDescriptor descriptor = (FileInfoDescriptor)td;
 			id_S = descriptor.getUUID().toString();
 			schemaId_S = descriptor.getSchemaDescriptor().getUUID().toString();

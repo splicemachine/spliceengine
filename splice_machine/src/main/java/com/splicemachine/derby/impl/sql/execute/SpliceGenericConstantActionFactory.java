@@ -25,7 +25,6 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
@@ -33,7 +32,6 @@ import com.splicemachine.derby.impl.sql.execute.actions.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
@@ -301,9 +299,9 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
-    public ConstantAction getDropSchemaConstantAction(String schemaName){
+    public ConstantAction getDropSchemaConstantAction(String schemaName, int dropBehavior){
         SpliceLogUtils.trace(LOG,"getDropSchemaConstantAction for {%s}",schemaName);
-        return new DropSchemaConstantOperation(schemaName);
+        return new DropSchemaConstantOperation(schemaName, dropBehavior);
     }
 
     @Override
