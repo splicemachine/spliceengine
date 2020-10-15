@@ -896,6 +896,7 @@
                 <hbase.version>2.0.2.3.1.0.0-78</hbase.version>
                 <hive.version>3.1.0.3.1.2.0-4</hive.version>
                 <zookeeper.version>3.4.6.3.1.0.0-78</zookeeper.version>
+                <guava.version>12.0</guava.version>
                 <spark.version>2.3.2.3.1.0.0-78</spark.version>
                 <spark.major.version>spark2.3</spark.major.version>
                 <kafka.version>2.0.0.3.1.0.0-78</kafka.version>
@@ -932,6 +933,7 @@
                 <hbase.version>2.1.6.3.1.5.124-1</hbase.version>
                 <hive.version>3.1.0.3.1.5.124-1</hive.version>
                 <zookeeper.version>3.4.6.3.1.5.124-1</zookeeper.version>
+                <guava.version>28.2-jre</guava.version>
                 <spark.version>2.3.2.3.1.5.124-1</spark.version>
                 <spark.major.version>spark2.3</spark.major.version>
                 <kafka.version>2.0.0.3.1.5.124-1</kafka.version>
@@ -969,6 +971,7 @@
                 <hbase.version>2.1.0-cdh6.3.0</hbase.version>
                 <hive.version>2.1.1-cdh6.3.0</hive.version>
                 <zookeeper.version>3.4.5-cdh6.3.0</zookeeper.version>
+                <guava.version>12.0</guava.version>
                 <spark.version>2.4.0-cdh6.3.0</spark.version>
                 <spark.major.version>spark2.4</spark.major.version>
                 <kafka.version>2.2.1-cdh6.3.0</kafka.version>
