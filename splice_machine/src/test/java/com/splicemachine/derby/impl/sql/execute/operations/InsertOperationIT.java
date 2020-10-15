@@ -91,6 +91,8 @@ public class InsertOperationIT {
         classWatcher.executeUpdate("create table TT1(i int)");
         classWatcher.executeUpdate("create table TT22(i int)");
 
+        classWatcher.executeUpdate("create table T_FOR_BIT_DATA(a1 char(5), b1 char(5) for bit data, c1 varchar(5) for bit data, d1 long varchar for bit data)");
+
         classWatcher.executeUpdate("create table null_defaults(" +
                 "a smallint default null," +
                 "b integer default null," +
@@ -365,6 +367,23 @@ public class InsertOperationIT {
         methodWatcher.executeUpdate("insert into HMM values(X'11', X'22', X'33', X'44', X'55')");
     }
 
+    @Test
+    public void testInsertIntoBitColumnUsingRegularString() throws Exception {
+        methodWatcher.executeUpdate("insert into T_FOR_BIT_DATA values ('abc', 'abc', 'abc', 'abc')");
+        String sql = "select * from T_FOR_BIT_DATA";
+        ResultSet rs = methodWatcher.executeQuery(sql);
+
+        if (rs.next()) {
+            Assert.assertTrue("expect column 1 to be 'abc  ', actual is: " + rs.getString(1), rs.getString(1).equals("abc  "));
+            Assert.assertTrue("expect column 2 to be the bit string for 'abc  ', actual is: " + rs.getBytes(2), Arrays.equals(rs.getBytes(2), "abc  ".getBytes()));
+            Assert.assertTrue("expect column 3 to be the bit string for 'abc', actual is: " + rs.getBytes(3), Arrays.equals(rs.getBytes(3), "abc".getBytes()));
+            Assert.assertTrue("expect column 4 to be the bit string for 'abc', actual is: " + rs.getBytes(4), Arrays.equals(rs.getBytes(4), "abc".getBytes()));
+        } else {
+            Assert.fail("expected one row to be returned!");
+        }
+
+        rs.close();
+    }
 
     @Test
     public void testInsertReportsCorrectReturnedNumber() throws Exception {
