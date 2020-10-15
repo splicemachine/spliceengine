@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.ClassName;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 
@@ -49,7 +50,7 @@ import java.util.List;
  * This node represents a unary upper or lower operator
  *
  */
-
+@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SimpleStringOperatorNode extends UnaryOperatorNode
 {
 	/**

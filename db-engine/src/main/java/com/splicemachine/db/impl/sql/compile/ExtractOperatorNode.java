@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 
@@ -55,6 +56,7 @@ import static com.splicemachine.db.iapi.types.DateTimeDataValue.MONTHNAME_FIELD;
  * a field from a date/time. The field value is returned as an integer.
  *
  */
+@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ExtractOperatorNode extends UnaryOperatorNode {
 
 	static private final String fieldName[] = {

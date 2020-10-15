@@ -139,10 +139,11 @@ public class StoreCostControllerImpl implements StoreCostController {
             throws StandardException
     {
         List<PartitionStatistics> partitionStats;
+        assert partitions != null;
         partitions.clear();
         if ((forExprIndex || !isExternalTable) && !isMergedStats) {
             getPartitions(congId, partitions, false);
-            assert partitions != null && !partitions.isEmpty() : "No Partitions returned";
+            assert !partitions.isEmpty() : "No Partitions returned";
             List<String> partitionNames = Lists.transform(partitions, partitionNameTransform);
             Map<String, PartitionStatisticsDescriptor> partitionMap = Maps.uniqueIndex(partitionStatistics, partitionStatisticsTransform);
             if (partitions.size() < partitionStatistics.size()) {

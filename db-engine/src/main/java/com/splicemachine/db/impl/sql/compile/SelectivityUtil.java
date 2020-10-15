@@ -60,10 +60,10 @@ public class SelectivityUtil {
         ALL   /* all join conditions, equality or not */
     }
 
-    public static double  DEFAULT_SINGLE_POINT_SELECTIVITY = 0.1d;
-    public static double  DEFAULT_BETWEEN_SELECTIVITY = 0.5d;
-    public static double DEFAULT_RANGE_SELECTIVITY = 0.33d;
-    public static double  DEFAULT_INLIST_SELECTIVITY = 0.9d;
+    public static final double  DEFAULT_SINGLE_POINT_SELECTIVITY = 0.1d;
+    public static final double  DEFAULT_BETWEEN_SELECTIVITY = 0.5d;
+    public static final double  DEFAULT_RANGE_SELECTIVITY = 0.33d;
+    public static final double  DEFAULT_INLIST_SELECTIVITY = 0.9d;
 
     public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
                             OptimizablePredicateList predList,
@@ -117,8 +117,7 @@ public class SelectivityUtil {
                                                  SelectivityJoinType selectivityJoinType,
                                                  JoinPredicateType predicateType) throws StandardException {
 
-        assert innerTable!=null:"Null values passed in to estimateJoinSelectivity " + innerTable ;
-        assert innerTable!=null:"Null values passed in to hashJoinSelectivity";
+        assert innerTable != null : "Null value of argument 'innerTable' passed in to estimateJoinSelectivity";
 
         if (isOneRowResultSet(innerTable, innerCD, predList)) {
             switch (selectivityJoinType) {

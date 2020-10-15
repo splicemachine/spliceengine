@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.List;
@@ -46,7 +47,7 @@ import java.util.List;
 /**
  * This node represents a unary arithmetic operator
  */
-
+@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class UnaryArithmeticOperatorNode extends UnaryOperatorNode{
     private final static int UNARY_PLUS=0;
     private final static int UNARY_MINUS=1;
