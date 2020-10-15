@@ -14,7 +14,7 @@
 
 package com.splicemachine.stream;
 
-import com.google.common.net.HostAndPort;
+import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;

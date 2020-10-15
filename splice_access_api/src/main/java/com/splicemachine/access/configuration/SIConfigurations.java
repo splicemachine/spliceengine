@@ -53,6 +53,12 @@ public class SIConfigurations implements ConfigurationDefault {
     public static final String IGNORE_MISSING_TXN = "splice.ignore.missing.transactions";
     private static final boolean DEFAULT_IGNORE_MISSING_TXN=false;
 
+    /**
+     * The default minimum retention period for system tables in seconds.
+     */
+    public static final String SYS_TABLES_RETENTION_PERIOD = "splice.sys.tables.retention.period";
+    private static final long DEFAULT_SYS_TABLES_RETENTION_PERIOD=7*24*3600;
+
     /*
      * We use lock-striping to manage concurrent modifications/reads to the Transaction table. That is,
      * each Transaction is grouped into a bucket, and in order to read or modify that transaction, you must
@@ -106,6 +112,20 @@ public class SIConfigurations implements ConfigurationDefault {
      */
     public static final String TIMESTAMP_CLIENT_WAIT_TIME = "splice.timestamp_server.clientWaitTime";
     private static final int DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME = 60000;
+
+    /**
+     * The number of queues were new timestamp requests are batched up.
+     * Defaults to 5
+     */
+    public static final String TIMESTAMP_CLIENT_QUEUES = "splice.timestamp_server.clientQueues";
+    private static final int DEFAULT_TIMESTAMP_CLIENT_QUEUES = 5;
+
+    /**
+     * Whether new timestamp requests are batched up, sacrificing latency for more throughput.
+     * Defaults to false
+     */
+    public static final String TIMESTAMP_CLIENT_BATCHED = "splice.timestamp_server.batched";
+    private static final boolean DEFAULT_TIMESTAMP_CLIENT_BATCHED = false;
 
     /**
      * The Port to bind the Timestamp Server connection to
@@ -162,6 +182,8 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, -1); //TODO -sf- reset to DEFAULT once ReadResolution works
 //        builder.readResolverQueueSize  = configurationSource.getInt(READ_RESOLVER_QUEUE_SIZE, DEFAULT_READ_RESOLVER_QUEUE_SIZE);
         builder.timestampClientWaitTime  = configurationSource.getInt(TIMESTAMP_CLIENT_WAIT_TIME, DEFAULT_TIMESTAMP_CLIENT_WAIT_TIME);
+        builder.timestampClientQueues = configurationSource.getInt(TIMESTAMP_CLIENT_QUEUES, DEFAULT_TIMESTAMP_CLIENT_QUEUES);
+        builder.timestampClientBatched = configurationSource.getBoolean(TIMESTAMP_CLIENT_BATCHED, DEFAULT_TIMESTAMP_CLIENT_BATCHED);
         builder.timestampServerBindPort  = configurationSource.getInt(TIMESTAMP_SERVER_BIND_PORT, DEFAULT_TIMESTAMP_SERVER_BIND_PORT);
         builder.activeTransactionMaxCacheSize = configurationSource.getInt(ACTIVE_TRANSACTION_MAX_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_MAX_CACHE_SIZE);
         builder.activeTransactionInitialCacheSize = configurationSource.getInt(ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE, DEFAULT_ACTIVE_TRANSACTION_INITIAL_CACHE_SIZE);
@@ -170,6 +192,8 @@ public class SIConfigurations implements ConfigurationDefault {
         builder.transactionKeepAliveInterval = configurationSource.getLong(TRANSACTION_KEEP_ALIVE_INTERVAL, DEFAULT_TRANSACTION_KEEP_ALIVE_INTERVAL);
 
         builder.ignoreMissingTxns = configurationSource.getBoolean(IGNORE_MISSING_TXN, DEFAULT_IGNORE_MISSING_TXN);
+
+        builder.systablesMinRetentionPeriod = configurationSource.getLong(SYS_TABLES_RETENTION_PERIOD, DEFAULT_SYS_TABLES_RETENTION_PERIOD);
 
         builder.flushResolutionShare = configurationSource.getDouble(FLUSH_RESOLUTION_SHARE, DEFAULT_FLUSH_RESOLUTION_SHARE, 0, 1);
 

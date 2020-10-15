@@ -16,87 +16,87 @@ package com.splicemachine.timestamp.impl;
 
 import com.splicemachine.timestamp.api.TimestampBlockManager;
 import com.splicemachine.timestamp.api.TimestampIOException;
+import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
 import org.apache.log4j.Logger;
-import org.jboss.netty.buffer.ChannelBuffer;
-import org.jboss.netty.buffer.ChannelBuffers;
-import org.jboss.netty.channel.ChannelFuture;
-import org.jboss.netty.channel.ChannelFutureListener;
-import org.jboss.netty.channel.ChannelHandlerContext;
-import org.jboss.netty.channel.MessageEvent;
 
-public class TimestampServerHandler extends TimestampBaseHandler {
+@ChannelHandler.Sharable
+public class TimestampServerHandler extends TimestampBaseHandler<TimestampMessage.TimestampRequest> {
 
     private static final Logger LOG = Logger.getLogger(TimestampServerHandler.class);
 
     private volatile TimestampOracle oracle;
-    private TimestampBlockManager timestampBlockManager;
-    private int blockSize;
 
-    public TimestampServerHandler(TimestampBlockManager timestampBlockManager, int blockSize) {
+    public TimestampServerHandler(TimestampOracle oracle) {
         super();
-        this.timestampBlockManager=timestampBlockManager;
-        this.blockSize = blockSize;
-    }
-
-    public void initializeIfNeeded() throws TimestampIOException{
-        SpliceLogUtils.trace(LOG, "Checking whether initialization is needed");
-        if(oracle==null){
-            synchronized(this){
-                if(oracle==null){
-                    oracle=TimestampOracle.getInstance(timestampBlockManager,blockSize);
-                }
-            }
-        }
+        this.oracle = oracle;
     }
 
     @Override
-    public void messageReceived(ChannelHandlerContext ctx, MessageEvent e) throws Exception {
-        assert oracle != null;
-        TimestampMessage.TimestampRequest request = (TimestampMessage.TimestampRequest) e.getMessage();
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "We fail the RPC with the exception")
+    protected void channelRead0(ChannelHandlerContext ctx, TimestampMessage.TimestampRequest request) throws Exception {
         TimestampMessage.TimestampResponse.Builder responseBuilder = TimestampMessage.TimestampResponse.newBuilder()
                 .setCallerId(request.getCallerId())
                 .setTimestampRequestType(request.getTimestampRequestType());
+        try {
+            assert oracle != null;
 
-        SpliceLogUtils.trace(LOG, "Received timestamp request from client. Caller id = %s", request.getCallerId());
-        switch (request.getTimestampRequestType()) {
-            case GET_CURRENT_TIMESTAMP: {
-                long timestamp = oracle.getCurrentTimestamp();
-                assert timestamp > 0;
-                responseBuilder.setGetCurrentTimestampResponse(
-                        TimestampMessage.GetCurrentTimestampResponse.newBuilder().setTimestamp(timestamp));
-                break;
+            SpliceLogUtils.trace(LOG, "Received timestamp request from client. Caller id = %s", request.getCallerId());
+            switch (request.getTimestampRequestType()) {
+                case GET_CURRENT_TIMESTAMP: {
+                    long timestamp = oracle.getCurrentTimestamp();
+                    assert timestamp > 0;
+                    responseBuilder.setGetCurrentTimestampResponse(
+                            TimestampMessage.GetCurrentTimestampResponse.newBuilder().setTimestamp(timestamp));
+                    break;
+                }
+                case GET_NEXT_TIMESTAMP: {
+                    long timestamp = oracle.getNextTimestamp();
+                    assert timestamp > 0;
+                    responseBuilder.setGetNextTimestampResponse(
+                            TimestampMessage.GetNextTimestampResponse.newBuilder().setTimestamp(timestamp));
+                    break;
+                }
+                case BUMP_TIMESTAMP:
+                    oracle.bumpTimestamp(request.getBumpTimestamp().getTimestamp());
+                    break;
+                case GET_TIMESTAMP_BATCH:
+                    int batchSize = request.getTimestampBatch().getBatchSize();
+                    Pair<Long, Integer> result = oracle.getTimestampBatch(batchSize);
+                    long firstTimestamp = result.getFirst();
+                    int delta = result.getSecond();
+                    assert firstTimestamp > 0;
+                    responseBuilder.setTimestampBatchResponse(
+                            TimestampMessage.GetTimestampBatchResponse.newBuilder()
+                                    .setBatchSize(batchSize)
+                                    .setTimestampDelta(delta)
+                                    .setFirstTimestamp(firstTimestamp));
+                    break;
+                default:
+                    assert false;
             }
-            case GET_NEXT_TIMESTAMP: {
-                long timestamp = oracle.getNextTimestamp();
-                assert timestamp > 0;
-                responseBuilder.setGetNextTimestampResponse(
-                        TimestampMessage.GetNextTimestampResponse.newBuilder().setTimestamp(timestamp));
-                break;
-            }
-            case BUMP_TIMESTAMP:
-                oracle.bumpTimestamp(request.getBumpTimestamp().getTimestamp());
-                break;
-            default:
-                assert false;
+            //
+            // Respond to the client
+            //
+
+            TimestampMessage.TimestampResponse response = responseBuilder.build();
+
+            SpliceLogUtils.debug(LOG, "Responding to caller %s with response %s", response.getCallerId(), response);
+            ChannelFuture futureResponse = ctx.channel().writeAndFlush(response); // Could also use Channels.write
+            futureResponse.addListener(cf -> {
+                        if (!cf.isSuccess()) {
+                            throw new TimestampIOException(
+                                    "Failed to respond successfully to caller id " + response.getCallerId(), cf.cause());
+                        }
+                    }
+            );
+        } catch (Exception e) {
+            ctx.writeAndFlush(responseBuilder.setErrorMessage(e.toString()).build());
         }
-        //
-        // Respond to the client
-        //
-
-        TimestampMessage.TimestampResponse response = responseBuilder.build();
-
-        SpliceLogUtils.debug(LOG, "Responding to caller %s with response %s", response.getCallerId(), response);
-        ChannelFuture futureResponse = e.getChannel().write(response); // Could also use Channels.write
-        futureResponse.addListener(cf -> {
-            if (!cf.isSuccess()) {
-                throw new TimestampIOException(
-                        "Failed to respond successfully to caller id " + response.getCallerId(), cf.getCause());
-            }
-        }
-        );
-
-        super.messageReceived(ctx, e);
     }
 
     protected void doError(String message, Throwable t, Object... args) {
