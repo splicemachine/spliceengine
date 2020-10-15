@@ -1798,6 +1798,50 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
     }
 
+    public void setJavaClassNameColumnInSysAliases(TransactionController tc) throws StandardException {
+        TabInfoImpl ti = getNonCoreTI(SYSALIASES_CATALOG_NUM);
+        faultInTabInfo(ti);
+
+        FormatableBitSet columnToReadSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
+        FormatableBitSet columnToUpdateSet = new FormatableBitSet(SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT);
+        for (int i = 0; i < SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT; i++) {
+            // partial row updates do not work properly (DB-9388), therefore, we read all columns and mark them all for
+            // update even if this is not necessary for all of them.
+            columnToReadSet.set(i);
+            columnToUpdateSet.set(i);
+        }
+        /* Set up a row template for fetching */
+        DataValueDescriptor[] rowTemplate = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
+        /* Set up another row for replacing the existing row, effectively updating it */
+        DataValueDescriptor[] replaceRow = new DataValueDescriptor[SYSALIASESRowFactory.SYSALIASES_COLUMN_COUNT];
+
+        /* Scan the entire heap */
+        ScanController sc = tc.openScan(
+                ti.getHeapConglomerate(),
+                false,
+                TransactionController.OPENMODE_FORUPDATE,
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_REPEATABLE_READ,
+                columnToReadSet,
+                null,
+                ScanController.NA,
+                null,
+                null,
+                ScanController.NA);
+
+        while (sc.fetchNext(rowTemplate)) {
+            for (int i = 0; i < rowTemplate.length; i++) {
+                replaceRow[i] = rowTemplate[i].cloneValue(false);
+                /* If JAVACLASSNAME was set to null, rewrite it to "NULL" string literal instead. */
+                if (i + 1 == SYSALIASESRowFactory.SYSALIASES_JAVACLASSNAME && rowTemplate[i].isNull()) {
+                    replaceRow[i] = new SQLLongvarchar("NULL");
+                }
+            }
+            sc.replace(replaceRow, columnToUpdateSet);
+        }
+        sc.close();
+    }
+
     @Override
     public long getSystablesMinRetentionPeriod() {
         return SIDriver.driver().getConfiguration().getSystablesMinRetentionPeriod();
