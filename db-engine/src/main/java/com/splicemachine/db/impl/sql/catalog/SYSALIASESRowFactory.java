@@ -97,6 +97,14 @@ public class SYSALIASESRowFactory extends CatalogRowFactory {
 
     // null means all unique.
     private static final boolean[] uniqueness = null;
+
+    private static int[][] indexColumnPositions =
+            {
+                    {SYSALIASES_SCHEMAID, SYSALIASES_ALIAS, SYSALIASES_NAMESPACE},
+                    {SYSALIASES_ALIASID},
+                    {SYSALIASES_SCHEMAID, SYSALIASES_SPECIFIC_NAME},
+            };
+
     private static final String[] uuids =
             {
                     "c013800d-00d7-ddbd-08ce-000a0a411400"    // catalog UUID
