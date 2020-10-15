@@ -17,6 +17,7 @@ package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.kryo.KryoSerialization;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportKafkaOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -26,26 +27,24 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.ConsumerRecords;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.IntegerDeserializer;
 import org.apache.log4j.Logger;
 import org.apache.spark.TaskContext;
 import org.apache.spark.TaskKilledException;
 
-import java.io.Externalizable;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
 import java.util.*;
 import java.util.function.Predicate;
+import java.time.Duration;
 
 public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperation, Integer, ExecRow> {
     private String topicName;
     private String bootstrapServers;
 
     private static final Logger LOG = Logger.getLogger(KafkaReadFunction.class);
-    
-    public KafkaReadFunction() {
-    }
+
+    public KafkaReadFunction() {}
 
     public KafkaReadFunction(OperationContext context, String topicName) {
         this(context, topicName, SIDriver.driver().getConfiguration().getKafkaBootstrapServers());
@@ -60,7 +59,7 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
     @Override
     public Iterator<ExecRow> call(Integer partition) throws Exception {
         String id = topicName.substring(0,5)+":"+partition.toString();
-        LOG.info( id+" KRF.call p "+partition );
+        LOG.trace( id+" KRF.call p "+partition );
         Properties props = new Properties();
 
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -70,7 +69,7 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
         props.put(ConsumerConfig.CLIENT_ID_CONFIG, consumer_id);
 
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
-        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ByteArrayDeserializer.class.getName());
         props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         
         // MAX_POLL_RECORDS_CONFIG helped performance in standalone with lower values (default == 500).
@@ -78,30 +77,30 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
         props.put(ConsumerConfig.MAX_POLL_RECORDS_CONFIG, "100");
 //        props.put(ConsumerConfig.MAX_PARTITION_FETCH_BYTES_CONFIG, "10485760"); // 10% of max == 5242880, default == 1048576
 
-        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
+        KafkaConsumer<Integer, byte[]> consumer = new KafkaConsumer<Integer, byte[]>(props);
         consumer.assign(Arrays.asList(new TopicPartition(topicName, partition)));
 
+        KryoSerialization kryo = new KryoSerialization();
+        kryo.init();
+
         return new Iterator<ExecRow>() {
-            Iterator<ConsumerRecord<Integer, Externalizable>> it = null;
-            //ExecRow record = null;
-            //boolean endOfBatch = false;
-            //Set<Long> recvdMsgIds = new HashSet<>();
-            //long maxMsgId = -1;
+            Iterator<ConsumerRecord<Integer, byte[]>> it = null;
             Message prevMessage = new Message();
-            
-            Predicate<ConsumerRecords<Integer, Externalizable>> noRecords = records ->
+
+            Predicate<ConsumerRecords<Integer, byte[]>> noRecords = records ->
                 records == null || records.isEmpty();
             
-            //long kafkaRcdCount = KafkaUtils.messageCount(bootstrapServers, topicName, partition);
             long totalCount = 0L;
             int maxRetries = 10;
             int retries = 0;
+            final Duration shortTimeout = java.time.Duration.ofMillis(500L);
+            final Duration longTimeout = java.time.Duration.ofMinutes(1L);
             
-            private ConsumerRecords<Integer, Externalizable> kafkaRecords(int maxAttempts) throws TaskKilledException {
+            private ConsumerRecords<Integer, byte[]> kafkaRecords(int maxAttempts, Duration timeout) throws TaskKilledException {
                 int attempt = 1;
-                ConsumerRecords<Integer, Externalizable> records = null;
+                ConsumerRecords<Integer, byte[]> records = null;
                 do {
-                    records = consumer.poll(java.time.Duration.ofMillis(500));
+                    records = consumer.poll(timeout);
                     if (TaskContext.get().isInterrupted()) {
                         LOG.warn( id+" KRF.call kafkaRecords Spark TaskContext Interrupted");
                         //consumer.close();
@@ -112,16 +111,18 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
                 return records;
             }
             
-            private boolean hasMoreRecords(int maxAttempts) throws TaskKilledException {
-                ConsumerRecords<Integer, Externalizable> records = kafkaRecords(maxAttempts);
+            private boolean hasMoreRecords(int maxAttempts, Duration timeout) throws TaskKilledException {
+                ConsumerRecords<Integer, byte[]> records = kafkaRecords(maxAttempts, timeout);
                 if( noRecords.test(records) ) {
-//                    if( totalCount < kafkaRcdCount && retries < maxRetries ) {
                     if( !prevMessage.last() && retries < maxRetries ) {
                         retries++;
-                        LOG.warn( id+" KRF.call Missed rcds, got "+totalCount+" retry "+retries );
-                        return hasMoreRecords(maxAttempts);
+                        Duration retryTimeout = longTimeout;
+                        LOG.warn( id+" KRF.call Missed rcds, got "+totalCount+" retry "+retries+" for up to "+retryTimeout );
+                        return hasMoreRecords(
+                            maxAttempts,
+                            retryTimeout
+                        );
                     }
-                    //LOG.info( id+" KRF.call p "+partition+" t "+topicName+" expected "+kafkaRcdCount );
                     //consumer.close();
                     if( !prevMessage.last() ) {
                         LOG.error(id + " KRF.call Didn't get full batch after " + retries + " retries, got " + totalCount + " records");
@@ -130,8 +131,7 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
                 } else {
                     int ct = records.count();
                     totalCount += ct;
-                    LOG.info( id+" KRF.call p "+partition+" t "+topicName+" records "+ct );
-                    //LOG.info( id+" KRF.call p "+partition+" t "+topicName+" progress "+totalCount+" "+kafkaRcdCount );
+                    LOG.trace( id+" KRF.call p "+partition+" t "+topicName+" records "+ct );
                     retries = 0;
                     
                     it = records.iterator();
@@ -145,12 +145,13 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
                 
                 if (it != null && it.hasNext()) {
                     more = true;
-                } else {
-                    more = hasMoreRecords(1);
+                } else if (!prevMessage.last()) {
+                    more = hasMoreRecords(1, shortTimeout);
                 }
 
                 if (!more) {
                     consumer.close();
+                    kryo.close();
                 }
 
                 return more;
@@ -158,12 +159,8 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
 
             @Override
             public ExecRow next() {
-                Message m = (Message)it.next().value();
+                Message m = (Message)kryo.deserialize( it.next().value() );
                 prevMessage = m;
-                //long max = m.max();
-                //maxMsgId = max > maxMsgId ? max : maxMsgId;
-                //recvdMsgIds.add( m.id() );
-                //endOfBatch = maxMsgId > -1 && recvdMsgIds.size() >= maxMsgId;
                 return m.vr();
             }
         };

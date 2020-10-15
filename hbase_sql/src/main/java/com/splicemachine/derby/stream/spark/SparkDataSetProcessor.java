@@ -74,13 +74,13 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
-import java.io.Externalizable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Spark-based DataSetProcessor.
@@ -1258,7 +1258,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public void resetOpDepth() { opDepth = 0; }
 
-    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicInfo, OperationContext context) throws StandardException {
         Properties props = new Properties();
         String consumerGroupId = "spark-consumer-dss-sdsp";
         String bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
@@ -1268,13 +1268,29 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
 
-        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
-        List ps = consumer.partitionsFor(topicName);
-        List<Integer> partitions = new ArrayList<>(ps.size());
-        for (int i = 0; i < ps.size(); ++i) {
-            partitions.add(i);
+        List<Integer> partitions;
+        String topicName;
+        if( topicInfo.contains("::") ) {
+            String[] sp = topicInfo.split("::");
+            topicName = sp[0];
+            if( sp.length > 1 ) {
+                partitions = Arrays.stream( sp[1].split(",") )
+                        .map(s -> Integer.valueOf(s))
+                        .collect(Collectors.toList());
+            } else {
+                partitions = new ArrayList<>(1);
+                partitions.add(0);
+            }
+        } else {
+            topicName = topicInfo;
+            KafkaConsumer<Integer, byte[]> consumer = new KafkaConsumer<Integer, byte[]>(props);
+            List ps = consumer.partitionsFor(topicName);
+            partitions = new ArrayList<>(ps.size());
+            for (int i = 0; i < ps.size(); ++i) {
+                partitions.add(i);
+            }
+            consumer.close();
         }
-        consumer.close();
 
         SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
         return rdd.flatMap(new KafkaReadFunction(context, topicName, bootstrapServers));
