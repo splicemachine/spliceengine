@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.commons.io.FileUtils;
 import org.junit.*;
@@ -106,6 +107,8 @@ public class InsertOperationIT {
                 "j varchar(3) default null," +
                 "k clob(3) default null," +
                 "l blob(3) default null)");
+
+        classWatcher.executeUpdate( "create table DB10493 (c0 time, c1 date)" );
     }
 
     @Rule
@@ -682,6 +685,19 @@ public class InsertOperationIT {
                 "NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |NULL |";
         try (ResultSet rs = methodWatcher.executeQuery(sql)) {
             assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testInsertWithSparkNullColumnName() throws Exception {
+        // table DB10493 has two columns (c0 time, c1 date)
+        // with this insert, SQLCol2 column name beccomes NULL
+        String sqlText = "insert into DB10493(c1) values ('1969-12-28'), (NULL), ('1969-12-25')";
+        try (TestConnection conn = methodWatcher.connectionBuilder().useOLAP(true).build()) {
+            try( Statement s = conn.createStatement() )
+            {
+                s.execute(sqlText);
+            }
         }
     }
 }
