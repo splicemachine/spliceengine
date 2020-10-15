@@ -29,6 +29,7 @@ import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.foreignkey.ForeignKeyViolationProcessor;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 
 import java.util.Arrays;
@@ -71,9 +72,10 @@ public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
     @Override
     protected WriteResult handleExistingRow(byte[] indexRowId, byte[] sourceRowKey) throws Exception {
         byte[] baseTableRowId = toChildBaseRowId(indexRowId, constraintInfo);
-        if(isSelfReferencing && Arrays.equals(sourceRowKey, baseTableRowId)) {
+        if(constraintInfo.getDeleteRule() == StatementType.RA_SETNULL && isSelfReferencing && Arrays.equals(sourceRowKey, baseTableRowId)) {
             return WriteResult.success(); // do not add an update mutation since this row will be deleted anyway.
         }
+        originators.put(Bytes.toHex(baseTableRowId), sourceRowKey); // needs to trace back errors correctly and also fail referencing rows.
         KVPair pair = constructUpdateToNull(baseTableRowId);
         pipelineBuffer.add(pair);
         mutationBuffer.putIfAbsent(pair, pair);

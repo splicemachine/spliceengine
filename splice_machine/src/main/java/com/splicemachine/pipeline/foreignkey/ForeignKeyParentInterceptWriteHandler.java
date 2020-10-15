@@ -14,6 +14,7 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -118,11 +119,12 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
     @Override
     public void flush(WriteContext ctx) throws IOException {
         try {
-            for(Action action : actions.values()) {
+            for (Action action : actions.values()) {
                 action.flush(ctx);
             }
-        } catch (Exception e) {
-            violationProcessor.failWrite(e, ctx);
+        } catch (IOException e) {
+            // it is a programming error to enter this code path.
+            throw new IOException("unexpected, inner actions should handle exceptions ", e);
         }
     }
 

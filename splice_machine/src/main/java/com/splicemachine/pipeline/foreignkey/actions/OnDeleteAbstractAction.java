@@ -40,7 +40,9 @@ import com.splicemachine.storage.*;
 import com.splicemachine.utils.Pair;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public abstract class OnDeleteAbstractAction extends Action {
 
@@ -51,6 +53,7 @@ public abstract class OnDeleteAbstractAction extends Action {
     protected final CallBuffer<KVPair> pipelineBuffer;
     Partition indexTable;
     private final TxnOperationFactory txnOperationFactory;
+    protected final Map<String, byte[]> originators; // reverse lookup from child -> parent rows for propagating failures.
 
     private final ForeignKeyViolationProcessor violationProcessor;
 
@@ -74,6 +77,7 @@ public abstract class OnDeleteAbstractAction extends Action {
                 writeContext.getToken());
         this.indexTable = null;
         this.violationProcessor = violationProcessor;
+        this.originators = new HashMap<>();
     }
 
     /*
@@ -214,11 +218,11 @@ public abstract class OnDeleteAbstractAction extends Action {
     }
 
     @Override
-    public void flush(WriteContext ctx) throws IOException {
+    public void flush(WriteContext ctx) {
         try {
             pipelineBuffer.flushBufferAndWait();
         } catch (Exception e) {
-            violationProcessor.failWrite(e, ctx);
+            violationProcessor.failWrite(e, ctx, originators);
         }
     }
 
