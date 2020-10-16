@@ -29,7 +29,7 @@ public class ActionFactory {
                                       TxnOperationFactory txnOperationFactory,
                                       ForeignKeyViolationProcessor violationProcessor) throws Exception {
         switch(constraintInfo.getDeleteRule()) {
-            case StatementType.RA_SETNULL:
+            case StatementType.RA_SETNULL: // fallthrough
             case StatementType.RA_CASCADE:
                 return new OnDeleteSetNullOrCascade(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
             case StatementType.RA_NOACTION:

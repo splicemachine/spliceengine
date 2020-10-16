@@ -207,7 +207,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             throw new IllegalStateException("Operation is not open");
 
         try {
-            TxnView txn = getTransaction();
+            TxnView txn = getCurrentTransaction();
             DataValueDescriptor[] probeValues = ((MultiProbeDerbyScanInformation)scanInformation).getProbeValues();
             List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
             DataSet<ExecRow> dataSet = dsp.getEmpty();
