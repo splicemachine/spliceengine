@@ -63,9 +63,9 @@ public class EngineDriver{
     // simultaneously running to process a query.
     public static int getMaxExecutorCores() { return (INSTANCE.environment.getMaxExecutorCores()); }
 
-    // Given a table size in bytes, return the number of splits Spark
+    // Given a table size in bytes, and the number of HBase regions, return the number of splits Spark
     // will use to read from the table, given the current Splice configuration.
-    public static int getNumSplits(long tableSize) { return (INSTANCE.environment.getNumSplits(tableSize)); }
+    public static int getNumSplits(long tableSize, int numRegions) { return (INSTANCE.environment.getNumSplits(tableSize, numRegions)); }
 
     public static void loadDriver(SqlEnvironment environment){
         INSTANCE=new EngineDriver(environment);

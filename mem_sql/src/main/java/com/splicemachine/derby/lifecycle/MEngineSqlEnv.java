@@ -141,5 +141,5 @@ public class MEngineSqlEnv extends EngineSqlEnvironment{
     }
 
     @Override
-    public int getNumSplits(long tableSize) { return 1; }
+    public int getNumSplits(long tableSize, int numRegions) { return 1; }
 }
