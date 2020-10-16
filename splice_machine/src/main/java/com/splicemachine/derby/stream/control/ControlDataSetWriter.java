@@ -20,7 +20,6 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -49,12 +48,15 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
     private static final Logger LOG = Logger.getLogger(ControlDataSetWriter.class);
     private Txn     txn = null;
     private TxnView parent = null;
+    private boolean loadReplaceMode;
 
-    public ControlDataSetWriter(ControlDataSet<ExecRow> dataSet, AbstractPipelineWriter<ExecRow> pipelineWriter, OperationContext opContext, int[] updateCounts){
+    public ControlDataSetWriter(ControlDataSet<ExecRow> dataSet, AbstractPipelineWriter<ExecRow> pipelineWriter,
+                                OperationContext opContext, int[] updateCounts, boolean loadReplaceMode){
         this.dataSet=dataSet;
         this.operationContext=opContext;
         this.pipelineWriter=pipelineWriter;
         this.updateCounts = updateCounts;
+        this.loadReplaceMode = loadReplaceMode;
     }
 
     @Override
@@ -71,14 +73,17 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
                     pipelineWriter.getDestinationTable(),
                     inMemoryTxn);
             pipelineWriter.setTxn(txn);
-            operation.fireBeforeStatementTriggers();
-            pipelineWriter.open(operation.getTriggerHandler(),operation);
+
+            if( !loadReplaceMode)
+                operation.fireBeforeStatementTriggers();
+            pipelineWriter.open(operation.getTriggerHandler(),operation, loadReplaceMode);
             pipelineWriter.write(dataSet.toLocalIterator());
 
             if (txn.getState() != Txn.State.COMMITTED)
                 txn.commit();
 
-            pipelineWriter.firePendingAfterTriggers();
+            if( !loadReplaceMode)
+                pipelineWriter.firePendingAfterTriggers();
 
             // Defer closing the pipeline in case we need to rollback.
             if (operation.getActivation().isSubStatement())
@@ -91,7 +96,9 @@ public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
             // cause a rollback (throw an exception).
             // Previously this was in a 'finally' block, and was executed
             // even when we did rollback, which is not right.
-            operation.fireAfterStatementTriggers();
+            if( !loadReplaceMode)
+                operation.fireAfterStatementTriggers();
+
             if (!operation.getActivation().isSubStatement())
                 pipelineWriter.close();
 

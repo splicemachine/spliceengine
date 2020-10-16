@@ -76,7 +76,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     }
 
     @Override
-    public void open(TriggerHandler triggerHandler,SpliceOperation dmlWriteOperation) throws StandardException{
+    public void open(TriggerHandler triggerHandler, SpliceOperation dmlWriteOperation, boolean loadReplaceMode) throws StandardException{
         open();
     }
 

@@ -43,6 +43,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     protected byte[] token;
     protected String tableVersion;
     protected ExecRow execRowDefinition;
+    protected boolean loadReplaceMode;
 
     @Override
     public DataSetWriterBuilder destConglomerate(long heapConglom){
@@ -148,5 +149,17 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
     @Override
     public byte[] getToken() {
         return token;
+    }
+
+
+    @Override
+    public DataSetWriterBuilder loadReplaceMode(boolean loadReplaceMode) {
+        this.loadReplaceMode = loadReplaceMode;
+        return this;
+    }
+
+    @Override
+    public boolean getLoadReplaceMode() {
+        return loadReplaceMode;
     }
 }

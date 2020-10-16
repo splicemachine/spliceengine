@@ -2033,13 +2033,15 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String tableVersion,
                                              String explainPlan,
                                              String bulkDeleteDirectory,
+                                             String noTriggerRIStr,
                                              int colMapRefItem)
             throws StandardException {
         try{
+            boolean noTriggerRI = noTriggerRIStr == null ? false : noTriggerRIStr.equalsIgnoreCase("1");
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top =
                     new DeleteOperation(below.getOperation(), source.getActivation(), optimizerEstimatedRowCount,
-                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem);
+                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem, noTriggerRI);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);

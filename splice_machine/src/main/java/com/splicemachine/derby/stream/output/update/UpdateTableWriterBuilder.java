@@ -238,4 +238,15 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     public byte[] getToken() {
         return token;
     }
+
+
+    @Override
+    public DataSetWriterBuilder loadReplaceMode(boolean load_replace_mode) {
+        return this;
+    }
+
+    @Override
+    public boolean getLoadReplaceMode() {
+        return false;
+    }
 }
