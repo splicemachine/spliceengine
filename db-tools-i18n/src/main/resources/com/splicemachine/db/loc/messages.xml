@@ -290,12 +290,12 @@ Guide.
                 <text>A connection could not be established because the password has a length of zero or is larger than the maximum allowed by the network protocol.</text>
             </msg>
 
-			<msg>
+            <msg>
                 <name>08001.C.13</name>
                 <text>A connection could not be established because the external name (EXTNAM) has a length of zero or is larger than the maximum allowed by the network protocol.</text>
             </msg>
 
-			<msg>
+            <msg>
                 <name>08001.C.14</name>
                 <text>A connection could not be established because the server name (SRVNAM) has a length of zero or is larger than the maximum allowed by the network protocol.</text>
             </msg>
@@ -469,7 +469,7 @@ Guide.
             <msg>
                 <name>08006.C</name>
                 <text>A network protocol error was encountered and the connection has been terminated: {0}</text>
-		<arg>error</arg>
+        <arg>error</arg>
             </msg>
             <msg>
                 <name>08006.C.1</name>
@@ -511,7 +511,7 @@ Guide.
 
             <msg>
                 <name>08006.C.9</name>
-		<text>Can't execute statement while in Restore Mode. Reboot database after restore operation is finished.</text>
+        <text>Can't execute statement while in Restore Mode. Reboot database after restore operation is finished.</text>
             </msg>
             <msg>
                 <name>08006.D</name>
@@ -819,11 +819,11 @@ Guide.
                 <arg>sequenceName</arg>
             </msg>
 
-			<msg>
-				<name>22020</name>
-				<text>Invalid trim string, '{0}'. The trim string must be exactly one character or NULL. It cannot be more than one character.</text>
-				<arg>string</arg>
-			</msg>
+            <msg>
+                <name>22020</name>
+                <text>Invalid trim string, '{0}'. The trim string must be exactly one character or NULL. It cannot be more than one character.</text>
+                <arg>string</arg>
+            </msg>
 
 
           <msg>
@@ -831,7 +831,7 @@ Guide.
             <text>Unknown character encoding '{0}'.</text>
             <arg>typeName</arg>
           </msg>
-			<msg>
+            <msg>
                 <name>22025</name>
                 <text>Escape character must be followed by escape character, '_', or '%'. It cannot be followed by any other character or be at the end of the pattern.</text>
             </msg>
@@ -1016,7 +1016,7 @@ Guide.
             </msg>
             <msg>
                 <name>28504</name>
-		<text>Error accessing Keytab</text>
+        <text>Error accessing Keytab</text>
             </msg>
 
         </family>
@@ -1789,11 +1789,11 @@ Guide.
                 <arg>cursorName</arg>
             </msg>
 
-			<msg>
-				<name>42X24</name>
-				<text>Column {0} is referenced in the HAVING clause but is not in the GROUP BY list.</text>
-				<arg>columnName</arg>
-			</msg>
+            <msg>
+                <name>42X24</name>
+                <text>Column {0} is referenced in the HAVING clause but is not in the GROUP BY list.</text>
+                <arg>columnName</arg>
+            </msg>
 
             <msg>
                 <name>42X25</name>
@@ -2728,8 +2728,8 @@ Guide.
 
             <msg>
                 <name>42Y69</name>
-								<text>No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.</text>
-								<!--                <text>No valid execution plan was found for this statement. This may have one of two causes: either you specified a hash join strategy when hash join is not allowed (no optimizable equijoin) or you are attempting to join two external virtual tables, each of which references the other, and so the statement cannot be evaluated.  </text> -->
+                                <text>No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.</text>
+                                <!--                <text>No valid execution plan was found for this statement. This may have one of two causes: either you specified a hash join strategy when hash join is not allowed (no optimizable equijoin) or you are attempting to join two external virtual tables, each of which references the other, and so the statement cannot be evaluated.  </text> -->
             </msg>
 
             <msg>
@@ -2828,11 +2828,11 @@ Guide.
                 <arg>operandType</arg>
             </msg>
 
-						<msg>
-							<name>42Y96</name>
-							<text>Invalid Sort Strategy: '{0}'.</text>
-							<arg>sortStrategy</arg>
-						</msg>
+                        <msg>
+                            <name>42Y96</name>
+                            <text>Invalid Sort Strategy: '{0}'.</text>
+                            <arg>sortStrategy</arg>
+                        </msg>
 
             <msg>
                 <name>42Y97</name>
@@ -3212,7 +3212,7 @@ Guide.
 
             <msg>
                 <name>42ZD0</name>
-		<text>Surpassed limit of buffered rows in control mode, please resubmit as Spark query</text>
+        <text>Surpassed limit of buffered rows in control mode, please resubmit as Spark query</text>
                 <!-- todo(Spark->OLAP) -->
             </msg>
 
@@ -4871,15 +4871,20 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <text>Unsuported compression format: {0}</text>
                 <arg>compression</arg>
             </msg>
-	    <msg>
+            <msg>
+                <name>XIE14.S</name>
+                <text>Unsupported quote mode: {0}</text>
+                <arg>compression</arg>
+            </msg>
+        <msg>
                 <name>XIE0S.S</name>
-		<text>The export operation was not performed, because the specified output file ({0}) already exists. Export processing will not overwrite an existing file, even if the process has permissions to write to that file, due to security concerns, and to avoid accidental file damage. Please either change the output file name in the export procedure arguments to specify a file which does not exist, or delete the existing file, then retry the export operation.</text>
+        <text>The export operation was not performed, because the specified output file ({0}) already exists. Export processing will not overwrite an existing file, even if the process has permissions to write to that file, due to security concerns, and to avoid accidental file damage. Please either change the output file name in the export procedure arguments to specify a file which does not exist, or delete the existing file, then retry the export operation.</text>
                 <arg>fileName</arg>
             </msg>
 
-	    <msg>
+        <msg>
                 <name>XIE0T.S</name>
-		<text>The export operation was not performed, because the specified large object auxiliary file ({0}) already exists. Export processing will not overwrite an existing file, even if the process has permissions to write to that file, due to security concerns, and to avoid accidental file damage. Please either change the large object auxiliary file name in the export procedure arguments to specify a file which does not exist, or delete the existing file, then retry the export operation.</text>
+        <text>The export operation was not performed, because the specified large object auxiliary file ({0}) already exists. Export processing will not overwrite an existing file, even if the process has permissions to write to that file, due to security concerns, and to avoid accidental file damage. Please either change the large object auxiliary file name in the export procedure arguments to specify a file which does not exist, or delete the existing file, then retry the export operation.</text>
                 <arg>fileName</arg>
             </msg>
 
@@ -5006,7 +5011,7 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <name>XJ040.C</name>
                 <text>Failed to start database '{0}' with class loader {1}, see the next exception for details.</text>
                 <arg>databaseName</arg>
-		<arg>classLoader</arg>
+        <arg>classLoader</arg>
             </msg>
 
             <msg>
@@ -5478,7 +5483,7 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <text>You cannot invoke other java.sql.Clob/java.sql.Blob methods after calling the free() method or after the Blob/Clob's transaction has been committed or rolled back.</text>
             </msg>
 
-	    <msg>
+        <msg>
                 <name>XJ216.S</name>
                 <text>The length of this BLOB/CLOB is not available yet. When a BLOB or CLOB is accessed as a stream, the length is not available until the entire stream has been processed.</text>
             </msg>
@@ -8144,7 +8149,7 @@ Loaded from {4}</text>
 Shutting down instance {0} on database directory {1} with class loader {2} </text>
                 <arg>id</arg>
                 <arg>dbDirectory</arg>
-		<arg>classloader</arg>
+        <arg>classloader</arg>
             </msg>
 
             <msg>
@@ -8283,8 +8288,8 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
             </msg>
 
             <msg>
-	        <name>J006</name>
-		<text>deregister AutoloadedDriver</text>
+            <name>J006</name>
+        <text>deregister AutoloadedDriver</text>
             </msg>
 
             <msg>
@@ -8839,123 +8844,123 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
                <arg>classSimpleName</arg>
            </msg>
 
-						<msg>
-							<name>SE003</name>
-							<text>Unable to write data to table {0} after {1} attempts. Please contact your system administrator for more assistance</text>
-							<arg>tableName</arg>
-							<arg>attemptCount</arg>
-						</msg>
+                        <msg>
+                            <name>SE003</name>
+                            <text>Unable to write data to table {0} after {1} attempts. Please contact your system administrator for more assistance</text>
+                            <arg>tableName</arg>
+                            <arg>attemptCount</arg>
+                        </msg>
 
-						<msg>
-							<name>SE004</name>
-							<text>A region for conglomerate {0} is offline. Please contact your system administrator for more assistance</text>
-							<arg>tableName</arg>
-						</msg>
+                        <msg>
+                            <name>SE004</name>
+                            <text>A region for conglomerate {0} is offline. Please contact your system administrator for more assistance</text>
+                            <arg>tableName</arg>
+                        </msg>
 
-						<msg>
-							<name>SE005</name>
-							<text>A region is too busy to receive requests at this time. Please contact your system administrator for more assistance</text>
-						</msg>
+                        <msg>
+                            <name>SE005</name>
+                            <text>A region is too busy to receive requests at this time. Please contact your system administrator for more assistance</text>
+                        </msg>
 
-						<msg>
-							<name>SE006.C.3</name>
-							<text>The ZooKeeper connection could not be adequately maintained. Please contact your system administrator for more assistance</text>
-						</msg>
+                        <msg>
+                            <name>SE006.C.3</name>
+                            <text>The ZooKeeper connection could not be adequately maintained. Please contact your system administrator for more assistance</text>
+                        </msg>
 
-						<msg>
-							<name>SE007</name>
-							<text>Query Timed out: {0}</text>
-							<arg>message</arg>
-						</msg>
+                        <msg>
+                            <name>SE007</name>
+                            <text>Query Timed out: {0}</text>
+                            <arg>message</arg>
+                        </msg>
 
-						<msg>
-							<name>SE009</name>
-							<text>Too many bad records in import, please check bad records in directory {0}</text>
+                        <msg>
+                            <name>SE009</name>
+                            <text>Too many bad records in import, please check bad records in directory {0}</text>
                             <arg>file</arg>
                         </msg>
-						<msg>
-							<name>SE010</name>
-							<text>User:Group {0}:{1} does not have write priviledges for file/directory {2}</text>
-							<arg>user</arg>
-							<arg>group</arg>
-							<arg>file</arg>
-						</msg>
-						<msg>
-							<name>SE011</name>
-							<text>User:Group {0}:{1} does not have read priviledges for file/directory {2}</text>
-							<arg>user</arg>
-							<arg>group</arg>
-							<arg>file</arg>
-						</msg>
-						<msg>
-							<name>SE012</name>
-							<text>file {0} must be a directory</text>
-							<arg>file</arg>
-						</msg>
+                        <msg>
+                            <name>SE010</name>
+                            <text>User:Group {0}:{1} does not have write priviledges for file/directory {2}</text>
+                            <arg>user</arg>
+                            <arg>group</arg>
+                            <arg>file</arg>
+                        </msg>
+                        <msg>
+                            <name>SE011</name>
+                            <text>User:Group {0}:{1} does not have read priviledges for file/directory {2}</text>
+                            <arg>user</arg>
+                            <arg>group</arg>
+                            <arg>file</arg>
+                        </msg>
+                        <msg>
+                            <name>SE012</name>
+                            <text>file {0} must be a directory</text>
+                            <arg>file</arg>
+                        </msg>
 
-						<msg>
-							<name>SE013</name>
-							<text>Unable to complete DDL operation {0}. There are long-running active transactions which affect it. Please wait until transactions {1} complete, or kill them.</text>
-							<arg>operation</arg>
-							<arg>transactions</arg>
-						</msg>
+                        <msg>
+                            <name>SE013</name>
+                            <text>Unable to complete DDL operation {0}. There are long-running active transactions which affect it. Please wait until transactions {1} complete, or kill them.</text>
+                            <arg>operation</arg>
+                            <arg>transactions</arg>
+                        </msg>
 
-						<msg>
-							<name>SE014</name>
-							<text>Write Conflict detected between transactions {0} and {1}.</text>
-							<arg>txn1</arg>
-							<arg>txn2</arg>
-						</msg>
+                        <msg>
+                            <name>SE014</name>
+                            <text>Write Conflict detected between transactions {0} and {1}.</text>
+                            <arg>txn1</arg>
+                            <arg>txn2</arg>
+                        </msg>
 
-						<msg>
-							<name>SE015</name>
-							<text>Unable to commit transaction {0}. It either timed out, or was rolled back by an administrative action</text>
-							<arg>txn</arg>
-						</msg>
+                        <msg>
+                            <name>SE015</name>
+                            <text>Unable to commit transaction {0}. It either timed out, or was rolled back by an administrative action</text>
+                            <arg>txn</arg>
+                        </msg>
 
-						<msg>
-										<name>SE016</name>
-										<text>Unique statement identifier is {0}</text>
-										<arg>statement id</arg>
-						</msg>
+                        <msg>
+                                        <name>SE016</name>
+                                        <text>Unique statement identifier is {0}</text>
+                                        <arg>statement id</arg>
+                        </msg>
 
-						<msg>
-										<name>SE017</name>
-										<text>DDL coordination timed out. Time {0} exceeded maximum timeout of {1}.</text>
-										<arg>time1</arg>
-										<arg>time2</arg>
-						</msg>
+                        <msg>
+                                        <name>SE017</name>
+                                        <text>DDL coordination timed out. Time {0} exceeded maximum timeout of {1}.</text>
+                                        <arg>time1</arg>
+                                        <arg>time2</arg>
+                        </msg>
 
-						<msg>
-								<name>SE018</name>
-								<text>Cannot Perform Upsert: Table {0} has no primary keys.</text>
-								<arg>table</arg>
-						</msg>
+                        <msg>
+                                <name>SE018</name>
+                                <text>Cannot Perform Upsert: Table {0} has no primary keys.</text>
+                                <arg>table</arg>
+                        </msg>
 
-						<msg>
-								<name>SE019</name>
-								<text>Cannot Perform Import/Upsert: Column {0} is not contained in the file.</text>
-								<arg>column</arg>
-						</msg>
+                        <msg>
+                                <name>SE019</name>
+                                <text>Cannot Perform Import/Upsert: Column {0} is not contained in the file.</text>
+                                <arg>column</arg>
+                        </msg>
 
-						<msg>
-							<name>SE020</name>
-							<text>Setting write throughput to {0}, which is lower than 10,000 rows/second. This may cause exceptionally poor performance</text>
-							<arg>throughput</arg>
-						</msg>
+                        <msg>
+                            <name>SE020</name>
+                            <text>Setting write throughput to {0}, which is lower than 10,000 rows/second. This may cause exceptionally poor performance</text>
+                            <arg>throughput</arg>
+                        </msg>
 
-						<msg>
-							<name>SE020</name>
-							<text>Cannot collect statistics for column {0}: Column type {1} does not support statistics.</text>
-							<arg>column</arg>
-							<arg>columnType</arg>
-						</msg>
+                        <msg>
+                            <name>SE020</name>
+                            <text>Cannot collect statistics for column {0}: Column type {1} does not support statistics.</text>
+                            <arg>column</arg>
+                            <arg>columnType</arg>
+                        </msg>
 
-						<msg>
-							<name>SE021</name>
-							<text>Cannot disable statistics for column {0}: It is a primary key or indexed column</text>
-							<arg>column</arg>
-						</msg>
+                        <msg>
+                            <name>SE021</name>
+                            <text>Cannot disable statistics for column {0}: It is a primary key or indexed column</text>
+                            <arg>column</arg>
+                        </msg>
            <msg>
                <name>SE022</name>
                <text>Invalid Day '{0}'</text>
@@ -8964,19 +8969,19 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
            <msg>
                <name>SE023</name>
-	       <text>Error parsing exception: {0}</text>
+           <text>Error parsing exception: {0}</text>
                <arg>message</arg>
            </msg>
 
            <msg>
                <name>SE024</name>
-	       <text>Parameter cannot be null: {0}</text>
+           <text>Parameter cannot be null: {0}</text>
                <arg>parameterName</arg>
            </msg>
 
            <msg>
                <name>SE025</name>
-	       <text>Paramter is not a valid hexadecimal value: {0}</text>
+           <text>Paramter is not a valid hexadecimal value: {0}</text>
                <arg>parameter</arg>
            </msg>
 
@@ -9457,27 +9462,27 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 
            <msg>
                <name>OS001</name>
-	       <text>OLAP server connection exception, see next exception for more details.</text>
+           <text>OLAP server connection exception, see next exception for more details.</text>
            </msg>
 
            <msg>
                <name>TSS01</name>
-	       <text>Timestamp server connection exception, see next exception for more details.</text>
+           <text>Timestamp server connection exception, see next exception for more details.</text>
            </msg>
            <msg>
                <name>ST001</name>
-	       <text>Token '{0}' not found </text>
+           <text>Token '{0}' not found </text>
                <arg>token</arg>
            </msg>
            <msg>
                <name>ST002</name>
-	       <text>Token '{0}' has expired on '{1}'</text>
+           <text>Token '{0}' has expired on '{1}'</text>
                <arg>token</arg>
                <arg>expiredTime</arg>
            </msg>
            <msg>
                <name>HO001</name>
-	       <text>HBase operation error for table '{0}' and operation '{1}'</text>
+           <text>HBase operation error for table '{0}' and operation '{1}'</text>
                <arg>tableName</arg>
                <arg>operation</arg>
            </msg>
