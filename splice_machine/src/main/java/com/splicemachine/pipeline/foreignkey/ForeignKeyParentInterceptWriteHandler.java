@@ -14,7 +14,6 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
@@ -62,7 +61,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         this.constraintInfos = constraintInfos;
         this.txnOperationFactory = SIDriver.driver().getOperationFactory();
         this.parentTableName = parentTableName;
-        actions = new HashMap<>(referencingIndexConglomerateIds.size());
+        this.actions = new HashMap<>(referencingIndexConglomerateIds.size());
     }
 
     /** We exist to prevent updates/deletes of rows from the parent table which are referenced by a child.

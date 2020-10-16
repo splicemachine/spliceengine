@@ -732,8 +732,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             String location,
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
-            int defaultValueMapItem
-            ) throws StandardException {
+            int defaultValueMapItem,
+            GeneratedMethod pastTxFunctor ) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             ScanOperation op = new DistinctScanOperation(
@@ -763,7 +763,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     location,
                     partitionByRefItem,
                     defaultRowFunc,
-                    defaultValueMapItem);
+                    defaultValueMapItem,
+                    pastTxFunctor);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1854,7 +1855,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String explainPlan) throws StandardException {
         SpliceLogUtils.trace(LOG, "getRowCountResultSet");
-        ConvertedResultSet below = (ConvertedResultSet)source;
+        ConvertedResultSet below = (ConvertedResultSet) source;
         RowCountOperation op = new RowCountOperation(below.getOperation(),
                 activation,
                 resultSetNumber,
@@ -1865,45 +1866,47 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 optimizerEstimatedCost);
         op.setExplainPlan(explainPlan);
         return op;
-	}
+    }
 
-	public NoPutResultSet getLastIndexKeyResultSet
-	(
-		Activation 			activation,
-		int 				resultSetNumber,
-		GeneratedMethod 	resultRowAllocator,
-		long 				conglomId,
-		String 				tableName,
-		String 				userSuppliedOptimizerOverrides,
-		String 				indexName,
-		int 				colRefItem,
-		int 				lockMode,
-		boolean				tableLocked,
-		int					isolationLevel,
-		double				optimizerEstimatedRowCount,
-		double 				optimizerEstimatedCost,
-        String              tableVersion,
-        String              explainPlan
-	) throws StandardException
-	{
-		SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
-		ScanOperation op = new LastIndexKeyOperation(
-					activation,
-					resultSetNumber,
-					resultRowAllocator,
-					conglomId,
-					tableName,
-					userSuppliedOptimizerOverrides,
-					indexName,
-					colRefItem,
-					lockMode,
-					tableLocked,
-					isolationLevel,
-					optimizerEstimatedRowCount,
-					optimizerEstimatedCost, tableVersion);
+    public NoPutResultSet getLastIndexKeyResultSet
+            (
+                    Activation activation,
+                    int resultSetNumber,
+                    GeneratedMethod resultRowAllocator,
+                    long conglomId,
+                    String tableName,
+                    String userSuppliedOptimizerOverrides,
+                    String indexName,
+                    int colRefItem,
+                    int lockMode,
+                    boolean tableLocked,
+                    int isolationLevel,
+                    double optimizerEstimatedRowCount,
+                    double optimizerEstimatedCost,
+                    String tableVersion,
+                    String explainPlan,
+                    GeneratedMethod pastTxFunctor
+            ) throws StandardException {
+        SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
+        ScanOperation op = new LastIndexKeyOperation(
+                activation,
+                resultSetNumber,
+                resultRowAllocator,
+                conglomId,
+                tableName,
+                userSuppliedOptimizerOverrides,
+                indexName,
+                colRefItem,
+                lockMode,
+                tableLocked,
+                isolationLevel,
+                optimizerEstimatedRowCount,
+                optimizerEstimatedCost, tableVersion, pastTxFunctor);
         op.setExplainPlan(explainPlan);
         return op;
-	}
+    }
+
+
 
     public NoPutResultSet getWindowResultSet(NoPutResultSet source,
                                              boolean isInSortedOrder,

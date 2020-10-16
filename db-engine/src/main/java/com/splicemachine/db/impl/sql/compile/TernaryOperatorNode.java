@@ -92,8 +92,9 @@ public class TernaryOperatorNode extends OperatorNode
     public static final int REPLACE = 6;
     public static final int RIGHT = 7;
     public static final int LEFT = 8;
-    static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "right", "left"};
-    static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "right", "left"};
+    public static final int SPLIT_PART = 9;
+    static final String[] TernaryOperators = {"trim", "LOCATE", "substring", "like", "TIMESTAMPADD", "TIMESTAMPDIFF", "replace", "right", "left", "split_part"};
+    static final String[] TernaryMethodNames = {"ansiTrim", "locate", "substring", "like", "timestampAdd", "timestampDiff", "replace", "right", "left", "split_part"};
 
     static final String[] TernaryResultType = {
             ClassName.StringDataValue,
@@ -103,6 +104,7 @@ public class TernaryOperatorNode extends OperatorNode
             ClassName.DateTimeDataValue,
             ClassName.NumberDataValue,
             ClassName.ConcatableDataValue,
+            ClassName.StringDataValue,
             ClassName.StringDataValue,
             ClassName.StringDataValue
     };
@@ -115,7 +117,8 @@ public class TernaryOperatorNode extends OperatorNode
             {ClassName.DateTimeDataValue, "java.lang.Integer", ClassName.DateTimeDataValue},// time2.timestampDiff( interval, time1)
             {ClassName.ConcatableDataValue, ClassName.StringDataValue, ClassName.StringDataValue}, // replace{}
             {ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue}, // right
-            {ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue} // left
+            {ClassName.StringDataValue, ClassName.NumberDataValue, ClassName.NumberDataValue}, // left
+            {ClassName.StringDataValue, ClassName.StringDataValue, ClassName.NumberDataValue} // split_part
     };
 
     /**
@@ -247,6 +250,8 @@ public class TernaryOperatorNode extends OperatorNode
             timestampDiffBind();
         else if (operatorType == REPLACE)
             replaceBind();
+        else if (operatorType == SPLIT_PART)
+            splitPartBind();
 
         return this;
     }
@@ -401,6 +406,23 @@ public class TernaryOperatorNode extends OperatorNode
             receiverType = receiverInterfaceType;
         }
         else if (operatorType == REPLACE)
+        {
+            leftOperand.generateExpression(acb, mb);
+            mb.upCast(leftInterfaceType);
+            if (rightOperand != null)
+            {
+                rightOperand.generateExpression(acb, mb);
+                mb.upCast(rightInterfaceType);
+            }
+            else
+            {
+                mb.pushNull(rightInterfaceType);
+            }
+            mb.getField(field);
+            nargs = 3;
+            receiverType = receiverInterfaceType;
+        }
+        else if (operatorType == SPLIT_PART)
         {
             leftOperand.generateExpression(acb, mb);
             mb.upCast(leftInterfaceType);
@@ -1239,6 +1261,53 @@ public class TernaryOperatorNode extends OperatorNode
                                                      operator);
         }
     } // end of bindDateTimeArg
+
+    /**
+     * Binds the split_part expression.
+     *
+     * @return the new top of the expression tree.
+     *
+     * @exception StandardException thrown on error
+     */
+
+    public ValueNode splitPartBind()
+            throws StandardException
+    {
+        TypeId    receiverType;
+        TypeId    resultType = TypeId.getBuiltInTypeId(Types.VARCHAR);
+
+        bindToBuiltIn();
+
+        if (!leftOperand.getTypeId().isStringTypeId() || !rightOperand.getTypeId().isNumericTypeId())
+            throw StandardException.newException(SQLState.LANG_DB2_FUNCTION_INCOMPATIBLE, "SPLIT_PART", "FUNCTION");
+
+        // Check the type of the receiver - this function is allowed only on
+        // string value types.
+        receiverType = receiver.getTypeId();
+        switch (receiverType.getJDBCTypeId())
+        {
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.CLOB:
+                break;
+            default:
+            {
+                throwBadType("SPLIT_PART", receiverType.getSQLTypeName());
+            }
+        }
+        if (receiverType.getTypeFormatId() == StoredFormatIds.CLOB_TYPE_ID) {
+            resultType = receiverType;
+        }
+
+        // Determine the maximum length of the result string
+        int maxResultLen = receiver.getTypeServices().getMaximumWidth();
+        setType(new DataTypeDescriptor(resultType, true, maxResultLen));
+
+        setCollationInfo(receiver.getTypeServices());
+
+        return this;
+    }
 
     /**
      * This method gets called for non-character string types and hence no need

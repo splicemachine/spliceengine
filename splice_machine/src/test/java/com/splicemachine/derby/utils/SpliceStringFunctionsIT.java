@@ -28,19 +28,15 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static org.hamcrest.CoreMatchers.*;
-
-import java.sql.*;
-
 import static java.lang.String.format;
 import static junit.framework.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.hamcrest.CoreMatchers.allOf;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.*;
 
 /**
  * Tests associated with the String functions as defined in
@@ -453,6 +449,26 @@ public class SpliceStringFunctionsIT {
         }
     }
 
+    @Test
+    public void testRepeatWithNULLArguments() throws Exception {
+
+        String sqlText = "select repeat(b, case when 1=0 then 1 end) from A order by 1";
+        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        String expected =
+                "1  |\n" +
+                        "------\n" +
+                        "NULL |\n" +
+                        "NULL |\n" +
+                        "NULL |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+        sqlText = "select repeat(case when 1=0 then 'a' end, a) from A order by 1";
+        rs = methodWatcher.executeQuery(sqlText);
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        rs.close();
+
+    }
     @Test
     public void testCHR() throws Exception {
         String sCell1 = null;
