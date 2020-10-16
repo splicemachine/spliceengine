@@ -67,5 +67,5 @@ public interface SqlEnvironment{
 
     int getMaxExecutorCores();
 
-    int getNumSplits(long tableSize);
+    int getNumSplits(long tableSize, int numRegions);
 }

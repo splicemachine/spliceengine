@@ -199,7 +199,7 @@ public class StoreCostControllerImpl implements StoreCostController {
             if (requestedSplits > 0)
                 parallelism = requestedSplits;
             else
-                parallelism = EngineDriver.getNumSplits(tableSize);
+                parallelism = EngineDriver.getNumSplits(tableSize, getNumPartitions());
             if (parallelism > getMaxExecutorCores())
                 parallelism = getMaxExecutorCores();
         }

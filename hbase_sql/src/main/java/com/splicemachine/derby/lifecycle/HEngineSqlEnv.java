@@ -286,10 +286,10 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         }
         else {
             String sparkDynamicAllocationMaxExecutors = getProperty("splice.spark.dynamicAllocation.maxExecutors");
-            numSparkExecutors = 0;
+            numSparkExecutors = Integer.MAX_VALUE;
             if (sparkDynamicAllocationMaxExecutors != null) {
                 try {
-                    numSparkExecutors = Integer.parseInt(executorInstancesString);
+                    numSparkExecutors = Integer.parseInt(sparkDynamicAllocationMaxExecutors);
                 }
                 catch(NumberFormatException e){
                 }
@@ -299,8 +299,6 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         long executorMemory = 1024 * 1024 * 1024; // 1g
         if (sparkExecutorMemory != null)
             executorMemory = parseSizeString(sparkExecutorMemory, executorMemory);
-        if (numSparkExecutors != 0)
-            executorMemory /= numSparkExecutors;
 
         containerSize = executorMemory;
 
@@ -313,15 +311,15 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
 
         int maxExecutorCoresSupportedByYARN = maxExecutorsSupportedByYARN * executorCores;
 
-        if (dynamicAllocation)
+        if (dynamicAllocation) {
             if (numSparkExecutors < 1)
-                numSparkExecutorCores = maxExecutorCoresSupportedByYARN;
-            else
-                numSparkExecutorCores = numSparkExecutors * executorCores;
+                numSparkExecutors = 1;
+            numSparkExecutorCores = ((long)numSparkExecutors * executorCores) > Integer.MAX_VALUE ?
+                                     Integer.MAX_VALUE : numSparkExecutors * executorCores;
+        }
 
         if (numSparkExecutorCores > maxExecutorCoresSupportedByYARN)
             numSparkExecutorCores = maxExecutorCoresSupportedByYARN;
-
 
         return numSparkExecutorCores;
     }
@@ -332,16 +330,19 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
      * hint is not used.
      *
      * @return The number of input splits Splice would use to
-     * read a table of <code>tableSize</code> bytes via Spark.
+     * read a table of <code>tableSize</code> bytes, with
+     * <code>numRegions</code> HBase regions, via Spark.
      */
     @Override
-    public int getNumSplits(long tableSize) {
+    public int getNumSplits(long tableSize, int numRegions) {
         int numSplits, minSplits = 0;
         if (tableSize < 0)
             tableSize = 0;
 
         long bytesPerSplit = HConfiguration.getConfiguration().getSplitBlockSize();
         minSplits = HConfiguration.getConfiguration().getSplitsPerRegionMin();
+        if (numRegions > 0)
+            minSplits *= numRegions;
         if ((tableSize / bytesPerSplit) > Integer.MAX_VALUE)
             numSplits = Integer.MAX_VALUE;
         else
