@@ -2123,6 +2123,7 @@ public interface ResultSetFactory {
                                       String encoding,
                                       String fieldSeparator,
                                       String quoteChar,
+                                      String quoteMode,
                                       int srcResultDescriptionSavedObjectNum) throws StandardException;
 
 
