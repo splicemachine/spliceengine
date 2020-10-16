@@ -38,6 +38,7 @@ import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.stream.control.ControlDataSet;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.output.DataSetWriter;
@@ -347,6 +348,8 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 writerBuilder = set.insertData(operationContext);
             }
 
+            boolean loadReplaceMode = insertMode.equals(InsertNode.InsertMode.LOAD_REPLACE);
+
             DataSetWriter writer = writerBuilder
                     .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
                     .execRowTypeFormatIds(execRowTypeFormatIds)
@@ -362,6 +365,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .txn(txn)
                     .token(SpliceClient.token)
                     .execRowDefinition(getExecRowDefinition())
+                    .loadReplaceMode(loadReplaceMode)
                     .build();
             return writer.write();
 

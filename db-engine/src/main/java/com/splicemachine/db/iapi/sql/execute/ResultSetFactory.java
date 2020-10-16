@@ -185,12 +185,13 @@ public interface ResultSetFactory {
      *               be deleted from the target table. This result set must
      *               contain one column which provides RowLocations that are
      *               valid in the target table.
+     * @param noChecks if set to 1, DELETE will not fire triggers or check foreign key constraints
      * @return the delete operation as a result set.
      * @throws StandardException thrown when unable to perform the delete
      */
     ResultSet getDeleteResultSet(NoPutResultSet source, double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan, String bulkDeleteDirectory, int colMapRefItem)
+                                 String explainPlan, String bulkDeleteDirectory, String noChecks, int colMapRefItem)
             throws StandardException;
 
     /**

@@ -85,6 +85,7 @@ public class PartitionWritePipeline{
                                            SharedCallBufferFactory writeBufferFactory,
                                            ServerControl rce) throws IOException{
         assert txn!=null:"No transaction specified!";
+        boolean foreignKeyChecks = !toWrite.isLoadReplaceMode();
 
         /*
          * We don't need to actually start a region operation here,
@@ -100,7 +101,8 @@ public class PartitionWritePipeline{
         WriteContext context;
         try{
             context=ctxFactory.create(writeBufferFactory,txn,token,txnRegion,toWrite.getSize(),
-                    toWrite.skipIndexWrite(),toWrite.skipConflictDetection(),toWrite.skipWAL(),toWrite.isRollforward(),rce);
+                    toWrite.skipIndexWrite(),toWrite.skipConflictDetection(),toWrite.skipWAL(),toWrite.isRollforward(),rce,
+                    foreignKeyChecks);
         }catch(InterruptedException e){
             return INTERRUPTED;
         }catch(IndexNotSetUpException e){

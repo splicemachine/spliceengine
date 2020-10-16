@@ -1818,13 +1818,15 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String tableVersion,
                                              String explainPlan,
                                              String bulkDeleteDirectory,
+                                             String strNoChecks,
                                              int colMapRefItem)
             throws StandardException {
         try{
+            boolean noChecks = strNoChecks == null ? false : strNoChecks.equalsIgnoreCase("1");
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top =
                     new DeleteOperation(below.getOperation(), source.getActivation(), optimizerEstimatedRowCount,
-                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem);
+                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem, noChecks);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);

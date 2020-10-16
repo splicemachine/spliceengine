@@ -84,7 +84,7 @@ import java.util.Properties;
  * After optimizing, ...
  */
 public final class InsertNode extends DMLModStatementNode {
-    public enum InsertMode {INSERT,UPSERT}
+    public enum InsertMode {INSERT, UPSERT, LOAD_REPLACE}
 
     public InsertMode insertMode = InsertMode.INSERT;
 
@@ -96,6 +96,8 @@ public final class InsertNode extends DMLModStatementNode {
     public static final String SKIP_CONFLICT_DETECTION = "skipConflictDetection";
     public static final String SKIP_WAL = "skipWAL";
     public static final String INSERT = "INSERT";
+    public static final String REPLACE = "REPLACE";
+    public static final String LOAD_REPLACE = "LOAD_REPLACE";
     public static final String PIN = "pin";
     public static final String BULK_IMPORT_DIRECTORY = "bulkImportDirectory";
     public static final String SAMPLING_ONLY = "samplingOnly";
@@ -497,7 +499,8 @@ public final class InsertNode extends DMLModStatementNode {
             /* bind all generation clauses for generated columns */
             parseAndBindGenerationClauses
                 ( dataDictionary, targetTableDescriptor, sourceRCL, resultColumnList, false, null );
-            
+
+            boolean skipConstraints = statementType == StatementType.LOAD_REPLACE;
             /* Get and bind all constraints on the table */
             checkConstraints = bindConstraints(dataDictionary,
                                                 getNodeFactory(),
@@ -506,7 +509,7 @@ public final class InsertNode extends DMLModStatementNode {
                                                 sourceRCL,
                                                 (int[]) null,
                                                 (FormatableBitSet) null,
-                                                false,
+                                                skipConstraints,
                                                 true);  /* we always include
                                                          * triggers in core language */
 
@@ -977,8 +980,9 @@ public final class InsertNode extends DMLModStatementNode {
         String key = "insertMode";
         String value = "bulkInsert";
 
-        if ( targetProperties.getProperty( key ) == null )
-        { targetProperties.put( key, value ); }
+        if ( targetProperties.getProperty( key ) == null ) {
+            targetProperties.put( key, value );
+        }
     }
 
     /**
@@ -1081,9 +1085,13 @@ public final class InsertNode extends DMLModStatementNode {
         if (insertMode != null)
         {
             String upperValue = StringUtil.SQLToUpperCase(insertMode);
-            if (upperValue.equals("REPLACE"))
+            if (upperValue.equals(REPLACE))
             {
                 retval = StatementType.BULK_INSERT_REPLACE;
+            }
+            else if(upperValue.equals(LOAD_REPLACE))
+            {
+                retval = StatementType.LOAD_REPLACE;
             }
         }
         return retval;

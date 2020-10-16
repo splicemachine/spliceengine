@@ -117,7 +117,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,pf, txn, null, rce, false, false, false, false, env,pipelineExceptionFactory);
         BatchConstraintChecker checker = buildConstraintChecker(txn, rce);
         context.addLast(new PartitionWriteHandler(rce, tableWriteLatch, checker));
-        addWriteHandlerFactories(1000, context);
+        addWriteHandlerFactories(1000, context, true);
         return context;
     }
 
@@ -125,7 +125,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
     public WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
                                TxnView txn, byte[] token, TransactionalRegion region, int expectedWrites,
                                boolean skipIndexWrites, boolean skipConflictDetection, boolean skipWAL, boolean rollforward,
-                               ServerControl env) throws IOException, InterruptedException {
+                               ServerControl env, boolean foreignKeyChecks) throws IOException, InterruptedException {
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
@@ -133,7 +133,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
                 pf,txn, token, region, skipIndexWrites,skipConflictDetection, skipWAL, rollforward, env,pipelineExceptionFactory);
         BatchConstraintChecker checker = buildConstraintChecker(txn, region);
         context.addLast(new PartitionWriteHandler(region, tableWriteLatch, checker));
-        addWriteHandlerFactories(expectedWrites, context);
+        addWriteHandlerFactories(expectedWrites, context, foreignKeyChecks);
         return context;
     }
 
@@ -167,7 +167,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, pf,txn, null, region, false, false, false, false, env,pipelineExceptionFactory);
-        addWriteHandlerFactories(expectedWrites, context);
+        addWriteHandlerFactories(expectedWrites, context, true);
         return context;
     }
 
@@ -216,11 +216,14 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         }
     }
 
-    private void addWriteHandlerFactories(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
+    private void addWriteHandlerFactories(int expectedWrites, PipelineWriteContext context,
+                                          boolean foreignKeyChecks) throws IOException, InterruptedException {
         isInitialized(context.getTxn());
         //only add constraints and indices when we are in a RUNNING state
         if (state.get() == State.RUNNING) {
             //add Constraint checks before anything else
+
+            // ?
             for (ConstraintFactory constraintFactory : constraintFactories) {
                 context.addLast(constraintFactory.create(expectedWrites));
             }
@@ -231,7 +234,8 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             ddlFactories.addFactories(context,true,expectedWrites);
 
             // FK - child intercept (of inserts/updates)
-            fkGroup.addFactories(context,false,expectedWrites);
+            if( foreignKeyChecks )
+                fkGroup.addFactories(context,false,expectedWrites);
         }
     }
 

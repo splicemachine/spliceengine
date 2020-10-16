@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -82,9 +83,9 @@ abstract class DMLModStatementNode extends DMLStatementNode
     protected GenericDescriptorList relevantTriggers;
 
     // PRIVATE
-    private boolean            requiresDeferredProcessing;
-    private    int                statementType;
-    private boolean            bound;
+    private boolean          requiresDeferredProcessing;
+    protected int            statementType;
+    private boolean          bound;
     private ValueNode        checkConstraints;
 
     /* Info required to perform referential actions */
@@ -582,14 +583,14 @@ abstract class DMLModStatementNode extends DMLStatementNode
      */
     ValueNode bindConstraints
     (
-        DataDictionary        dataDictionary,
-        NodeFactory            nodeFactory,
-        TableDescriptor        targetTableDescriptor,
-        Dependent            dependent,
+        DataDictionary      dataDictionary,
+        NodeFactory         nodeFactory,
+        TableDescriptor     targetTableDescriptor,
+        Dependent           dependent,
         ResultColumnList    sourceRCL,
-        int[]                changedColumnIds,
-        FormatableBitSet                readColsBitSet,
-        boolean                skipCheckConstraints,
+        int[]               changedColumnIds,
+        FormatableBitSet    readColsBitSet,
+        boolean             skipCheckConstraints,
         boolean             includeTriggers
     )
         throws StandardException
@@ -626,13 +627,11 @@ abstract class DMLModStatementNode extends DMLStatementNode
             createTriggerDependencies(relevantTriggers, dependent);
             generateTriggerInfo(relevantTriggers, targetTableDescriptor, changedColumnIds);
 
-            if (skipCheckConstraints)
-            {
+            if (skipCheckConstraints) {
                 return null;
             }
 
-            checkConstraints = generateCheckTree(relevantCdl,
-                                                        targetTableDescriptor);
+            checkConstraints = generateCheckTree(relevantCdl, targetTableDescriptor);
 
             if (checkConstraints != null)
             {

@@ -42,12 +42,15 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
     private final Configuration conf;
     private final int[] updateCounts;
     private TxnView txnView;
+    private boolean loadReplaceMode;
 
-    public DeleteDataSetWriter(JavaPairRDD<K, Either<Exception, V>> rdd, OperationContext operationContext, Configuration conf, int[] updateCounts){
+    public DeleteDataSetWriter(JavaPairRDD<K, Either<Exception, V>> rdd, OperationContext operationContext,
+                               Configuration conf, int[] updateCounts, boolean loadReplaceMode){
         this.rdd=rdd;
         this.operationContext=operationContext;
         this.conf=conf;
         this.updateCounts=updateCounts;
+        this.loadReplaceMode = loadReplaceMode;
     }
 
     @Override
@@ -57,7 +60,8 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
             DMLWriteOperation writeOp = (DMLWriteOperation)operationContext.getOperation();
             if (writeOp != null)
                 writeOp.finalizeNestedTransaction();
-            operationContext.getOperation().fireAfterStatementTriggers();
+            if( loadReplaceMode )
+                operationContext.getOperation().fireAfterStatementTriggers();
         }
         if (updateCounts != null) {
             int total = 0;

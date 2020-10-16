@@ -16,6 +16,7 @@ package com.splicemachine.pipeline.callbuffer;
 
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
+import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.storage.Partition;
 
 import java.util.ArrayList;
@@ -34,18 +35,15 @@ public class PartitionBuffer{
     private Partition partition;
     private PreFlushHook preFlushHook;
     private boolean skipIndexWrites;
-    private boolean skipConflictDetection;
-    private boolean skipWAL;
-    private boolean rollforward;
+    private WriteConfiguration writeConfiguration;
 
-    public PartitionBuffer(Partition partition, PreFlushHook preFlushHook, boolean skipIndexWrites, boolean skipConflictDetection, boolean skipWAL, boolean rollforward) {
+    public PartitionBuffer(Partition partition, PreFlushHook preFlushHook, boolean skipIndexWrites,
+                           WriteConfiguration writeConfiguration) {
         this.partition=partition;
         this.buffer = new ArrayList<>();
         this.preFlushHook = preFlushHook;
         this.skipIndexWrites = skipIndexWrites;
-        this.skipConflictDetection = skipConflictDetection;
-        this.skipWAL = skipWAL;
-        this.rollforward = rollforward;
+        this.writeConfiguration = writeConfiguration;
     }
 
     public void add(KVPair element) throws Exception {
@@ -78,7 +76,7 @@ public class PartitionBuffer{
     }
 
     public BulkWrite getBulkWrite() throws Exception {
-        return new BulkWrite(heapSize, preFlushHook.transform(buffer), partition.getName(), skipIndexWrites, skipConflictDetection, skipWAL, rollforward);
+        return new BulkWrite(heapSize, preFlushHook.transform(buffer), partition.getName(), skipIndexWrites, writeConfiguration);
     }
 
     /**
@@ -107,9 +105,10 @@ public class PartitionBuffer{
                 ", partition=" + partition +
                 ", preFlushHook=" + preFlushHook +
                 ", skipIndexWrites=" + skipIndexWrites +
-                ", skipConflictDetection=" + skipConflictDetection +
-                ", skipWAL=" + skipWAL +
-                ", rollforward=" + rollforward +
-                '}';
+                ", skipConflictDetection=" + writeConfiguration.skipConflictDetection() +
+                ", skipWAL=" + writeConfiguration.skipWAL() +
+                ", rollforward=" + writeConfiguration.rollForward() +
+                ", loadReplaceMode=" + writeConfiguration.loadReplaceMode() +
+                "}";
     }
 }

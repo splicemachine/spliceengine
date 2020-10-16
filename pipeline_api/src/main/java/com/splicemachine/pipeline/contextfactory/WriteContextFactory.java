@@ -40,7 +40,7 @@ public interface WriteContextFactory<T> {
                         boolean skipConflictDetection,
                         boolean skipWAL,
                         boolean rollforward,
-                        ServerControl env) throws IOException, InterruptedException;
+                        ServerControl env, boolean foreignKeyChecks) throws IOException, InterruptedException;
 
     /**
      * Creates a context that only updates side effects.

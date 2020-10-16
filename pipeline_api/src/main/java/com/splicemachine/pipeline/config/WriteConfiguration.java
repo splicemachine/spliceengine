@@ -58,4 +58,7 @@ public interface WriteConfiguration {
     boolean skipWAL();
 
     boolean rollForward();
+
+    boolean loadReplaceMode();
+    void setLoadReplaceMode(boolean loadReplaceMode);
 }

@@ -155,7 +155,7 @@ public class HdfsImport {
                 "TRUE",
                 null,
                 false,
-                results);
+                results, false);
     }
 
     public static void SAMPLE_DATA(String schemaName,
@@ -200,7 +200,7 @@ public class HdfsImport {
                 null,
                 "FALSE",
                 false,
-                results);
+                results, false);
     }
 
     /**
@@ -265,7 +265,7 @@ public class HdfsImport {
                 null,
                 skipSampling,
                 false,
-                results);
+                results, false);
     }
     /**
      * The SYSCS_UTIL.UPSERT_DATA_FROM_FILE system procedure updates or inserts data from a file to a subset of columns
@@ -359,8 +359,9 @@ public class HdfsImport {
                 null,
                 null,
                 false,
-                results);
+                results, false);
    }
+
 
     /**
      * The SYSCS_UTIL.IMPORT_DATA system procedure imports data to a subset of columns in a table. You choose the subset
@@ -447,7 +448,48 @@ public class HdfsImport {
                 null,
                 null,
                 false,
-                results);
+                results, false);
+    }
+
+    public static void LOAD_REPLACE(String schemaName,
+                                   String tableName,
+                                   String insertColumnList,
+                                   String fileName,
+                                   String columnDelimiter,
+                                   String characterDelimiter,
+                                   String timestampFormat,
+                                   String dateFormat,
+                                   String timeFormat,
+                                   long badRecordsAllowed,
+                                   String badRecordDirectory,
+                                   String oneLineRecords,
+                                   String charset,
+                                   ResultSet[] results
+    ) throws SQLException {
+        doImport(schemaName,
+                tableName,
+                null,
+                insertColumnList,
+                fileName,
+                columnDelimiter,
+                characterDelimiter,
+                timestampFormat,
+                dateFormat,
+                timeFormat,
+                badRecordsAllowed,
+                badRecordDirectory,
+                oneLineRecords,
+                charset,
+                false,
+                false,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
+                results, true);
     }
 
     public static void IMPORT_DATA_UNSAFE(String schemaName,
@@ -488,7 +530,7 @@ public class HdfsImport {
                 null,
                 null,
                 false,
-                results);
+                results, false);
     }
 
 
@@ -530,7 +572,7 @@ public class HdfsImport {
                 null,
                 null,
                 true,
-                results);
+                results, false);
     }
 
     @SuppressFBWarnings(value="SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING", justification = "no sql injection")
@@ -557,15 +599,16 @@ public class HdfsImport {
                                  String outputKeysOnly,
                                  String skipSampling,
                                  boolean isMerge,
-                                 ResultSet[] results) throws SQLException {
+                                 ResultSet[] results, boolean isLoadReplaceMode) throws SQLException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "doImport {schemaName=%s, tableName=%s, insertColumnList=%s, fileName=%s, " +
                                      "columnDelimiter=%s, characterDelimiter=%s, timestampFormat=%s, dateFormat=%s, " +
                 "timeFormat=%s, badRecordsAllowed=%d, badRecordDirectory=%s, oneLineRecords=%s, charset=%s, " +
-                "isUpsert=%s, isCheckScan=%s, skipConflictDetection=%b, skipWAL=%b, isMerge=%b}",
+                "isUpsert=%s, isCheckScan=%s, skipConflictDetection=%b, skipWAL=%b, isMerge=%b, isLoadReplaceMode=%b}",
                                  schemaName, tableName, insertColumnListString, fileName, columnDelimiter, characterDelimiter,
                                  timestampFormat, dateFormat, timeFormat, badRecordsAllowed, badRecordDirectory,
-                                 oneLineRecords, charset, isUpsert, isCheckScan, skipConflictDetection, skipWAL, isMerge);
+                                 oneLineRecords, charset, isUpsert, isCheckScan, skipConflictDetection, skipWAL,
+                                 isMerge, isLoadReplaceMode);
 
         if (charset == null) {
             charset = StandardCharsets.UTF_8.name();
@@ -670,17 +713,30 @@ public class HdfsImport {
                 throw new SQLException(e);
             }
 
+            String insertMode = (isUpsert ? "UPSERT" : "INSERT");
+            if( isLoadReplaceMode ) insertMode = "LOAD_REPLACE";
+
             ColumnInfo columnInfo = new ColumnInfo(conn, schemaName, tableName, insertColumnList);
             String selectList = generateColumnList(lcc,schemaName,tableName,insertColumnList, true, null);
             String vtiTable = importVTI + " AS importVTI (" + columnInfo.getImportAsColumns() + ")";
             String insertSql = "INSERT INTO " + entityName + "(" + columnInfo.getInsertColumnNames() + ") " +
-                    "--splice-properties useSpark=true , insertMode=" + (isUpsert ? "UPSERT" : "INSERT") + ", statusDirectory=" +
+                    "--splice-properties useSpark=true , insertMode=" + insertMode + ", statusDirectory=" +
                     badRecordDirectory + ", badRecordsAllowed=" + badRecordsAllowed + ", bulkImportDirectory=" + bulkImportDirectory
                     + ", samplingOnly=" + samplingOnly + ", outputKeysOnly=" + outputKeysOnly + ", skipSampling=" + skipSampling
                     + (skipConflictDetection ? ", skipConflictDetection=true" : "") + (skipWAL ? ", skipWAL=true" : "")
                     + (indexName !=null ? (", index=" + indexName):"") + "\n" +
                     " SELECT "+ selectList +
                     " from " + vtiTable;
+
+            if(isLoadReplaceMode)
+            {
+                // delete table before inserting
+                try (PreparedStatement ips = conn.prepareStatement("DELETE FROM " + entityName + " --splice-properties noChecks=1\n")) {
+                    ips.executeUpdate();
+                } catch (Exception e) {
+                    throw new SQLException(e);
+                }
+            }
 
             long rowsUpdated = 0;
             if (isMerge) {
@@ -770,6 +826,9 @@ public class HdfsImport {
                 rs.open();
                 results[0] = new EmbedResultSet40((EmbedConnection) conn, rs, false, null, true);
             } catch (SQLException | StandardException | IOException e) {
+                if( isLoadReplaceMode ) {
+                    conn.rollback();
+                }
                 throw new SQLException(e);
             }
         } finally {

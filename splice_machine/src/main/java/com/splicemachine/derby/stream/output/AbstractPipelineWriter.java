@@ -51,7 +51,7 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected byte[] tempTriggerTable;
     protected long heapConglom;
     protected long tempConglomID;
-    protected  TriggerHandler triggerHandler;
+    protected  TriggerHandler triggerHandler = null;
     protected Callable<Void> flushCallback;
     protected String tableVersion;
     protected ExecRow execRowDefinition;
@@ -62,9 +62,12 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
     protected DMLWriteOperation operation;
     protected OperationContext operationContext;
     protected boolean rollforward;
+    protected boolean loadReplaceMode;
 
     @SuppressFBWarnings(value = {"URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", "EI_EXPOSE_REP2"}, justification = "fields are used in subclasses")
-    public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, long tempConglomID, String tableVersion, ExecRow execRowDefinition, OperationContext operationContext) {
+    public AbstractPipelineWriter(TxnView txn, byte[] token, long heapConglom, long tempConglomID,
+                                  String tableVersion, ExecRow execRowDefinition, OperationContext operationContext,
+                                  boolean loadReplaceMode) {
         this.txn = txn;
         this.token = token;
         this.heapConglom = heapConglom;
@@ -77,16 +80,18 @@ public abstract class AbstractPipelineWriter<T> implements AutoCloseable, TableW
         this.tempTriggerTable = tempConglomID == 0 ? null : Bytes.toBytes(Long.toString(tempConglomID));
         this.tableVersion = tableVersion;
         this.execRowDefinition=execRowDefinition;
+        this.loadReplaceMode = loadReplaceMode;
     }
 
     @Override
-    public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
+    public void open(TriggerHandler triggerHandler, SpliceOperation operation, boolean loadReplaceMode) throws StandardException {
         writeCoordinator = PipelineDriver.driver().writeCoordinator();
-        if (triggerHandler != null) {
+        if (!this.loadReplaceMode // don't fire trigger in loadReplaceMode
+                && triggerHandler != null) {
             triggerHandler.setTxn(txn);
             triggerHandler.initTriggerRowHolders(triggerHandler.isSpark(), txn, token, tempConglomID);
+            this.triggerHandler = triggerHandler;
         }
-        this.triggerHandler = triggerHandler;
     }
 
     @Override

@@ -21,7 +21,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.TableWriter;
 import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
-import com.splicemachine.derby.stream.output.InsertDataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -44,6 +43,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     protected int[] updateCounts;
     protected String tableVersion;
     protected ExecRow execRowDefinition;
+    protected boolean loadReplaceMode;
 
     public DeleteTableWriterBuilder heapConglom(long heapConglom) {
         this.heapConglom = heapConglom;
@@ -97,7 +97,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
     @Override
     public TableWriter buildTableWriter() throws StandardException{
         long conglom = Long.parseLong(Bytes.toString(((DMLWriteOperation)operationContext.getOperation()).getDestinationTable()));
-        return new DeletePipelineWriter(txn,token,conglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
+        return new DeletePipelineWriter(txn,token,conglom, tempConglomID, tableVersion, execRowDefinition, operationContext, loadReplaceMode);
     }
 
     @Override
@@ -130,6 +130,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
             out.writeObject(operationContext);
         ArrayUtil.writeIntArray(out, updateCounts);
         out.writeObject(execRowDefinition);
+        out.writeBoolean(loadReplaceMode);
     }
 
     @Override
@@ -142,6 +143,7 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
             operationContext = (OperationContext) in.readObject();
         updateCounts = ArrayUtil.readIntArray(in);
         execRowDefinition = (ExecRow) in.readObject();
+        loadReplaceMode = in.readBoolean();
     }
 
     public static DeleteTableWriterBuilder getDeleteTableWriterBuilderFromBase64String(String base64String) throws IOException {
@@ -167,4 +169,16 @@ public abstract class DeleteTableWriterBuilder implements Externalizable,DataSet
 //    public DataSetWriter build() throws StandardException {
 //        return new DeletePipelineWriter(txn,heapConglom,operationContext);
 //    }
+
+
+    @Override
+    public DataSetWriterBuilder loadReplaceMode(boolean load_replace_mode) {
+        this.loadReplaceMode = load_replace_mode;
+        return this;
+    }
+
+    @Override
+    public boolean getLoadReplaceMode() {
+        return loadReplaceMode;
+    }
 }

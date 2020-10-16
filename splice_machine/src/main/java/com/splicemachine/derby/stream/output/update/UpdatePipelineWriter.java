@@ -73,7 +73,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public UpdatePipelineWriter(long heapConglom,long tempConglomID,int[] formatIds,int[] columnOrdering,
                                 int[] pkCols,FormatableBitSet pkColumns,String tableVersion,TxnView txn,byte[] token,
                                 ExecRow execRowDefinition,FormatableBitSet heapList,OperationContext operationContext) throws StandardException{
-        super(txn, token, heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
+        super(txn, token, heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext, false);
         assert pkCols!=null && columnOrdering!=null:"Primary Key Information is null";
         this.formatIds=formatIds;
         this.columnOrdering=columnOrdering;
@@ -86,11 +86,11 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     }
 
     public void open() throws StandardException{
-        open(updateOperation != null ? updateOperation.getTriggerHandler() : null, updateOperation);
+        open(updateOperation != null ? updateOperation.getTriggerHandler() : null, updateOperation, false);
     }
 
-    public void open(TriggerHandler triggerHandler,SpliceOperation operation) throws StandardException{
-        super.open(triggerHandler,operation);
+    public void open(TriggerHandler triggerHandler, SpliceOperation operation, boolean loadReplaceMode) throws StandardException{
+        super.open(triggerHandler,operation, loadReplaceMode);
         kdvds=new DataValueDescriptor[columnOrdering.length];
         // Get the DVDS for the primary keys...
         for(int i=0;i<columnOrdering.length;++i)
