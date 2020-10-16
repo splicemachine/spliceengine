@@ -105,7 +105,7 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
                         context.failed(main, mutationResult);
                     }
                 }
-                return WriteResponse.IGNORE;
+                return WriteResponse.THROW_ERROR;
             }
         } catch (Exception e) {
             throw new ExecutionException(e);
