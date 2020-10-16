@@ -175,8 +175,6 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
 
     /* Add factories for *checking* existence of FK referenced primary-key or unique-index rows. */
     public void buildForeignKeyCheckWriteFactory(ReferencedKeyConstraintDescriptor cDescriptor,
-                                                 long baseConglomerate,
-                                                 TableDescriptor td,
                                                  LanguageConnectionContext lcc) throws StandardException {
         ConstraintDescriptorList fks = cDescriptor.getForeignKeyConstraints(ConstraintDescriptor.ENABLED);
         if (fks.isEmpty()) {
@@ -190,7 +188,7 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
             try {
                 ConglomerateDescriptor backingIndexCd = foreignKeyConstraint.getIndexConglomerateDescriptor(null);
                 backingIndexConglomIds.add(backingIndexCd.getConglomerateNumber());
-                fkConstraintInfos.add(ProtoUtil.createFKConstraintInfo(foreignKeyConstraint, td, lcc));
+                fkConstraintInfos.add(ProtoUtil.createFKConstraintInfo(foreignKeyConstraint, fk.getTableDescriptor(), lcc));
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }

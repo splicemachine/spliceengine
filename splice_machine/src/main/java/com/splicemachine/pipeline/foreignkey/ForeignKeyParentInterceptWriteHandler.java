@@ -62,7 +62,6 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         this.constraintInfos = constraintInfos;
         this.txnOperationFactory = SIDriver.driver().getOperationFactory();
         this.parentTableName = parentTableName;
-
         actions = new HashMap<>(referencingIndexConglomerateIds.size());
     }
 
@@ -79,7 +78,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         if (shouldRefreshActions) {
             assert referencingIndexConglomerateIds.size() == constraintInfos.size();
             for (int i = 0; i < referencingIndexConglomerateIds.size(); i++) {
-                Pair<Long, Long> needle = new Pair<>(constraintInfos.get(i).getTable().getConglomerate(), referencingIndexConglomerateIds.get(i));
+                Pair<Long, Long> needle = new Pair<>(constraintInfos.get(i).getChildTable().getConglomerate(), referencingIndexConglomerateIds.get(i));
                 if(!actions.containsKey(needle)) {
                     actions.put(needle, ActionFactory.createAction(referencingIndexConglomerateIds.get(i), constraintInfos.get(i), context,
                             parentTableName, txnOperationFactory, violationProcessor));

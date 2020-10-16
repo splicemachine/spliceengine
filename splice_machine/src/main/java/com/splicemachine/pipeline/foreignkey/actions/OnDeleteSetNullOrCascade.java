@@ -48,19 +48,21 @@ public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
     }
 
     private KVPair constructUpdateToNull(byte[] rowId ) throws StandardException {
-        int colCount = constraintInfo.getTable().getFormatIdsCount();
+        DDLMessage.Table childTable = constraintInfo.getChildTable();
+        assert childTable != null;
+        int colCount = childTable.getFormatIdsCount();
         int[] keyColumns = constraintInfo.getColumnIndicesList().stream().mapToInt(i -> i).toArray();
         int[] oneBased = new int[colCount + 1];
         for (int i = 0; i < colCount; ++i) {
             oneBased[i + 1] = i;
         }
         FormatableBitSet heapSet = new FormatableBitSet(oneBased.length);
-        ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(constraintInfo.getTable().getFormatIdsList().stream().mapToInt(i -> i).toArray());
+        ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(childTable.getFormatIdsList().stream().mapToInt(i -> i).toArray());
         for (int keyColumn : keyColumns) {
             execRow.setColumn(keyColumn, execRow.getColumn(keyColumn).getNewNull());
             heapSet.set(keyColumn);
         }
-        DescriptorSerializer[] serializers = VersionedSerializers.forVersion(constraintInfo.getTable().getTableVersion(), true).getSerializers(execRow);
+        DescriptorSerializer[] serializers = VersionedSerializers.forVersion(childTable.getTableVersion(), true).getSerializers(execRow);
         EntryDataHash entryEncoder = new NonPkRowHash(oneBased, null, serializers, heapSet);
         ValueRow rowToEncode = new ValueRow(execRow.getRowArray().length);
         rowToEncode.setRowArray(execRow.getRowArray());
@@ -70,12 +72,12 @@ public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
     }
 
     @Override
-    protected WriteResult handleExistingRow(byte[] indexRowId, byte[] sourceRowKey) throws Exception {
+    protected WriteResult handleExistingRow(byte[] indexRowId, KVPair sourceMutation) throws Exception {
         byte[] baseTableRowId = toChildBaseRowId(indexRowId, constraintInfo);
-        if(constraintInfo.getDeleteRule() == StatementType.RA_SETNULL && isSelfReferencing && Arrays.equals(sourceRowKey, baseTableRowId)) {
+        if(constraintInfo.getDeleteRule() == StatementType.RA_SETNULL && isSelfReferencing && Arrays.equals(sourceMutation.getRowKey(), baseTableRowId)) {
             return WriteResult.success(); // do not add an update mutation since this row will be deleted anyway.
         }
-        originators.put(Bytes.toHex(baseTableRowId), sourceRowKey); // needs to trace back errors correctly and also fail referencing rows.
+        originators.put(Bytes.toHex(baseTableRowId), sourceMutation); // needs to trace back errors correctly and also fail referencing rows.
         KVPair pair = constructUpdateToNull(baseTableRowId);
         pipelineBuffer.add(pair);
         mutationBuffer.putIfAbsent(pair, pair);
