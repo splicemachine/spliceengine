@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.utils.marshall.dvd;
 
+import com.splicemachine.db.iapi.types.SQLDecimal;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
@@ -63,7 +64,12 @@ class DecimalDescriptorSerializer implements DescriptorSerializer {
 
 		@Override
 		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-				dvd.setBigDecimal(Encoding.decodeBigDecimal(data,offset,length,desc));
+				SQLDecimal d = (SQLDecimal)dvd;
+				int precision = d.getPrecision();
+				int scale = d.getScale();
+				d.setBigDecimal( Encoding.decodeBigDecimal(data,offset,length,desc) );
+				d.setPrecision( precision );
+				d.setScale( scale );
 		}
 
 		@Override public boolean isScalarType() { return false; }
