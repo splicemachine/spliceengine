@@ -607,6 +607,18 @@
             </dependencies>
         </profile>
         <profile>
+            <id>hdp3.1.5</id>
+            <dependencies>
+                <dependency>
+                    <!-- com.databricks.spark.avro -->
+                    <groupId>com.databricks</groupId>
+                    <artifactId>spark-avro_${scala.binary.version}</artifactId>
+                    <version>4.0.0</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
             <id>cdh6.3.0</id>
             <dependencies>
                 <dependency>
