@@ -3058,8 +3058,10 @@ TOKEN [IGNORE_CASE] :
 |    <DETERMINISTIC: "deterministic">
 |    <DIGITS: "digits">
 |   <DYNAMIC: "dynamic">
+|    <ENCODING: "encoding">
 |   <EXCLUDE: "exclude">
 |   <EXTRACT: "extract">
+|    <FIELD_SEPARATOR: "field_separator">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
@@ -3109,8 +3111,11 @@ TOKEN [IGNORE_CASE] :
 |   <RECURSIVE: "recursive">
 |    <RELEASE: "release">
 |    <QUARTER: "quarter">
+|    <QUOTE_CHARACTER: "quote_character">
+|    <QUOTE_MODE: "quote_mode">
 |   <REPEAT: "repeat">
 |    <REPEATABLE: "repeatable">
+|    <REPLICATION_COUNT: "replication_count">
 |    <RESPECT: "respect">
 |    <RESTART: "restart">
 |    <RETURNS: "returns">
@@ -3125,6 +3130,7 @@ TOKEN [IGNORE_CASE] :
 |    <LINES: "lines">
 |    <PARTITIONED: "partitioned">
 |    <COMPRESSED: "compressed">
+|    <COMPRESSION: "compression">
 |    <SNAPPY: "snappy">
 |    <ZLIB: "zlib">
 |    <STORED: "stored">
@@ -4194,10 +4200,54 @@ exportStatement() throws StandardException :
 {
     StatementNode   statementNode;
     Vector parameterList = new Vector();
+    ValueNode exportPath;
+    ValueNode compression = null;
+    ValueNode replicationCount = null;
+    ValueNode encoding = null;
+    ValueNode fieldSeparator = null;
+    ValueNode quoteCharacter = null;
+    ValueNode quoteMode = null;
 }
 {
+    LOOKAHEAD ( {getToken(1).kind == EXPORT && getToken(2).kind == TO} )
+    <EXPORT> <TO> exportPath = orExpression(null)
+    [
+        <COMPRESSION> compression = orExpression(null)
+    ]
+    [
+        <REPLICATION_COUNT> replicationCount = orExpression(null)
+    ]
+    [
+        <ENCODING> encoding = orExpression(null)
+    ]
+    [
+        <FIELD_SEPARATOR> fieldSeparator = orExpression(null)
+    ]
+    [
+        <QUOTE_CHARACTER> quoteCharacter = orExpression(null)
+    ]
+    [
+        <QUOTE_MODE> quoteMode = orExpression(null)
+    ]
+    statementNode = preparableSQLDataStatement()
+    {
+        parameterList.addElement(exportPath);
+        parameterList.addElement(compression);
+        parameterList.addElement(replicationCount);
+        parameterList.addElement(encoding);
+        parameterList.addElement(fieldSeparator);
+        parameterList.addElement(quoteCharacter);
+        parameterList.addElement(quoteMode);
+        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                   statementNode,
+                                   parameterList,
+                                   getContextManager());
+    }
+|
+    // Legacy export
     <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
+        parameterList.addElement(null); // null for legacy
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
                                    parameterList,

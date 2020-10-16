@@ -1984,6 +1984,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 1,
                 "",
                 "",
+                "",
                 ""
         );
         op.markAsTopResultSet();
@@ -2027,6 +2028,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String encoding,
                                              String fieldSeparator,
                                              String quoteChar,
+                                             String quoteMode,
                                              int srcResultDescriptionSavedObjectNum) throws StandardException {
 
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
@@ -2048,7 +2050,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 replicationCount,
                 encoding,
                 fieldSeparator,
-                quoteChar
+                quoteChar,
+                quoteMode
         );
         op.markAsTopResultSet();
         return op;
