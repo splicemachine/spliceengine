@@ -53,7 +53,7 @@ public abstract class OnDeleteAbstractAction extends Action {
     protected final CallBuffer<KVPair> pipelineBuffer;
     Partition indexTable;
     private final TxnOperationFactory txnOperationFactory;
-    protected final Map<String, byte[]> originators; // reverse lookup from child -> parent rows for propagating failures.
+    protected final Map<String, KVPair> originators; // reverse lookup from child -> parent rows for propagating failures.
 
     private final ForeignKeyViolationProcessor violationProcessor;
 
@@ -61,7 +61,7 @@ public abstract class OnDeleteAbstractAction extends Action {
                                   DDLMessage.FKConstraintInfo constraintInfo,
                                   WriteContext writeContext,
                                   TxnOperationFactory txnOperationFactory, ForeignKeyViolationProcessor violationProcessor) throws Exception {
-        super(constraintInfo.getTable().getConglomerate(), backingIndexConglomId);
+        super(constraintInfo.getChildTable().getConglomerate(), backingIndexConglomId);
         this.txnOperationFactory = txnOperationFactory;
         assert childBaseTableConglomId != null;
         assert backingIndexConglomId != null;
@@ -149,7 +149,7 @@ public abstract class OnDeleteAbstractAction extends Action {
         return indexTable;
     }
 
-    protected abstract WriteResult handleExistingRow(byte[] indexRow, byte[] sourceRowKey) throws Exception;
+    protected abstract WriteResult handleExistingRow(byte[] indexRow, KVPair sourceMutation) throws Exception;
 
     protected static byte[] toChildBaseRowId(byte[] indexRowId, DDLMessage.FKConstraintInfo fkConstraintInfo) throws StandardException {
         MultiFieldDecoder multiFieldDecoder = MultiFieldDecoder.create();
@@ -208,7 +208,7 @@ public abstract class OnDeleteAbstractAction extends Action {
                     indexRow = isVisible(next, filters.getSecond());
                 }
                 if (indexRow != null) {
-                    writeResult = handleExistingRow(indexRow, mutation.getRowKey());
+                    writeResult = handleExistingRow(indexRow, mutation);
                 }
             }
         } catch (Exception e) {

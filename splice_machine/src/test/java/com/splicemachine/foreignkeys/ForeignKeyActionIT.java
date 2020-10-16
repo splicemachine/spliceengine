@@ -55,7 +55,8 @@ public class ForeignKeyActionIT {
     public void deleteTables() throws Exception {
         conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
-        new TableDAO(conn).drop(SCHEMA, "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
+        new TableDAO(conn).drop(SCHEMA, "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
+                "FC", "FP", "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
     }
 
     @After
@@ -393,6 +394,89 @@ public class ForeignKeyActionIT {
             Assert.assertTrue(rs.next());
             Assert.assertEquals(46, rs.getInt(1)); Assert.assertEquals(45, rs.getInt(2));
             Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void constructingWriteContextFactoryUsingBulkWriteWorks() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.executeUpdate("create table FP (col1 int, col2 varchar(2), col3 int, col4 int, primary key (col2, col4))");
+            s.executeUpdate("create table FC(col1 int primary key, col2 varchar(2), col3 int, col4 timestamp, constraint CHILD_FKEY foreign key(col2, col3) references FP(col2, col4) on delete cascade)");
+            s.executeUpdate("insert into FP values (1, 'a', 1, 1)");
+            s.executeUpdate("insert into FC values (400, 'a', 1, '2019-09-09 10:10:10.123456')");
+            s.executeUpdate("delete from FP where col1 = 1");
+            try(ResultSet rs = s.executeQuery("select * from FC")) {
+                Assert.assertFalse(rs.next());
+            }
+        }
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // test behavior of FK actions with deep hierarchies
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    private static void createDatabaseObjects5(Statement s, String leafTableFKAction) throws SQLException {
+        s.executeUpdate("create table DHC1(col0 int primary key, col1 int, col2 varchar(2))");
+        s.executeUpdate("create table DHC2(col0 int primary key, col1 int references DHC1(col0) on delete cascade, col2 varchar(2))");
+        s.executeUpdate("create table DHC3(col0 int primary key, col1 int references DHC2(col0) on delete cascade, col2 varchar(2))");
+        s.executeUpdate("create table DHC4(col0 int primary key, col1 int references DHC3(col0) on delete cascade, col2 varchar(2))");
+        s.executeUpdate("create table DHC5(col0 int primary key, col1 int references DHC4(col0) on delete cascade, col2 varchar(2))");
+        s.executeUpdate("create table DHC6(col0 int primary key, col1 int references DHC5(col0) on delete cascade, col2 varchar(2))");
+        s.executeUpdate("create table DHC7(col0 int primary key, col1 int references DHC6(col0) on delete cascade, col2 varchar(2))");
+        s.executeUpdate("create table DHC8(col0 int primary key, col1 int references DHC7(col0) on delete cascade, col2 varchar(2))");
+        s.executeUpdate("create table DHC9(col0 int primary key, col1 int references DHC8(col0) on delete cascade, col2 varchar(2))");
+        s.executeUpdate(String.format("create table DHC10(col0 int primary key, col1 int references DHC9(col0) on delete %s, col2 varchar(2))", leafTableFKAction));
+        s.executeUpdate("insert into DHC1 values (400, 400, 'y')");
+        s.executeUpdate("insert into DHC2 values (400, 400, 'y')");
+        s.executeUpdate("insert into DHC3 values (400, 400, 'y')");
+        s.executeUpdate("insert into DHC4 values (400, 400, 'y')");
+        s.executeUpdate("insert into DHC5 values (400, 400, 'y')");
+        s.executeUpdate("insert into DHC6 values (400, 400, 'y')");
+        s.executeUpdate("insert into DHC7 values (400, 400, 'y')");
+        s.executeUpdate("insert into DHC8 values (400, 400, 'y')");
+        s.executeUpdate("insert into DHC9 values (400, 400, 'y')");
+        s.executeUpdate("insert into DHC10 values (400, 400, 'y')");
+    }
+
+    @Test
+    public void trackingOriginatingErrorsWorksCorrectly() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            createDatabaseObjects5(s, "no action");
+            try {
+                s.executeUpdate("delete from DHC1");
+                Assert.fail("expected SQLException containing: ERROR 23503: Operation on table 'DHC9' caused a violation of foreign key constraint");
+            } catch(Exception se) {
+                Assert.assertTrue(se instanceof SQLException);
+                Assert.assertTrue(se.getMessage().contains("Operation on table 'DHC9' caused a violation of foreign key constraint"));
+            }
+        }
+    }
+
+    @Test
+    public void cascadingDeleteWorksInDeepHierarchy() throws Exception {
+        try (Statement s = conn.createStatement()) {
+            createDatabaseObjects5(s, "cascade");
+            s.executeUpdate("delete from DHC1");
+            try (ResultSet rs = s.executeQuery("SELECT * FROM DHC10")) {
+                Assert.assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void setNullWorksInDeepHierarchy() throws Exception {
+        try (Statement s = conn.createStatement()) {
+            createDatabaseObjects5(s, "set null");
+            s.executeUpdate("delete from DHC1");
+            try (ResultSet rs = s.executeQuery("SELECT * FROM DHC10")) {
+                Assert.assertTrue(rs.next());
+                Assert.assertEquals(400, rs.getInt(1));
+                rs.getInt(2); Assert.assertTrue(rs.wasNull());
+                Assert.assertEquals("y", rs.getString(3));
+                Assert.assertFalse(rs.next());
+            }
         }
     }
 
