@@ -15,7 +15,6 @@
 package com.splicemachine.pipeline.foreignkey.actions;
 
 import com.splicemachine.ddl.DDLMessage;
-import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
@@ -38,8 +37,8 @@ public class OnDeleteNoAction extends OnDeleteAbstractAction {
     }
 
     @Override
-    protected WriteResult handleExistingRow(byte[] indexRowId, KVPair sourceMutation) {
-        ConstraintContext context = ConstraintContext.foreignKey(constraintInfo, sourceMutation.getRowKey());
+    protected WriteResult handleExistingRow(byte[] indexRowId, byte[] sourceRowKey) {
+        ConstraintContext context = ConstraintContext.foreignKey(constraintInfo);
         failed = true;
         return new WriteResult(Code.FOREIGN_KEY_VIOLATION, context.withMessage(1, parentTableName));
     }

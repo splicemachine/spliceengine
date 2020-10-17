@@ -113,11 +113,14 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 		if(constraintType!=DataDictionary.FOREIGNKEY_CONSTRAINT) return; //nothing to validate
 
 		/*
-		 * ON DELETE SET DEFAULT clause is not supported.
+		 * DB-2224/2225/3985. SpliceMachine does not support ON DELETE ... rules when creating foreign
+		 * keys, until DB-2224 (ON DELETE CASCADE) and DB-2225 (ON DELETE SET NULL) are implemented. This
+		 * little block throws the proper error message rather than attempt to create a potentially
+		 * invalid table.
 		 */
 		switch(otherConstraintInfo.getReferentialActionDeleteRule()){
-			case StatementType.RA_SETDEFAULT:
-				throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "ON DELETE SET DEFAULT");
+			case StatementType.RA_CASCADE:
+				throw StandardException.newException(SQLState.NOT_IMPLEMENTED, "ON DELETE CASCADE");
 		}
 	}
 

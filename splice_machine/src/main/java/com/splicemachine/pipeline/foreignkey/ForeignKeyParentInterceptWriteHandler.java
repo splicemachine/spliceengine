@@ -57,11 +57,13 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
                                                  ) {
         this.shouldRefreshActions = true;
         this.referencingIndexConglomerateIds = referencingIndexConglomerateIds;
-        this.violationProcessor = new ForeignKeyViolationProcessor(exceptionFactory);
+        this.violationProcessor = new ForeignKeyViolationProcessor(
+                new ForeignKeyViolationProcessor.ParentFkConstraintContextProvider(parentTableName),exceptionFactory);
         this.constraintInfos = constraintInfos;
         this.txnOperationFactory = SIDriver.driver().getOperationFactory();
         this.parentTableName = parentTableName;
-        this.actions = new HashMap<>(referencingIndexConglomerateIds.size());
+
+        actions = new HashMap<>(referencingIndexConglomerateIds.size());
     }
 
     /** We exist to prevent updates/deletes of rows from the parent table which are referenced by a child.
@@ -77,7 +79,7 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
         if (shouldRefreshActions) {
             assert referencingIndexConglomerateIds.size() == constraintInfos.size();
             for (int i = 0; i < referencingIndexConglomerateIds.size(); i++) {
-                Pair<Long, Long> needle = new Pair<>(constraintInfos.get(i).getChildTable().getConglomerate(), referencingIndexConglomerateIds.get(i));
+                Pair<Long, Long> needle = new Pair<>(constraintInfos.get(i).getTable().getConglomerate(), referencingIndexConglomerateIds.get(i));
                 if(!actions.containsKey(needle)) {
                     actions.put(needle, ActionFactory.createAction(referencingIndexConglomerateIds.get(i), constraintInfos.get(i), context,
                             parentTableName, txnOperationFactory, violationProcessor));
@@ -110,19 +112,22 @@ public class ForeignKeyParentInterceptWriteHandler implements WriteHandler{
             }
         }
         if(!failed) {
+            ctx.success(mutation);
             ctx.sendUpstream(mutation);
         }
     }
 
     @Override
     public void flush(WriteContext ctx) throws IOException {
+        if(failed) {
+            return;
+        }
         try {
-            for (Action action : actions.values()) {
+            for(Action action : actions.values()) {
                 action.flush(ctx);
             }
-        } catch (IOException e) {
-            // it is a programming error to enter this code path.
-            throw new IOException("unexpected, inner actions should handle exceptions ", e);
+        } catch (Exception e) {
+            violationProcessor.failWrite(e, ctx);
         }
     }
 

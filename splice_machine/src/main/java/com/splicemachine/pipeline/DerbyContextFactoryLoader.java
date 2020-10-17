@@ -277,11 +277,11 @@ public class DerbyContextFactoryLoader implements ContextFactoryLoader{
             switch(cDescriptor.getConstraintType()){
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
                     constraintFactories.add(buildPrimaryKey(cDescriptor,osf,pef));
-                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor, lcc);
+                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor, conglomId, td, lcc);
                     break;
                 case DataDictionary.UNIQUE_CONSTRAINT:
                     buildUniqueConstraint(cDescriptor,osf,pef);
-                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor, lcc);
+                    fkGroup.buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor)cDescriptor, conglomId, td, lcc);
                     break;
                 case DataDictionary.FOREIGNKEY_CONSTRAINT:
                     ForeignKeyConstraintDescriptor fkConstraintDescriptor=(ForeignKeyConstraintDescriptor)cDescriptor;

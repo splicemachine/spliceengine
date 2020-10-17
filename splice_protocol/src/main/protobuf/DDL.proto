@@ -304,7 +304,7 @@ message FKConstraintInfo {
         SETDEFAULT = 4
      */
     optional int32 deleteRule = 6;
-    optional Table childTable = 7; // the table in which the foreign key is defined
+    optional Table table = 7;
     repeated int32 columnIndices = 8; // 1-based
     optional int64 parentTableConglomerate = 9; // needed for checking self-referencing FKs.
 }

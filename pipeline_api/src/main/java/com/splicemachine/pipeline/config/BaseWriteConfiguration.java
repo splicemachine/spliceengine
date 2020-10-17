@@ -167,7 +167,7 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
     }
 
     @Override
-    public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult) throws Exception {
+    public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult) throws Throwable {
         WriteResult writeResult = bulkWriteResult.getGlobalResult();
         if (writeResult.isSuccess())
             return WriteResponse.SUCCESS;
