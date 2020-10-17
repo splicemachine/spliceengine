@@ -339,7 +339,6 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
             return;
         CostEstimate costEstimate = rsn.getFinalCostEstimate(false);
         long totalRowCount = costEstimate.getEstimatedRowCount();
-        long currentOffset = offset==-1?0:offset;
         long currentFetchFirst = fetchFirst==-1?totalRowCount:fetchFirst;
         scaleFactor = (double) currentFetchFirst/(double) totalRowCount;
         if (scaleFactor >= 1.0d) {
