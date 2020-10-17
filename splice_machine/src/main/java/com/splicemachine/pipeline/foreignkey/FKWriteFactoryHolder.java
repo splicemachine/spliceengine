@@ -87,12 +87,6 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
         return false;
     }
 
-    @Override
-    public boolean hasDependentWrites() {
-        // FK with cascading deletion causes a (remote) write on a child table.
-        return parentInterceptWriteFactory != null && parentInterceptWriteFactory.hasCascadingDeleteFK();
-    }
-
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // build factories from minimal information (used tasks/jobs to ALTER existing write contexts)
@@ -175,6 +169,8 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
 
     /* Add factories for *checking* existence of FK referenced primary-key or unique-index rows. */
     public void buildForeignKeyCheckWriteFactory(ReferencedKeyConstraintDescriptor cDescriptor,
+                                                 long baseConglomerate,
+                                                 TableDescriptor td,
                                                  LanguageConnectionContext lcc) throws StandardException {
         ConstraintDescriptorList fks = cDescriptor.getForeignKeyConstraints(ConstraintDescriptor.ENABLED);
         if (fks.isEmpty()) {
@@ -188,7 +184,7 @@ public class FKWriteFactoryHolder implements WriteFactoryGroup{
             try {
                 ConglomerateDescriptor backingIndexCd = foreignKeyConstraint.getIndexConglomerateDescriptor(null);
                 backingIndexConglomIds.add(backingIndexCd.getConglomerateNumber());
-                fkConstraintInfos.add(ProtoUtil.createFKConstraintInfo(foreignKeyConstraint, fk.getTableDescriptor(), lcc));
+                fkConstraintInfos.add(ProtoUtil.createFKConstraintInfo(foreignKeyConstraint, td, lcc));
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }

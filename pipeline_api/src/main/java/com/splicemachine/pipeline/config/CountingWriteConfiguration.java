@@ -59,7 +59,7 @@ public class CountingWriteConfiguration extends ForwardingWriteConfiguration{
     }
 
     @Override
-    public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult) throws Throwable {
+    public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult) throws Throwable{
         WriteResult result=bulkWriteResult.getGlobalResult();
         Code code=result.getCode();
         switch(code){

@@ -110,7 +110,7 @@ public class ForeignKeyAlterDropTableIT {
     }
 
     @Test
-    public void alterTableRemovesFkConstraint() throws Exception {
+    public void alterTable_removesFkConstraint() throws Exception {
         try(Statement s = conn.createStatement()){
             // given -- C -> P with values in both
             s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
@@ -139,7 +139,7 @@ public class ForeignKeyAlterDropTableIT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
-    public void dropTableFailsIfTableWithDependentFKExists() throws Exception {
+    public void dropTable_failsIfTableWithDependentFKExists() throws Exception {
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
             s.executeUpdate("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
@@ -153,7 +153,7 @@ public class ForeignKeyAlterDropTableIT {
     }
 
     @Test
-    public void dropTableRemovesFkConstraint() throws Exception {
+    public void dropTable_removesFkConstraint() throws Exception {
         try(Statement s = conn.createStatement()){
             // given -- C -> P with values in both
             s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
@@ -173,17 +173,21 @@ public class ForeignKeyAlterDropTableIT {
     }
 
     @Test
-    public void onDeleteCascadeDoesNotThrowError() throws Exception{
+    public void onDeleteCascadeThrowsError() throws Exception{
+        //Regression test for DB-3985. Make sure that ON DELETE CASCADE create table statements explode. Remove this when DB-2224 is implemented
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table P (a int primary key, b int)");
-            s.executeUpdate("create table C (a int references P(a) ON DELETE CASCADE)");
+
+            assertQueryFail("create table C (a int references P(a) ON DELETE CASCADE)","Feature not implemented: ON DELETE CASCADE.");
         }
     }
 
     @Test
-    public void onDeleteSetNullDoesNotThrowError() throws Exception{
+    public void onDeleteSetNullThrowsError() throws Exception{
+        //Regression test for DB-3985. Make sure that ON DELETE CASCADE create table statements explode. Remove this when DB-2224 is implemented
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table P (a int primary key, b int)");
+
             s.executeUpdate("create table C (a int references P(a) ON DELETE SET NULL)");
         }
     }

@@ -260,9 +260,9 @@ public class ProtoUtil {
                 .setConstraintName(fKConstraintDescriptor.getConstraintName())
                 .setColumnNames(Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction())))
                 .setDeleteRule(fKConstraintDescriptor.getRaDeleteRule())
-                .setChildTable(createTable(td.getHeapConglomerateId(),td,lcc))
+                .setTable(createTable(td.getHeapConglomerateId(),td,lcc))
                 .addAllColumnIndices(Ints.asList(fKConstraintDescriptor.getReferencedColumns()))
-                .setParentTableConglomerate(fKConstraintDescriptor.getReferencedConstraint().getTableDescriptor().getHeapConglomerateId())
+                .setParentTableConglomerate(fKConstraintDescriptor.getTableDescriptor().getHeapConglomerateId())
                 .build();
         } catch (StandardException se) {
             throw new RuntimeException(se);

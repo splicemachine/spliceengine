@@ -33,6 +33,4 @@ public interface WriteFactoryGroup{
     void clear();
 
     boolean isEmpty();
-
-    boolean hasDependentWrites();
 }

@@ -40,9 +40,7 @@ import com.splicemachine.storage.*;
 import com.splicemachine.utils.Pair;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public abstract class OnDeleteAbstractAction extends Action {
 
@@ -53,7 +51,6 @@ public abstract class OnDeleteAbstractAction extends Action {
     protected final CallBuffer<KVPair> pipelineBuffer;
     Partition indexTable;
     private final TxnOperationFactory txnOperationFactory;
-    protected final Map<String, KVPair> originators; // reverse lookup from child -> parent rows for propagating failures.
 
     private final ForeignKeyViolationProcessor violationProcessor;
 
@@ -61,7 +58,7 @@ public abstract class OnDeleteAbstractAction extends Action {
                                   DDLMessage.FKConstraintInfo constraintInfo,
                                   WriteContext writeContext,
                                   TxnOperationFactory txnOperationFactory, ForeignKeyViolationProcessor violationProcessor) throws Exception {
-        super(constraintInfo.getChildTable().getConglomerate(), backingIndexConglomId);
+        super(constraintInfo.getTable().getConglomerate(), backingIndexConglomId);
         this.txnOperationFactory = txnOperationFactory;
         assert childBaseTableConglomId != null;
         assert backingIndexConglomId != null;
@@ -77,7 +74,6 @@ public abstract class OnDeleteAbstractAction extends Action {
                 writeContext.getToken());
         this.indexTable = null;
         this.violationProcessor = violationProcessor;
-        this.originators = new HashMap<>();
     }
 
     /*
@@ -149,7 +145,7 @@ public abstract class OnDeleteAbstractAction extends Action {
         return indexTable;
     }
 
-    protected abstract WriteResult handleExistingRow(byte[] indexRow, KVPair sourceMutation) throws Exception;
+    protected abstract WriteResult handleExistingRow(byte[] indexRow, byte[] sourceRowKey) throws Exception;
 
     protected static byte[] toChildBaseRowId(byte[] indexRowId, DDLMessage.FKConstraintInfo fkConstraintInfo) throws StandardException {
         MultiFieldDecoder multiFieldDecoder = MultiFieldDecoder.create();
@@ -170,15 +166,13 @@ public abstract class OnDeleteAbstractAction extends Action {
                 position += multiFieldDecoder.skip();
             }
         }
-        // position ends up 1 byte beyond the key prefix, last index is placed on the end on the prefix
-        // and 1 byte before the row key.
-        int lastKeyIndex = position - 1;
+        int lastKeyIndex = position - 2;
 
-        if (lastKeyIndex == indexRowId.length) {
+        if (lastKeyIndex == indexRowId.length - 1) {
             throw StandardException.newException(String.format("unexpected index rowid format %s", Bytes.toHex(indexRowId)));
         } else {
-            byte[] result = new byte[indexRowId.length - lastKeyIndex - 1];
-            System.arraycopy(indexRowId, lastKeyIndex + 1, result, 0, result.length);
+            byte[] result = new byte[indexRowId.length - lastKeyIndex - 2];
+            System.arraycopy(indexRowId, lastKeyIndex + 2, result, 0, result.length);
             return Encoding.decodeBytesUnsorted(result, 0, result.length);
         }
     }
@@ -208,7 +202,7 @@ public abstract class OnDeleteAbstractAction extends Action {
                     indexRow = isVisible(next, filters.getSecond());
                 }
                 if (indexRow != null) {
-                    writeResult = handleExistingRow(indexRow, mutation);
+                    writeResult = handleExistingRow(indexRow, mutation.getRowKey());
                 }
             }
         } catch (Exception e) {
@@ -218,11 +212,11 @@ public abstract class OnDeleteAbstractAction extends Action {
     }
 
     @Override
-    public void flush(WriteContext ctx) {
+    public void flush(WriteContext ctx) throws IOException {
         try {
             pipelineBuffer.flushBufferAndWait();
         } catch (Exception e) {
-            violationProcessor.failWrite(e, ctx, originators);
+            violationProcessor.failWrite(e, ctx);
         }
     }
 
