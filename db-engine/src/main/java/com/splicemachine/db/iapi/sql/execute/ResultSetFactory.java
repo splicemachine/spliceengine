@@ -1710,6 +1710,17 @@ NoPutResultSet getBroadcastJoinResultSet(
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException;
 
+NoPutResultSet getWindowResultSet(NoPutResultSet source,
+                                             boolean isInSortedOrder,
+                                             int aggregateItem,
+                                             GeneratedMethod rowAllocator,
+                                             int maxRowSize,
+                                             int resultSetNumber,
+                                             double optimizerEstimatedRowCount,
+                                             double optimizerEstimatedCost,
+                                             String explainPlan)
+        throws StandardException;
+
 NoPutResultSet getIndexRowToBaseRowResultSet(long conglomId,
                                                         int scociItem,
                                                         NoPutResultSet source,
