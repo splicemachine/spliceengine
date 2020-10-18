@@ -56,7 +56,7 @@ public class PkDataHash implements DataHash<ExecRow> {
     }
 
     @Override
-    public byte[] encode() throws StandardException, IOException {
+    public byte[] encode() throws StandardException {
         rowKey = ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
         if (encoder == null)
             encoder = MultiFieldEncoder.create(keyColumns.length);

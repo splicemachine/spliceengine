@@ -81,7 +81,7 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             }
 
             @Override
-            public byte[] encode() throws StandardException, IOException {
+            public byte[] encode() throws StandardException {
                 RowLocation location = (RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject();
                 return location.getBytes();
             }

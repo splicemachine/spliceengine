@@ -42,7 +42,7 @@ public class FixedDataHash<T> implements DataHash<T>{
 
     @Override
     @SuppressFBWarnings(value = "EI_EXPOSE_REP",justification = "Intentional")
-    public byte[] encode() throws StandardException, IOException{
+    public byte[] encode() throws StandardException {
         return bytes;
     }
 

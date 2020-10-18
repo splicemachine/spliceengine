@@ -28,10 +28,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLSyntaxErrorException;
-import java.sql.Timestamp;
+import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
 
@@ -483,6 +480,54 @@ public class TernaryOperationIT {
         } catch (SQLSyntaxErrorException e) {
             Assert.assertTrue("Unexpected error code: " + e.getSQLState(),  SQLState.LANG_SYNTAX_ERROR.startsWith(e.getSQLState()));
         }
+    }
+
+    private void executeAndCheckSplitPart(int fieldNumber) throws SQLException {
+        int count = 0;
+        String sCell1 = null;
+        String sCell2 = null;
+        ResultSet rs;
+
+        rs = methodWatcher.executeQuery(String.format("select split_part(e, ' ', %d), e from %s", fieldNumber, tableWatcherB));
+        count = 0;
+        while (rs.next()) {
+            sCell1 = rs.getString(1);
+            sCell2 = rs.getString(2);
+            String splitExpected;
+            if (sCell2 != null) {
+                String sCell2Parts[] = sCell2.split("\\s");
+                if (fieldNumber > sCell2Parts.length) {
+                    splitExpected = null;
+                } else {
+                    splitExpected = sCell2Parts[fieldNumber - 1];
+                }
+            } else {
+                splitExpected = null;
+            }
+
+            Assert.assertEquals("Wrong result value", sCell1, splitExpected);
+            count++;
+        }
+        Assert.assertEquals("Incorrect row count", 5, count);
+    }
+
+    private void executeAndCheckErrorSplitPart(int fieldNumber) throws SQLException {
+        try {
+            methodWatcher.executeQuery(String.format("select split_part(e, ' ', %d), e from %s", fieldNumber, tableWatcherB));
+            Assert.fail(String.format("Query is expected to fail with {}", SQLState.LANG_FIELD_POSITION_ZERO));
+        } catch (SQLDataException e) {
+            Assert.assertEquals(SQLState.LANG_FIELD_POSITION_ZERO, e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testSplitPartFunction() throws Exception {
+        executeAndCheckSplitPart(1);
+        executeAndCheckSplitPart(3);
+        executeAndCheckSplitPart(4);
+        executeAndCheckSplitPart(8);
+        executeAndCheckErrorSplitPart(0);
+        executeAndCheckErrorSplitPart(-1);
     }
 }
 

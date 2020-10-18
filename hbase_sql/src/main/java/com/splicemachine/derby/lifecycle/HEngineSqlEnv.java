@@ -22,6 +22,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
+import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DatabaseVersion;

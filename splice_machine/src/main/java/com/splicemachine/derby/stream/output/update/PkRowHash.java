@@ -61,7 +61,7 @@ public class PkRowHash extends EntryDataHash{
     }
 
     @Override
-    public byte[] encode() throws StandardException, IOException{
+    public byte[] encode() throws StandardException {
 
         RowLocation location=(RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject(); //the location to update is always at the end
         //convert Result into put under the new row key
@@ -126,14 +126,14 @@ public class PkRowHash extends EntryDataHash{
 
     @Override
     protected void pack(MultiFieldEncoder updateEncoder,
-                        ExecRow currentRow) throws StandardException, IOException{
+                        ExecRow currentRow) throws StandardException {
         BitIndex index=resultDecoder.getCurrentIndex();
         pack(updateEncoder, currentRow, index.getFields());
     }
 
     protected void pack(MultiFieldEncoder updateEncoder,
                         ExecRow currentRow,
-                        BitSet fieldsToUpdate) throws StandardException, IOException{
+                        BitSet fieldsToUpdate) throws StandardException{
         MultiFieldDecoder getFieldDecoder=resultDecoder.getEntryDecoder();
         BitSet oldPresentFields=resultDecoder.getCurrentIndex().getFields();
 

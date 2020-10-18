@@ -119,7 +119,7 @@ public enum DataType{
 
         @Override
         public String decode(byte[] bytes, boolean printRawHex) {
-            byte[] decoded = Encoding.decodeBytesUnsortd(bytes,0,bytes.length);
+            byte[] decoded = Encoding.decodeBytesUnsorted(bytes,0,bytes.length);
             if(printRawHex)
                 return Bytes.toHex(decoded);
 

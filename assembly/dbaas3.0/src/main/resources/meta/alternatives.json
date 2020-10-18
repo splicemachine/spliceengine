@@ -1,0 +1,8 @@
+{
+    "sqlshell.sh": {
+      "destination": "/usr/bin/sqlshell.sh",
+      "source": "bin/sqlshell.sh",
+      "priority": 10,
+      "isDirectory": false
+    }
+}

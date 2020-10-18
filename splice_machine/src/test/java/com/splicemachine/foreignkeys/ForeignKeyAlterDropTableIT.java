@@ -35,9 +35,9 @@ import static org.junit.Assert.fail;
  *
  * Also contains drop table tests.
  */
-public class ForeignKey_AlterDropTable_IT {
+public class ForeignKeyAlterDropTableIT {
 
-    private static final String SCHEMA = ForeignKey_AlterDropTable_IT.class.getSimpleName();
+    private static final String SCHEMA = ForeignKeyAlterDropTableIT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -98,7 +98,7 @@ public class ForeignKey_AlterDropTable_IT {
             // when -- we add the foreign key after the write contexts are initialized
             String alterSql = "alter table "+SCHEMA+".C add constraint FK_1 foreign key (a) references "+SCHEMA+".P(a)";
             String expectedError = "Foreign key constraint 'FK_1' cannot be added to or enabled on table " +
-                    "\"FOREIGNKEY_ALTERDROPTABLE_IT\".\"C\" because one or more foreign keys do not have matching referenced keys.";
+                    "\"FOREIGNKEYALTERDROPTABLEIT\".\"C\" because one or more foreign keys do not have matching referenced keys.";
             assertQueryFail(alterSql,expectedError);
 
             // then -- the foreign key constraint is NOT enforced
@@ -188,7 +188,7 @@ public class ForeignKey_AlterDropTable_IT {
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table P (a int primary key, b int)");
 
-            assertQueryFail("create table C (a int references P(a) ON DELETE SET NULL)","Feature not implemented: ON DELETE SET NULL.");
+            s.executeUpdate("create table C (a int references P(a) ON DELETE SET NULL)");
         }
     }
 
