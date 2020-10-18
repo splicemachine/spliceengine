@@ -44,6 +44,7 @@ import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.OperationManager;
 import com.splicemachine.derby.iapi.sql.execute.OperationManagerImpl;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
+import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.HSqlExceptionFactory;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.ZkServiceDiscovery;
@@ -64,6 +65,7 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.log4j.Logger;
+import org.apache.spark.sql.SparkSession;
 import org.apache.zookeeper.KeeperException;
 
 import static java.lang.System.getProperty;
@@ -75,8 +77,23 @@ import static java.lang.System.getProperty;
 public class HEngineSqlEnv extends EngineSqlEnvironment{
     private static final Logger LOG = Logger.getLogger(HEngineSqlEnv.class);
 
+    private static final int numNodes = 1; // getNumNodes();  msirek-temp
+
+    // The number of milliseconds it took to find out the number
+    // of nodes in the system.  Is there is quicker method of doing this?
+    private static long findNumNodesTime;
+
     // Calculate this once on startup to save some overhead.
-    private static final int MAX_EXECUTOR_CORES = calculateMaxExecutorCores();
+    private static final int MAX_EXECUTOR_CORES =
+      calculateMaxExecutorCores(HConfiguration.unwrapDelegate().get("yarn.nodemanager.resource.memory-mb"),
+                                getProperty("splice.spark.dynamicAllocation.enabled"),
+                                getProperty("splice.spark.executor.instances"),
+                                getProperty("splice.spark.executor.cores"),
+                                getProperty("splice.spark.executor.memory"),
+                                getProperty("splice.spark.dynamicAllocation.maxExecutors"),
+                                getProperty("splice.spark.executor.memoryOverhead"),
+                                getProperty("splice.spark.yarn.executor.memoryOverhead"),
+                                numNodes);
 
     private PropertyManager propertyManager;
     private PartitionLoadWatcher loadWatcher;
@@ -86,6 +103,28 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private OlapClient olapClient;
     private OperationManager operationManager;
     private ZkServiceDiscovery serviceDiscovery;
+
+    // Find the number of nodes in the cluster using
+    // the method documented at https://kb.databricks.com/clusters/calculate-number-of-cores.html
+    // Is there a faster method that doesn't require opening a spark session?
+    private static int getNumNodes() {
+        int numNodes = 1;
+        long startTime = System.nanoTime();
+        try {
+            SparkSession ss = SpliceSpark.getSessionUnsafe();
+            numNodes = ss.sparkContext().statusTracker().getExecutorInfos().length - 1;
+            if (numNodes < 1)
+                numNodes = 1;
+            ss.close();
+        }
+        catch (Exception e) {
+            // Don't fail to start up just because we couldn't look up the number of nodes.
+            LOG.warn("Could not look up the number of spark nodes!");
+        }
+        long endTime = System.nanoTime();
+        findNumNodesTime = (endTime - startTime) / 1000000;
+        return numNodes;
+    }
 
     @Override
     public void initialize(SConfiguration config,
@@ -180,25 +219,46 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
 
 
     /**
-     * Parse a Spark or Hadoop size parameter value, that may use k, m, g or t
-     * to represent kilobytes, megabytes, gigabytes or terabytes, respectively,
-     * and return back the corresponding number of bytes.
+     * Parse a Spark or Hadoop size parameter value, that may use b, k, m, g, t, p
+     * to represent bytes, kilobytes, megabytes, gigabytes, terabytes or petabytes respectively,
+     * and return back the corresponding number of bytes.  Valid suffixes can also end
+     * with a 'b' : kb, mb, gb, tb, pb.
      * @param sizeString the parameter value string to parse
      * @param defaultValue the default value of the parameter if an invalid
      *                     <code>sizeString</code> was passed.
      * @return The value in bytes of <code>sizeString</code>, or <code>defaultValue</code>
      *         if a <code>sizeString</code> was passed that could not be parsed.
      */
-    private static long parseSizeString(String sizeString, long defaultValue) {
+    public static long parseSizeString(String sizeString, long defaultValue, String defaultSuffix) {
         long retVal = defaultValue;
-        Pattern sizePattern = Pattern.compile("([\\d.]+)([kmgt])", Pattern.CASE_INSENSITIVE);
-        Matcher matcher = sizePattern.matcher(sizeString);
+        Pattern sizePattern = Pattern.compile("(^[\\d.]+)([bkmgtp]$)", Pattern.CASE_INSENSITIVE);
+        Pattern sizePattern2 = Pattern.compile("(^[\\d.]+)([kmgtp][b]$)", Pattern.CASE_INSENSITIVE);
+        sizeString = sizeString.trim();
+
+        // Add a default suffix if none is specified.
+        if (sizeString.matches("^.*\\d$"))
+            sizeString = sizeString + defaultSuffix;
+
+        Matcher matcher1 = sizePattern.matcher(sizeString);
+        Matcher matcher2 = sizePattern2.matcher(sizeString);
         Map<String, Integer> suffixes = new HashMap<>();
+        suffixes.put("b", 0);
         suffixes.put("k", 1);
         suffixes.put("m", 2);
         suffixes.put("g", 3);
         suffixes.put("t", 4);
-        if (matcher.find()) {
+        suffixes.put("p", 5);
+        suffixes.put("kb", 1);
+        suffixes.put("mb", 2);
+        suffixes.put("gb", 3);
+        suffixes.put("tb", 4);
+        suffixes.put("pb", 5);
+
+        boolean found1 = matcher1.find();
+        boolean found2 = matcher2.find();
+        Matcher matcher = found1 ? matcher1 : matcher2;
+
+        if (found1 || found2) {
             BigInteger value;
             String digits = matcher.group(1);
             try {
@@ -212,7 +272,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
             value = value.multiply(multiplicand);
             if (value.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0)
               return Long.MAX_VALUE;
-            if (value.compareTo(BigInteger.valueOf(1)) < 0)
+            if (value.compareTo(BigInteger.valueOf(0)) < 0)
               return defaultValue;
 
             retVal = value.longValue();
@@ -236,17 +296,26 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     }
 
     /**
-     * Estimate the maximum number of Spark executor cores that could be simultaneously
-     * be running given the current YARN and splice.spark settings.
+     * Estimate the maximum number of Spark executor cores that could be running
+     * simultaneously given the current YARN and splice.spark settings.
      *
      * @return The maximum number of Spark executor cores.
+     * @notes See @link https://spark.apache.org/docs/latest/configuration.html
+     *        for more information on spark configuration properties.
      */
-    private static int calculateMaxExecutorCores() {
-        String memorySize = HConfiguration.unwrapDelegate().get("yarn.nodemanager.resource.memory-mb");
-        String sparkDynamicAllocationString = getProperty("splice.spark.dynamicAllocation.enabled");
-        String executorInstancesString = getProperty("splice.spark.executor.instances");
-        String executorCoresString = getProperty("splice.spark.executor.cores");
-        String sparkExecutorMemory = getProperty("splice.spark.executor.memory");
+    public static int
+    calculateMaxExecutorCores(String memorySize,                         // yarn.nodemanager.resource.memory-mb
+                              String sparkDynamicAllocationString,       // splice.spark.dynamicAllocation.enabled
+                              String executorInstancesString,            // splice.spark.executor.instances
+                              String executorCoresString,                // splice.spark.executor.cores
+                              String sparkExecutorMemory,                // splice.spark.executor.memory
+                              String sparkDynamicAllocationMaxExecutors, // splice.spark.dynamicAllocation.maxExecutors
+                              String sparkExecutorMemoryOverhead,        // splice.spark.executor.memoryOverhead
+                              String sparkYARNExecutorMemoryOverhead,    // splice.spark.yarn.executor.memoryOverhead
+                              int numNodes)
+    {
+        if (numNodes < 1)
+            numNodes = 1;
 
         int executorCores = 1;
         if (executorCoresString != null) {
@@ -259,7 +328,7 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         }
 
         // Initialize to defaults, then check for custom settings.
-        long memSize = 8192*1024*1024, containerSize;
+        long memSize = 8192L*1024*1024, containerSize;
         if (memorySize != null) {
             try {
                 memSize = Long.parseLong(memorySize) * 1024 * 1024;
@@ -285,7 +354,6 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
             }
         }
         else {
-            String sparkDynamicAllocationMaxExecutors = getProperty("splice.spark.dynamicAllocation.maxExecutors");
             numSparkExecutors = Integer.MAX_VALUE;
             if (sparkDynamicAllocationMaxExecutors != null) {
                 try {
@@ -296,11 +364,31 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
             }
         }
 
-        long executorMemory = 1024 * 1024 * 1024; // 1g
+        long executorMemory = 1024L * 1024 * 1024; // 1g
         if (sparkExecutorMemory != null)
-            executorMemory = parseSizeString(sparkExecutorMemory, executorMemory);
+            executorMemory =
+                parseSizeString(sparkExecutorMemory, executorMemory, "b");
 
-        containerSize = executorMemory;
+        long sparkMemOverhead = executorMemory / 10;
+        if (sparkExecutorMemoryOverhead != null) {
+            try {
+                sparkMemOverhead =
+                    parseSizeString(sparkExecutorMemoryOverhead, sparkMemOverhead, "m");
+            } catch (NumberFormatException e) {
+            }
+        }
+        long sparkMemOverheadLegacy = executorMemory / 10;
+        if (sparkYARNExecutorMemoryOverhead != null) {
+            try {
+                sparkMemOverheadLegacy =
+                    parseSizeString(sparkYARNExecutorMemoryOverhead, sparkMemOverheadLegacy, "m");
+            } catch (NumberFormatException e) {
+            }
+        }
+        sparkMemOverhead = Math.max(sparkMemOverheadLegacy, sparkMemOverhead);
+
+        // Total executor memory includes the memory overhead.
+        containerSize = executorMemory + sparkMemOverhead;
 
         int maxExecutorsSupportedByYARN =
             (memSize / containerSize) > Integer.MAX_VALUE ?
@@ -309,13 +397,15 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         if (maxExecutorsSupportedByYARN < 1)
             maxExecutorsSupportedByYARN = 1;
 
+        maxExecutorsSupportedByYARN *= numNodes;
+
         int maxExecutorCoresSupportedByYARN = maxExecutorsSupportedByYARN * executorCores;
 
         if (dynamicAllocation) {
             if (numSparkExecutors < 1)
                 numSparkExecutors = 1;
-            numSparkExecutorCores = ((long)numSparkExecutors * executorCores) > Integer.MAX_VALUE ?
-                                     Integer.MAX_VALUE : numSparkExecutors * executorCores;
+            numSparkExecutorCores = ((long)numSparkExecutors * executorCores * numNodes) > Integer.MAX_VALUE ?
+                                     Integer.MAX_VALUE : numSparkExecutors * executorCores * numNodes;
         }
 
         if (numSparkExecutorCores > maxExecutorCoresSupportedByYARN)

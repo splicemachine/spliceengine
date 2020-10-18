@@ -1328,6 +1328,14 @@ public class JoinNode extends TableOperatorNode{
                     newMergeJoin = SYSTEM_OFF;
                 else if (newMergeJoin == ON)
                     newMergeJoin = OFF;
+                else if (newMergeJoin == SYSTEM_OFF) {
+                    // SYSTEM_OFF should not be allowed as a setting of the property.
+                    // It is only used for communication from the parser to the
+                    // execution engine.
+                    if(SanityManager.DEBUG)
+                        SanityManager.THROWASSERT(
+                                "Illegal setting of newMergeJoin in "+this.getClass().getName()+this);
+                }
             }
             mb.push(newMergeJoin.ordinal());
         }
