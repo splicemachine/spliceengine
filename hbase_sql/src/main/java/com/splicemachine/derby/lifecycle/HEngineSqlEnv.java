@@ -14,27 +14,19 @@
 
 package com.splicemachine.derby.lifecycle;
 
-import java.io.IOException;
-import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
-import com.google.common.net.HostAndPort;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.access.api.ServiceDiscovery;
-import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.PartitionLoadWatcher;
@@ -44,7 +36,6 @@ import com.splicemachine.derby.iapi.sql.execute.DataSetProcessorFactory;
 import com.splicemachine.derby.iapi.sql.execute.OperationManager;
 import com.splicemachine.derby.iapi.sql.execute.OperationManagerImpl;
 import com.splicemachine.derby.iapi.sql.olap.OlapClient;
-import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.HSqlExceptionFactory;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.ZkServiceDiscovery;
@@ -52,22 +43,17 @@ import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.management.DatabaseAdministrator;
 import com.splicemachine.management.JmxDatabaseAdminstrator;
 import com.splicemachine.management.Manager;
-import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.olap.AsyncOlapNIOLayer;
 import com.splicemachine.olap.JobExecutor;
-import com.splicemachine.olap.OlapServerNotReadyException;
 import com.splicemachine.olap.OlapServerProvider;
-import com.splicemachine.olap.OlapServerZNode;
 import com.splicemachine.olap.TimedOlapClient;
-import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.uuid.Snowflake;
 import org.apache.log4j.Logger;
-import org.apache.spark.sql.SparkSession;
-import org.apache.zookeeper.KeeperException;
 
+import static com.splicemachine.access.configuration.HBaseConfiguration.SPARK_NUM_NODES_PATH;
 import static java.lang.System.getProperty;
 
 /**
@@ -77,23 +63,11 @@ import static java.lang.System.getProperty;
 public class HEngineSqlEnv extends EngineSqlEnvironment{
     private static final Logger LOG = Logger.getLogger(HEngineSqlEnv.class);
 
-    private static final int numNodes = 1; // getNumNodes();  msirek-temp
-
-    // The number of milliseconds it took to find out the number
-    // of nodes in the system.  Is there is quicker method of doing this?
-    private static long findNumNodesTime;
-
-    // Calculate this once on startup to save some overhead.
-    private static final int MAX_EXECUTOR_CORES =
-      calculateMaxExecutorCores(HConfiguration.unwrapDelegate().get("yarn.nodemanager.resource.memory-mb"),
-                                getProperty("splice.spark.dynamicAllocation.enabled"),
-                                getProperty("splice.spark.executor.instances"),
-                                getProperty("splice.spark.executor.cores"),
-                                getProperty("splice.spark.executor.memory"),
-                                getProperty("splice.spark.dynamicAllocation.maxExecutors"),
-                                getProperty("splice.spark.executor.memoryOverhead"),
-                                getProperty("splice.spark.yarn.executor.memoryOverhead"),
-                                numNodes);
+    // MAX_EXECUTOR_CORES is calculated the first time someone runs a query.
+    // numNodes is written to zookeeper by OlapServerMaster, so we have
+    // to wait until the Olap Server comes up before getting numNodes from zookeeper.
+    private static int MAX_EXECUTOR_CORES = -1;
+    private static int numSparkNodes = -1;
 
     private PropertyManager propertyManager;
     private PartitionLoadWatcher loadWatcher;
@@ -103,26 +77,20 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
     private OlapClient olapClient;
     private OperationManager operationManager;
     private ZkServiceDiscovery serviceDiscovery;
+    private static final String sparkNumNodesZkPath =
+            HConfiguration.getConfiguration().getSpliceRootPath() + SPARK_NUM_NODES_PATH;
 
-    // Find the number of nodes in the cluster using
-    // the method documented at https://kb.databricks.com/clusters/calculate-number-of-cores.html
-    // Is there a faster method that doesn't require opening a spark session?
-    private static int getNumNodes() {
+
+    // Find the number of nodes on which Spark executors can be run.
+    private static int getNumSparkNodes() {
         int numNodes = 1;
-        long startTime = System.nanoTime();
         try {
-            SparkSession ss = SpliceSpark.getSessionUnsafe();
-            numNodes = ss.sparkContext().statusTracker().getExecutorInfos().length - 1;
-            if (numNodes < 1)
-                numNodes = 1;
-            ss.close();
+            byte [] data = ZkUtils.getData(sparkNumNodesZkPath);
+            numNodes = Bytes.toInt(data);
         }
         catch (Exception e) {
-            // Don't fail to start up just because we couldn't look up the number of nodes.
-            LOG.warn("Could not look up the number of spark nodes!");
+            LOG.warn("Unable to find the number of spark nodes from zookeeper.");
         }
-        long endTime = System.nanoTime();
-        findNumNodesTime = (endTime - startTime) / 1000000;
         return numNodes;
     }
 
@@ -292,6 +260,21 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
 
     @Override
     public int getMaxExecutorCores() {
+        if (MAX_EXECUTOR_CORES != -1)
+            return MAX_EXECUTOR_CORES;
+        synchronized (HEngineSqlEnv.class) {
+            numSparkNodes = getNumSparkNodes();
+            MAX_EXECUTOR_CORES =
+              calculateMaxExecutorCores(HConfiguration.unwrapDelegate().get("yarn.nodemanager.resource.memory-mb"),
+                                        getProperty("splice.spark.dynamicAllocation.enabled"),
+                                        getProperty("splice.spark.executor.instances"),
+                                        getProperty("splice.spark.executor.cores"),
+                                        getProperty("splice.spark.executor.memory"),
+                                        getProperty("splice.spark.dynamicAllocation.maxExecutors"),
+                                        getProperty("splice.spark.executor.memoryOverhead"),
+                                        getProperty("splice.spark.yarn.executor.memoryOverhead"),
+              numSparkNodes);
+        }
         return MAX_EXECUTOR_CORES;
     }
 
@@ -404,8 +387,8 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         if (dynamicAllocation) {
             if (numSparkExecutors < 1)
                 numSparkExecutors = 1;
-            numSparkExecutorCores = ((long)numSparkExecutors * executorCores * numNodes) > Integer.MAX_VALUE ?
-                                     Integer.MAX_VALUE : numSparkExecutors * executorCores * numNodes;
+            numSparkExecutorCores = ((long)numSparkExecutors * executorCores) > Integer.MAX_VALUE ?
+                                     Integer.MAX_VALUE : numSparkExecutors * executorCores;
         }
 
         if (numSparkExecutorCores > maxExecutorCoresSupportedByYARN)
