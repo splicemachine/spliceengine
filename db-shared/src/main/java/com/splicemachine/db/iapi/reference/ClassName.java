@@ -154,4 +154,5 @@ public interface ClassName
 	String RecursiveUnionResultSet = "com.splicemachine.derby.impl.sql.execute.operations.RecursiveUnionOperation";
 	String RowIdUtil = "com.splicemachine.db.iapi.util.RowIdUtil";
 	String TxnUtil = "com.splicemachine.db.iapi.util.TxnUtil";
+	String SPSDescriptor = "com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor";
 }

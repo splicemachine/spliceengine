@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -139,7 +140,8 @@ public interface ResultSetFactory {
                                  boolean outputKeysOnly,
                                  boolean skipSampling,
                                  double sampleFraction,
-                                 String indexName)
+                                 String indexName,
+                                 String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -190,7 +192,8 @@ public interface ResultSetFactory {
      */
     ResultSet getDeleteResultSet(NoPutResultSet source, double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan, String bulkDeleteDirectory, int colMapRefItem)
+                                 String explainPlan, String bulkDeleteDirectory, int colMapRefItem,
+                                 String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -236,7 +239,7 @@ public interface ResultSetFactory {
     ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
                                  GeneratedMethod checkGM, double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan)
+                                 String explainPlan, String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -825,53 +828,69 @@ public interface ResultSetFactory {
             throws StandardException;
 
 
-	/**
-		A VTI result set wraps a user supplied result set.
 
-		@param activation the activation for this result set,
-			against which the row operation is performed to
-			create the result set.
-		@param row a reference to a method in the activation
-			that creates the expected row.
-			<verbatim>
-				ExecRow row() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param constructor		The GeneratedMethod for the user's constructor
-		@param javaClassName	The java class name for the VTI
-		@param erdNumber		int for referenced column BitSet (so it can be turned back into an object)
-		@param version2			Whether or not VTI is a version 2 VTI.
-		@param isTarget			Whether or not VTI is a target VTI.
-		@param optimizerEstimatedRowCount	Estimated total # of rows by optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@param isDerbyStyleTableFunction    True if this is a Derby-style table function
-		@param returnTypeNumber	Which saved object contains the return type (a multi-set) serialized as a byte array
-		@param vtiProjectionNumber	Which saved object contains the projection for a RestrictedVTI
-		@param vtiRestrictionNumber	Which saved object contains the restriction for a RestrictedVTI
-	    @param vtiResultDescriptionNumber Which saved object contains the result description of a VTI
-		@return the row as a result set.
-		@exception StandardException thrown when unable to create the
-			result set
-	 */
-	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
-								   int resultSetNumber,
-								   GeneratedMethod constructor,
-								   String javaClassName,
-								   String pushedQualifiersField,
-								   int erdNumber,
-								   int ctcNumber,
-								   boolean isTarget,
-								   int scanIsolationLevel,
-								   double optimizerEstimatedRowCount,
-								   double optimizerEstimatedCost,
-								   boolean isDerbyStyleTableFunction,
-								   int returnTypeNumber,
-								   int vtiProjectionNumber,
-								   int vtiRestrictionNumber,
-								   int vtiResultDescriptionNumber,
-								   String explainPlan,
-								   boolean quotedEmptyIsNull)
-		 throws StandardException;
+    NoPutResultSet getVTIResultSet(
+            Activation activation,
+            GeneratedMethod row,
+            int resultSetNumber,
+            GeneratedMethod constructor,
+            String javaClassName,
+            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            int erdNumber,
+            int ctcNumber,
+            boolean isTarget,
+            int scanIsolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            boolean isDerbyStyleTableFunction,
+            int returnTypeNumber,
+            int vtiProjectionNumber,
+            int vtiRestrictionNumber,
+            int vtiResultDescriptionNumber,
+            String explainPlan,
+            boolean quotedEmptyIsNull,
+            String fromTableDmlSpsAsString)
+            throws StandardException;
+
+    NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+                                          int resultSetNumber,
+                                          GeneratedMethod constructor,
+                                          String javaClassName,
+                                          String pushedQualifiersField,
+                                          int erdNumber,
+                                          int ctcNumber,
+                                          boolean isTarget,
+                                          int scanIsolationLevel,
+                                          double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost,
+                                          boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber,
+                                          int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
+                                          String explainPlan,
+                                          boolean quotedEmptyIsNull) throws StandardException;
+
+    NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+                                          int resultSetNumber,
+                                          GeneratedMethod constructor,
+                                          String javaClassName,
+                                          String pushedQualifiersField,
+                                          int erdNumber,
+                                          int ctcNumber,
+                                          boolean isTarget,
+                                          int scanIsolationLevel,
+                                          double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost,
+                                          boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber,
+                                          int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
+                                          String explainPlan,
+                                          boolean quotedEmptyIsNull,
+                                          String fromTableDmlSpsAsString) throws StandardException;
+
 
 	/*
 	 * This method was purely added to get some stored prepared statements to pass the validation stage of their compilation.

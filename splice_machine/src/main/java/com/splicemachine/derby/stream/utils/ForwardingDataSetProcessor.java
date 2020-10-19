@@ -242,4 +242,14 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
 
     @Override
     public boolean isSparkDB2CompatibilityMode() { return delegate.isSparkDB2CompatibilityMode(); }
+
+    @Override
+    public void setTempTriggerConglomerate(long conglomID) {
+        delegate.setTempTriggerConglomerate(conglomID);
+    }
+
+    @Override
+    public long getTempTriggerConglomerate() {
+        return delegate.getTempTriggerConglomerate();
+    }
 }

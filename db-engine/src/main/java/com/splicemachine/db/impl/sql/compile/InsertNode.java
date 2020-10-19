@@ -55,7 +55,10 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.vti.DeferModification;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.sql.Types;
 import java.util.List;
@@ -1051,7 +1054,14 @@ public final class InsertNode extends DMLModStatementNode {
         mb.push(skipSampling);
         mb.push(sampleFraction);
         BaseJoinStrategy.pushNullableString(mb, indexName);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 25);
+        SPSDescriptor fromTableTriggerSPSDescriptor = DataDictionaryCache.fromTableTriggerSPSDescriptor.get();
+        if (fromTableTriggerSPSDescriptor == null)
+            mb.pushNull("java.lang.String");
+        else {
+            String spsAsString = Base64.encodeBase64String(SerializationUtils.serialize(fromTableTriggerSPSDescriptor));
+                mb.push(spsAsString);
+        }
+        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getInsertResultSet", ClassName.ResultSet, 26);
     }
 
     /**
