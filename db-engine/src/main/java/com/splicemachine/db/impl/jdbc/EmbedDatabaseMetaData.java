@@ -45,7 +45,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
-import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -96,12 +95,6 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 	*/
 
 	private final String url;
-	
-	/*
-	** Set to true if metadata is off
-	*/
-
-	private	GenericConstantActionFactory	constantActionFactory;
     
 	//////////////////////////////////////////////////////////////
 	//
@@ -166,7 +159,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
             try {
                 props[i] = new Properties();
                 // SECURITY PERMISSION - IP3
-                InputStream is = getClass().getResourceAsStream(files[i]);
+                InputStream is = EmbedDatabaseMetaData.class.getResourceAsStream(files[i]);
                 props[i].load(is);
                 is.close();
             } catch (IOException ioe) {
@@ -1690,99 +1683,100 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		//
 		s.setString(1, swapNull(schemaPattern));
 		s.setString(2, swapNull(procedureNamePattern));
-		ResultSet rsProcs =  s.executeQuery();
+		try(ResultSet rsProcs =  s.executeQuery()) {
 
-		// Define the format of the rows for the ResultSet.
-		ResultSetBuilder rsBuilder = new ResultSetBuilder();
-		try {
-			rsBuilder.getColumnBuilder()
-				.addColumn("PROCEDURE_CAT", Types.VARCHAR, 128)
-				.addColumn("PROCEDURE_SCHEM", Types.VARCHAR, 128)
-				.addColumn("PROCEDURE_NAME", Types.VARCHAR, 128)
-				.addColumn("COLUMN_NAME", Types.VARCHAR, 128)
-				.addColumn("COLUMN_TYPE", Types.SMALLINT)
-				.addColumn("DATA_TYPE", Types.INTEGER)
-				.addColumn("TYPE_NAME", Types.VARCHAR, 128)
-				.addColumn("PRECISION", Types.INTEGER)
-				.addColumn("LENGTH", Types.INTEGER)
-				.addColumn("SCALE", Types.SMALLINT)
-				.addColumn("RADIX", Types.SMALLINT)
-				.addColumn("NULLABLE", Types.SMALLINT)
-				.addColumn("REMARKS", Types.VARCHAR, 128)
-				.addColumn("COLUMN_DEF", Types.VARCHAR, 128)
-				.addColumn("SQL_DATA_TYPE", Types.INTEGER)
-				.addColumn("SQL_DATETIME_SUB", Types.INTEGER)
-				.addColumn("CHAR_OCTET_LENGTH", Types.INTEGER)
-				.addColumn("ORDINAL_POSITION", Types.INTEGER)
-				.addColumn("IS_NULLABLE", Types.VARCHAR, 128)
-				.addColumn("SPECIFIC_NAME", Types.VARCHAR, 128)
-				.addColumn("METHOD_ID", Types.SMALLINT)
-				.addColumn("PARAMETER_ID", Types.SMALLINT)
-			;
-			RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+			// Define the format of the rows for the ResultSet.
+			ResultSetBuilder rsBuilder = new ResultSetBuilder();
+			try {
+				rsBuilder.getColumnBuilder()
+						.addColumn("PROCEDURE_CAT", Types.VARCHAR, 128)
+						.addColumn("PROCEDURE_SCHEM", Types.VARCHAR, 128)
+						.addColumn("PROCEDURE_NAME", Types.VARCHAR, 128)
+						.addColumn("COLUMN_NAME", Types.VARCHAR, 128)
+						.addColumn("COLUMN_TYPE", Types.SMALLINT)
+						.addColumn("DATA_TYPE", Types.INTEGER)
+						.addColumn("TYPE_NAME", Types.VARCHAR, 128)
+						.addColumn("PRECISION", Types.INTEGER)
+						.addColumn("LENGTH", Types.INTEGER)
+						.addColumn("SCALE", Types.SMALLINT)
+						.addColumn("RADIX", Types.SMALLINT)
+						.addColumn("NULLABLE", Types.SMALLINT)
+						.addColumn("REMARKS", Types.VARCHAR, 128)
+						.addColumn("COLUMN_DEF", Types.VARCHAR, 128)
+						.addColumn("SQL_DATA_TYPE", Types.INTEGER)
+						.addColumn("SQL_DATETIME_SUB", Types.INTEGER)
+						.addColumn("CHAR_OCTET_LENGTH", Types.INTEGER)
+						.addColumn("ORDINAL_POSITION", Types.INTEGER)
+						.addColumn("IS_NULLABLE", Types.VARCHAR, 128)
+						.addColumn("SPECIFIC_NAME", Types.VARCHAR, 128)
+						.addColumn("METHOD_ID", Types.SMALLINT)
+						.addColumn("PARAMETER_ID", Types.SMALLINT)
+				;
+				RowBuilder rowBuilder = rsBuilder.getRowBuilder();
 
-			while (rsProcs.next()) {
+				while (rsProcs.next()) {
 
-				// Expand the ALIASINFO packed column into the following additional fields:
-				//   COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TYPE_NAME, PRECISION,
-				//   LENGTH, SCALE, RADIX, NULLABLE, REMARKS,
-				//   CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE, METHOD_ID, PARAMETER_ID
-				AliasInfo aliasInfo = (AliasInfo) rsProcs.getObject("ALIASINFO");
-				String aliasType = rsProcs.getString("ALIASTYPE");
-				ResultSet rsProcCols = new GetProcedureColumns(aliasInfo, aliasType);
-				while (rsProcCols.next()) {
-					// Skip the column names that don't match the specified pattern if one is passed.
-					if (columnNamePattern != null && !likeMatch(rsProcCols.getString("COLUMN_NAME"), columnNamePattern)) {
-						continue;
-					}
+					// Expand the ALIASINFO packed column into the following additional fields:
+					//   COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TYPE_NAME, PRECISION,
+					//   LENGTH, SCALE, RADIX, NULLABLE, REMARKS,
+					//   CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE, METHOD_ID, PARAMETER_ID
+					AliasInfo aliasInfo = (AliasInfo) rsProcs.getObject("ALIASINFO");
+					String aliasType = rsProcs.getString("ALIASTYPE");
+					ResultSet rsProcCols = new GetProcedureColumns(aliasInfo, aliasType);
+					while (rsProcCols.next()) {
+						// Skip the column names that don't match the specified pattern if one is passed.
+						if (columnNamePattern != null && !likeMatch(rsProcCols.getString("COLUMN_NAME"), columnNamePattern)) {
+							continue;
+						}
 
-					rowBuilder.getDvd(0).setValue(rsProcs.getString("PROCEDURE_CAT"));
-					rowBuilder.getDvd(1).setValue(rsProcs.getString("PROCEDURE_SCHEM"));
-					rowBuilder.getDvd(2).setValue(rsProcs.getString("PROCEDURE_NAME"));
-					rowBuilder.getDvd(3).setValue(rsProcCols.getString("COLUMN_NAME"));
-					rowBuilder.getDvd(4).setValue(rsProcCols.getShort("COLUMN_TYPE"));
-					rowBuilder.getDvd(5).setValue(rsProcCols.getInt("DATA_TYPE"));
-					rowBuilder.getDvd(6).setValue(rsProcCols.getString("TYPE_NAME"));
-					rowBuilder.getDvd(7).setValue(rsProcCols.getInt("PRECISION"));
-					rowBuilder.getDvd(8).setValue(rsProcCols.getInt("LENGTH"));
-					int dataType = rsProcCols.getInt("DATA_TYPE");
-					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
-						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
-						rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
-					} else {
-						rowBuilder.getDvd(9).setToNull();
+						rowBuilder.getDvd(0).setValue(rsProcs.getString("PROCEDURE_CAT"));
+						rowBuilder.getDvd(1).setValue(rsProcs.getString("PROCEDURE_SCHEM"));
+						rowBuilder.getDvd(2).setValue(rsProcs.getString("PROCEDURE_NAME"));
+						rowBuilder.getDvd(3).setValue(rsProcCols.getString("COLUMN_NAME"));
+						rowBuilder.getDvd(4).setValue(rsProcCols.getShort("COLUMN_TYPE"));
+						rowBuilder.getDvd(5).setValue(rsProcCols.getInt("DATA_TYPE"));
+						rowBuilder.getDvd(6).setValue(rsProcCols.getString("TYPE_NAME"));
+						rowBuilder.getDvd(7).setValue(rsProcCols.getInt("PRECISION"));
+						rowBuilder.getDvd(8).setValue(rsProcCols.getInt("LENGTH"));
+						int dataType = rsProcCols.getInt("DATA_TYPE");
+						if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+								dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+								dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+							rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
+						} else {
+							rowBuilder.getDvd(9).setToNull();
+						}
+						if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+								dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+								dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
+								dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+							rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
+						} else {
+							rowBuilder.getDvd(10).setToNull();
+						}
+						rowBuilder.getDvd(11).setValue(rsProcCols.getShort("NULLABLE"));
+						rowBuilder.getDvd(12).setValue(rsProcCols.getString("REMARKS"));
+						rowBuilder.getDvd(13).setValue(rsProcs.getString("COLUMN_DEF"));
+						rowBuilder.getDvd(14).setValue(rsProcs.getInt("SQL_DATA_TYPE"));
+						rowBuilder.getDvd(15).setValue(rsProcs.getInt("SQL_DATETIME_SUB"));
+						if (dataType == Types.CHAR || dataType == Types.VARCHAR || dataType == Types.BINARY || dataType == Types.VARBINARY) {
+							rowBuilder.getDvd(16).setValue(rsProcCols.getInt("LENGTH"));
+						} else {
+							rowBuilder.getDvd(16).setToNull();
+						}
+						rowBuilder.getDvd(17).setValue((int) (rsProcCols.getShort("PARAMETER_ID") + 1));
+						rowBuilder.getDvd(18).setValue(rsProcCols.getShort("NULLABLE") == DatabaseMetaData.procedureNullable ? "YES" : "NO");
+						rowBuilder.getDvd(19).setValue(rsProcs.getString("SPECIFIC_NAME"));
+						rowBuilder.getDvd(20).setValue(rsProcCols.getShort("METHOD_ID"));
+						rowBuilder.getDvd(21).setValue(rsProcCols.getShort("PARAMETER_ID"));
+						rowBuilder.addRow();
 					}
-					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
-						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-						dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
-						rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
-					} else {
-						rowBuilder.getDvd(10).setToNull();
-					}
-					rowBuilder.getDvd(11).setValue(rsProcCols.getShort("NULLABLE"));
-					rowBuilder.getDvd(12).setValue(rsProcCols.getString("REMARKS"));
-					rowBuilder.getDvd(13).setValue(rsProcs.getString("COLUMN_DEF"));
-					rowBuilder.getDvd(14).setValue(rsProcs.getInt("SQL_DATA_TYPE"));
-					rowBuilder.getDvd(15).setValue(rsProcs.getInt("SQL_DATETIME_SUB"));
-					if (dataType == Types.CHAR || dataType == Types.VARCHAR || dataType == Types.BINARY || dataType == Types.VARBINARY) {
-						rowBuilder.getDvd(16).setValue(rsProcCols.getInt("LENGTH"));
-					} else {
-						rowBuilder.getDvd(16).setToNull();
-					}
-					rowBuilder.getDvd(17).setValue((int)(rsProcCols.getShort("PARAMETER_ID") + 1));
-					rowBuilder.getDvd(18).setValue(rsProcCols.getShort("NULLABLE") == DatabaseMetaData.procedureNullable ? "YES" : "NO");
-					rowBuilder.getDvd(19).setValue(rsProcs.getString("SPECIFIC_NAME"));
-					rowBuilder.getDvd(20).setValue(rsProcCols.getShort("METHOD_ID"));
-					rowBuilder.getDvd(21).setValue(rsProcCols.getShort("PARAMETER_ID"));
-					rowBuilder.addRow();
 				}
-			}
 
-			return rsBuilder.buildResultSet(getEmbedConnection());
-		} catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
+				return rsBuilder.buildResultSet(getEmbedConnection());
+			} catch (StandardException se) {
+				throw PublicAPI.wrapStandardException(se);
+			}
 		}
 	}
 
@@ -1805,106 +1799,107 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		//
 		s.setString(1, swapNull(schemaPattern));
 		s.setString(2, swapNull(procedureNamePattern));
-		ResultSet rsProcs =  s.executeQuery();
+		try(ResultSet rsProcs =  s.executeQuery()) {
 
-		// Define the format of the rows for the ResultSet.
-		ResultSetBuilder rsBuilder = new ResultSetBuilder();
-		try {
-			rsBuilder.getColumnBuilder()
-				.addColumn("PROCEDURE_CAT", Types.VARCHAR, 128)
-				.addColumn("PROCEDURE_SCHEM", Types.VARCHAR, 128)
-				.addColumn("PROCEDURE_NAME", Types.VARCHAR, 128)
-				.addColumn("COLUMN_NAME", Types.VARCHAR, 128)
-				.addColumn("COLUMN_TYPE", Types.SMALLINT)
-				.addColumn("DATA_TYPE", Types.SMALLINT)			// JDBC type is INTEGER.
-				.addColumn("TYPE_NAME", Types.VARCHAR, 128)
-				.addColumn("COLUMN_SIZE", Types.INTEGER)		// JDBC name is PRECISION.
-				.addColumn("BUFFER_LENGTH", Types.INTEGER)		// JDBC name is LENGTH.
-				.addColumn("DECIMAL_DIGITS", Types.SMALLINT)	// JDBC name is SCALE.
-				.addColumn("NUM_PREC_RADIX", Types.SMALLINT)	// JDBC name is RADIX.
-				.addColumn("NULLABLE", Types.SMALLINT)
-				.addColumn("REMARKS", Types.VARCHAR, 254)
-				.addColumn("COLUMN_DEF", Types.VARCHAR, 254)
-				.addColumn("SQL_DATA_TYPE", Types.SMALLINT)		// JDBC type is INTEGER.
-				.addColumn("SQL_DATETIME_SUB", Types.SMALLINT)	// JDBC type is INTEGER.
-				.addColumn("CHAR_OCTET_LENGTH", Types.INTEGER)
-				.addColumn("ORDINAL_POSITION", Types.INTEGER)
-				.addColumn("IS_NULLABLE", Types.VARCHAR, 128)
-			;
-			RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+			// Define the format of the rows for the ResultSet.
+			ResultSetBuilder rsBuilder = new ResultSetBuilder();
+			try {
+				rsBuilder.getColumnBuilder()
+						.addColumn("PROCEDURE_CAT", Types.VARCHAR, 128)
+						.addColumn("PROCEDURE_SCHEM", Types.VARCHAR, 128)
+						.addColumn("PROCEDURE_NAME", Types.VARCHAR, 128)
+						.addColumn("COLUMN_NAME", Types.VARCHAR, 128)
+						.addColumn("COLUMN_TYPE", Types.SMALLINT)
+						.addColumn("DATA_TYPE", Types.SMALLINT)            // JDBC type is INTEGER.
+						.addColumn("TYPE_NAME", Types.VARCHAR, 128)
+						.addColumn("COLUMN_SIZE", Types.INTEGER)        // JDBC name is PRECISION.
+						.addColumn("BUFFER_LENGTH", Types.INTEGER)        // JDBC name is LENGTH.
+						.addColumn("DECIMAL_DIGITS", Types.SMALLINT)    // JDBC name is SCALE.
+						.addColumn("NUM_PREC_RADIX", Types.SMALLINT)    // JDBC name is RADIX.
+						.addColumn("NULLABLE", Types.SMALLINT)
+						.addColumn("REMARKS", Types.VARCHAR, 254)
+						.addColumn("COLUMN_DEF", Types.VARCHAR, 254)
+						.addColumn("SQL_DATA_TYPE", Types.SMALLINT)        // JDBC type is INTEGER.
+						.addColumn("SQL_DATETIME_SUB", Types.SMALLINT)    // JDBC type is INTEGER.
+						.addColumn("CHAR_OCTET_LENGTH", Types.INTEGER)
+						.addColumn("ORDINAL_POSITION", Types.INTEGER)
+						.addColumn("IS_NULLABLE", Types.VARCHAR, 128)
+				;
+				RowBuilder rowBuilder = rsBuilder.getRowBuilder();
 
-			while (rsProcs.next()) {
+				while (rsProcs.next()) {
 
-				// Expand the ALIASINFO packed column into the following additional fields:
-				//   COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TYPE_NAME, COLUMN_SIZE,
-				//   BUFFER_LENGTH, DECIMAL_DIGITS, NUM_PREC_RADIX, NULLABLE, REMARKS,
-				//   SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE
-				AliasInfo aliasInfo = (AliasInfo) rsProcs.getObject("ALIASINFO");
-				String aliasType = rsProcs.getString("ALIASTYPE");
-				ResultSet rsProcCols = new GetProcedureColumns(aliasInfo, aliasType);
-				while (rsProcCols.next()) {
-					// Skip the column names that don't match the specified pattern if one is passed.
-					if (columnNamePattern != null && !likeMatch(rsProcCols.getString("COLUMN_NAME"), columnNamePattern)) {
-						continue;
-					}
+					// Expand the ALIASINFO packed column into the following additional fields:
+					//   COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TYPE_NAME, COLUMN_SIZE,
+					//   BUFFER_LENGTH, DECIMAL_DIGITS, NUM_PREC_RADIX, NULLABLE, REMARKS,
+					//   SQL_DATA_TYPE, SQL_DATETIME_SUB, CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE
+					AliasInfo aliasInfo = (AliasInfo) rsProcs.getObject("ALIASINFO");
+					String aliasType = rsProcs.getString("ALIASTYPE");
+					ResultSet rsProcCols = new GetProcedureColumns(aliasInfo, aliasType);
+					while (rsProcCols.next()) {
+						// Skip the column names that don't match the specified pattern if one is passed.
+						if (columnNamePattern != null && !likeMatch(rsProcCols.getString("COLUMN_NAME"), columnNamePattern)) {
+							continue;
+						}
 
-					rowBuilder.getDvd(0).setValue(rsProcs.getString("PROCEDURE_CAT"));
-					rowBuilder.getDvd(1).setValue(rsProcs.getString("PROCEDURE_SCHEM"));
-					rowBuilder.getDvd(2).setValue(rsProcs.getString("PROCEDURE_NAME"));
-					rowBuilder.getDvd(3).setValue(rsProcCols.getString("COLUMN_NAME"));
-					rowBuilder.getDvd(4).setValue(rsProcCols.getShort("COLUMN_TYPE"));
-					rowBuilder.getDvd(5).setValue((short)rsProcCols.getInt("DATA_TYPE"));
-					rowBuilder.getDvd(6).setValue(rsProcCols.getString("TYPE_NAME"));
-					rowBuilder.getDvd(7).setValue(rsProcCols.getInt("PRECISION"));
-					rowBuilder.getDvd(8).setValue(rsProcCols.getInt("LENGTH"));
-					int dataType = rsProcCols.getInt("DATA_TYPE");
-					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
-						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
-						rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
-					} else {
-						rowBuilder.getDvd(9).setToNull();
+						rowBuilder.getDvd(0).setValue(rsProcs.getString("PROCEDURE_CAT"));
+						rowBuilder.getDvd(1).setValue(rsProcs.getString("PROCEDURE_SCHEM"));
+						rowBuilder.getDvd(2).setValue(rsProcs.getString("PROCEDURE_NAME"));
+						rowBuilder.getDvd(3).setValue(rsProcCols.getString("COLUMN_NAME"));
+						rowBuilder.getDvd(4).setValue(rsProcCols.getShort("COLUMN_TYPE"));
+						rowBuilder.getDvd(5).setValue((short) rsProcCols.getInt("DATA_TYPE"));
+						rowBuilder.getDvd(6).setValue(rsProcCols.getString("TYPE_NAME"));
+						rowBuilder.getDvd(7).setValue(rsProcCols.getInt("PRECISION"));
+						rowBuilder.getDvd(8).setValue(rsProcCols.getInt("LENGTH"));
+						int dataType = rsProcCols.getInt("DATA_TYPE");
+						if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+								dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+								dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+							rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
+						} else {
+							rowBuilder.getDvd(9).setToNull();
+						}
+						if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+								dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+								dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
+								dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+							rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
+						} else {
+							rowBuilder.getDvd(10).setToNull();
+						}
+						rowBuilder.getDvd(11).setValue(rsProcCols.getShort("NULLABLE"));
+						rowBuilder.getDvd(12).setValue(rsProcCols.getString("REMARKS"));
+						rowBuilder.getDvd(13).setValue(rsProcs.getString("COLUMN_DEF"));
+						if (dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+							rowBuilder.getDvd(14).setValue((short) 9);
+						} else {
+							rowBuilder.getDvd(14).setValue(rsProcs.getInt("SQL_DATA_TYPE"));
+						}
+						if (dataType == Types.DATE) {
+							rowBuilder.getDvd(15).setValue((short) 1);
+						} else if (dataType == Types.TIME) {
+							rowBuilder.getDvd(15).setValue((short) 2);
+						} else if (dataType == Types.TIMESTAMP) {
+							rowBuilder.getDvd(15).setValue((short) 3);
+						} else {
+							rowBuilder.getDvd(15).setToNull();
+						}
+						rowBuilder.getDvd(15).setValue(rsProcs.getInt("SQL_DATETIME_SUB"));    // TODO
+						if (dataType == Types.CHAR || dataType == Types.VARCHAR || dataType == Types.BINARY || dataType == Types.VARBINARY) {
+							rowBuilder.getDvd(16).setValue(rsProcCols.getInt("LENGTH"));
+						} else {
+							rowBuilder.getDvd(16).setToNull();
+						}
+						rowBuilder.getDvd(17).setValue((int) (rsProcCols.getShort("PARAMETER_ID") + 1));
+						rowBuilder.getDvd(18).setValue(rsProcCols.getShort("NULLABLE") == DatabaseMetaData.procedureNullable ? "YES" : "NO");
+						rowBuilder.addRow();
 					}
-					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
-						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-						dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
-						rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
-					} else {
-						rowBuilder.getDvd(10).setToNull();
-					}
-					rowBuilder.getDvd(11).setValue(rsProcCols.getShort("NULLABLE"));
-					rowBuilder.getDvd(12).setValue(rsProcCols.getString("REMARKS"));
-					rowBuilder.getDvd(13).setValue(rsProcs.getString("COLUMN_DEF"));
-					if (dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
-						rowBuilder.getDvd(14).setValue((short)9);
-					} else {
-						rowBuilder.getDvd(14).setValue(rsProcs.getInt("SQL_DATA_TYPE"));
-					}
-					if (dataType == Types.DATE) {
-						rowBuilder.getDvd(15).setValue((short)1);
-					} else if (dataType == Types.TIME) {
-						rowBuilder.getDvd(15).setValue((short)2);
-					} else if (dataType == Types.TIMESTAMP) {
-						rowBuilder.getDvd(15).setValue((short)3);
-					} else {
-						rowBuilder.getDvd(15).setToNull();
-					}
-					rowBuilder.getDvd(15).setValue(rsProcs.getInt("SQL_DATETIME_SUB"));	// TODO
-					if (dataType == Types.CHAR || dataType == Types.VARCHAR || dataType == Types.BINARY || dataType == Types.VARBINARY) {
-						rowBuilder.getDvd(16).setValue(rsProcCols.getInt("LENGTH"));
-					} else {
-						rowBuilder.getDvd(16).setToNull();
-					}
-					rowBuilder.getDvd(17).setValue((int)(rsProcCols.getShort("PARAMETER_ID") + 1));
-					rowBuilder.getDvd(18).setValue(rsProcCols.getShort("NULLABLE") == DatabaseMetaData.procedureNullable ? "YES" : "NO");
-					rowBuilder.addRow();
 				}
-			}
 
-			return rsBuilder.buildResultSet(getEmbedConnection());
-		} catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
+				return rsBuilder.buildResultSet(getEmbedConnection());
+			} catch (StandardException se) {
+				throw PublicAPI.wrapStandardException(se);
+			}
 		}
 	}
 
@@ -1926,97 +1921,98 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		//
 		s.setString(1, swapNull(schemaPattern));
 		s.setString(2, swapNull(functionNamePattern));
-		ResultSet rsFuncs =  s.executeQuery();
+		try(ResultSet rsFuncs = s.executeQuery()) {
 
-		// Define the format of the rows for the ResultSet.
-		ResultSetBuilder rsBuilder = new ResultSetBuilder();
-		try {
-			rsBuilder.getColumnBuilder()
-				.addColumn("FUNCTION_CAT", Types.VARCHAR, 128)
-				.addColumn("FUNCTION_SCHEM", Types.VARCHAR, 128)
-				.addColumn("FUNCTION_NAME", Types.VARCHAR, 128)
-				.addColumn("COLUMN_NAME", Types.VARCHAR, 128)
-				.addColumn("COLUMN_TYPE", Types.SMALLINT)
-				.addColumn("DATA_TYPE", Types.INTEGER)
-				.addColumn("TYPE_NAME", Types.VARCHAR, 128)
-				.addColumn("PRECISION", Types.INTEGER)
-				.addColumn("LENGTH", Types.INTEGER)
-				.addColumn("SCALE", Types.SMALLINT)
-				.addColumn("RADIX", Types.SMALLINT)
-				.addColumn("NULLABLE", Types.SMALLINT)
-				.addColumn("REMARKS", Types.VARCHAR, 128)
-				.addColumn("CHAR_OCTET_LENGTH", Types.INTEGER)
-				.addColumn("ORDINAL_POSITION", Types.INTEGER)
-				.addColumn("IS_NULLABLE", Types.VARCHAR, 128)
-				.addColumn("SPECIFIC_NAME", Types.VARCHAR, 128)
-				.addColumn("METHOD_ID", Types.SMALLINT)
-				.addColumn("PARAMETER_ID", Types.SMALLINT)
-			;
-			RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+			// Define the format of the rows for the ResultSet.
+			ResultSetBuilder rsBuilder = new ResultSetBuilder();
+			try {
+				rsBuilder.getColumnBuilder()
+						.addColumn("FUNCTION_CAT", Types.VARCHAR, 128)
+						.addColumn("FUNCTION_SCHEM", Types.VARCHAR, 128)
+						.addColumn("FUNCTION_NAME", Types.VARCHAR, 128)
+						.addColumn("COLUMN_NAME", Types.VARCHAR, 128)
+						.addColumn("COLUMN_TYPE", Types.SMALLINT)
+						.addColumn("DATA_TYPE", Types.INTEGER)
+						.addColumn("TYPE_NAME", Types.VARCHAR, 128)
+						.addColumn("PRECISION", Types.INTEGER)
+						.addColumn("LENGTH", Types.INTEGER)
+						.addColumn("SCALE", Types.SMALLINT)
+						.addColumn("RADIX", Types.SMALLINT)
+						.addColumn("NULLABLE", Types.SMALLINT)
+						.addColumn("REMARKS", Types.VARCHAR, 128)
+						.addColumn("CHAR_OCTET_LENGTH", Types.INTEGER)
+						.addColumn("ORDINAL_POSITION", Types.INTEGER)
+						.addColumn("IS_NULLABLE", Types.VARCHAR, 128)
+						.addColumn("SPECIFIC_NAME", Types.VARCHAR, 128)
+						.addColumn("METHOD_ID", Types.SMALLINT)
+						.addColumn("PARAMETER_ID", Types.SMALLINT)
+				;
+				RowBuilder rowBuilder = rsBuilder.getRowBuilder();
 
-			while (rsFuncs.next()) {
+				while (rsFuncs.next()) {
 
-				// Expand the ALIASINFO packed column into the following additional fields:
-				//   COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TYPE_NAME, PRECISION,
-				//   LENGTH, SCALE, RADIX, NULLABLE, REMARKS,
-				//   CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE, METHOD_ID, PARAMETER_ID
-				AliasInfo aliasInfo = (AliasInfo) rsFuncs.getObject("ALIASINFO");
-				String aliasType = rsFuncs.getString("ALIASTYPE");
-				ResultSet rsFuncCols = new GetProcedureColumns(aliasInfo, aliasType);
-				while (rsFuncCols.next()) {
-					// Skip the column names that don't match the specified pattern if one is passed.
-					if (columnNamePattern != null && !likeMatch(rsFuncCols.getString("COLUMN_NAME"), columnNamePattern)) {
-						continue;
-					}
+					// Expand the ALIASINFO packed column into the following additional fields:
+					//   COLUMN_NAME, COLUMN_TYPE, DATA_TYPE, TYPE_NAME, PRECISION,
+					//   LENGTH, SCALE, RADIX, NULLABLE, REMARKS,
+					//   CHAR_OCTET_LENGTH, ORDINAL_POSITION, IS_NULLABLE, METHOD_ID, PARAMETER_ID
+					AliasInfo aliasInfo = (AliasInfo) rsFuncs.getObject("ALIASINFO");
+					String aliasType = rsFuncs.getString("ALIASTYPE");
+					ResultSet rsFuncCols = new GetProcedureColumns(aliasInfo, aliasType);
+					while (rsFuncCols.next()) {
+						// Skip the column names that don't match the specified pattern if one is passed.
+						if (columnNamePattern != null && !likeMatch(rsFuncCols.getString("COLUMN_NAME"), columnNamePattern)) {
+							continue;
+						}
 
-					rowBuilder.getDvd(0).setValue(rsFuncs.getString("FUNCTION_CAT"));
-					rowBuilder.getDvd(1).setValue(rsFuncs.getString("FUNCTION_SCHEM"));
-					rowBuilder.getDvd(2).setValue(rsFuncs.getString("FUNCTION_NAME"));
-					rowBuilder.getDvd(3).setValue(rsFuncCols.getString("COLUMN_NAME"));
-					rowBuilder.getDvd(4).setValue(rsFuncCols.getShort("COLUMN_TYPE"));
-					rowBuilder.getDvd(5).setValue(rsFuncCols.getInt("DATA_TYPE"));
-					rowBuilder.getDvd(6).setValue(rsFuncCols.getString("TYPE_NAME"));
-					rowBuilder.getDvd(7).setValue(rsFuncCols.getInt("PRECISION"));
-					rowBuilder.getDvd(8).setValue(rsFuncCols.getInt("LENGTH"));
-					int dataType = rsFuncCols.getInt("DATA_TYPE");
-					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
-						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
-						rowBuilder.getDvd(9).setValue(rsFuncCols.getShort("SCALE"));
-					} else {
-						rowBuilder.getDvd(9).setToNull();
+						rowBuilder.getDvd(0).setValue(rsFuncs.getString("FUNCTION_CAT"));
+						rowBuilder.getDvd(1).setValue(rsFuncs.getString("FUNCTION_SCHEM"));
+						rowBuilder.getDvd(2).setValue(rsFuncs.getString("FUNCTION_NAME"));
+						rowBuilder.getDvd(3).setValue(rsFuncCols.getString("COLUMN_NAME"));
+						rowBuilder.getDvd(4).setValue(rsFuncCols.getShort("COLUMN_TYPE"));
+						rowBuilder.getDvd(5).setValue(rsFuncCols.getInt("DATA_TYPE"));
+						rowBuilder.getDvd(6).setValue(rsFuncCols.getString("TYPE_NAME"));
+						rowBuilder.getDvd(7).setValue(rsFuncCols.getInt("PRECISION"));
+						rowBuilder.getDvd(8).setValue(rsFuncCols.getInt("LENGTH"));
+						int dataType = rsFuncCols.getInt("DATA_TYPE");
+						if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+								dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+								dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+							rowBuilder.getDvd(9).setValue(rsFuncCols.getShort("SCALE"));
+						} else {
+							rowBuilder.getDvd(9).setToNull();
+						}
+						if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
+								dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
+								dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
+								dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+							rowBuilder.getDvd(10).setValue(rsFuncCols.getShort("RADIX"));
+						} else {
+							rowBuilder.getDvd(10).setToNull();
+						}
+						rowBuilder.getDvd(11).setValue(rsFuncCols.getShort("NULLABLE"));
+						rowBuilder.getDvd(12).setValue(rsFuncCols.getString("REMARKS"));
+						if (dataType == Types.CHAR || dataType == Types.VARCHAR || dataType == Types.BINARY || dataType == Types.VARBINARY) {
+							rowBuilder.getDvd(13).setValue(rsFuncCols.getInt("LENGTH"));
+						} else {
+							rowBuilder.getDvd(13).setToNull();
+						}
+						if (rsFuncCols.getShort("COLUMN_TYPE") == 5) {
+							rowBuilder.getDvd(14).setValue((int) (rsFuncCols.getShort("PARAMETER_ID") + 1 - rsFuncCols.getShort("METHOD_ID")));
+						} else {
+							rowBuilder.getDvd(14).setValue((int) (rsFuncCols.getShort("PARAMETER_ID") + 1));
+						}
+						rowBuilder.getDvd(15).setValue(rsFuncCols.getShort("NULLABLE") == DatabaseMetaData.procedureNullable ? "YES" : "NO");
+						rowBuilder.getDvd(16).setValue(rsFuncs.getString("SPECIFIC_NAME"));
+						rowBuilder.getDvd(17).setValue(rsFuncCols.getShort("METHOD_ID"));
+						rowBuilder.getDvd(18).setValue(rsFuncCols.getShort("PARAMETER_ID"));
+						rowBuilder.addRow();
 					}
-					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
-						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-						dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
-						rowBuilder.getDvd(10).setValue(rsFuncCols.getShort("RADIX"));
-					} else {
-						rowBuilder.getDvd(10).setToNull();
-					}
-					rowBuilder.getDvd(11).setValue(rsFuncCols.getShort("NULLABLE"));
-					rowBuilder.getDvd(12).setValue(rsFuncCols.getString("REMARKS"));
-					if (dataType == Types.CHAR || dataType == Types.VARCHAR || dataType == Types.BINARY || dataType == Types.VARBINARY) {
-						rowBuilder.getDvd(13).setValue(rsFuncCols.getInt("LENGTH"));
-					} else {
-						rowBuilder.getDvd(13).setToNull();
-					}
-					if (rsFuncCols.getShort("COLUMN_TYPE") == 5) {
-						rowBuilder.getDvd(14).setValue((int)(rsFuncCols.getShort("PARAMETER_ID") + 1 - rsFuncCols.getShort("METHOD_ID")));
-					} else {
-						rowBuilder.getDvd(14).setValue((int)(rsFuncCols.getShort("PARAMETER_ID") + 1));
-					}
-					rowBuilder.getDvd(15).setValue(rsFuncCols.getShort("NULLABLE") == DatabaseMetaData.procedureNullable ? "YES" : "NO");
-					rowBuilder.getDvd(16).setValue(rsFuncs.getString("SPECIFIC_NAME"));
-					rowBuilder.getDvd(17).setValue(rsFuncCols.getShort("METHOD_ID"));
-					rowBuilder.getDvd(18).setValue(rsFuncCols.getShort("PARAMETER_ID"));
-					rowBuilder.addRow();
 				}
-			}
 
-			return rsBuilder.buildResultSet(getEmbedConnection());
-		} catch (StandardException se) {
-			throw PublicAPI.wrapStandardException(se);
+				return rsBuilder.buildResultSet(getEmbedConnection());
+			} catch (StandardException se) {
+				throw PublicAPI.wrapStandardException(se);
+			}
 		}
 	}
 
@@ -2537,15 +2533,14 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 			ps.setString(1,catalogPattern);
 			ps.setString(2,schemaPattern);
 			ps.setString(3,table);
-	
-			ResultSet rs = ps.executeQuery();
-			done = rs.next();
+
 			String constraintId = "";
-			if (done) {
-			    constraintId = rs.getString(1);
+			try(ResultSet rs = ps.executeQuery()) {
+				done = rs.next();
+				if (done) {
+					constraintId = rs.getString(1);
+				}
 			}
-	
-			rs.close();
 			ps.close();
 	
 			if (done) 
@@ -2567,17 +2562,16 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 			ps.setString(2,schemaPattern);
 			ps.setString(3,table);
 	
-			rs = ps.executeQuery();
-			done = rs.next();
-			if (done) {
-			    constraintId = rs.getString(1);
+			try(ResultSet rs = ps.executeQuery()) {
+				done = rs.next();
+				if (done) {
+					constraintId = rs.getString(1);
+				}
 			}
 			// REMIND: we need to actually check for null columns
 			// and toss out constraints with null columns if they aren't
 			// desired... recode this as a WHILE returning at the
 			// first match or falling off the end.
-	
-			rs.close();
 			ps.close();
 			if (done) 
 			{
@@ -2596,19 +2590,18 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 			ps.setString(1,catalogPattern);
 			ps.setString(2,schemaPattern);
 			ps.setString(3,table);
-	
-			rs = ps.executeQuery();
-			done = rs.next();
+
 			long indexNum = 0;
-			if (done) {
-			    indexNum = rs.getLong(1);
+			try(ResultSet rs = ps.executeQuery()) {
+				done = rs.next();
+				if (done) {
+					indexNum = rs.getLong(1);
+				}
 			}
 			// REMIND: we need to actually check for null columns
 			// and toss out constraints with null columns if they aren't
 			// desired... recode this as a WHILE returning at the
 			// first match or falling off the end.
-	
-			rs.close();
 			ps.close();
 			if (done) {
 				// this one's it, do the real thing and return it.
@@ -4059,8 +4052,6 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 	private String getQueryFromDescription(String queryName, boolean net)
 		throws StandardException
 	{
-		DataDictionary dd = getLanguageConnectionContext().getDataDictionary();
-
 		return getQueryDescriptions(net).getProperty(queryName);
 	}
 
