@@ -31,9 +31,12 @@
 
 package com.splicemachine.db.iapi.reference;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class is a refactoring wrapper around the new location
  * in shared/common/reference
  */
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE", justification = "intentional")
 public interface MessageId extends com.splicemachine.db.shared.common.reference.MessageId {
 }

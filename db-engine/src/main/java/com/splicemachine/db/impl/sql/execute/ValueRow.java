@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLDecimal;
 import com.splicemachine.db.iapi.types.TypeId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -89,6 +90,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	 *
 	 * @param column
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "intentional")
 	public ValueRow(DataValueDescriptor[] column) {
 		this(column.length);
 		this.column = column;
@@ -160,7 +162,6 @@ public class ValueRow implements ExecRow, Externalizable {
     // Same as setColumn, but preserves the data type of the dvd we're replacing.
     public void setColumnValue(int position, DataValueDescriptor col) throws StandardException {
         hash = 0;
-        DataValueDescriptor dvd = column[position-1];
         int precision = 0, scale = 0;
 
         try {
@@ -296,6 +297,7 @@ public class ValueRow implements ExecRow, Externalizable {
 
 	 @see ExecRow#getRowArray
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "intentional")
 	public DataValueDescriptor[] getRowArray() {
 		return column;
 	}
@@ -326,6 +328,7 @@ public class ValueRow implements ExecRow, Externalizable {
 	 *
 	 * @see ExecRow#setRowArray
 	 */
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "intentional")
 	public void setRowArray(DataValueDescriptor[] value)
 	{
 		hash = 0;
@@ -727,11 +730,13 @@ public class ValueRow implements ExecRow, Externalizable {
 		return "c"+columnNumber;
 	}
 
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "intentional")
 	@Override
 	public byte[] getKey() {
 		return key;
 	}
 
+	@SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "intentional")
 	@Override
 	public void setKey(byte[] key) {
 		this.key = key;
