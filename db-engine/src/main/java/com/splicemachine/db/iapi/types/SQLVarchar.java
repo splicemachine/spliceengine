@@ -31,13 +31,21 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.db.DatabaseContext;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 
 import java.sql.Clob;
+import java.sql.SQLException;
+import java.text.Collator;
 import java.text.RuleBasedCollator;
+import java.util.Locale;
 
 /**
  * SQLVarchar represents a VARCHAR value with UCS_BASIC collation.
@@ -248,10 +256,18 @@ public class SQLVarchar
             if (op1 != null)    // op2 == null
                 return -1;
             if (op2 != null)    // op1 == null
-                return 1;
+        return 1;
             return 0;           // both null
         }
-        return op1.compareTo(op2);
+        Collator usCollator = null;
+        try {
+            usCollator = ConnectionUtil.getCurrentLCC().getCollator();
+        } catch (SQLException e) {
+        }
+        if( usCollator != null )
+            return usCollator.compare(op1, op2);
+        else
+            return op1.compareTo(op2);
     }
 
     /**

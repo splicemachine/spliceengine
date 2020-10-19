@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.conn;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -43,6 +44,7 @@ import com.splicemachine.db.iapi.services.cache.Cacheable;
 import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
@@ -74,6 +76,8 @@ import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.sql.SQLException;
+import java.text.Collator;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
@@ -436,6 +440,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             setSessionFromConnectionProperty(connectionProperties, Property.CONNECTION_SNAPSHOT, SessionProperties.PROPERTYNAME.SNAPSHOT_TIMESTAMP);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_PARALLEL_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPPARALLELPARTITIONS);
             setSessionFromConnectionProperty(connectionProperties, Property.OLAP_SHUFFLE_PARTITIONS, SessionProperties.PROPERTYNAME.OLAPSHUFFLEPARTITIONS);
+            setSessionFromConnectionProperty(connectionProperties, "territory", SessionProperties.PROPERTYNAME.TERRITORY);
 
             String disableAdvancedTC = connectionProperties.getProperty(Property.CONNECTION_DISABLE_TC_PUSHED_DOWN_INTO_VIEWS);
             if (disableAdvancedTC != null && disableAdvancedTC.equalsIgnoreCase("true")) {
@@ -467,6 +472,25 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         if (value != null) {
             this.sessionProperties.setProperty(sessionPropName, value);
         }
+    }
+
+    @Override
+    public Collator getCollator()
+    {
+        Object obj = null;
+        if( sessionProperties == null ) return null;
+        obj = sessionProperties.getProperty(SessionProperties.PROPERTYNAME.TERRITORY);
+        Collator usCollator;
+        if(obj != null)
+            usCollator = Collator.getInstance( new Locale((String)obj));
+        else {
+            DatabaseContext dc = (DatabaseContext)
+                    ContextService.getContext(DatabaseContext.CONTEXT_ID);
+            InternalDatabase dbc = dc.getDatabase();
+            usCollator = Collator.getInstance(dbc.getLocale());
+        }
+        usCollator.setStrength(Collator.PRIMARY);
+        return usCollator;
     }
 
     /**

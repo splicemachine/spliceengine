@@ -53,7 +53,8 @@ public interface SessionProperties {
         SPARK_RESULT_STREAMING_BATCHES(9),
         SPARK_RESULT_STREAMING_BATCH_SIZE(10),
         TABLELIMITFOREXHAUSTIVESEARCH(11),
-        DISABLE_NLJ_PREDICATE_PUSH_DOWN(12);
+        DISABLE_NLJ_PREDICATE_PUSH_DOWN(12),
+        TERRITORY(13);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 

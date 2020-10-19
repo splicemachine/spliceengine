@@ -1966,7 +1966,7 @@ nextModule:
 	/*
 	** Locale handling
 	*/
-	private static Locale staticGetLocaleFromString(String localeDescription)
+	public static Locale staticGetLocaleFromString(String localeDescription)
 		throws StandardException {
 
 		// Check String is of expected format

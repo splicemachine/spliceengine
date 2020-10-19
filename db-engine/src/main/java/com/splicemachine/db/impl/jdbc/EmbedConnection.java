@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.services.memory.LowMemory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
@@ -221,7 +222,6 @@ public abstract class EmbedConnection implements EngineConnection
 		factory = driver;
 
 		tr = new TransactionResourceImpl(driver, url, info);
-
 		active = true;
 
 		// register this thread and its context manager with

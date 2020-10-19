@@ -59,6 +59,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 
+import java.text.Collator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -1481,5 +1482,7 @@ public interface LanguageConnectionContext extends Context {
 	String getReplicationRole();
 
     boolean isNLJPredicatePushDownDisabled();
+
+    public Collator getCollator();
 
 }

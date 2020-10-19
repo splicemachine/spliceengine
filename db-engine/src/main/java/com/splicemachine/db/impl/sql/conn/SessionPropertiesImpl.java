@@ -100,6 +100,9 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean disablePushDown = Boolean.valueOf(valString);
                 properties[DISABLE_NLJ_PREDICATE_PUSH_DOWN.getId()] = disablePushDown;
                 break;
+            case TERRITORY:
+                properties[TERRITORY.getId()] = valString;
+                break;
             default:
                 break;
         }
