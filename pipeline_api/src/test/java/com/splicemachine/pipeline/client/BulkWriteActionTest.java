@@ -543,7 +543,6 @@ public class BulkWriteActionTest{
         public int filter;
         public int writes;
         public int retries;
-        public int tooBusy;
 
         @Override
         public void recordRead() {

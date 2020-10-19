@@ -22,6 +22,7 @@ import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 
@@ -34,6 +35,7 @@ import java.io.ObjectOutput;
  * @author Scott Fines
  *         Date: 1/13/16
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 public abstract class DirectTableWriterBuilder implements Externalizable,DataSetWriterBuilder{
     protected long destConglomerate;
     protected long tempConglomID;

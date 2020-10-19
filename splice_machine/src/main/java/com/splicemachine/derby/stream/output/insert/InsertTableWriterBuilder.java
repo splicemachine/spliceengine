@@ -41,6 +41,7 @@ import org.apache.commons.codec.binary.Base64;
  * Builder for InsertTable Functionality
  *
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 public abstract class InsertTableWriterBuilder implements Externalizable,InsertDataSetWriterBuilder{
     protected int[] pkCols;
     protected String tableVersion;

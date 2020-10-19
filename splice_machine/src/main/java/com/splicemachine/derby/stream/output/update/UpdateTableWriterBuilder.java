@@ -38,6 +38,7 @@ import java.io.ObjectOutput;
  *
  * Created by jleach on 5/5/15.
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
 public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateDataSetWriterBuilder{
     protected long heapConglom;
     protected long tempConglomID;

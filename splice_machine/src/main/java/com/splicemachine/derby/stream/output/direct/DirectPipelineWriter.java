@@ -32,6 +32,7 @@ import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -40,6 +41,7 @@ import java.util.Iterator;
  * @author Scott Fines
  *         Date: 1/13/16
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"})
 public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     private final long destConglomerate;
     private final byte[] token;

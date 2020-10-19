@@ -30,6 +30,7 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.collections.iterators.SingletonIterator;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -40,6 +41,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 1/12/16
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class ControlDataSetWriter<K> implements DataSetWriter, AutoCloseable{
     private final ControlDataSet<ExecRow> dataSet;
     private final OperationContext operationContext;
