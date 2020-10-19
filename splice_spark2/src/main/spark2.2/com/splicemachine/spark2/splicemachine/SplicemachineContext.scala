@@ -632,13 +632,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     )
   
   /** Schema string built from JDBC metadata. */
-  def schemaString(schemaTableName: String, schema: StructType = new StructType()): String =
-    SpliceJDBCUtil.retrieveColumnInfo(
+  def schemaString(schemaTableName: String, schema: StructType = new StructType()): String = {
+    val info = SpliceJDBCUtil.retrieveColumnInfo(
       new JDBCOptions(Map(
         JDBCOptions.JDBC_URL -> url,
         JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    ).filter(
-      col => schema.isEmpty || schema.exists( field => field.name.toUpperCase.equals( col(0).toUpperCase ) )
     ).map(i => {
       val colName = i(0)
       val sqlType = i(1)
@@ -648,8 +646,17 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         case _ => ""
       }
       s"$colName $sqlType$size"
-    }).mkString(", ")
-  
+    })
+
+    if( schema.isEmpty ) {
+      info.mkString(", ")
+    } else {
+      schema.map( field => {
+        info.find( col => col.toUpperCase.startsWith( s"${field.name.toUpperCase} " ) ).getOrElse("")
+      }).mkString(", ")
+    }
+  }
+
   /**
    * Modify records identified by their primary keys.
    *
