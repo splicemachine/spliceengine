@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -257,7 +258,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
             if(isTopResultSet){
 
                 LanguageConnectionContext lcc=getActivation().getLanguageConnectionContext();
-
+                if (lcc != null && !activation.isSubStatement()) {
+                    TriggerExecutionContext tec =
+                        lcc.getTriggerExecutionContext();
+                    if (tec != null && tec.hasSpecialFromTableTrigger()) {
+                        tec.clearTrigger(false);
+                        lcc.popTriggerExecutionContext(tec);
+                    }
+                }
                 int staLength=(subqueryTrackingArray==null)?0:
                         subqueryTrackingArray.length;
 

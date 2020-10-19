@@ -34,6 +34,7 @@ package com.splicemachine.db.iapi.sql.dictionary;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -51,10 +52,17 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -69,7 +77,7 @@ import java.util.List;
  * during code generation, so we synchronize most everything except getters on immutable objects just to be on the safe
  * side.
  */
-public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDescriptor, Dependent, Provider {
+public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDescriptor, Dependent, Provider, Externalizable {
     /**
      * Statement types.
      * <UL>
@@ -86,13 +94,13 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
     private static final int INVALIDATE = 0;
 
     // Class contents
-    private final SchemaDescriptor sd;
-    private final String name;
-    private final UUID compSchemaId;
-    private final char type;
+    private SchemaDescriptor sd;
+    private String name;
+    private UUID compSchemaId;
+    private char type;
     private String text;
-    private final String usingText;
-    private final UUID uuid;
+    private String usingText;
+    private UUID uuid;
 
     private boolean valid;
     private ExecPreparedStatement preparedStatement;
@@ -106,9 +114,11 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
     private boolean lookedUpParams;
 
     private UUIDFactory uuidFactory;
-
+    private long finalTableConglomID = 0;
 
     // constructors
+
+    public SPSDescriptor() { }
 
     /**
      * Constructor for a SPS Descriptor
@@ -964,6 +974,100 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
     @Override
     public String getDescriptorName() {
         return name;
+    }
+
+    private void writeNullableString (String str, ObjectOutput out) throws IOException {
+        boolean doWrite = str != null;
+        out.writeBoolean(doWrite);
+        if (doWrite)
+            out.writeUTF(str);
+    }
+
+    private String readNullableString(ObjectInput in) throws IOException {
+        boolean doRead = in.readBoolean();
+        if (doRead)
+            return in.readUTF();
+        else
+            return null;
+    }
+
+    public long getFinalTableConglomID() {
+        return finalTableConglomID;
+    }
+
+    public void setFinalTableConglomID(long finalTableConglomID) {
+        this.finalTableConglomID = finalTableConglomID;
+    }
+
+    public void writeExternal(ObjectOutput out) throws IOException{
+        out.writeInt(1);  // Version ID
+
+        out.writeObject(sd);
+        writeNullableString(name, out);
+        out.writeObject(compSchemaId);
+        out.writeChar(type);
+        writeNullableString(text, out);
+        writeNullableString(usingText, out);
+        out.writeObject(uuid);
+        out.writeBoolean(valid);
+        boolean writePreparedStatement = (preparedStatement instanceof GenericStorablePreparedStatement);
+        out.writeBoolean(writePreparedStatement);
+        if (writePreparedStatement)
+            out.writeObject(preparedStatement);
+        boolean writeParams = params != null;
+        out.writeBoolean(writeParams);
+        if (writeParams) {
+            out.writeInt(params.length);
+            for (int i=0; i < params.length; i++)
+                out.writeObject(params[i]);
+        }
+        boolean writeCompileTime = compileTime != null;
+        out.writeBoolean(writeCompileTime);
+        if (writeCompileTime)
+            out.writeLong(compileTime.getTime());
+        boolean writeParamDefaults = paramDefaults != null;
+        out.writeBoolean(writeParamDefaults);
+        if (writeParamDefaults) {
+            out.writeInt(paramDefaults.length);
+            for (int i=0; i < paramDefaults.length; i++)
+                out.writeObject(paramDefaults[i]);
+        }
+        out.writeBoolean(initiallyCompilable);
+        out.writeBoolean(lookedUpParams);
+        out.writeLong(finalTableConglomID);
+    }
+
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        in.readInt();  // Version ID
+        sd = (SchemaDescriptor) in.readObject();
+        name = readNullableString(in);
+        compSchemaId = (UUID) in.readObject();
+        type = in.readChar();
+        text = readNullableString(in);
+        usingText = readNullableString(in);
+        uuid = (UUID) in.readObject();
+        valid = in.readBoolean();
+        boolean readPreparedStatement = in.readBoolean();
+        if (readPreparedStatement)
+            preparedStatement = (GenericStorablePreparedStatement)in.readObject();
+        boolean readParams = in.readBoolean();
+        if (readParams) {
+            params = new DataTypeDescriptor[in.readInt()];
+            for (int i=0; i < params.length; i++)
+                params[i] = (DataTypeDescriptor)in.readObject();
+        }
+        boolean readCompileTime = in.readBoolean();
+        if (readCompileTime)
+            compileTime = new Timestamp(in.readLong());
+        boolean readParamsDefaults = in.readBoolean();
+        if (readParamsDefaults) {
+            paramDefaults = new Object[in.readInt()];
+            for (int i=0; i < paramDefaults.length; i++)
+                paramDefaults[i] = in.readObject();
+        }
+        initiallyCompilable = in.readBoolean();
+        lookedUpParams = in.readBoolean();
+        finalTableConglomID = in.readLong();
     }
 
 }

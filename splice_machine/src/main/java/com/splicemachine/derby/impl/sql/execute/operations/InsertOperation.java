@@ -128,8 +128,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                            boolean outputKeysOnly,
                            boolean skipSampling,
                            double sampleFraction,
-                           String indexName) throws StandardException{
-        super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+                           String indexName,
+                           String fromTableDmlSpsDescriptorAsString) throws StandardException{
+        super(source,generationClauses,checkGM,source.getActivation(),optimizerEstimatedRowCount,
+              optimizerEstimatedCost,tableVersion, fromTableDmlSpsDescriptorAsString);
         this.insertMode=InsertNode.InsertMode.valueOf(insertMode);
         this.statusDirectory=statusDirectory;
         this.skipConflictDetection=skipConflictDetection;
@@ -314,8 +316,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
             // initTriggerRowHolders can't be called in the TriggerHandler constructor
             // because it has to be called after getCurrentTransaction() elevates the
             // transaction to writable.
-            if (triggerHandler != null)
+            if (triggerHandler != null) {
+                finalTableErrorCheck2(triggerHandler);
                 triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
+            }
             if(statusDirectory!=null)
                 dsp.setSchedulerPool("import");
             if (storedAs!=null) {

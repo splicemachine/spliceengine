@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -139,7 +140,8 @@ public interface ResultSetFactory {
                                  boolean outputKeysOnly,
                                  boolean skipSampling,
                                  double sampleFraction,
-                                 String indexName)
+                                 String indexName,
+                                 String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -190,7 +192,8 @@ public interface ResultSetFactory {
      */
     ResultSet getDeleteResultSet(NoPutResultSet source, double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan, String bulkDeleteDirectory, int colMapRefItem)
+                                 String explainPlan, String bulkDeleteDirectory, int colMapRefItem,
+                                 String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -236,7 +239,7 @@ public interface ResultSetFactory {
     ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
                                  GeneratedMethod checkGM, double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan)
+                                 String explainPlan, String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -839,7 +842,30 @@ public interface ResultSetFactory {
             boolean quotedEmptyIsNull)
             throws StandardException;
 
-    public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+    NoPutResultSet getVTIResultSet(
+            Activation activation,
+            GeneratedMethod row,
+            int resultSetNumber,
+            GeneratedMethod constructor,
+            String javaClassName,
+            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            int erdNumber,
+            int ctcNumber,
+            boolean isTarget,
+            int scanIsolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            boolean isDerbyStyleTableFunction,
+            int returnTypeNumber,
+            int vtiProjectionNumber,
+            int vtiRestrictionNumber,
+            int vtiResultDescriptionNumber,
+            String explainPlan,
+            boolean quotedEmptyIsNull,
+            String fromTableDmlSpsAsString)
+            throws StandardException;
+
+    NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
                                           int resultSetNumber,
                                           GeneratedMethod constructor,
                                           String javaClassName,
@@ -858,6 +884,25 @@ public interface ResultSetFactory {
                                           String explainPlan,
                                           boolean quotedEmptyIsNull) throws StandardException;
 
+    NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+                                          int resultSetNumber,
+                                          GeneratedMethod constructor,
+                                          String javaClassName,
+                                          String pushedQualifiersField,
+                                          int erdNumber,
+                                          int ctcNumber,
+                                          boolean isTarget,
+                                          int scanIsolationLevel,
+                                          double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost,
+                                          boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber,
+                                          int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
+                                          String explainPlan,
+                                          boolean quotedEmptyIsNull,
+                                          String fromTableDmlSpsAsString) throws StandardException;
 
 	/**
 		A distinct scan result set pushes duplicate elimination into
