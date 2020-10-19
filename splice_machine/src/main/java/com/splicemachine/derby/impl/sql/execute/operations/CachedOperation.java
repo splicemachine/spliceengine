@@ -110,6 +110,11 @@ public class CachedOperation extends SpliceBaseOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
         populateCache();
+        try {
+            source.init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
         source.openCore(dsp);
 
         if (!rows.isEmpty()) {
@@ -153,9 +158,10 @@ public class CachedOperation extends SpliceBaseOperation {
         // instance if there's a NLJ downstream) we would try to populate it again. See DB-7154 for more details
         populated = true;
 
+
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         int maxMemoryPerTable = lcc.getOptimizerFactory().getMaxMemoryPerTable();
-        if(maxMemoryPerTable<=0)
+        if (maxMemoryPerTable <= 0)
             return;
 
         source.openCore();
@@ -164,23 +170,25 @@ public class CachedOperation extends SpliceBaseOperation {
         int cacheSize = 0;
         FormatableBitSet toClone = null;
 
-        aRow = source.getNextRowCore();
-        if (aRow != null)
-        {
-            toClone = new FormatableBitSet(aRow.nColumns() + 1);
-            toClone.set(1);
-        }
-        while (aRow != null)
-        {
-            cacheSize += aRow.getColumn(1).getLength();
-            if (cacheSize > maxMemoryPerTable ||
-                    rows.size() > Optimizer.MAX_DYNAMIC_MATERIALIZED_ROWS) {
-                rows.clear();
-                break;
-            }
-            rows.add(aRow.getClone(toClone));
+        try {
             aRow = source.getNextRowCore();
+            if (aRow != null) {
+                toClone = new FormatableBitSet(aRow.nColumns() + 1);
+                toClone.set(1);
+            }
+            while (aRow != null) {
+                cacheSize += aRow.getColumn(1).getLength();
+                if (cacheSize > maxMemoryPerTable ||
+                        rows.size() > Optimizer.MAX_DYNAMIC_MATERIALIZED_ROWS) {
+                    rows.clear();
+                    break;
+                }
+                rows.add(aRow.getClone(toClone));
+                aRow = source.getNextRowCore();
+            }
         }
-        source.close();
+        finally {
+            source.close();
+        }
     }
 }
