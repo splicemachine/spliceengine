@@ -107,6 +107,7 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long, querySchema: StructType
           case ShortType => row.getShort(i)
           case StringType => row.getString(i)
           case TimestampType => row.getTimestamp(i)
+          case TimeType => java.sql.Time.valueOf( row.getTimestamp(i).toLocalDateTime.toLocalTime )
           case _ => throw new IllegalArgumentException(s"Can't get data for ${row.schema(i).dataType.simpleString}")
         }
       }
