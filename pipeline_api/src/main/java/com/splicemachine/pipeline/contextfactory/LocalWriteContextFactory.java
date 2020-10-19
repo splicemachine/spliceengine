@@ -184,7 +184,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
     @Override
     public boolean hasDependentWrite(TxnView txn) throws IOException, InterruptedException{
         isInitialized(txn);
-        return indexFactories != null &&!indexFactories.isEmpty();
+        return (indexFactories != null &&!indexFactories.isEmpty()) || fkGroup.hasDependentWrites();
     }
 
     public static <TableInfo> LocalWriteContextFactory<TableInfo> unmanagedContextFactory(PartitionFactory<TableInfo> partitionFactory,
