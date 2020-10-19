@@ -29,18 +29,7 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.IntegerSerializer
-import com.splicemachine.db.iapi.types.SQLInteger
-import com.splicemachine.db.iapi.types.SQLLongint
-import com.splicemachine.db.iapi.types.SQLDouble
-import com.splicemachine.db.iapi.types.SQLReal
-import com.splicemachine.db.iapi.types.SQLSmallint
-import com.splicemachine.db.iapi.types.SQLTinyint
-import com.splicemachine.db.iapi.types.SQLBoolean
-import com.splicemachine.db.iapi.types.SQLClob
-import com.splicemachine.db.iapi.types.SQLBlob
-import com.splicemachine.db.iapi.types.SQLTimestamp
-import com.splicemachine.db.iapi.types.SQLDate
-import com.splicemachine.db.iapi.types.SQLDecimal
+import com.splicemachine.db.iapi.types.{SQLBlob, SQLBoolean, SQLClob, SQLDate, SQLDecimal, SQLDouble, SQLInteger, SQLLongint, SQLReal, SQLSmallint, SQLTime, SQLTimestamp, SQLTinyint}
 import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.stream.spark.ExternalizableSerializer
 import com.splicemachine.nsds.kafka.KafkaTopics
@@ -500,13 +489,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     // hbase user has read/write permission on the topic
     try {
-      sendData(topicName, rdd, schema)
+      val tableSchemaStr = schemaString(schemaTableName, schema)
+      sendData(topicName, rdd, modifySchema(schema, tableSchemaStr))
 
       val colList = columnList(schema)
       val sProps = spliceProperties.map({ case (k, v) => k + "=" + v }).fold("--splice-properties useSpark=true")(_ + ", " + _)
       val sqlText = "insert into " + schemaTableName + " (" + colList + ") " + sProps + "\nselect " + colList + " from " +
         "new com.splicemachine.derby.vti.KafkaVTI('" + topicName + "') " +
-        "as SpliceDatasetVTI (" + schemaString(schema) + ")"
+        "as SpliceDatasetVTI (" + tableSchemaStr + ")"
 
       //println( s"SMC.insert sql $sqlText" )
       executeUpdate(sqlText)
@@ -588,6 +578,11 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         val ts = new SQLTimestamp
         if (isNull) ts.setToNull else ts.setValue( row.getTimestamp(i) , null )
         Option(ts)
+      }
+      case TimeType => {
+        val tm = new SQLTime
+        if (isNull) tm.setToNull else tm.setValue( java.sql.Time.valueOf( row.getTimestamp(i).toLocalDateTime.toLocalTime ) , null )
+        Option(tm)
       }
       case DateType => {
         val dt = new SQLDate
@@ -673,12 +668,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   ): Unit = {
     val topicName = kafkaTopics.create
     //println( s"SMC.modifyOnKeys topic $topicName" )
+
     try {
-      sendData(topicName, rdd, schema)
+      val tableSchemaStr = schemaString(schemaTableName, schema)
+      sendData(topicName, rdd, modifySchema(schema, tableSchemaStr))
 
       val sqlText = sqlStart +
         " from new com.splicemachine.derby.vti.KafkaVTI('" + topicName + "') " +
-        "as SDVTI (" + schemaString(schemaTableName, schema) + ") where "
+        "as SDVTI (" + tableSchemaStr + ") where "
       val dialect = JdbcDialects.get(url)
       val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
         " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
@@ -688,6 +685,23 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       executeUpdate(combinedText)
     } finally {
       kafkaTopics.delete(topicName)
+    }
+  }
+  
+  private[this] def modifySchema(schema: StructType, tableSchemaStr: String): StructType = {
+    def hasTimeColumn: String => Boolean = schStr => schStr.contains("TIME,") || schStr.endsWith("TIME")
+    if( hasTimeColumn(tableSchemaStr) ) {
+      val tableColumns = tableSchemaStr.split(", ")
+      var i = 0
+      var timeSchema = StructType(Nil)
+      for (field <- schema.iterator) {
+        val dataType = if( hasTimeColumn(tableColumns(i)) ) { TimeType } else { field.dataType }
+        timeSchema = timeSchema.add(field.name, dataType, field.nullable)
+        i += 1
+      }
+      timeSchema
+    } else {
+      schema
     }
   }
 
