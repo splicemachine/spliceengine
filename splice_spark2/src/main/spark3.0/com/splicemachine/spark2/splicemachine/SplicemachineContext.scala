@@ -593,18 +593,25 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     )
   
   /** Schema string built from JDBC metadata. */
-  def schemaString(schemaTableName: String, schema: StructType = new StructType()): String =
-    SpliceJDBCUtil.retrieveColumnInfo(
+  def schemaString(schemaTableName: String, schema: StructType = new StructType()): String = {
+    val info = SpliceJDBCUtil.retrieveColumnInfo(
       getJdbcOptionsInWrite( schemaTableName)
-    ).filter(
-      col => schema.isEmpty || schema.exists( field => field.name.toUpperCase.equals( col(0).toUpperCase ) )
     ).map(i => {
       val colName = i(0)
       val sqlType = i(1)
       val size = if(sqlType.equals("VARCHAR")) { s"(${i(2)})" } else {""}
       s"$colName $sqlType$size"
-    }).mkString(", ")
-  
+    })
+
+    if( schema.isEmpty ) {
+      info.mkString(", ")
+    } else {
+      schema.map( field => {
+        info.find( col => col.toUpperCase.startsWith( s"${field.name.toUpperCase} " ) ).getOrElse("")
+      }).mkString(", ")
+    }
+  }
+
   /**
    * Modify records identified by their primary keys.
    *
