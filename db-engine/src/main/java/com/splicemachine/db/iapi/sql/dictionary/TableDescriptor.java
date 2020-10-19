@@ -52,6 +52,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import splice.com.google.common.primitives.Ints;
@@ -808,6 +809,11 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
             if(tgr.needsToFire(statementType,changedColumnIds)){
                 relevantTriggers.add(tgr);
             }
+        }
+        TriggerDescriptor tgr = DataDictionaryCache.fromTableTriggerDescriptor.get();
+        if (tgr != null) {
+            if(tgr.needsToFire(statementType,changedColumnIds))
+                relevantTriggers.add(tgr);
         }
     }
 

@@ -1737,6 +1737,10 @@ abstract class DMLModStatementNode extends DMLStatementNode
             targetTableName.accept(v, this);
         }
     }
+
+    public TableDescriptor getTargetTableDescriptor() { return targetTableDescriptor; }
+
+    public TableName getTargetTableName() { return targetTableName; }
 }
 
 

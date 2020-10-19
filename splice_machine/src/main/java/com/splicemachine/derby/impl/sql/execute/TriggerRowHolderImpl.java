@@ -457,7 +457,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
         return getConglomerateId();
     }
 
-    private void dropTable(long conglomID) throws StandardException {
+    public static void dropTable(long conglomID) throws StandardException {
         try {
             SIDriver driver = SIDriver.driver();
             PartitionFactory partitionFactory = driver.getTableFactory();
@@ -471,8 +471,17 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
     private void dropConglomerate() throws StandardException {
         TransactionController tc = activation.getTransactionController();
         LOG.trace(format("Dropping temporary conglomerate splice:%d", CID));
-        tc.dropConglomerate(CID);
-        dropTable(CID);
+        try {
+            tc.dropConglomerate(CID);
+        }
+        catch (StandardException e) {
+        }
+        try {
+            dropTable(CID);
+        }
+        catch (StandardException e) {
+        }
+
         conglomCreated = false;
         CID = 0;
     }

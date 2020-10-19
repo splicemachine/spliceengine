@@ -52,4 +52,7 @@ public class TriggerReferencingStruct {
     public String toString() {
         return (isRow ? "ROW " : "TABLE ") + (isNew ? "new: " : "old: ") + identifier;
     }
+
+    public boolean isNew() { return isNew; }
+    public String getIdentifier() { return identifier; }
 }

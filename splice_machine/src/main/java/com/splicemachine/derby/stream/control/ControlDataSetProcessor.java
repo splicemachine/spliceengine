@@ -80,6 +80,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     protected final TxnSupplier txnSupplier;
     protected final Transactor transactory;
     protected final TxnOperationFactory txnOperationFactory;
+    protected long conglomID;
 
     public ControlDataSetProcessor(TxnSupplier txnSupplier,
                                    Transactor transactory,
@@ -429,4 +430,14 @@ public class ControlDataSetProcessor implements DataSetProcessor{
 
     @Override
     public boolean isSparkDB2CompatibilityMode() { return false; }
+
+    @Override
+    public void setTempTriggerConglomerate(long conglomID) {
+        this.conglomID = conglomID;
+    }
+
+    @Override
+    public long getTempTriggerConglomerate() {
+        return this.conglomID;
+    }
 }

@@ -23,6 +23,8 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
@@ -88,6 +90,11 @@ public class TriggerHandler {
     private boolean isSpark;
     private TxnView txn;
     private byte[] token;
+    private boolean hasSpecialFromTableTrigger;
+    private SPSDescriptor fromTableDmlSpsDescriptor;
+    boolean cleanup1Done = false;
+    boolean cleanup2Done = false;
+    protected TriggerInfo triggerInfo;
 
     private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
 
@@ -98,7 +105,8 @@ public class TriggerHandler {
                           TriggerEvent afterEvent,
                           FormatableBitSet heapList,
                           ExecRow templateRow,
-                          String tableVersion) throws StandardException {
+                          String tableVersion,
+                          SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException {
         WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
         initConnectionContext(activation.getLanguageConnectionContext());
 
@@ -118,6 +126,9 @@ public class TriggerHandler {
         this.tableVersion = tableVersion;
         this.activation = activation;
         this.writeInfo = writeInfo;
+        this.hasSpecialFromTableTrigger = triggerInfo.hasSpecialFromTableTrigger();
+        this.fromTableDmlSpsDescriptor = fromTableDmlSpsDescriptor;
+        this.triggerInfo = triggerInfo;
         initTriggerActivator(activation, constantAction);
     }
 
@@ -211,7 +222,11 @@ public class TriggerHandler {
 
     }
 
-    public TriggerExecutionContext getTriggerExecutionContext() { return this.triggerActivator.getTriggerExecutionContext(); }
+    public TriggerExecutionContext getTriggerExecutionContext() {
+        if (triggerActivator != null)
+            return this.triggerActivator.getTriggerExecutionContext();
+        else return null;
+    }
 
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
         try {
@@ -246,7 +261,8 @@ public class TriggerHandler {
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
-                    null, SIDriver.driver().getExecutorService(), withContext, heapList, !SpliceClient.isRegionServer);
+                    null, SIDriver.driver().getExecutorService(), withContext,
+                    heapList, !SpliceClient.isRegionServer, fromTableDmlSpsDescriptor);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;
@@ -278,11 +294,15 @@ public class TriggerHandler {
     }
 
     public void cleanup() throws StandardException {
-        if (triggerActivator != null) {
-            triggerActivator.cleanup(false);
+        if (triggerActivator != null && !cleanup2Done) {
+            if (cleanup1Done)
+                cleanup2Done = true;
+            triggerActivator.cleanup(hasSpecialFromTableTrigger && !cleanup1Done);
         }
-        if (triggerRowHolder != null)
-            triggerRowHolder.close();;
+        if (triggerRowHolder != null && !cleanup1Done) {
+            cleanup1Done = true;
+            triggerRowHolder.close();
+        }
     }
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
@@ -442,6 +462,10 @@ public class TriggerHandler {
                 return null;
             }
         };
+    }
+
+    public void errorIfAfterTriggerWritesToConglom(long conglomID) throws StandardException {
+        triggerInfo.errorIfAfterTriggerWritesToConglom(conglomID);
     }
 
 }

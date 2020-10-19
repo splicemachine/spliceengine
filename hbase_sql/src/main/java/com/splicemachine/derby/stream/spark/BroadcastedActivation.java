@@ -36,6 +36,7 @@ public class BroadcastedActivation implements Externalizable {
     private ActivationHolder activationHolder;
     private Broadcast<byte[]> bcast;
     private boolean DB2VarcharCompatibilityMode = false;
+    protected long conglomID = 0;
 
     public BroadcastedActivation() {
 
@@ -60,6 +61,7 @@ public class BroadcastedActivation implements Externalizable {
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(bcast);
         out.writeBoolean(DB2VarcharCompatibilityMode);
+        out.writeLong(conglomID);
     }
 
     @Override
@@ -74,6 +76,7 @@ public class BroadcastedActivation implements Externalizable {
 
         activationHolder = ah.activationHolder;
         DB2VarcharCompatibilityMode = in.readBoolean();
+        conglomID = in.readLong();
     }
 
     public ActivationHolder getActivationHolder() {
@@ -122,4 +125,12 @@ public class BroadcastedActivation implements Externalizable {
     }
 
     public boolean isDB2VarcharCompatibilityMode() { return DB2VarcharCompatibilityMode; }
+
+    public void setTempTriggerConglomerate(long conglomID) {
+        this.conglomID = conglomID;
+    }
+
+    public long getTempTriggerConglomerate() {
+        return conglomID;
+    }
 }

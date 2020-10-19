@@ -37,13 +37,14 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIED_FINAL_TABLE;
 
 /**
  * This is a simple class used to store the run time information
@@ -55,6 +56,7 @@ public final class TriggerInfo implements Formatable {
     private TriggerDescriptor[] triggerDescriptors;
     private String[] columnNames;
     private int[] columnIds;
+    boolean hasSpecialFromTableTrigger = false;
 
     /**
      * Default constructor for Formattable
@@ -91,6 +93,11 @@ public final class TriggerInfo implements Formatable {
         triggerDescriptors = new TriggerDescriptor[size];
         for (int i = 0; i < size; i++) {
             triggerDescriptors[i] = descIter.next();
+            if (triggerDescriptors[i] instanceof TriggerDescriptorV4) {
+                TriggerDescriptorV4 triggerDesc = (TriggerDescriptorV4) triggerDescriptors[i];
+                if (triggerDesc.isSpecialFromTableTrigger())
+                    hasSpecialFromTableTrigger = true;
+            }
         }
     }
 
@@ -190,6 +197,7 @@ public final class TriggerInfo implements Formatable {
         ArrayUtil.writeArray(out, triggerDescriptors);
         ArrayUtil.writeIntArray(out, columnIds);
         ArrayUtil.writeArray(out, columnNames);
+        out.writeBoolean(hasSpecialFromTableTrigger);
     }
 
     /**
@@ -209,6 +217,7 @@ public final class TriggerInfo implements Formatable {
             columnNames = new String[len];
             ArrayUtil.readArrayItems(in, columnNames);
         }
+        hasSpecialFromTableTrigger = in.readBoolean();
     }
 
     /**
@@ -219,5 +228,25 @@ public final class TriggerInfo implements Formatable {
     @Override
     public int getTypeFormatId() {
         return StoredFormatIds.TRIGGER_INFO_V01_ID;
+    }
+
+    public boolean hasSpecialFromTableTrigger() { return hasSpecialFromTableTrigger; }
+
+    public boolean errorIfAfterTriggerWritesToConglom(long conglomID) throws StandardException {
+        if (triggerDescriptors != null) {
+            for (TriggerDescriptor aTriggerArray : triggerDescriptors) {
+                if (aTriggerArray instanceof TriggerDescriptorV4) {
+                    TriggerDescriptorV4 triggerDescriptorV4 = (TriggerDescriptorV4) aTriggerArray;
+                    if (triggerDescriptorV4.isSpecialFromTableTrigger())
+                        continue;
+                }
+                if (aTriggerArray.isBeforeTrigger() == false            &&
+                    aTriggerArray.getTableDescriptor().getHeapConglomerateId() == conglomID) {
+                    throw StandardException.newException(LANG_MODIFIED_FINAL_TABLE,
+                       aTriggerArray.getName(), aTriggerArray.getTableDescriptor().getName());
+                }
+            }
+        }
+        return false;
     }
 }

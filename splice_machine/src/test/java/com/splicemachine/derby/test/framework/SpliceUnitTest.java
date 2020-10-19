@@ -567,6 +567,31 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void testFail(String expectedErrorCode, String sqlText, SpliceWatcher methodWatcher) throws Exception {
+        ResultSet rs = null;
+        try {
+            rs = methodWatcher.executeQuery(sqlText);
+            String failMsg = format("SQL not expected to succeed.\n%s", sqlText);
+            fail(failMsg);
+        }
+        catch (Exception e) {
+            boolean found = false;
+            String extraText = "";
+            if (e instanceof SQLException) {
+                found = ((SQLException) e).getSQLState().equals(expectedErrorCode);
+                if (!found)
+                    extraText = format("found error code: %s", ((SQLException) e).getSQLState());
+            }
+            if (!found) {
+                fail(format("\n + Expected error code: %s, ", expectedErrorCode) + extraText);
+            }
+        }
+        finally {
+            if (rs != null)
+                rs.close();
+        }
+    }
+
     protected void assertStatementError(String expectedErrorCode,
                                         Statement s,
                                         String sqlText) throws AssertionError {
