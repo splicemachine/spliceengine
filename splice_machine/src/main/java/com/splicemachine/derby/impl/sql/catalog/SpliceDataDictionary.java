@@ -28,7 +28,6 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -68,7 +67,10 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 import java.util.function.Function;
 
 /**
@@ -88,6 +90,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl snapshotTable = null;
     private volatile TabInfoImpl tokenTable = null;
     private volatile TabInfoImpl replicationTable = null;
+    private volatile TabInfoImpl naturalNumbersTable = null;
     private volatile TabInfoImpl ibmConnectionTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     protected boolean metadataAccessRestrictionEnabled;
@@ -367,6 +370,51 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
     }
 
+    private TabInfoImpl getNaturalNumbersTable() throws StandardException{
+        if(naturalNumbersTable==null){
+            naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
+        }
+        initSystemIndexVariables(naturalNumbersTable);
+        return naturalNumbersTable;
+    }
+
+    /**
+     * Populate SYSNATURALNUMBERS table with 1-2048.
+     *
+     * @throws StandardException Standard Derby error policy
+     */
+    private void populateSYSNATURALNUMBERS(TransactionController tc) throws StandardException{
+        TabInfoImpl ti = getNonCoreTI(SYSNATURALNUMBERS_CATALOG_NUM);
+        for (int i = 1; i <= 2048; i++) {
+            NaturalNumberDescriptor nnd = new NaturalNumberDescriptor(i);
+            ExecRow row = ti.getCatalogRowFactory().makeRow(nnd, null);
+            // ignore return value because sysnaturalnumbers does not have indexes
+            ti.insertRow(row, tc);
+        }
+    }
+
+    public void createNaturalNumbersTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+
+        TabInfoImpl table=getNaturalNumbersTable();
+        addTableIfAbsent(tc,systemSchema,table,null, null);
+
+        populateSYSNATURALNUMBERS(tc);
+    }
+
+    public void updateNaturalNumbersTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
+        if (td != null) {
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropTableDescriptor(td, sd, tc);
+        }
+
+        createNaturalNumbersTable(tc);
+    }
+
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
         if(ibmConnectionTable==null){
             ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf, this));
@@ -566,6 +614,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createPermissionTableSystemViews(tc);
 
         createReplicationTables(tc);
+
+        createNaturalNumbersTable(tc);
 
         createTableColumnViewInSysIBM(tc);
 

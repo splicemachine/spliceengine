@@ -3217,6 +3217,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		s.setString(1, swapNull(schema));
 		s.setString(2, swapNull(table)); //DERBY-1484: Must match table name as stored
 		s.setBoolean(3, unique);
+		s.setString(4, swapNull(schema));
+		s.setString(5, swapNull(table)); //DERBY-1484: Must match table name as stored
+		s.setBoolean(6, unique);
 		return s.executeQuery();
 	}
 

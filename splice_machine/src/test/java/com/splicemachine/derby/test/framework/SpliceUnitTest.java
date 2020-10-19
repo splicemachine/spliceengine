@@ -319,6 +319,25 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void columnInRowsContainsQuery(int[] levels, int columnPosition, String query, SpliceWatcher methodWatcher, String... contains) throws Exception {
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)){
+            int i=0;
+            int k=0;
+            while(resultSet.next()){
+                i++;
+                for(int level : levels){
+                    if(level==i){
+                        Assert.assertTrue("failed query at level ("+level+"): \n"+query+"\nExpected: "+contains[k]+"\nWas: "
+                                +resultSet.getString(columnPosition),resultSet.getString(columnPosition).contains(contains[k]));
+                        k++;
+                    }
+                }
+            }
+            if (k < contains.length)
+                fail("fail to match the given strings");
+        }
+    }
+
 
     protected void queryDoesNotContainString(String query, String notContains,SpliceWatcher methodWatcher) throws Exception {
         queryDoesNotContainString(query,new String[] {notContains}, methodWatcher, false);
