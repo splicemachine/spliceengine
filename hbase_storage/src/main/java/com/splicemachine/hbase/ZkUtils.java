@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.pipeline.utils.PipelineUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -323,7 +324,7 @@ public class ZkUtils{
             tries++;
             if (tries > 1) {
                 try {
-                    Thread.sleep(50);
+                    Thread.sleep(PipelineUtils.getPauseTime(tries,10));
                 } catch (Exception e) {
                     throw new IOException(e);
                 }

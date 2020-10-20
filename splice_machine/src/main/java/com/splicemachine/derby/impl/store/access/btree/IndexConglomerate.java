@@ -154,15 +154,6 @@ public class IndexConglomerate extends SpliceConglomerate{
             SanityManager.ASSERT((nUniqueColumns==nKeyFields) || (nUniqueColumns==(nKeyFields-1)));
         }
         try{
-//            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
-
-            TxnView txnView = null;
-            if (rawtran instanceof SpliceTransaction) {
-                txnView = ((SpliceTransaction) rawtran).getTxnInformation();
-            }
-            else if (rawtran instanceof SpliceTransactionView) {
-                txnView = ((SpliceTransactionView) rawtran).getTxnInformation();
-            }
             ConglomerateUtils.createConglomerate(isExternal,
                     containerId,
                     this,
