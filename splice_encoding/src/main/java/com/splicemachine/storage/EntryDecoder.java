@@ -161,7 +161,7 @@ public class EntryDecoder implements Supplier<MultiFieldDecoder> {
         return retData;
     }
 
-    public MultiFieldDecoder getEntryDecoder() throws IOException {
+    public MultiFieldDecoder getEntryDecoder() {
         if (decoder == null) {
             if(currentData!=null) {
                 decoder = MultiFieldDecoder.wrap(currentData);
@@ -239,10 +239,6 @@ public class EntryDecoder implements Supplier<MultiFieldDecoder> {
 
     @Override
     public MultiFieldDecoder get() {
-        try {
-            return getEntryDecoder();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return getEntryDecoder();
     }
 }

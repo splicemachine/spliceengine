@@ -1454,7 +1454,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
 
         tc.prepareDataDictionaryChange(DDLUtils.notifyMetadataChange(ddlChange));
         boolean b = "TRUE".compareToIgnoreCase(enable) == 0;
-        if(td.getMinRetentionPeriod() > 0) {
+        if(td.getMinRetentionPeriod() != null && td.getMinRetentionPeriod() > 0) {
             SpliceLogUtils.warn(LOG, "setting purge deleted rows on table %s which min retention period " +
                     "set to non-negative value, this could lead to incorrect time travel query results", td.getName());
         }

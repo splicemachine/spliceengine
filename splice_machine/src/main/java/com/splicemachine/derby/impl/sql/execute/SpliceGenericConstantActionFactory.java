@@ -311,9 +311,9 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
     }
 
     @Override
-    public ConstantAction getDropSchemaConstantAction(String schemaName){
+    public ConstantAction getDropSchemaConstantAction(String schemaName, int dropBehavior){
         SpliceLogUtils.trace(LOG,"getDropSchemaConstantAction for {%s}",schemaName);
-        return new DropSchemaConstantOperation(schemaName);
+        return new DropSchemaConstantOperation(schemaName, dropBehavior);
     }
 
     @Override

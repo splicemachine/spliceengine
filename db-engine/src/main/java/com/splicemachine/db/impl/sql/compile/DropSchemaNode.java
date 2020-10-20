@@ -135,6 +135,6 @@ public class DropSchemaNode extends DDLStatementNode
      */
     public ConstantAction    makeConstantAction() throws StandardException
     {
-        return    getGenericConstantActionFactory().getDropSchemaConstantAction(schemaName);
+		return	getGenericConstantActionFactory().getDropSchemaConstantAction(schemaName, dropBehavior);
     }
 }
