@@ -33,6 +33,8 @@ import com.splicemachine.derby.utils.EngineUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  *
@@ -82,6 +84,18 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         // before execution.
         EngineUtils.populateDefaultValues(clone.getRowArray(),0);
         return clone;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(orderItem);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        orderItem = in.readInt();
     }
 
     @Override
