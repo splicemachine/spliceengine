@@ -484,9 +484,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
     // hbase user has read/write permission on the topic
     try {
-      sendData(topicName, rdd, schema)
-
-    try {
       val tableSchemaStr = schemaString(schemaTableName, schema)
       sendData(topicName, rdd, modifySchema(schema, tableSchemaStr))
 
@@ -681,7 +678,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
         " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
       val combinedText = sqlText + whereClause + ")"
-  
+
       //println( s"SMC.modifyOnKeys sql $combinedText" )
       executeUpdate(combinedText)
     } finally {
