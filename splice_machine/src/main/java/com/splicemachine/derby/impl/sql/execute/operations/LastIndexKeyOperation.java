@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
@@ -97,6 +98,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         tableName = in.readUTF();
         if (in.readBoolean())
             indexName = in.readUTF();
+        tableVersion = GenericColumnDescriptor.readNullableUTF(in);
     }
 
     @Override
@@ -106,6 +108,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         out.writeBoolean(indexName != null);
         if (indexName != null)
             out.writeUTF(indexName);
+        GenericColumnDescriptor.writeNullableUTF(out, tableVersion);
     }
 
     @Override
