@@ -78,11 +78,7 @@ public class EntryDataDecoder extends BareKeyHash implements KeyHashDecoder{
 		public void decode(ExecRow destination) throws StandardException {
 				BitIndex index = entryDecoder.getCurrentIndex();
 				MultiFieldDecoder decoder;
-				try {
-						decoder = entryDecoder.getEntryDecoder();
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
+				decoder = entryDecoder.getEntryDecoder();
 				DataValueDescriptor[] fields = destination.getRowArray();
 				if(keyColumns!=null){
 						for(int i=index.nextSetBit(0);i>=0 && i<keyColumns.length;i=index.nextSetBit(i+1)){

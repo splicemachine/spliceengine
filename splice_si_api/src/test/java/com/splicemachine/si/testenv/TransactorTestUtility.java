@@ -288,12 +288,7 @@ public class TransactorTestUtility {
         EntryDecoder decoder = new EntryDecoder();
         decoder.set(packedColumns);
         MultiFieldDecoder mfd = null;
-        try {
-            mfd = decoder.getEntryDecoder();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        mfd = decoder.getEntryDecoder();
         Integer age = null;
         String job = null;
         if (decoder.isSet(0))
@@ -311,12 +306,7 @@ public class TransactorTestUtility {
         EntryDecoder decoder = new EntryDecoder();
         decoder.set(packedColumns);
         MultiFieldDecoder mfd = null;
-        try {
-            mfd = decoder.getEntryDecoder();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        mfd = decoder.getEntryDecoder();
         if (decoder.isSet(0))
             s.append("V.age@" + timestampToStableString(timestampDecoder, timestamp) + "=" + mfd.decodeNextInt());
         if (decoder.isSet(1))

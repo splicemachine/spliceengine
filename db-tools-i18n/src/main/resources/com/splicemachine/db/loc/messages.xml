@@ -906,6 +906,12 @@ Guide.
                 <arg>string</arg>
             </msg>
 
+            <msg>
+                <name>22030</name>
+                <text>Field position must be greater than zero.</text>
+            </msg>
+
+
         </family>
 
 

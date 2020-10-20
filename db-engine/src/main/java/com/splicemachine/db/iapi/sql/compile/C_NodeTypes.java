@@ -286,11 +286,11 @@ public interface C_NodeTypes
     int TIME_SPAN_NODE = 275;
     int STATEMENT_LIST_NODE = 276;
     int KAFKA_EXPORT_NODE = 277;
-
     int TO_INSTANT_NODE = 278;
     int TO_HBASE_ESCAPED_NODE = 279;
-    int CREATE_DATABASE_NODE = 280;
-    int DROP_DATABASE_NODE = 281;
+    int SPLIT_PART_OPERATOR_NODE = 280;
+    int CREATE_DATABASE_NODE = 281;
+    int DROP_DATABASE_NODE = 282;
 
     // Final value in set, keep up to date!
     int FINAL_VALUE = DROP_DATABASE_NODE;

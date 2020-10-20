@@ -239,8 +239,6 @@ public class SimpleTxnFilter implements TxnFilter{
 		 * it matches, then we can see it.
 		 */
         long timestamp=data.version();//dataStore.getOpFactory().getTimestamp(data);
-        if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(timestamp))
-            return DataFilter.ReturnCode.SKIP;
         if(tombstonedTxnRow != null && timestamp<= tombstonedTxnRow)
             return DataFilter.ReturnCode.NEXT_ROW;
 
@@ -254,6 +252,9 @@ public class SimpleTxnFilter implements TxnFilter{
 
     private boolean isVisible(long txnId) throws IOException{
         if (ignoreNewerTransactions && myTxn.getBeginTimestamp() < txnId)
+            return false;
+
+        if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(txnId))
             return false;
 
         TxnView toCompare=fetchTransaction(txnId);

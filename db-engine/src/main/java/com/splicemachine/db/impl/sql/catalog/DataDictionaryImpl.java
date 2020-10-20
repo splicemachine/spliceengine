@@ -2130,7 +2130,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     public ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException{
 
-        DataValueDescriptor schemaIdOrderable = getIDValueAsCHAR(sd.getUUID());
+        DataValueDescriptor schemaIdOrderable;
+
+        schemaIdOrderable=getIDValueAsCHAR(sd.getUUID());
 
         TabInfoImpl ti = coreInfo[SYSTABLES_CATALOG_NUM];
         int columnId = SYSTABLESRowFactory.SYSTABLES_SCHEMAID;
