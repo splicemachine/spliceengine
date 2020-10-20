@@ -35,6 +35,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
     private static CleanupMode mode = CleanupMode.UNDEF;
     private static Semaphore sync;
 
+    public String dbName;
     public String schemaName;
     protected String userName;
 
@@ -42,14 +43,19 @@ public class SpliceSchemaWatcher extends TestWatcher {
         this.schemaName = schemaName.toUpperCase();
     }
 
-    public SpliceSchemaWatcher(String schemaName, String userName) {
+    public SpliceSchemaWatcher(String dbName, String schemaName) {
         this(schemaName);
+        this.dbName = dbName;
+    }
+
+    public SpliceSchemaWatcher(String dbName, String schemaName, String userName) {
+        this(dbName, schemaName);
         this.userName = userName;
     }
 
     @Override
     protected void starting(Description description) {
-        try (Connection connection = SpliceNetConnection.getConnection()){
+        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).build()){
 //            connection.setAutoCommit(false);
 
             SchemaDAO schemaDAO = new SchemaDAO(connection);
@@ -85,8 +91,8 @@ public class SpliceSchemaWatcher extends TestWatcher {
         }
     }
 
-    private static void cleanup() {
-        try (Connection connection = SpliceNetConnection.getConnection()) {
+    private static void cleanup(String dbName) {
+        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).build()) {
             connection.setAutoCommit(true);
             while (true) {
                 sync.acquire();
@@ -109,14 +115,14 @@ public class SpliceSchemaWatcher extends TestWatcher {
                 mode = CleanupMode.valueOf(System.getProperty(SPLICE_SCHEMA_CLEANUP, CleanupMode.NONE.toString()).toUpperCase());
                 if (mode == CleanupMode.ASYNC) {
                     sync = new Semaphore(0);
-                    Thread thread = new Thread(() -> cleanup());
+                    Thread thread = new Thread(() -> cleanup(dbName));
                     thread.setDaemon(true);
                     thread.start();
                 }
             }
         }
 
-        try (Connection connection = SpliceNetConnection.getConnection()) {
+        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).build()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.drop(schemaName);
 
@@ -136,7 +142,7 @@ public class SpliceSchemaWatcher extends TestWatcher {
     }
 
     public void cleanSchemaObjects() throws RuntimeException {
-        try (Connection connection = SpliceNetConnection.getConnection()) {
+        try (Connection connection = SpliceNetConnection.newBuilder().database(dbName).build()) {
             SchemaDAO schemaDAO = new SchemaDAO(connection);
             schemaDAO.cleanSchemaObjects(schemaName, null, null);
 

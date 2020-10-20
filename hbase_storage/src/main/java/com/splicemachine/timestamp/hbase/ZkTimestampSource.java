@@ -15,6 +15,7 @@
 package com.splicemachine.timestamp.hbase;
 
 import com.splicemachine.timestamp.api.TimestampIOException;
+import com.splicemachine.timestamp.impl.BatchedTimestampClient;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -57,10 +58,17 @@ public class ZkTimestampSource implements TimestampSource {
                 rootZkPath = config.getSpliceRootPath();
                 int timeout = config.getTimestampClientWaitTime();
                 int timestampPort = config.getTimestampServerBindPort();
-		    	LOG.info("Creating the TimestampClient...");
                 HBaseConnectionFactory hbcf = HBaseConnectionFactory.getInstance(config);
-                _tc = new TimestampClient(timeout,
-                        new HBaseTimestampHostProvider(hbcf,timestampPort));
+                HBaseTimestampHostProvider hostProvider = new HBaseTimestampHostProvider(hbcf, timestampPort);
+                if (config.isTimestampClientBatched()) {
+                    LOG.info("Creating the BatchedTimestampClient...");
+                    BatchedTimestampClient tc = new BatchedTimestampClient(timeout, hostProvider, config.getTimestampClientQueues());
+                    tc.start();
+                    _tc = tc;
+                } else {
+                    LOG.info("Creating the TimestampClient...");
+                    _tc = new TimestampClient(timeout, hostProvider);
+                }
     		}
     	}
     }

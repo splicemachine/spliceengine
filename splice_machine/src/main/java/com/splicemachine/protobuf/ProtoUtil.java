@@ -20,7 +20,9 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
@@ -246,7 +248,9 @@ public class ProtoUtil {
     }
 
 
-    public static FKConstraintInfo createFKConstraintInfo(ForeignKeyConstraintDescriptor fKConstraintDescriptor) {
+    public static FKConstraintInfo createFKConstraintInfo(ForeignKeyConstraintDescriptor fKConstraintDescriptor,
+                                                          TableDescriptor td,
+                                                          LanguageConnectionContext lcc) {
         try {
             String version = fKConstraintDescriptor.getTableDescriptor().getVersion();
             ColumnDescriptorList columnDescriptors = fKConstraintDescriptor.getColumnDescriptors();
@@ -254,7 +258,12 @@ public class ProtoUtil {
                 .addAllFormatIds(Ints.asList(columnDescriptors.getFormatIds()))
                 .setParentTableVersion(version!=null?version: SYSTABLESRowFactory.CURRENT_TABLE_VERSION)
                 .setConstraintName(fKConstraintDescriptor.getConstraintName())
-                .setColumnNames(Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction()))).build();
+                .setColumnNames(Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction())))
+                .setDeleteRule(fKConstraintDescriptor.getRaDeleteRule())
+                .setChildTable(createTable(td.getHeapConglomerateId(),td,lcc))
+                .addAllColumnIndices(Ints.asList(fKConstraintDescriptor.getReferencedColumns()))
+                .setParentTableConglomerate(fKConstraintDescriptor.getReferencedConstraint().getTableDescriptor().getHeapConglomerateId())
+                .build();
         } catch (StandardException se) {
             throw new RuntimeException(se);
         }
@@ -278,7 +287,9 @@ public class ProtoUtil {
                 .build();
     }
 
-    public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor, DataValueDescriptor defaultValue) {
+    public static Index createIndex(long conglomerate, IndexDescriptor indexDescriptor, DataValueDescriptor defaultValue)
+            throws StandardException
+    {
         byte [] defaultValuesBytes = null;
         if (defaultValue!=null) {
             defaultValuesBytes = SerializationUtils.serialize(defaultValue);
@@ -289,7 +300,8 @@ public class ProtoUtil {
                 .setUniqueWithDuplicateNulls(indexDescriptor.isUniqueWithDuplicateNulls())
                 .setUnique(indexDescriptor.isUnique())
                 .setExcludeDefaults(indexDescriptor.excludeDefaults())
-                .setExcludeNulls(indexDescriptor.excludeNulls());
+                .setExcludeNulls(indexDescriptor.excludeNulls())
+                .setNumExprs(indexDescriptor.getExprBytecode().length);
         if (defaultValuesBytes != null)
             builder.setDefaultValues(ByteString.copyFrom(defaultValuesBytes));
         for(int i=0;i<ascColumns.length;i++){
@@ -299,6 +311,19 @@ public class ProtoUtil {
         int[] backingArray=indexDescriptor.baseColumnPositions();
         for(int i=0;i<backingArray.length;i++){
             builder = builder.addIndexColsToMainColMap(backingArray[i]);
+        }
+
+        ByteArray[] bytecodeArray = indexDescriptor.getExprBytecode();
+        for (ByteArray bc : bytecodeArray) {
+            builder = builder.addBytecodeExprs(ByteString.copyFrom(bc.getArray(), bc.getOffset(), bc.getLength()));
+        }
+        String[] classNames = indexDescriptor.getGeneratedClassNames();
+        for (String cn : classNames) {
+            builder = builder.addGeneratedClassNames(cn);
+        }
+        DataTypeDescriptor[] indexColumnTypes = indexDescriptor.getIndexColumnTypes();
+        for (DataTypeDescriptor dtd : indexColumnTypes) {
+            builder = builder.addIndexColumnFormatIds(dtd.getNull().getTypeFormatId());
         }
         return builder.build();
     }
@@ -325,6 +350,7 @@ public class ProtoUtil {
         return DDLChange.newBuilder().setTentativeIndex(TentativeIndex.newBuilder()
                 .setIndex(createIndex(indexConglomerate, indexDescriptor,defaultValues))
                 .setTable(createTable(baseConglomerate,td,lcc))
+                .setTxnId(txnId)
                 .build())
                 .setTxnId(txnId)
                 .setDdlChangeType(DDLChangeType.CREATE_INDEX)
@@ -337,6 +363,7 @@ public class ProtoUtil {
         return TentativeIndex.newBuilder()
                 .setIndex(createIndex(indexConglomerate,indexDescriptor,defaultValue))
                 .setTable(createTable(baseConglomerate,td,lcc))
+                .setTxnId(((SpliceTransactionManager)lcc.getTransactionExecute()).getActiveStateTxn().getTxnId())
                 .build();
     }
 
@@ -425,7 +452,8 @@ public class ProtoUtil {
 
     public static DDLChange createTentativeFKConstraint(ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor, long txnId,
                                                         long baseConglomerate, String tableName, String tableVersion,
-                                                        int[] backingIndexFormatIds, long backingIndexConglomerateId, DDLChangeType changeType) {
+                                                        int[] backingIndexFormatIds, long backingIndexConglomerateId, DDLChangeType changeType,
+                                                        TableDescriptor td, LanguageConnectionContext lcc) throws StandardException {
         return DDLChange.newBuilder().setTxnId(txnId)
                 .setDdlChangeType(changeType)
                 .setTentativeFK(TentativeFK.newBuilder()
@@ -433,7 +461,7 @@ public class ProtoUtil {
                                 .setBaseConglomerate(baseConglomerate)
                                 .setReferencedTableName(tableName)
                                 .setReferencedTableVersion(tableVersion)
-                                .setFkConstraintInfo(createFKConstraintInfo(foreignKeyConstraintDescriptor))
+                                .setFkConstraintInfo(createFKConstraintInfo(foreignKeyConstraintDescriptor, td, lcc))
                                 .setBackingIndexConglomerateId(backingIndexConglomerateId)
                                 .setReferencedConglomerateNumber(baseConglomerate)
                                 .setReferencingConglomerateNumber(backingIndexConglomerateId)

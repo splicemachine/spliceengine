@@ -57,6 +57,7 @@ import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -774,6 +775,37 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
     }
 
+    @Override
+    public String mangleTableName(String tableName) {
+        // 20 underscores + session ID
+        return String.format("%s" + LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "%d", tableName, getInstanceNumber());
+    }
+
+    @Override
+    public boolean isVisibleToCurrentSession(TableDescriptor td) throws StandardException {
+        if (td == null)
+            return false;
+        if (td.getTableType() != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)
+            return true;
+
+        String tableName = td.getName();
+        int lastIdx = tableName.lastIndexOf(LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR);
+        if (lastIdx < LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR || lastIdx >= tableName.length() - 1)  // -1 case included
+            throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
+        for (int i = lastIdx; i > lastIdx - LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR; i--) {
+            if (tableName.charAt(i) != LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR)
+                throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
+        }
+        try {
+            if (Integer.parseInt(tableName.substring(lastIdx + 1)) == getInstanceNumber())
+                return true;
+            return false;
+        }
+        catch (NumberFormatException e) {
+            throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
+        }
+    }
+
     /**
      * After a release of a savepoint, we need to go through our temp tables
      * list. If there are tables with their declare or drop or modified in
@@ -1203,9 +1235,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     /**
-     * @see LanguageConnectionContext#getTableDescriptorForDeclaredGlobalTempTable
+     * @see LanguageConnectionContext#getTableDescriptorForTempTable
      */
-    public TableDescriptor getTableDescriptorForDeclaredGlobalTempTable(String tableName){
+    public TableDescriptor getTableDescriptorForTempTable(String tableName){
         TempTableInfo tempTableInfo=findDeclaredGlobalTempTable(tableName);
         if(tempTableInfo==null)
             return null;
@@ -1640,7 +1672,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         td.getColumnCollationIds(),  // same ids as old conglomerate
                         null, // properties
                         (TransactionController.IS_TEMPORARY|
-                                TransactionController.IS_KEPT));
+                                TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
         long cid=td.getHeapConglomerateId();
 

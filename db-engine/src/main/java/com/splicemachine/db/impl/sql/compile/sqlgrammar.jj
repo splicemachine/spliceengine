@@ -74,6 +74,7 @@ import com.splicemachine.db.impl.sql.compile.FromSubquery;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.HasNodeVisitor;
+import com.splicemachine.db.impl.sql.compile.IndexExpression;
 import com.splicemachine.db.impl.sql.compile.JavaToSQLValueNode;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.MethodCallNode;
@@ -1202,7 +1203,9 @@ public class SQLParser
             tokKind == NOW ||
             tokKind == CURRENT && (isDATETIME(getToken(2).kind)) ||
             tokKind == CURRENT && getToken(2).kind == SERVER ||
-            tokKind == CURRENT_SERVER)
+            tokKind == CURRENT_SERVER ||
+            tokKind == CURRENT && getToken(2).kind == DATABASE ||
+            tokKind == CURRENT_DATABASE)
         {
             return false;
         }
@@ -1451,12 +1454,13 @@ public class SQLParser
           case CURRENT_TIME:
           case CURRENT_TIMESTAMP:
           case CURRENT_SERVER:
+          case CURRENT_DATABASE:
           case NOW:
               retval = true;
             break;
 
           case CURRENT:
-            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER)
+            if (isDATETIME(getToken(2).kind) || getToken(2).kind == SERVER || getToken(2).kind == DATABASE)
                 retval = true;
             break;
 
@@ -2098,6 +2102,25 @@ public class SQLParser
                             getContextManager());
     }
 
+    /**
+     * Splits a given string based on a delimiter and pick out the desired field from the string, start from the left of the string:
+     *      - the string
+     *      - the delimiter
+     *      - the field number
+     * @exception StandardException  Thrown on error
+     */
+    ValueNode getSplitPartNode(ValueNode stringValue, ValueNode delimiter, ValueNode fieldNumber ) throws StandardException
+    {
+        return (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.SPLIT_PART_OPERATOR_NODE,
+                            stringValue,
+                            delimiter,
+                            fieldNumber,
+                            ReuseFactory.getInteger(TernaryOperatorNode.SPLIT_PART),
+                            null,
+                            getContextManager());
+    }
+
     ValueNode getRightOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
     {
         return (ValueNode) nodeFactory.getNode(
@@ -2331,6 +2354,7 @@ public class SQLParser
      * For temporary table validation and creation.
      */
     private StatementNode verifySyntaxAndCreate(Object[] declareTableClauses,
+                                                Boolean isGlobal,
                                                 TableName tableName,
                                                 TableElementList tableElementList,
                                                 Integer createBehavior) throws StandardException {
@@ -2810,6 +2834,7 @@ TOKEN [IGNORE_CASE] :
 |    <CROSS: "cross">
 |    <CURRENT: "current">
 |    <CURRENT_DATE: "current_date">
+|    <CURRENT_DATABASE: "current_database">
 |    <CURRENT_SERVER: "current_server">
 |    <CURRENT_TIME: "current_time">
 |    <CURRENT_TIMESTAMP: "current_timestamp">
@@ -2893,6 +2918,7 @@ TOKEN [IGNORE_CASE] :
 |    <NATURAL: "natural">
 |    <NCHAR: "nchar">
 |    <NEXT: "next">
+|    <NEXTVAL: "nextval">
 |    <NO: "no">
 |    <NOLOGGING: "nologging">
 |    <NOT: "not">
@@ -3036,6 +3062,7 @@ TOKEN [IGNORE_CASE] :
 |   <EXTRACT: "extract">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
+|    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
 |   <GROUPING: "grouping">
 |   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
@@ -3276,6 +3303,7 @@ TOKEN [IGNORE_CASE] :
 |    <SHARE: "share">
 |    <SQLID: "sqlid">
 |    <SPECIFIC: "specific">
+|    <SPLIT_PART: "split_part">
 |   <SQRT: "sqrt">
 |       <STABILITY: "stability">
 |    <STATISTICS: "statistics">
@@ -4855,7 +4883,7 @@ declareTemporaryTableDeclaration() throws StandardException :
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, true, tableName, tableElementList,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
@@ -4877,17 +4905,18 @@ createTemporaryTableDeclaration() throws StandardException :
     TableName            tableName;
     TableElementList tableElementList;
     Object[] declareTableClauses = new Object[3];
+    Token localTok = null;
     Token ifTok = null;
     Token ifTok2 = null;
 }
 {
-    ( <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
+    ( localTok = <LOCAL>  | <GLOBAL> ) <TEMPORARY> <TABLE> [ ifTok = <IF> <NOT> <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) [ ifTok2 = <IF> <NOT> <EXISTS> ]
         tableElementList = tableElementList()
         ( declareTableClause(declareTableClauses) ) *
     {
         boolean ifNotExists = ifTok != null || ifTok2 != null;
 
-        return verifySyntaxAndCreate(declareTableClauses, tableName, tableElementList,
+        return verifySyntaxAndCreate(declareTableClauses, (localTok == null), tableName, tableElementList,
                                      (ifNotExists ? new Integer(StatementType.CREATE_IF_NOT_EXISTS) :
                                                     new Integer(StatementType.CREATE_DEFAULT)));
     }
@@ -7504,6 +7533,8 @@ escapedValueFunction() throws StandardException :
     ValueNode   str2;
     ValueNode    startPosition;
     ValueNode    length = null;
+    ValueNode  delimiter;
+    ValueNode  fieldNumber;
 }
 {
     value = miscBuiltinsCore( true /* is JDBC escape */)
@@ -7577,6 +7608,12 @@ escapedValueFunction() throws StandardException :
         return value;
     }
 
+|
+    /* Escaped function split_part() */
+    <SPLIT_PART> <LEFT_PAREN> value = additiveExpression(null, 0) <COMMA> delimiter = additiveExpression(null, 0) <COMMA> fieldNumber = additiveExpression(null, 0) <RIGHT_PAREN>
+    {
+        return getSplitPartNode(value, delimiter, fieldNumber);
+    }
 
 }
 
@@ -7919,6 +7956,8 @@ characterValueFunction() throws StandardException :
     Token        lowerTok = null;
     ValueNode    startPosition;
     ValueNode    length = null;
+    ValueNode  delimiter;
+    ValueNode  fieldNumber;
 }
 {
     <SUBSTR> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> startPosition = additiveExpression(null,0) [ <COMMA> length = additiveExpression(null,0) ] <RIGHT_PAREN>
@@ -8027,6 +8066,11 @@ characterValueFunction() throws StandardException :
                             ReuseFactory.getInteger(TernaryOperatorNode.LOCATE),
                             null,
                             getContextManager());
+    }
+|
+    <SPLIT_PART> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> delimiter = additiveExpression(null,0) <COMMA> fieldNumber = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return getSplitPartNode( value, delimiter, fieldNumber );
     }
 }
 
@@ -8437,7 +8481,9 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLQUERY ||
                 getToken(1).kind == GROUPING ||
                 getToken(1).kind == TO_INSTANT ||
-                getToken(1).kind == TO_HBASE_ESCAPED ) &&
+                getToken(1).kind == TO_HBASE_ESCAPED ||
+                getToken(1).kind == SPLIT_PART ||
+                getToken(1).kind == GET_NEAREST_TRANSACTION ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -8596,6 +8642,11 @@ miscBuiltinsCore( boolean isJDBCEscape) throws StandardException :
                                     C_NodeTypes.TO_HBASE_ESCAPED_NODE,
                                     value,
                                     getContextManager());
+    }
+|
+    value = getNearestTransaction()
+    {
+        return value;
     }
 }
 
@@ -9440,7 +9491,6 @@ newInvocation() throws StandardException :
                                        C_NodeTypes.NEW_INVOCATION_NODE,
                                        javaClassName,
                                        parameterList,
-                                       lastTokenDelimitedIdentifier,
                                        getContextManager());
 
         /*
@@ -9508,7 +9558,6 @@ vtiTableConstruct() throws StandardException :
             vtiTableName,  // TableName
             null,          // TableDescriptor
             parameterList,
-            lastTokenDelimitedIdentifier,
             getContextManager());
 
         if ( newNode.isBuiltinVTI() ) { invocationNode = newNode; }
@@ -11321,29 +11370,40 @@ columnNameItem(ResultColumnList columnList) throws StandardException :
  * <A NAME="indexColumnList">indexColumnList</A>
  */
 void
-indexColumnList(Vector columnList) throws StandardException :
-{}
+indexColumnList(Vector columnList, Token beginToken) throws StandardException :
 {
-    indexColumnItem(columnList) ( <COMMA> indexColumnItem(columnList) ) *
+    Token commaToken = null;
+}
+{
+    indexColumnItem(columnList, beginToken) ( commaToken = <COMMA> indexColumnItem(columnList, commaToken) ) *
 }
 
 /*
  * <A NAME="indexColumnItem">indexColumnItem</A>
  */
 void
-indexColumnItem(Vector columnList) throws StandardException :
+indexColumnItem(Vector columnList, Token beginToken) throws StandardException :
 {
-    String        columnName;
+    ValueNode expr;
+    Token ascToken = null;
+    Token descToken = null;
+    Token endToken = null;
 }
 {
-    /* identifier never ends with a space; appending a space meaning desc */
-    columnName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) [<ASC> | <DESC> {columnName = columnName + ' ';}]
+    expr = valueExpression() [ascToken = <ASC> | descToken = <DESC>]
     {
-        /*
-        ** Store the column names for the index columns in the
-        ** index column list.
-        */
-        columnList.addElement(columnName);
+        endToken = getToken(0);
+        int endOffset = endToken.endOffset;
+        if (ascToken != null || descToken != null) {
+            endOffset = endToken.beginOffset - 1;
+        }
+
+        columnList.addElement(
+            new IndexExpression(
+                StringUtil.slice(statementSQLText, beginToken.endOffset + 1, endOffset, false),
+                expr,
+                (descToken == null)  // default is ASC
+            ));
     }
 }
 
@@ -11665,17 +11725,34 @@ currentServerFunction() throws StandardException :
 {
 }
 {
-    LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == SERVER)}) <CURRENT> <SERVER>
+    (
+        LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == SERVER)}) <CURRENT> <SERVER>
+    |
+        <CURRENT_SERVER>
+    |
+        LOOKAHEAD({(getToken(1).kind == CURRENT && getToken(2).kind == DATABASE)}) <CURRENT> <DATABASE>
+    |
+        <CURRENT_DATABASE>
+    )
     {
         return (ValueNode) nodeFactory.getNode(
                                 C_NodeTypes.CURRENT_SERVER_NODE,
                                 getContextManager());
     }
-    | <CURRENT_SERVER>
+}
+
+ValueNode
+getNearestTransaction() throws StandardException :
+{
+    ValueNode value;
+}
+{
+    <GET_NEAREST_TRANSACTION> <LEFT_PAREN> value = primaryExpression() <RIGHT_PAREN>
     {
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.CURRENT_SERVER_NODE,
-                                getContextManager());
+          return (ValueNode) nodeFactory.getNode(
+                                  C_NodeTypes.GET_NEAREST_TRANSACTION,
+                                  value,
+                                  getContextManager());
     }
 }
 
@@ -12135,7 +12212,7 @@ nextValueExpression() throws StandardException :
     TableName sequenceName;
 }
 {
-       <NEXT> <VALUE> <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+       (<NEXT> <VALUE> | <NEXTVAL>) <FOR> sequenceName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
        {
         checkVersion(DataDictionary.DD_VERSION_DERBY_10_6, "NEXT VALUE");
         nextValue = (ValueNode) nodeFactory.getNode(
@@ -13096,6 +13173,7 @@ indexDefinition() throws StandardException :
     Boolean     preSplit = Boolean.FALSE;
     Vector        indexColumnList = new Vector();
     Boolean     isLogicalKey = Boolean.TRUE;
+    Token       beginToken = null;
 }
 {
     /*
@@ -13104,7 +13182,7 @@ indexDefinition() throws StandardException :
     */
     [ unique = unique() ] <INDEX>
         indexName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH) <ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-                <LEFT_PAREN> indexColumnList(indexColumnList) <RIGHT_PAREN>
+                beginToken = <LEFT_PAREN> indexColumnList(indexColumnList, beginToken) <RIGHT_PAREN>
         [ properties = propertyList(false) <CHECK_PROPERTIES>]
         [ <EXCLUDE>
             [ <NULL> <KEYS> { excludeNulls = true;} ]
@@ -16198,19 +16276,34 @@ dropRoleStatement() throws StandardException :
     }
 }
 
+Boolean
+restrictOrCascade() :
+{}
+{
+    <RESTRICT>
+    {
+        return Boolean.TRUE;
+    }
+|
+    <CASCADE>
+    {
+        return Boolean.FALSE;
+    }
+}
 
 StatementNode
 dropSchemaStatement() throws StandardException :
 {
     String schemaName;
+    Boolean option;
 }
 {
-    <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) <RESTRICT>
+    <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) option = restrictOrCascade()
     {
         StatementNode stmt =  (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.DROP_SCHEMA_NODE,
                             schemaName,
-                            new Integer(StatementType.DROP_RESTRICT),
+                            new Integer(option ? StatementType.DROP_RESTRICT : StatementType.DROP_CASCADE),
                             getContextManager());
 
         return stmt;
@@ -17847,6 +17940,7 @@ reservedKeyword() :
 |    tok = <NCHAR>
 |    tok = <NVARCHAR>
 |    tok = <NEXT>
+|    tok = <NEXTVAL>
 |    tok = <NO>
 |    tok = <NOLOGGING>
 |   tok = <NONE>
@@ -18045,6 +18139,7 @@ nonReservedKeyword()  :
     |    tok = <FORTRAN>
     |    tok = <FRACTION>
     |    tok = <GENERATED>
+    |    tok = <GET_NEAREST_TRANSACTION>
     |    tok = <GREATEST>
     |    tok = <GROUPING>
     |    tok = <HFILE>
@@ -18174,6 +18269,7 @@ nonReservedKeyword()  :
     |    tok = <SIGNAL>
     |   tok = <SPECIFIC>
     |   tok = <SPLITKEYS>
+    |    tok = <SPLIT_PART>
     |    tok = <SQLID>
     |    tok = <SQL_TSI_FRAC_SECOND>
     |    tok = <SQL_TSI_SECOND>

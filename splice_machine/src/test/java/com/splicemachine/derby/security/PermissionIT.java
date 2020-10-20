@@ -60,8 +60,6 @@ public class PermissionIT {
 
     @BeforeClass
     public static void setUpClass() throws Exception {
-        String remoteURLTemplate = "jdbc:splice://localhost:1528/splicedb";
-
         adminConn = spliceClassWatcherAdmin.createConnection();
         adminConn.execute( format("insert into %s.%s values (1,1,1,1)", SCHEMA1, TABLE ) );
 
@@ -72,9 +70,9 @@ public class PermissionIT {
         adminConn.execute(format("grant %s to %s", ROLE1, USER1));
 
         // create user connections
-        user1Conn = spliceClassWatcherAdmin.createConnection(USER1, PASSWORD1);
+        user1Conn = spliceClassWatcherAdmin.connectionBuilder().user(USER1).password(PASSWORD1).build();
 
-        user1Conn2 = spliceClassWatcherAdmin.createConnection(remoteURLTemplate, USER1, PASSWORD1);
+        user1Conn2 = spliceClassWatcherAdmin.connectionBuilder().port(1528).user(USER1).password(PASSWORD1).build();
 
     }
 

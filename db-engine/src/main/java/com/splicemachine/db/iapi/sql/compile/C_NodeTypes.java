@@ -62,7 +62,7 @@ public interface C_NodeTypes
     int NOP_STATEMENT_NODE = 19;
     int DB2_LENGTH_OPERATOR_NODE = 20;
     int SET_TRANSACTION_ISOLATION_NODE = 21;
-    // 22 is available
+    int GET_NEAREST_TRANSACTION = 22;
     int CHAR_LENGTH_OPERATOR_NODE = 23;
     int IS_NOT_NULL_NODE = 24;
     int IS_NULL_NODE = 25;
@@ -290,8 +290,10 @@ public interface C_NodeTypes
     int TO_INSTANT_NODE = 278;
     int TO_HBASE_ESCAPED_NODE = 279;
 
+    int SPLIT_PART_OPERATOR_NODE = 280;
+
     // Final value in set, keep up to date!
-    int FINAL_VALUE = TO_HBASE_ESCAPED_NODE;
+    int FINAL_VALUE = SPLIT_PART_OPERATOR_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.tester;
 
+import com.splicemachine.db.client.am.Types;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SlowTest;
 import org.junit.*;
@@ -23,6 +24,8 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.Statement;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -1264,4 +1267,13 @@ public class DataTypeCorrectnessIT extends SpliceUnitTest {
         runAndTestQueryRI3(query, lf, "retval");
     }
 
+    @Test
+    public void testGetColumnsMetadataTpe() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery(
+                String.format("call SYSIBM.SQLCOLUMNS(null, '%s', '%s', null, null)", CLASS_NAME, TABLE_1))) {
+            ResultSetMetaData metaData = rs.getMetaData();
+            int t = metaData.getColumnType(16);
+            Assert.assertEquals(Types.INTEGER, t);
+        }
+    }
 }

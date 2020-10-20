@@ -14,7 +14,7 @@
 
 package com.splicemachine.olap;
 
-import com.google.common.net.HostAndPort;
+import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.concurrent.SystemClock;

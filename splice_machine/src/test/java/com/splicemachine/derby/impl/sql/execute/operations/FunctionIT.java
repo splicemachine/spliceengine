@@ -191,7 +191,7 @@ public class FunctionIT extends SpliceUnitTest {
 
     @Test
     public void testCallToSystemFunctionFromUserWithoutDefaultSchema() throws Exception {
-        TestConnection user1Conn = spliceClassWatcher.createConnection(USER1, PASSWORD1);
+        TestConnection user1Conn = spliceClassWatcher.connectionBuilder().user(USER1).password(PASSWORD1).build();
 
         PreparedStatement ps = user1Conn.prepareStatement("VALUES rand(10)");
         ResultSet rs = ps.executeQuery();
@@ -256,6 +256,8 @@ public class FunctionIT extends SpliceUnitTest {
         String[] sqlTexts = {
                 "values current server", "values current_server",
                 "select current server", "select current_server",
+                "values current database", "values current_database",
+                "select current database", "select current_database",
                 "select (select current_server)"};
         String expected = "1    |\n" +
                 "----------\n" +

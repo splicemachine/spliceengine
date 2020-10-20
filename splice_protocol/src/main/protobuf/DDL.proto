@@ -199,7 +199,7 @@ message SetDatabaseProperty {
 message TentativeFK {
         optional int64 baseConglomerate = 1;
         optional int64 conglomerate = 2;
-        /* Info about the constraint that is ultimately used in constraint violation error messages */
+        /* Info about the constraint */
         optional FKConstraintInfo fkConstraintInfo = 3;
         /* formatIds for the backing index of the FK we are creating */
         repeated int32 backingIndexFormatIds = 4;
@@ -272,6 +272,10 @@ message Index {
         optional bool excludeNulls = 6; // Exclude Values where the first column is null
         optional bool excludeDefaults = 7; // Exclude Values where the first column is the default value
         optional bytes defaultValues = 8; // Default values for the index to validate for writing...
+        optional int32 numExprs = 9; // Number of index expressions. 0 for column-based indexes
+        repeated string generatedClassNames = 10; // Names of the generated classes of index expressions
+        repeated bytes bytecodeExprs = 11; // bytecode of the generated classes of index expressions
+        repeated int32 indexColumnFormatIds = 12;  // result types of index expressions
 }
 
 message Table {
@@ -286,6 +290,7 @@ message Table {
 message TentativeIndex {
     required Index index = 1;
     required Table table = 2;
+    required int64 txnId = 3;
 }
 
 message FKConstraintInfo {
@@ -294,6 +299,19 @@ message FKConstraintInfo {
     optional string columnNames = 3;
     optional string parentTableVersion = 4;
     repeated int32 formatIds = 5;
+
+    /**
+      delete rule:
+        CASCADE    = 0
+        RESTRICT   = 1
+        NOACTION   = 2
+        SETNULL    = 3
+        SETDEFAULT = 4
+     */
+    optional int32 deleteRule = 6;
+    optional Table childTable = 7; // the table in which the foreign key is defined
+    repeated int32 columnIndices = 8; // 1-based
+    optional int64 parentTableConglomerate = 9; // needed for checking self-referencing FKs.
 }
 
 message NotifyJarLoader {

@@ -676,4 +676,8 @@ public final class ColumnDescriptor extends TupleDescriptor
 
     }
 
+    public UUID getUUID() {
+        return uuid;
+    }
+
 }

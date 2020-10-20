@@ -68,7 +68,6 @@ public class TableScanOperation extends ScanOperation{
     protected int[] baseColumnMap;
     protected static final String NAME=TableScanOperation.class.getSimpleName().replaceAll("Operation","");
     protected byte[] tableNameBytes;
-    protected long pastTx;
 
     /**
      *
@@ -178,7 +177,8 @@ public class TableScanOperation extends ScanOperation{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
-                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem);
+                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
+                pastTxFunctor);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;
@@ -189,34 +189,9 @@ public class TableScanOperation extends ScanOperation{
         this.tableNameBytes=Bytes.toBytes(this.tableName);
         this.indexColItem=indexColItem;
         this.indexName=indexName;
-        this.pastTx=-1;
         init();
-        if(pastTxFunctor != null) {
-            this.pastTx = mapToTxId((DataValueDescriptor)pastTxFunctor.invoke(activation));
-            if(pastTx == -1){
-                pastTx = SIConstants.OLDEST_TIME_TRAVEL_TX; // force going back to the oldest transaction instead of ignoring it.
-            }
-        } else {
-            this.pastTx = -1; // nothing is set, go ahead and use the latest transaction.
-        }
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"isTopResultSet=%s,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f",isTopResultSet,optimizerEstimatedCost,optimizerEstimatedRowCount);
-    }
-
-    private long mapToTxId(DataValueDescriptor dataValue) throws StandardException {
-        if(dataValue instanceof SQLTimestamp) {
-            Timestamp ts = ((SQLTimestamp)dataValue).getTimestamp(null);
-            SpliceLogUtils.trace(LOG,"time travel ts=%s", ts.toString());
-            try {
-                return SIDriver.driver().getTxnStore().getTxnAt(ts.getTime());
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
-        }else if(dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
-            return dataValue.getLong();
-        }else {
-            throw StandardException.newException(SQLState.NOT_IMPLEMENTED); // fix me, we should read SqlTime as well.
-        }
     }
 
     /**
@@ -235,7 +210,6 @@ public class TableScanOperation extends ScanOperation{
         tableDisplayName=in.readUTF();
         tableNameBytes=Bytes.toBytes(tableName);
         indexColItem=in.readInt();
-        pastTx=in.readLong();
         if(in.readBoolean())
             indexName=in.readUTF();
     }
@@ -253,7 +227,6 @@ public class TableScanOperation extends ScanOperation{
         out.writeUTF(tableName);
         out.writeUTF(tableDisplayName);
         out.writeInt(indexColItem);
-        out.writeLong(pastTx);
         out.writeBoolean(indexName!=null);
         if(indexName!=null)
             out.writeUTF(indexName);
@@ -376,35 +349,10 @@ public class TableScanOperation extends ScanOperation{
     }
 
     /**
-     * @param pastTx The ID of the past transaction.
-     * @return a view of a past transaction.
-     */
-    private TxnView getPastTransaction(long pastTx) throws StandardException {
-        TransactionController transactionExecute=activation.getLanguageConnectionContext().getTransactionExecute();
-        ContextManager cm = ContextService.getFactory().newContextManager();
-        TransactionController pastTC = transactionExecute.getAccessManager().getReadOnlyTransaction(cm, pastTx);
-        Transaction rawStoreXact=((TransactionManager)pastTC).getRawStoreXact();
-        return ((BaseSpliceTransaction)rawStoreXact).getActiveStateTxn();
-    }
-
-    /**
-     * @return either current transaction or a committed transaction in the past.
-     */
-    protected TxnView getTransaction() throws StandardException {
-        return (pastTx >= 0) ? getPastTransaction(pastTx) : super.getCurrentTransaction();
-    }
-
-    @Override
-    public TxnView getCurrentTransaction() throws StandardException{
-        return getTransaction();
-    }
-
-    /**
      * @return the Table Scan Builder for creating the actual data set from a scan.
-     * @throws StandardException
      */
     public DataSet<ExecRow> getTableScannerBuilder(DataSetProcessor dsp) throws StandardException{
-        TxnView txn = getTransaction();
+        TxnView txn = getCurrentTransaction();
         operationContext = dsp.createOperationContext(this);
 
         // we currently don't support external tables in Control, so this shouldn't happen

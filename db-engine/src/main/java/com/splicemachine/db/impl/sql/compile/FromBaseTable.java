@@ -271,6 +271,7 @@ public class FromBaseTable extends FromTable {
                     && (predList == null || !predList.canSupportIndexExcludedDefaults(tableNumber,currentConglomerateDescriptor, tableDescriptor))) {
                 return false;
             }
+            return currentConglomerateDescriptor.getIndexDescriptor().getExprBytecode().length <= 0;
         }
         return true;
     }
@@ -1395,7 +1396,6 @@ public class FromBaseTable extends FromTable {
         return this;
     }
 
-
     /**
      * Bind the table descriptor for this table.
      * <p/>
@@ -1505,12 +1505,18 @@ public class FromBaseTable extends FromTable {
 
         if(exposedTableName.getSchemaName()==null && correlationName==null)
             exposedTableName.bind(this.getDataDictionary());
+
+        TableName temporaryTableName = (TableName) getNodeFactory().getNode(
+                                           C_NodeTypes.TABLE_NAME,
+                                           exposedTableName.getSchemaName(),
+                                           getLanguageConnectionContext().mangleTableName(exposedTableName.getTableName()),
+                                           exposedTableName.getContextManager());
         /*
         ** If the column did not specify a name, or the specified name
         ** matches the table we're looking at, see whether the column
         ** is in this table.
         */
-        if(columnsTableName==null || columnsTableName.equals(exposedTableName)){
+        if(columnsTableName==null || columnsTableName.equals(exposedTableName) || columnsTableName.equals(temporaryTableName)){
             resultColumn=resultColumns.getResultColumn(columnReference.getColumnName());
             /* Did we find a match? */
             if(resultColumn!=null){
@@ -2206,7 +2212,8 @@ public class FromBaseTable extends FromTable {
         mb.push(costEstimate.getEstimatedCost());
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,15);
+        generatePastTxFunc(acb, mb);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,16);
 
     }
 
@@ -2286,8 +2293,9 @@ public class FromBaseTable extends FromTable {
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLocation());
         mb.push(partitionReferenceItem);
         generateDefaultRow((ActivationClassBuilder)acb, mb);
+        generatePastTxFunc(acb, mb);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,28);
+                ClassName.NoPutResultSet,29);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
@@ -2682,6 +2690,16 @@ public class FromBaseTable extends FromTable {
     public boolean referencesSessionSchema() throws StandardException{
         //If base table is a SESSION schema table, then return true.
         return isSessionSchema(tableDescriptor.getSchemaDescriptor());
+    }
+
+    /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return tableDescriptor.isTemporary();
     }
 
 

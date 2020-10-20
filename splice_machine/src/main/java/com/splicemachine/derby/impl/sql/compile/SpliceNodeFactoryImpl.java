@@ -185,6 +185,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.GET_CURRENT_CONNECTION_NODE:
                 return C_NodeNames.GET_CURRENT_CONNECTION_NODE_NAME;
 
+            case C_NodeTypes.GET_NEAREST_TRANSACTION:
+                return C_NodeNames.GET_NEAREST_TRANSACTION_NODE_NAME;
+
             case C_NodeTypes.NOP_STATEMENT_NODE:
                 return C_NodeNames.NOP_STATEMENT_NODE_NAME;
 
@@ -454,6 +457,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.TIMESTAMP_ADD_FN_NODE:
             case C_NodeTypes.TIMESTAMP_DIFF_FN_NODE:
             case C_NodeTypes.REPLACE_OPERATOR_NODE:
+            case C_NodeTypes.SPLIT_PART_OPERATOR_NODE:
                 return C_NodeNames.TERNARY_OPERATOR_NODE_NAME;
 
             case C_NodeTypes.SELECT_NODE:

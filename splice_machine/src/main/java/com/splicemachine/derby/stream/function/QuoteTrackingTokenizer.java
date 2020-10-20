@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.EngineDriver;
 import com.splicemachine.derby.stream.utils.BooleanList;
 import org.apache.log4j.Logger;
 import org.supercsv.comment.CommentMatcher;
@@ -66,6 +65,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
     private long scanThresold;
     private final boolean oneLineRecord;
     private int oneLineRecordLength = 0;
+    private boolean quotedEmptyIsNull;
 
     private static class LazyStringBuilder {
 
@@ -132,8 +132,8 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
      * @param preferences the CSV preferences
      * @throws NullPointerException if reader or preferences is null
      */
-    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final boolean oneLineRecord){
-        this(reader, preferences, oneLineRecord, -1, null);
+    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final boolean oneLineRecord, boolean quotedEmptyIsNull){
+        this(reader, preferences, oneLineRecord, quotedEmptyIsNull, -1, null);
     }
 
     /**
@@ -144,7 +144,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
      * @param valueSizeHints the maximum size of each column. this is used to optimize memory footprint of the reader.
      * @throws NullPointerException if reader or preferences is null
      */
-    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final boolean oneLineRecord,
+    public QuoteTrackingTokenizer(final Reader reader, final CsvPreference preferences, final boolean oneLineRecord, boolean quotedEmptyIsNull,
                                   final long scanThresold, final List<Integer> valueSizeHints) {
         super(reader, preferences);
         this.quoteChar = preferences.getQuoteChar();
@@ -156,6 +156,7 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
         this.valueSizeHints = valueSizeHints;
         this.scanThresold = scanThresold;
         this.oneLineRecord = oneLineRecord;
+        this.quotedEmptyIsNull = quotedEmptyIsNull;
     }
 
     @Override
@@ -407,7 +408,11 @@ public class QuoteTrackingTokenizer extends AbstractTokenizer {
             }
         }
         assert columns != null;
-        columns.add(currentColumn.length() > 0 ? currentColumn.toString() : null); // "" -> null
+        if (currentColumn.length() == 0 && (quotedEmptyIsNull || !wasQuoted)) {
+            columns.add(null);
+        } else {
+            columns.add(currentColumn.toString());
+        }
         if (quotedColumns != null) {
             quotedColumns.add(wasQuoted);
         }
