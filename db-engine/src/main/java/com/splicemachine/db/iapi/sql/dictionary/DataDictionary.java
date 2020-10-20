@@ -646,21 +646,6 @@ public interface DataDictionary{
     ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException;
 
     /**
-     * get the list of objects existing in the specified schema
-     * @param sd
-     * @return
-     */
-    ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException;
-
-    ArrayList<AliasDescriptor> getAliasesInSchema(String schemaId) throws StandardException;
-
-    ArrayList<SequenceDescriptor> getSequencesInSchema(String schemaId) throws StandardException;
-
-    ArrayList<FileInfoDescriptor> getFilesInSchema(String schemaId) throws StandardException;
-
-    ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException;
-
-    /**
      * Indicate whether there is anything in the
      * particular database.
      * Checks for schemas, users, roles in the the database
