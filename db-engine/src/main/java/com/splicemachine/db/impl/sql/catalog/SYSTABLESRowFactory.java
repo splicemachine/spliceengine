@@ -533,7 +533,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
                 compressionDVD != null ? compressionDVD.getString() : null,
                 isPinnedDVD.getBoolean(),
                 purgeDeletedRowsDVD.getBoolean(),
-                minRetentionPeriodDVD != null ? minRetentionPeriodDVD.getLong() : null
+                (minRetentionPeriodDVD != null && !minRetentionPeriodDVD.isNull()) ? minRetentionPeriodDVD.getLong() : null
         );
         tabDesc.setUUID(tableUUID);
 
