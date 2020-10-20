@@ -74,7 +74,7 @@ public class RefDescriptorSerializer implements DescriptorSerializer {
 
 	@Override
 	public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
-                byte [] bytes = Encoding.decodeBytesUnsortd(data,offset,length);
+                byte [] bytes = Encoding.decodeBytesUnsorted(data,offset,length);
                 if (dvd.getObject() != null)
 		    ((RowLocation)dvd.getObject()).setValue(bytes);
                 else

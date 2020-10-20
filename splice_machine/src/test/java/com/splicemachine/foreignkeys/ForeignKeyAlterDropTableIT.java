@@ -35,9 +35,9 @@ import static org.junit.Assert.fail;
  *
  * Also contains drop table tests.
  */
-public class ForeignKey_AlterDropTable_IT {
+public class ForeignKeyAlterDropTableIT {
 
-    private static final String SCHEMA = ForeignKey_AlterDropTable_IT.class.getSimpleName();
+    private static final String SCHEMA = ForeignKeyAlterDropTableIT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -98,7 +98,7 @@ public class ForeignKey_AlterDropTable_IT {
             // when -- we add the foreign key after the write contexts are initialized
             String alterSql = "alter table "+SCHEMA+".C add constraint FK_1 foreign key (a) references "+SCHEMA+".P(a)";
             String expectedError = "Foreign key constraint 'FK_1' cannot be added to or enabled on table " +
-                    "\"FOREIGNKEY_ALTERDROPTABLE_IT\".\"C\" because one or more foreign keys do not have matching referenced keys.";
+                    "\"FOREIGNKEYALTERDROPTABLEIT\".\"C\" because one or more foreign keys do not have matching referenced keys.";
             assertQueryFail(alterSql,expectedError);
 
             // then -- the foreign key constraint is NOT enforced
@@ -110,7 +110,7 @@ public class ForeignKey_AlterDropTable_IT {
     }
 
     @Test
-    public void alterTable_removesFkConstraint() throws Exception {
+    public void alterTableRemovesFkConstraint() throws Exception {
         try(Statement s = conn.createStatement()){
             // given -- C -> P with values in both
             s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
@@ -139,7 +139,7 @@ public class ForeignKey_AlterDropTable_IT {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
-    public void dropTable_failsIfTableWithDependentFKExists() throws Exception {
+    public void dropTableFailsIfTableWithDependentFKExists() throws Exception {
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
             s.executeUpdate("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
@@ -153,7 +153,7 @@ public class ForeignKey_AlterDropTable_IT {
     }
 
     @Test
-    public void dropTable_removesFkConstraint() throws Exception {
+    public void dropTableRemovesFkConstraint() throws Exception {
         try(Statement s = conn.createStatement()){
             // given -- C -> P with values in both
             s.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
@@ -173,22 +173,18 @@ public class ForeignKey_AlterDropTable_IT {
     }
 
     @Test
-    public void onDeleteCascadeThrowsError() throws Exception{
-        //Regression test for DB-3985. Make sure that ON DELETE CASCADE create table statements explode. Remove this when DB-2224 is implemented
+    public void onDeleteCascadeDoesNotThrowError() throws Exception{
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table P (a int primary key, b int)");
-
-            assertQueryFail("create table C (a int references P(a) ON DELETE CASCADE)","Feature not implemented: ON DELETE CASCADE.");
+            s.executeUpdate("create table C (a int references P(a) ON DELETE CASCADE)");
         }
     }
 
     @Test
-    public void onDeleteSetNullThrowsError() throws Exception{
-        //Regression test for DB-3985. Make sure that ON DELETE CASCADE create table statements explode. Remove this when DB-2224 is implemented
+    public void onDeleteSetNullDoesNotThrowError() throws Exception{
         try(Statement s = conn.createStatement()){
             s.executeUpdate("create table P (a int primary key, b int)");
-
-            assertQueryFail("create table C (a int references P(a) ON DELETE SET NULL)","Feature not implemented: ON DELETE SET NULL.");
+            s.executeUpdate("create table C (a int references P(a) ON DELETE SET NULL)");
         }
     }
 

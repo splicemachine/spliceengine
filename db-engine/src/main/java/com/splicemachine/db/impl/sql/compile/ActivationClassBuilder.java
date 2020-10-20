@@ -86,6 +86,7 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
     private MethodBuilder closeActivationMethod;
     private DataSetProcessorType pushedType;
 
+
     ///////////////////////////////////////////////////////////////////////
     //
     // CONSTRUCTOR
@@ -112,7 +113,6 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         super( superClass, (String) null, cc );
         executeMethod = beginExecuteMethod();
         materializationMethod = beginMaterializationMethod();
-        subqueryResultSetMethod = beginSubqueryResultSetMethod();
         pushedType = null;
     }
 
@@ -265,21 +265,6 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         mb.pushThis(); // instance
         mb.push("materialize");
         mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfClosed", "void", 1);
-
-        return mb;
-    }
-
-    private MethodBuilder beginSubqueryResultSetMethod() throws StandardException {
-        MethodBuilder mb = cb.newMethodBuilder(Modifier.PUBLIC,
-                "java.util.Vector", "getSubqueryResultSets");
-        mb.addThrownException(ClassName.StandardException);
-
-        mb.pushThis(); // instance
-        mb.push("getSubqueryResultSets");
-        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfClosed", "void", 1);
-
-        mb.pushNewStart("java.util.Vector");
-        mb.pushNewComplete(0);
         return mb;
     }
 
@@ -290,6 +275,7 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         mb.addThrownException(ClassName.StandardException);
         mb.pushThis();
         mb.callMethod(VMOpcode.INVOKESPECIAL, ClassName.BaseActivation, "reset", "void", 0);
+
 
         return mb;
     }
@@ -335,22 +321,9 @@ public class ActivationClassBuilder    extends    ExpressionClassBuilder {
         }
     }
 
-    void addSubqueryResultSet(MethodBuilder mb) {
-        subqueryResultSetMethod.dup();
-        subqueryResultSetMethod.pushThis();
-        subqueryResultSetMethod.callMethod(VMOpcode.INVOKEVIRTUAL, null, mb.getName(), ClassName.ResultSet, 0);
-        subqueryResultSetMethod.upCast("java.lang.Object");
-        subqueryResultSetMethod.callMethod(VMOpcode.INVOKEVIRTUAL, "java.util.Vector", "addElement", "void", 1);
-    }
-
     void finishMaterializationMethod() {
         materializationMethod.methodReturn();
         materializationMethod.complete();
-    }
-
-    void finishSubqueryResultSetMethod() {
-        subqueryResultSetMethod.methodReturn();
-        subqueryResultSetMethod.complete();
     }
     ///////////////////////////////////////////////////////////////////////
     //

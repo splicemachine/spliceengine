@@ -20,7 +20,11 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.splicemachine.access.api.NotServingPartitionException;
 import com.splicemachine.access.api.WrongPartitionException;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.callbuffer.CallBuffer;
+import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
+import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
+import com.splicemachine.si.api.txn.WriteConflict;
 import org.apache.log4j.Logger;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.client.WriteResult;
@@ -117,6 +121,12 @@ public abstract class RoutingWriteHandler implements WriteHandler {
             ctx.failed(mutation,WriteResult.notServingRegion());
         else if(t instanceof WrongPartitionException)
             ctx.failed(mutation,WriteResult.wrongRegion());
+        else if(t instanceof ForeignKeyViolation)
+            ctx.failed(mutation,new WriteResult(Code.FOREIGN_KEY_VIOLATION, ((ForeignKeyViolation)t).getContext()));
+        else if(t instanceof UniqueConstraintViolation)
+            ctx.failed(mutation,new WriteResult(Code.UNIQUE_VIOLATION, ((UniqueConstraintViolation)t).getContext()));
+        else if(t instanceof WriteConflict)
+            ctx.failed(mutation,new WriteResult(Code.WRITE_CONFLICT, t.getMessage()));
         else {
             LOG.error("Unexpected exception", t);
             ctx.failed(mutation, WriteResult.failed(t.getClass().getSimpleName() + ":" + t.getMessage()));
