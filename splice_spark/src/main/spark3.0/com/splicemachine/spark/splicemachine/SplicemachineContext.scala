@@ -618,25 +618,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dataFrame rows to delete
     * @param schemaTableName table to delete from
     */
-  def delete(dataFrame: DataFrame, schemaTableName: String): Unit = {
-    val jdbcOptions = new JdbcOptionsInWrite(Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
-    val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
-    if (keys.length == 0)
-      throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Deletes")
-    val columnList = SpliceJDBCUtil.listColumns(dataFrame.schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
-    val sqlText = "delete from " + schemaTableName + " where exists (select 1 from " +
-      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
-      "as SDVTI (" + schemaString + ") where "
-    val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
-      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
-    val combinedText = sqlText + whereClause + ")"
-    executeUpd(combinedText)
-  }
+  def delete(dataFrame: DataFrame, schemaTableName: String): Unit =
+    delete(dataFrame.rdd, dataFrame.schema, schemaTableName)
 
   /**
     * Delete records in a dataframe based on joining by primary keys from the data frame.  Be careful with column naming and case sensitivity.
@@ -646,18 +629,18 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName table to delete from
     */
   def delete(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    val tableSchemaStr = schemaString(schemaTableName, schema)
+    val modRdd = modifyRdd(rdd, tableSchemaStr)
+    SpliceRDDVTI.datasetThreadLocal.set(modRdd)
     val jdbcOptions = new JdbcOptionsInWrite(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Deletes")
-    val columnList = SpliceJDBCUtil.listColumns(schema.fieldNames)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "delete from " + schemaTableName + " where exists (select 1 from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
-      "as SDVTI (" + schemaString + ") where "
+      "as SDVTI (" + tableSchemaStr + ") where "
     val dialect = JdbcDialects.get(url)
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
@@ -672,28 +655,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param dataFrame rows for update
     * @param schemaTableName table to update
     */
-  def update(dataFrame: DataFrame, schemaTableName: String): Unit = {
-    val jdbcOptions = new JdbcOptionsInWrite(Map(
-      JDBCOptions.JDBC_URL -> url,
-      JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceDatasetVTI.datasetThreadLocal.set(dataFrame)
-    val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
-    if (keys.length == 0)
-      throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Updates")
-    val prunedFields = dataFrame.schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
-    val columnList = SpliceJDBCUtil.listColumns(prunedFields)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(dataFrame.schema, url)
-    val sqlText = "update " + schemaTableName + " " +
-      "set (" + columnList + ") = (" +
-      "select " + columnList + " from " +
-      "new com.splicemachine.derby.vti.SpliceDatasetVTI() " +
-      "as SDVTI (" + schemaString + ") where "
-    val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
-      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
-    val combinedText = sqlText + whereClause + ")"
-    executeUpd(combinedText)
-  }
+  def update(dataFrame: DataFrame, schemaTableName: String): Unit =
+    update(dataFrame.rdd, dataFrame.schema, schemaTableName)
 
   /**
     * Update data from a RDD for a specified schemaTableName (schema.table) and schema (StructType).  The keys are required for the update and any other
@@ -704,26 +667,75 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     * @param schemaTableName
     */
   def update(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Unit = {
+    val tableSchemaStr = schemaString(schemaTableName, schema)
+    val modRdd = modifyRdd(rdd, tableSchemaStr)
+    SpliceRDDVTI.datasetThreadLocal.set(modRdd)
     val jdbcOptions = new JdbcOptionsInWrite(Map(
       JDBCOptions.JDBC_URL -> url,
       JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
-    SpliceRDDVTI.datasetThreadLocal.set(rdd)
     val keys = SpliceJDBCUtil.retrievePrimaryKeys(jdbcOptions)
     if (keys.length == 0)
       throw new UnsupportedOperationException("Primary Key Required for the Table to Perform Updates")
     val prunedFields = schema.fieldNames.filter((p: String) => keys.indexOf(p) == -1)
     val columnList = SpliceJDBCUtil.listColumns(prunedFields)
-    val schemaString = SpliceJDBCUtil.schemaWithoutNullableString(schema, url)
     val sqlText = "update " + schemaTableName + " " +
       "set (" + columnList + ") = (" +
       "select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
-      "as SDVTI (" + schemaString + ") where "
+      "as SDVTI (" + tableSchemaStr + ") where "
     val dialect = JdbcDialects.get(url)
     val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
       " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
     executeUpd(combinedText)
+  }
+
+  private[this] def modifyRdd(rdd: RDD[Row], schemaStr: String): RDD[Row] =
+    if( schemaStr.contains("TIME,") || schemaStr.endsWith("TIME") ) {
+      var i = 0
+      var tmIdx = collection.mutable.Seq.empty[Int]
+      schemaStr.split(",").foreach(s => {
+        if( s.endsWith("TIME") ) { tmIdx = tmIdx :+ i }
+        i += 1
+      })
+      rdd.map(r => {
+        val cols = r.toSeq
+        tmIdx.foreach(i =>
+          if( cols(i).isInstanceOf[java.sql.Timestamp] ) {
+            cols.updated(i, java.sql.Time.valueOf( r.getTimestamp(i).toLocalDateTime.toLocalTime ))
+          }
+        )
+        Row.fromSeq(cols)
+      })
+    } else {
+      rdd
+    }
+
+  /** Schema string built from JDBC metadata. */
+  def schemaString(schemaTableName: String, schema: StructType = new StructType()): String = {
+    val info = SpliceJDBCUtil.retrieveColumnInfo(
+      new JdbcOptionsInWrite( Map(
+        JDBCOptions.JDBC_URL -> url,
+        JDBCOptions.JDBC_TABLE_NAME -> schemaTableName
+      ))
+    ).map(i => {
+      val colName = i(0)
+      val sqlType = i(1)
+      val size = sqlType match {
+        case "VARCHAR" => s"(${i(2)})"
+        case "DECIMAL" | "NUMERIC" => s"(${i(2)},${i(3)})"
+        case _ => ""
+      }
+      s"$colName $sqlType$size"
+    })
+
+    if( schema.isEmpty ) {
+      info.mkString(", ")
+    } else {
+      schema.map( field => {
+        info.find( col => col.toUpperCase.startsWith( s"${field.name.toUpperCase} " ) ).getOrElse("")
+      }).mkString(", ")
+    }
   }
 
   /**
