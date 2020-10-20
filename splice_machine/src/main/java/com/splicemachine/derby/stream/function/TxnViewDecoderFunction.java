@@ -97,7 +97,7 @@ public class TxnViewDecoderFunction<Op extends SpliceOperation, T> extends Splic
             @Override
             public ByteSlice next(){
                 ByteSlice dSlice=destinationTables.next();
-                byte[] data= Encoding.decodeBytesUnsortd(dSlice.array(),dSlice.offset(),dSlice.length());
+                byte[] data= Encoding.decodeBytesUnsorted(dSlice.array(),dSlice.offset(),dSlice.length());
                 dSlice.set(data);
                 return dSlice;
             }

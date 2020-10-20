@@ -90,7 +90,6 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
 	CompilerContext myCompCtx;
 	MethodBuilder executeMethod; // to find it fast
     MethodBuilder materializationMethod;
-	MethodBuilder subqueryResultSetMethod;
 
 	protected LocalField cdtField;
 
@@ -208,9 +207,6 @@ public abstract	class ExpressionClassBuilder implements ExpressionClassBuilderIn
         return materializationMethod;
     }
 
-	MethodBuilder getSubqueryResultSetMethod() {
-		return subqueryResultSetMethod;
-	}
 	///////////////////////////////////////////////////////////////////////
 	//
 	// CONSTRUCTOR MANAGEMENT

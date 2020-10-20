@@ -75,7 +75,7 @@ public class EntryEncoder {
         return encoder;
     }
 
-    public byte[] encode() throws IOException {
+    public byte[] encode() {
         byte[] finalData = encoder.build();
         byte[] bitData = bitIndex.encode();
         byte[] entry = new byte[bitData.length+finalData.length+1];
