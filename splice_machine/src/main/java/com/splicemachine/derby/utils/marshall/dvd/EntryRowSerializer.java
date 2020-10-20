@@ -92,11 +92,7 @@ public class EntryRowSerializer extends RowSerializer{
 		}
 
 		private MultiFieldDecoder getFieldDecoder(EntryDecoder entryDecoder) throws StandardException {
-				try {
-						return entryDecoder.getEntryDecoder();
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
+			return entryDecoder.getEntryDecoder();
 		}
 
 }

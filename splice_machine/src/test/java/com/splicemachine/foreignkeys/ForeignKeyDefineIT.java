@@ -17,13 +17,11 @@ package com.splicemachine.foreignkeys;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.Constraint;
 import com.splicemachine.test_dao.ConstraintDAO;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 import splice.com.google.common.collect.Iterables;
 
@@ -40,9 +38,9 @@ import static org.junit.Assert.*;
 /**
  * Foreign Key tests for *defining* FK constraints.
  */
-public class ForeignKey_Define_IT{
+public class ForeignKeyDefineIT {
 
-    private static final String SCHEMA=ForeignKey_Define_IT.class.getSimpleName();
+    private static final String SCHEMA= ForeignKeyDefineIT.class.getSimpleName();
 
     @Rule
     public ExpectedException expectedException=ExpectedException.none();
@@ -123,7 +121,7 @@ public class ForeignKey_Define_IT{
     public void createTable_colLevel_referencingNonUniqueFails() throws Exception{
         try(Statement s=conn.createStatement()){
             expectedException.expect(SQLException.class);
-            expectedException.expectMessage("Constraint 'ID_FK' is invalid: there is no unique or primary key constraint on table '\"FOREIGNKEY_DEFINE_IT\".\"P\"' that matches the number and types of the columns in the foreign key.");
+            expectedException.expectMessage("Constraint 'ID_FK' is invalid: there is no unique or primary key constraint on table '\"FOREIGNKEYDEFINEIT\".\"P\"' that matches the number and types of the columns in the foreign key.");
 
             s.executeUpdate("create table P (id int, a int, b int, c int)");
             s.executeUpdate("create table C (a int, a_id int CONSTRAINT id_fk REFERENCES P(id))");
@@ -176,7 +174,7 @@ public class ForeignKey_Define_IT{
     public void createTable_tableLevel_referencingNonUniqueFails() throws Exception{
         try(Statement s=conn.createStatement()){
             expectedException.expect(SQLException.class);
-            expectedException.expectMessage("Constraint 'ID_FK' is invalid: there is no unique or primary key constraint on table '\"FOREIGNKEY_DEFINE_IT\".\"P\"' that matches the number and types of the columns in the foreign key.");
+            expectedException.expectMessage("Constraint 'ID_FK' is invalid: there is no unique or primary key constraint on table '\"FOREIGNKEYDEFINEIT\".\"P\"' that matches the number and types of the columns in the foreign key.");
 
             s.executeUpdate("create table P (id int, a int, b int, c int)");
             s.executeUpdate("create table C (a int, a_id int, CONSTRAINT id_fk FOREIGN KEY (a_id) REFERENCES P(id))");
@@ -202,8 +200,8 @@ public class ForeignKey_Define_IT{
             s.executeUpdate("create table P (id int, a int, b int, c int, primary key(id))");
             s.executeUpdate("create table C (a int, a_id int)");
             s.execute("set schema splice");
-            s.executeUpdate("ALTER TABLE ForeignKey_Define_IT.C ADD CONSTRAINT FK_1 FOREIGN KEY (a_id) REFERENCES ForeignKey_Define_IT.P(id)");
-            s.execute("set schema ForeignKey_Define_IT");
+            s.executeUpdate("ALTER TABLE FOREIGNKEYDEFINEIT.C ADD CONSTRAINT FK_1 FOREIGN KEY (a_id) REFERENCES FOREIGNKEYDEFINEIT.P(id)");
+            s.execute("set schema FOREIGNKEYDEFINEIT");
             verifyForeignKey(conn);
         }
     }
@@ -242,7 +240,7 @@ public class ForeignKey_Define_IT{
     public void alterTable_referencingNonUniqueFails() throws Exception{
         try(Statement s=conn.createStatement()){
             expectedException.expect(Exception.class);
-            expectedException.expectMessage("Constraint 'ID_FK' is invalid: there is no unique or primary key constraint on table '\"FOREIGNKEY_DEFINE_IT\".\"P\"' that matches the number and types of the columns in the foreign key.");
+            expectedException.expectMessage("Constraint 'ID_FK' is invalid: there is no unique or primary key constraint on table '\"FOREIGNKEYDEFINEIT\".\"P\"' that matches the number and types of the columns in the foreign key.");
 
             s.executeUpdate("create table P (id int, a int, b int, c int)");
             s.executeUpdate("create table C (a int, a_id int)");
@@ -316,7 +314,7 @@ public class ForeignKey_Define_IT{
             s.executeUpdate("ALTER TABLE C ADD CONSTRAINT FK_1 FOREIGN KEY (a_id) REFERENCES P(id)");
             fail("expected exception");
         }catch(Exception e){
-            assertEquals("Foreign key constraint 'FK_1' cannot be added to or enabled on table \"FOREIGNKEY_DEFINE_IT\".\"C\" because one or more foreign keys do not have matching referenced keys.",e.getMessage());
+            assertEquals("Foreign key constraint 'FK_1' cannot be added to or enabled on table \"FOREIGNKEYDEFINEIT\".\"C\" because one or more foreign keys do not have matching referenced keys.",e.getMessage());
         }
 
         // This should succeed, the FK should not be in place.

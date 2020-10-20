@@ -66,7 +66,7 @@ public class BareKeyHash{
         return new Decoder(keyColumns,keySortOrder,kryoPool,serializers);
     }
 
-    protected void pack(MultiFieldEncoder encoder,ExecRow currentRow) throws StandardException, IOException{
+    protected void pack(MultiFieldEncoder encoder,ExecRow currentRow) throws StandardException {
         encoder.reset();
         DataValueDescriptor[] dvds=currentRow.getRowArray();
         if(keySortOrder!=null){
@@ -164,7 +164,7 @@ public class BareKeyHash{
         }
 
         @Override
-        public byte[] encode() throws StandardException, IOException{
+        public byte[] encode() throws StandardException {
             if(encoder==null){
                 if(keyColumns==null)
                     encoder=MultiFieldEncoder.create(currentRow.nColumns());

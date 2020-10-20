@@ -407,26 +407,21 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
             if (template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
                 currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
             } else {
-                try {
-                    if (entryDecoder == null)
-                        entryDecoder = new EntryDecoder();
-                    entryDecoder.set(sampleKv.valueArray(),sampleKv.valueOffset(),sampleKv.valueLength());
+                if (entryDecoder == null)
+                    entryDecoder = new EntryDecoder();
+                entryDecoder.set(sampleKv.valueArray(), sampleKv.valueOffset(), sampleKv.valueLength());
 
-                    MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-                    byte[] bytes = decoder.decodeNextBytesUnsorted();
-                    if (reuseRowLocation) {
-                        slice.set(bytes);
-                    } else {
-                        slice = ByteSlice.wrap(bytes);
-                    }
-                    if(currentRowLocation==null || !reuseRowLocation)
-                        currentRowLocation = new HBaseRowLocation(slice);
-                    else
-                        currentRowLocation.setValue(slice);
+                MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                byte[] bytes = decoder.decodeNextBytesUnsorted();
+                if (reuseRowLocation) {
+                    slice.set(bytes);
+                } else {
+                    slice = ByteSlice.wrap(bytes);
                 }
-                catch (IOException e) {
-                    throw StandardException.newException(e.getMessage());
-                }
+                if (currentRowLocation == null || !reuseRowLocation)
+                    currentRowLocation = new HBaseRowLocation(slice);
+                else
+                    currentRowLocation.setValue(slice);
             }
         } else {
             if (reuseRowLocation) {
