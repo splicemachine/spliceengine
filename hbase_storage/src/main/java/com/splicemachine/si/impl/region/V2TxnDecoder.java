@@ -34,7 +34,6 @@ import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 import splice.com.google.common.collect.Iterators;
@@ -382,7 +381,7 @@ public class V2TxnDecoder implements TxnDecoder{
             @Override
             public ByteSlice next(){
                 ByteSlice dSlice=it.next();
-                byte[] data=Encoding.decodeBytesUnsortd(dSlice.array(),dSlice.offset(),dSlice.length());
+                byte[] data=Encoding.decodeBytesUnsorted(dSlice.array(),dSlice.offset(),dSlice.length());
                 dSlice.set(data);
                 return dSlice;
             }

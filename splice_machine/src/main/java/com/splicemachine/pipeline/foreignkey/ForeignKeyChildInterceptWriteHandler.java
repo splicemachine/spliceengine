@@ -64,9 +64,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
                                                 FKConstraintInfo fkConstraintInfo,
                                                 PipelineExceptionFactory exceptionFactory) {
         this.referencedConglomerateNumber = referencedConglomerateNumber;
-        this.violationProcessor = new ForeignKeyViolationProcessor(
-                new ForeignKeyViolationProcessor.ChildFkConstraintContextProvider(fkConstraintInfo),
-                exceptionFactory);
+        this.violationProcessor = new ForeignKeyViolationProcessor(exceptionFactory);
         this.formatIds = new int[fkConstraintInfo.getFormatIdsCount()];
         for (int i =0;i<fkConstraintInfo.getFormatIdsCount();i++)
             this.formatIds[i] = fkConstraintInfo.getFormatIds(i);
@@ -144,7 +142,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
                 i++;
             }
         } catch (Exception e) {
-            violationProcessor.failWrite(e, ctx);
+            violationProcessor.failWrite(e, ctx, null);
         }finally{
             if(table!=null)
                 table.close();

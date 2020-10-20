@@ -24,7 +24,7 @@ import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import com.google.common.net.HostAndPort;
+import splice.com.google.common.net.HostAndPort;
 import com.splicemachine.SqlExceptionFactory;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DatabaseVersion;

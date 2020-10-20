@@ -59,8 +59,7 @@ public class UpdatingWriteConfiguration extends ForwardingWriteConfiguration{
     }
 
     @Override
-    public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult)
-            throws Throwable{
+    public WriteResponse processGlobalResult(BulkWriteResult bulkWriteResult) throws Throwable {
         if(bulkWriteResult.getGlobalResult().refreshCache())
             rebuildable.rebuild();
         return super.processGlobalResult(bulkWriteResult);

@@ -20,14 +20,12 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -71,7 +69,6 @@ public class CallStatementOperation extends NoRowsOperation {
 			origClassName = in.readUTF();
 		if (in.readBoolean())
 			origMethodName = in.readUTF();
-		operationInformation = (OperationInformation)in.readObject();
 	}
 
 	@Override
@@ -97,7 +94,6 @@ public class CallStatementOperation extends NoRowsOperation {
 		out.writeBoolean(origMethodName != null);
 		if (origMethodName != null)
 			out.writeUTF(origMethodName);
-		out.writeObject(operationInformation);
 	}
 	@Override
 	public int[] getRootAccessedCols(long tableNumber) {

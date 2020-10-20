@@ -18,9 +18,7 @@ import splice.com.google.common.collect.Lists;
 import com.splicemachine.concurrent.Threads;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test.SerialTest;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 
 import java.sql.*;
 import java.util.List;
@@ -32,9 +30,9 @@ import static org.junit.Assert.*;
 /**
  * Foreign key tests for concurrent transactions deleting parent rows and inserting child rows.
  */
-public class ForeignKey_Concurrent_IT {
+public class ForeignKeyConcurrentIT {
 
-    private static final String SCHEMA = ForeignKey_Concurrent_IT.class.getSimpleName();
+    private static final String SCHEMA = ForeignKeyConcurrentIT.class.getSimpleName();
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);

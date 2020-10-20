@@ -15,6 +15,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -87,6 +89,22 @@ public class WindowOperation extends SpliceBaseOperation {
 
     public SpliceOperation getSource() {
         return this.source;
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        source = (SpliceOperation) in.readObject();
+        isInSortedOrder = in.readBoolean();
+        windowContext = (DerbyWindowContext)in.readObject();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeObject(source);
+        out.writeBoolean(isInSortedOrder);
+        out.writeObject(windowContext);
     }
 
     @Override

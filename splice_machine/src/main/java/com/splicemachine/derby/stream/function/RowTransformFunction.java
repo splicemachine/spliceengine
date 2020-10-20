@@ -34,7 +34,7 @@ import com.splicemachine.pipeline.RowTransformer;
 
 /**
  * Created by jyuan on 11/4/15.
- *
+ * todo: remove (as part of DB-10441).
  */
 public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFunction<Op,ExecRow,KVPair> {
 
@@ -52,15 +52,7 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
         if (!initialized) {
             initialize();
         }
-        ExecRow row = locatedRow;
-
-        KVPair kvPair = rowTransformer.transform(row);
-        if (kvPair.getRowKey().length == 0) {
-            // If this is a dummy row key, reuse the original row key
-            kvPair.setKey(locatedRow.getKey());
-        }
-
-        return kvPair;
+        return null;
     }
 
 
@@ -100,7 +92,7 @@ public class RowTransformFunction <Op extends SpliceOperation> extends SpliceFun
             }
 
             @Override
-            public byte[] encode() throws StandardException, IOException {
+            public byte[] encode() {
                 //return a dummy key
                 return new byte[0];
             }
