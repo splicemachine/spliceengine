@@ -97,6 +97,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         tableName = in.readUTF();
         if (in.readBoolean())
             indexName = in.readUTF();
+        tableVersion = in.readUTF();
     }
 
     @Override
@@ -106,6 +107,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         out.writeBoolean(indexName != null);
         if (indexName != null)
             out.writeUTF(indexName);
+        out.writeUTF(tableVersion);
     }
 
     @Override
