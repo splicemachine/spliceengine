@@ -31,6 +31,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -194,6 +196,19 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        inlistPosition = in.readInt();
+
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(inlistPosition);
     }
 
     @Override
