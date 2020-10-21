@@ -250,8 +250,8 @@ public abstract class InsertTableWriterBuilder implements Externalizable,InsertD
 
 
     @Override
-    public DataSetWriterBuilder loadReplaceMode(boolean load_replace_mode) {
-        this.loadReplaceMode = load_replace_mode;
+    public DataSetWriterBuilder loadReplaceMode(boolean loadReplaceMode) {
+        this.loadReplaceMode = loadReplaceMode;
         return this;
     }
 

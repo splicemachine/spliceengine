@@ -242,7 +242,9 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
 
 
     @Override
-    public DataSetWriterBuilder loadReplaceMode(boolean load_replace_mode) {
+    public DataSetWriterBuilder loadReplaceMode(boolean loadReplaceMode) {
+        if( loadReplaceMode )
+            throw new RuntimeException("Update can't be used with loadReplaceMode");
         return this;
     }
 

@@ -204,6 +204,11 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         }
     }
 
+    /**
+     * addWriteHandlerFactories
+     * @param foreignKeyChecks if set to false, we don't check referential integrity (foreign key checks)
+     *                         this is used e.g. with INSERT ... insertMode=LOAD_REPLACE or DELETE ... noTriggerRI=1
+     */
     private void addWriteHandlerFactories(int expectedWrites, PipelineWriteContext context,
                                           boolean foreignKeyChecks) throws IOException, InterruptedException {
         isInitialized(context.getTxn());
@@ -221,9 +226,10 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
 
             ddlFactories.addFactories(context,true,expectedWrites);
 
-            // FK - child intercept (of inserts/updates)
-            if( foreignKeyChecks )
+            if( foreignKeyChecks ) {
+                // FK - child intercept (of inserts/updates)
                 fkGroup.addFactories(context,false,expectedWrites);
+            }
         }
     }
 

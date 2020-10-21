@@ -828,7 +828,8 @@ public class HdfsImport {
                 rs.open();
                 results[0] = new EmbedResultSet40((EmbedConnection) conn, rs, false, null, true);
             } catch (SQLException | StandardException | IOException e) {
-                if( isLoadReplaceMode ) {
+                if( conn != null && isLoadReplaceMode ) {
+                    // rolling back the DELETE we've done
                     conn.rollback();
                 }
                 throw new SQLException(e);
