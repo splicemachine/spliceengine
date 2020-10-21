@@ -101,6 +101,7 @@
             splice_backup,
             splice_replication,
             splice_replication_monitor,
+            splice_upgrade,
             splice_auth,
             splice_colperms,
             splice_encryption,

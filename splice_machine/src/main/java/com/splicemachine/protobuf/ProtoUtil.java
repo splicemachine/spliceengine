@@ -595,6 +595,14 @@ public class ProtoUtil {
                 .setUpdateSystemProcedures(UpdateSystemProcedures.newBuilder())
                 .build();
     }
+
+    public static DDLChange createRollingUpgrade(long txnId, RollingUpgrade.OperationType op) {
+        return DDLChange.newBuilder().setTxnId(txnId).setRollingUpgrade(RollingUpgrade.newBuilder()
+                .setType(op)
+                .build())
+                .setDdlChangeType(DDLChangeType.ROLLING_UPGRADE)
+                .build();
+    }
 }
 
 
