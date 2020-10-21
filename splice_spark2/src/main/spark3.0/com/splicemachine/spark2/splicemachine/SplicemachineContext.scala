@@ -732,21 +732,31 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
           if( lastMsg.isEmpty ) {
             itrRow
           } else {
+            // Convert last message in Kafka to a ValueRow (lastVR)
             val lastVR = lastMsg.get.asInstanceOf[KafkaReadFunction.Message].vr
+            // Get the hash code (lastKHash) of lastVR based on the columns that are in lastVR (hashCols)
             val hashCols = if( lastVR.length > 0) { Range(0,lastVR.length-1).toArray } else { Array(0) }
             val lastKHash = lastVR.hashCode(hashCols)
+            // Define function (hash) for converting a spark row to a ValueRow and getting its hash code
             def hash: Row => Int = row => externalizable(row, schema, partition).hashCode(hashCols)
-            
+
+            // Get a pair of iterators (itr34) of rdd data to use for different purposes
             //val itr34 = itr12._2.duplicate
             val itr34 = itrRow.duplicate   //itr12.duplicate
             
+            // Use span to split itr34._1 into a pair of iterators (inKafka_NotInKafka).
+            // inKafka_NotInKafka._1 will contain all of the rows from the beginning of itrRow whose hash != lastKHash.
+            // inKafka_NotInKafka._2 will contain all of the rows from the one whose hash == lastKHash to the end of itrRow.
+            // So inKafka_NotInKafka._1 will contain rows already in Kafka, and inKafka_NotInKafka._2 will contain the 
+            //  last row in Kafka followed by rows that are not in Kafka.
             val inKafka_NotInKafka = itr34._1.span( hash(_) != lastKHash )
             if( inKafka_NotInKafka._2.hasNext ) {
               inKafka_NotInKafka._2.next  // matches the last item in Kafka, get past it
-              //trace(s"$id SMC.sendData Retry skip ${hash(r)} $lastKHash")
               msgCount = inKafka_NotInKafka._1.size + 1  // this message count was lost during previous task failure
               inKafka_NotInKafka._2
-            } else {  // itrRow starts after the last item added to Kafka
+            } else {
+              // In this case, itrRow didn't contain the last row of Kafka, so inKafka_NotInKafka._2 is empty.
+              // This happens when itrRow starts after the last item added to Kafka.
               itr34._2
             }
           }
