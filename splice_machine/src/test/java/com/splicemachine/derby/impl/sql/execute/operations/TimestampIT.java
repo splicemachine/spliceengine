@@ -72,10 +72,19 @@ public class TimestampIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void createDataSet() throws Exception {
-        methodWatcher.setAutoCommit(false);
         spliceClassWatcher.setAutoCommit(false);
         createSharedTables(spliceClassWatcher.getOrCreateConnection());
         spliceClassWatcher.closeAll();
+    }
+
+    @After
+    public void after() throws Exception {
+        // reset autocommit to true if we failed within a non-autocommit test
+        if(!methodWatcher.getOrCreateConnection().getAutoCommit()) {
+            methodWatcher.rollback();
+            methodWatcher.setAutoCommit(true);
+        }
+        methodWatcher.closeAll();
     }
 
     public static void createSharedTables(Connection conn) throws Exception {
@@ -731,7 +740,7 @@ public class TimestampIT extends SpliceUnitTest {
         TestUtils.FormattedResult.ResultFactory.toString(rs));  */
 
         methodWatcher.rollback();
-        methodWatcher.setAutoCommit(false);
+        methodWatcher.setAutoCommit(true);
 
         String match = extendedTimestamps ?
         "COL1          |COL2 |\n" +
