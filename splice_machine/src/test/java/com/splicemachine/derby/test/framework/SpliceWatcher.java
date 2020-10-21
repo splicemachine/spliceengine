@@ -34,7 +34,7 @@ import static splice.com.google.common.base.Strings.isNullOrEmpty;
  *
  * Not thread-safe, synchronize externally if using in a multi-threaded test case.
  */
-public class SpliceWatcher extends TestWatcher {
+public class SpliceWatcher extends TestWatcher implements AutoCloseable {
 
     private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
 
@@ -55,6 +55,11 @@ public class SpliceWatcher extends TestWatcher {
 
     public SpliceWatcher(String defaultSchema) {
         this.defaultSchema = defaultSchema == null ? null : defaultSchema.toUpperCase();
+    }
+
+    @Override
+    public void close() throws Exception {
+        closeAll();
     }
 
     public class ConnectionBuilder {
