@@ -170,6 +170,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         location = in.readBoolean()?in.readUTF():null;
         partitionRefItem = in.readInt();
         splits = in.readInt();
+        pastTx = in.readLong();
     }
 
     @Override
@@ -199,6 +200,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
             out.writeUTF(location);
         out.writeInt(partitionRefItem);
         out.writeInt(splits);
+        out.writeLong(pastTx);
     }
 
     @Override
