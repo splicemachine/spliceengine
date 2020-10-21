@@ -33,7 +33,7 @@ import static org.spark_project.guava.base.Strings.isNullOrEmpty;
  *
  * Not thread-safe, synchronize externally if using in a multi-threaded test case.
  */
-public class SpliceWatcher extends TestWatcher {
+public class SpliceWatcher extends TestWatcher implements AutoCloseable {
 
     private static final Logger LOG = Logger.getLogger(SpliceWatcher.class);
 
@@ -56,7 +56,10 @@ public class SpliceWatcher extends TestWatcher {
         this.defaultSchema = defaultSchema == null ? null : defaultSchema.toUpperCase();
     }
 
-
+    @Override
+    public void close() throws Exception {
+        closeAll();
+    }
 
     public void setConnection(Connection connection) throws SQLException{
         currentConnection = new TestConnection(connection);

@@ -14,9 +14,11 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
+import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.runner.Description;
 import org.spark_project.guava.base.Joiner;
@@ -44,13 +46,13 @@ public class SpliceUnitTest {
     /// set the following boolean to true to prevent deletion of temporary files (e.g. for debugging)
     static private final boolean debug_no_delete = false;
 
-	public String getSchemaName() {
-		Class<?> enclosingClass = getClass().getEnclosingClass();
-		if (enclosingClass != null)
-		    return enclosingClass.getSimpleName().toUpperCase();
-		else
-		    return getClass().getSimpleName().toUpperCase();
-	}
+    public String getSchemaName() {
+        Class<?> enclosingClass = getClass().getEnclosingClass();
+        if (enclosingClass != null)
+            return enclosingClass.getSimpleName().toUpperCase();
+        else
+            return getClass().getSimpleName().toUpperCase();
+    }
 
     /**
      * Load a table with given values
@@ -67,31 +69,31 @@ public class SpliceUnitTest {
     }
 
     public String getTableReference(String tableName) {
-		return getSchemaName() + "." + tableName;
-	}
+        return getSchemaName() + "." + tableName;
+    }
 
-	public String getPaddedTableReference(String tableName) {
-		return " " + getSchemaName() + "." + tableName.toUpperCase()+ " ";
-	}
+    public String getPaddedTableReference(String tableName) {
+        return " " + getSchemaName() + "." + tableName.toUpperCase()+ " ";
+    }
 
-	
-	public static int resultSetSize(ResultSet rs) throws Exception {
-		int i = 0;
-		while (rs.next()) {
-			i++;
-		}
-		return i;
-	}
+
+    public static int resultSetSize(ResultSet rs) throws Exception {
+        int i = 0;
+        while (rs.next()) {
+            i++;
+        }
+        return i;
+    }
 
     public static int columnWidth(ResultSet rs ) throws SQLException {
         return rs.getMetaData().getColumnCount();
     }
 
-	public static String format(String format, Object...args) {
-		return String.format(format, args);
-	}
-	public static String getBaseDirectory() {
-		String userDir = System.getProperty("user.dir");
+    public static String format(String format, Object...args) {
+        return String.format(format, args);
+    }
+    public static String getBaseDirectory() {
+        String userDir = System.getProperty("user.dir");
         /*
          * The ITs can run in multiple different locations based on the different architectures
          * that are available, but the actual test data files are located in the splice_machine directory; thus,
@@ -127,11 +129,11 @@ public class SpliceUnitTest {
             }
         }
         return nioPath.toString();
-	}
+    }
 
     public static String getResourceDirectory() {
-		return getBaseDirectory()+"/src/test/test-data/";
-	}
+        return getBaseDirectory()+"/src/test/test-data/";
+    }
 
     public static String getHbaseRootDirectory() {
         return getHBaseDirectory()+"/target/hbase";
@@ -177,8 +179,8 @@ public class SpliceUnitTest {
     }
     
     public static String getHiveWarehouseDirectory() {
-		return getHBaseDirectory()+"/user/hive/warehouse";
-	}
+        return getHBaseDirectory()+"/user/hive/warehouse";
+    }
 
     public static class MyWatcher extends SpliceTableWatcher {
 
@@ -1021,5 +1023,36 @@ public class SpliceUnitTest {
                     : TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             Assert.assertEquals(expected, val);
         }
+    }
+
+    public static void waitForStaleTransactions(SpliceWatcher methodWatcher, String name, int numSeconds) throws Exception
+    {
+        // wait for other transactions to finish
+        // if getOldestActiveTransaction is two times the same in a row, there's a stale transaction
+        // otherwise, we will get every time different ids since also the CALL SYSUTIL_... will open a mini-transaction
+        int oldest1 = getOldestActiveTransaction(methodWatcher);
+        for(int i=0; i < numSeconds; i++) {
+            int oldest2 = getOldestActiveTransaction(methodWatcher);
+            if( oldest1 != oldest2 )
+                return;
+            Thread.sleep(1000);
+            oldest1 = oldest2;
+        }
+        Assert.fail(name + " failed to close all transactions.");
+    }
+
+    public static int getOldestActiveTransaction(SpliceWatcher methodWatcher) throws SQLException {
+        try (ResultSet rs = methodWatcher.executeQuery("call SYSCS_UTIL.SYSCS_GET_OLDEST_ACTIVE_TRANSACTION()"))
+        {
+            Assert.assertEquals(true, rs.next());
+            return rs.getInt(1);
+        }
+    }
+
+    @AfterClass
+    public static void waitForStaleTransactions() throws Exception {
+        SpliceWatcher methodWatcher = new SpliceWatcher(null);
+        waitForStaleTransactions(methodWatcher, "Test", 5);
+        methodWatcher.closeAll();
     }
 }
