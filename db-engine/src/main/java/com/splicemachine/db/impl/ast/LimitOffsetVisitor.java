@@ -310,6 +310,16 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
     public void adjustCost(ResultSetNode rsn) throws StandardException {
         if (fetchFirst==-1 && offset ==-1) // No Limit Adjustment
             return;
+        // If result set number is not assigned, then we are not in post-opt.
+        // In this case, no need to adjust cost for nodes other than FromBaseTable
+        // because they have no impact on deciding DataSet processor type.
+        // Cost will be adjusted correctly in post-opt phase anyway.
+        if (!(rsn instanceof FromBaseTable) && rsn.getResultSetNumber() < 0) {
+            return;
+        }
+        if (rsn instanceof FromBaseTable && ((FromBaseTable)rsn).getTrulyTheBestAccessPath() == null) {
+            return;
+        }
         CostEstimate costEstimate = rsn.getFinalCostEstimate(false);
         long totalRowCount = costEstimate.getEstimatedRowCount();
         long currentOffset = offset==-1?0:offset;
@@ -337,9 +347,11 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
     public void adjustBaseTableCost(ResultSetNode rsn) throws StandardException {
         if (fetchFirst==-1 && offset ==-1) // No Limit Adjustment
             return;
+        if (rsn instanceof FromBaseTable && ((FromBaseTable)rsn).getTrulyTheBestAccessPath() == null) {
+            return;
+        }
         CostEstimate costEstimate = rsn.getFinalCostEstimate(false);
         long totalRowCount = costEstimate.getEstimatedRowCount();
-        long currentOffset = offset==-1?0:offset;
         long currentFetchFirst = fetchFirst==-1?totalRowCount:fetchFirst;
         scaleFactor = (double) currentFetchFirst/(double) totalRowCount;
         if (scaleFactor >= 1.0d) {
