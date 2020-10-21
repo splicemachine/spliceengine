@@ -20,6 +20,7 @@ import com.splicemachine.si.api.txn.TaskId;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.si.impl.txn.RolledBackTxn;
 
 import java.io.IOException;
 
@@ -33,14 +34,20 @@ import java.io.IOException;
  *         Date: 6/18/14
  */
 public class CompletedTxnCacheSupplier implements TxnSupplier{
+    private final IgnoreTxnSupplier ignoreTxnSupplier;
     private TxnView[] cache;
     private final TxnSupplier delegate;
     private Hash32 hashFunction;
 
     public CompletedTxnCacheSupplier(TxnSupplier delegate, int maxSize, int concurrencyLevel) {
+        this(delegate, maxSize, concurrencyLevel, null);
+    }
+
+    public CompletedTxnCacheSupplier(TxnSupplier delegate, int maxSize, int concurrencyLevel, IgnoreTxnSupplier ignoreTxnSupplier) {
         cache = new TxnView[Integer.highestOneBit(maxSize)];    // ensure power of 2
         this.delegate = delegate;
         hashFunction = HashFunctions.utilHash();
+        this.ignoreTxnSupplier = ignoreTxnSupplier;
     }
 
     private int idx(long val) {
@@ -87,6 +94,12 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
         if (transaction != null) {
             switch (transaction.getEffectiveState()) {
                 case COMMITTED:
+                    long globalCommitTs = transaction.getGlobalCommitTimestamp();
+                    if (globalCommitTs > 0 && ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(globalCommitTs)) {
+                        // If this transaction should be ignored, just mark it as ROLLEDBACK
+                        transaction = new RolledBackTxn(txnId);
+                    }
+                    // Intentional fall-through, cache Committed (or Ignored) transactions too
                 case ROLLEDBACK:
                     put(transaction.getTxnId(), transaction); // Cache for Future Use
                     break;
