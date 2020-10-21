@@ -94,7 +94,7 @@ public class CreateDatabaseConstantOperation extends DDLConstantAction {
          */
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         lcc.getDataDictionary().startWriting(lcc);
-        lcc.getDataDictionary().createNewDatabase(dbName);
+        lcc.getDataDictionary().createNewDatabase(dbName, null); // XXX(arnaud multidb) should we really allow no owner for a DB?
 
         if (!isDatabasePresent(activation)) {
             throw StandardException.newException(SQLState.CREATE_DATABASE_FAILED, dbName);

@@ -1398,7 +1398,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         LanguageConnectionContext lcc = defaultConn.getLanguageConnection();
         DataDictionary dd = lcc.getDataDictionary();
         if (dd.usesSqlAuthorization()) {
-            String databaseOwner = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+            String databaseOwner = lcc.getCurrentDatabase().getAuthorizationId();
             String currentUser = lcc.getStatementContext().getSQLSessionContext().getCurrentUser();
             List<String> groupUserlist = lcc.getStatementContext().getSQLSessionContext().getCurrentGroupUser();
             if (!(databaseOwner.equals(currentUser) || (groupUserlist != null && groupUserlist.contains(databaseOwner)))) {
@@ -1852,7 +1852,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             Activation lastActivation = conn.getLanguageConnection().getLastActivation();
             LanguageConnectionContext lcc = lastActivation.getLanguageConnectionContext();
             String userId = lcc.getCurrentUserId(lastActivation);
-            String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+            String dbo = lcc.getCurrentDatabase().getAuthorizationId();
             if (userId != null && userId.equals(dbo)) {
                 userId = null;
             }

@@ -145,8 +145,7 @@ public class GenericAuthorizer implements Authorizer {
         if( activation != null)
         {
             List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
-            DataDictionary dd = lcc.getDataDictionary();
-            String dbo = dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+            String dbo = lcc.getCurrentDatabase().getAuthorizationId();
             List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
 
             // Database Owner can access any object. Ignore

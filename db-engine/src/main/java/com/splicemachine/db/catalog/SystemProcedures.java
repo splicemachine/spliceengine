@@ -1698,7 +1698,7 @@ public class SystemProcedures{
         // can add them
         try{
             DataDictionary dd=lcc.getDataDictionary();
-            String dbo=dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+            String dbo = lcc.getCurrentDatabase().getAuthorizationId();
 
             if(!dbo.equals(userName)){
                 if(dd.getUser(lcc.getDatabaseId(), dbo)==null){
@@ -1800,7 +1800,7 @@ public class SystemProcedures{
             dd.addDescriptor(userDescriptor,null,DataDictionary.SYSUSERS_CATALOG_NUM,false,tc, false);
 
             // turn on NATIVE::LOCAL authentication
-            if(dd.getAuthorizationDatabaseOwner(lcc.getDatabaseId()).equals(userName)){
+            if(lcc.getCurrentDatabase().getAuthorizationId().equals(userName)){
                 //    tc.setProperty
                 //        ( Property.AUTHENTICATION_PROVIDER_PARAMETER, Property.AUTHENTICATION_PROVIDER_NATIVE_LOCAL, true );
             }

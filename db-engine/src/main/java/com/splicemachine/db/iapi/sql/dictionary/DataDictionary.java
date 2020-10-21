@@ -2337,7 +2337,7 @@ public interface DataDictionary{
 
     void createSpliceSchema(TransactionController tc, UUID databaseUuid) throws StandardException;
 
-    UUID createNewDatabase(String name) throws StandardException;
+    UUID createNewDatabase(String name, String dbOwner) throws StandardException;
 
-    UUID createNewDatabase(String name, String dbOwner, String dbPassword) throws StandardException;
+    UUID createNewDatabaseAndDatabaseOwner(String name, String dbOwner, String dbPassword) throws StandardException;
 }

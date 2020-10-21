@@ -333,7 +333,7 @@ public abstract class EmbedConnection implements EngineConnection
                     AccessFactory af = (AccessFactory) Monitor.findServiceModule(database, AccessFactory.MODULE);
                     af.elevateRawTransaction(Bytes.toBytes("boot"));
                     DataDictionary dd = database.getDataDictionary();
-                    dd.createNewDatabase(getDBName(),
+                    dd.createNewDatabaseAndDatabaseOwner(getDBName(),
                                          info.getProperty(Attribute.USERNAME_ATTR),
                                          info.getProperty(Attribute.PASSWORD_ATTR)
                             );
@@ -897,8 +897,7 @@ public abstract class EmbedConnection implements EngineConnection
         final String actualId = lcc.getSessionUserId();
         final String dbOwnerId;
         try {
-            dbOwnerId = lcc.getDataDictionary().
-                    getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+            dbOwnerId = lcc.getCurrentDatabase().getAuthorizationId();
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(e);
         }

@@ -3503,7 +3503,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public boolean roleIsSettable(Activation a,String role) throws StandardException{
 
         DataDictionary dd=getDataDictionary();
-        String dbo=dd.getAuthorizationDatabaseOwner(getDatabaseId());
+        String dbo = getCurrentDatabase().getAuthorizationId();
 
         RoleGrantDescriptor grantDesc=null;
         String currentUser=getCurrentUserId(a);

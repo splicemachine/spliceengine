@@ -69,7 +69,7 @@ public class RevokeRoleConstantOperation extends DDLConstantOperation {
         TransactionController tc = lcc.getTransactionExecute();
         final String grantor = lcc.getCurrentUserId(activation);
         final List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-        String dbo = lcc.getDataDictionary().getAuthorizationDatabaseOwner(lcc.getDatabaseId());
+        String dbo = lcc.getCurrentDatabase().getAuthorizationId();
 
         dd.startWriting(lcc);
         for (Iterator rIter = roleNames.iterator(); rIter.hasNext();) {
