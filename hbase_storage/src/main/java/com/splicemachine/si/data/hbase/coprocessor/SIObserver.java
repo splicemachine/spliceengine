@@ -257,7 +257,8 @@ public class SIObserver extends BaseRegionObserver{
         if(tableEnvMatch && scanner != null && driver != null && driver.isEngineStarted() && driver.getConfiguration().getResolutionOnFlushes()){
             SimpleCompactionContext context = new SimpleCompactionContext();
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                    driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
+                    driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
+                    driver.getRejectingExecutorService(), driver.getIgnoreTxnSupplier());
             SConfiguration conf = driver.getConfiguration();
             PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
             if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
@@ -286,7 +287,8 @@ public class SIObserver extends BaseRegionObserver{
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
+                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
+                        driver.getRejectingExecutorService(), driver.getIgnoreTxnSupplier());
                 SConfiguration conf = driver.getConfiguration();
                 PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
                 if (conf.getOlapCompactionAutomaticallyPurgeDeletedRows()) {
