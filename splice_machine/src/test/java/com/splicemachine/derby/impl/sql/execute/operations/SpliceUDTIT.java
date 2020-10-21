@@ -65,20 +65,14 @@ public class SpliceUDTIT extends SpliceUnitTest {
     }
 
     @AfterClass
-    public static void tearDown() throws Exception {
-        methodWatcher.execute(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
-        methodWatcher.execute("DROP DERBY AGGREGATE Median RESTRICT");
-        methodWatcher.execute("DROP DERBY AGGREGATE string_concat RESTRICT");
-        methodWatcher.execute("DROP table orders");
-        methodWatcher.execute("DROP FUNCTION makePrice");
-        methodWatcher.execute("DROP FUNCTION getAmount");
-        methodWatcher.execute("DROP TYPE price restrict");
-        methodWatcher.execute("drop function testConnection");
-        methodWatcher.execute("drop table test");
-        methodWatcher.execute("drop table t");
-        methodWatcher.execute("drop table t1");
-        methodWatcher.execute("drop table strings");
+    public static void close()
+    {
+        methodWatcher.closeAll();
     }
+
+    @Test
+    public void testNothing(){}
+
 
     private static void createData(Connection conn) throws Exception {
         try(Statement s = conn.createStatement()){
@@ -167,48 +161,52 @@ public class SpliceUDTIT extends SpliceUnitTest {
         rs =  methodWatcher.executeQuery("SELECT count(testconnection()) from t1");
         Assert.assertTrue(rs.next());
         Assert.assertEquals(6, rs.getInt(1));
+
+        methodWatcher.closeAll();
     }
 
     @Test
     public void testUDA() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select median(i) from t");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(3, rs.getInt(1));
+        try(ResultSet rs = methodWatcher.executeQuery("select median(i) from t")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(3, rs.getInt(1));
+        }
     }
 
     @Test
     public void testUDT() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select orderID, customerID, totalPrice from orders");
-        Assert.assertTrue(rs.next());
-        int oid = rs.getInt(1);
-        int cid = rs.getInt(2);
-        Price price = (Price)rs.getObject(3);
-        Assert.assertEquals(12345, oid);
-        Assert.assertEquals(12, cid);
-        Assert.assertEquals(12, price.amount, 0.01);
-        Assert.assertTrue(price.currencyCode.compareTo("USD") == 0);
+        try(ResultSet rs = methodWatcher.executeQuery("select orderID, customerID, totalPrice from orders")) {
+            Assert.assertTrue(rs.next());
+            int oid = rs.getInt(1);
+            int cid = rs.getInt(2);
+            Price price = (Price) rs.getObject(3);
+            Assert.assertEquals(12345, oid);
+            Assert.assertEquals(12, cid);
+            Assert.assertEquals(12, price.amount, 0.01);
+            Assert.assertTrue(price.currencyCode.compareTo("USD") == 0);
+        }
     }
 
     @Test
     public void TestSelectStatistics() throws Exception {
         methodWatcher.execute("analyze schema " + CLASS_NAME);
-        ResultSet rs = methodWatcher.executeQuery("select count(*) from sysvw.syscolumnstatistics");
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue(rs.getInt(1)>0);
+        try(ResultSet rs = methodWatcher.executeQuery("select count(*) from sysvw.syscolumnstatistics") ) {
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getInt(1) > 0);
+        }
     }
 
     @Test
     public void testConnection() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
-        Connection connection = DriverManager.getConnection(url, new Properties());
-        connection.setSchema(CLASS_NAME.toUpperCase());
-        Statement s = connection.createStatement();
-        ResultSet rs = s.executeQuery("select testConnection() from test");
-        String result = rs.next() ? rs.getString(1) : null;
-        Assert.assertNotNull(result);
-        Assert.assertTrue(result, result.compareTo("Got an internal connection")==0);
+        try(SpliceWatcher watcher2 = new SpliceWatcher(CLASS_NAME))
+        {
+            watcher2.setConnection( watcher2.connectionBuilder().useOLAP(true).build() );
+            ResultSet rs = watcher2.executeQuery("select testConnection() from test");
+            String result = rs.next() ? rs.getString(1) : null;
+            Assert.assertNotNull(result);
+            Assert.assertTrue(result, result.compareTo("Got an internal connection") == 0);
+        }
     }
-
 
     @Test
     public void testSparkUDA() throws Exception {

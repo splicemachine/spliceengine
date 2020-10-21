@@ -799,8 +799,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw PublicAPI.wrapStandardException(e);
         }
     }
-
-    public static void VACUUM() throws SQLException{
+    public static long getOldestActiveTransaction() throws SQLException {
         long oldestActiveTransaction = Long.MAX_VALUE;
         try {
             PartitionAdmin pa = SIDriver.driver().getTableFactory().getAdmin();
@@ -827,7 +826,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     "com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices",
                     "hbase.coprocessor.regionserver.classes"));
         }
+        return oldestActiveTransaction;
+    }
 
+    public static void VACUUM() throws SQLException{
+        long oldestActiveTransaction = getOldestActiveTransaction();
         Vacuum vacuum = new Vacuum(getDefaultConn());
         try{
             vacuum.vacuumDatabase(oldestActiveTransaction);
@@ -929,12 +932,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
             // Describe the format of the input rows (ExecRow).
             //
             // Columns of "virtual" row:
-            //   STMTNAME				VARCHAR
-            //   TYPE					CHAR
-            //   VALID					BOOLEAN
-            //   LASTCOMPILED			TIMESTAMP
-            //   INITIALLY_COMPILABLE	BOOLEAN
-            //   CONSTANTSTATE			BLOB --> VARCHAR showing existence of plan
+            //   STMTNAME               VARCHAR
+            //   TYPE                   CHAR
+            //   VALID                  BOOLEAN
+            //   LASTCOMPILED           TIMESTAMP
+            //   INITIALLY_COMPILABLE   BOOLEAN
+            //   CONSTANTSTATE          BLOB --> VARCHAR showing existence of plan
             DataValueDescriptor[] dvds= {
                     new SQLVarchar(),
                     new SQLChar(),
@@ -1006,9 +1009,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
             // Describe the format of the input rows (ExecRow).
             //
             // Columns of "virtual" row:
-            //   KEY			VARCHAR
-            //   VALUE			VARCHAR
-            //   TYPE			VARCHAR (JVM, SERVICE, DATABASE, APP)
+            //   KEY            VARCHAR
+            //   VALUE          VARCHAR
+            //   TYPE           VARCHAR (JVM, SERVICE, DATABASE, APP)
             DataValueDescriptor[] dvds= {
                     new SQLVarchar(),
                     new SQLVarchar(),
@@ -1193,9 +1196,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
                 /*
                  * An index conglomerate id can be returned by the query before the main table one is,
-				 * but it should ALWAYS have a higher conglomerate id, so if we sort the congloms,
-				 * we should return the main table before any of its indices.
-				 */
+                 * but it should ALWAYS have a higher conglomerate id, so if we sort the congloms,
+                 * we should return the main table before any of its indices.
+                 */
         Arrays.sort(congloms);
         return congloms;
     }
@@ -1789,14 +1792,14 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_GET_OLDEST_ACTIVE_TRANSACTION(ResultSet[] resultSet) throws SQLException{
-        Long id = SIDriver.driver().getTxnStore().oldestActiveTransaction();
+        long id = getOldestActiveTransaction();
 
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
 
         List<ExecRow> rows = new ArrayList<>(1);
         ExecRow row = new ValueRow(1);
-        row.setColumn(1, id == null ? null : new SQLLongint(id));
+        row.setColumn(1, new SQLLongint(id));
         GenericColumnDescriptor[] descriptor = new GenericColumnDescriptor[]{
                 new GenericColumnDescriptor("transactionId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
         };
