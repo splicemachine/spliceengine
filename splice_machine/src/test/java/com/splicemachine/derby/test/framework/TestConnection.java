@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.db.client.am.SqlException;
 import splice.com.google.common.collect.Lists;
 import com.splicemachine.derby.test.ManagedCallableStatement;
 import com.splicemachine.stream.Accumulator;
@@ -47,6 +48,10 @@ public class TestConnection implements Connection{
     public ResultSet query(String sql) throws SQLException{
         Statement s = createStatement();
         return s.executeQuery(sql);
+    }
+
+    public ResultSet query(String sql, Object... parameters) throws SQLException{
+        return query(String.format(sql, parameters));
     }
 
     @Override
@@ -323,5 +328,9 @@ public class TestConnection implements Connection{
     public boolean execute(String sql) throws SQLException{
         Statement s = createStatement();
         return s.execute(sql);
+    }
+
+    public boolean execute(String sql, Object... parameters) throws SQLException {
+        return execute(String.format(sql, parameters));
     }
 }

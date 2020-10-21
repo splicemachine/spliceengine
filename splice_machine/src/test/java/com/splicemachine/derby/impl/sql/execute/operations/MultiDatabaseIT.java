@@ -44,6 +44,7 @@ public class MultiDatabaseIT {
     private static String TABLE = MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String ROLE = "ROLE_" + MultiDatabaseIT.class.getSimpleName().toUpperCase();
     private static String USER = "USER_" + MultiDatabaseIT.class.getSimpleName().toUpperCase();
+    private static String SEQUENCE = "SEQUENCE_" + MultiDatabaseIT.class.getSimpleName().toUpperCase();
 
 
     protected static SpliceDatabaseWatcher otherDbWatcher = new SpliceDatabaseWatcher(OTHER_DB);
@@ -190,17 +191,53 @@ public class MultiDatabaseIT {
 
     @Test
     public void testRoles() throws SQLException {
-        spliceDbConn.createStatement().execute(String.format("CREATE ROLE %s", ROLE));
-        otherDbConn.createStatement().execute(String.format("CREATE ROLE %s", ROLE));
-        spliceDbConn.createStatement().execute(String.format("DROP ROLE %s", ROLE));
-        otherDbConn.createStatement().execute(String.format("DROP ROLE %s", ROLE));
+        spliceDbConn.execute("CREATE ROLE %s", ROLE);
+        otherDbConn.execute("CREATE ROLE %s", ROLE);
+        spliceDbConn.execute("DROP ROLE %s", ROLE);
+        otherDbConn.execute("DROP ROLE %s", ROLE);
     }
 
     @Test
     public void testUsers() throws SQLException {
-        spliceDbConn.createStatement().execute(String.format("call syscs_util.syscs_create_user('%s', 'pw')", USER));
-        otherDbConn.createStatement().execute(String.format("call syscs_util.syscs_create_user('%s', 'pw')", USER));
-        spliceDbConn.createStatement().execute(String.format("call syscs_util.syscs_drop_user('%s')", USER));
-        otherDbConn.createStatement().execute(String.format("call syscs_util.syscs_drop_user('%s')", USER));
+        spliceDbConn.execute("call syscs_util.syscs_create_user('%s', 'pw')", USER);
+        otherDbConn.execute("call syscs_util.syscs_create_user('%s', 'pw')", USER);
+
+        spliceDbConn.execute("create sequence %s", SEQUENCE);
+        otherDbConn.execute("create sequence %s", SEQUENCE);
+        spliceDbConn.execute("grant usage on sequence %s to %s", SEQUENCE, USER);
+        otherDbConn.execute("grant usage on sequence %s to %s", SEQUENCE, USER);
+
+        try (ResultSet rs = spliceDbConn.query(
+                "select count(*) from sys.sysperms, sys.syssequences sq" +
+                        " where grantee = '%s' and objectid = sequenceid and sequencename = '%s'",
+                USER, SEQUENCE)) {
+            rs.next();
+            assertEquals(2, rs.getInt(1));
+        }
+
+        try (ResultSet rs = spliceDbConn.query(
+                "select count(*) from sysvw.syspermsview, sys.syssequences sq" +
+                        " where grantee = '%s' and objectid = sequenceid and sequencename = '%s'",
+                USER, SEQUENCE)) {
+            rs.next();
+            assertEquals(1, rs.getInt(1));
+        }
+
+        try (ResultSet rs = otherDbConn.query(
+                "select count(*) from sysvw.syspermsview, sys.syssequences sq" +
+                        " where grantee = '%s' and objectid = sequenceid and sequencename = '%s'",
+                USER, SEQUENCE)) {
+            rs.next();
+            assertEquals(1, rs.getInt(1));
+        }
+
+        spliceDbConn.execute("drop sequence %s RESTRICT", SEQUENCE);
+        otherDbConn.execute("drop sequence %s RESTRICT", SEQUENCE);
+        spliceDbConn.execute("call syscs_util.syscs_drop_user('%s')", USER);
+        otherDbConn.execute("call syscs_util.syscs_drop_user('%s')", USER);
+    }
+
+    @Test
+    public void testPermission() throws SQLException {
     }
 }
