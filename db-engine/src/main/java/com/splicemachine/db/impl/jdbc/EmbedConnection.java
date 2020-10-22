@@ -895,12 +895,8 @@ public abstract class EmbedConnection implements EngineConnection
         final LanguageConnectionContext lcc = getLanguageConnection();
         final String actualId = lcc.getSessionUserId();
         final String dbOwnerId;
-        try {
-            dbOwnerId = lcc.getDataDictionary().
-                    getAuthorizationDatabaseOwner(lcc.getDatabaseId());
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
+        dbOwnerId = lcc.getDataDictionary().
+                getAuthorizationDatabaseOwner(lcc.getDatabaseId());
         if (!actualId.equals(dbOwnerId)) {
             switch (operation) {
             case OP_ENCRYPT:
