@@ -2102,6 +2102,25 @@ public class SQLParser
                             getContextManager());
     }
 
+    /**
+     * Splits a given string based on a delimiter and pick out the desired field from the string, start from the left of the string:
+     *      - the string
+     *      - the delimiter
+     *      - the field number
+     * @exception StandardException  Thrown on error
+     */
+    ValueNode getSplitPartNode(ValueNode stringValue, ValueNode delimiter, ValueNode fieldNumber ) throws StandardException
+    {
+        return (ValueNode) nodeFactory.getNode(
+                            C_NodeTypes.SPLIT_PART_OPERATOR_NODE,
+                            stringValue,
+                            delimiter,
+                            fieldNumber,
+                            ReuseFactory.getInteger(TernaryOperatorNode.SPLIT_PART),
+                            null,
+                            getContextManager());
+    }
+
     ValueNode getRightOperatorNode(ValueNode stringValue, ValueNode length) throws StandardException
     {
         return (ValueNode) nodeFactory.getNode(
@@ -3284,6 +3303,7 @@ TOKEN [IGNORE_CASE] :
 |    <SHARE: "share">
 |    <SQLID: "sqlid">
 |    <SPECIFIC: "specific">
+|    <SPLIT_PART: "split_part">
 |   <SQRT: "sqrt">
 |       <STABILITY: "stability">
 |    <STATISTICS: "statistics">
@@ -7513,6 +7533,8 @@ escapedValueFunction() throws StandardException :
     ValueNode   str2;
     ValueNode    startPosition;
     ValueNode    length = null;
+    ValueNode  delimiter;
+    ValueNode  fieldNumber;
 }
 {
     value = miscBuiltinsCore( true /* is JDBC escape */)
@@ -7586,6 +7608,12 @@ escapedValueFunction() throws StandardException :
         return value;
     }
 
+|
+    /* Escaped function split_part() */
+    <SPLIT_PART> <LEFT_PAREN> value = additiveExpression(null, 0) <COMMA> delimiter = additiveExpression(null, 0) <COMMA> fieldNumber = additiveExpression(null, 0) <RIGHT_PAREN>
+    {
+        return getSplitPartNode(value, delimiter, fieldNumber);
+    }
 
 }
 
@@ -7928,6 +7956,8 @@ characterValueFunction() throws StandardException :
     Token        lowerTok = null;
     ValueNode    startPosition;
     ValueNode    length = null;
+    ValueNode  delimiter;
+    ValueNode  fieldNumber;
 }
 {
     <SUBSTR> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> startPosition = additiveExpression(null,0) [ <COMMA> length = additiveExpression(null,0) ] <RIGHT_PAREN>
@@ -8036,6 +8066,11 @@ characterValueFunction() throws StandardException :
                             ReuseFactory.getInteger(TernaryOperatorNode.LOCATE),
                             null,
                             getContextManager());
+    }
+|
+    <SPLIT_PART> <LEFT_PAREN> value = additiveExpression(null,0) <COMMA> delimiter = additiveExpression(null,0) <COMMA> fieldNumber = additiveExpression(null,0) <RIGHT_PAREN>
+    {
+        return getSplitPartNode( value, delimiter, fieldNumber );
     }
 }
 
@@ -8447,6 +8482,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == GROUPING ||
                 getToken(1).kind == TO_INSTANT ||
                 getToken(1).kind == TO_HBASE_ESCAPED ||
+                getToken(1).kind == SPLIT_PART ||
                 getToken(1).kind == GET_NEAREST_TRANSACTION ) &&
                 getToken(2).kind == LEFT_PAREN
               )
@@ -18233,6 +18269,7 @@ nonReservedKeyword()  :
     |    tok = <SIGNAL>
     |   tok = <SPECIFIC>
     |   tok = <SPLITKEYS>
+    |    tok = <SPLIT_PART>
     |    tok = <SQLID>
     |    tok = <SQL_TSI_FRAC_SECOND>
     |    tok = <SQL_TSI_SECOND>

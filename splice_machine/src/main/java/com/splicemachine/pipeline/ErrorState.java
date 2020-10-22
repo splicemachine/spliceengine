@@ -647,6 +647,7 @@ public enum ErrorState{
     LANG_INVALID_ROW_COUNT_FIRST("2201W"),
     LANG_INVALID_ROW_COUNT_OFFSET("2201X"),
     LANG_ROW_COUNT_OFFSET_FIRST_IS_NULL("2201Z"),
+    LANG_FIELD_POSITION_ZERO("22030"),
 
     /*
     ** Integrity violations.

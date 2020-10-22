@@ -199,4 +199,33 @@ public class AnalyzeTableIT extends SpliceUnitTest {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
+
+    @Test
+    public void testDropExprIndexStatistics() throws Exception {
+        String tableName = "TEST_DROP_EXPR_INDEX_STATS";
+        methodWatcher.executeUpdate(format("create schema if not exists %s_TEST", SCHEMA));
+        methodWatcher.executeUpdate(format("set schema %s_TEST", SCHEMA));
+        methodWatcher.executeUpdate(format("create table if not exists %s (c char(3))", tableName));
+        methodWatcher.executeUpdate(format("create index %s_idx on %s (upper(c))", tableName, tableName));
+        methodWatcher.executeQuery(format("analyze table %s", tableName));
+
+        String checkQuery = format("select count(*) from sys.sysconglomerates c, sys.systablestats ts " +
+                "where c.conglomeratename='%s_IDX' and c.conglomeratenumber = ts.conglomerateid", tableName);
+        String expected = "1 |\n" +
+                "----\n" +
+                " 1 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(checkQuery)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // dropping an expression-based index should drop its statistics, too
+        methodWatcher.executeUpdate(format("drop index %s_idx", tableName));
+        try (ResultSet rs = methodWatcher.executeQuery(checkQuery)) {
+            expected = "1 |\n" +
+                    "----\n" +
+                    " 0 |";
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
 }
