@@ -102,11 +102,13 @@ public class HScan implements DataScan {
             byte[] filterStopRow = sortedRanges.get(sortedRanges.size()-1).getStopRow();
             // Only replace the current start/stop row if those from the filter
             // are more restrictive.
-            if (currentStartRow == null ||
-                currentStartRow.length > 0 && Bytes.compareTo(currentStartRow, filterStartRow) < 0)
+            if (currentStartRow == null     ||
+                currentStartRow.length == 0 ||
+                Bytes.compareTo(currentStartRow, filterStartRow) < 0)
                 scan.withStartRow(filterStartRow);
-            if (currentStopRow == null ||
-                currentStopRow.length > 0 && Bytes.compareTo(currentStopRow, filterStopRow) > 0)
+            if (currentStopRow == null     ||
+                currentStopRow.length == 0 ||
+                Bytes.compareTo(currentStopRow, filterStopRow) > 0)
                 scan.withStopRow(filterStopRow);
         }
     }
