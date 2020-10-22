@@ -17,7 +17,6 @@ package com.splicemachine.derby.impl;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.NoSuchElementException;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.client.SpliceClient;

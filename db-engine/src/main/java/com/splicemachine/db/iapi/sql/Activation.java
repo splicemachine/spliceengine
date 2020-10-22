@@ -58,9 +58,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.utils.Pair;
 
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.SQLWarning;
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.Vector;
 import java.util.Hashtable;
@@ -605,7 +603,7 @@ public interface Activation extends Dependent
      * Get the current SQL session context if in a nested connection of a
      * stored routine or in a substatement.
      */
-    SQLSessionContext getSQLSessionContextForChildren() throws StandardException;
+    SQLSessionContext getSQLSessionContextForChildren();
 
     /**
      * Set up and return the current SQL session context for all immediately
@@ -615,7 +613,7 @@ public interface Activation extends Dependent
      * (push=false).
      * @param push true if used to push a new connection context
      */
-    SQLSessionContext setupSQLSessionContextForChildren(boolean push) throws StandardException;
+    SQLSessionContext setupSQLSessionContextForChildren(boolean push);
 
     /**
      * This activation is created in a dynamic call context or a substatement

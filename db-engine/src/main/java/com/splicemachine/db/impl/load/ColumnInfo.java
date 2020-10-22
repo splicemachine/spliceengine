@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.impl.load;
 
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.EngineConnection;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
 import com.splicemachine.db.iapi.services.io.DynamicByteArrayOutputStream;
@@ -90,11 +88,7 @@ public class ColumnInfo {
 
         if (sName == null) {
             // Use the current schema if no schema is specified.
-            try {
-                sName = ((EngineConnection) conn).getCurrentSchemaName();
-            } catch (StandardException se) {
-                throw PublicAPI.wrapStandardException(se);
-            }
+            sName = ((EngineConnection) conn).getCurrentSchemaName();
         }
 
         this.schemaName = sName;

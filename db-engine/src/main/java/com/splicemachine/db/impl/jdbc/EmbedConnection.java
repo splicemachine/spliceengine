@@ -32,9 +32,7 @@
 package com.splicemachine.db.impl.jdbc;
 
 import com.splicemachine.db.iapi.db.InternalDatabase;
-import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.AuthenticationService;
@@ -46,7 +44,6 @@ import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.memory.LowMemory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
@@ -57,7 +54,6 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.jdbc.authentication.NoneAuthenticationServiceImpl;
@@ -2904,7 +2900,7 @@ public abstract class EmbedConnection implements EngineConnection
      * current schema for piggy-backing
      * @return the current schema name
      */
-    public String getCurrentSchemaName() throws StandardException {
+    public String getCurrentSchemaName() {
         return getLanguageConnection().getCurrentSchemaName();
     }
     
@@ -2963,8 +2959,6 @@ public abstract class EmbedConnection implements EngineConnection
             try {
                 LanguageConnectionContext lcc = getLanguageConnection();
                 return lcc.getCurrentSchemaName();
-            } catch (StandardException e) {
-                throw PublicAPI.wrapStandardException(e);
             } finally {
                 restoreContextStack();
             }
