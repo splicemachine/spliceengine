@@ -1863,11 +1863,7 @@ public class SystemProcedures{
             status = false;
             reason = sqle.getMessage();
             throw sqle;
-        }catch(StandardException se){
-            status = false;
-            reason = se.getMessage();
-            throw PublicAPI.wrapStandardException(se);
-        }finally {
+        } finally {
             if (AUDITLOG.isInfoEnabled())
                 AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser, AuditEventType.RESET_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
         }
@@ -1931,11 +1927,7 @@ public class SystemProcedures{
             status = false;
             reason = sqle.getMessage();
             throw sqle;
-        }catch(StandardException se){
-            status = false;
-            reason = se.getMessage();
-            throw PublicAPI.wrapStandardException(se);
-        }finally {
+        } finally {
             if (AUDITLOG.isInfoEnabled())
                 AUDITLOG.info(StringUtils.logSpliceAuditEvent(currentUser,AuditEventType.MODIFY_PASSWORD.name(),status,ip,lcc.getStatementContext().getStatementText(),reason));
         }
