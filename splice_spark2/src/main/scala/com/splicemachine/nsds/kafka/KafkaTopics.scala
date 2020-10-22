@@ -17,8 +17,10 @@ package com.splicemachine.nsds.kafka
 
 import com.splicemachine.primitives.Bytes
 import java.security.SecureRandom
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 @SerialVersionUID(20200518241L)
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "Field 'unused' initialization is not null")
 class KafkaTopics(kafkaServers: String, defaultNumPartitions: Int = 1, defaultRepFactor: Short = 1) extends Serializable {
   val admin = new KafkaAdmin(kafkaServers)
   val unneeded = collection.mutable.HashSet[String]()
