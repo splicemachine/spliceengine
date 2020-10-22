@@ -16,9 +16,7 @@ package com.splicemachine.derby.vti;
 
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.vti.VTICosting;
@@ -187,7 +185,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
         }
         if (fileInfo != null &&fileInfo.exists()) {
             assert getBytesPerRow() != 0;
-            return fileInfo.size()/ (double)getBytesPerRow();
+            return fileInfo.recursiveSize()/ (double)getBytesPerRow();
         }
         return VTICosting.defaultEstimatedRowCount;
     }
@@ -226,7 +224,7 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             // IMPORTANT: this method needs to return MICROSECONDS, the internal unit
             // for costs in splice machine (displayed as milliseconds in explain plan output).
             // Note that size() is in bytes.
-            return defaultTotalLatencyMicrosPerMB *fileInfo.size() /* bytes */ / 1000000d;
+            return defaultTotalLatencyMicrosPerMB *fileInfo.recursiveSize() /* bytes */ / 1000000d;
         }
         return VTICosting.defaultEstimatedCost;
     }
