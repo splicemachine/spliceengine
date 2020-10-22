@@ -55,18 +55,18 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     private static String BADDIR;
     private static String BULKLOADDIR;
 
-    public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
+    public static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
 
-    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
 
-    public static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(ROWS_COUNT_WITH_SAMPLE,
+    public static final SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(ROWS_COUNT_WITH_SAMPLE,
             spliceSchemaWatcher.schemaName,
             "(i varchar(10), j varchar(10) not null, constraint a_pk1 primary key (i))");
 
-    public static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(ROWS_COUNT_WITHOUT_SAMPLE,
+    public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(ROWS_COUNT_WITHOUT_SAMPLE,
             spliceSchemaWatcher.schemaName,
             "(i varchar(10), j varchar(10) not null, constraint a_pk2 primary key (i))");
-    private static String startKeys[] = {
+    private static final String startKeys[] = {
             "{ NULL, NULL }",
             "{ 1424004, 7 }",
             "{ 2384419, 4 }",
@@ -185,30 +185,30 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     public void testRowsCountWithSample() throws Exception {
         if (notSupported)
             return;
-        ResultSet result = spliceClassWatcher.prepareStatement(format(
+        try(ResultSet result = spliceClassWatcher.executeQuery(format(
                 "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',null,null,null,null,null,-1,'%s',true,null, '%s', false)",
-                SCHEMA_NAME, ROWS_COUNT_WITH_SAMPLE, getResourceDirectory() + "rows_count.csv", BADDIR, BULKLOADDIR))
-                .executeQuery();
-        result.next();
-        int rowsCount = result.getInt(1);
-        int badRecords = result.getInt(2);
-        assertEquals(rowsCount, 1);
-        assertEquals(badRecords, 2);
+                SCHEMA_NAME, ROWS_COUNT_WITH_SAMPLE, getResourceDirectory() + "rows_count.csv", BADDIR, BULKLOADDIR)) ) {
+            result.next();
+            int rowsCount = result.getInt(1);
+            int badRecords = result.getInt(2);
+            assertEquals(rowsCount, 1);
+            assertEquals(badRecords, 2);
+        }
     }
 
     @Test
     public void testRowsCountWithoutSample() throws Exception {
         if (notSupported)
             return;
-        ResultSet result = spliceClassWatcher.prepareStatement(format(
+        try(ResultSet result = spliceClassWatcher.executeQuery(format(
                 "call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s',null,null,null,null,null,-1,'%s',true,null, '%s', true)",
-                SCHEMA_NAME, ROWS_COUNT_WITHOUT_SAMPLE, getResourceDirectory() + "rows_count.csv", BADDIR, BULKLOADDIR))
-                .executeQuery();
-        result.next();
-        int rowsCount = result.getInt(1);
-        int badRecords = result.getInt(2);
-        assertEquals(rowsCount, 1);
-        assertEquals(badRecords, 2);
+                SCHEMA_NAME, ROWS_COUNT_WITHOUT_SAMPLE, getResourceDirectory() + "rows_count.csv", BADDIR, BULKLOADDIR))) {
+            result.next();
+            int rowsCount = result.getInt(1);
+            int badRecords = result.getInt(2);
+            assertEquals(rowsCount, 1);
+            assertEquals(badRecords, 2);
+        }
     }
 
 
@@ -502,7 +502,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     public void testCreateTableWithLogicalSplitKeyes() throws Exception {
         if (notSupported)
             return;
-        String sql = String.format("CREATE TABLE LINEITEM2 (\n" +
+        String sql = "CREATE TABLE LINEITEM2 (\n" +
                 "  L_ORDERKEY      INTEGER NOT NULL,\n" +
                 "  L_PARTKEY       INTEGER NOT NULL,\n" +
                 "  L_SUPPKEY       INTEGER NOT NULL,\n" +
@@ -520,7 +520,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                 "  L_SHIPMODE      CHAR(10),\n" +
                 "  L_COMMENT       VARCHAR(44),\n" +
                 "  PRIMARY KEY (L_ORDERKEY, L_LINENUMBER)\n" +
-                ") logical splitkeys location '%s'", SpliceUnitTest.getResourceDirectory()+ "lineitemKeys.csv");
+                ") logical splitkeys location '" + SpliceUnitTest.getResourceDirectory() + "lineitemKeys.csv'";
         methodWatcher.execute(sql);
         ResultSet rs = methodWatcher.executeQuery(String.format("call syscs_util.get_regions('%s','LINEITEM2',null,null,null,null,null,null,null,null)", SCHEMA_NAME));
         int i = 0;
@@ -536,7 +536,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     public void testCreateTableWithPhysicalSplitKeyes() throws Exception {
         if (notSupported)
             return;
-        String sql = String.format("CREATE TABLE LINEITEM3 (\n" +
+        String sql = "CREATE TABLE LINEITEM3 (\n" +
                 "  L_ORDERKEY      INTEGER NOT NULL,\n" +
                 "  L_PARTKEY       INTEGER NOT NULL,\n" +
                 "  L_SUPPKEY       INTEGER NOT NULL,\n" +
@@ -554,7 +554,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                 "  L_SHIPMODE      CHAR(10),\n" +
                 "  L_COMMENT       VARCHAR(44),\n" +
                 "  PRIMARY KEY (L_ORDERKEY, L_LINENUMBER)\n" +
-                ") physical splitkeys location '%s'", SpliceUnitTest.getResourceDirectory()+ "lineitemKeys.txt");
+                ") physical splitkeys location '" + SpliceUnitTest.getResourceDirectory() + "lineitemKeys.txt'";
         methodWatcher.execute(sql);
         ResultSet rs = methodWatcher.executeQuery(String.format("call syscs_util.get_regions('%s','LINEITEM3',null,null,null,null,null,null,null,null)", SCHEMA_NAME));
         int i = 0;
@@ -595,6 +595,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         methodWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,-1, '%s',true,null, '%s', false)", SCHEMA_NAME, LINEITEM4, getResource("lineitem_dup.tbl"), BADDIR, BULKLOADDIR)).execute();
         File f = new File(BADDIR);
         File[] files = f.listFiles();
+        if(files == null) Assert.fail("No such directory " + BADDIR);
         for (File file:files) {
             if (file.getName().startsWith("lineitem_dup")) {
                 String select =
