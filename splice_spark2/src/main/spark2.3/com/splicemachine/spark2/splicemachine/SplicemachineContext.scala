@@ -678,35 +678,37 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     (rows, insAccum.sum)
   }
   
-  /** checkRecovery was written to help debug an issue and normally won't need to be called. */
-  private[this] def checkRecovery(
-     id: String,
-     topicName: String, 
-     partition: Int, 
-     itr: Iterator[Row],
-     schema: StructType
-   ): Unit = {
-
-    val lastVR = KafkaUtils.lastMessageOf(kafkaServers, topicName, partition)
-      .asInstanceOf[KafkaReadFunction.Message].vr
-    val cols = if( lastVR.length > 0) { Range(0,lastVR.length-1).toArray } else { Array(0) }
-    val lastKHash = lastVR.hashCode(cols)
-
-    val khashcodes = KafkaUtils.messagesFrom(kafkaServers, topicName, partition)
-      .map( _.asInstanceOf[KafkaReadFunction.Message].vr.hashCode(cols) )
-
-    debug(s"$id SMC.checkRecovery 1st Kafka hashcode ${khashcodes.headOption.getOrElse(-1)}" )
-    
-    var i = 0
-    var res = Seq.empty[String]
-    while( itr.hasNext ) {
-      val hashcode = externalizable(itr.next, schema, partition).hashCode(cols)
-      res = res :+ s"$i,${khashcodes.indexOf(hashcode)}\t${hashcode==lastKHash}"
-      i += 1
-    }
-    
-    debug(s"$id SMC.checkRecovery res: Kafka count ${khashcodes.size}\n${res.mkString("\n")}")
-  }
+//  /** checkRecovery was written to help debug an issue and normally won't need to be called.
+//   *  Keep it here for reference.
+//   */
+//  private[this] def checkRecovery(
+//     id: String,
+//     topicName: String, 
+//     partition: Int, 
+//     itr: Iterator[Row],
+//     schema: StructType
+//   ): Unit = {
+//
+//    val lastVR = KafkaUtils.lastMessageOf(kafkaServers, topicName, partition)
+//      .asInstanceOf[KafkaReadFunction.Message].vr
+//    val cols = if( lastVR.length > 0) { Range(0,lastVR.length-1).toArray } else { Array(0) }
+//    val lastKHash = lastVR.hashCode(cols)
+//
+//    val khashcodes = KafkaUtils.messagesFrom(kafkaServers, topicName, partition)
+//      .map( _.asInstanceOf[KafkaReadFunction.Message].vr.hashCode(cols) )
+//
+//    debug(s"$id SMC.checkRecovery 1st Kafka hashcode ${khashcodes.headOption.getOrElse(-1)}" )
+//    
+//    var i = 0
+//    var res = Seq.empty[String]
+//    while( itr.hasNext ) {
+//      val hashcode = externalizable(itr.next, schema, partition).hashCode(cols)
+//      res = res :+ s"$i,${khashcodes.indexOf(hashcode)}\t${hashcode==lastKHash}"
+//      i += 1
+//    }
+//    
+//    debug(s"$id SMC.checkRecovery res: Kafka count ${khashcodes.size}\n${res.mkString("\n")}")
+//  }
   
   private[this] var sendDataTimestamp: Long = _
   
