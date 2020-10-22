@@ -26,18 +26,14 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
-import com.splicemachine.derby.catalog.TriggerOldTransitionRows;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
-import com.splicemachine.derby.stream.function.TriggerRowsMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -312,6 +308,7 @@ public class VTIOperation extends SpliceBaseOperation {
             throw new IllegalStateException("Operation is not open");
 
         OperationContext operationContext = dsp.createOperationContext(this);
+        assert operationContext != null;
 
         if (this.userVTI instanceof TriggerNewTransitionRows) {
             TriggerNewTransitionRows triggerTransitionRows = (TriggerNewTransitionRows) this.userVTI;
