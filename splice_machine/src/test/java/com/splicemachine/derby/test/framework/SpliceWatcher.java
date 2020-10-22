@@ -259,13 +259,15 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
     }
 
     public int executeUpdate(String sql) throws Exception {
-        Statement s = getStatement();
-        return s.executeUpdate(sql);
+        try(Statement s = getOrCreateConnection().createStatement()) {
+            return s.executeUpdate(sql);
+        }
     }
     
     public boolean execute(String sql) throws Exception {
-    	Statement s = getStatement();
-    	return s.execute(sql);
+        try(Statement s = getOrCreateConnection().createStatement()) {
+            return s.execute(sql);
+        }
     }
 
     public int executeUpdate(String sql, String userName, String password) throws Exception {
