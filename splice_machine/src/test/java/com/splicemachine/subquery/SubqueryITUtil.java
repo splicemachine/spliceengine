@@ -19,6 +19,7 @@ import com.splicemachine.homeless.TestUtils;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.Statement;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -63,10 +64,11 @@ public class SubqueryITUtil {
                                              String query,
                                              int expectedSubqueryCountInPlan,
                                              String expectedResult) throws Exception {
-        ResultSet rs = connection.createStatement().executeQuery(query);
-        assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-        assertSubqueryNodeCount(connection, query, expectedSubqueryCountInPlan);
+        try(Statement s = connection.createStatement();
+            ResultSet rs = s.executeQuery(query)) {
+            assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            assertSubqueryNodeCount(connection, query, expectedSubqueryCountInPlan);
+        }
     }
 
     /**
@@ -75,8 +77,9 @@ public class SubqueryITUtil {
     public static void assertSubqueryNodeCount(Connection connection,
                                                String query,
                                                int expectedSubqueryCountInPlan) throws Exception {
-        try(ResultSet rs2 = connection.createStatement().executeQuery("explain " + query)) {
-            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs2);
+        try(Statement s = connection.createStatement();
+            ResultSet rs = s.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
             assertEquals(expectedSubqueryCountInPlan, countSubqueriesInPlan(explainPlanText));
         }
     }
