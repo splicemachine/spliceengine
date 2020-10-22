@@ -29,6 +29,8 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 public class NestedLoopJoinOperation extends JoinOperation {
         private static Logger LOG = Logger.getLogger(NestedLoopJoinOperation.class);
@@ -61,6 +63,18 @@ public class NestedLoopJoinOperation extends JoinOperation {
                       optimizerEstimatedCost,userSuppliedOptimizerOverrides,sparkExpressionTreeAsString);
                 this.isHash = false;
                 init();
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
+                super.readExternal(in);
+                isHash = in.readBoolean();
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+                super.writeExternal(out);
+                out.writeBoolean(isHash);
         }
 
         @Override

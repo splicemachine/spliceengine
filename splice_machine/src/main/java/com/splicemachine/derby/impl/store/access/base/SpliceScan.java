@@ -113,6 +113,7 @@ public class SpliceScan implements ScanManager, LazyScan{
         }
     }
 
+    @SuppressFBWarnings(value = "DE_MIGHT_IGNORE", justification = "intentional")
     public void close() throws StandardException{
         try{
             if(table!=null) table.close();

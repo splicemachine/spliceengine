@@ -76,6 +76,7 @@ import java.util.*;
  * Doesn't actually implement any of the activation interface,
  * expects the subclasses to do that.
  */
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP2", "EI_EXPOSE_REP", "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD"}, justification = "intentional")
 public abstract class BaseActivation implements CursorActivation, GeneratedByteCode {
 //    private static final Logger LOG = Logger.getLogger(BaseActivation.class);
     private    LanguageConnectionContext    lcc;
@@ -1184,6 +1185,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     /**
      * Remember the row for the specified ResultSet.
      */
+    @SuppressFBWarnings(value = "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", justification = "used in generated code")
     public void setCurrentRow(ExecRow currentRow, int resultSetNumber) {
 //        if (LOG.isTraceEnabled())
 //            LOG.trace(String.format("setCurrentRow: currentRow=%s, resultSetNumber=%d",currentRow,resultSetNumber));

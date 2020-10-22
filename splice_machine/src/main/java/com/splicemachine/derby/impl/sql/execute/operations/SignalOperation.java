@@ -29,6 +29,8 @@ import splice.com.google.common.base.Strings;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 import static com.splicemachine.db.iapi.error.StandardException.newException;
 
@@ -107,6 +109,32 @@ public class SignalOperation extends NoRowsOperation {
         e.setIsSignal(true);
         e.setSeverity(ExceptionSeverity.STATEMENT_SEVERITY);
         throw e;
+    }
+
+    /**
+      @see java.io.Externalizable#readExternal
+      @exception IOException thrown on error
+      @exception ClassNotFoundException	thrown on error
+     */
+    public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
+            // Read in the serialized class version, but don't use it (for now).
+            in.readInt();
+            super.readExternal(in);
+            sqlState = readNullableString(in);
+            errorText = readNullableString(in);
+            errorTextGeneratorMethodName = readNullableString(in);
+    }
+
+    /**
+
+      @exception IOException thrown on error
+     */
+    public void writeExternal( ObjectOutput out ) throws IOException {
+            out.writeInt(classVersion);
+            super.writeExternal(out);
+            writeNullableString(sqlState, out);
+            writeNullableString(errorText, out);
+            writeNullableString(errorTextGeneratorMethodName, out);
     }
 
     @Override
