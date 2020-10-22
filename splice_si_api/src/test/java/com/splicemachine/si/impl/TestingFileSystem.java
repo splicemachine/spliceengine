@@ -185,7 +185,7 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long fileCount(){
+        public long recursiveFileCount(){
             if(!isDirectory()) return 0l;
             try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(p)) {
                 long count = 0;
@@ -208,7 +208,7 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public long size(){
+        public long recursiveSize(){
             try{
                 return Files.size(p);
             }catch(IOException e){
@@ -244,8 +244,8 @@ public class TestingFileSystem extends DistributedFileSystem{
         public String toSummary() {
             StringBuilder sb = new StringBuilder();
             sb.append(this.isDirectory() ? "Directory = " : "File = ").append(fullPath());
-            sb.append("\nFile Count = ").append(this.fileCount());
-            sb.append("\nSize = ").append(size());
+            sb.append("\nFile Count = ").append(this.recursiveFileCount());
+            sb.append("\nSize = ").append(recursiveSize());
             return sb.toString();
         }
 
@@ -255,8 +255,28 @@ public class TestingFileSystem extends DistributedFileSystem{
         }
 
         @Override
-        public FileInfo[] listRecursive(){
+        public FileInfo[] listFilesRecursive(){
             throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
+        @Override
+        public FileInfo[] listDir(){
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
+
+        @Override
+        public String getPermissionStr() {
+            return "";
+        }
+
+        @Override
+        public long getModificationTime()
+        {
+            return 0;
+        }
+        @Override
+        public long size(){
+            return recursiveSize();
         }
 
     }
