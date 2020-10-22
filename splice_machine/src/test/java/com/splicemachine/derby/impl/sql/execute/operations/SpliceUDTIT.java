@@ -191,10 +191,11 @@ public class SpliceUDTIT extends SpliceUnitTest {
         try(SpliceWatcher watcher2 = new SpliceWatcher(CLASS_NAME))
         {
             watcher2.setConnection( watcher2.connectionBuilder().useOLAP(true).build() );
-            ResultSet rs = watcher2.executeQuery("select testConnection() from test");
-            String result = rs.next() ? rs.getString(1) : null;
-            Assert.assertNotNull(result);
-            Assert.assertTrue(result, result.compareTo("Got an internal connection") == 0);
+            try(ResultSet rs = watcher2.executeQuery("select testConnection() from test")) {
+                String result = rs.next() ? rs.getString(1) : null;
+                Assert.assertNotNull(result);
+                Assert.assertTrue(result, result.compareTo("Got an internal connection") == 0);
+            }
         }
     }
 
