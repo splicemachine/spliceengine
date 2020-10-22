@@ -121,7 +121,7 @@ object KafkaUtils {
     //println( s"KafkaUtils.msgs record count: ${records.size}" )
 
     val seqBuilder = Seq.newBuilder[Externalizable]
-    val kryo = new KryoSerialization()
+    @transient lazy val kryo = new KryoSerialization()
     kryo.init
     for (record <- records.iterator) {
       seqBuilder += kryo.deserialize(record.value).asInstanceOf[Message]

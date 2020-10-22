@@ -27,7 +27,7 @@ import scala.collection.JavaConverters._
 class KafkaAdmin(kafkaServers: String) extends Serializable {
   val props = new Properties()
   props.put(AdminClientConfig.BOOTSTRAP_SERVERS_CONFIG, kafkaServers)
-  val admin = AdminClient.create( props )
+  @transient lazy val admin = AdminClient.create( props )
   
   def createTopics(topicNames: collection.mutable.Set[String], numParitions: Int, repFactor: Short): Unit = {
     admin.createTopics(
