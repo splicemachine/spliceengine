@@ -94,6 +94,12 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
         return params;
     }
 
+    @AfterClass
+    public static void waitForStaleTransactions() throws Exception {
+        // running Serial, can fail on error
+        SpliceUnitTest.waitForStaleTransactions(true);
+    }
+
     private String connectionString;
 
     public Trigger_Referencing_Clause_IT(String connectionString ) {
@@ -152,6 +158,9 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
         conn.rollback();
         c1.rollback();
         c2.rollback();
+        conn.close();
+        c1.close();
+        c2.close();
     }
 
     @Test

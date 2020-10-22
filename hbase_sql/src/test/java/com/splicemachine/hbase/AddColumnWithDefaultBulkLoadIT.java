@@ -90,9 +90,7 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
                 BADDIR));
 
         /* collect stats */
-        spliceClassWatcher.getOrCreateConnection().prepareStatement("analyze schema " + CLASS_NAME).execute();
-
-        conn.commit();
+        spliceClassWatcher.execute("analyze schema " + CLASS_NAME);
     }
 
     @BeforeClass
@@ -106,9 +104,7 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
     public static void cleanup() throws Exception {
         String sql = String.format("delete from T1 --splice-properties bulkDeleteDirectory='%s'", BULKLOADDIR);
         spliceClassWatcher.execute(sql);
-        ResultSet rs = spliceClassWatcher.executeQuery("select count(*) from T1");
-        rs.next();
-        int count = rs.getInt(1);
+        int count = spliceClassWatcher.executeGetInt("select count(*) from T1");
         Assert.assertTrue(count==0);
         FileUtils.deleteDirectory(new File(BULKLOADDIR));
     }
@@ -122,12 +118,10 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
         /* Q1 -- check count */
         sql = "select count(*) from t1 --splice-properties index=idx_t1";
 
-        ResultSet rs = methodWatcher.executeQuery(sql);
         String expected = "1  |\n" +
                 "------\n" +
                 "1536 |";
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        Assert.assertEquals(expected, methodWatcher.executeToString(true, sql));
 
         /* Q2 */
         sql = "select * from t1 --splice-properties index=idx_t1\n , t2 where c1=c2";
@@ -137,9 +131,7 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
                 "  3  |  3  | A3   |  3  | 3 | A3   |\n" +
                 "5006 |5006 |A5006 |5006 | 6 |A5006 |\n" +
                 "5007 |5007 |A5007 |5007 | 7 |A5007 |";
-        rs = methodWatcher.executeQuery(sql);
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        Assert.assertEquals(expected, methodWatcher.executeToString(true, sql));
 
         sql = format("delete from T1 --splice-properties bulkDeleteDirectory='%s'\n where c1='ZZZZZ'", BULKLOADDIR);
         methodWatcher.executeUpdate(sql);
@@ -150,14 +142,10 @@ public class AddColumnWithDefaultBulkLoadIT extends SpliceUnitTest {
         expected = "1  |\n" +
                 "------\n" +
                 "1024 |";
-        rs = methodWatcher.executeQuery(sql);
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        Assert.assertEquals(expected, methodWatcher.executeToString(true, sql));
 
         /* Q4 -- check count through index */
         sql = "select count(*) from t1 --splice-properties index=idx_t1";
-        rs = methodWatcher.executeQuery(sql);
-        Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        rs.close();
+        Assert.assertEquals(expected, methodWatcher.executeToString(true, sql));
     }
 }

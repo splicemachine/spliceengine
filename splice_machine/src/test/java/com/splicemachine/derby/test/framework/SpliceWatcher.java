@@ -14,7 +14,9 @@
 
 package com.splicemachine.derby.test.framework;
 
+import com.splicemachine.homeless.TestUtils;
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
@@ -22,7 +24,6 @@ import splice.com.google.common.collect.Lists;
 
 import java.sql.*;
 import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.Assert.assertFalse;
@@ -230,6 +231,37 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         ResultSet rs = s.executeQuery(sql);
         resultSets.add(rs);
         return rs;
+    }
+
+    public String executeGetString(String sql) throws SQLException {
+        try(Statement s = getOrCreateConnection().createStatement()) {
+            ResultSet rs = s.executeQuery(sql);
+            Assert.assertTrue(rs.next());
+            return rs.getString(1);
+        }
+    }
+    public long executeGetLong(String sql) throws SQLException {
+        try(Statement s = getOrCreateConnection().createStatement()) {
+            ResultSet rs = s.executeQuery(sql);
+            Assert.assertTrue(rs.next());
+            return rs.getLong(1);
+        }
+    }
+    public int executeGetInt(String sql) throws SQLException {
+        try(Statement s = getOrCreateConnection().createStatement()) {
+            ResultSet rs = s.executeQuery(sql);
+            Assert.assertTrue(rs.next());
+            return rs.getInt(1);
+        }
+    }
+    public String executeToString(boolean sort, String sql) throws Exception {
+        try(Statement s = getOrCreateConnection().createStatement()) {
+            ResultSet rs = s.executeQuery(sql);
+            if(sort)
+                return TestUtils.FormattedResult.ResultFactory.toString(rs);
+            else
+                return TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        }
     }
 
     public ResultSet executeQuery(String sql, String userName, String password) throws Exception {

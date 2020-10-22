@@ -738,12 +738,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : EMPTAB_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
-                                    String.format("insert into %s values (%s)", empTabTableWatcher, row));
-                            ps.execute();
+                            spliceClassWatcher.executeUpdate(String.format("insert into %s values (%s)", empTabTableWatcher, row));
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -777,14 +774,11 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : PURCHASED_ROWS) {
                             String sql = String.format("insert into %s values (%s)",
                                     purchacedTableWatcher, row);
-//                            System.out.println(sql+";");  // will print insert statements
-                            ps = spliceClassWatcher.prepareStatement(sql);
-                            ps.execute();
+                            spliceClassWatcher.executeUpdate(sql);
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -795,13 +789,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : PEOPLE_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
-                                    String.format("insert into %s values (%s)",
-                                            peopleTableWatcher, row));
-                            ps.execute();
+                            spliceClassWatcher.executeUpdate(
+                                    String.format("insert into %s values (%s)", peopleTableWatcher, row));
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -812,13 +803,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : EMP_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
-                                    String.format("insert into %s values (%s)",
-                                            empTableWatcher, row));
-                            ps.execute();
+                            spliceClassWatcher.executeUpdate(
+                                    String.format("insert into %s values (%s)", empTableWatcher, row));
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -830,13 +818,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : DEPT_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
-                                    String.format("insert into %s (Nome_Dep) values (%s)" +
-                                            "", departmentosTableWatcher, row));
-                            ps.execute();
+                            spliceClassWatcher.executeUpdate(
+                                    String.format("insert into %s (Nome_Dep) values (%s)", departmentosTableWatcher, row));
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -847,14 +832,11 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : FUNC_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
-                                    String.format("insert into %s (ID_Dep, Nome, " +
-                                                    "Salario) values (%s)",
+                            spliceClassWatcher.executeUpdate(
+                                    String.format("insert into %s (ID_Dep, Nome, Salario) values (%s)",
                                             functionariosTableWatcher, row));
-                            ps.execute();
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -865,13 +847,11 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : best_addr_freqRows) {
-                            ps = spliceClassWatcher.prepareStatement(
+                            spliceClassWatcher.executeUpdate(
                                     String.format(best_addr_freq_insert,
                                             spliceTableWatcherBest_addr_freq, row));
-                            ps.execute();
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -882,13 +862,11 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : best_ids_poolDefRows) {
-                            ps = spliceClassWatcher.prepareStatement(
+                            spliceClassWatcher.executeUpdate(
                                     String.format(best_ids_pool_insert,
                                             spliceTableWatcherBest_ids_pool, row));
-                            ps.execute();
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -900,12 +878,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : EMPTAB_HIRE_DATE_ROWS) {
                             String sql = String.format("insert into %s values (%s)", empTabHireDateTableWatcher, row);
-                            ps = spliceClassWatcher.prepareStatement(sql);
-                            ps.execute();
+                            spliceClassWatcher.executeUpdate(sql);
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -915,12 +891,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : EMPTAB_ROWS_NULL) {
                             String sql = String.format("insert into %s values (%s)", empTabNullsTableWatcher, row);
-                            ps = spliceClassWatcher.prepareStatement(sql);
-                            ps.execute();
+                            spliceClassWatcher.executeUpdate(sql);
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -931,12 +905,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : TXN_DETAIL_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
+                            spliceClassWatcher.executeUpdate(
                                     String.format("insert into %s values (%s)", txnDetailTableWatcher, row));
-                            ps.execute();
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -947,12 +919,10 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
                     try {
                         for (String row : ALL_SALES_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
+                            spliceClassWatcher.executeUpdate(
                                     String.format("insert into %s values (%s)", allSalesTableWatcher, row));
-                            ps.execute();
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -966,9 +936,8 @@ public class WindowFunctionIT extends SpliceUnitTest {
                     PreparedStatement ps;
                     try {
                         for (String row : NESTED_AGGREGATION_WF_ROWS) {
-                            ps = spliceClassWatcher.prepareStatement(
+                            spliceClassWatcher.executeUpdate(
                                     String.format("insert into %s values (%s)", nestedAggregateWindowFunctionWatcher, row));
-                            ps.execute();
                         }
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -979,10 +948,9 @@ public class WindowFunctionIT extends SpliceUnitTest {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    PreparedStatement ps;
-                    try {
-                        ps = spliceClassWatcher.prepareStatement(
-                                String.format("insert into %s values (?,?,?)", tableAWatcher));
+
+                    try (PreparedStatement ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s values (?,?,?)", tableAWatcher)) ) {
                         for (int i = 0; i < 200; ++i) {
                             for (int j = 0; j < 90; ++j) {
                                 ps.setInt(1, i);
@@ -1000,23 +968,22 @@ public class WindowFunctionIT extends SpliceUnitTest {
             })
             .around(tableBWatcher)
             .around(new SpliceDataWatcher() {
-        @Override
-        protected void starting(Description description) {
-            PreparedStatement ps;
-            try {
-                String sqlText = String.format("insert into %s(b1) values(timestamp(CURRENT_DATE))", tableBWatcher);
-                methodWatcher.executeUpdate(sqlText);
-                sqlText = String.format("insert into %s(b1) select b1 from %s", tableBWatcher, tableBWatcher);
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        String sqlText = String.format("insert into %s(b1) values(timestamp(CURRENT_DATE))", tableBWatcher);
+                        spliceClassWatcher.executeUpdate(sqlText);
+                        sqlText = String.format("insert into %s(b1) select b1 from %s", tableBWatcher, tableBWatcher);
 
-                for (int i = 0; i < 8; ++i) {
-                    methodWatcher.executeUpdate(sqlText);
+                        for (int i = 0; i < 8; ++i) {
+                            spliceClassWatcher.executeUpdate(sqlText);
+                        }
+                    }
+                    catch (Exception e) {
+                        fail("Problem setting up table B.");
+                    }
                 }
-            }
-            catch (Exception e) {
-                fail("Problem setting up table B.");
-            }
-        }
-    });
+            });
 
     @ClassRule
     public static SpliceWatcher methodWatcher = new SpliceWatcher();

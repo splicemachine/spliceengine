@@ -1105,10 +1105,15 @@ public class SpliceUnitTest {
 
     @AfterClass
     public static void waitForStaleTransactions() throws Exception {
-        SpliceWatcher methodWatcher = new SpliceWatcher(null);
         // for parallel running tests waitForStaleTransactions might report false positives,
         // but you can set this to true if you're checking the tests one by one manually.
-        boolean failOnError = false;
+        boolean failOnError = true;
+        waitForStaleTransactions(failOnError);
+    }
+
+    public static void waitForStaleTransactions(boolean failOnError) throws Exception {
+        SpliceWatcher methodWatcher = new SpliceWatcher(null);
+
         waitForStaleTransactions(methodWatcher, "Test", 5, failOnError);
         methodWatcher.closeAll();
     }

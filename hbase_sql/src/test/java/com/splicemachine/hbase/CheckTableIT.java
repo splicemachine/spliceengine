@@ -104,15 +104,16 @@ public class CheckTableIT extends SpliceUnitTest {
 
         int m = 10;
         int n = 10000;
-        PreparedStatement ps = spliceClassWatcher.prepareStatement("insert into b values (?,?,?)");
-        for (int i = 0; i < m; ++i) {
-            for (int j = 10; j < n; ++j) {
-                ps.setInt(1,i*n+j);
-                ps.setInt(2, i*n+j);
-                ps.setInt(3, i*n+j);
-                ps.addBatch();
+        try(PreparedStatement ps = spliceClassWatcher.prepareStatement("insert into b values (?,?,?)")) {
+            for (int i = 0; i < m; ++i) {
+                for (int j = 10; j < n; ++j) {
+                    ps.setInt(1, i * n + j);
+                    ps.setInt(2, i * n + j);
+                    ps.setInt(3, i * n + j);
+                    ps.addBatch();
+                }
+                ps.executeBatch();
             }
-            ps.executeBatch();
         }
 
         new TableCreator(conn)
@@ -178,8 +179,7 @@ public class CheckTableIT extends SpliceUnitTest {
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'F', null,'\\x86')");
         spliceClassWatcher.execute("call syscs_util.syscs_split_table_or_index_at_points('CHECKTABLEIT2', 'F', 'FI','\\x86')");
 
-        ps = spliceClassWatcher.prepareStatement("insert into CHECKTABLEIT2.F select * from B");
-        ps.execute();
+        spliceClassWatcher.executeUpdate("insert into CHECKTABLEIT2.F select * from B");
         deleteFirstIndexRegion(spliceClassWatcher, conn, "CHECKTABLEIT2", F, FI);
 
         new TableCreator(conn)
@@ -221,36 +221,24 @@ public class CheckTableIT extends SpliceUnitTest {
     @Test
     public void testSystemTable() throws Exception {
         // delete one row from SYSCONGLOMERATES_INDEX2
-        ResultSet rs = spliceClassWatcher.executeQuery("select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
+        String rowid = spliceClassWatcher.executeGetString(
+                "select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
                 "where conglomeratename='GI'");
-        rs.next();
-        String rowid = rs.getString(1);
-        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
+        long index2 = spliceClassWatcher.executeGetLong("select conglomeratenumber from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX2\n" +
                 "where conglomeratename='SYSCONGLOMERATES_INDEX2'");
-        rs.next();
-        long index2 = rs.getLong(1);
-        rs.close();
+
         spliceClassWatcher.execute(String.format("call syscs_util.syscs_dictionary_delete(%d, '%s')",
                index2, rowid));
 
         // delete one row from SYSCONGLOMERATES_INDEX1
-        rs = spliceClassWatcher.executeQuery("select conglomerateid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
+        String conglomerateId = spliceClassWatcher.executeGetString("select conglomerateid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
                 "where conglomeratename='GI'");
-        rs.next();
-        String conglomerateId = rs.getString(1);
-        rs.close();
 
-        rs = spliceClassWatcher.executeQuery(String.format("select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
+        rowid = spliceClassWatcher.executeGetString(String.format("select rowid from sys.sysconglomerates --splice-properties index=SYSCONGLOMERATES_INDEX1\n" +
                 "where conglomerateid='%s'", conglomerateId));
-        rs.next();
-        rowid = rs.getString(1);
-        rs.close();
 
-        rs = spliceClassWatcher.executeQuery("select conglomeratenumber from sys.sysconglomerates --splice-properties index=null\n" +
+        long index1 = spliceClassWatcher.executeGetLong("select conglomeratenumber from sys.sysconglomerates --splice-properties index=null\n" +
                 "where conglomeratename='SYSCONGLOMERATES_INDEX1'");
-        rs.next();
-        long index1 = rs.getLong(1);
-        rs.close();
 
         spliceClassWatcher.execute(String.format("call syscs_util.syscs_dictionary_delete(%d, '%s')",
                 index1, rowid));
@@ -262,14 +250,11 @@ public class CheckTableIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS messages (\"message\" varchar(200)) order by 1";
-        rs = spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-conglomerates.out", getResourceDirectory())));
-        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-        rs.close();
+        String s = spliceClassWatcher.executeToString(false,
+                format(select, String.format("%s/fix-conglomerates.out", getResourceDirectory())));
 
-        rs = spliceClassWatcher.executeQuery("select rowid from sys.sysconglomerates --splice-properties index=null\n" +
+        rowid = spliceClassWatcher.executeGetString("select rowid from sys.sysconglomerates --splice-properties index=null\n" +
                 "where conglomeratename='GI'");
-        rs.next();
-        rowid = rs.getString(1);
 
         // depending on the rowid, the order of the strings below could be different, so need a sort
         String expected = String.format("message                                    |\n" +
@@ -288,9 +273,8 @@ public class CheckTableIT extends SpliceUnitTest {
         assertEquals(sortedS, sortedExpected, sortedS);
 
         // Check the table again
-        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('SYS', 'SYSCONGLOMERATES', null, 2, '%s/fix-conglomerates.out')", getResourceDirectory()));
-        rs.next();
-        s = rs.getString(1);
+        s = spliceClassWatcher.executeGetString(String.format("call syscs_util.check_table('SYS', " +
+                "'SYSCONGLOMERATES', null, 2, '%s/fix-conglomerates.out')", getResourceDirectory()));
         assertEquals(s, s, "No inconsistencies were found.");
     }
 
@@ -317,8 +301,8 @@ public class CheckTableIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS messages (\"message\" varchar(200)) order by 1";
-        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), A)));
-        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String s = spliceClassWatcher.executeToString(false,
+                format(select, String.format("%s/fix-%s.out", getResourceDirectory(), A)));
 
         String expected = "message                                 |\n" +
                 "--------------------------------------------------------------------------\n" +
@@ -332,9 +316,7 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                   { 7, 870087 }@8700C3C090F0=>870087                    |\n" +
                 "                                   AI:                                   |";
         assertEquals(s, expected, s);
-        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
-        rs.next();
-        s = rs.getString(1);
+        s = spliceClassWatcher.executeGetString(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, A, getResourceDirectory(), A));
         assertEquals(s, "No inconsistencies were found.", s);
     }
 
@@ -346,8 +328,7 @@ public class CheckTableIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS messages (\"message\" varchar(200)) order by 1";
-        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s2.out", getResourceDirectory(), F)));
-        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String s = spliceClassWatcher.executeToString(false, format(select, String.format("%s/check-%s2.out", getResourceDirectory(), F)));
         String expected ="message    |\n" +
                 "---------------\n" +
                 "count = 99903 |\n" +
@@ -356,10 +337,9 @@ public class CheckTableIT extends SpliceUnitTest {
                 "     FI:      |";
         assertEquals(s, expected, s);
 
-        spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
-        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 1, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
-        rs.next();
-        s = rs.getString(1);
+        spliceClassWatcher.execute(String.format("call syscs_util.fix_table('%s', '%s', null, '%s/check-%s2.out')",
+                "CHECKTABLEIT2", F, getResourceDirectory(), F));
+        s = spliceClassWatcher.executeGetString(String.format("call syscs_util.check_table('%s', '%s', null, 1, '%s/check-%s2.out')", "CHECKTABLEIT2", F, getResourceDirectory(), F));
         assertEquals(s, s, "No inconsistencies were found.");
     }
 
@@ -371,8 +351,8 @@ public class CheckTableIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS messages (\"message\" varchar(200)) order by 1";
-        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s2.out", getResourceDirectory(), E)));
-        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String s = spliceClassWatcher.executeToString(false,
+                format(select, String.format("%s/check-%s2.out", getResourceDirectory(), E)));
         String expected = "message                                |\n" +
                 "-----------------------------------------------------------------------\n" +
                 "The following 2 rows from base table CHECKTABLEIT2.E are not indexed: |\n" +
@@ -387,8 +367,8 @@ public class CheckTableIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS messages (\"message\" varchar(200)) order by 1";
-        rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/fix-%s.out", getResourceDirectory(), E)));
-        s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        s = spliceClassWatcher.executeToString(false,
+                format(select, String.format("%s/fix-%s.out", getResourceDirectory(), E)));
         expected = "message                                  |\n" +
                 "---------------------------------------------------------------------------\n" +
                 "Created indexes for the following 2 rows from base table CHECKTABLEIT2.E: |\n" +
@@ -396,16 +376,14 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                                { 2, 2 }                                  |\n" +
                 "                                   EI:                                    |";
         assertEquals(s, expected, s);
-        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
-        rs.next();
-        s = rs.getString(1);
+        s = spliceClassWatcher.executeGetString( String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", "CHECKTABLEIT2", E, getResourceDirectory(), E));
         assertEquals(s, s, "No inconsistencies were found.");
     }
     @Test
     public void checkTableWithSkippedNullValues() throws Exception {
-        ResultSet rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, D, getResourceDirectory(), D));
-        rs.next();
-        String s = rs.getString(1);
+        String s = spliceClassWatcher.executeGetString(
+                String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')",
+                        SCHEMA_NAME, D, getResourceDirectory(), D));
         assertEquals(s, s, "No inconsistencies were found.");
     }
 
@@ -417,8 +395,8 @@ public class CheckTableIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS messages (\"message\" varchar(200)) order by 1";
-        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s1.out", getResourceDirectory(), SCHEMA_NAME)));
-        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String s = spliceClassWatcher.executeToString(false,
+                format(select, String.format("%s/check-%s1.out", getResourceDirectory(), SCHEMA_NAME)));
         String expected =
                 "message                                                                    |\n" +
                 "------------------------------------------------------------------------------------------------------------------------------------------------\n" +
@@ -455,8 +433,8 @@ public class CheckTableIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS messages (\"message\" varchar(200)) order by 1";
-        rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s2.out", getResourceDirectory(), SCHEMA_NAME)));
-        s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        s = spliceClassWatcher.executeToString(false,
+                format(select, String.format("%s/check-%s2.out", getResourceDirectory(), SCHEMA_NAME)));
         expected = "message                               |\n" +
                 "----------------------------------------------------------------------\n" +
                 "               The following 1 indexes are duplicates:               |\n" +
@@ -490,8 +468,8 @@ public class CheckTableIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS messages (\"message\" varchar(200)) order by 1";
-        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s1.out", getResourceDirectory(), C)));
-        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String s = spliceClassWatcher.executeToString(false,
+                format(select, String.format("%s/check-%s1.out", getResourceDirectory(), C)));
         String expected =
                 "message                                                                    |\n" +
                 "------------------------------------------------------------------------------------------------------------------------------------------------\n" +
@@ -505,9 +483,8 @@ public class CheckTableIT extends SpliceUnitTest {
                 "                                                                      C:                                                                       |";
         assertEquals(s, s, expected);
 
-        rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, C, getResourceDirectory(), C));
-        rs.next();
-        s = rs.getString(1);
+        s = spliceClassWatcher.executeGetString(String.format(
+                "call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, C, getResourceDirectory(), C));
         assertEquals(s, s, "No inconsistencies were found.");
     }
 
@@ -536,9 +513,7 @@ public class CheckTableIT extends SpliceUnitTest {
     @Test
     public void testForeignKeyUniqueIndex() throws Exception {
         spliceClassWatcher.execute("alter table I add CONSTRAINT fc FOREIGN KEY(j) REFERENCES H(i) ON UPDATE NO ACTION ON DELETE restrict");
-        ResultSet rs = spliceClassWatcher.executeQuery(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, I, getResourceDirectory(), I));
-        rs.next();
-        String s = rs.getString(1);
+        String s = spliceClassWatcher.executeGetString(String.format("call syscs_util.check_table('%s', '%s', null, 2, '%s/check-%s2.out')", SCHEMA_NAME, I, getResourceDirectory(), I));
         Assert.assertEquals(s, s, "No inconsistencies were found.");
     }
     @Test
@@ -596,8 +571,8 @@ public class CheckTableIT extends SpliceUnitTest {
                         "from new com.splicemachine.derby.vti.SpliceFileVTI(" +
                         "'%s',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8' ) " +
                         "AS messages (\"message\" varchar(200)) order by 1";
-        ResultSet rs =spliceClassWatcher.executeQuery(format(select, String.format("%s/check-%s.out", getResourceDirectory(), tableName)));
-        String s = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+        String s = spliceClassWatcher.executeToString(false,
+                format(select, String.format("%s/check-%s.out", getResourceDirectory(), tableName)));
         String expected = format("message                               |\n" +
                 "----------------------------------------------------------------------\n" +
                 "               The following 1 indexes are duplicates:               |\n" +
