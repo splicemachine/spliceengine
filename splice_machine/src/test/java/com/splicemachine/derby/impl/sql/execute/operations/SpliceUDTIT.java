@@ -64,10 +64,6 @@ public class SpliceUDTIT extends SpliceUnitTest {
         createData(spliceClassWatcher);
     }
 
-    @Test
-    public void testNothing(){}
-
-
     private static void createData(SpliceWatcher w) throws Exception {
         try {
             w.execute(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
@@ -129,31 +125,34 @@ public class SpliceUDTIT extends SpliceUnitTest {
 
     @Test
     public void testAggregationReferencingUDF() throws Exception {
-        ResultSet rs;
-        rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
+        try(ResultSet rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
                                                 "(\n" +
                                                 "SELECT makePrice('USD', t1.rawPrice) AS ItemPrice\n" +
                                                 "FROM t1" +
-                                                ") x");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(6, rs.getInt(1));
+                                                ") x")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(6, rs.getInt(1));
+        }
 
-        rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
-        "(\n" +
-        "SELECT makePrice('USD', t1.rawPrice) AS ItemPrice\n" +
-        "FROM t1 JOIN t\n" +
-        "ON t.i = t1.rawPrice\n" +
-        ") x");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(6, rs.getInt(1));
+        try(ResultSet rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
+            "(\n" +
+            "SELECT makePrice('USD', t1.rawPrice) AS ItemPrice\n" +
+            "FROM t1 JOIN t\n" +
+            "ON t.i = t1.rawPrice\n" +
+            ") x") ) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(6, rs.getInt(1));
+        }
 
-        rs =  methodWatcher.executeQuery("SELECT count(*) from t1 where testconnection() < 'a'");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(6, rs.getInt(1));
+        try(ResultSet rs =  methodWatcher.executeQuery("SELECT count(*) from t1 where testconnection() < 'a'") ) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(6, rs.getInt(1));
+        }
 
-        rs =  methodWatcher.executeQuery("SELECT count(testconnection()) from t1");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(6, rs.getInt(1));
+        try(ResultSet rs =  methodWatcher.executeQuery("SELECT count(testconnection()) from t1")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(6, rs.getInt(1));
+        }
     }
 
     @Test
@@ -207,10 +206,11 @@ public class SpliceUDTIT extends SpliceUnitTest {
         methodWatcher.execute("insert into strings values 'a','b','c','d'");
 
         for (boolean useSpark : Arrays.asList(true, false)) {
-            ResultSet rs = methodWatcher.executeQuery("select string_concat(v) from strings --splice-properties useSpark="+useSpark);
-            Assert.assertTrue(rs.next());
-            String res = rs.getString(1);
-            assertThat(res, allOf(containsString("a"), containsString("b"), containsString("c"), containsString("d")));
+            try(ResultSet rs = methodWatcher.executeQuery("select string_concat(v) from strings --splice-properties useSpark="+useSpark)) {
+                Assert.assertTrue(rs.next());
+                String res = rs.getString(1);
+                assertThat(res, allOf(containsString("a"), containsString("b"), containsString("c"), containsString("d")));
+            }
         }
     }
 }
