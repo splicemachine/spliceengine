@@ -1613,6 +1613,7 @@ public class BinaryRelationalOperatorNode
         }
 
         final int innerColumnPos = innerColumn.getSource().getColumnPosition();
+        final int outerColumnPos = outerColumn.getSource().getColumnPosition();
         if (innerTableCostController != null) {
             long rc = (long)innerTableCostController.baseRowCount();
             if (rc == 0)
@@ -1633,13 +1634,13 @@ public class BinaryRelationalOperatorNode
             // Use a more realistic selectivity that takes the
             // inner table RPV into account instead of defaulting
             // to a selectivity of 1.
+            double outerCardinality =
+                     outerTableCostController.cardinality(outerColumnPos);
             double innerCardinality =
                         innerTableCostController.cardinality(innerColumnPos);
-            double outerRowCount = outerTableCostController.getEstimatedRowCount();
 
-            double tempSelectivity = outerRowCount / innerCardinality;
-            if (tempSelectivity < 1.0)
-                selectivity = tempSelectivity;
+            double tempSelectivity = outerCardinality / innerCardinality;
+            selectivity = Math.min(tempSelectivity, 1.0);
         }
 
         return selectivity;

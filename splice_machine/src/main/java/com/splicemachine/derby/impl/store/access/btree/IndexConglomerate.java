@@ -531,7 +531,8 @@ public class IndexConglomerate extends SpliceConglomerate{
         // lead to broken logic in places that call ScanOperation.getColumnOrdering.
         // Fill in the missing information here so the index may be properly used.
         if (columnOrdering == null || columnOrdering.length == 0) {
-            columnOrdering = new int[ascDescInfo.length];
+            int extraColumnsCount = allowDuplicates ? 1 : 0;
+            columnOrdering = new int[ascDescInfo.length + extraColumnsCount];
             for (int i=0; i < columnOrdering.length; i++)
                 columnOrdering[i] = i;
         }

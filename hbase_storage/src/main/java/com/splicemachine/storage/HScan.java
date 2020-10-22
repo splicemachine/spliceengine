@@ -19,6 +19,8 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -94,8 +96,18 @@ public class HScan implements DataScan {
             MultiRowRangeFilter filter = new MultiRowRangeFilter(ranges);
             scan.setFilter(filter);
             List<MultiRowRangeFilter.RowRange> sortedRanges = filter.getRowRanges();
-            scan.withStartRow(sortedRanges.get(0).getStartRow());
-            scan.withStopRow(sortedRanges.get(sortedRanges.size()-1).getStopRow());
+            byte[] currentStartRow = scan.getStartRow();
+            byte[] currentStopRow = scan.getStopRow();
+            byte[] filterStartRow = sortedRanges.get(0).getStartRow();
+            byte[] filterStopRow = sortedRanges.get(sortedRanges.size()-1).getStopRow();
+            // Only replace the current start/stop row if those from the filter
+            // are more restrictive.
+            if (currentStartRow == null ||
+                currentStartRow.length > 0 && Bytes.compareTo(currentStartRow, filterStartRow) < 0)
+                scan.withStartRow(filterStartRow);
+            if (currentStopRow == null ||
+                currentStopRow.length > 0 && Bytes.compareTo(currentStopRow, filterStopRow) > 0)
+                scan.withStopRow(filterStopRow);
         }
     }
 
