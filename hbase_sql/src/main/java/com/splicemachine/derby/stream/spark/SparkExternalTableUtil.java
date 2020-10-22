@@ -26,7 +26,6 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.spark.splicemachine.PartitionSpec;
 import com.splicemachine.spark.splicemachine.SplicePartitioningUtils;
 import com.splicemachine.system.CsvOptions;
-import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -198,7 +197,7 @@ public class SparkExternalTableUtil {
     public static String getSuggestedSchema(StructType externalSchema, FileInfo fileInfo) {
         StructType partition_schema = null;
         if( fileInfo != null ) {
-            FileInfo[] fileInfos = fileInfo.listRecursive();
+            FileInfo[] fileInfos = fileInfo.listFilesRecursive();
             List<Path> files = Arrays.stream(fileInfos).map(s -> new Path(s.fullPath())).collect(toList());
             Set<Path> basePaths = Collections.singleton(new Path(fileInfo.fullPath()));
             PartitionSpec partitionSpec = parsePartitionsFromFiles(files, true, basePaths,

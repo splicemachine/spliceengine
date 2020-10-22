@@ -722,6 +722,17 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
         procedures.add(getActiveTxn);
 
         /*
+         * Procedure to list a directory
+         */
+        Procedure ls = Procedure.newBuilder().name("LIST_DIRECTORY")
+                .numOutputParams(0)
+                .varchar("path",128)
+                .numResultSets(1)
+                .ownerClass(SpliceAdmin.class.getCanonicalName())
+                .build();
+        procedures.add(ls);
+
+        /*
          * Procedure to delegate HDFS operations
          */
         Procedure hdfsOperation = Procedure.newBuilder().name("SYSCS_HDFS_OPERATION")
