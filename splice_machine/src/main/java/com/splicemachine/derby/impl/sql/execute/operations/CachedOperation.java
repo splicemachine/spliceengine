@@ -31,6 +31,8 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.Exceptions;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -69,6 +71,7 @@ public class CachedOperation extends SpliceBaseOperation {
         try {
             super.init(context);
             source.init(context);
+            populateCache();
         }
         catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -78,6 +81,28 @@ public class CachedOperation extends SpliceBaseOperation {
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
         return source.getExecRowDefinition();
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        source = (SpliceOperation)in.readObject();
+        populated = in.readBoolean();
+        rows = (List)in.readObject();
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeObject(source);
+
+        try {
+            populateCache();
+        } catch (StandardException e) {
+            throw new IOException(e);
+        }
+        out.writeBoolean(populated);
+        out.writeObject(rows);
     }
 
     @Override
@@ -109,8 +134,6 @@ public class CachedOperation extends SpliceBaseOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
-        populateCache();
-        source.openCore(dsp);
 
         if (!rows.isEmpty()) {
             DataSet dataSet = dsp.createDataSet(rows.iterator());

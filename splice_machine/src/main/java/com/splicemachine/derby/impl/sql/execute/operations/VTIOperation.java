@@ -26,14 +26,18 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
+import com.splicemachine.derby.catalog.TriggerOldTransitionRows;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
+import com.splicemachine.derby.stream.function.TriggerRowsMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -41,6 +45,8 @@ import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 
@@ -226,6 +232,37 @@ public class VTIOperation extends SpliceBaseOperation {
         return getAllocatedRow();
     }
 
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        javaClassName = in.readUTF();
+        rowMethodName = in.readUTF();
+        constructorMethodName = in.readUTF();
+        resultDescriptionItemNumber = in.readInt();
+        convertTimestamps = in.readBoolean();
+
+        if (in.readBoolean()) {
+            this.userVTI = (DatasetProvider)in.readObject();
+        }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeUTF(javaClassName);
+        out.writeUTF(rowMethodName);
+        out.writeUTF(constructorMethodName);
+        out.writeInt(resultDescriptionItemNumber);
+        out.writeBoolean(convertTimestamps);
+
+        boolean hasTriggerRows = this.userVTI instanceof TriggerNewTransitionRows;
+        out.writeBoolean(hasTriggerRows);
+        if (hasTriggerRows) {
+            out.writeObject(this.userVTI);
+        }
+    }
+
+
     /**
 	 * Cache the ExecRow for this result set.
 	 *
@@ -275,7 +312,7 @@ public class VTIOperation extends SpliceBaseOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
-
+      
         dsp.createOperationContext(this);
 
         if (this.userVTI instanceof TriggerNewTransitionRows) {

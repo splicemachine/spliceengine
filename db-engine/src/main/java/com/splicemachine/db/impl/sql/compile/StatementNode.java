@@ -310,8 +310,6 @@ public abstract class StatementNode extends QueryTreeNode{
         generatingClass.finishConstructor();
 
         generatingClass.finishMaterializationMethod();
-
-        generatingClass.finishSubqueryResultSetMethod();
         try{
             // cook the completed class into a real class
             // and stuff it into activationClass

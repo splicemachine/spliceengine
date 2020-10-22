@@ -37,6 +37,8 @@ import splice.com.google.common.collect.Iterators;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -257,5 +259,46 @@ public class ExplainOperation extends SpliceBaseOperation {
         } finally {
             operationContext.popScope();
         }
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(explainString.size());
+        for (int i = 0; i < explainString.size(); ++i) {
+            out.writeUTF(explainString.get(i));
+        }
+        out.writeUTF(sparkExplainKind.toString());
+        if (!sparkExplainKind.equals(ExplainNode.SparkExplainKind.NONE))
+            out.writeObject(source);
+
+        out.writeInt(noStatsTablesRef);
+        out.writeInt(noStatsColumnsRef);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+        super.readExternal(in);
+        int size = in.readInt();
+        explainString = new ArrayList<>();
+        for (int i = 0; i < size; ++i) {
+            explainString.add(in.readUTF());
+        }
+        String sparkExplainKindString = in.readUTF();
+        if (sparkExplainKindString.equals(ExplainNode.SparkExplainKind.EXECUTED.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.EXECUTED;
+        else if (sparkExplainKindString.equals(ExplainNode.SparkExplainKind.LOGICAL.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.LOGICAL;
+        else if (sparkExplainKindString.equals(ExplainNode.SparkExplainKind.OPTIMIZED.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.OPTIMIZED;
+        else if (sparkExplainKindString.equals(ExplainNode.SparkExplainKind.ANALYZED.toString()))
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.ANALYZED;
+        else
+            this.sparkExplainKind = ExplainNode.SparkExplainKind.NONE;
+        if (!sparkExplainKind.equals(ExplainNode.SparkExplainKind.NONE))
+            source = (SpliceOperation)in.readObject();
+
+        noStatsTablesRef = in.readInt();
+        noStatsColumnsRef = in.readInt();
     }
 }
