@@ -61,70 +61,69 @@ public class SpliceUDTIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void setup() throws Exception {
-        createData(spliceClassWatcher.getOrCreateConnection());
+        createData(spliceClassWatcher);
     }
 
     @Test
     public void testNothing(){}
 
 
-    private static void createData(Connection conn) throws Exception {
-        try(Statement s = conn.createStatement()){
-            s.execute(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
+    private static void createData(SpliceWatcher w) throws Exception {
+        try {
+            w.execute(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
         }catch(SQLException se){
             if(!"SE014".equals(se.getSQLState())){
                 //write-conflict. That means someone ELSE is loading this same jar. That's cool, just keep going
                 throw se;
             }
         }
-        try(Statement s = conn.createStatement()){
-            s.execute(String.format(CALL_SET_CLASSPATH_FORMAT_STRING,JAR_FILE_SQL_NAME));
-            s.execute("create derby aggregate median for int external name 'com.splicemachine.customer.Median'");
+        w.execute(String.format(CALL_SET_CLASSPATH_FORMAT_STRING,JAR_FILE_SQL_NAME));
+        w.execute("create derby aggregate median for int external name 'com.splicemachine.customer.Median'");
 
-            new TableCreator(conn)
-                    .withCreate("create table t(i int)")
-                    .withInsert("insert into t values(?)")
-                    .withRows(rows(
-                            row(1),
-                            row(2),
-                            row(3),
-                            row(4),
-                            row(5)))
-                    .create();
+        Connection conn = w.getOrCreateConnection();
+        new TableCreator(conn)
+                .withCreate("create table t(i int)")
+                .withInsert("insert into t values(?)")
+                .withRows(rows(
+                        row(1),
+                        row(2),
+                        row(3),
+                        row(4),
+                        row(5)))
+                .create();
 
-            new TableCreator(conn)
-                    .withCreate("create table t1(itemName varchar(30), rawPrice int)")
-                    .withInsert("insert into t1 values(?, ?)")
-                    .withRows(rows(
-                    row("Coffee", 4),
-                    row("Tea", 3),
-                    row("Milk", 2),
-                    row("Soda", 2),
-                    row("Bagel", 1),
-                    row("Donut", 1)))
-                    .create();
+        new TableCreator(conn)
+                .withCreate("create table t1(itemName varchar(30), rawPrice int)")
+                .withInsert("insert into t1 values(?, ?)")
+                .withRows(rows(
+                row("Coffee", 4),
+                row("Tea", 3),
+                row("Milk", 2),
+                row("Soda", 2),
+                row("Bagel", 1),
+                row("Donut", 1)))
+                .create();
 
-            s.execute("CREATE TYPE price EXTERNAL NAME 'com.splicemachine.customer.Price' language Java");
-            s.execute("CREATE FUNCTION makePrice(varchar(30), double)\n"+
-                    "RETURNS Price\n"+
-                    "LANGUAGE JAVA\n"+
-                    "PARAMETER STYLE JAVA\n"+
-                    "NO SQL EXTERNAL NAME 'com.splicemachine.customer.CreatePrice.createPriceObject'");
+        w.execute("CREATE TYPE price EXTERNAL NAME 'com.splicemachine.customer.Price' language Java");
+        w.execute("CREATE FUNCTION makePrice(varchar(30), double)\n"+
+                "RETURNS Price\n"+
+                "LANGUAGE JAVA\n"+
+                "PARAMETER STYLE JAVA\n"+
+                "NO SQL EXTERNAL NAME 'com.splicemachine.customer.CreatePrice.createPriceObject'");
 
-            s.execute("create function getAmount( int ) returns double language java parameter style java no sql\n" +
-                           "external name 'com.splicemachine.customer.Price.getAmount'\n" );
+        w.execute("create function getAmount( int ) returns double language java parameter style java no sql\n" +
+                       "external name 'com.splicemachine.customer.Price.getAmount'\n" );
 
-            s.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
-            s.execute("insert into orders values (12345, 12, makePrice('USD', 12))");
+        w.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
+        w.execute("insert into orders values (12345, 12, makePrice('USD', 12))");
 
-            s.execute("CREATE FUNCTION testConnection()\n" +
-                    "RETURNS VARCHAR(100)\n" +
-                    "LANGUAGE JAVA\n" +
-                    "PARAMETER STYLE JAVA \n" +
-                    "EXTERNAL NAME 'com.splicemachine.customer.NielsenTesting.testInternalConnection'");
-            s.execute("create table test(id integer, name varchar(30))");
-            s.execute("insert into test values(1,'erin')");
-        }
+        w.execute("CREATE FUNCTION testConnection()\n" +
+                "RETURNS VARCHAR(100)\n" +
+                "LANGUAGE JAVA\n" +
+                "PARAMETER STYLE JAVA \n" +
+                "EXTERNAL NAME 'com.splicemachine.customer.NielsenTesting.testInternalConnection'");
+        w.execute("create table test(id integer, name varchar(30))");
+        w.execute("insert into test values(1,'erin')");
 
     }
 
