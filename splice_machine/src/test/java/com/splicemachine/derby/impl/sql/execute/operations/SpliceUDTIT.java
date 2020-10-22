@@ -42,8 +42,8 @@ import static org.junit.Assert.assertThat;
 @Category(SerialTest.class) //serial because it loads a jar
 public class SpliceUDTIT extends SpliceUnitTest {
     public static final String CLASS_NAME = SpliceUDTIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
+    protected static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final String CALL_INSTALL_JAR_FORMAT_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
     private static final String CALL_REMOVE_JAR_FORMAT_STRING = "CALL SQLJ.REMOVE_JAR('%s', 0)";
@@ -57,17 +57,11 @@ public class SpliceUDTIT extends SpliceUnitTest {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
     @ClassRule
-    public static SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+    public static final SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @BeforeClass
     public static void setup() throws Exception {
         createData(spliceClassWatcher.getOrCreateConnection());
-    }
-
-    @AfterClass
-    public static void close()
-    {
-        methodWatcher.closeAll();
     }
 
     @Test
@@ -161,8 +155,6 @@ public class SpliceUDTIT extends SpliceUnitTest {
         rs =  methodWatcher.executeQuery("SELECT count(testconnection()) from t1");
         Assert.assertTrue(rs.next());
         Assert.assertEquals(6, rs.getInt(1));
-
-        methodWatcher.closeAll();
     }
 
     @Test
@@ -188,7 +180,7 @@ public class SpliceUDTIT extends SpliceUnitTest {
     }
 
     @Test
-    public void TestSelectStatistics() throws Exception {
+    public void testSelectStatistics() throws Exception {
         methodWatcher.execute("analyze schema " + CLASS_NAME);
         try(ResultSet rs = methodWatcher.executeQuery("select count(*) from sysvw.syscolumnstatistics") ) {
             Assert.assertTrue(rs.next());
