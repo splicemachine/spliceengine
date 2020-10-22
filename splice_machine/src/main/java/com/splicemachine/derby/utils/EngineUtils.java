@@ -102,11 +102,7 @@ public class EngineUtils{
         assert connection != null;
         LanguageConnectionContext lcc = connection.getLanguageConnection();
         assert lcc != null;
-        try {
-            return lcc.getCurrentSchemaName();
-        } catch (StandardException e) {
-            throw PublicAPI.wrapStandardException(e);
-        }
+        return lcc.getCurrentSchemaName();
     }
 
 

@@ -26,7 +26,6 @@ import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.io.ObjectInput;

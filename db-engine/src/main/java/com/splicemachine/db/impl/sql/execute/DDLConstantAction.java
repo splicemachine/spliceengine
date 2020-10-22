@@ -56,7 +56,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 
 /**

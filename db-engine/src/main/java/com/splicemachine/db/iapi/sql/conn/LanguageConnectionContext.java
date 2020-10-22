@@ -479,17 +479,17 @@ public interface LanguageConnectionContext extends Context {
      * @param a activation
      * @return String the authorization id
      */
-    String getCurrentUserId(Activation a) throws StandardException;
+    String getCurrentUserId(Activation a);
 
-    void setCurrentUser(Activation a, String userName) throws StandardException;
+    void setCurrentUser(Activation a, String userName);
 
-    void setCurrentGroupUser(Activation a, List<String> groupUsers) throws StandardException;
+    void setCurrentGroupUser(Activation a, List<String> groupUsers);
     /**
      * Get the current group user
      * @param a activation
      * @return String current group user
      */
-    public List<String> getCurrentGroupUser(Activation a) throws StandardException;
+    public List<String> getCurrentGroupUser(Activation a);
 
     /**
      *  Get the Authorization Id of the session user
@@ -505,7 +505,7 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return SchemaDescriptor    the default schema
      */
-    SchemaDescriptor getDefaultSchema() throws StandardException;
+    SchemaDescriptor getDefaultSchema();
 
     /**
      * Get the default schema (used at execution time).  At execution
@@ -518,19 +518,19 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return SchemaDescriptor    the default schema
      */
-    SchemaDescriptor getDefaultSchema(Activation a) throws StandardException;
+    SchemaDescriptor getDefaultSchema(Activation a);
 
     /**
      * Get the current database
      *
      * @return DatabaseDescriptor    the current database descriptor
      */
-    DatabaseDescriptor getCurrentDatabase() throws StandardException;
+    DatabaseDescriptor getCurrentDatabase();
 
     /**
      * Set the current database
      */
-    void setCurrentDatabase(DatabaseDescriptor desc) throws StandardException;
+    void setCurrentDatabase(DatabaseDescriptor desc);
 
     /**
      * Set the default schema (at compile-time, see explanations for
@@ -542,7 +542,7 @@ public interface LanguageConnectionContext extends Context {
      * @exception StandardException thrown on failure
      */
     void setDefaultSchema(SchemaDescriptor sd)
-        throws StandardException;
+    ;
 
     /**
      * Set the default schema (at execution time, see explanations for
@@ -555,7 +555,7 @@ public interface LanguageConnectionContext extends Context {
      * @exception StandardException thrown on failure
      */
     void setDefaultSchema(Activation a, SchemaDescriptor sd)
-        throws StandardException;
+    ;
 
     /**
      * Reset any occurence of schemaName as current default schema in
@@ -568,7 +568,7 @@ public interface LanguageConnectionContext extends Context {
      * @throws StandardException
      */
     void resetSchemaUsages(Activation activation, String schemaName)
-        throws StandardException;
+    ;
 
     /**
      *    Get the current schema name (at compile-time, see explanations for
@@ -576,7 +576,7 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return SchemaDescriptor    the current schema
      */
-    String getCurrentSchemaName() throws StandardException;
+    String getCurrentSchemaName();
 
     /**
      * Get the current schema name (at execution time, see explanations for
@@ -584,7 +584,7 @@ public interface LanguageConnectionContext extends Context {
      *
      * @return SchemaDescriptor    the current schema
      */
-    String getCurrentSchemaName(Activation a) throws StandardException;
+    String getCurrentSchemaName(Activation a);
 
 
     /**
@@ -692,7 +692,7 @@ public interface LanguageConnectionContext extends Context {
      *
      */
     StatementContext pushStatementContext(boolean isAtomic, boolean isForReadOnly, String stmtText,
-        ParameterValueSet pvs, boolean rollbackParentContext, long timeoutMillis) throws StandardException;
+        ParameterValueSet pvs, boolean rollbackParentContext, long timeoutMillis);
 
     /**
      * Pop a StatementContext of the context stack.
@@ -857,7 +857,7 @@ public interface LanguageConnectionContext extends Context {
     /**
      * Returns the Database id of this connection
      */
-    UUID getDatabaseId() throws StandardException;
+    UUID getDatabaseId();
 
     /**
      * Returns true if isolation level has been set using JDBC/SQL.
@@ -1171,19 +1171,17 @@ public interface LanguageConnectionContext extends Context {
 
     /**
      * Set the current role
-     *
-     * @param a activation of set role statement
+     *  @param a activation of set role statement
      * @param role  the id of the role to be set to current
      */
-    void setCurrentRole(Activation a, String role) throws StandardException;
+    void setCurrentRole(Activation a, String role);
 
     /**
      * Set the current role
-     *
-     * @param a activation of set role statement
+     *  @param a activation of set role statement
      * @param roles  the list of roles to be set to current
      */
-    public void setCurrentRoles(Activation a, List<String> roles) throws StandardException;
+    public void setCurrentRoles(Activation a, List<String> roles);
 
     /**
      * Get the current set of roles of the dynamic
@@ -1192,7 +1190,7 @@ public interface LanguageConnectionContext extends Context {
      * @param a activation of statement needing current role
      * @return List of roleids
      */
-    List<String> getCurrentRoles(Activation a) throws StandardException;
+    List<String> getCurrentRoles(Activation a);
 
     /**
      * Removes all revoked roles from the list of current roles of the dynamic
@@ -1219,7 +1217,7 @@ public interface LanguageConnectionContext extends Context {
      * @return String of the group user list in delimited form
      * @throws StandardException
      */
-    String getCurrentGroupUserDelimited(Activation a) throws StandardException;
+    String getCurrentGroupUserDelimited(Activation a);
 
     /**
      * Checks whether the given role can be legally set for the current user.
@@ -1242,7 +1240,7 @@ public interface LanguageConnectionContext extends Context {
      * @param roleName role name for the role to remove from session's current role list.
      * @throws StandardException
      */
-    public void removeRole(Activation a, String roleName) throws StandardException;
+    public void removeRole(Activation a, String roleName);
 
     /**
      *
@@ -1250,7 +1248,7 @@ public interface LanguageConnectionContext extends Context {
      * @param rolesToRemove a list of roles to remove from session's current role list.
      * @throws StandardException
      */
-    public void removeRoles(Activation a, List<String> rolesToRemove) throws StandardException;
+    public void removeRoles(Activation a, List<String> rolesToRemove);
 
     /**
      * Create a new SQL session context for the current activation on the basis
@@ -1280,7 +1278,7 @@ public interface LanguageConnectionContext extends Context {
     /**
      * Get the value of top level session context of the top level connection.
      */
-    SQLSessionContext getTopLevelSQLSessionContext() throws StandardException;
+    SQLSessionContext getTopLevelSQLSessionContext();
 
     /**
      * Used when a statement as part of its operation executes an other
@@ -1310,7 +1308,7 @@ public interface LanguageConnectionContext extends Context {
      * Create a fresh SQLSessionContext for this connection.
      * @return new SQLSessionContext
      */
-    SQLSessionContext createSQLSessionContext() throws StandardException;
+    SQLSessionContext createSQLSessionContext();
 
     /**
      * Debug method for remembering the last query tree.

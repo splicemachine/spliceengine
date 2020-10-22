@@ -169,7 +169,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation){
+    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         OperationContext<Op> operationContext=new ControlOperationContext<>(spliceOperation);
         spliceOperation.setOperationContext(operationContext);
         if(permissive){

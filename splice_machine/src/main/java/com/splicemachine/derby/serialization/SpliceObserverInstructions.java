@@ -30,8 +30,6 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.kryo.KryoObjectInput;
-import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -113,7 +111,7 @@ public class SpliceObserverInstructions implements Externalizable{
         }
     }
 
-    public static SpliceObserverInstructions create(ActivationHolder holder) throws StandardException {
+    public static SpliceObserverInstructions create(ActivationHolder holder) {
         ActivationContext activationContext=ActivationContext.create(holder);
         LanguageConnectionContext lcc=holder.getActivation().getLanguageConnectionContext();
         TriggerExecutionStack triggerExecutionStack=null;
@@ -227,7 +225,7 @@ public class SpliceObserverInstructions implements Externalizable{
             in.readFully(activationData);
         }
 
-        public Activation populateActivation(ActivationHolder holder,GenericStorablePreparedStatement statement) throws StandardException{
+        public Activation populateActivation(ActivationHolder holder,GenericStorablePreparedStatement statement) {
             try{
                 KryoPool kryoPool=SpliceKryoRegistry.getInstance();
                 Kryo kryo=kryoPool.get();
