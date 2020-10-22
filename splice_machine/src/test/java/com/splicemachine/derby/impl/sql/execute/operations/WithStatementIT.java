@@ -23,6 +23,7 @@ import org.junit.rules.TestRule;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -109,9 +110,8 @@ public class WithStatementIT extends SpliceUnitTest {
 
         @Override
         public void run() {
-            try {
-                connection.createStatement().executeQuery(
-                        format("with %s as (select * from t12) select * from %s", viewName, viewName));
+            try (Statement s = connection.createStatement()){
+                s.executeQuery(format("with %s as (select * from t12) select * from %s", viewName, viewName));
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
