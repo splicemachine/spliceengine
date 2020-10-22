@@ -50,6 +50,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected SpliceDatabase database;
     protected LanguageConnectionContext lcc;
     protected String ipAddress;
+    private boolean updated = false;
 
     public SpliceTransactionResourceImpl() throws SQLException{ // XXX(arnaud multidb) Remove this one and properly pass the right DB
         this(DatabaseDescriptor.STD_DB_NAME);
@@ -83,17 +84,17 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         }
     }
 
-    public boolean marshallTransaction(TxnView txn) throws StandardException, SQLException {
-        return this.marshallTransaction(txn, null);
+    public void marshallTransaction(TxnView txn) throws StandardException, SQLException {
+        this.marshallTransaction(txn, null);
     }
 
-    public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache) throws StandardException, SQLException {
-        return this.marshallTransaction(txn, propertyCache, null, null, null);
+    public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache) throws StandardException, SQLException {
+        this.marshallTransaction(txn, propertyCache, null, null, null);
     }
 
-    public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
+    public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
                                        TransactionController reuseTC, String localUserName, Integer sessionNumber) throws StandardException, SQLException{
-        boolean updated = false;
+        assert !updated;
         try {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s", txn);
@@ -115,7 +116,6 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                                                            false, -1, ipAddress,
                                                             reuseTC);
 
-            return true;
         } catch (Throwable t) {
             LOG.error("Exception during marshallTransaction", t);
             if (updated)
@@ -126,8 +126,11 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
 
     public void close(){
-        csf.resetCurrentContextManager(cm);
-        csf.removeContextManager(cm);
+        if (updated) {
+            csf.resetCurrentContextManager(cm);
+            csf.removeContextManager(cm);
+            updated = false;
+        }
     }
 
     public LanguageConnectionContext getLcc(){
