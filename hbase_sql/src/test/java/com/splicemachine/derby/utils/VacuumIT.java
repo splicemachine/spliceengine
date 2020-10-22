@@ -112,18 +112,16 @@ public class VacuumIT extends SpliceUnitTest{
             .around(spliceTableIWatcher)
             .around(spliceTableJWatcher);
 
-    @Before
+    @BeforeClass
     public static void setUpClass() throws Exception {
-        SpliceWatcher methodWatcher = new SpliceWatcher(null);
-        // check other tests didn't leave transactions open, which is bad for Vacuum tests
-        String name = "A test before VacuumIT"; // ... failed to close transactions
-        SpliceUnitTest.waitForStaleTransactions(methodWatcher, name, 10 );
-
-        // vacuum leftovers from other tests
-        try (CallableStatement callableStatement = methodWatcher.prepareCall("call SYSCS_UTIL.VACUUM()")) {
-            callableStatement.execute();
+        try(SpliceWatcher methodWatcher = new SpliceWatcher(null)) {
+            LOG.info("check other tests didn't leave transactions open, which is bad for Vacuum tests.");
+            String name = "A test before VacuumIT"; // ... failed to close transactions
+            SpliceUnitTest.waitForStaleTransactions(methodWatcher, name, 10, true);
+            LOG.info("done. vacuum leftovers from other tests..");
+            methodWatcher.execute("call SYSCS_UTIL.VACUUM()");
+            LOG.info("done.");
         }
-        methodWatcher.closeAll();
     }
 
     @Test
@@ -544,7 +542,6 @@ public class VacuumIT extends SpliceUnitTest{
 
     @Test
     public void testVacuumDisabledTable() throws Exception {
-        setUpClass();
         Connection connection = spliceClassWatcher.getOrCreateConnection();
         long[] conglomerateNumber = SpliceAdmin.getConglomNumbers(connection, CLASS_NAME, TABLEA);
         String conglomerateString = Long.toString(conglomerateNumber[0]);

@@ -47,9 +47,9 @@ public class TimestampIT extends SpliceUnitTest {
     private static final String SCHEMA = TimestampIT.class.getSimpleName().toUpperCase();
     private Boolean useSpark;
     private static boolean extendedTimestamps = true;
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
-    protected static SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+    protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
+    protected static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    protected static final SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     private static File BADDIR;
 
@@ -255,14 +255,12 @@ public class TimestampIT extends SpliceUnitTest {
         ps.setTimestamp(3, new Timestamp(3 - 1900/*year*/, 0 /*month-1*/, 1 /*day*/, 0 /*hour*/, 0/*minute*/, 0 /*second*/, 0 /*nano*/));
         ps.setTimestamp(4, new Timestamp(4 - 1900/*year*/, 0 /*month-1*/, 1 /*day*/, 0 /*hour*/, 0/*minute*/, 0 /*second*/, 0 /*nano*/));
 
-        try {
-            ResultSet rs = ps.executeQuery();
+        try (ResultSet rs = ps.executeQuery()) {
             int i = 0;
             while (rs.next()) {
                 i++;
             }
             Assert.assertEquals("Incorrect count returned!", 4, i);
-            rs.close();
         }
         catch (SQLException e) {
             if (extendedTimestamps)

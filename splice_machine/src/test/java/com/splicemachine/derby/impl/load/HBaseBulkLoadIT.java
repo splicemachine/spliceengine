@@ -89,17 +89,17 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
             BULKLOADDIR = SpliceUnitTest.createBulkLoadDirectory(SCHEMA_NAME).getCanonicalPath();
 
             TestUtils.executeSqlFile(spliceClassWatcher, "tcph/TPCHIT.sql", SCHEMA_NAME);
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), BULKLOADDIR)).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), BULKLOADDIR)).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), BULKLOADDIR)).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"), BULKLOADDIR)).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"), BULKLOADDIR)).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PART, getResource("part.tbl"), BULKLOADDIR)).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), BULKLOADDIR)).execute();
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), BULKLOADDIR)).execute();
+            spliceClassWatcher.execute(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, LINEITEM, getResource("lineitem.tbl"), BULKLOADDIR));
+            spliceClassWatcher.execute(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, ORDERS, getResource("orders.tbl"), BULKLOADDIR));
+            spliceClassWatcher.execute(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, CUSTOMERS, getResource("customer.tbl"), BULKLOADDIR));
+            spliceClassWatcher.execute(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PARTSUPP, getResource("partsupp.tbl"), BULKLOADDIR));
+            spliceClassWatcher.execute(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, SUPPLIER, getResource("supplier.tbl"), BULKLOADDIR));
+            spliceClassWatcher.execute(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, PART, getResource("part.tbl"), BULKLOADDIR));
+            spliceClassWatcher.execute(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, NATION, getResource("nation.tbl"), BULKLOADDIR));
+            spliceClassWatcher.execute(format("call SYSCS_UTIL.BULK_IMPORT_HFILE('%s','%s',null,'%s','|','\"',null,null,null,0,null,true,null, '%s', false)", SCHEMA_NAME, REGION, getResource("region.tbl"), BULKLOADDIR));
 
-            spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
-            spliceClassWatcher.prepareStatement(format("create table A(c varchar(200))"));
+            spliceClassWatcher.execute(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME));
+            spliceClassWatcher.execute(format("create table A(c varchar(200))"));
             // validate
             assertEquals(9958L, (long) spliceClassWatcher.query("select count(*) from " + LINEITEM));
             assertEquals(2500L, (long) spliceClassWatcher.query("select count(*) from " + ORDERS));
@@ -109,7 +109,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
             assertEquals(333L, (long) spliceClassWatcher.query("select count(*) from " + PART));
             assertEquals(25L, (long) spliceClassWatcher.query("select count(*) from " + NATION));
             assertEquals(5L, (long) spliceClassWatcher.query("select count(*) from " + REGION));
-            spliceClassWatcher.prepareStatement("CREATE TABLE LINEITEM4 (\n" +
+            spliceClassWatcher.execute("CREATE TABLE LINEITEM4 (\n" +
                     "  L_ORDERKEY      BIGINT NOT NULL,\n" +
                     "  L_PARTKEY       INTEGER NOT NULL,\n" +
                     "  L_SUPPKEY       INTEGER NOT NULL,\n" +
@@ -127,7 +127,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
                     "  L_SHIPMODE      CHAR(10),\n" +
                     "  L_COMMENT       VARCHAR(44),\n" +
                     "  PRIMARY KEY (L_ORDERKEY, L_LINENUMBER)\n" +
-                    ")").execute();
+                    ")");
         }
         catch (Exception e) {
             java.lang.Throwable ex = Throwables.getRootCause(e);
@@ -165,18 +165,20 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
         String sql = String.format("delete from %s --splice-properties bulkDeleteDirectory='%s',index=%s", tableName, BULKLOADDIR,
                 indexName!=null?indexName:"null");
         spliceClassWatcher.execute(sql);
-        ResultSet rs = spliceClassWatcher.executeQuery(String.format("select count(*) from %s", tableName));
-        rs.next();
-        int count = rs.getInt(1);
-        Assert.assertTrue(count==0);
+        try(ResultSet rs = spliceClassWatcher.executeQuery(String.format("select count(*) from %s", tableName))) {
+            rs.next();
+            int count = rs.getInt(1);
+            Assert.assertTrue(count == 0);
+        }
     }
 
     private static void countUsingIndex(String tableName, String indexName) throws Exception {
-        ResultSet rs = spliceClassWatcher.executeQuery(
-                String.format("select count(*) from %s --splice-properties index=%s", tableName, indexName));
-        rs.next();
-        int count = rs.getInt(1);
-        Assert.assertTrue(count==0);
+        try(ResultSet rs = spliceClassWatcher.executeQuery(
+                String.format("select count(*) from %s --splice-properties index=%s", tableName, indexName))) {
+            rs.next();
+            int count = rs.getInt(1);
+            Assert.assertTrue(count == 0);
+        }
     }
 
     @Test
@@ -334,7 +336,7 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
             return;
         String sql = getContent("13.sql");
         executeQuery(sql, getContent("13.expected.txt"), true);
-        assertSubqueryNodeCount(conn(), sql, ZERO_SUBQUERY_NODES);
+        assertSubqueryNodeCount(methodWatcher, sql, ZERO_SUBQUERY_NODES);
     }
 
     @Test
@@ -615,14 +617,14 @@ public class HBaseBulkLoadIT extends SpliceUnitTest {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void executeQuery(String query, String expected, boolean isResultSetOrdered) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
+        try(ResultSet resultSet = methodWatcher.executeQuery(query)) {
+            // If the ResultSet is NOT ordered (no order by clause in query) then sort it before comparing to expected result.
+            // When we don't sort we are assuming the order by clause gives the ResultSet a unique order-- seems to be
+            // the case for this data set (no duplicates in result set order by columns).
+            boolean sort = !isResultSetOrdered;
 
-        // If the ResultSet is NOT ordered (no order by clause in query) then sort it before comparing to expected result.
-        // When we don't sort we are assuming the order by clause gives the ResultSet a unique order-- seems to be
-        // the case for this data set (no duplicates in result set order by columns).
-        boolean sort = !isResultSetOrdered;
-
-        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.convert("", resultSet, sort).toString().trim());
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.convert("", resultSet, sort).toString().trim());
+        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -77,9 +77,10 @@ public class TestUtils {
             for (String s : str.split(";")) {
                 String trimmed = s.trim();
                 if (!trimmed.equals("")) {
-                    Statement stmt = connection.createStatement();
-                    stmt.execute(s);
-                    connection.commit();
+                    try(Statement stmt = connection.createStatement()) {
+                        stmt.execute(s);
+                        connection.commit();
+                    }
                 }
             }
         } catch (Exception e) {

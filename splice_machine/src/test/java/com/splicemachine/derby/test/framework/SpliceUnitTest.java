@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
+import org.apache.log4j.Logger;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.runner.Description;
@@ -1025,11 +1026,20 @@ public class SpliceUnitTest {
         }
     }
 
-    public static void waitForStaleTransactions(SpliceWatcher methodWatcher, String name, int numSeconds) throws Exception
+    /**
+     * check if there's any transactions still open
+     * if getOldestActiveTransaction is two times the same in a row, there's a stale transaction
+     * otherwise, we will get every time different ids since also the CALL SYSUTIL_... will open a mini-transaction
+     *
+     * Note that this is only correct if the test ends and nothing else is running anymore
+     * (e.g. @Category({SerialTest.class}) ). Because of this, the default should be failOnError = false.
+     */
+    public static void waitForStaleTransactions(SpliceWatcher methodWatcher, String name, int numSeconds,
+                                                boolean failOnError) throws Exception
     {
-        // wait for other transactions to finish
-        // if getOldestActiveTransaction is two times the same in a row, there's a stale transaction
-        // otherwise, we will get every time different ids since also the CALL SYSUTIL_... will open a mini-transaction
+        Logger LOG = Logger.getLogger("SpliceUnitTest");
+        LOG.info("checking for stale transactions");
+
         int oldest1 = getOldestActiveTransaction(methodWatcher);
         for(int i=0; i < numSeconds; i++) {
             int oldest2 = getOldestActiveTransaction(methodWatcher);
@@ -1038,7 +1048,13 @@ public class SpliceUnitTest {
             Thread.sleep(1000);
             oldest1 = oldest2;
         }
-        Assert.fail(name + " failed to close all transactions.");
+        if( failOnError ) {
+            Assert.fail(name + " failed to close all transactions.");
+        }
+        else {
+            LOG.info("WARNING: " + name + " failed to close all transactions. This might be due to multiple " +
+                    "tests running in parallel.");
+        }
     }
 
     public static int getOldestActiveTransaction(SpliceWatcher methodWatcher) throws SQLException {
@@ -1052,7 +1068,7 @@ public class SpliceUnitTest {
     @AfterClass
     public static void waitForStaleTransactions() throws Exception {
         SpliceWatcher methodWatcher = new SpliceWatcher(null);
-        waitForStaleTransactions(methodWatcher, "Test", 5);
+        waitForStaleTransactions(methodWatcher, "Test", 5, true);
         methodWatcher.closeAll();
     }
 }

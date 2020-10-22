@@ -250,11 +250,12 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
      */
     public <T> T query(String sql) throws Exception {
         T result;
-        ResultSet rs = executeQuery(sql);
-        assertTrue("does not have next",rs.next());
-        result = (T) rs.getObject(1);
-        assertFalse(rs.next());
-        return result;
+        try(ResultSet rs = executeQuery(sql)) {
+            assertTrue("does not have next", rs.next());
+            result = (T) rs.getObject(1);
+            assertFalse(rs.next());
+            return result;
+        }
     }
 
     public int executeUpdate(String sql) throws Exception {
@@ -321,20 +322,19 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
     }
 
     public void splitTable(String tableName, String schemaName) throws Exception {
-        long conglom = getConglomId(tableName,schemaName);
-//        ConglomerateUtils.splitConglomerate(getConglomId(tableName,schemaName));
+        getConglomId(tableName,schemaName);
     }
 
     public long getConglomId(String tableName, String schemaName) throws Exception {
-           /*
-            * This is a needlessly-complicated and annoying way of doing this,
-	        * because *when it was written*, the metadata information was kind of all messed up
-	        * and doing a join between systables and sysconglomerates resulted in an error. When you are
-	        * looking at this code and going WTF?!? feel free to try cleaning up the SQL. If you get a bunch of
-	        * wonky errors, then we haven't fixed the underlying issue yet. If you don't, then you just cleaned up
-	        * some ugly-ass code. Good luck to you.
-	        *
-	        */
+        /*
+         * This is a needlessly-complicated and annoying way of doing this,
+         * because *when it was written*, the metadata information was kind of all messed up
+         * and doing a join between systables and sysconglomerates resulted in an error. When you are
+         * looking at this code and going WTF?!? feel free to try cleaning up the SQL. If you get a bunch of
+         * wonky errors, then we haven't fixed the underlying issue yet. If you don't, then you just cleaned up
+         * some ugly-ass code. Good luck to you.
+         *
+         */
         PreparedStatement ps = prepareStatement("select c.conglomeratenumber from " +
                 "sys.systables t, sys.sysconglomerates c,sys.sysschemas s " +
                 "where t.tableid = c.tableid " +
@@ -344,11 +344,12 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
                 "and s.schemaname = ?");
         ps.setString(1, tableName);
         ps.setString(2, schemaName);
-        ResultSet rs = ps.executeQuery();
-        if (rs.next()) {
-            return rs.getLong(1);
-        } else {
-            LOG.warn("Unable to find the conglom id for table  " + tableName);
+        try (ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getLong(1);
+            } else {
+                LOG.warn("Unable to find the conglom id for table  " + tableName);
+            }
         }
         return -1l;
     }
