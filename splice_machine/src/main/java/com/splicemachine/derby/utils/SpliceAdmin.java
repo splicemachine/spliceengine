@@ -52,7 +52,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
-import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.hbase.JMXThreadPool;
@@ -81,6 +80,7 @@ import splice.com.google.common.net.HostAndPort;
 import javax.management.MalformedObjectNameException;
 import javax.management.remote.JMXConnector;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.security.SecureRandom;
 import java.sql.*;
 import java.text.SimpleDateFormat;
@@ -1924,6 +1924,49 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
         }
         return rows;
+    }
+
+    public static void LIST_DIRECTORY(String location, final ResultSet[] resultSet) throws SQLException, IOException, URISyntaxException {
+        DistributedFileSystem  fs = null;
+        try {
+            fs = SIDriver.driver().getFileSystem(location);
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        try {
+            FileInfo fi1 = fs.getInfo(location);
+            if( fi1.exists() == false ) {
+                throw ErrorState.LANG_FILE_DOES_NOT_EXIST.newException(location);
+            }
+
+            FileInfo files[] = fi1.listDir();
+            Arrays.sort(files, (a, b) -> a.fileName().compareTo(b.fileName()) );
+
+            int maxLen = Arrays.stream(files).map(f -> f.fileName().length()).max(Integer::compareTo).get();
+
+            ResultHelper resultHelper = new ResultHelper();
+
+            ResultHelper.VarcharColumn ownerCol     = resultHelper.addVarchar("OWNER", 10);
+            ResultHelper.VarcharColumn groupCol     = resultHelper.addVarchar("GROUP", 10);
+            ResultHelper.TimestampColumn modtimeCol = resultHelper.addTimestamp("MODTIME", 30);
+            ResultHelper.BigintColumn  sizeCol      = resultHelper.addBigint("SIZE", 10);
+            ResultHelper.VarcharColumn permCol      = resultHelper.addVarchar("PERM", 12);
+            ResultHelper.VarcharColumn pathCol      = resultHelper.addVarchar("PATH", Math.max(10, maxLen+2) );
+            for (FileInfo fi : files )
+            {
+                resultHelper.newRow();
+                pathCol.set(fi.fileName());
+                ownerCol.set(fi.getUser());
+                groupCol.set(fi.getGroup());
+                modtimeCol.set( fi.getModificationTime() == 0 ? null : new DateTime(fi.getModificationTime()) );
+                sizeCol.set(fi.size());
+                permCol.set((fi.isDirectory() ? "d" : "-") + fi.getPermissionStr());
+            }
+            resultSet[0] = resultHelper.getResultSet();
+        } catch (IOException | StandardException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
     }
 
     public static void SYSCS_GET_RUNNING_OPERATIONS_LOCAL(final ResultSet[] resultSet) throws SQLException{

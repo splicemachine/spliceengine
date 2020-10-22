@@ -35,7 +35,7 @@ public interface FileInfo{
      * since requiring a full recursive listdir
      * If just need to check for empty directory, use {@link #isEmptyDirectory()}
      */
-    long fileCount();
+    long recursiveFileCount();
 
 
     /**
@@ -43,7 +43,7 @@ public interface FileInfo{
      * Depends on the file system. For HDFS, this would return
      * not the current size of the file but rather
      * current size * replication factor. For a local system,
-     * it would return the same value as {@link #size()},
+     * it would return the same value as {@link #recursiveSize()},
      * the actual current size of the file.
      * Note: this is SLOW on big directory trees when using remote filesystems like S3,
      * since requiring a full recursive listdir
@@ -53,13 +53,14 @@ public interface FileInfo{
     /**
      * list recursively all files
      */
-    FileInfo[] listRecursive();
+    FileInfo[] listFilesRecursive();
+    FileInfo[] listDir();
 
     /**
      *  Note: this is SLOW on big directory trees when using remote filesystems like S3,
      * since requiring a full recursive listdir
      */
-    long size();
+    long recursiveSize();
 
     boolean isReadable();
 
@@ -72,4 +73,8 @@ public interface FileInfo{
     String toSummary();
 
     boolean exists();
+
+    String getPermissionStr();
+    public long getModificationTime();
+    public long size();
 }
