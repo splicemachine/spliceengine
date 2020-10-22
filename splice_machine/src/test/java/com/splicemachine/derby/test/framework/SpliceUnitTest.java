@@ -1068,6 +1068,7 @@ public class SpliceUnitTest {
      *
      * Note that this is only correct if the test ends and nothing else is running anymore
      * (e.g. @Category({SerialTest.class}) ). Because of this, the default should be failOnError = false.
+     * @param failOnError if true, fail on error (don't do this on parallel tests). otherwise, just LOG.
      */
     public static void waitForStaleTransactions(SpliceWatcher methodWatcher, String name, int numSeconds,
                                                 boolean failOnError) throws Exception
@@ -1087,6 +1088,8 @@ public class SpliceUnitTest {
             Assert.fail(name + " failed to close all transactions.");
         }
         else {
+            // if you see this error, this is a hint that something might be left open, especially if you see
+            // multiple of these messages. turn failOnError=true and check tests one by one.
             LOG.info("WARNING: " + name + " failed to close all transactions. This might be due to multiple " +
                 "tests running in parallel.");
         }
@@ -1103,7 +1106,10 @@ public class SpliceUnitTest {
     @AfterClass
     public static void waitForStaleTransactions() throws Exception {
         SpliceWatcher methodWatcher = new SpliceWatcher(null);
-        waitForStaleTransactions(methodWatcher, "Test", 5, true);
+        // for parallel running tests waitForStaleTransactions might report false positives,
+        // but you can set this to true if you're checking the tests one by one manually.
+        boolean failOnError = false;
+        waitForStaleTransactions(methodWatcher, "Test", 5, failOnError);
         methodWatcher.closeAll();
     }
 }
