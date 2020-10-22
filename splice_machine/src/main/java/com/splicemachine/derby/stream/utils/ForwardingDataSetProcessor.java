@@ -96,7 +96,7 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) throws StandardException {
+    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         return delegate.createOperationContext(spliceOperation);
     }
 
