@@ -151,7 +151,7 @@ public class LimitOffsetVisitorIT extends SpliceUnitTest {
 
     @Test
     public void limitOverIndexLookupOnOLTP() throws Exception {
-        rowContainsQuery(new int[]{1},"explain select top 10 * from B --splice-properties index=BIX\n",methodWatcher,
+        rowContainsQuery(new int[]{1},"explain select top 10 * from B --splice-properties index=BIX, useDefaultRowCount=1000000000\n",methodWatcher,
                 "OLTP");
     }
 

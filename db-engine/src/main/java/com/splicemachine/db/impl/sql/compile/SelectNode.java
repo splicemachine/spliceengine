@@ -1480,13 +1480,14 @@ public class SelectNode extends ResultSetNode{
         }
         if (topNode == this) {
             /* Entering this branch means we are not generating RowCountNode for modifying access path.
-             * In this case, do not generate the RowCountNode if any of the following cases:
+             * In this case, do not generate the RowCountNode in any of the following cases:
              * 1. GroupByNode is needed later
              * 2. OrderByNode is needed later
              * 3. DistinctNode is needed or distinct scan is possible, i.e., isDistinct == true
              * 4. WindowResultSetNode is needed later
              * 5. Not a single table scan
              * It is necessary because the semantic of RowCountNode does not propagate down across these nodes.
+             * LimitOffsetVisitor will handle other blocking operators.
              */
             boolean needGroupBy = (selectAggregates != null && !selectAggregates.isEmpty()) || groupByList != null;
             boolean needOrderBy = orderByList != null && orderByList.isSortNeeded();
