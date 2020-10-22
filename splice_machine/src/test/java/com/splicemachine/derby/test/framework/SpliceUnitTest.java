@@ -14,7 +14,6 @@
 
 package com.splicemachine.derby.test.framework;
 
-import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.io.FileUtils;
@@ -27,6 +26,7 @@ import org.spark_project.guava.base.Joiner;
 import java.io.*;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -122,10 +122,11 @@ public class SpliceUnitTest {
             Path us = Paths.get(userDir);
             nioPath = Paths.get(us.toString(),"splice_machine");
             if(!Files.exists(nioPath)){
-             /* Try to go up and to the left. If it's not
-             * there, then we are screwed anyway, so just go with it
-             */
+                /* Try to go up and to the left. If it's not
+                 * there, then we are screwed anyway, so just go with it
+                 */
                 Path parent=Paths.get(userDir).getParent();
+                if(parent == null) throw new RuntimeException("path " + userDir + " not found");
                 nioPath=Paths.get(parent.toString(),"splice_machine");
             }
         }
@@ -169,16 +170,17 @@ public class SpliceUnitTest {
             Path us = Paths.get(userDir);
             nioPath = Paths.get(us.toString(),"platform_it");
             if(!Files.exists(nioPath)){
-             /* Try to go up and to the left. If it's not
-             * there, then we are screwed anyway, so just go with it
-             */
+                /* Try to go up and to the left. If it's not
+                 * there, then we are screwed anyway, so just go with it
+                 */
                 Path parent=Paths.get(userDir).getParent();
+                if(parent == null) throw new RuntimeException("path " + userDir + " not found");
                 nioPath=Paths.get(parent.toString(),"platform_it");
             }
         }
         return nioPath.toString();
     }
-    
+
     public static String getHiveWarehouseDirectory() {
         return getHBaseDirectory()+"/user/hive/warehouse";
     }
@@ -219,7 +221,7 @@ public class SpliceUnitTest {
                 for(int level : levels){
                     if(level==i){
                         Assert.assertTrue("failed query at level ("+level+"): \n"+query+"\nExpected: "+contains[k]+"\nWas: "
-                                              +resultSet.getString(1),resultSet.getString(1).contains(contains[k]));
+                                +resultSet.getString(1),resultSet.getString(1).contains(contains[k]));
                         k++;
                     }
                 }
@@ -441,8 +443,8 @@ public class SpliceUnitTest {
     }
 
     protected void testQueryDoesNotContain(String sqlText, String containedString,
-                                     SpliceWatcher methodWatcher,
-                                     boolean caseInsensitive) throws Exception {
+                                           SpliceWatcher methodWatcher,
+                                           boolean caseInsensitive) throws Exception {
         ResultSet rs = null;
         try {
             rs = methodWatcher.executeQuery(sqlText);
@@ -561,21 +563,20 @@ public class SpliceUnitTest {
      * @throws SQLException Error accessing the database.
      */
     public void assertTableRowCount(String table, int rowCount, Statement s)
-       throws SQLException, AssertionError
+            throws SQLException, AssertionError
     {
-        ResultSet rs = s.executeQuery(
-                "SELECT COUNT(*) FROM " + table);
-        rs.next();
-        assertEquals(table + " row count:",
-            rowCount, rs.getInt(1));
-        rs.close();
+        try( ResultSet rs = s.executeQuery("SELECT COUNT(*) FROM " + table) ) {
+            rs.next();
+            assertEquals(table + " row count:",
+                    rowCount, rs.getInt(1));
+        }
     }
 
     public static void assertUpdateCount(Statement st,
-        int expectedRC, String sql) throws SQLException, AssertionError
+                                         int expectedRC, String sql) throws SQLException, AssertionError
     {
         assertEquals("Update count does not match:",
-            expectedRC, st.executeUpdate(sql));
+                expectedRC, st.executeUpdate(sql));
     }
 
     public static class Contains {
@@ -599,8 +600,8 @@ public class SpliceUnitTest {
 
     protected static void importData(SpliceWatcher methodWatcher, String schema,String tableName, String fileName) throws Exception {
         String file = SpliceUnitTest.getResourceDirectory()+ fileName;
-        PreparedStatement ps = methodWatcher.prepareStatement(String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s',',',null,null,null,null,1,null,true,'utf-8')", schema, tableName, null, file));
-        ps.executeQuery();
+        String sql = String.format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s',',',null,null,null,null,1,null,true,'utf-8')", schema, tableName, null, file);
+        methodWatcher.execute(sql);
     }
 
     protected static void validateImportResults(ResultSet resultSet, int good,int bad) throws SQLException {
@@ -691,8 +692,12 @@ public class SpliceUnitTest {
         File importFileDirectory = new File(getHBaseDirectory() + "/target/import_data/"+schemaName);
         if (importFileDirectory.exists()) {
             //noinspection ConstantConditions
-            for (File file : importFileDirectory.listFiles()) {
-                assertTrue("Couldn't create "+file,file.delete());
+            File[] files = importFileDirectory.listFiles();
+            if( files != null ) {
+                for (File file : files) {
+                    if (file != null)
+                        assertTrue("Couldn't create " + file, file.delete());
+                }
             }
             assertTrue("Couldn't create "+importFileDirectory,importFileDirectory.delete());
         }
@@ -764,7 +769,7 @@ public class SpliceUnitTest {
 
 
     public static SpliceUnitTest.TestFileGenerator generatePartialRow(File directory, String fileName, int size,
-                                                                       List<int[]> fileData) throws IOException {
+                                                                      List<int[]> fileData) throws IOException {
         SpliceUnitTest.TestFileGenerator generator = new SpliceUnitTest.TestFileGenerator(directory, fileName);
         try {
             for (int i = 0; i < size; i++) {
@@ -779,8 +784,8 @@ public class SpliceUnitTest {
     }
 
     public static SpliceUnitTest.TestFileGenerator generateFullRow(File directory, String fileName, int size,
-                                                                        List<int[]> fileData,
-                                                                        boolean duplicateLast) throws IOException {
+                                                                   List<int[]> fileData,
+                                                                   boolean duplicateLast) throws IOException {
         return generateFullRow(directory,fileName,size,fileData,duplicateLast,false);
     }
 
@@ -810,6 +815,7 @@ public class SpliceUnitTest {
 
     public static boolean existsBadFile(File badDir, String prefix) {
         String[] files = badDir.list();
+        if( files == null ) return false;
         for (String file : files) {
             if (file.startsWith(prefix)) {
                 return true;
@@ -820,6 +826,7 @@ public class SpliceUnitTest {
 
     public static String getBadFile(File badDir, String prefix) {
         String[] files = badDir.list();
+        if( files == null ) return null;
         for (String file : files) {
             if (file.startsWith(prefix)) {
                 return file;
@@ -831,6 +838,7 @@ public class SpliceUnitTest {
     public static List<String> getAllBadFiles(File badDir, String prefix) {
         List<String> badFiles = new ArrayList<>();
         String[] files = badDir.list();
+        if( files == null ) return badFiles;
         for (String file : files) {
             if (file.startsWith(prefix)) {
                 badFiles.add(file);
@@ -855,7 +863,7 @@ public class SpliceUnitTest {
         public TestFileGenerator(File directory, String fileName) throws IOException {
             this.fileName = fileName+".csv";
             this.file = new File(directory, this.fileName);
-            this.writer =  new BufferedWriter(new FileWriter(file));
+            this.writer =  new BufferedWriter( (new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)));
             this.joiner = Joiner.on(",");
         }
 
@@ -940,8 +948,9 @@ public class SpliceUnitTest {
     }
 
     public static void assertFailed(Connection connection, String sql, String errorState) {
-        try {
-            connection.createStatement().execute(sql);
+        try(Statement s = connection.createStatement())
+        {
+            s.execute(sql);
             fail("Did not fail");
         } catch (Exception e) {
             assertTrue("Incorrect error type: " + e.getClass().getName(), e instanceof SQLException);
@@ -954,7 +963,8 @@ public class SpliceUnitTest {
     {
         File path = new File(getHBaseDirectory(), "/target/tmp/" + subpath);
         FileUtils.deleteDirectory(path); // clean directory
-        path.mkdirs();
+        if( !path.mkdirs() )
+            throw new RuntimeException("couldn't create " + path.toString());
         return path;
     }
 
@@ -1002,29 +1012,35 @@ public class SpliceUnitTest {
     }
 
     /// execute sql query 'sqlText' and expect an exception of certain state being thrown
-    public static void SqlExpectException( SpliceWatcher methodWatcher, String sqlText, String expectedState )
+    public static void sqlExpectException(SpliceWatcher methodWatcher, String sqlText, String expectedState, boolean update)
     {
         try {
-            ResultSet rs = methodWatcher.executeQuery(sqlText);
-            rs.close();
+            if( update )
+                methodWatcher.executeUpdate(sqlText);
+            else {
+                ResultSet rs = methodWatcher.executeQuery(sqlText);
+                rs.close();
+            }
             Assert.fail("Exception not thrown for " + sqlText);
 
         } catch (SQLException e) {
-            System.out.println( e );
             Assert.assertEquals("Wrong Exception for " + sqlText, expectedState, e.getSQLState());
+        } catch (Exception e) {
+            Assert.assertEquals("Wrong Exception for " + sqlText, expectedState, e.getClass().getName());
         }
     }
 
     /// execute sql query 'sqlText' and expect a certain formatted result
-    public static void SqlExpectToString( SpliceWatcher methodWatcher, String sqlText, String expected, boolean sort ) throws Exception
+    public static void sqlExpectToString(SpliceWatcher methodWatcher, String sqlText, String expected, boolean sort ) throws Exception
     {
         try( ResultSet rs = methodWatcher.executeQuery(sqlText) ) {
             String val = sort
                     ? TestUtils.FormattedResult.ResultFactory.toString(rs)
                     : TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
-            Assert.assertEquals(expected, val);
+            Assert.assertEquals(sqlText, expected, val);
         }
     }
+
 
     /**
      * check if there's any transactions still open
@@ -1053,7 +1069,7 @@ public class SpliceUnitTest {
         }
         else {
             LOG.info("WARNING: " + name + " failed to close all transactions. This might be due to multiple " +
-                    "tests running in parallel.");
+                "tests running in parallel.");
         }
     }
 

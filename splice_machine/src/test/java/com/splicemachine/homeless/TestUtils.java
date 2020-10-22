@@ -18,6 +18,7 @@ import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.utils.Pair;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.dbutils.BasicRowProcessor;
 import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
@@ -27,11 +28,13 @@ import org.spark_project.guava.collect.Lists;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.Serializable;
 import java.sql.*;
 import java.util.*;
 
 import static org.junit.Assert.assertEquals;
 
+@SuppressFBWarnings("SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE") // intentional
 public class TestUtils {
     private static final Logger LOG = Logger.getLogger(TestUtils.class);
 
@@ -301,8 +304,10 @@ public class TestUtils {
                                               "and t2.schemaid=t3.schemaid and t3.schemaname = '%s' and t2" +
                                               ".tablename = '%s' order by t1.conglomeratenumber desc",
                                           schemaName, tableName);
-        ResultSet rs = connection.createStatement().executeQuery(indexQuery);
-        return FormattedResult.ResultFactory.convert(indexQuery, rs);
+        try(Statement s = connection.createStatement();
+            ResultSet rs= s.executeQuery(indexQuery)) {
+            return FormattedResult.ResultFactory.convert(indexQuery, rs);
+        }
     }
 
     public static void killRunningOperations(SpliceWatcher spliceClassWatcher) throws Exception {
@@ -522,7 +527,7 @@ public class TestUtils {
 
     }
 
-    private static class ListComparator implements Comparator<List<String>> {
+    private static class ListComparator implements Comparator<List<String>>, Serializable {
         @Override
         public int compare(List<String> list1, List<String> list2) {
             for (int i = 0; i < list1.size(); i++) {
