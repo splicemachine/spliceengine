@@ -14,6 +14,7 @@
 
 package com.splicemachine.subquery;
 
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 
 import java.sql.Connection;
@@ -74,11 +75,23 @@ public class SubqueryITUtil {
     public static void assertSubqueryNodeCount(Connection connection,
                                                String query,
                                                int expectedSubqueryCountInPlan) throws Exception {
-        ResultSet rs2 = connection.createStatement().executeQuery("explain " + query);
-        String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs2);
-        assertEquals(expectedSubqueryCountInPlan, countSubqueriesInPlan(explainPlanText));
+        try(ResultSet rs2 = connection.createStatement().executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs2);
+            assertEquals(expectedSubqueryCountInPlan, countSubqueriesInPlan(explainPlanText));
+        }
     }
 
+    /**
+     * Assert that the plan for the specified query has the expected number of Subquery nodes.
+     */
+    public static void assertSubqueryNodeCount(SpliceWatcher watcher,
+                                               String query,
+                                               int expectedSubqueryCountInPlan) throws Exception {
+        try(ResultSet rs2 = watcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs2);
+            assertEquals(expectedSubqueryCountInPlan, countSubqueriesInPlan(explainPlanText));
+        }
+    }
     /**
      * Counts the number of Subquery nodes that appear in the explain plan text for a given query.
      */
