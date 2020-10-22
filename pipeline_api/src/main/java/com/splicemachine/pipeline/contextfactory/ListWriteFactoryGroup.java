@@ -79,4 +79,9 @@ public class ListWriteFactoryGroup implements WriteFactoryGroup{
     public boolean isEmpty(){
         return factories.isEmpty();
     }
+
+    @Override
+    public boolean hasDependentWrites() {
+        return false;
+    }
 }

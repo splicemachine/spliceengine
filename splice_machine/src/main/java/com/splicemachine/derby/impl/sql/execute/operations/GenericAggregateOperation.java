@@ -33,6 +33,8 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,6 +86,24 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 			       nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED;
 		}
 		public boolean nativeSparkUsed() { return nativeSparkUsed; }
+
+		@Override
+		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+				SpliceLogUtils.trace(LOG,"readExternal");
+				super.readExternal(in);
+				this.nativeSparkMode = CompilerContext.NativeSparkModeType.values()[in.readInt()];
+				this.aggregateContext = (AggregateContext)in.readObject();
+				source = (SpliceOperation)in.readObject();
+		}
+
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+				SpliceLogUtils.trace(LOG,"writeExternal");
+				super.writeExternal(out);
+				out.writeInt(nativeSparkMode.ordinal());
+				out.writeObject(aggregateContext);
+				out.writeObject(source);
+		}
 
 		@Override
 		public List<SpliceOperation> getSubOperations() {

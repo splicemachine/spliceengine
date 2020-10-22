@@ -30,6 +30,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Created by yxia on 12/3/19.
@@ -105,6 +107,22 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
     @Override
     public String prettyPrint(int indentLevel) {
         return "FullOuter"+super.prettyPrint(indentLevel);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        SpliceLogUtils.trace(LOG, "readExternal");
+        super.readExternal(in);
+        leftEmptyRowFunMethodName = readNullableString(in);
+        rightEmptyRowFunMethodName = readNullableString(in);
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        SpliceLogUtils.trace(LOG, "writeExternal");
+        super.writeExternal(out);
+        writeNullableString(leftEmptyRowFunMethodName, out);
+        writeNullableString(rightEmptyRowFunMethodName, out);
     }
 
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {

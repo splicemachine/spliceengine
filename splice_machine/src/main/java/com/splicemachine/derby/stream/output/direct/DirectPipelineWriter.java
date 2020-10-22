@@ -32,6 +32,7 @@ import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -45,18 +46,15 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     private final byte[] token;
     private TxnView txn;
     private final OperationContext opCtx;
-    private final boolean skipIndex;
-    protected String tableVersion;
 
     private RecordingCallBuffer<KVPair> writeBuffer;
 
-    public DirectPipelineWriter(long destConglomerate, TxnView txn, byte[] token, OperationContext opCtx, boolean skipIndex, String tableVersion){
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "intentional")
+    public DirectPipelineWriter(long destConglomerate, TxnView txn, byte[] token, OperationContext opCtx){
         this.destConglomerate=destConglomerate;
         this.txn=txn;
         this.token=token;
         this.opCtx=opCtx;
-        this.skipIndex=skipIndex;
-        this.tableVersion = tableVersion;
     }
 
     @Override
@@ -133,6 +131,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
         return txn;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "intentional")
     @Override
     public byte[] getToken() {
         return token;
