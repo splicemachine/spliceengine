@@ -1235,7 +1235,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
      * context via its parent activation.
      * @see com.splicemachine.db.iapi.sql.Activation#getSQLSessionContextForChildren
      */
-    public SQLSessionContext getSQLSessionContextForChildren() throws StandardException {
+    public SQLSessionContext getSQLSessionContextForChildren() {
         SQLSessionContext sessionContext = this.sqlSessionContextForChildren;
         if (sessionContext == null) {
             // if child session context not existent here, try parent.
@@ -1253,7 +1253,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     /**
      * @see com.splicemachine.db.iapi.sql.Activation#setupSQLSessionContextForChildren
      */
-    public SQLSessionContext setupSQLSessionContextForChildren(boolean push) throws StandardException {
+    public SQLSessionContext setupSQLSessionContextForChildren(boolean push) {
 
         if (push) {
             // Nested connection, so need to push a new context: SQL 2003,

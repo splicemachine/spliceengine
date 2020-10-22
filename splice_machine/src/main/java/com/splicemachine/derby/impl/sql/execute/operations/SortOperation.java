@@ -24,13 +24,9 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stream.function.KeyerFunction;
-import com.splicemachine.derby.stream.function.RowComparator;
-import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 

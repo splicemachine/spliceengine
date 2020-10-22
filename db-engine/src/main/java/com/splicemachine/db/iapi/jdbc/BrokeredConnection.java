@@ -35,9 +35,7 @@ import java.sql.*;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 /**
@@ -808,10 +806,6 @@ public abstract class BrokeredConnection implements EngineConnection
         catch (SQLException se) {
             notifyException(se);
             throw se;
-        } catch (StandardException se) {
-            SQLException s = PublicAPI.wrapStandardException(se);
-            notifyException(s);
-            throw s;
         }
     }
 

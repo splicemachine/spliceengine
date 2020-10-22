@@ -91,11 +91,7 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     @Override
         public void writeExternal(ObjectOutput out) throws IOException {
             if(activationHolder==null) {
-                try {
-                    activationHolder = new ActivationHolder(activation, op);
-                } catch (StandardException se) {
-                    throw new IOException(se);
-                }
+                activationHolder = new ActivationHolder(activation, op);
             }
             out.writeObject(activationHolder);
             out.writeInt(op.resultSetNumber());
