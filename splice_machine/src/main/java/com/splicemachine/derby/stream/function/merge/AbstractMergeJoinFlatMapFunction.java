@@ -111,7 +111,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
         }
 
         protected BufferedMergeJoinIterator(Iterator<ExecRow> sourceIterator) throws StandardException {
-            this.sourceIterator = Iterators.peekingIterator(sourceIterator);;
+            this.sourceIterator = Iterators.peekingIterator(sourceIterator);
             joinOperation = getOperation();
             initialized = true;
             fillBuffer();
@@ -442,7 +442,6 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             rightIterator = Collections.emptyIterator();
         else {
             rightSide = joinOperation.getRightOperation();
-            rightSide.reset();
             DataSetProcessor dsp = useOldMergeJoin ?
                 EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide) :
                 EngineDriver.driver().processorFactory().chooseProcessor(getOperation().getActivation(), rightSide);
