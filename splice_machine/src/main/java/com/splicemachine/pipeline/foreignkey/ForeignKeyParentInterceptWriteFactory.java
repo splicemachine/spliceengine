@@ -14,13 +14,13 @@
 
 package com.splicemachine.pipeline.foreignkey;
 
+import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.context.PipelineWriteContext;
 import com.splicemachine.pipeline.contextfactory.LocalWriteFactory;
 import splice.com.google.common.collect.Lists;
 
-import java.io.IOException;
 import java.util.List;
 
 /**
@@ -32,6 +32,8 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
     private final List<Long> referencingIndexConglomerateNumbers = Lists.newArrayList();
     private final PipelineExceptionFactory exceptionFactory;
     private final List<DDLMessage.FKConstraintInfo> constraintInfos = Lists.newArrayList();
+    private boolean hasCascadingDeleteFK = false;
+    private boolean constraintsChanged = true;
 
     ForeignKeyParentInterceptWriteFactory(String parentTableName,
                                           List<Long> referencingIndexConglomerateNumbers,
@@ -61,6 +63,7 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
         if(idx != -1) {
             this.referencingIndexConglomerateNumbers.remove(conglomerateNumber);
             this.constraintInfos.remove(idx); // at index
+            constraintsChanged = true;
         }
     }
 
@@ -68,6 +71,22 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory{
                                                       List<DDLMessage.FKConstraintInfo> fkConstraintInfos) {
         this.referencingIndexConglomerateNumbers.addAll(referencingIndexConglomerateNumbers);
         this.constraintInfos.addAll(fkConstraintInfos);
+        constraintsChanged = true;
+    }
+
+    public boolean hasCascadingDeleteFK() {
+        if(!constraintsChanged) {
+            return hasCascadingDeleteFK;
+        }
+        hasCascadingDeleteFK = false;
+        for(DDLMessage.FKConstraintInfo constraintInfo : constraintInfos) {
+           if(constraintInfo.getDeleteRule() == StatementType.RA_CASCADE) {
+               hasCascadingDeleteFK = true;
+               break;
+           }
+        }
+        constraintsChanged = false;
+        return hasCascadingDeleteFK;
     }
 
     @Override

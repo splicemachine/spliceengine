@@ -33,6 +33,8 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.sql.compile.CompilerContext.NewMergeJoinExecutionType.*;
@@ -143,6 +145,24 @@ public class MergeJoinOperation extends JoinOperation {
             SpliceLogUtils.debug(LOG,"right hash keys to base table map {%s}",Arrays.toString(rightHashKeyToBaseTableMap));
             SpliceLogUtils.debug(LOG,"right hash keys' sort order {%s}", Arrays.toString(rightHashKeySortOrders));
     	}
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(leftHashKeyItem);
+        out.writeInt(rightHashKeyItem);
+        out.writeInt(rightHashKeyToBaseTableMapItem);
+        out.writeInt(rightHashKeySortOrderItem);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        leftHashKeyItem = in.readInt();
+        rightHashKeyItem = in.readInt();
+        rightHashKeyToBaseTableMapItem = in.readInt();
+        rightHashKeySortOrderItem = in.readInt();
     }
 
     @Override
