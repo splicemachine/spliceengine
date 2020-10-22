@@ -707,18 +707,12 @@ public class IndexTransformer {
     }
 
     private LanguageConnectionContext getLcc(DDLMessage.TentativeIndex tentativeIndex) throws StandardException {
-        boolean prepared = false;
-        SpliceTransactionResourceImpl transactionResource = null;
-        try {
-            TxnView txn = DDLUtils.getLazyTransaction(tentativeIndex.getTxnId());
-            transactionResource = new SpliceTransactionResourceImpl();
-            prepared = transactionResource.marshallTransaction(txn);
+        TxnView txn = DDLUtils.getLazyTransaction(tentativeIndex.getTxnId());
+        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+            transactionResource.marshallTransaction(txn);
             return transactionResource.getLcc();
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
-        } finally {
-            if (prepared)
-                transactionResource.close();
         }
     }
 
