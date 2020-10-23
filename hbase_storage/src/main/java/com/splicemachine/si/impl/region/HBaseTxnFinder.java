@@ -12,6 +12,7 @@ import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -94,13 +95,22 @@ public class HBaseTxnFinder implements TxnFinder {
 
     private static class TxWithTimestampFilter extends FilterBase {
 
+        /**
+         * always return false so we make sure that {@link #filterCell(Cell)} method is called.
+         */
         @Override
         public boolean filterRowKey(Cell cell) {
-            if(cell == null) {
-                return true;
-            }
+            return false;
+        }
+
+        @Override
+        public ReturnCode filterCell(final Cell cell) throws IOException {
             Txn.State state = Txn.State.decode(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength());
-            return state != Txn.State.ACTIVE;
+            if(state == Txn.State.ACTIVE) {
+                return ReturnCode.INCLUDE;
+            } else {
+                return ReturnCode.SKIP;
+            }
         }
     }
 
