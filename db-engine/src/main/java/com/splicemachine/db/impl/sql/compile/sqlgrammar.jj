@@ -4121,16 +4121,16 @@ StatementNode
 explainStatement() throws StandardException :
 {
     StatementNode   statementNode;
-    StatementNode    explainStatement;
-    Token           getToken = null;
+    StatementNode   explainStatement;
+    Token           excludeToken = null;
 }
 {
-    <EXPLAIN> [getToken = <GET> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
+    <EXPLAIN> [excludeToken = <EXCLUDE> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.NONE,
-                                   (getToken != null),
+                                   (excludeToken == null),
                                    getContextManager());
     }
     | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
