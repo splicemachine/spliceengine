@@ -188,10 +188,11 @@ public class SpliceUDTIT extends SpliceUnitTest {
 
     @Test
     public void testConnection() throws Exception {
-        try(SpliceWatcher watcher2 = new SpliceWatcher(CLASS_NAME))
-        {
-            watcher2.setConnection( watcher2.connectionBuilder().useOLAP(true).build() );
-            try(ResultSet rs = watcher2.executeQuery("select testConnection() from test")) {
+        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
+        try(Connection connection = DriverManager.getConnection(url, new Properties())) {
+            connection.setSchema(CLASS_NAME.toUpperCase());
+            try(Statement s = connection.createStatement();
+                ResultSet rs = s.executeQuery("select testConnection() from test") ) {
                 String result = rs.next() ? rs.getString(1) : null;
                 Assert.assertNotNull(result);
                 Assert.assertTrue(result, result.compareTo("Got an internal connection") == 0);
