@@ -336,6 +336,8 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     void reset();
 
+    void reOpen();
+
     /**
      *
      * Register a resource to be closed when the activation is closed.
