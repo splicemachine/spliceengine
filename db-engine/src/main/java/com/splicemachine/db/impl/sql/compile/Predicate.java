@@ -83,6 +83,10 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     // getPredScopedForResultSet() method of this class for more.
     private boolean scoped;
 
+    // The original list of IN list probe predicates that were combined
+    // to make the current combined multicolumn IN list probe predicate.
+    private PredicateList originalInListPredList;
+
     public void setPulled(boolean pulled){
         this.pulled=pulled;
     }
@@ -133,7 +137,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public void markStartKey(){
+    public void markStartKey() {
         startKey=true;
     }
 
@@ -1250,6 +1254,17 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return andNode.getLeftOperand().isInListProbeNode();
     }
 
+    public boolean isMultiColumnInListProbePredicate() throws StandardException {
+        if (isInListProbePredicate()) {
+            InListOperatorNode ilop = getSourceInList(true);
+            if (ilop == null)
+                return false;
+            else
+                return ilop.leftOperandList.size() > 1;
+        }
+        return false;
+    }
+
     /**
      * If this predicate corresponds to an IN-list, return the underlying
      * InListOperatorNode from which it was built.  There are two forms
@@ -1453,4 +1468,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     public void setOuterJoinLevel(int level) {
         outerJoinLevel = level;
     }
+
+    public PredicateList getOriginalInListPredList() { return originalInListPredList; }
+
+    public void setOriginalInListPredList (PredicateList predList) { originalInListPredList = predList;}
 }
