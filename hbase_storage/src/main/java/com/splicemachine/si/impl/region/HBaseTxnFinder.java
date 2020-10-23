@@ -5,13 +5,17 @@ import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.Source;
 import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.filter.FilterBase;
+import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.PrefixFilter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -40,11 +44,10 @@ public class HBaseTxnFinder implements TxnFinder {
                     return stateKv.getTimestamp();
                 }
             }
-            return -1L; // in some rare scenarios, we could have a series of ROLLBACKs.
+            return -1L; // should never happen.
         }
 
         protected Pair<Long, Long> decode(List<Cell> cells) {
-            if (cells.size() <= 0) return null;
             long ts = 0;
                 ts = getTimestampOfActiveState(cells);
                 if(ts == -1) {
@@ -89,15 +92,81 @@ public class HBaseTxnFinder implements TxnFinder {
         }
     }
 
+    private static class TxWithTimestampFilter extends FilterBase {
+
+        @Override
+        public boolean filterRowKey(Cell cell) {
+            if(cell == null) {
+                return true;
+            }
+            Txn.State state = Txn.State.decode(cell.getValueArray(), cell.getValueOffset(), cell.getValueLength());
+            return state != Txn.State.ACTIVE;
+        }
+    }
+
+    /**
+     * <p>When scanning for a prefix the scan should stop immediately after the the last row that
+     * has the specified prefix. This method calculates the closest next rowKey immediately following
+     * the given rowKeyPrefix.</p>
+     * <p><b>IMPORTANT: This converts a rowKey<u>Prefix</u> into a rowKey</b>.</p>
+     * <p>If the prefix is an 'ASCII' string put into a byte[] then this is easy because you can
+     * simply increment the last byte of the array.
+     * But if your application uses real binary rowids you may run into the scenario that your
+     * prefix is something like:</p>
+     * &nbsp;&nbsp;&nbsp;<b>{ 0x12, 0x23, 0xFF, 0xFF }</b><br/>
+     * Then this stopRow needs to be fed into the actual scan<br/>
+     * &nbsp;&nbsp;&nbsp;<b>{ 0x12, 0x24 }</b> (Notice that it is shorter now)<br/>
+     * This method calculates the correct stop row value for this usecase.
+     *
+     * @param rowKeyPrefix the rowKey<u>Prefix</u>.
+     * @return the closest next rowKey immediately following the given rowKeyPrefix.
+     */
+    private byte[] calculateTheClosestNextRowKeyForPrefix(byte[] rowKeyPrefix) {
+        // Essentially we are treating it like an 'unsigned very very long' and doing +1 manually.
+        // Search for the place where the trailing 0xFFs start
+        int offset = rowKeyPrefix.length;
+        while (offset > 0) {
+            if (rowKeyPrefix[offset - 1] != (byte) 0xFF) {
+                break;
+            }
+            offset--;
+        }
+
+        if (offset == 0) {
+            // We got an 0xFFFF... (only FFs) stopRow value which is
+            // the last possible prefix before the end of the table.
+            // So set it to stop at the 'end of the table'
+            return HConstants.EMPTY_END_ROW;
+        }
+
+        // Copy the right length of the original
+        byte[] newStopRow = Arrays.copyOfRange(rowKeyPrefix, 0, offset);
+        // And increment the last one
+        newStopRow[newStopRow.length - 1]++;
+        return newStopRow;
+    }
+
     @Override
     public Pair<Long, Long> find(byte bucket, byte[] begin, boolean reverse) throws IOException {
         Scan hbaseScan = new Scan();
+
+        FilterList filterList = new FilterList();
+        filterList.addFilter(new PrefixFilter(new byte[]{bucket}));
+        filterList.addFilter(new TxWithTimestampFilter());
+
         hbaseScan.addColumn(V2TxnDecoder.FAMILY, V2TxnDecoder.STATE_QUALIFIER_BYTES)
                 .setReversed(reverse)
                 .readAllVersions()
-                .setFilter(new PrefixFilter(new byte[]{bucket})); // todo get one row only
+                .setLimit(1)
+                .setFilter(filterList);
+
         if (begin != null) {
             hbaseScan.withStartRow(begin);
+        } else {
+            if(reverse)
+                hbaseScan.withStartRow(calculateTheClosestNextRowKeyForPrefix(new byte[]{bucket}));
+            else
+                hbaseScan.withStartRow(new byte[]{bucket});
         }
         HBaseTxnFinder.ScanTimestampIterator si = new ScanTimestampIterator(region.getScanner(hbaseScan));
         if (si.hasNext()) {
