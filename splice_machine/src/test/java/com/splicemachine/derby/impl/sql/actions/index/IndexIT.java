@@ -1004,6 +1004,33 @@ public class IndexIT extends SpliceUnitTest{
         }
     }
 
+    // DB-10431
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsBatchWithFullNullRow() throws Exception {
+        String tableName = "TEST_IDX_BATCH_INSERT";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 10, 1.1), ('def', 20, 2.2)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (upper(c), i + 2)", tableName, tableName));
+
+        // Without the fix, the following insert fails sporadically. It depends on the order of inserting rows. If
+        // (NULL, NULL, NULL) is inserted first, it fails. With the fix, it should never fail.
+        methodWatcher.executeUpdate(format("insert into %s values ('jkl', 30, 2.2), (NULL, NULL, NULL)", tableName));
+        methodWatcher.executeUpdate(format("update %s set c = 'def' where i = 10", tableName));
+
+        String query = format("select c from %s order by c nulls last", tableName);
+        String expected = "C  |\n" +
+                "------\n" +
+                " def |\n" +
+                " def |\n" +
+                " jkl |\n" +
+                "NULL |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
     @Test
     public void testCreateIndexAndInsertWithExpressionsOfNotAllowedBuiltInFunctions() throws Exception {
         String tableName = "TEST_IDX_NOT_ALLOWED_FN";
