@@ -442,6 +442,8 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
             rightIterator = Collections.emptyIterator();
         else {
             rightSide = joinOperation.getRightOperation();
+            if (rightSide.isClosed())
+                rightSide.reOpen();
             DataSetProcessor dsp = useOldMergeJoin ?
                 EngineDriver.driver().processorFactory().bulkProcessor(getOperation().getActivation(), rightSide) :
                 EngineDriver.driver().processorFactory().chooseProcessor(getOperation().getActivation(), rightSide);

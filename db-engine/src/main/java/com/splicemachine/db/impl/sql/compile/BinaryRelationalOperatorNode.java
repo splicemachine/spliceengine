@@ -1639,8 +1639,12 @@ public class BinaryRelationalOperatorNode
             double innerCardinality =
                         innerTableCostController.cardinality(innerColumnPos);
 
-            double tempSelectivity = outerCardinality / innerCardinality;
-            selectivity = Math.min(tempSelectivity, 1.0);
+            // If cardinality values are uninitialized (zero),
+            // we can't apply this estimation formula.
+            if (outerCardinality != 0.0d && innerCardinality != 0.0d) {
+                double tempSelectivity = outerCardinality / innerCardinality;
+                selectivity = Math.min(tempSelectivity, 1.0d);
+            }
         }
 
         return selectivity;
