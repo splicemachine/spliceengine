@@ -133,7 +133,7 @@ public class WithStatementIT extends SpliceUnitTest {
 
     @Test
     public void testSimpleWithStatementWithAggregateExplain() throws Exception {
-        String query = "explain with footest as " +
+        String query = "explain exclude no statistics with footest as " +
                 "(select count(*) as count, col2 from foo group by col2) " +
                 "select foo2.col1, count from foo2 " +
                 "inner join footest on foo2.col1 = footest.col2";
@@ -176,7 +176,7 @@ public class WithStatementIT extends SpliceUnitTest {
 
     @Test
     public void testMultipleDependentWithStatementsWithAggregatesExplain() throws Exception {
-        String query = "explain with footest as " +
+        String query = "explain exclude no statistics with footest as " +
                 "(select count(*) as count, col2, max(col1) as col1 from foo group by col2), " +
                 "footest1 as (select sum(count) as count, sum(col1) as " +
                 "sum_col1, col2 from footest group by col2)" +

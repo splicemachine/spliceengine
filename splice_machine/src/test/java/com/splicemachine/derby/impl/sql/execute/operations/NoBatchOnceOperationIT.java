@@ -614,13 +614,13 @@ public class NoBatchOnceOperationIT extends SpliceUnitTest {
     }
 
     private boolean isBatchOnceUpdate(String query) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery("explain " + query);
+        ResultSet resultSet = methodWatcher.executeQuery("explain exclude no statistics " + query);
         String stringResult = TestUtils.FormattedResult.ResultFactory.toString(resultSet);
         return stringResult.toLowerCase().contains("batchonce");
     }
 
     private boolean containsSubqueryNode(String query) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery("explain " + query);
+        ResultSet resultSet = methodWatcher.executeQuery("explain exclude no statistics " + query);
         String stringResult = TestUtils.FormattedResult.ResultFactory.toString(resultSet);
         return stringResult.toLowerCase().contains("subquery");
     }
