@@ -202,61 +202,60 @@ public final class GenericColumnDescriptor
 
     public boolean hasGenerationClause() { return hasGenerationClause; }
 
-    public static void writeNullableUTF(ObjectOutput out, String str) throws IOException {
-        out.writeBoolean(str != null);
-        if (str != null)
-            out.writeUTF(str);
-    }
+	//////////////////////////////////////////////
+	//
+	// FORMATABLE
+	//
+	//////////////////////////////////////////////
+	/**
+	 * Write this object out
+	 *
+	 * @param out write bytes here
+	 *
+ 	 * @exception IOException thrown on error
+	 */
+	public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeUTF(name);
+		if (tableName != null) {
+            out.writeBoolean(true);
+            out.writeUTF(tableName);
+        } else {
+            out.writeBoolean(false);
+        }
+        if (schemaName != null) {
+            out.writeBoolean(true);
+            out.writeUTF(schemaName);
+        } else {
+            out.writeBoolean(false);
+        }
+		out.writeInt(columnPos);
+		out.writeObject(type);
+		out.writeBoolean(isAutoincrement);
+		out.writeBoolean(updatableByCursor);		
+	}
 
-    public static String readNullableUTF(ObjectInput in) throws IOException {
+	/**
+	 * Read this object from a stream of stored objects.
+	 *
+	 * @param in read this.
+	 *
+	 * @exception IOException					thrown on error
+	 * @exception ClassNotFoundException		thrown on error
+	 */
+	public void readExternal(ObjectInput in) 
+		throws IOException, ClassNotFoundException {
+        name = in.readUTF();
+		if (in.readBoolean()) {
+            tableName = in.readUTF();
+        }
         if (in.readBoolean()) {
-            return in.readUTF();
+		    schemaName = in.readUTF();
         }
-        else {
-            return null;
-        }
-    }
-
-    //////////////////////////////////////////////
-    //
-    // FORMATABLE
-    //
-    //////////////////////////////////////////////
-    /**
-     * Write this object out
-     *
-     * @param out write bytes here
-     *
-     * @exception IOException thrown on error
-     */
-    public void writeExternal(ObjectOutput out) throws IOException {
-        writeNullableUTF(out, name);
-        writeNullableUTF(out, tableName);
-        writeNullableUTF(out, schemaName);
-        out.writeInt(columnPos);
-        out.writeObject(type);
-        out.writeBoolean(isAutoincrement);
-        out.writeBoolean(updatableByCursor);
-    }
-
-    /**
-     * Read this object from a stream of stored objects.
-     *
-     * @param in read this.
-     *
-     * @exception IOException             thrown on error
-     * @exception ClassNotFoundException  thrown on error
-     */
-    public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException {
-        name       = readNullableUTF(in);
-        tableName  = readNullableUTF(in);
-        schemaName = readNullableUTF(in);
-        columnPos = in.readInt();
-        type = getStoredDataTypeDescriptor(in.readObject());
-        isAutoincrement = in.readBoolean();
-        updatableByCursor = in.readBoolean();
-    }
+		columnPos = in.readInt();
+		type = getStoredDataTypeDescriptor(in.readObject());
+		isAutoincrement = in.readBoolean();
+		updatableByCursor = in.readBoolean();
+	}
 	
 	/**
 	 * Get the formatID which corresponds to this class.
