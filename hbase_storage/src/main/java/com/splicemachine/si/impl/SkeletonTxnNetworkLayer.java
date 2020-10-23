@@ -134,7 +134,8 @@ public abstract class SkeletonTxnNetworkLayer implements TxnNetworkLayer{
     public TxnMessage.TxnAtResponse getTxnAt(final TxnMessage.TxnAtRequest request) throws IOException {
         Map<byte[], TxnMessage.TxnAtResponse> data=coprocessorService(TxnMessage.TxnLifecycleService.class,
                 HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW, instance -> {
-                    ServerRpcController controller=new ServerRpcController();
+                    SpliceRpcController controller=new SpliceRpcController();
+                    controller.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
                     BlockingRpcCallback<TxnMessage.TxnAtResponse> response=new BlockingRpcCallback<>();
 
                     instance.getTxnAt(controller,request,response);
