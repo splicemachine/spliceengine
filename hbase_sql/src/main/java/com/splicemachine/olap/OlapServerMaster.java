@@ -131,7 +131,6 @@ public class OlapServerMaster implements LeaderSelectorListener {
         queueZkPath = queueRoot + "/" + queueName;
         appZkPath = appRoot + "/" + appId;
         sparkNumNodesZkPath = root + SPARK_NUM_NODES_PATH;
-        zkSafeCreate(sparkNumNodesZkPath);
 
         UserGroupInformation.setLoginUser(ugi);
         ugi.doAs((PrivilegedExceptionAction<Void>) () -> {
