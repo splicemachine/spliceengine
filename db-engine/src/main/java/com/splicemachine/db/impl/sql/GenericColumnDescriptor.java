@@ -90,7 +90,7 @@ public final class GenericColumnDescriptor
 		this.type = type;
 	}
 
-	/** 
+	/**
 	 * This constructor is used to build a generic (and
 	 * formatable) ColumnDescriptor.  The idea is that
 	 * it can be passed a ColumnDescriptor from a query
@@ -230,9 +230,19 @@ public final class GenericColumnDescriptor
      * @exception IOException thrown on error
      */
     public void writeExternal(ObjectOutput out) throws IOException {
-        writeNullableUTF(out, name);
-        writeNullableUTF(out, tableName);
-        writeNullableUTF(out, schemaName);
+        out.writeUTF(name == null ? "" : name);
+        if (tableName != null) {
+            out.writeBoolean(true);
+            out.writeUTF(tableName);
+        } else {
+            out.writeBoolean(false);
+        }
+        if (schemaName != null) {
+            out.writeBoolean(true);
+            out.writeUTF(schemaName);
+        } else {
+            out.writeBoolean(false);
+        }
         out.writeInt(columnPos);
         out.writeObject(type);
         out.writeBoolean(isAutoincrement);
@@ -248,16 +258,20 @@ public final class GenericColumnDescriptor
      * @exception ClassNotFoundException  thrown on error
      */
     public void readExternal(ObjectInput in)
-        throws IOException, ClassNotFoundException {
-        name       = readNullableUTF(in);
-        tableName  = readNullableUTF(in);
-        schemaName = readNullableUTF(in);
+            throws IOException, ClassNotFoundException {
+        name = in.readUTF();
+        if (in.readBoolean()) {
+            tableName = in.readUTF();
+        }
+        if (in.readBoolean()) {
+            schemaName = in.readUTF();
+        }
         columnPos = in.readInt();
         type = getStoredDataTypeDescriptor(in.readObject());
         isAutoincrement = in.readBoolean();
         updatableByCursor = in.readBoolean();
     }
-	
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *
@@ -288,7 +302,7 @@ public final class GenericColumnDescriptor
      * parameters and return values prior to DERBY-2775. If it is not a regular
      * DataTypeDescriptor, it must be an OldRoutineType, so convert it to a
      * DataTypeDescriptor DERBY-4913
-     * 
+     *
      * @param o
      *            object as obtained by fh.get("type") in readExternal
      * @return DataTypeDescriptor
