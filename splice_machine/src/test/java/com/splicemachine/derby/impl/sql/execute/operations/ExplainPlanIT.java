@@ -59,11 +59,6 @@ public class ExplainPlanIT extends SpliceUnitTest  {
             return rs;
         }
 
-        public void execute(String query) throws SQLException
-        {
-            s.execute(query);
-        }
-
         @Override
         public void close() throws Exception {
             if(rs != null && !rs.isClosed() ) rs.close();

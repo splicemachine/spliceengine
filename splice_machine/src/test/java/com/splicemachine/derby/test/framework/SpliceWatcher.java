@@ -56,8 +56,6 @@ public class SpliceWatcher extends TestWatcher {
         this.defaultSchema = defaultSchema == null ? null : defaultSchema.toUpperCase();
     }
 
-
-
     public void setConnection(Connection connection) throws SQLException{
         currentConnection = new TestConnection(connection);
     }
