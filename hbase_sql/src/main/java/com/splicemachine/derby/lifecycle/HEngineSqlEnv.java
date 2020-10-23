@@ -84,12 +84,13 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
 
     // Find the number of nodes on which Spark executors can be run.
     private static int getNumSparkNodes() {
-        int numNodes = 1;
+        int numNodes = -1;
         try {
             byte [] data = ZkUtils.getData(sparkNumNodesZkPath);
-            numNodes = Bytes.toInt(data);
+            if (data != null && data.length > 0)
+                numNodes = Bytes.toInt(data);
         }
-        catch (Exception e) {
+        catch (Exception | java.lang.AssertionError e) {
             LOG.warn("Unable to find the number of spark nodes from zookeeper.");
         }
         return numNodes;
@@ -264,8 +265,8 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
         if (MAX_EXECUTOR_CORES != -1)
             return MAX_EXECUTOR_CORES;
         synchronized (HEngineSqlEnv.class) {
-            numSparkNodes = getNumSparkNodes();
-            MAX_EXECUTOR_CORES =
+            int sparkNodes = getNumSparkNodes();
+            int maxExecutorCores =
               calculateMaxExecutorCores(HConfiguration.unwrapDelegate().get("yarn.nodemanager.resource.memory-mb"),
                                         getProperty("splice.spark.dynamicAllocation.enabled"),
                                         getProperty("splice.spark.executor.instances"),
@@ -274,7 +275,11 @@ public class HEngineSqlEnv extends EngineSqlEnvironment{
                                         getProperty("splice.spark.dynamicAllocation.maxExecutors"),
                                         getProperty("splice.spark.executor.memoryOverhead"),
                                         getProperty("splice.spark.yarn.executor.memoryOverhead"),
-              numSparkNodes);
+                                        sparkNodes > 0 ? sparkNodes : 1);
+            if (sparkNodes > 0) {
+                numSparkNodes = sparkNodes;
+                MAX_EXECUTOR_CORES = maxExecutorCores;
+            }
         }
         return MAX_EXECUTOR_CORES;
     }
