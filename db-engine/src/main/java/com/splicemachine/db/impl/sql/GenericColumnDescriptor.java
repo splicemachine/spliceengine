@@ -202,6 +202,21 @@ public final class GenericColumnDescriptor
 
     public boolean hasGenerationClause() { return hasGenerationClause; }
 
+    public static void writeNullableUTF(ObjectOutput out, String str) throws IOException {
+        out.writeBoolean(str != null);
+        if (str != null)
+            out.writeUTF(str);
+    }
+
+    public static String readNullableUTF(ObjectInput in) throws IOException {
+        if (in.readBoolean()) {
+            return in.readUTF();
+        }
+        else {
+            return null;
+        }
+    }
+
 	//////////////////////////////////////////////
 	//
 	// FORMATABLE
