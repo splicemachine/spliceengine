@@ -149,7 +149,7 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         innerTableScaleFactor = Math.min(innerTableScaleFactor, scanSelectivity);
 
         // Adjust the scanned rows so we can possibly avoid spark execution.
-        double rightRowCount = scanSelectivity * innerCost.rowCount();
+        double rightRowCount = innerTableScaleFactor * innerCost.rowCount();
         baseInnerCost.setScannedBaseTableRows(rightRowCount);
         //innerCost.setRowCount(rightRowCount);
 
