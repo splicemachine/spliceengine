@@ -4206,10 +4206,12 @@ exportStatement() throws StandardException :
     ValueNode fieldSeparator = null;
     ValueNode quoteCharacter = null;
     ValueNode quoteMode = null;
+    ValueNode fileType = null;
 }
 {
     LOOKAHEAD ( {getToken(1).kind == EXPORT && getToken(2).kind == TO} )
     <EXPORT> <TO> exportPath = orExpression(null)
+    <AS> fileType = orExpression(null)
     [
         <COMPRESSION> compression = orExpression(null)
     ]
@@ -4237,6 +4239,7 @@ exportStatement() throws StandardException :
         parameterList.addElement(fieldSeparator);
         parameterList.addElement(quoteCharacter);
         parameterList.addElement(quoteMode);
+        parameterList.addElement(fileType);
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
                                    parameterList,
@@ -4247,6 +4250,10 @@ exportStatement() throws StandardException :
     <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
         parameterList.addElement(null); // null for legacy
+        parameterList.addElement((CharConstantNode) nodeFactory.getNode(
+                                 C_NodeTypes.CHAR_CONSTANT_NODE,
+                                 "csv",
+                                 getContextManager()));
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
                                    parameterList,
@@ -4279,7 +4286,19 @@ binaryExportStatement() throws StandardException :
 {
     <EXPORT_BINARY> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
-        return (BinaryExportNode) nodeFactory.getNode(C_NodeTypes.BINARY_EXPORT_NODE,
+        if (parameterList.size() != 3) {
+            throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "BINARY_EXPORT");
+        }
+        Vector actualParameterList = new Vector();
+        actualParameterList.addElement(parameterList.elementAt(0));
+        actualParameterList.addElement(parameterList.elementAt(1));
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(parameterList.elementAt(2));
+        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
                                    parameterList,
                                    getContextManager());
