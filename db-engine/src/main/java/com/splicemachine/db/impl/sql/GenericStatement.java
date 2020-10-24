@@ -560,6 +560,19 @@ public class GenericStatement implements Statement{
             }
             cc.setNewMergeJoin(newMergeJoin);
 
+            String disablePerParallelTaskJoinCostingString =
+                PropertyUtil.getCachedDatabaseProperty(lcc, Property.DISABLE_PARALLEL_TASKS_JOIN_COSTING);
+            boolean disablePerParallelTaskJoinCosting = CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+            try {
+                if (disablePerParallelTaskJoinCostingString != null)
+                    disablePerParallelTaskJoinCosting =
+                        Boolean.parseBoolean(disablePerParallelTaskJoinCostingString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setDisablePerParallelTaskJoinCosting(disablePerParallelTaskJoinCosting);
+
             String currentTimestampPrecisionString =
                     PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_CURRENT_TIMESTAMP_PRECISION);
             int currentTimestampPrecision = CompilerContext.DEFAULT_SPLICE_CURRENT_TIMESTAMP_PRECISION;

@@ -1516,5 +1516,12 @@ public interface Property {
 
     String SPLICE_NEW_MERGE_JOIN =
             "splice.execution.newMergeJoin";
+
+    /**
+     * If enabled, disable calculation of join costs as cost per parallel task
+     * and revert to using the old units: cost per partition (cost per region).
+     */
+    String DISABLE_PARALLEL_TASKS_JOIN_COSTING =
+            "splice.optimizer.disablePerParallelTaskJoinCosting";
 }
 
