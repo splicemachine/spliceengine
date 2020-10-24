@@ -14,11 +14,10 @@
 
 package com.splicemachine.derby.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
+import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
 
 import java.text.DecimalFormat;
@@ -60,6 +59,8 @@ public class SimpleCostEstimate implements CostEstimate{
     private double accumulatedMemory = 0.0d;
     private boolean singleRow = false;
     private Optimizer optimizer;
+    private boolean disablePerParallelTaskJoinCosting = CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+    private boolean disablePerParallelTaskJoinCostingSet = false;
 
     public SimpleCostEstimate(){ }
 
@@ -74,8 +75,8 @@ public class SimpleCostEstimate implements CostEstimate{
         this.singleScanRowCount=singleScanRowCount;
         this.numPartitions=numPartitions;
         this.parallelism = parallelism;
-        setLocalCostPerParallelTask(localCost, parallelism);
-        setRemoteCostPerParallelTask(remoteCost, parallelism);
+        setLocalCostPerParallelTask(localCost, getParallelism());
+        setRemoteCostPerParallelTask(remoteCost, getParallelism());
     }
 
     @Override
@@ -101,7 +102,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.parallelism = parallelism;
         assert (numPartitions >= 1);
         assert (parallelism >= 1);
-        this.localCostPerParallelTask = localCost/parallelism;
+        this.localCostPerParallelTask = localCost/getParallelism();
     }
 
     @Override
@@ -266,6 +267,8 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override public int getParallelism() {
+        if (disablePerParallelTaskJoinCosting)
+            return partitionCount();
         if (optimizer == null || optimizer.isForSpark())
             return parallelism;
         else
@@ -338,6 +341,8 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setRemoteCostPerParallelTask(remoteCostPerParallelTask);
         clone.setSingleRow(singleRow);
         clone.setParallelism(parallelism);
+        clone.setDisablePerParallelTaskJoinCosting(disablePerParallelTaskJoinCosting);
+        clone.setDisablePerParallelTaskJoinCostingSet(disablePerParallelTaskJoinCostingSet);
         clone.setOptimizer(optimizer);
         return clone;
     }
@@ -609,5 +614,23 @@ public class SimpleCostEstimate implements CostEstimate{
 
     public void setOptimizer(Optimizer optimizer) {
         this.optimizer = optimizer;
+        if (optimizer instanceof Level2OptimizerImpl &&
+            !disablePerParallelTaskJoinCostingSet) {
+            Level2OptimizerImpl level2Optimizer = (Level2OptimizerImpl) optimizer;
+            CompilerContext cc = level2Optimizer.getCompilerContext();
+            if (cc != null) {
+                disablePerParallelTaskJoinCosting = cc.getDisablePerParallelTaskJoinCosting();
+                disablePerParallelTaskJoinCostingSet = true;
+            }
+        }
     }
+
+    private void setDisablePerParallelTaskJoinCosting (boolean newVal) {
+        disablePerParallelTaskJoinCosting = newVal;
+    }
+
+    private void setDisablePerParallelTaskJoinCostingSet (boolean newVal) {
+        disablePerParallelTaskJoinCostingSet = newVal;
+    }
+
 }
