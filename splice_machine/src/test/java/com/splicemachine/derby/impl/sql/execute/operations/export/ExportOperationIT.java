@@ -446,7 +446,7 @@ public class ExportOperationIT {
 
         // wrong field separator
         try {
-            methodWatcher.executeQuery("EXPORT TO '/tmp/' FIELD_SEPARATOR 10 select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("EXPORT TO '/tmp/' AS 'csv' FIELD_SEPARATOR 10 select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid error state", "XIE0X", e.getSQLState());
@@ -464,7 +464,7 @@ public class ExportOperationIT {
 
         // wrong quote character
         try {
-            methodWatcher.executeQuery("EXPORT TO '/tmp/' QUOTE_CHARACTER 100 select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("EXPORT TO '/tmp/' AS 'csv' QUOTE_CHARACTER 100 select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid error state", "XIE0X", e.getSQLState());
@@ -482,7 +482,7 @@ public class ExportOperationIT {
 
         // wrong replication parameter
         try {
-            methodWatcher.executeQuery("EXPORT TO '/tmp/' REPLICATION_COUNT 'a' select 1 from sys.sysaliases ");
+            methodWatcher.executeQuery("EXPORT TO '/tmp/' AS 'csv' REPLICATION_COUNT 'a' select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid error state", "XIE0X", e.getSQLState());
@@ -536,6 +536,7 @@ public class ExportOperationIT {
         if (useNativeSyntax) {
             StringBuilder sql = new StringBuilder();
             sql.append("EXPORT TO '").append(exportPath).append("'");
+            sql.append(" AS 'csv' ");
             if (compression != null) {
                 sql.append(" COMPRESSION '").append(compression).append("'");
             }
