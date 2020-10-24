@@ -284,6 +284,12 @@ public class CompilerContextImpl extends ContextImpl
         newMergeJoin = newValue;
     }
 
+    public void setDisablePerParallelTaskJoinCosting(boolean newValue) {
+        disablePerParallelTaskJoinCosting = newValue;
+    }
+
+    public boolean getDisablePerParallelTaskJoinCosting() { return disablePerParallelTaskJoinCosting; }
+
     public void setCurrentTimestampPrecision(int newValue) {
         currentTimestampPrecision = newValue;
     }
@@ -1168,6 +1174,7 @@ public class CompilerContextImpl extends ContextImpl
     private boolean             outerJoinFlatteningDisabled;
     private boolean             ssqFlatteningForUpdateDisabled;
     private NewMergeJoinExecutionType newMergeJoin = DEFAULT_SPLICE_NEW_MERGE_JOIN;
+    private boolean disablePerParallelTaskJoinCosting = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.

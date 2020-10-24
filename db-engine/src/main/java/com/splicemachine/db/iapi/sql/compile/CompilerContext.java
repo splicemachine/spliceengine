@@ -186,6 +186,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_OUTERJOIN_FLATTENING_DISABLED = false;
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
+    boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -733,4 +734,8 @@ public interface CompilerContext extends Context
     public NewMergeJoinExecutionType getNewMergeJoin();
 
     public void setNewMergeJoin(NewMergeJoinExecutionType newValue);
+
+    void setDisablePerParallelTaskJoinCosting(boolean newValue);
+
+    boolean getDisablePerParallelTaskJoinCosting();
 }
