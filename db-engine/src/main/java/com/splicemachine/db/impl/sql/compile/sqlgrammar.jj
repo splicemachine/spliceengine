@@ -18172,6 +18172,7 @@ nonReservedKeyword()  :
     |   tok = <COLUMNDELIMITER>
     |    tok = <COMMITTED>
     |    tok = <COMPRESS>
+    |    tok = <COMPRESSION>
     |    tok = <CONCAT>
     |    tok = <CONTAINS>
     |    tok = <CONTENT>
@@ -18199,10 +18200,12 @@ nonReservedKeyword()  :
     |    tok = <DOCUMENT>
     |    tok = <EACH>
     |    tok = <EMPTY>
+    |    tok = <ENCODING>
     |    tok = <EXCLUDE>
     |    tok = <ESTIMATE>
     |    tok = <EXCLUSIVE>
     |    tok = <EXTRACT>
+    |    tok = <FIELD_SEPARATOR>
     |    tok = <FIRSTVALUE>
     |    tok = <FN>
     |    tok = <FORTRAN>
@@ -18357,6 +18360,9 @@ nonReservedKeyword()  :
     |    tok = <STRING_AGG>
     |    tok = <SYNONYM>
     |    tok = <STYLE>
+    |    tok = <QUOTE_CHARACTER>
+    |    tok = <QUOTE_MODE>
+    |    tok = <REPLICATION_COUNT>
     |    tok = <T>
     |    tok = <TEXT>
     |    tok = <THEN>
