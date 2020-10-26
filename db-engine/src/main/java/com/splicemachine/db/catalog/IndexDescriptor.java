@@ -32,8 +32,10 @@
 package com.splicemachine.db.catalog;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
 import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 
 /**
@@ -179,4 +181,11 @@ public interface IndexDescriptor
 	BaseExecutableIndexExpression getExecutableIndexExpression(int indexColumnPosition)
 			throws StandardException;
 
+	/**
+	 * Returns the ASTs of index expressions. Note that the returned
+	 * trees are not bound. Only table number of optTable is set on
+	 * every column reference. Other semantic information must be set
+	 * by caller explicitly if needed.
+	 */
+	ValueNode[] getParsedIndexExpressions(Optimizable optTable) throws StandardException;
 }

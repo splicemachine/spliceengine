@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -540,21 +539,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 */
         if (cd != null && cd.isIndex() && cd.getIndexDescriptor().isOnExpression()) {
             IndexRowGenerator irg = cd.getIndexDescriptor();
-            assert innerTable instanceof QueryTreeNode;
-            QueryTreeNode inner = (QueryTreeNode) innerTable;
-
-            LanguageConnectionContext lcc = inner.getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = irg.getExprTexts();
-            ValueNode[] exprAsts = new ValueNode[exprTexts.length];
-            for (int i = 0; i < exprTexts.length; i++) {
-                exprAsts[i] = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-                PredicateList.setTableNumber(exprAsts[i], innerTable);
-            }
-            lcc.popCompilerContext(newCC);
-
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(innerTable);
             for (int index = hashKeyColumns.length - 1; index >= 0; index--) {
                 nonStoreRestrictionList.putOptimizableEqualityPredicateFirst(innerTable, exprAsts[hashKeyColumns[index]]);
             }
@@ -625,21 +610,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         Vector hashKeyVector = new Vector();
         if (cd != null && cd.isIndex() && cd.getIndexDescriptor().isOnExpression()) {
             IndexRowGenerator irg = cd.getIndexDescriptor();
-            assert innerTable instanceof QueryTreeNode;
-            QueryTreeNode inner = (QueryTreeNode) innerTable;
-
-            LanguageConnectionContext lcc = inner.getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = irg.getExprTexts();
-            ValueNode[] exprAsts = new ValueNode[exprTexts.length];
-            for (int i = 0; i < exprTexts.length; i++) {
-                exprAsts[i] = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-                PredicateList.setTableNumber(exprAsts[i], innerTable);
-            }
-            lcc.popCompilerContext(newCC);
-
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(innerTable);
             for (int colIdx = 0; colIdx < exprAsts.length; colIdx++) {
                 if (predList.hasOptimizableEquijoin(innerTable, exprAsts[colIdx])) {
                     hashKeyVector.add(colIdx);

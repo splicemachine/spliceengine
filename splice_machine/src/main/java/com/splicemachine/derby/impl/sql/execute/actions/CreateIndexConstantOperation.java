@@ -476,6 +476,9 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                 }
 
                 if (irg.isOnExpression() && exprBytecode.length > 0 && irg.getExprTexts().length == exprTexts.length) {
+                    // Calling irg.getParsedIndexExpressions() here is not beneficial because it's sure that
+                    // index expressions in irg are not parsed before. We don't need to set table number in
+                    // ASTs here because we know they are on the same table.
                     CompilerContext newCC = lcc.pushCompilerContext();
                     Parser p = newCC.getParser();
 

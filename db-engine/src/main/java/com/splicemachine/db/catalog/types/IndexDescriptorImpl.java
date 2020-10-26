@@ -39,10 +39,15 @@ import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
+import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -112,9 +117,14 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     // stores the class names of the generated classes in original order
     private String[]             generatedClassNames;
 
+    // following fields are used to cache objects used in compilation
+    // they are not serialized/deserialized
+
     // an array to cache instances of the generated classes
-    // this is not serialized/deserialized
     private BaseExecutableIndexExpression[] executableExprs;
+
+    // an array to cache parsed expressions
+    private ValueNode[] exprAsts;
 
 
     /**
@@ -386,6 +396,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
             }
         }
         executableExprs = new BaseExecutableIndexExpression[numIndexExpr];
+        exprAsts = null;
     }
 
     /**
@@ -553,10 +564,37 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                 : "index has expression but generated class name is unknown";
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext
                 (LanguageConnectionContext.CONTEXT_ID);
+        assert lcc != null;
         ClassFactory classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
         GeneratedClass gc = classFactory.loadGeneratedClass(
                 generatedClassNames[indexColumnPosition], exprBytecode[indexColumnPosition]);
         executableExprs[indexColumnPosition] = (BaseExecutableIndexExpression) gc.newInstance(lcc);
         return executableExprs[indexColumnPosition];
+    }
+
+    /** @see IndexDescriptor#getParsedIndexExpressions */
+    @Override
+    public ValueNode[] getParsedIndexExpressions(Optimizable optTable) throws StandardException {
+        if (exprAsts != null) {
+            for (ValueNode ast : exprAsts) {
+                PredicateList.setTableNumber(ast, optTable);
+            }
+            return exprAsts;
+        }
+
+        exprAsts = new ValueNode[exprTexts.length];
+        LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext
+                (LanguageConnectionContext.CONTEXT_ID);
+        assert lcc != null;
+        CompilerContext newCC = lcc.pushCompilerContext();
+        Parser p = newCC.getParser();
+
+        for (int i = 0; i < exprTexts.length; i++) {
+            ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
+            PredicateList.setTableNumber(exprAst, optTable);
+            exprAsts[i] = exprAst;
+        }
+        lcc.popCompilerContext(newCC);
+        return exprAsts;
     }
 }

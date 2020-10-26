@@ -33,8 +33,9 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
@@ -196,19 +197,7 @@ public class SelectivityUtil {
 
         // Do we have an exact match on the full key
         if (irg.isOnExpression()) {
-            assert innerTable instanceof QueryTreeNode;
-            LanguageConnectionContext lcc = ((QueryTreeNode) innerTable).getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = irg.getExprTexts();
-            ValueNode[] exprAsts = new ValueNode[exprTexts.length];
-            for (String exprText : exprTexts) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprText);
-                PredicateList.setTableNumber(exprAst, innerTable);
-            }
-            lcc.popCompilerContext(newCC);
-
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(innerTable);
             for (ValueNode exprAst : exprAsts) {
                 List<Predicate> optimizableEqualityPredicateList =
                         restrictionList.getOptimizableEqualityPredicateList(innerTable, exprAst, true);

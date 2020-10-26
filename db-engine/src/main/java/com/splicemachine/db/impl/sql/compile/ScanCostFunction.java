@@ -33,11 +33,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.Parser;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
@@ -193,19 +190,7 @@ public class ScanCostFunction{
 
         ValueNode[] indexColumns;
         if (isIndexOnExpression) {
-            assert baseTable instanceof QueryTreeNode;
-            LanguageConnectionContext lcc = ((QueryTreeNode)baseTable).getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = indexDescriptor.getExprTexts();
-            indexColumns = new ValueNode[exprTexts.length];
-            for (int i = 0; i < exprTexts.length; i++) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-                PredicateList.setTableNumber(exprAst, baseTable);
-                indexColumns[i] = exprAst;
-            }
-            lcc.popCompilerContext(newCC);
+            indexColumns = indexDescriptor.getParsedIndexExpressions(baseTable);
         } else {
             int[] keyColumns = indexDescriptor.baseColumnPositions();
             indexColumns = new ValueNode[keyColumns.length];

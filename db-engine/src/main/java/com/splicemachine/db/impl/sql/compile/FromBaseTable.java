@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -593,19 +592,7 @@ public class FromBaseTable extends FromTable {
             return new ArrayList<>();
         }
 
-        LanguageConnectionContext lcc = getLanguageConnectionContext();
-        CompilerContext newCC = lcc.pushCompilerContext();
-        Parser p = newCC.getParser();
-
-        String[] exprTexts = id.getExprTexts();
-        ValueNode[] exprAsts = new ValueNode[exprTexts.length];
-        for (int i = 0; i < exprTexts.length; i++) {
-            ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-            PredicateList.setTableNumber(exprAst, this);
-            exprAsts[i] = exprAst;
-        }
-        lcc.popCompilerContext(newCC);
-
+        ValueNode[] exprAsts = id.getParsedIndexExpressions(this);
         List<Integer> exprIndexPositions = new ArrayList<>();
         boolean match;
         for (ValueNode refExpr : referencingExpressions) {
@@ -2097,23 +2084,17 @@ public class FromBaseTable extends FromTable {
 
         if (irg.isOnExpression()) {
             assert !oldColumns.isEmpty();
-            LanguageConnectionContext lcc = getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
 
-            String[] exprTexts = irg.getExprTexts();
             DataTypeDescriptor[] indexColumnTypes = irg.getIndexColumnTypes();
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(this);
 
             for (int i = 0; i < indexColumnTypes.length; i++) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-                PredicateList.setTableNumber(exprAst, this);
-
                 ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN,
                         indexColumnTypes[i],
-                        exprAst,
+                        exprAsts[i],
                         getContextManager());
-                rc.setIndexExpression(exprAst);
+                rc.setIndexExpression(exprAsts[i]);
                 rc.setReferenced();
                 rc.setVirtualColumnId(i + 1);  // virtual column IDs are 1-based
                 rc.setName(idxCD.getConglomerateName() + "_col" + rc.getColumnPosition());
@@ -2124,7 +2105,6 @@ public class FromBaseTable extends FromTable {
                 rc.setSourceConglomerateColumnPosition(rc.getColumnPosition());
                 newCols.addResultColumn(rc);
             }
-            lcc.popCompilerContext(newCC);
         } else {
             int[] baseCols = irg.baseColumnPositions();
             for (int basePosition : baseCols) {
@@ -3392,18 +3372,7 @@ public class FromBaseTable extends FromTable {
             return false;
 
         if (irg.isOnExpression()) {
-            LanguageConnectionContext lcc = getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = irg.getExprTexts();
-            ValueNode[] exprAsts = new ValueNode[exprTexts.length];
-            for (String exprText : exprTexts) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprText);
-                PredicateList.setTableNumber(exprAst, this);
-            }
-            lcc.popCompilerContext(newCC);
-
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(this);
             for (ValueNode exprAst : exprAsts) {
                 List<Predicate> optimizableEqualityPredicateList =
                         restrictionList.getOptimizableEqualityPredicateList(this, exprAst, true);

@@ -41,7 +41,6 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
@@ -164,13 +163,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         IndexDescriptor id = cd.getIndexDescriptor();
         ValueNode exprAst = null;
         if (id.isOnExpression()) {
-            LanguageConnectionContext lcc = elementAt(0).getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            exprAst = (ValueNode) p.parseSearchCondition(id.getExprTexts()[0]);
-            setTableNumber(exprAst, optTable);
-            lcc.popCompilerContext(newCC);
+            exprAst = id.getParsedIndexExpressions(optTable)[0];
         }
 
         for(int index=0;index<size;index++){
@@ -632,21 +625,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
         /* Look for an index column on one side of the relop */
         if (isIndexOnExpr) {
-            LanguageConnectionContext lcc = pred.getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = irg.getExprTexts();
-            for (indexPosition = 0; indexPosition < exprTexts.length; indexPosition++) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[indexPosition]);
-                setTableNumber(exprAst, optTable);
-                if (matchIndexExpression(pred, isIn, isBetween, exprAst, indexPosition, optTable, cd)) {
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(optTable);
+            for (indexPosition = 0; indexPosition < exprAsts.length; indexPosition++) {
+                if (matchIndexExpression(pred, isIn, isBetween, exprAsts[indexPosition], indexPosition, optTable, cd)) {
                     indexColumnOnOneSide = true;
                     pred.setMatchIndexExpression(true);
                     break;
                 }
             }
-            lcc.popCompilerContext(newCC);
         } else {
             ColumnReference indexCol=null;
             int[] baseColumnPositions = irg == null ? null : irg.baseColumnPositions();
@@ -1550,30 +1536,23 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         ValueNode andNode;
 
         if (irg != null && irg.isOnExpression()) {
-            LanguageConnectionContext lcc = pred.getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = irg.getExprTexts();
-            for (int i = 0; i < exprTexts.length; i++) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-                setTableNumber(exprAst, optTable);
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(optTable);
+            for (int i = 0; i < exprAsts.length; i++) {
                 andNode = pred.getAndNode();
                 while(andNode instanceof AndNode) {
                     AndNode currentAnd = (AndNode) andNode;
                     ValueNode leftOperand = currentAnd.getLeftOperand();
                     if (leftOperand instanceof BinaryOperatorNode) {
                         BinaryOperatorNode binOp = (BinaryOperatorNode) leftOperand;
-                        if (exprAst.equals(binOp.getLeftOperand())) {
+                        if (exprAsts[i].equals(binOp.getLeftOperand())) {
                             binOp.setMatchIndexExpr(optTable.getTableNumber(), i, cd, true);
-                        } else if (exprAst.equals(binOp.getRightOperand())) {
+                        } else if (exprAsts[i].equals(binOp.getRightOperand())) {
                             binOp.setMatchIndexExpr(optTable.getTableNumber(), i, cd, false);
                         }
                     }
                     andNode = currentAnd.getRightOperand();
                 }
             }
-            lcc.popCompilerContext(newCC);
             // Multi-column in-list predicate is built from all useful in-list predicates. If we
             // are dealing with an index on expressions, then all useful predicates use index
             // expressions. It is safe to set the flag here.
