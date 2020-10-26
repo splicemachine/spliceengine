@@ -938,7 +938,6 @@ public class OperatorToString {
             if (vars.buildExpressionTree)
                 throwNotImplementedError();
             vars.relationalOpDepth.increment();
-            String resultType = operand.getTypeServices().toSparkString();
             StringBuilder sb = new StringBuilder();
             sb.append("coalesce(");
             int i = 0;
@@ -946,9 +945,13 @@ public class OperatorToString {
                 ValueNode vn = (ValueNode)ob;
                 if (i > 0)
                     sb.append(", ");
-                sb.append(format("cast(%s as %s)",
-                        opToString2(vn, vars),
-                        operand.getTypeServices().toSparkString()));
+                if (operand.getTypeServices().equals(vn.getTypeServices())) {
+                    sb.append(opToString2(vn, vars));
+                } else {
+                    sb.append(format("cast(%s as %s)",
+                            opToString2(vn, vars),
+                            operand.getTypeServices().toSparkString()));
+                }
                 i++;
             }
             sb.append(") ");
