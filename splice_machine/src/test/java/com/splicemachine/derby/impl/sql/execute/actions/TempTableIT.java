@@ -918,6 +918,7 @@ public class TempTableIT extends SpliceUnitTest {
         } finally {
             // both tables are destroyed
             methodWatcher.closeAll();
+            Thread.sleep(500);
         }
     }
 
@@ -931,7 +932,6 @@ public class TempTableIT extends SpliceUnitTest {
         final String createTblStmt = String.format("CREATE LOCAL TEMPORARY TABLE %s.%s %s ON COMMIT PRESERVE ROWS",
                 tableSchema.schemaName, SIMPLE_TEMP_TABLE, simpleDef);
         final String createIdxPattern = "CREATE INDEX %s ON %s.%s(fname)";
-        final String dropIdxPattern = "DROP INDEX %s";
         final String idxName = "TEMP_IDX_00001";
         final String selectStmt = String.format("select * from %s.%s", tableSchema.schemaName, SIMPLE_TEMP_TABLE);
 
@@ -983,6 +983,7 @@ public class TempTableIT extends SpliceUnitTest {
         } finally {
             // both tables are destroyed
             methodWatcher.closeAll();
+            Thread.sleep(500);
         }
     }
 
@@ -1021,6 +1022,8 @@ public class TempTableIT extends SpliceUnitTest {
                 // expected
                 Assert.assertEquals(e.getLocalizedMessage(), "42995", e.getSQLState());
             }
+            // drop table is not part of the test but just to make sure TEMPTABLEIT schema can be dropped
+            methodWatcher.executeUpdate(format("drop table %s", tableSchema.schemaName + "." + SIMPLE_TEMP_TABLE));
         } finally {
             methodWatcher.closeAll();
         }
@@ -1106,6 +1109,8 @@ public class TempTableIT extends SpliceUnitTest {
                             tableSchema.schemaName, tableName, encodedRegion[0]));
                 });
             }
+            // drop table is not part of the test but just to make sure TEMPTABLEIT schema can be dropped
+            methodWatcher.executeUpdate(format("drop table %s", tableSchema.schemaName + "." + tableName));
 
         } finally {
             methodWatcher.closeAll();
@@ -1120,7 +1125,6 @@ public class TempTableIT extends SpliceUnitTest {
     @Test
     public void testLocalTempTableNameClash() throws Exception {
         final String createTablePattern = "CREATE %s " + String.format("TABLE %s.%s %s", tableSchema.schemaName, SIMPLE_TEMP_TABLE, simpleDef);
-        final String selectStmt = String.format("select * from %s.%s", tableSchema.schemaName, SIMPLE_TEMP_TABLE);
 
         Connection connection_1 = methodWatcher.createConnection();
         Connection connection_2 = methodWatcher.createConnection();
