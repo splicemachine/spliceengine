@@ -63,6 +63,9 @@ public class TimeSpanNode extends ValueNode
             case DateTimeDataValue.MONTH_INTERVAL:
             case DateTimeDataValue.DAY_INTERVAL:
             case DateTimeDataValue.YEAR_INTERVAL:
+            case DateTimeDataValue.HOUR_INTERVAL:
+            case DateTimeDataValue.MINUTE_INTERVAL:
+            case DateTimeDataValue.SECOND_INTERVAL:
                 setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(this.unit));
                 break;
             default:
