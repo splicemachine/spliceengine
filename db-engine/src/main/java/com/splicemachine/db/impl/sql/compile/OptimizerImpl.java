@@ -1163,14 +1163,14 @@ public class OptimizerImpl implements Optimizer{
     @Override
     public void costOptimizable(Optimizable optimizable,
                                 TableDescriptor td,
-                                ConglomerateDescriptor cd,
+                                AccessPath accessPath,
                                 OptimizablePredicateList predList,
                                 CostEstimate outerCost) throws StandardException{
         /*
         ** Don't consider non-feasible join strategies.
         */
         if(!optimizable.feasibleJoinStrategy(predList,this,outerCost)){
-            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
+            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,accessPath.getJoinStrategy());
             return;
         }
 
@@ -1185,9 +1185,9 @@ public class OptimizerImpl implements Optimizer{
         //     predList.classify(optimizable, cd);
 
         if(ruleBasedOptimization){
-            ruleBasedCostOptimizable(optimizable,cd,predList,outerCost);
+            ruleBasedCostOptimizable(optimizable,accessPath,predList,outerCost);
         }else{
-            costBasedCostOptimizable(optimizable,cd,predList,outerCost);
+            costBasedCostOptimizable(optimizable,accessPath,predList,outerCost);
         }
     }
 
@@ -2307,9 +2307,11 @@ public class OptimizerImpl implements Optimizer{
      * order, and the cost information is copied to the query plan.
      */
     private void ruleBasedCostOptimizable(Optimizable optimizable,
-                                          ConglomerateDescriptor cd,
+                                          AccessPath currentAccessPath,
                                           OptimizablePredicateList predList,
                                           CostEstimate outerCost) throws StandardException{
+        ConglomerateDescriptor cd = currentAccessPath.getConglomerateDescriptor();
+
         /* CHOOSE BEST CONGLOMERATE HERE */
         ConglomerateDescriptor bestConglomerateDescriptor;
         AccessPath bestAp=optimizable.getBestAccessPath();
@@ -2328,7 +2330,7 @@ public class OptimizerImpl implements Optimizer{
         ** If there is more than one conglomerate descriptor
         ** choose any index that is potentially useful.
         */
-        if(predList!=null && predList.useful(optimizable,cd)){
+        if(predList!=null && predList.useful(optimizable,currentAccessPath)){
             /*
             ** Do not let a non-covering matching index scan supplant a
             ** covering matching index scan.
@@ -2340,7 +2342,9 @@ public class OptimizerImpl implements Optimizer{
                 bestAp.setNonMatchingIndexScan(false);
                 bestAp.setCoveringIndexScan(newCoveringIndex);
 
-                bestAp.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+                bestAp.setLockMode(currentAccessPath.getLockMode());
+                bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+                bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
                 optimizable.rememberJoinStrategyAsBest(bestAp);
             }
@@ -2358,7 +2362,9 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setNonMatchingIndexScan(true);
             bestAp.setCoveringIndexScan(true);
 
-            bestAp.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+            bestAp.setLockMode(currentAccessPath.getLockMode());
+            bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+            bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
             optimizable.rememberJoinStrategyAsBest(bestAp);
             return;
@@ -2373,7 +2379,9 @@ public class OptimizerImpl implements Optimizer{
 
             bestAp.setConglomerateDescriptor(cd);
 
-            bestAp.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+            bestAp.setLockMode(currentAccessPath.getLockMode());
+            bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+            bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
             optimizable.rememberJoinStrategyAsBest(bestAp);
 
@@ -2402,7 +2410,9 @@ public class OptimizerImpl implements Optimizer{
             bestAp.setCoveringIndexScan(false);
             bestAp.setNonMatchingIndexScan(cd.isIndex());
 
-            bestAp.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+            bestAp.setLockMode(currentAccessPath.getLockMode());
+            bestAp.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+            bestAp.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
             optimizable.rememberJoinStrategyAsBest(bestAp);
         }
@@ -2416,9 +2426,10 @@ public class OptimizerImpl implements Optimizer{
      * of using the best ConglomerateDescriptor so far.
      */
     private void costBasedCostOptimizable(Optimizable optimizable,
-                                          ConglomerateDescriptor cd,
+                                          AccessPath currentAccessPath,
                                           OptimizablePredicateList predList,
                                           CostEstimate outerCost) throws StandardException{
+        ConglomerateDescriptor cd = currentAccessPath.getConglomerateDescriptor();
         CostEstimate estimatedCost = estimateTotalCost(predList, cd, outerCost, optimizable);
 
         // Before considering the cost, make sure we set the optimizable's
@@ -2428,7 +2439,7 @@ public class OptimizerImpl implements Optimizer{
         // not then we'll have to revert back to whatever the best plan is.
         // That check is performed in getNextDecoratedPermutation() of
         // this class.
-        optimizable.getCurrentAccessPath().setCostEstimate(estimatedCost);
+        currentAccessPath.setCostEstimate(estimatedCost);
 
         /* Pick the cheapest cost for this particular optimizable. */
         AccessPath ap=optimizable.getBestAccessPath();
@@ -2442,15 +2453,18 @@ public class OptimizerImpl implements Optimizer{
                 ap.setConglomerateDescriptor(cd);
                 ap.setCostEstimate(estimatedCost);
                 ap.setCoveringIndexScan(optimizable.isCoveringIndex(cd));
-                ap.setSpecialMaxScan(optimizable.getCurrentAccessPath().getSpecialMaxScan());
+                ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
+                ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+                ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
             /*
             ** It's a non-matching index scan either if there is no
             ** predicate list, or nothing in the predicate list is useful
             ** for limiting the scan.
             */
-                ap.setNonMatchingIndexScan((cd == null) || (predList == null) || (!(predList.useful(optimizable, cd))));
-                ap.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+                ap.setNonMatchingIndexScan((cd == null) || (predList == null) ||
+                                           (!(predList.useful(optimizable, currentAccessPath))));
+                ap.setLockMode(currentAccessPath.getLockMode());
                 optimizable.rememberJoinStrategyAsBest(ap);
             }
         }
@@ -2486,15 +2500,17 @@ public class OptimizerImpl implements Optimizer{
                             ap.setCostEstimate(estimatedCost);
                             ap.setCoveringIndexScan(
                                     optimizable.isCoveringIndex(cd));
-                            ap.setSpecialMaxScan(optimizable.getCurrentAccessPath().getSpecialMaxScan());
+                            ap.setSpecialMaxScan(currentAccessPath.getSpecialMaxScan());
+                            ap.setMissingHashKeyOK(currentAccessPath.isMissingHashKeyOK());
+                            ap.setNumUnusedLeadingIndexFields(currentAccessPath.getNumUnusedLeadingIndexFields());
 
                         /*
                         ** It's a non-matching index scan either if there is no
                         ** predicate list, or nothing in the predicate list is
                         ** useful for limiting the scan.
                         */
-                            ap.setNonMatchingIndexScan((predList == null) || (!(predList.useful(optimizable, cd))));
-                            ap.setLockMode(optimizable.getCurrentAccessPath().getLockMode());
+                            ap.setNonMatchingIndexScan((predList == null) || (!(predList.useful(optimizable, currentAccessPath))));
+                            ap.setLockMode(currentAccessPath.getLockMode());
                             optimizable.rememberJoinStrategyAsBest(ap);
                             optimizable.rememberSortAvoidancePath();
 

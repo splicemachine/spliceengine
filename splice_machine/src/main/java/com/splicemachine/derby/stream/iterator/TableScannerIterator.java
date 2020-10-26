@@ -125,6 +125,7 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
         if (tableScanner != null) {
             try {
                 tableScanner.close();
+                tableScanner = null;  // Don't attempt close() more than once.
             } catch (StandardException se) {
                 throw new IOException(se);
             }

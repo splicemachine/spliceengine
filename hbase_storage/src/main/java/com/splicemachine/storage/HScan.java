@@ -14,17 +14,23 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.access.client.ClientRegionConstants;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.Pair;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
 import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
+import org.apache.hadoop.hbase.filter.PageFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
  * @author Scott Fines
@@ -111,6 +117,14 @@ public class HScan implements DataScan {
                 Bytes.compareTo(currentStopRow, filterStopRow) > 0)
                 scan.withStopRow(filterStopRow);
         }
+    }
+
+    @Override public
+    void addPageFilter(long numRows) throws StandardException {
+        if (numRows < 1)
+            throw StandardException.newException(LANG_INTERNAL_ERROR,
+                "Page filter must scan at least 1 row.");
+        scan.setFilter(new PageFilter(numRows));
     }
 
     @Override

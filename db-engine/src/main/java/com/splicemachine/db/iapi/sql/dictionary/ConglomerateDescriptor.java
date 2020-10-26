@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 
 /**
  * The ConglomerateDescriptor class is used to get information about
@@ -79,6 +80,7 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 	private final UUID	uuid;
 	private final UUID	tableID;
 	private final UUID	schemaID;
+	private FirstColumnOfIndexStats firstColumnStats;
 
 	/**
 	 * Constructor for a conglomerate descriptor.
@@ -654,5 +656,13 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 		}
 
 		return returnDesc;
+	}
+
+	public FirstColumnOfIndexStats getFirstColumnStats() {
+		return firstColumnStats;
+	}
+
+	public void setFirstColumnStats(FirstColumnOfIndexStats firstColumnStats) {
+        this.firstColumnStats = new FirstColumnOfIndexStats(firstColumnStats);
 	}
 }

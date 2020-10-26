@@ -201,6 +201,9 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         ap.setMissingHashKeyOK(false);
         bestAp.setMissingHashKeyOK(false);
         bestSortAp.setMissingHashKeyOK(false);
+        ap.setNumUnusedLeadingIndexFields(0);
+        bestAp.setNumUnusedLeadingIndexFields(0);
+        bestSortAp.setNumUnusedLeadingIndexFields(0);
 
         /*
          ** Only need to do this for current access path, because the
@@ -2035,7 +2038,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                                    CostEstimate outerCost,
                                    RowOrdering rowOrdering) throws StandardException{
         optimizer.costOptimizable(this,null,
-                getCurrentAccessPath().getConglomerateDescriptor(),
+                getCurrentAccessPath(),
                 predList,
                 outerCost);
 

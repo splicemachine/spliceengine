@@ -74,7 +74,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
         if(predList!=null && basePredicates!=null){
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable,innerTable.getCurrentAccessPath().getConglomerateDescriptor(), true);
+            basePredicates.classify(innerTable,innerTable.getCurrentAccessPath(), true);
         }
 
         return basePredicates;
@@ -191,7 +191,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
              * the table then storeRestrictionList should not have any
              * IN-list probing predicates.  Make sure that's the case.
              */
-            if(!genInListVals){
+            if(!genInListVals && !innerTable.hasIndexPrefixIterator()){
                 Predicate pred;
                 for(int i=storeRestrictionList.size()-1;i>=0;i--){
                     pred=(Predicate)storeRestrictionList.getOptPredicate(i);

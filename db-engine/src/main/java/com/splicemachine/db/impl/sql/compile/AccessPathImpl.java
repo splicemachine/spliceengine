@@ -54,6 +54,7 @@ class AccessPathImpl implements AccessPath{
     private CostEstimate costEstimate=null;
     private boolean isJoinStrategyHinted = false;
     private boolean missingHashKeyOK = false;
+    private int numUnusedLeadingIndexFields;
 
     AccessPathImpl(Optimizer optimizer){
         this.optimizer=optimizer;
@@ -110,6 +111,7 @@ class AccessPathImpl implements AccessPath{
         setHintedJoinStrategy(copyFrom.isHintedJoinStrategy());
         setLockMode(copyFrom.getLockMode());
         setMissingHashKeyOK(copyFrom.isMissingHashKeyOK());
+        setNumUnusedLeadingIndexFields(copyFrom.getNumUnusedLeadingIndexFields());
     }
 
     @Override public Optimizer getOptimizer(){ return optimizer; }
@@ -117,15 +119,16 @@ class AccessPathImpl implements AccessPath{
     @Override
     public String toString(){
         if(SanityManager.DEBUG){
-            return "cd == "+cd+
-                    ", costEstimate == "+costEstimate+
+            return "cd == " + (cd == null ? "null" : cd) +
+                    ", costEstimate == " + (costEstimate == null ? "null" : costEstimate) +
                     ", coveringIndexScan == "+coveringIndexScan+
                     ", nonMatchingIndexScan == "+nonMatchingIndexScan+
                     ", specialMaxScan == "+specialMaxScan+
-                    ", joinStrategy == "+joinStrategy+
+                    ", joinStrategy == " + (joinStrategy == null ? "null" : joinStrategy) +
                     ", lockMode == "+lockMode+
                     ", optimizer level == "+optimizer.getLevel()+
-                    ", missingHashKeyOK == "+isMissingHashKeyOK();
+                    ", missingHashKeyOK == "+isMissingHashKeyOK()+
+                    ", numUnusedLeadingIndexFields == "+getNumUnusedLeadingIndexFields();
         }else{
             return "";
         }
@@ -164,5 +167,15 @@ class AccessPathImpl implements AccessPath{
     @Override
     public void setSpecialMaxScan(boolean value) {
         specialMaxScan = value;
+    }
+
+    @Override
+    public int getNumUnusedLeadingIndexFields() {
+        return numUnusedLeadingIndexFields;
+    }
+
+    @Override
+    public void setNumUnusedLeadingIndexFields(int numUnusedLeadingIndexFields) {
+        this.numUnusedLeadingIndexFields = numUnusedLeadingIndexFields;
     }
 }

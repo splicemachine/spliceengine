@@ -1505,4 +1505,9 @@ public interface LanguageConnectionContext extends Context {
     int getApplicationJarsHashCode();
 
     void setupSparkSQLUtils(SparkSQLUtils sparkSQLUtils);
+
+    boolean isPredicateUsageForIndexOrPkAccessDisabled();
+
+    boolean alwaysAllowIndexPrefixIteration();
+
 }
