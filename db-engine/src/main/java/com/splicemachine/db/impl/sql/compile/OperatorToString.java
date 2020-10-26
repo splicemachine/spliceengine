@@ -526,7 +526,7 @@ public class OperatorToString {
                         rightOperand.getTypeId().getTypeFormatId() !=
                         bao.getTypeId().getTypeFormatId()) {
                         // if date difference or date subtraction operation, the input parameter and result types are meant to be different */
-                        if (!(bao.getOperatorString() == "-" &&
+                        if (!(bao.getOperatorString().equals("-") &&
                                 leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)) {
                             doCast = true;
                             targetType = bao.getTypeServices().toSparkString();
@@ -938,6 +938,7 @@ public class OperatorToString {
             if (vars.buildExpressionTree)
                 throwNotImplementedError();
             vars.relationalOpDepth.increment();
+            String resultType = operand.getTypeServices().toSparkString();
             StringBuilder sb = new StringBuilder();
             sb.append("coalesce(");
             int i = 0;
@@ -945,7 +946,9 @@ public class OperatorToString {
                 ValueNode vn = (ValueNode)ob;
                 if (i > 0)
                     sb.append(", ");
-                sb.append(format("%s", opToString2(vn, vars)));
+                sb.append(format("cast(%s as %s)",
+                        opToString2(vn, vars),
+                        operand.getTypeServices().toSparkString()));
                 i++;
             }
             sb.append(") ");
