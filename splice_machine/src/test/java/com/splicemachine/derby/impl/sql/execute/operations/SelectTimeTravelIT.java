@@ -4,7 +4,6 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.SpliceDateTimeFormatter;
-import org.apache.spark.sql.catalyst.expressions.WindowFunctionType;
 import org.junit.*;
 
 import java.io.File;
@@ -428,6 +427,18 @@ public class SelectTimeTravelIT {
         }
     }
 
+    private void shouldExceedMrp(String query) {
+        try {
+            watcher.executeQuery(query);
+            Assert.fail("expected exception with the following message: time travel query is outside the minimum retention period of 2 second(s)");
+        } catch(Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            SQLException sqlException = (SQLException)e;
+            Assert.assertEquals("42ZD7", sqlException.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("time travel query is outside the minimum retention period of 2 second(s)"));
+        }
+    }
+
     @Test
     public void testTimeTravelOutsideMinRetentionPeriodWorks() throws Exception {
         String someTable = generateTableName();
@@ -437,16 +448,8 @@ public class SelectTimeTravelIT {
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
         Thread.sleep(mrp * 1000 + 300);
-        try {
-            watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable,
-                    new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis() - (mrp + 2) * 1000))));
-            Assert.fail("expected exception with the following message: time travel query is outside the minimum retention period of 2 second(s)");
-        } catch(Exception e) {
-            Assert.assertTrue(e instanceof SQLException);
-            SQLException sqlException = (SQLException)e;
-            Assert.assertEquals("42ZD7", sqlException.getSQLState());
-            Assert.assertTrue(e.getMessage().contains("time travel query is outside the minimum retention period of 2 second(s)"));
-        }
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable,
+                new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis() - (mrp + 2) * 1000))));
         watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', null)", SCHEMA, someTable));
         try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable,
                 new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis() - (mrp + 200) * 1000))))) {
@@ -471,6 +474,46 @@ public class SelectTimeTravelIT {
             Assert.assertEquals(1, rs.getInt(1));
             Assert.assertTrue(rs.next());
             Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testTimeTravelWithQueryHintWorksCorrectly() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        int mrp = 2; // seconds
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
+        String initialTime = new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis()));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 3", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 4", someTable));
+        Thread.sleep(mrp * 1000 * 2); // we are already beyond MRP for upcoming SELECTs
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable, initialTime));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true", someTable, initialTime))) {
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testTimeTravelWithQueryHintsOnDifferentTablesWorks() throws Exception {
+        String someTable1 = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable1));
+        String someTable2 = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable2));
+        int mrp = 2; // seconds
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable1, mrp));
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable2, mrp));
+        String initialTime = new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis()));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 3", someTable1));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 4", someTable1));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 3", someTable2));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 4", someTable2));
+        Thread.sleep(mrp * 1000 * 2); // we are already beyond MRP for upcoming SELECT
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s'), %s AS OF TIMESTAMP('%s')", someTable1, initialTime, someTable2, initialTime));
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s'), %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true", someTable1, initialTime, someTable2, initialTime));
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true\n, %s AS OF TIMESTAMP('%s')", someTable1, initialTime, someTable2, initialTime));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true\n, %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true",
+                someTable1, initialTime, someTable2, initialTime))) {
             Assert.assertFalse(rs.next());
         }
     }
