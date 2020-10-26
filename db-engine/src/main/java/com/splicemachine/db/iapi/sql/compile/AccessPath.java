@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.compile.FirstColumnOfIndexStats;
 
 /**
  * AccessPath represents a proposed access path for an Optimizable.
@@ -179,4 +180,20 @@ public interface AccessPath {
 
 	boolean getSpecialMaxScan();
 	void setSpecialMaxScan(boolean value);
+
+
+	/**
+	 * Check whether the current access path uses a primary key or index to scan
+	 * a subset of the rows, but one or more leading index fields has no predicate
+	 * specified to generate a start key.  If non-zero, the access path represents
+	 * an IndexPrefixIteratorMode scan, where the values in the first column of the
+	 * index are iterated through in separate scans, and the remainder predicates
+	 * are used to complete the start key.
+	 */
+	int getNumUnusedLeadingIndexFields();
+
+	/**
+	 * If non-zero, this access path represents an IndexPrefixIteratorMode scan.
+	 */
+    void setNumUnusedLeadingIndexFields(int numUnusedLeadingIndexFields);
 }

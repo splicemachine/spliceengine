@@ -452,6 +452,89 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 GeneratedMethod pastTxFunctor,
                                                 long minRetentionPeriod)
             throws StandardException {
+
+        return getTableScanResultSet(activation,
+                                                conglomId,
+                                                scociItem,
+                                                resultRowAllocator,
+                                                resultSetNumber,
+                                                startKeyGetter,
+                                                startSearchOperator,
+                                                stopKeyGetter,
+                                                stopSearchOperator,
+                                                sameStartStopPosition,
+                                                rowIdKey,
+                                                qualifiersField,
+                                                tableName,
+                                                userSuppliedOptimizerOverrides,
+                                                indexName,
+                                                isConstraint,
+                                                forUpdate,
+                                                colRefItem,
+                                                indexColItem,
+                                                lockMode,
+                                                tableLocked,
+                                                isolationLevel,
+                                                oneRowScan,
+                                                optimizerEstimatedRowCount,
+                                                optimizerEstimatedCost,
+                                                tableVersion,
+                                                explainPlan,
+                                                splits,
+                                                delimited,
+                                                escaped,
+                                                lines,
+                                                storedAs,
+                                                location,
+                                                partitionByRefItem,
+                                                defaultRowFunc,
+                                                defaultValueMapItem,
+                                                pastTxFunctor,
+                                                minRetentionPeriod,
+                                                0);
+    }
+
+    @Override
+    public NoPutResultSet getTableScanResultSet(Activation activation,
+                                                long conglomId,
+                                                int scociItem,
+                                                GeneratedMethod resultRowAllocator,
+                                                int resultSetNumber,
+                                                GeneratedMethod startKeyGetter,
+                                                int startSearchOperator,
+                                                GeneratedMethod stopKeyGetter,
+                                                int stopSearchOperator,
+                                                boolean sameStartStopPosition,
+                                                boolean rowIdKey,
+                                                String qualifiersField,
+                                                String tableName,
+                                                String userSuppliedOptimizerOverrides,
+                                                String indexName,
+                                                boolean isConstraint,
+                                                boolean forUpdate,
+                                                int colRefItem,
+                                                int indexColItem,
+                                                int lockMode,
+                                                boolean tableLocked,
+                                                int isolationLevel,
+                                                boolean oneRowScan,
+                                                double optimizerEstimatedRowCount,
+                                                double optimizerEstimatedCost,
+                                                String tableVersion,
+                                                String explainPlan,
+                                                int splits,
+                                                String delimited,
+                                                String escaped,
+                                                String lines,
+                                                String storedAs,
+                                                String location,
+                                                int partitionByRefItem,
+                                                GeneratedMethod defaultRowFunc,
+                                                int defaultValueMapItem,
+                                                GeneratedMethod pastTxFunctor,
+                                                long minRetentionPeriod,
+                                                int numUnusedLeadingIndexFields )
+            throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
@@ -494,7 +577,106 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     defaultRowFunc,
                     defaultValueMapItem,
                     pastTxFunctor,
-                    minRetentionPeriod );
+                    minRetentionPeriod,
+                    numUnusedLeadingIndexFields);
+            op.setExplainPlan(explainPlan);
+            return op;
+        }catch(Exception e){
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    @Override
+    public NoPutResultSet getIndexPrefixIteratorResultSet(
+                                                NoPutResultSet sourceResultSet,
+                                                int firstIndexColumnNumber,
+                                                Activation activation,
+                                                long conglomId,
+                                                int scociItem,
+                                                GeneratedMethod resultRowAllocator,
+                                                int resultSetNumber,
+                                                GeneratedMethod startKeyGetter,
+                                                int startSearchOperator,
+                                                GeneratedMethod stopKeyGetter,
+                                                int stopSearchOperator,
+                                                boolean sameStartStopPosition,
+                                                boolean rowIdKey,
+                                                String qualifiersField,
+                                                String tableName,
+                                                String userSuppliedOptimizerOverrides,
+                                                String indexName,
+                                                boolean isConstraint,
+                                                boolean forUpdate,
+                                                int colRefItem,
+                                                int indexColItem,
+                                                int lockMode,
+                                                boolean tableLocked,
+                                                int isolationLevel,
+                                                boolean oneRowScan,
+                                                double optimizerEstimatedRowCount,
+                                                double optimizerEstimatedCost,
+                                                String tableVersion,
+                                                String explainPlan,
+                                                int splits,
+                                                String delimited,
+                                                String escaped,
+                                                String lines,
+                                                String storedAs,
+                                                String location,
+                                                int partitionByRefItem,
+                                                GeneratedMethod defaultRowFunc,
+                                                int defaultValueMapItem,
+                                                GeneratedMethod pastTxFunctor,
+                                                long minRetentionPeriod,
+                                                int numUnusedLeadingIndexFields )
+            throws StandardException {
+        SpliceLogUtils.trace(LOG, "getIndexPrefixIteratorResultSet");
+        try{
+            StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
+                    getSavedObject(scociItem));
+            ConvertedResultSet source = (ConvertedResultSet)sourceResultSet;
+            IndexPrefixIteratorOperation op = new IndexPrefixIteratorOperation(
+                    source.getOperation(),
+                    firstIndexColumnNumber,
+                    conglomId,
+                    scoci,
+                    activation,
+                    resultRowAllocator,
+                    resultSetNumber,
+                    null, // startKeyGetter
+                    startSearchOperator,
+                    null, // stopKeyGetter
+                    stopSearchOperator,
+                    sameStartStopPosition,
+                    rowIdKey,
+                    null, // qualifiersField
+                    tableName,
+                    userSuppliedOptimizerOverrides,
+                    indexName,
+                    isConstraint,
+                    forUpdate,
+                    colRefItem,
+                    indexColItem,
+                    lockMode,
+                    tableLocked,
+                    isolationLevel,
+                    1,	// rowsPerRead is 1 if not a bulkTableScan
+                    oneRowScan,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost,
+                    tableVersion,
+                    splits,
+                    delimited,
+                    escaped,
+                    lines,
+                    storedAs,
+                    location,
+                    partitionByRefItem,
+                    defaultRowFunc,
+                    defaultValueMapItem,
+                    pastTxFunctor,
+                    minRetentionPeriod,
+                    numUnusedLeadingIndexFields);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -802,7 +984,72 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod) throws StandardException {
+            long minRetentionPeriod ) throws StandardException {
+        return getDistinctScanResultSet(
+            activation,
+            conglomId,
+            scociItem,
+            resultRowAllocator,
+            resultSetNumber,
+            hashKeyColumn,
+            tableName,
+            userSuppliedOptimizerOverrides,
+            indexName,
+            isConstraint,
+            colRefItem,
+            lockMode,
+            tableLocked,
+            isolationLevel,
+            optimizerEstimatedRowCount,
+            optimizerEstimatedCost,
+            tableVersion,
+            explainPlan,
+            splits,
+            delimited,
+            escaped,
+            lines,
+            storedAs,
+            location,
+            partitionByRefItem,
+            defaultRowFunc,
+            defaultValueMapItem,
+            pastTxFunctor,
+            minRetentionPeriod,
+            0);
+    }
+
+    @Override
+    public NoPutResultSet getDistinctScanResultSet(
+            Activation activation,
+            long conglomId,
+            int scociItem,
+            GeneratedMethod resultRowAllocator,
+            int resultSetNumber,
+            int hashKeyColumn,
+            String tableName,
+            String userSuppliedOptimizerOverrides,
+            String indexName,
+            boolean isConstraint,
+            int colRefItem,
+            int lockMode,
+            boolean tableLocked,
+            int isolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String tableVersion,
+            String explainPlan,
+            int splits,
+            String delimited,
+            String escaped,
+            String lines,
+            String storedAs,
+            String location,
+            int partitionByRefItem,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem,
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod,
+            int numUnusedLeadingIndexFields) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             ScanOperation op = new DistinctScanOperation(
@@ -833,7 +1080,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     defaultRowFunc,
                     defaultValueMapItem,
                     pastTxFunctor,
-                    minRetentionPeriod);
+                    minRetentionPeriod,
+                    numUnusedLeadingIndexFields);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1106,8 +1354,62 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod)
+            long minRetentionPeriod )
+        throws StandardException {
 
+        return getMultiProbeTableScanResultSet(
+            activation, conglomId, scociItem,
+            resultRowAllocator, resultSetNumber,
+            startKeyGetter, startSearchOperator,
+            stopKeyGetter, stopSearchOperator,
+            sameStartStopPosition, rowIdKey, qualifiersField,
+            getProbeValsFunc, sortRequired, inlistPosition,
+            inlistTypeArrayItem,
+            tableName, userSuppliedOptimizerOverrides,
+            indexName, isConstraint, forUpdate,
+            colRefItem, indexColItem, lockMode,
+            tableLocked, isolationLevel, oneRowScan,
+            optimizerEstimatedRowCount, optimizerEstimatedCost, tableVersion,
+            explainPlan, splits,
+            delimited,
+            escaped,
+            lines,
+            storedAs,
+            location,
+            partitionByRefItem,
+            defaultRowFunc,
+            defaultValueMapItem,
+            pastTxFunctor, minRetentionPeriod, 0 );
+
+    }
+
+
+    @Override
+    public NoPutResultSet getMultiProbeTableScanResultSet(
+            Activation activation, long conglomId, int scociItem,
+            GeneratedMethod resultRowAllocator, int resultSetNumber,
+            GeneratedMethod startKeyGetter, int startSearchOperator,
+            GeneratedMethod stopKeyGetter, int stopSearchOperator,
+            boolean sameStartStopPosition, boolean rowIdKey, String qualifiersField,
+            GeneratedMethod getProbeValsFunc, int sortRequired, int inlistPosition,
+            int inlistTypeArrayItem,
+            String tableName, String userSuppliedOptimizerOverrides,
+            String indexName, boolean isConstraint, boolean forUpdate,
+            int colRefItem, int indexColItem, int lockMode,
+            boolean tableLocked, int isolationLevel, boolean oneRowScan,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion,
+            String explainPlan, int splits,
+            String delimited,
+            String escaped,
+            String lines,
+            String storedAs,
+            String location,
+            int partitionByRefItem,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem,
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod,
+            int numUnusedLeadingIndexFields)
             throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)
@@ -1154,7 +1456,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     defaultRowFunc,
                     defaultValueMapItem,
                     pastTxFunctor,
-                    minRetentionPeriod
+                    minRetentionPeriod,
+                    numUnusedLeadingIndexFields
                     );
             op.setExplainPlan(explainPlan);
             return op;
@@ -2197,6 +2500,48 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     GeneratedMethod pastTxFunctor,
                     long minRetentionPeriod
             ) throws StandardException {
+        return getLastIndexKeyResultSet
+            (
+                    activation,
+                    resultSetNumber,
+                    resultRowAllocator,
+                    conglomId,
+                    tableName,
+                    userSuppliedOptimizerOverrides,
+                    indexName,
+                    colRefItem,
+                    lockMode,
+                    tableLocked,
+                    isolationLevel,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost,
+                    tableVersion,
+                    explainPlan,
+                    pastTxFunctor,
+                    minRetentionPeriod, 0);
+    }
+
+    public NoPutResultSet getLastIndexKeyResultSet
+            (
+                    Activation activation,
+                    int resultSetNumber,
+                    GeneratedMethod resultRowAllocator,
+                    long conglomId,
+                    String tableName,
+                    String userSuppliedOptimizerOverrides,
+                    String indexName,
+                    int colRefItem,
+                    int lockMode,
+                    boolean tableLocked,
+                    int isolationLevel,
+                    double optimizerEstimatedRowCount,
+                    double optimizerEstimatedCost,
+                    String tableVersion,
+                    String explainPlan,
+                    GeneratedMethod pastTxFunctor,
+                    long minRetentionPeriod,
+                    int numUnusedLeadingIndexFields
+            ) throws StandardException {
         SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
         ScanOperation op = new LastIndexKeyOperation(
                 activation,
@@ -2211,7 +2556,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 tableLocked,
                 isolationLevel,
                 optimizerEstimatedRowCount,
-                optimizerEstimatedCost, tableVersion, pastTxFunctor, minRetentionPeriod);
+                optimizerEstimatedCost, tableVersion, pastTxFunctor,
+                minRetentionPeriod, numUnusedLeadingIndexFields);
         op.setExplainPlan(explainPlan);
         return op;
     }

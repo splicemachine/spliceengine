@@ -459,7 +459,7 @@ public class ScanCostFunction{
      * @throws StandardException
      */
 
-    public void generateCost() throws StandardException {
+    public void generateCost(long numFirstIndexColumnProbes) throws StandardException {
 
         double baseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder, QualifierPhase.BASE);
         double filterBaseTableSelectivity = computePhaseSelectivity(scanSelectivityHolder, topSelectivityHolder,QualifierPhase.BASE,QualifierPhase.FILTER_BASE);
@@ -512,7 +512,12 @@ public class ScanCostFunction{
         scanCost.setRemoteCost((long)remoteCost);
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
-        double baseCost = openLatency+closeLatency+(totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
+        double baseCost = openLatency+closeLatency;
+        double indexProbingMultiplier = numFirstIndexColumnProbes > 1 ?
+                                         Math.cbrt(numFirstIndexColumnProbes) :
+                                         1d;
+        baseCost +=  indexProbingMultiplier *
+                     (totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
         scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));

@@ -481,6 +481,68 @@ public class SpliceUnitTest {
         }
     }
 
+    protected void testPreparedQuery(String sqlText, SpliceWatcher methodWatcher,
+                                     String expected, List<Integer> paramList) throws Exception {
+        try(PreparedStatement ps = methodWatcher.prepareStatement(sqlText)) {
+            int i = 1;
+            for (int param : paramList) {
+                ps.setInt(i++, param);
+            }
+
+            try(ResultSet rs = ps.executeQuery()) {
+                assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+            }
+        }
+    }
+
+    protected void testExplainContains(String sqlText,
+                                       SpliceWatcher methodWatcher,
+                                       List<String> containedStrings,
+                                       List<String> notContainedStrings) throws Exception {
+        String explainQuery = "explain " + sqlText;
+        try (ResultSet rs = methodWatcher.executeQuery(explainQuery)){
+            String explainText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            if (containedStrings != null)
+                for (String containedString : containedStrings) {
+                    assertTrue(format("\n" + explainQuery + "\n\n" + "Expected to contain: %s\n", containedString),
+                        explainText.contains(containedString));
+                }
+            if (notContainedStrings != null)
+                for (String notContainedString : notContainedStrings) {
+                    assertTrue(format("\n" + explainQuery + "\n\n" + "Expected not to contain: %s\n", notContainedString),
+                        !explainText.contains(notContainedString));
+                }
+        }
+    }
+
+    protected void testParameterizedExplainContains(String sqlText,
+                                     SpliceWatcher methodWatcher,
+                                     List<String> containedStrings,
+                                     List<String> notContainedStrings,
+                                     List<Integer> paramList) throws Exception {
+
+        String explainQuery = "explain " + sqlText;
+        try(PreparedStatement ps = methodWatcher.prepareStatement(explainQuery)) {
+            int i = 1;
+            for (int param : paramList) {
+                ps.setInt(i++, param);
+            }
+            try(ResultSet rs = ps.executeQuery()) {
+                String explainText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+                if (containedStrings != null)
+                    for (String containedString : containedStrings) {
+                        assertTrue(format("\n" + explainQuery + "\n\n" + "Expected to contain: %s\n", containedString),
+                            explainText.contains(containedString));
+                    }
+                if (notContainedStrings != null)
+                    for (String notContainedString : notContainedStrings) {
+                        assertTrue(format("\n" + explainQuery + "\n\n" + "Expected not to contain: %s\n", notContainedString),
+                            !explainText.contains(notContainedString));
+                    }
+            }
+        }
+    }
+
     protected void testQueryDoesNotContain(String sqlText, String containedString,
                                            SpliceWatcher methodWatcher,
                                            boolean caseInsensitive) throws Exception {

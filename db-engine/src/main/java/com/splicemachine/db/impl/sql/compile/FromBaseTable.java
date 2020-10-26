@@ -72,6 +72,7 @@ import java.lang.reflect.Modifier;
 import java.util.*;
 
 import static com.splicemachine.db.impl.ast.RSUtils.isRSN;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 // Temporary until user override for disposable stats has been removed.
 
@@ -123,6 +124,12 @@ public class FromBaseTable extends FromTable {
     long defaultRowCount;
     double defaultSelectivityFactor = -1d;
 
+    private boolean disableIndexPrefixIteration = false;
+
+    // Statistics about the first column in the conglomerate currently
+    // being considered as the access path of this table:
+    FirstColumnOfIndexStats currentIndexFirstColumnStats = new FirstColumnOfIndexStats();
+
     /*
     ** The number of rows to bulkFetch.
     ** Initially it is unset.  If the user
@@ -146,6 +153,13 @@ public class FromBaseTable extends FromTable {
      * on the table scan for this FromBaseTable.
      */
     boolean multiProbing=false;
+
+    /* If non-zero, indicates the scan from this base table is using
+       an access path that builds partial start keys, and prepends
+       first index column values that are present in the table
+       to complete the start keys.
+     */
+    int numUnusedLeadingIndexFields = 0;
 
     private double singleScanRowCount;
 
@@ -495,7 +509,7 @@ public class FromBaseTable extends FromTable {
                                    RowOrdering rowOrdering) throws StandardException{
         optimizer.costOptimizable(this,
                 tableDescriptor,
-                getCurrentAccessPath().getConglomerateDescriptor(),
+                getCurrentAccessPath(),
                 predList,
                 outerCost);
 
@@ -842,6 +856,9 @@ public class FromBaseTable extends FromTable {
         ap.setMissingHashKeyOK(false);
         bestAp.setMissingHashKeyOK(false);
         bestSortAp.setMissingHashKeyOK(false);
+        ap.setNumUnusedLeadingIndexFields(0);
+        bestAp.setNumUnusedLeadingIndexFields(0);
+        bestSortAp.setNumUnusedLeadingIndexFields(0);
 
         /*
          ** Only need to do this for current access path, because the
@@ -866,14 +883,76 @@ public class FromBaseTable extends FromTable {
         return mapAbsoluteToRelativeColumnPosition(absolutePosition);
     }
 
+    private void setFirstIndexColumnRowsPerValue(ConglomerateDescriptor cd, StoreCostController scc) throws StandardException {
+        currentIndexFirstColumnStats.reset();
+        currentIndexFirstColumnStats.setRowCountFromStats(scc.getEstimatedRowCount());
+        if (!cd.isIndex() && !cd.isPrimaryKey()) {
+            cd.setFirstColumnStats(currentIndexFirstColumnStats);
+            return;
+        }
+
+        boolean isIndexOnExpression = cd.getIndexDescriptor().isOnExpression();
+        int columnNumber = isIndexOnExpression ? 1 : cd.getIndexDescriptor().baseColumnPositions()[0];
+
+        currentIndexFirstColumnStats.
+            setFirstIndexColumnCardinality(scc.cardinality(isIndexOnExpression, columnNumber));
+        if (currentIndexFirstColumnStats.getFirstIndexColumnCardinality() <= 0L) {
+            cd.setFirstColumnStats(currentIndexFirstColumnStats);
+            return;
+        }
+        currentIndexFirstColumnStats.
+            setFirstIndexColumnRowsPerValue(currentIndexFirstColumnStats.getRowCountFromStats() /
+                                            currentIndexFirstColumnStats.getFirstIndexColumnCardinality());
+        // Also update the current conglomerate descriptor with stats, which will
+        // persist in that descriptor after we move on to considering another
+        // conglomerate as an access path.
+        // At the end of access path planning, currentIndexFirstColumnStats will get updated
+        // with the stats from the conglomerate we picked if IndexPrefixIteratorMode is chosen.
+        cd.setFirstColumnStats(currentIndexFirstColumnStats);
+    }
+
     @Override
     public CostEstimate estimateCost(OptimizablePredicateList predList,
                                      ConglomerateDescriptor cd,
                                      CostEstimate outerCost,
                                      Optimizer optimizer,
-                                     RowOrdering rowOrdering) throws StandardException{
+                                     RowOrdering rowOrdering) throws StandardException {
+        LanguageConnectionContext lcc = getLanguageConnectionContext();
+        CostEstimate finalCostEstimate;
+        CostEstimate firstPassCostEstimate;
+        finalCostEstimate = firstPassCostEstimate =
+            estimateCostHelper(predList, cd, outerCost, optimizer, rowOrdering);
+        AccessPath currentAccessPath = getCurrentAccessPath();
 
-        AccessPath currentAccessPath=getCurrentAccessPath();
+        // Cost accessing this conglomerate using the index with
+        // the first index column not used by any useful predicates
+        // versus scanning all rows in the conglomerate.
+        // Choose the cheapest of the two access paths.
+        if (currentAccessPath.getNumUnusedLeadingIndexFields() > 0) {
+            finalCostEstimate = firstPassCostEstimate = firstPassCostEstimate.cloneMe();
+            AccessPath firstPassAccessPath = new AccessPathImpl(optimizer);
+            firstPassAccessPath.copy(currentAccessPath);
+            disableIndexPrefixIteration = true;
+            CostEstimate secondPassCostEstimate =
+                estimateCostHelper(predList, cd, outerCost, optimizer, rowOrdering);
+            disableIndexPrefixIteration = false;
+            if (firstPassCostEstimate.compare(secondPassCostEstimate) < 0)
+                currentAccessPath.copy(firstPassAccessPath);
+            else
+                finalCostEstimate = secondPassCostEstimate;
+        }
+        return finalCostEstimate;
+    }
+
+
+    private
+    CostEstimate estimateCostHelper(OptimizablePredicateList predList,
+                                    ConglomerateDescriptor cd,
+                                    CostEstimate outerCost,
+                                    Optimizer optimizer,
+                                    RowOrdering rowOrdering) throws StandardException{
+
+        AccessPath currentAccessPath = getCurrentAccessPath();
         JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
         OptimizerTrace tracer =optimizer.tracer();
         tracer.trace(OptimizerFlag.ESTIMATING_COST_OF_CONGLOMERATE,tableNumber,0,0.0,cd,correlationName);
@@ -882,10 +961,11 @@ public class FromBaseTable extends FromTable {
         baseTableRestrictionList.removeAllElements();
         baseTableRestrictionList.countScanFlags();
 
-        currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
         useRealTableStats=scc.useRealTableStatistics();
+        setFirstIndexColumnRowsPerValue(cd, scc);
+        currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);
         costEstimate.setPredicateList(baseTableRestrictionList);
@@ -971,6 +1051,7 @@ public class FromBaseTable extends FromTable {
             scf.generateOneRowCost();
         }
         else {
+            int numUnusedLeadingIndexFields = 0;
             int predListSize = predList!=null?baseTableRestrictionList.size():0;
             for(int i=0;i<predListSize;i++){
                 Predicate p = (Predicate)baseTableRestrictionList.getOptPredicate(i);
@@ -978,10 +1059,15 @@ public class FromBaseTable extends FromTable {
                     if(baseTableRestrictionList.isRedundantPredicate(i)) continue;
                 }
 
-                if(!p.isJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
+                //skip join predicates unless they support predicate pushdown
+                if(!p.isJoinPredicate()&& !p.isFullJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) {
                     scf.addPredicate(p, defaultSelectivityFactor);
+                    numUnusedLeadingIndexFields = currentAccessPath.getNumUnusedLeadingIndexFields();
+                }
             }
-            scf.generateCost();
+            long numFirstIndexColumnProbes =
+                numUnusedLeadingIndexFields > 0 ? cd.getFirstColumnStats().getFirstIndexColumnCardinality() : 0;
+            scf.generateCost(numFirstIndexColumnProbes);
             singleScanRowCount=costEstimate.singleScanRowCount();
         }
         tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd, correlationName, costEstimate);
@@ -1731,6 +1817,28 @@ public class FromBaseTable extends FromTable {
                 getContextManager());
     }
 
+    private void markFirstColumnReferencedForIndexIteratorMode() throws StandardException {
+        if (numUnusedLeadingIndexFields > 0) {
+            int firstIndexCol = getTrulyTheBestAccessPath().getConglomerateDescriptor().
+                                getIndexDescriptor().baseColumnPositions()[0];
+            if (referencedCols != null && !referencedCols.isSet(firstIndexCol-1))
+                referencedCols.set(firstIndexCol - 1);
+
+            boolean found = false;
+            for (int index = 0; index < resultColumns.size(); index++) {
+                ResultColumn column = resultColumns.elementAt(index);
+                if (column.getColumnPosition() == firstIndexCol) {
+                    column.setReferenced();
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                    "IndexPrefixIteratorOperation chosen, but first index column not found in resultColumns.");
+        }
+    }
+
     /**
      * @throws StandardException Thrown on error
      * @see ResultSetNode#changeAccessPath
@@ -1814,12 +1922,31 @@ public class FromBaseTable extends FromTable {
          * Splice changed the below loop to iterate over storeRestrictionList instead of restrictionList */
         for(int i=0;i<storeRestrictionList.size();i++){
             Predicate pred=storeRestrictionList.elementAt(i);
-            if(pred.isInListProbePredicate() && pred.isStartKey()){
-                disableBulkFetch();
-                multiProbing=true;
-                break;
+            if(pred.isStartKey()){
+                if (pred.isInListProbePredicate()) {
+                    disableBulkFetch();
+                    multiProbing = true;
+                }
+            }
+            if (pred.isStartKey() || pred.isStopKey()){
+                if (numUnusedLeadingIndexFields == 0) {
+                    numUnusedLeadingIndexFields = ap.getNumUnusedLeadingIndexFields();
+                    if (numUnusedLeadingIndexFields >= 1) {
+                        currentIndexFirstColumnStats = trulyTheBestConglomerateDescriptor.getFirstColumnStats();
+                        if (numUnusedLeadingIndexFields > 1)
+                            throw StandardException.newException(LANG_INTERNAL_ERROR,
+                               "IndexPrefixIteratorMode currently allows at most one leading index column to be unspecified in predicates.");
+                    }
+                }
+                if (multiProbing)
+                    break;
             }
         }
+
+        // Make sure the first column is marked referenced for
+        // if using a special index access path that loops through
+        // all first column values present in the conglomerate.
+        markFirstColumnReferencedForIndexIteratorMode();
 
         /*
         ** Consider turning on bulkFetch if it is turned
@@ -1907,6 +2034,8 @@ public class FromBaseTable extends FromTable {
 
             if (isOnExpression) {
                 resultColumns.markAllUnreferenced();
+                for (int i = 0; i < numUnusedLeadingIndexFields; i++)
+                    resultColumns.elementAt(i).setReferenced();
                 /* Don't try to "optimize" the following by setting ref expr index positions
                  * in isCoveringIndex() and reuse here. Although referencingExpressions will
                  * not change, there matching index positions can be different when there are
@@ -2025,6 +2154,8 @@ public class FromBaseTable extends FromTable {
              * index column to base column mapping anymore.
              */
             resultColumns.markAllUnreferenced();
+            for (int i = 0; i < numUnusedLeadingIndexFields; i++)
+                resultColumns.elementAt(i).setReferenced();
             markReferencedIndexExpr(resultColumns, storeRestrictionList);
             if (nonStoreRestrictionList != null) {
                 markReferencedIndexExpr(resultColumns, nonStoreRestrictionList);
@@ -2043,6 +2174,7 @@ public class FromBaseTable extends FromTable {
              */
             if (bulkFetch != UNSET) {
                 resultColumns.markAllUnreferenced();
+                markFirstColumnReferencedForIndexIteratorMode();
                 storeRestrictionList.markReferencedColumns();
                 if (nonStoreRestrictionList != null) {
                     nonStoreRestrictionList.markReferencedColumns();
@@ -2225,6 +2357,37 @@ public class FromBaseTable extends FromTable {
         }
     }
 
+    private void generateIndexPrefixIteratorOperation(ExpressionClassBuilder acb,
+                                                      MethodBuilder mb) throws StandardException {
+        if (numUnusedLeadingIndexFields > 0) {
+            AccessPath ap=getTrulyTheBestAccessPath();
+            JoinStrategy savedJoinStrategy=ap.getJoinStrategy();
+            ap.setJoinStrategy(ap.getOptimizer().getJoinStrategy(JoinStrategy.JoinStrategyType.NESTED_LOOP.ordinal()));
+            boolean savedMultiProbing = multiProbing;
+            multiProbing = false;
+            int firstIndexColumnNumber =
+                getTrulyTheBestAccessPath().getConglomerateDescriptor().isIndex() ? 1 :
+                getTrulyTheBestAccessPath().getConglomerateDescriptor().getIndexDescriptor().baseColumnPositions()[0];
+            mb.push(firstIndexColumnNumber);
+            int nargs=getScanArguments(acb, mb);
+            nargs+=2;  // +1 for the source result set and +1 for first item in baseColumnPositions.
+
+            // IndexPrefixIteratorOperation is a
+            // high-level driver operation that finds
+            // index prefix values (first column of the index) with rows,
+            // and builds those values into a list, which the underlying operation
+            // prepends to its own partial start keys.
+            // In this usage of "index", a primary key
+            // is also considered an index because it provides a
+            // start/stop key access path.
+            mb.callMethod(VMOpcode.INVOKEINTERFACE,null,
+                "getIndexPrefixIteratorResultSet",
+                ClassName.NoPutResultSet, nargs);
+            multiProbing = savedMultiProbing;
+            ap.setJoinStrategy(savedJoinStrategy);
+        }
+    }
+
     /**
      * Generation on a FromBaseTable for a SELECT. This logic was separated
      * out so that it could be shared with PREPARE SELECT FILTER.
@@ -2241,6 +2404,11 @@ public class FromBaseTable extends FromTable {
             SanityManager.ASSERT(
                     getTrulyTheBestAccessPath().getConglomerateDescriptor()!=null);
 
+        if (numUnusedLeadingIndexFields > 0) {
+            // We have an extra method call coming up...
+            acb.pushGetResultSetFactoryExpression(mb);
+        }
+
         /* Get the next ResultSet #, so that we can number this ResultSetNode, its
          * ResultColumnList and ResultSet.
          */
@@ -2252,6 +2420,7 @@ public class FromBaseTable extends FromTable {
         */
         if(specialMaxScan){
             generateMaxSpecialResultSet(acb,mb);
+            generateIndexPrefixIteratorOperation(acb, mb);
             return;
         }
 
@@ -2261,6 +2430,7 @@ public class FromBaseTable extends FromTable {
         */
         if(distinctScan){
             generateDistinctScan(acb,mb);
+            generateIndexPrefixIteratorOperation(acb, mb);
             return;
         }
 
@@ -2275,6 +2445,7 @@ public class FromBaseTable extends FromTable {
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,
                 trulyTheBestJoinStrategy.resultSetMethodName(multiProbing),
                 ClassName.NoPutResultSet,nargs);
+        generateIndexPrefixIteratorOperation(acb, mb);
 
         if (rowIdColumn != null) {
             String type = ClassName.CursorResultSet;
@@ -2386,7 +2557,9 @@ public class FromBaseTable extends FromTable {
         mb.push(printExplainInformationForActivation());
         generatePastTxFunc(acb, mb);
         mb.push(minRetentionPeriod);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,17);
+        mb.push(numUnusedLeadingIndexFields);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,18);
+
     }
 
     private void generateDistinctScan ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
@@ -2466,8 +2639,9 @@ public class FromBaseTable extends FromTable {
         generateDefaultRow((ActivationClassBuilder)acb, mb);
         generatePastTxFunc(acb, mb);
         mb.push(minRetentionPeriod);
+        mb.push(numUnusedLeadingIndexFields);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,29);
+                ClassName.NoPutResultSet,30);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
@@ -2484,7 +2658,8 @@ public class FromBaseTable extends FromTable {
         }
     }
 
-    private int getScanArguments(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException{
+    private int getScanArguments(ExpressionClassBuilder acb,
+                                 MethodBuilder mb) throws StandardException{
         // get a function to allocate scan rows of the right shape and size
         MethodBuilder resultRowAllocator= resultColumns.generateHolderMethod(acb, referencedCols, null);
 
@@ -2580,6 +2755,9 @@ public class FromBaseTable extends FromTable {
         numArgs++;
 
         mb.push(minRetentionPeriod);
+        numArgs++;
+
+        mb.push(numUnusedLeadingIndexFields);
         numArgs++;
 
         return numArgs;
@@ -3485,19 +3663,6 @@ public class FromBaseTable extends FromTable {
         return getStoreCostController(this.tableDescriptor,baseConglomerateDescriptor);
     }
 
-    private boolean gotRowCount=false;
-    private long rowCount=0;
-
-    private long baseRowCount() throws StandardException{
-        if(!gotRowCount){
-            StoreCostController scc=getBaseCostController();
-            rowCount=scc.getEstimatedRowCount();
-            gotRowCount=true;
-        }
-
-        return rowCount;
-    }
-
     private DataValueDescriptor[] getRowTemplate(ConglomerateDescriptor cd,
                                                  StoreCostController scc) throws StandardException{
         /*
@@ -3631,7 +3796,7 @@ public class FromBaseTable extends FromTable {
     public String printRuntimeInformation() throws StandardException {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();
-        sb.append(getClassName(indexName)).append("(")
+        sb.append(getClassName(indexName, ", ")).append("(")
                 .append(",").append(getFinalCostEstimate(false).prettyFromBaseTableString());
         if (indexName != null)
             sb.append(",baseTable=").append(getPrettyTableName());
@@ -3647,7 +3812,7 @@ public class FromBaseTable extends FromTable {
         StringBuilder sb = new StringBuilder();
         String indexName = getIndexName();
         sb.append(spaceToLevel());
-        sb.append(getClassName(indexName)).append("(");
+        sb.append(getClassName(indexName, attrDelim)).append("(");
         sb.append("n=").append(getResultSetNumber()).append(attrDelim);
         sb.append(getFinalCostEstimate(false).prettyFromBaseTableString(attrDelim));
         if (indexName != null)
@@ -3659,12 +3824,15 @@ public class FromBaseTable extends FromTable {
         return sb.toString();
     }
 
-    private String getClassName(String niceIndexName) throws StandardException {
+    private String getClassName(String niceIndexName, String attrDelim) throws StandardException {
         String cName = "";
+        String indexPrefixIteratorString =
+            hasIndexPrefixIterator() ?
+                attrDelim + "IndexPrefixIteratorMode(" + currentIndexFirstColumnStats.getFirstIndexColumnCardinality() + " values)" : "";
         if(niceIndexName!=null){
-            cName = "IndexScan["+niceIndexName+"]";
+            cName = "IndexScan["+niceIndexName+indexPrefixIteratorString+"]";
         }else{
-            cName = "TableScan["+getPrettyTableName()+"]";
+            cName = "TableScan["+getPrettyTableName()+indexPrefixIteratorString+"]";
         }
         if(isMultiProbing())
             cName = "MultiProbe"+cName;
@@ -3872,8 +4040,30 @@ public class FromBaseTable extends FromTable {
             }
         }
         if (translated) {
-            newList.classify(this, getTrulyTheBestAccessPath().getConglomerateDescriptor(), true);
+            newList.classify(this, getTrulyTheBestAccessPath(), true);
         }
         return newList;
+    }
+
+    @Override
+    public boolean hasIndexPrefixIterator() { return numUnusedLeadingIndexFields > 0; }
+
+    @Override
+    public boolean indexPrefixIteratorAllowed(Optimizer optimizer) {
+        if (disableIndexPrefixIteration)
+            return false;
+        LanguageConnectionContext lcc = getLanguageConnectionContext();
+        if (lcc.alwaysAllowIndexPrefixIteration())
+            return true;
+
+        // We must have statistics collected on the base table to pick IndexPrefixIteratorMode
+        // because the operation may get expensive if the number of values is underestimated.
+        // Also, building of the MultiRowRangeFilter to handle the iteration may get expensive
+        // for large numbers of values, so limit it to 20000 on control and 1000000 on Spark
+        // for now.
+        long maxPrefixIteratorValues = optimizer.isForSpark() ? 1000000 : 20000;
+        return !skipStats &&
+               useRealTableStats &&
+               currentIndexFirstColumnStats.getFirstIndexColumnRowsPerValue() <= maxPrefixIteratorValues;
     }
 }
