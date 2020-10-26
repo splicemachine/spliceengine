@@ -173,6 +173,8 @@ public interface OptimizablePredicate
 	 */
 	int getIndexPosition();
 
+	int getNumUnusedLeadingIndexFields();
+
     boolean isRowId();
 
 	void markFullJoinPredicate(boolean isForFullJoin);

@@ -104,8 +104,9 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
         }
 
         fillInScanArgs1(tc, mb, innerTable, storeRestrictionList, acb, resultRowAllocator);
-        if (genInListVals)
-            ((PredicateList)storeRestrictionList).generateInListValues(acb, mb);
+        if (genInListVals) {
+            ((PredicateList) storeRestrictionList).generateInListValues(acb, mb);
+        }
 
         if (SanityManager.DEBUG) {
             /* If we're not generating IN-list values with which to probe

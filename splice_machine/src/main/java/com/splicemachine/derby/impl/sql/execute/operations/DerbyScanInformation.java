@@ -81,6 +81,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private SpliceMethod<ExecRow> defaultRowAllocator;
     private int defaultValueMapItem;
     private FormatableBitSet defaultValueMap;
+    private int numUnusedLeadingIndexFields;
 
     @SuppressWarnings("UnusedDeclaration")
     @Deprecated
@@ -100,7 +101,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                                 boolean rowIdKey,
                                 String tableVersion,
                                 String defaultRowMethodName,
-                                int defaultValueMapItem) {
+                                int defaultValueMapItem,
+                                int numUnusedLeadingIndexFields) {
         this.resultRowAllocatorMethodName = resultRowAllocatorMethodName;
         this.startKeyGetterMethodName = startKeyGetterMethodName;
         this.stopKeyGetterMethodName = stopKeyGetterMethodName;
@@ -115,6 +117,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         this.tableVersion = tableVersion;
         this.defaultRowMethodName = defaultRowMethodName;
         this.defaultValueMapItem = defaultValueMapItem;
+        this.numUnusedLeadingIndexFields = numUnusedLeadingIndexFields;
     }
 
     @Override
@@ -260,6 +263,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         out.writeBoolean(rowIdKey);
         SerializationUtils.writeNullableString(defaultRowMethodName, out);
         out.writeInt(defaultValueMapItem);
+        out.writeInt(numUnusedLeadingIndexFields);
     }
 
     @Override
@@ -278,6 +282,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         this.rowIdKey = in.readBoolean();
         defaultRowMethodName = SerializationUtils.readNullableString(in);
         defaultValueMapItem = in.readInt();
+        numUnusedLeadingIndexFields = in.readInt();
     }
 
     @Override

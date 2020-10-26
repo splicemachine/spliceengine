@@ -146,6 +146,7 @@ public class FromBaseTable extends FromTable {
      * on the table scan for this FromBaseTable.
      */
     boolean multiProbing=false;
+    int numUnusedLeadingIndexFields = 0;
 
     private double singleScanRowCount;
 
@@ -1732,6 +1733,7 @@ public class FromBaseTable extends FromTable {
             if(pred.isInListProbePredicate() && pred.isStartKey()){
                 disableBulkFetch();
                 multiProbing=true;
+                numUnusedLeadingIndexFields = pred.getNumUnusedLeadingIndexFields();
                 break;
             }
         }
@@ -2214,7 +2216,8 @@ public class FromBaseTable extends FromTable {
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
         generatePastTxFunc(acb, mb);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,16);
+        mb.push(numUnusedLeadingIndexFields);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,17);
 
     }
 
@@ -2295,8 +2298,9 @@ public class FromBaseTable extends FromTable {
         mb.push(partitionReferenceItem);
         generateDefaultRow((ActivationClassBuilder)acb, mb);
         generatePastTxFunc(acb, mb);
+        mb.push(numUnusedLeadingIndexFields);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,29);
+                ClassName.NoPutResultSet,30);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
@@ -2408,6 +2412,9 @@ public class FromBaseTable extends FromTable {
 
         // also add the past transaction id functor
         generatePastTxFunc(acb, mb);
+        numArgs++;
+
+        mb.push(numUnusedLeadingIndexFields);
         numArgs++;
 
         return numArgs;

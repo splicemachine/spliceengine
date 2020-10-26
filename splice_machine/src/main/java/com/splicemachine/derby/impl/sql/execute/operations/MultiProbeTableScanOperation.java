@@ -61,6 +61,7 @@ import java.util.List;
 public class MultiProbeTableScanOperation extends TableScanOperation  {
     private static final long serialVersionUID = 1l;
     protected int inlistPosition;
+    protected int numUnusedLeadingIndexFields;
 //    /**
 //     * The values with which we will probe the table, as they were passed to
 //     * the constructor. We need to keep them unchanged in case the result set
@@ -125,7 +126,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         int partitionByRefItem,
                                         GeneratedMethod defaultRowFunc,
                                         int defaultValueMapItem,
-                                        GeneratedMethod pastTxFunctor
+                                        GeneratedMethod pastTxFunctor,
+                                        int numUnusedLeadingIndexFields
                                         )
             throws StandardException
     {
@@ -167,9 +169,11 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 partitionByRefItem,
                 defaultRowFunc,
                 defaultValueMapItem,
-                pastTxFunctor);
+                pastTxFunctor,
+                numUnusedLeadingIndexFields);
 
         this.inlistPosition = inlistPosition;
+        this.numUnusedLeadingIndexFields = numUnusedLeadingIndexFields;
 
         this.scanInformation = new MultiProbeDerbyScanInformation(
                 resultRowAllocator.getMethodName(),
@@ -187,7 +191,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 inlistTypeArrayItem,
                 tableVersion,
                 defaultRowFunc==null?null:defaultRowFunc.getMethodName(),
-                defaultValueMapItem
+                defaultValueMapItem,
+                numUnusedLeadingIndexFields
         );
         init();
     }
@@ -202,6 +207,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         inlistPosition = in.readInt();
+        numUnusedLeadingIndexFields = in.readInt();
 
     }
 
@@ -209,6 +215,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeInt(inlistPosition);
+        out.writeInt(numUnusedLeadingIndexFields);
     }
 
     @Override
