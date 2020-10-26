@@ -779,4 +779,26 @@ public class TimestampIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testCurrentTimeStampOperations() throws Exception {
+        String[] units = new String[] {"years", "year", "months", "month", "days", "day",
+                "hours", "hour", "minutes", "minute", "seconds", "second"};
+        String[] units2 = new String[] {"SQL_TSI_YEAR", "SQL_TSI_YEAR", "SQL_TSI_MONTH", "SQL_TSI_MONTH",
+                "SQL_TSI_DAY", "SQL_TSI_DAY", "SQL_TSI_HOUR", "SQL_TSI_HOUR",
+                "SQL_TSI_MINUTE", "SQL_TSI_MINUTE", "SQL_TSI_SECOND", "SQL_TSI_SECOND"};
+
+        for (int i=0; i< units.length; i++) {
+            String sqlText = format("select current_timestamp - 3 %s, timestampadd(%s, -3, current_timestamp) from sysibm.sysdummy1 --splice-properties useSpark=%s", units[i], units2[i], useSpark);
+
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            assertTrue("Result does not match!", !rs.next() || rs.getTimestamp(1) != rs.getTimestamp(2));
+            rs.close();
+
+            sqlText = format("select current_timestamp + 3 %s, timestampadd(%s, 3, current_timestamp) from sysibm.sysdummy1 --splice-properties useSpark=%s", units[i], units2[i], useSpark);
+
+            rs = methodWatcher.executeQuery(sqlText);
+            assertTrue("Result does not match!", !rs.next() || rs.getTimestamp(1) != rs.getTimestamp(2));
+            rs.close();
+        }
+    }
 }
