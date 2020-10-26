@@ -211,6 +211,7 @@ public class TriggerNewTransitionRows
                     tableVersion,
                     false,   // rowIdKey
                     conglomerate,
+                    null,
                     null);
 
                     s.cacheRows(SCAN_CACHE_SIZE).batchCells(-1);

@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -58,6 +59,7 @@ import java.util.List;
 public class MultiProbeTableScanOperation extends TableScanOperation  {
     private static final long serialVersionUID = 1l;
     protected int inlistPosition;
+    protected int numUnusedLeadingIndexFields;
 //    /**
 //     * The values with which we will probe the table, as they were passed to
 //     * the constructor. We need to keep them unchanged in case the result set
@@ -122,7 +124,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                                         GeneratedMethod defaultRowFunc,
                                         int defaultValueMapItem,
                                         GeneratedMethod pastTxFunctor,
-                                        Long minRetentionPeriod)
+                                        Long minRetentionPeriod,
+                                        int numUnusedLeadingIndexFields)
             throws StandardException
     {
         /* Note: We use '1' as rows per read because we do not currently
@@ -164,9 +167,10 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             defaultRowFunc,
             defaultValueMapItem,
             pastTxFunctor,
-            minRetentionPeriod);
-
+            minRetentionPeriod,
+            numUnusedLeadingIndexFields);
         this.inlistPosition = inlistPosition;
+        this.numUnusedLeadingIndexFields = numUnusedLeadingIndexFields;
 
         this.scanInformation = new MultiProbeDerbyScanInformation(
                 resultRowAllocator.getMethodName(),
@@ -184,7 +188,8 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 inlistTypeArrayItem,
                 tableVersion,
                 defaultRowFunc==null?null:defaultRowFunc.getMethodName(),
-                defaultValueMapItem
+                defaultValueMapItem,
+                numUnusedLeadingIndexFields
         );
         init();
     }
@@ -207,7 +212,10 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
         try {
             TxnView txn = getCurrentTransaction();
-            List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
+            List<DataScan> scans =
+                scanInformation.getScans(getCurrentTransaction(),
+                                         ((BaseActivation) activation).getFirstIndexColumnKeys(),
+                                         activation, getKeyDecodingMap());
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
             dsp.prependSpliceExplainString(this.explainPlan);

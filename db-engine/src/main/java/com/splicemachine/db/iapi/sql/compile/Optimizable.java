@@ -455,4 +455,19 @@ public interface Optimizable {
 
     default void setHasJoinPredicatePushedDownFromOuter(boolean value) {
     }
+
+    /**
+     * If true, this optimizable is being accessed via an IndexPrefixIteratorMode scan.
+     * False, by default, because only FromBaseTable optimizables can use a primary key
+     * or index.
+     */
+    default boolean hasIndexPrefixIterator() { return false; }
+
+    /**
+     * If true, PredicateList.orderUsefulPredicates will cost the scan as
+     * an IndexPrefixIteratorMode scan, if eligible due to the presence of
+     * a predicate on the 2nd index column with no useful predicate on
+     * the first index column.
+     */
+    default boolean indexPrefixIteratorAllowed(Optimizer optimizer) { return false; }
 }

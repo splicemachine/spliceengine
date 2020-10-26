@@ -1548,5 +1548,20 @@ public interface Property {
      */
     String DISABLE_PARALLEL_TASKS_JOIN_COSTING =
             "splice.optimizer.disablePerParallelTaskJoinCosting";
+
+    /**
+     * If true, causes evaluation of all predicates via a ProjectRestrict node.
+     * In other words, all scans of a primary key or index will scan all rows.
+     */
+    String CONNECTION_DISABLE_PREDS_FOR_INDEX_OR_PK_ACCESS_PATH = "disablePredsForIndexOrPkAccessPath";
+
+    /**
+     * If true, skips statistics-based selection of IndexPrefixIteratorMode, and lets it
+     * always get considered by the optimizer as an access path, if legal.
+     * Cost-based selection of multiple index access paths is not altered, ie., a different
+     * index which does not use IndexPrefixIteratorMode can still get picked when
+     * alwaysAllowIndexPrefixIteration is true.
+     */
+    String CONNECTION_ALWAYS_ALLOW_INDEX_PREFIX_ITERATION = "alwaysAllowIndexPrefixIteration";
 }
 

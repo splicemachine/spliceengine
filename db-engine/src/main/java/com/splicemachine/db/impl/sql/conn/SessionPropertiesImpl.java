@@ -104,6 +104,14 @@ public class SessionPropertiesImpl implements SessionProperties {
                 boolean useNativeSpark = Boolean.parseBoolean(valString);
                 properties[USE_NATIVE_SPARK.getId()] = useNativeSpark;
                 break;
+            case DISABLEPREDSFORINDEXORPKACCESSPATH:
+                boolean disablePredsForIndexOrPrimaryKeyAccessPath = Boolean.parseBoolean(valString);
+                properties[DISABLEPREDSFORINDEXORPKACCESSPATH.getId()] = disablePredsForIndexOrPrimaryKeyAccessPath;
+                break;
+            case ALWAYSALLOWINDEXPREFIXITERATION:
+                boolean alwaysAllowIndexPrefixIteration = Boolean.parseBoolean(valString);
+                properties[ALWAYSALLOWINDEXPREFIXITERATION.getId()] = alwaysAllowIndexPrefixIteration;
+                break;
             default:
                 assert false;
         }

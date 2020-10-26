@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.Exceptions;
@@ -38,6 +39,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.splicemachine.EngineDriver.isMemPlatform;
+import static com.splicemachine.db.iapi.store.access.ScanController.GT;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 import static com.splicemachine.db.shared.common.reference.SQLState.PARAMETER_CANNOT_BE_NULL;
 
 /**
@@ -95,7 +98,8 @@ public class Scans extends SpliceUtils {
                                      String tableVersion,
                                      boolean rowIdKey,
                                      SpliceConglomerate conglomerate,
-                                     List<Pair<ExecRow, ExecRow>> keyRows) throws StandardException {
+                                     List<Pair<ExecRow, ExecRow>> keyRows,
+                                     List<ExecRow> firstIndexColumnKeys) throws StandardException {
         assert dataValueFactory != null;
         DataScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
         scan.returnAllVersions();
@@ -119,7 +123,7 @@ public class Scans extends SpliceUtils {
                     sortOrder, scannedRow, keyTablePositionMap, keyDecodingMap,
                     dataValueFactory, tableVersion, rowIdKey,
                     conglomerate.getFormat_ids(),
-                    keyRows);
+                    keyRows, firstIndexColumnKeys);
 
             if (!rowIdKey) {
                 buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
@@ -142,7 +146,8 @@ public class Scans extends SpliceUtils {
                                  DataValueFactory dataValueFactory,
                                  String tableVersion,
                                  boolean rowIdKey,
-                                 ExecRow templateRow) throws StandardException {
+                                 ExecRow templateRow,
+                                 DataValueDescriptor scanKeyPrefix) throws StandardException {
         assert dataValueFactory != null;
         try {
             if (rowIdKey) {
@@ -162,7 +167,7 @@ public class Scans extends SpliceUtils {
                               stopKeyValue, stopKeyPrefix, stopSearchOperator,
                               sortOrder, formatIds, keyTablePositionMap, keyDecodingMap,
                               dataValueFactory, tableVersion, rowIdKey,
-                              templateRow);
+                              templateRow, scanKeyPrefix);
 
 //            if (!rowIdKey) {
 //                buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
@@ -191,7 +196,7 @@ public class Scans extends SpliceUtils {
                                  SpliceConglomerate conglomerate) throws StandardException {
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
                 sortOrder, scanColumnList, txn, sameStartStopPosition, scannedRow, keyDecodingMap,
-                keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey, conglomerate, null);
+                keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey, conglomerate, null, null);
     }
 
     public static void buildPredicateFilter(Qualifier[][] qualifiers,
@@ -336,29 +341,76 @@ public class Scans extends SpliceUtils {
                                        String tableVersion,
                                        boolean rowIdKey,
                                        int[] columnTypes,
-                                       List<Pair<ExecRow, ExecRow>> keyRows) throws IOException {
-        Pair<byte [], byte []> startStopKeys =
-            buildStartAndStopKeys(startKeyValue, startSearchOperator,
-                           stopKeyValue, stopKeyPrefix,
-                           stopSearchOperator,
-                           sortOrder,
-                           scannedRow, //template row
-                           keyTablePositionMap, //the location in the ENTIRE row of the key columns
-                           keyDecodingMap,
-                           dataValueFactory,
-                           tableVersion,
-                           rowIdKey);
-
-        byte [] startKey = startStopKeys.getFirst();
-        byte [] stopKey = startStopKeys.getSecond();
-
-        if (startKey != null)
-            scan.startKey(startKey);
-
-        if (stopKey != null)
-            scan.stopKey(stopKey);
-
+                                       List<Pair<ExecRow, ExecRow>> keyRows,
+                                       List<ExecRow> firstIndexColumnKeys) throws IOException, StandardException {
+        Pair<byte[], byte[]> startStopKeys;
         DataValueDescriptor[] startKeyDVDs = null, stopKeyDVDs = null;
+        byte[] startKey;
+        byte[] stopKey;
+
+        if (firstIndexColumnKeys == null) {
+            startStopKeys =
+                buildStartAndStopKeys(startKeyValue, startSearchOperator,
+                    stopKeyValue, stopKeyPrefix,
+                    stopSearchOperator,
+                    sortOrder,
+                    scannedRow, //template row
+                    keyTablePositionMap, //the location in the ENTIRE row of the key columns
+                    keyDecodingMap,
+                    dataValueFactory,
+                    tableVersion,
+                    rowIdKey);
+
+            startKey = startStopKeys.getFirst();
+            stopKey = startStopKeys.getSecond();
+
+            if (startKey != null)
+                scan.startKey(startKey);
+
+            if (stopKey != null)
+                scan.stopKey(stopKey);
+        }
+        else {
+            if (keyRows != null)
+                throw StandardException.newException(LANG_INTERNAL_ERROR,
+                    "keyRows and startKeyValue not expected to both be set in attachScanKeys.");
+
+            List<Pair<ExecRow, ExecRow>> newKeyRows = new ArrayList<>();
+            ExecRow startRow, stopRow;
+            final int startKeyLength = startKeyValue == null ? 1 : startKeyValue.length;
+            final int stopKeyLength = stopKeyValue == null ? 1 : stopKeyValue.length;
+            List<Pair<byte [], byte []>> keys = new ArrayList<>();
+            for (ExecRow keyPrefixRow:firstIndexColumnKeys) {
+                startRow = new ValueRow(startKeyLength);
+                stopRow = new ValueRow(stopKeyLength);
+                startRow.setColumn(1, keyPrefixRow.getColumn(1));
+                stopRow.setColumn(1, keyPrefixRow.getColumn(1));
+
+                startKeyDVDs = startKeyValue == null ? new DataValueDescriptor[1] : startKeyValue.clone();
+                stopKeyDVDs = stopKeyValue == null ? new DataValueDescriptor[1] : stopKeyValue.clone();
+
+                startKeyDVDs[0] = keyPrefixRow.getColumn(1);
+                stopKeyDVDs[0]  = keyPrefixRow.getColumn(1);
+                startStopKeys =
+                  buildStartAndStopKeys(startKeyDVDs, ScanController.GE,
+                                        stopKeyDVDs, null,
+                                        GT,
+                                        sortOrder,
+                                        scannedRow, //template row
+                                        keyTablePositionMap, //the location in the ENTIRE row of the key columns
+                                        keyDecodingMap,
+                                        dataValueFactory,
+                                        tableVersion,
+                                        false);
+                startKey = startStopKeys.getFirst();
+                stopKey = startStopKeys.getSecond();
+                if (startKey != null && stopKey != null)
+                    keys.add(new Pair(startKey, stopKey));
+            }
+            // Convert the list of keys into a MultiRowRangeFilter.
+            if (!keys.isEmpty())
+                scan.addRowkeyRangesFilter(keys);
+        }
 
         if (keyRows != null && !isMemPlatform()) {
             List<Pair<byte [], byte []>> keys = new ArrayList<>();
@@ -375,7 +427,7 @@ public class Scans extends SpliceUtils {
                 startStopKeys =
                   buildStartAndStopKeys(startKeyDVDs, ScanController.GE,
                                         stopKeyDVDs, null,
-                                        ScanController.GT,
+                                        GT,
                                         sortOrder,
                                         scannedRow, //template row
                                         keyTablePositionMap, //the location in the ENTIRE row of the key columns
@@ -406,7 +458,8 @@ public class Scans extends SpliceUtils {
                                                   DataValueFactory dataValueFactory,
                                                   String tableVersion,
                                                   boolean rowIdKey,
-                                                  ExecRow templateRow) throws IOException, StandardException {
+                                                  ExecRow templateRow,
+                                                  DataValueDescriptor scanKeyPrefix) throws IOException, StandardException {
         byte[] startRow;
         byte[] stopRow;
         try {
@@ -415,8 +468,11 @@ public class Scans extends SpliceUtils {
 
             if (startKeyValue != null) {
                 generateStartKey = true;
+                if (scanKeyPrefix != null)
+                    startKeyValue[0] = scanKeyPrefix;
                 for (int i = 0; i < startKeyValue.length; i++) {
-                    DataValueDescriptor startDesc = startKeyValue[i];
+                    DataValueDescriptor startDesc;
+                    startDesc = startKeyValue[i];
                     if (startDesc == null) {
                         generateStartKey = false; // if any null encountered, don't make a start key
                         break;
@@ -435,10 +491,20 @@ public class Scans extends SpliceUtils {
             DataValueDescriptor[] stop = stopKeyValue;
             if (stop == null)
                 stop = stopKeyPrefix;
+            if (stop == null && scanKeyPrefix != null) {
+                // The value will be filled in in
+                // the subsequent if statement block.
+                stop = new DataValueDescriptor[1];
+                // Make sure we don't include the stop key.
+                stopSearchOperator = GT;
+            }
             if (stop != null) {
                 generateStopKey = true;
+                if (scanKeyPrefix != null)
+                    stop[0] = scanKeyPrefix;
                 for (int i = 0; i < stop.length; i++) {
-                    DataValueDescriptor stopDesc = stop[i];
+                    DataValueDescriptor stopDesc;
+                    stopDesc = stop[i];
                     if (stopDesc == null) {
                         generateStopKey = false; // if any null encountered, don't make a stop key
                         break;

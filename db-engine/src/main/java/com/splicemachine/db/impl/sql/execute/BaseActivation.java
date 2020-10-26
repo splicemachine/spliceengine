@@ -209,8 +209,11 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     protected ExecRow scanStartOverride;
     protected ExecRow scanStopOverride;
     protected int[] scanKeys;
+    protected DataValueDescriptor scanKeyPrefix;
+    protected boolean sameStartStopScanKeyPrefix;
 
     protected List<Pair<ExecRow, ExecRow>> keyRows;
+    protected List<ExecRow> firstIndexColumnKeys;
 
     private long numRowsSeen = 0L;
     //
@@ -1711,6 +1714,30 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     public ExecRow getScanStartOverride() {
         return scanStartOverride;
+    }
+
+    public void setScanKeyPrefix(DataValueDescriptor scanKeyPrefix) {
+        this.scanKeyPrefix = scanKeyPrefix;
+    }
+
+    public DataValueDescriptor getScanKeyPrefix() {
+        return scanKeyPrefix;
+    }
+
+    public void setSameStartStopScanKeyPrefix(boolean sameStartStopScanKeyPrefix) {
+        this.sameStartStopScanKeyPrefix = sameStartStopScanKeyPrefix;
+    }
+
+    public boolean getSameStartStopScanKeyPrefix() {
+        return sameStartStopScanKeyPrefix;
+    }
+
+    public void setFirstIndexColumnKeys(List<ExecRow> firstIndexColumnKeys) {
+        this.firstIndexColumnKeys = firstIndexColumnKeys;
+    }
+
+    public List<ExecRow> getFirstIndexColumnKeys() {
+        return firstIndexColumnKeys;
     }
 
     public void setKeyRows(List<Pair<ExecRow, ExecRow>> keyRows) {
