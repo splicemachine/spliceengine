@@ -1074,24 +1074,31 @@ public class SpliceUnitTest {
                                                 boolean failOnError) throws Exception
     {
         Logger LOG = Logger.getLogger("SpliceUnitTest");
-        LOG.info("checking for stale transactions");
-
-        int oldest1 = getOldestActiveTransaction(methodWatcher);
-        for(int i=0; i < numSeconds; i++) {
-            int oldest2 = getOldestActiveTransaction(methodWatcher);
-            if( oldest1 != oldest2 )
+        try {
+            int oldest1 = getOldestActiveTransaction(methodWatcher);
+            LOG.info("checking for stale transactions");
+            for (int i = 0; i < numSeconds; i++) {
+                int oldest2 = getOldestActiveTransaction(methodWatcher);
+                if (oldest1 != oldest2)
+                    return;
+                Thread.sleep(1000);
+                oldest1 = oldest2;
+            }
+            if (failOnError) {
+                Assert.fail(name + " failed to close all transactions.");
+            } else {
+                // if you see this error, this is a hint that something might be left open, especially if you see
+                // multiple of these messages. turn failOnError=true and check tests one by one.
+                LOG.info("WARNING: " + name + " failed to close all transactions. This might be due to multiple " +
+                        "tests running in parallel.");
+            }
+        } catch( SQLException e)
+        {
+            if( e.getNextException().toString().equals("java.sql.SQLNonTransientConnectionException: Java exception: " +
+                    "'java.lang.UnsupportedOperationException: Operation not supported in Mem profile: java.io.IOException'."))
                 return;
-            Thread.sleep(1000);
-            oldest1 = oldest2;
-        }
-        if( failOnError ) {
-            Assert.fail(name + " failed to close all transactions.");
-        }
-        else {
-            // if you see this error, this is a hint that something might be left open, especially if you see
-            // multiple of these messages. turn failOnError=true and check tests one by one.
-            LOG.info("WARNING: " + name + " failed to close all transactions. This might be due to multiple " +
-                "tests running in parallel.");
+            else
+                LOG.info("WARNING: Couldn't execute SYSCS_GET_OLDEST_ACTIVE_TRANSACTION");
         }
     }
 
