@@ -718,13 +718,14 @@ public class FromBaseTable extends FromTable {
                 }
                 if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
-            } else if (key.equals("broadcastCrossRight")) {
+            } else if (key.equals("broadcastCrossRight") || key.equals("unboundedTimeTravel")) {
                 // no op since parseBoolean never throw
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
                         "index, constraint, joinStrategy, useSpark, useOLAP, pin, skipStats, splits, " +
-                                "useDefaultRowcount, defaultSelectivityFactor");
+                                "useDefaultRowcount, defaultSelectivityFactor, broadcastCrossRight," +
+                                "unboundedTimeTravel");
             }
 
 
@@ -1058,8 +1059,12 @@ public class FromBaseTable extends FromTable {
             else if(tableType==TableDescriptor.WITH_TYPE) {
                 throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "common table expressions");
             }
-            Long minRetentionPeriod = tableDescriptor.getMinRetentionPeriod();
-            this.minRetentionPeriod = minRetentionPeriod == null ? -1 : minRetentionPeriod;
+            if(tableProperties != null && Boolean.parseBoolean(tableProperties.getProperty("unboundedTimeTravel"))) {
+                this.minRetentionPeriod = -1;
+            } else {
+                Long minRetentionPeriod = tableDescriptor.getMinRetentionPeriod();
+                this.minRetentionPeriod = minRetentionPeriod == null ? -1 : minRetentionPeriod;
+            }
         }
 
         if(tableDescriptor.getTableType()==TableDescriptor.VTI_TYPE){
