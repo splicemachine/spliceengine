@@ -1034,7 +1034,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                 if (andNode instanceof AndNode) {
                     multiColumnInListBuilt = true;
-                    JBitSet newJBitSet = new JBitSet(getCompilerContext().getNumTables());
+                    JBitSet newJBitSet = new JBitSet(usefulPredicates[firstPred].getReferencedSet().size());
                     Predicate newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
                             andNode, newJBitSet, getContextManager());
 
