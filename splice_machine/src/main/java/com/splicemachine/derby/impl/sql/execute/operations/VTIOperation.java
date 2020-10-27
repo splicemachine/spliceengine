@@ -311,7 +311,7 @@ public class VTIOperation extends SpliceBaseOperation {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
 
-        OperationContext operationContext = dsp.createOperationContext(this);
+        dsp.createOperationContext(this);
 
         if (this.userVTI instanceof TriggerNewTransitionRows) {
             TriggerNewTransitionRows triggerTransitionRows = (TriggerNewTransitionRows) this.userVTI;
