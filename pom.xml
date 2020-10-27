@@ -213,11 +213,6 @@
                 <version>1.1.1</version>
             </dependency>
             <dependency>
-                <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>12.0.1</version>
-            </dependency>
-            <dependency>
                 <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
                 <artifactId>concurrentlinkedhashmap-lru</artifactId>
                 <version>1.4.2</version>
@@ -918,7 +913,42 @@
                 <module>assembly</module>
             </modules>
         </profile>
-
+        <profile>
+            <id>hdp3.1.5</id>
+            <activation>
+                <property>
+                    <name>env</name>
+                    <value>hdp3.1.5</value>
+                </property>
+            </activation>
+            <properties>
+                <envClassifier>hdp3.1.5</envClassifier>
+                <envHbase>hbase2.1.6</envHbase>
+                <hadoop.version>3.1.1.3.1.5.124-1</hadoop.version>
+                <hbase.version>2.1.6.3.1.5.124-1</hbase.version>
+                <hive.version>3.1.0.3.1.5.124-1</hive.version>
+                <zookeeper.version>3.4.6.3.1.5.124-1</zookeeper.version>
+                <spark.version>2.3.2.3.1.5.124-1</spark.version>
+                <spark.major.version>spark2.3</spark.major.version>
+                <kafka.version>2.0.0.3.1.5.124-1</kafka.version>
+                <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>
+                <parquet.version>orc-spark-2.3</parquet.version>
+                <netty-all.version>4.1.17.Final</netty-all.version>
+            </properties>
+            <modules>
+                <module>hbase_storage</module>
+                <module>hbase_pipeline</module>
+                <module>hbase_sql</module>
+                <module>standalone</module>
+                <module>platform_it</module>
+                <module>spark_sql</module>
+                <module>splice_ck</module>
+                <module>splice_spark</module>
+                <module>splice_spark2</module>
+                <module>scala_util</module>
+                <module>assembly</module>
+            </modules>
+        </profile>
         <profile>
             <id>cdh6.3.0</id>
             <activation>
@@ -971,7 +1001,6 @@
                 <hadoop.version>2.6.0-cdh5.14.0</hadoop.version>
                 <hbase.version>1.2.0-cdh5.14.0</hbase.version>
                 <hive.version>1.1.0-cdh5.14.0</hive.version>
-                <guava.version>15.0</guava.version>
                 <spark.version>2.2.2</spark.version>
                 <spark.major.version>spark2.2</spark.major.version>
                 <scala.version>2.11.8</scala.version>
