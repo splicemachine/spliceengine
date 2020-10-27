@@ -31,13 +31,11 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.depend.ProviderList;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.error.StandardException;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.splicemachine.db.iapi.sql.depend.ProviderList;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -47,7 +45,6 @@ import java.util.Vector;
  * This node describes a Generation Clause in a column definition.
  *
  */
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class GenerationClauseNode extends ValueNode
 {
     ///////////////////////////////////////////////////////////////////////////////////
@@ -137,6 +134,10 @@ public class GenerationClauseNode extends ValueNode
         GenerationClauseNode    that = (GenerationClauseNode) other;
 
         return this._generationExpression.isEquivalent( that._generationExpression );
+    }
+
+    public int hashCode() {
+        return 31 * getBaseHashCode() + _generationExpression.hashCode();
     }
     
     /**

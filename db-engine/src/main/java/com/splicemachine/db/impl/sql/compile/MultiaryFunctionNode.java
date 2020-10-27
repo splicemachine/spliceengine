@@ -43,7 +43,6 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * SQL Reference Guide for DB2 has section titled "Rules for result data types" at the following url
@@ -356,7 +355,10 @@ public abstract class MultiaryFunctionNode extends ValueNode
 
     @Override
     public int hashCode() {
-        return Objects.hash(functionName, argumentsList);
+        int result = getBaseHashCode();
+        result = 31 * result + functionName.hashCode();
+        result = 31 * result + argumentsList.hashCode();
+        return result;
     }
 
     /**

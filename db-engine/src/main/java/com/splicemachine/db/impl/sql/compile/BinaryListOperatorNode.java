@@ -448,8 +448,16 @@ public abstract class BinaryListOperatorNode extends ValueNode{
             return false;
         }
         BinaryListOperatorNode other = (BinaryListOperatorNode) o;
-        return !(!operator.equals(other.operator) || !leftOperandList.isEquivalent(other.getLeftOperandList())) && rightOperandList.isEquivalent(other.rightOperandList);
+        return operator.equals(other.operator) && leftOperandList.isEquivalent(other.getLeftOperandList()) && rightOperandList.isEquivalent(other.rightOperandList);
+    }
 
+    @Override
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + operator.hashCode();
+        result = 31 * result + (leftOperandList == null ? 0 : leftOperandList.hashCode());
+        result = 31 * result + (rightOperandList == null ? 0 : rightOperandList.hashCode());
+        return result;
     }
 
     @Override

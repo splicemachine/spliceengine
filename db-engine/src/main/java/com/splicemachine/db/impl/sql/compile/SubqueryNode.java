@@ -47,7 +47,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.OnceResultSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -81,7 +80,6 @@ import java.util.*;
  * <UL> where x = (SELECT true FROM (SELECT MAX(x) FROM z) WHERE SQLCOL1 = y) </UL>
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SubqueryNode extends ValueNode{
     /* Subquery types.
      * NOTE: FROM_SUBQUERY only exists for a brief second in the parser.  It
@@ -1608,6 +1606,10 @@ public class SubqueryNode extends ValueNode{
      */
     protected boolean isEquivalent(ValueNode o){
         return this==o;
+    }
+
+    public int hashCode() {
+        return System.identityHashCode(this);
     }
 
     /**

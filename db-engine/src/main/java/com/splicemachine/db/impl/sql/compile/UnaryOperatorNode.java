@@ -62,7 +62,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class UnaryOperatorNode extends OperatorNode
 {
     String	operator;
@@ -898,6 +897,13 @@ public class UnaryOperatorNode extends OperatorNode
                     ((operand == other.operand)|| ((operand != null) && operand.isEquivalent(other.operand))));
         }
         return false;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + (operator == null ? 0 : operator.hashCode());
+        result = 31 * result + (operand == null ? 0 : operand.hashCode());
+        return result;
     }
 
     public List<? extends QueryTreeNode> getChildren() {

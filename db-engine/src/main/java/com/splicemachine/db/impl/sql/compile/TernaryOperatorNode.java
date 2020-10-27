@@ -48,7 +48,6 @@ import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -64,7 +63,6 @@ import java.util.Map;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class TernaryOperatorNode extends OperatorNode
 {
     String        operator;
@@ -1404,6 +1402,15 @@ public class TernaryOperatorNode extends OperatorNode
                             other.rightOperand.isEquivalent(rightOperand)) ) );
         }
         return false;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + methodName.hashCode();
+        result = 31 * result + (receiver == null ? 0 : receiver.hashCode());
+        result = 31 * result + (leftOperand == null ? 0 : leftOperand.hashCode());
+        result = 31 * result + (rightOperand == null ? 0 : rightOperand.hashCode());
+        return result;
     }
 
     public List<? extends QueryTreeNode> getChildren() {

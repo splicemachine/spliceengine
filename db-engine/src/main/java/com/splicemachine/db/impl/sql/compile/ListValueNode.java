@@ -190,9 +190,12 @@ public final class ListValueNode extends ValueNode {
     public int hashCode() {
         final int prime = 37;
         int result = 17;
-        
-        for (int i = 0; i < numValues(); i++) {
-            result = result * prime + valuesList.elementAt(i).hashCode();
+
+        result = prime * result + getBaseHashCode();
+        if (valuesList != null) {
+            for (int i = 0; i < numValues(); i++) {
+                result = result * prime + valuesList.elementAt(i).hashCode();
+            }
         }
         return result;
     }

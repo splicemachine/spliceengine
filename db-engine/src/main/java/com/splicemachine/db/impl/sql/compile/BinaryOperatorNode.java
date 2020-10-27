@@ -995,25 +995,26 @@ public class BinaryOperatorNode extends OperatorNode
         }
     }
 
-        /**
-         * @inheritDoc
-         */
-        protected boolean isEquivalent(ValueNode o) throws StandardException
+    /**
+     * @inheritDoc
+     */
+    protected boolean isEquivalent(ValueNode o) throws StandardException
+    {
+        if (!isSameNodeType(o))
         {
-            if (!isSameNodeType(o))
-            {
-                return false;
-            }
-            BinaryOperatorNode other = (BinaryOperatorNode)o;
-            return methodName.equals(other.methodName)
-                   && leftOperand.isEquivalent(other.leftOperand)
-                   && rightOperand.isEquivalent(other.rightOperand);
+            return false;
         }
+        BinaryOperatorNode other = (BinaryOperatorNode)o;
+        return methodName.equals(other.methodName)
+               && leftOperand.isEquivalent(other.leftOperand)
+               && rightOperand.isEquivalent(other.rightOperand);
+    }
 
     public int hashCode() {
-        int hashCode = methodName.hashCode();
-        hashCode = 31*hashCode+leftOperand.hashCode();
-        hashCode = 31*hashCode + rightOperand.hashCode();
+        int hashCode = getBaseHashCode();
+        hashCode = 31 * hashCode + methodName.hashCode();
+        hashCode = 31 * hashCode + leftOperand.hashCode();
+        hashCode = 31 * hashCode + rightOperand.hashCode();
         return hashCode;
     }
 

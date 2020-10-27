@@ -1987,6 +1987,11 @@ public class ResultColumn extends ValueNode
         return this == o;
     }
 
+    public int hashCode() {
+        int result = getBaseHashCode();
+        return 31 * result + (expression == null ? 0 : expression.hashCode());
+    }
+
 
     /**
      * Return true if this result column represents a generated column.

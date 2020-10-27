@@ -26,21 +26,19 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.ArrayDataValue;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -51,7 +49,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ArrayOperatorNode extends ValueNode {
     public int extractField = -1;
     public ValueNode operand;
@@ -172,7 +169,11 @@ public class ArrayOperatorNode extends ValueNode {
         ArrayOperatorNode other = (ArrayOperatorNode) o;
 
         return operand.isEquivalent(other.operand);
+    }
 
+    @Override
+    public int hashCode() {
+        return 31 * getBaseHashCode() + operand.hashCode();
     }
 
     /**

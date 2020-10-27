@@ -1480,6 +1480,13 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         return result;
     }
 
+    public abstract int hashCode();
+
+    protected int getBaseHashCode() {
+        int nodeType = getNodeType();
+        return nodeType ^ (nodeType >>> 16);
+    }
+
     /**
      * Tests if this node is of the same type as the specified node as
      * reported by {@link QueryTreeNode#getNodeType()}.
