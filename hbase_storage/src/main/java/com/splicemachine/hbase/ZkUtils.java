@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.splicemachine.access.configuration.HBaseConfiguration;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
@@ -282,6 +283,7 @@ public class ZkUtils{
      * @return the next counter number
      * @throws IOException if something goes wrong and the counter can't be incremented.
      */
+    @SuppressFBWarnings(value="INT_VACUOUS_COMPARISON", justification="keep retrying until success")
     public static long nextSequenceId(String counterNode) throws IOException{
         /*
 		 * When generating a new, Monotonically increasing identifier
@@ -315,10 +317,17 @@ public class ZkUtils{
 		 */
 
         RecoverableZooKeeper rzk=ZkUtils.getRecoverableZooKeeper();
-        int maxTries=10;
+        int maxTries=Integer.MAX_VALUE;
         int tries=0;
         while(tries<=maxTries){
             tries++;
+            if (tries > 1) {
+                try {
+                    Thread.sleep(50);
+                } catch (Exception e) {
+                    throw new IOException(e);
+                }
+            }
             //get the current state of the counter
             Stat version=new Stat();
             long currentCount;
