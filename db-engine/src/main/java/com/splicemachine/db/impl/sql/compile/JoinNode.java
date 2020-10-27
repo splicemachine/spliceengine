@@ -685,7 +685,7 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+                                    Map<Integer, Set<ValueNode>> exprMap) throws StandardException{
         ResultSetNode newTreeTop;
 
         newTreeTop=super.preprocess(numTables,gbl,fromList, exprMap);

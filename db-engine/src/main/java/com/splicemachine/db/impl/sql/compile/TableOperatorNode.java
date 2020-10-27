@@ -40,8 +40,8 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A TableOperatorNode represents a relational operator like UNION, INTERSECT,
@@ -529,7 +529,7 @@ public abstract class TableOperatorNode extends FromTable{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+                                    Map<Integer, Set<ValueNode>> exprMap) throws StandardException{
         leftResultSet=leftResultSet.preprocess(numTables,gbl,fromList, exprMap);
         /* If leftResultSet is a FromSubquery, then we must explicitly extract
          * out the subquery (flatten it).  (SelectNodes have their own

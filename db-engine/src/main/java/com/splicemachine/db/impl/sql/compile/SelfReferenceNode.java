@@ -171,7 +171,7 @@ public class SelfReferenceNode extends FromTable {
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
                                     FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    Map<Integer, Set<ValueNode>> exprMap)
             throws StandardException {
 
         /* Generate the referenced table map */

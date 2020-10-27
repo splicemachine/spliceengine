@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 {
@@ -246,7 +247,7 @@ abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 	}
 
 	@Override
-	public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
 		boolean result = true;
 		if (receiver != null) {
 			result = receiver.collectExpressions(exprMap);

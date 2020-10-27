@@ -202,7 +202,7 @@ public class FromBaseTable extends FromTable {
     private ValueNode pastTxIdExpression = null;
 
     // expressions in whole query referencing columns in this base table
-    private List<ValueNode> referencingExpressions = null;
+    private Set<ValueNode> referencingExpressions = null;
 
     @Override
     public boolean isParallelizable(){
@@ -1639,7 +1639,7 @@ public class FromBaseTable extends FromTable {
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
                                     FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    Map<Integer, Set<ValueNode>> exprMap)
             throws StandardException{
         /* Generate the referenced table map */
         referencedTableMap=new JBitSet(numTables);

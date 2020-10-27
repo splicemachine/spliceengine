@@ -38,10 +38,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A SingleChildResultSetNode represents a result set with a single child.
@@ -285,7 +282,7 @@ public abstract class SingleChildResultSetNode extends FromTable{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+                                    Map<Integer, Set<ValueNode>> exprMap) throws StandardException{
         childResult=childResult.preprocess(numTables,gbl,fromList, exprMap);
 
         /* Build the referenced table map */

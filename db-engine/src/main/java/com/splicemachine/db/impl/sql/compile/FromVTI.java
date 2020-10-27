@@ -926,7 +926,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
                                     FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    Map<Integer, Set<ValueNode>> exprMap)
             throws StandardException
     {
         methodCall.preprocess(

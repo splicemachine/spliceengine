@@ -852,7 +852,7 @@ public class SelectNode extends ResultSetNode{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fl,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+                                    Map<Integer, Set<ValueNode>> exprMap) throws StandardException{
         ResultSetNode newTop=this;
 
         /* Put the expression trees in conjunctive normal form.
@@ -2912,8 +2912,8 @@ public class SelectNode extends ResultSetNode{
         return collected;
     }
 
-    private Map<Integer, List<ValueNode>> collectExpression() {
-        HashMap<Integer, List<ValueNode>> result = new HashMap<>();
+    private Map<Integer, Set<ValueNode>> collectExpression() {
+        HashMap<Integer, Set<ValueNode>> result = new HashMap<>();
         boolean proceed = true;
 
         if (groupByList != null) {

@@ -49,6 +49,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 /**
@@ -409,7 +410,7 @@ public class FromSubquery extends FromTable
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
                                     FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    Map<Integer, Set<ValueNode>> exprMap)
                                 throws StandardException
     {
 

@@ -1102,7 +1102,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+                                    Map<Integer, Set<ValueNode>> exprMap) throws StandardException{
         childResult=childResult.preprocess(numTables,gbl,fromList, exprMap);
 
         /* Build the referenced table map */

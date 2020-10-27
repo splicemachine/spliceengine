@@ -45,6 +45,7 @@ import splice.com.google.common.collect.Lists;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Created by yxia on 11/26/19.
@@ -120,7 +121,7 @@ public class FullOuterJoinNode extends JoinNode {
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+                                    Map<Integer, Set<ValueNode>> exprMap) throws StandardException{
         ResultSetNode newTreeTop;
 
         newTreeTop=super.preprocess(numTables,gbl,fromList, exprMap);

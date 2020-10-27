@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import java.sql.Types;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This node is the superclass  for all binary comparison operators, such as =,
@@ -513,7 +514,7 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 	}
 
 	@Override
-	public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
 		boolean result = true;
 		if (receiver != null) {
 			result = receiver.collectExpressions(exprMap);

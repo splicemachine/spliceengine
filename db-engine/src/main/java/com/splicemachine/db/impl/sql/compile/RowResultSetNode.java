@@ -47,10 +47,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.RSUtils;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A RowResultSetNode represents the result set for a VALUES clause.
@@ -373,7 +370,7 @@ public class RowResultSetNode extends FromTable {
      */
 
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException {
+                                    Map<Integer, Set<ValueNode>> exprMap) throws StandardException {
 
         SubqueryList subqueryList =
           (SubqueryList) getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());

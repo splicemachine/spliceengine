@@ -616,7 +616,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
      * @throws StandardException Thrown on error
      */
     public void preprocess(int numTables, GroupByList gbl, ValueNode predicateTree,
-                           Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+                           Map<Integer, Set<ValueNode>> exprMap) throws StandardException{
         int size=size();
 
         /* Preprocess each FromTable in the list */

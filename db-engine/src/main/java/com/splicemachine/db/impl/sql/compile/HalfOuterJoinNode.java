@@ -43,6 +43,7 @@ import splice.com.google.common.collect.Lists;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * An HalfOuterJoinNode represents a left or a right outer join result set.
@@ -177,7 +178,7 @@ public class HalfOuterJoinNode extends JoinNode{
      */
     @Override
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+                                    Map<Integer, Set<ValueNode>> exprMap) throws StandardException{
         ResultSetNode newTreeTop;
 
 		/* Transform right outer joins to the equivalent left outer join */

@@ -49,6 +49,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.FunctionType;
 import static com.splicemachine.db.iapi.sql.compile.AggregateDefinition.fromString;
@@ -734,7 +735,7 @@ public class AggregateNode extends UnaryOperatorNode {
     }
 
     @Override
-    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         if (operand != null) {
             return operand.collectExpressions(exprMap);
         }

@@ -42,10 +42,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.BitSet;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * A Predicate represents a top level predicate.
@@ -1513,7 +1510,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         }
     }
 
-    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         ValueNode op = getAndNode().getLeftOperand();
         if (op == null)
             return true;

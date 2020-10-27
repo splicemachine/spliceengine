@@ -540,7 +540,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      */
 
     public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+                                    Map<Integer, Set<ValueNode>> exprMap) throws StandardException{
         if(SanityManager.DEBUG)
             SanityManager.THROWASSERT(
                     "preprocess() not expected to be called for "+getClass().toString());

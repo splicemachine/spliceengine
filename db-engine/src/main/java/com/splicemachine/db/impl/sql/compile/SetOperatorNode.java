@@ -41,8 +41,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A SetOperatorNode represents a UNION, INTERSECT, or EXCEPT in a DML statement. Binding and optimization
@@ -868,7 +868,7 @@ abstract class SetOperatorNode extends TableOperatorNode
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
                                     FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    Map<Integer, Set<ValueNode>> exprMap)
                                 throws StandardException
     {
         ResultSetNode newTop = this;

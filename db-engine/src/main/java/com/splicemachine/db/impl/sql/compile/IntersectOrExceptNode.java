@@ -55,8 +55,8 @@ import com.splicemachine.db.iapi.util.ReuseFactory;
 
 import java.io.IOException;
 import java.util.BitSet;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A IntersectOrExceptNode represents an INTERSECT or EXCEPT DML statement.
@@ -137,7 +137,7 @@ public class IntersectOrExceptNode extends SetOperatorNode
 
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
-                                    FromList fromList, Map<Integer, List<ValueNode>> exprMap)
+                                    FromList fromList, Map<Integer, Set<ValueNode>> exprMap)
                                 throws StandardException
     {
         // RESOLVE: We are in a quandary as to when and how we should generate order by lists. SelectNode processing

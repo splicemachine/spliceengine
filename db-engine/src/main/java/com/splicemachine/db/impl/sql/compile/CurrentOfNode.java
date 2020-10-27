@@ -65,8 +65,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * The CurrentOf operator is used by positioned DELETE 
@@ -393,7 +393,7 @@ public final class CurrentOfNode extends FromTable {
 
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
-                                    FromList fromList, Map<Integer, List<ValueNode>> exprMap)
+                                    FromList fromList, Map<Integer, Set<ValueNode>> exprMap)
                                 throws StandardException
     {
         /* Generate an empty referenced table map */
