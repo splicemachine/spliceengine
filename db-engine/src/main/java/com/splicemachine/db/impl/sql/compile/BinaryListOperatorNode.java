@@ -114,8 +114,10 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
         for (int i = 0; i < leftOperandList.size(); i++) {
             leftOperandList.elementAt(i).accept(cnv);
-            if (cnv.getList().isEmpty())
+            if (cnv.getList().isEmpty()) {
                 return false;
+            }
+            cnv.getList().clear();
         }
         return true;
     }
