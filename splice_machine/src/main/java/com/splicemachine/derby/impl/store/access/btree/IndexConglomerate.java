@@ -525,6 +525,17 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
         int len=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(len,in);
+
+        // DataDictionaryImpl.bootstrapOneIndex creates system indexes with a null
+        // column ordering, making the IndexConglomerate inconsistent, which may
+        // lead to broken logic in places that call ScanOperation.getColumnOrdering.
+        // Fill in the missing information here so the index may be properly used.
+        if (columnOrdering == null || columnOrdering.length == 0) {
+            int extraColumnsCount = allowDuplicates ? 1 : 0;
+            columnOrdering = new int[ascDescInfo.length + extraColumnsCount];
+            for (int i=0; i < columnOrdering.length; i++)
+                columnOrdering[i] = i;
+        }
         partitionFactory =SIDriver.driver().getTableFactory();
         opFactory = SIDriver.driver().getOperationFactory();
     }

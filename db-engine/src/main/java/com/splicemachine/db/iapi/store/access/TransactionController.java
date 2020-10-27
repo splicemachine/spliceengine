@@ -1252,11 +1252,13 @@ conglomerates are removed.
 	 *
 	 * @param defaultRowcount only takes effect when skipDictionaryStats is true, fix the rowcount to be the specified value
      *
+	 * @param requestedSplits The number of input splits requested via the splits query hint, or 0 for no hint.
+	 *
      * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount) throws StandardException;
+    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount, int requestedSplits) throws StandardException;
 
     /**
      * Return a string with debug information about opened congloms/scans/sorts.
