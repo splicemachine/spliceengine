@@ -38,6 +38,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Properties;
 
+/**
+ * Used to create a marshall transaction given a connection string and a transaction view.
+ * This class it NOT thread safe
+ */
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private static final Logger LOG=Logger.getLogger(SpliceTransactionResourceImpl.class);
     public static final String CONNECTION_STRING = "jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true";
@@ -90,7 +94,9 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
     public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
                                        TransactionController reuseTC, String localUserName, Integer sessionNumber) throws StandardException, SQLException{
-        assert !updated;
+        if (updated) {
+            throw new IllegalStateException("Cannot create a new marshall Transaction as the last one wasn't closed");
+        }
         try {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s", txn);
