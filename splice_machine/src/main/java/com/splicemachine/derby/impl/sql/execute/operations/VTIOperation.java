@@ -312,7 +312,7 @@ public class VTIOperation extends SpliceBaseOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
-      
+
         dsp.createOperationContext(this);
 
         if (this.userVTI instanceof TriggerNewTransitionRows) {
