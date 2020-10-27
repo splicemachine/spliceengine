@@ -61,7 +61,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class UnaryOperatorNode extends OperatorNode
 {
     String	operator;
@@ -885,15 +884,21 @@ public class UnaryOperatorNode extends OperatorNode
      * {@inheritDoc}
      */
     @Override
-    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o)) {
-            UnaryOperatorNode other = (UnaryOperatorNode)o;
+            UnaryOperatorNode other = (UnaryOperatorNode) o;
             return ((operator == null && other.operator == null) || (operator != null && operator.equals(other.operator)) &&
                     // the first condition in the || covers the case when both operands are null.
                     ((operand == other.operand) || ((operand != null) && operand.isSemanticallyEquivalent(other.operand))));
         }
         return false;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + (operator == null ? 0 : operator.hashCode());
+        result = 31 * result + (operand == null ? 0 : operand.hashCode());
+        return result;
     }
 
     public List<? extends QueryTreeNode> getChildren() {

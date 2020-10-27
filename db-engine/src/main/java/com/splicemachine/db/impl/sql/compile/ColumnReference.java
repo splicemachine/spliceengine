@@ -1342,8 +1342,12 @@ public class ColumnReference extends ValueNode {
 
     @Override
     public int hashCode(){
-        int hc = tableNumber;
-        hc = hc*31+columnName.hashCode();
+        int hc = 31 * getBaseHashCode() + tableNumber;
+        if (columnName.length() == 0) {
+            hc = hc * 31 + getSource().hashCode();
+        } else {
+            hc = hc * 31 + columnName.hashCode();
+        }
         return hc;
     }
 

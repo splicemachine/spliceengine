@@ -1039,9 +1039,10 @@ public class BinaryOperatorNode extends OperatorNode
     }
 
     public int hashCode() {
-        int hashCode = methodName.hashCode();
-        hashCode = 31*hashCode+leftOperand.hashCode();
-        hashCode = 31*hashCode + rightOperand.hashCode();
+        int hashCode = getBaseHashCode();
+        hashCode = 31 * hashCode + methodName.hashCode();
+        hashCode = 31 * hashCode + leftOperand.hashCode();
+        hashCode = 31 * hashCode + rightOperand.hashCode();
         return hashCode;
     }
 

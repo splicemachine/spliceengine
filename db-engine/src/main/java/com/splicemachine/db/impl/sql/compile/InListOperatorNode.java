@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * An InListOperatorNode represents an IN list.
@@ -973,10 +974,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	
 	@Override
 	public int hashCode(){
-		int result=(isOrdered?1:0);
-		result=31*result+(sortDescending?1:0);
-		result = 31*result + leftOperandList.hashCode();
-		result = 31*result + rightOperandList.hashCode();
-		return result;
+		int result = super.hashCode();
+		return Objects.hash(result, isOrdered, sortDescending);
 	}
 }

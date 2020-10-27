@@ -442,6 +442,14 @@ public abstract class BinaryListOperatorNode extends ValueNode{
                 rightOperandList.isSemanticallyEquivalent(other.rightOperandList);
     }
 
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + operator.hashCode();
+        result = 31 * result + (leftOperandList == null ? 0 : leftOperandList.hashCode());
+        result = 31 * result + (rightOperandList == null ? 0 : rightOperandList.hashCode());
+        return result;
+    }
+
     @Override
     public List<? extends QueryTreeNode> getChildren(){
         return new LinkedList<QueryTreeNode>(){{

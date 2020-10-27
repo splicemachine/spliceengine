@@ -1475,6 +1475,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         return result;
     }
 
+    public abstract int hashCode();
+
     /**
      * Enhanced version of <code>isEquivalent</code> (to be extended):
      * <ul>

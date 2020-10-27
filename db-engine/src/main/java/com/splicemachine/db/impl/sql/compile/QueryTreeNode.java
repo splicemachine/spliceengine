@@ -2073,4 +2073,9 @@ public abstract class QueryTreeNode implements Node, Visitable{
         accept(visitor);
         return visitor.getNodes();
     }
+
+    protected int getBaseHashCode() {
+        int nodeType = getNodeType();
+        return nodeType ^ (nodeType >>> 16);
+    }
 }
