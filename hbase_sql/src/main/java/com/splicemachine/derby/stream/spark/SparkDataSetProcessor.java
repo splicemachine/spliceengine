@@ -418,37 +418,24 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
-    public GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
+    public GetSchemaExternalResult getExternalFileSchema(String storedAs, String rootPath, boolean mergeSchema,
                                                          CsvOptions csvOptions, StructType nonPartitionColumns,
                                                          StructType partitionColumns) throws StandardException {
         StructType schema = null;
         StructType partition_schema = null;
 
         Configuration conf = HConfiguration.unwrapDelegate();
-        // normalize location string
-        location = new Path(location).toString();
+        // normalize rootPath string
+        rootPath = new Path(rootPath).toString();
         try {
             if (!mergeSchema) {
                 // get one file out of the directory tree
-                FileSystem fs = FileSystem.get(URI.create(location), conf);
-                String fileName = getFile(fs, location);
+                String fileName = getFile(FileSystem.get(URI.create(rootPath), conf), rootPath);
                 if( fileName != null ) {
                     // analyze the directory partitions
-                    List<Path> files = Collections.singletonList(new Path(fileName));
-                    Set<Path> basePaths = Collections.singleton(new Path(location));
-                    PartitionSpec partitionSpec;
-                    try {
-                        partitionSpec = SparkExternalTableUtil.parsePartitionsFromFiles(files,
-                                true, basePaths, partitionColumns, null);
-                    } catch(Exception e)
-                    {
-                        // wasn't able to use the given partition columns.
-                        partitionSpec = SparkExternalTableUtil.parsePartitionsFromFiles(files,
-                                true, basePaths, null, null);
-                    }
-                    partition_schema = partitionSpec.partitionColumns();
+                    partition_schema = getDirectoryPartitions(partitionColumns, rootPath, fileName);
                     // use Spark to only analyze this one file
-                    location = fileName;
+                    rootPath = fileName;
                 }
             }
             try {
@@ -459,21 +446,21 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                         dataset = SpliceSpark.getSession()
                                 .read()
                                 .option("mergeSchema", mergeSchemaOption)
-                                .parquet(location);
+                                .parquet(rootPath);
                     } else if (storedAs.toLowerCase().equals("a")) {
                         // spark does not support schema merging for avro
                         dataset = SpliceSpark.getSession()
                                 .read()
                                 .format("com.databricks.spark.avro")
-                                .load(location);
+                                .load(rootPath);
                     } else if (storedAs.toLowerCase().equals("o")) {
                         // spark does not support schema merging for orc
                         dataset = SpliceSpark.getSession()
                                 .read()
-                                .orc(location);
+                                .orc(rootPath);
                     } else if (storedAs.toLowerCase().equals("t")) {
                         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                        dataset = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(location);
+                        dataset = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(rootPath);
                     } else {
                         throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
                     }
@@ -481,13 +468,42 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                     schema = dataset.schema();
                 }
             } catch (Exception e) {
-                handleExceptionInferSchema(e, location);
+                handleExceptionInferSchema(e, rootPath);
             }
         }catch (Exception e) {
             throw StandardException.newException(SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
 
         return new GetSchemaExternalResult(partition_schema, schema);
+    }
+
+    /**
+     * get the directory partitioning
+     * @param rootPath root path of the dataset e.g. hdfs://cluster:123/path/to/directory
+     * @param fileName file name below that path (including directories), e.g. firstCol=34/column2=HELLO/file.parquet
+     * @param givenPartitionColumns the types as specified in CREATE TABLE ... PARTITIONED BY ( X ).
+     *                              this is important as you can have e.g. firstCol = VARCHAR, and without this
+     *                              we would infere firstCol=34 to be INTEGER.
+     * @return if successful, the StructType for the partitioned columns compatible with partitionColumns.
+     *         if we can't apply partitionColumns (e.g. have column2=HELLO, but we want column2 to be INT),
+     *         we infere the schema without the given information, which is then used for suggest schema.
+     */
+    private StructType getDirectoryPartitions(StructType givenPartitionColumns, String rootPath, String fileName) {
+        StructType partition_schema;
+        List<Path> files = Collections.singletonList(new Path(fileName));
+        Set<Path> basePaths = Collections.singleton(new Path(rootPath));
+        PartitionSpec partitionSpec;
+        try {
+            partitionSpec = SparkExternalTableUtil.parsePartitionsFromFiles(files,
+                    true, basePaths, givenPartitionColumns, null);
+        } catch(Exception e)
+        {
+            // wasn't able to use the given partition columns.
+            partitionSpec = SparkExternalTableUtil.parsePartitionsFromFiles(files,
+                    true, basePaths, null, null);
+        }
+        partition_schema = partitionSpec.partitionColumns();
+        return partition_schema;
     }
 
     /**
