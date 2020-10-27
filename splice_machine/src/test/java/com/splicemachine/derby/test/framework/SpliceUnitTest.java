@@ -1052,7 +1052,7 @@ public class SpliceUnitTest {
      * @param failOnError if true, fail on error (don't do this on parallel tests). otherwise, just LOG.
      */
     public static void waitForStaleTransactions(SpliceWatcher methodWatcher, String name, int numSeconds,
-                                                boolean failOnError) throws Exception
+                                                boolean failOnError)
     {
         Logger LOG = Logger.getLogger("SpliceUnitTest");
         try {
@@ -1079,7 +1079,12 @@ public class SpliceUnitTest {
                     "'java.lang.UnsupportedOperationException: Operation not supported in Mem profile: java.io.IOException'."))
                 return;
             else
-                LOG.info("WARNING: Couldn't execute SYSCS_GET_OLDEST_ACTIVE_TRANSACTION");
+                LOG.info("WARNING: Couldn't execute SYSCS_GET_OLDEST_ACTIVE_TRANSACTION: " + e.toString());
+        }
+        catch( Exception e)
+        {
+            // some tests might have closed the database (RestoreIT)
+            LOG.info("WARNING: Couldn't execute SYSCS_GET_OLDEST_ACTIVE_TRANSACTION: " + e.toString());
         }
     }
 
@@ -1092,7 +1097,7 @@ public class SpliceUnitTest {
     }
 
     @AfterClass
-    public static void waitForStaleTransactions() throws Exception {
+    public static void waitForStaleTransactions() {
         SpliceWatcher methodWatcher = new SpliceWatcher(null);
         // for parallel running tests waitForStaleTransactions might report false positives,
         // but you can set this to true if you're checking the tests one by one manually.
