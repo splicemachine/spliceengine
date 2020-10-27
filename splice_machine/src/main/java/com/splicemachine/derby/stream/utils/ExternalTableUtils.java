@@ -129,7 +129,7 @@ public class ExternalTableUtils {
             for( int i =0 ; i < partitionSchema.fields().length; i++)
             {
                 if( i > 0 ) sb.append( ", " );
-                sb.append( partitionSchema.fields()[i].name() + " ");
+                sb.append( partitionSchema.fields()[i].name());
             }
             sb.append( ")" );
         }
