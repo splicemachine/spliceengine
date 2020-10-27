@@ -85,7 +85,6 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	protected boolean scrollable;
     protected boolean keepAfterCommit;
     private int maxRows;
-    protected StatementContext statementContext;
     private int positionInSource;
     private int currentPosition;
     private int lastPosition;
