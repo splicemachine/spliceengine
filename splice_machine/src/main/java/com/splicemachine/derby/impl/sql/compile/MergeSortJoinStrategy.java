@@ -94,16 +94,16 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity, outerCost.rowCount(), innerCost.rowCount());
         double joinSelectivityWithSearchConditionsOnly = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost, SelectivityUtil.JoinPredicateType.HASH_SEARCH);
         double totalJoinedRows = SelectivityUtil.getTotalRows(joinSelectivityWithSearchConditionsOnly, outerCost.rowCount(), innerCost.rowCount());
-        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setParallelism(outerCost.getParallelism());
         double joinCost = mergeSortJoinStrategyLocalCost(innerCost, outerCost,totalJoinedRows);
         innerCost.setLocalCost(joinCost);
-        innerCost.setLocalCostPerPartition(joinCost);
-        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost,outerCost,totalOutputRows);
+        innerCost.setLocalCostPerParallelTask(joinCost);
+        double remoteCostPerPartition = SelectivityUtil.getTotalPerPartitionRemoteCost(innerCost,outerCost, optimizer);
         innerCost.setRemoteCost(remoteCostPerPartition);
-        innerCost.setRemoteCostPerPartition(remoteCostPerPartition);
-        innerCost.setRowCount(totalOutputRows);
+        innerCost.setRemoteCostPerParallelTask(remoteCostPerPartition);
         innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
-        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setRowCount(totalOutputRows);
+        innerCost.setParallelism(outerCost.getParallelism());
         innerCost.setRowOrdering(null);
     }
 
@@ -144,11 +144,11 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double localLatency = config.getFallbackLocalLatency();
         double joiningRowCost = numOfJoinedRows * localLatency;
 
-        long outerTablePartitions = outerCost.partitionCount();
+        long outerTableNumTasks = outerCost.getParallelism();
         double innerRowCount = innerCost.rowCount() > 1? innerCost.rowCount():1;
         int innerRowCountPerPartition =
-           (innerRowCount / outerTablePartitions) > Integer.MAX_VALUE ?
-           Integer.MAX_VALUE : (int)(innerRowCount / outerTablePartitions);
+           (innerRowCount / outerTableNumTasks) > Integer.MAX_VALUE ?
+           Integer.MAX_VALUE : (int)(innerRowCount / outerTableNumTasks);
 
         double factor = 1d;
         double innerSortCost =
@@ -156,32 +156,32 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
 
         double outerRowCount = outerCost.rowCount() > 1? outerCost.rowCount():1;
         int outerRowCountPerPartition =
-           (outerRowCount / outerTablePartitions) > Integer.MAX_VALUE ?
-           Integer.MAX_VALUE : (int)(outerRowCount / outerTablePartitions);
+           (outerRowCount / outerTableNumTasks) > Integer.MAX_VALUE ?
+           Integer.MAX_VALUE : (int)(outerRowCount / outerTableNumTasks);
 
         double outerSortCost =
             getSortCost(outerRowCountPerPartition, localLatency*factor);
 
-        assert outerCost.getLocalCostPerPartition() != 0d || outerCost.localCost() == 0d;
-        assert innerCost.getLocalCostPerPartition() != 0d || innerCost.localCost() == 0d;
-        assert outerCost.getRemoteCostPerPartition() != 0d || outerCost.remoteCost() == 0d;
-        assert innerCost.getRemoteCostPerPartition() != 0d || innerCost.remoteCost() == 0d;
+        assert outerCost.getLocalCostPerParallelTask() != 0d || outerCost.localCost() == 0d;
+        assert innerCost.getLocalCostPerParallelTask() != 0d || innerCost.localCost() == 0d;
+        assert outerCost.getRemoteCostPerParallelTask() != 0d || outerCost.remoteCost() == 0d;
+        assert innerCost.getRemoteCostPerParallelTask() != 0d || innerCost.remoteCost() == 0d;
 
-        double outerLocalCost = outerCost.getLocalCostPerPartition()*outerCost.partitionCount();
-        double innerLocalCost = innerCost.getLocalCostPerPartition()*innerCost.partitionCount();
+        double outerLocalCost = outerCost.getLocalCostPerParallelTask()*outerCost.getParallelism();
+        double innerLocalCost = innerCost.getLocalCostPerParallelTask()*innerCost.getParallelism();
 
-        double outerShuffleCost = outerCost.getLocalCostPerPartition()
-                +outerCost.getRemoteCostPerPartition()
+        double outerShuffleCost = outerCost.getLocalCostPerParallelTask()
+                +outerCost.getRemoteCostPerParallelTask()
                 +outerCost.getOpenCost()+outerCost.getCloseCost();
-        double innerShuffleCost = innerCost.getLocalCostPerPartition()
-                +innerCost.getRemoteCostPerPartition()
+        double innerShuffleCost = innerCost.getLocalCostPerParallelTask()
+                +innerCost.getRemoteCostPerParallelTask()
                 +innerCost.getOpenCost()+innerCost.getCloseCost();
-        double outerReadCost = outerLocalCost/outerCost.partitionCount();
-        double innerReadCost = innerLocalCost/outerCost.partitionCount();
+        double outerReadCost = outerLocalCost/outerCost.getParallelism();
+        double innerReadCost = innerLocalCost/outerCost.getParallelism();
 
         return outerShuffleCost+innerShuffleCost+outerReadCost+innerReadCost+
                innerSortCost+outerSortCost+
-                +joiningRowCost/outerCost.partitionCount();
+                +joiningRowCost/outerCost.getParallelism();
     }
 
     @Override

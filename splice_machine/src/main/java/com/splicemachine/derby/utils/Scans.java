@@ -17,11 +17,12 @@ package com.splicemachine.derby.utils;
 import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
@@ -29,9 +30,15 @@ import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.storage.DataScan;
 import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.splicemachine.EngineDriver.isMemPlatform;
+import static com.splicemachine.db.shared.common.reference.SQLState.PARAMETER_CANNOT_BE_NULL;
 
 /**
  * Utility methods and classes related to building HBase Scans
@@ -75,18 +82,20 @@ public class Scans extends SpliceUtils {
      * filters aas specified by {@code qualifiers}
      */
     public static DataScan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
-                                 DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix, int stopSearchOperator,
-                                 Qualifier[][] qualifiers,
-                                 boolean[] sortOrder,
-                                 FormatableBitSet scanColumnList,
-                                 TxnView txn,
-                                 boolean sameStartStopPosition,
-                                 ExecRow scannedRow,
-                                 int[] keyDecodingMap,
-                                 int[] keyTablePositionMap,
-                                 DataValueFactory dataValueFactory,
-                                 String tableVersion,
-                                 boolean rowIdKey) throws StandardException {
+                                     DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix, int stopSearchOperator,
+                                     Qualifier[][] qualifiers,
+                                     boolean[] sortOrder,
+                                     FormatableBitSet scanColumnList,
+                                     TxnView txn,
+                                     boolean sameStartStopPosition,
+                                     ExecRow scannedRow,
+                                     int[] keyDecodingMap,
+                                     int[] keyTablePositionMap,
+                                     DataValueFactory dataValueFactory,
+                                     String tableVersion,
+                                     boolean rowIdKey,
+                                     SpliceConglomerate conglomerate,
+                                     List<Pair<ExecRow, ExecRow>> keyRows) throws StandardException {
         assert dataValueFactory != null;
         DataScan scan =SIDriver.driver().getOperationFactory().newDataScan(txn);//SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
         scan.returnAllVersions();
@@ -107,7 +116,10 @@ public class Scans extends SpliceUtils {
             }
             attachScanKeys(scan, startKeyValue, startSearchOperator,
                     stopKeyValue, stopKeyPrefix, stopSearchOperator,
-                    sortOrder, scannedRow, keyTablePositionMap, keyDecodingMap, dataValueFactory, tableVersion, rowIdKey);
+                    sortOrder, scannedRow, keyTablePositionMap, keyDecodingMap,
+                    dataValueFactory, tableVersion, rowIdKey,
+                    conglomerate.getFormat_ids(),
+                    keyRows);
 
             if (!rowIdKey) {
                 buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
@@ -119,6 +131,49 @@ public class Scans extends SpliceUtils {
         }
         return scan;
     }
+
+
+    public static Pair<byte[],byte[]> setupScanKey(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                                 DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix, int stopSearchOperator,
+                                 boolean[] sortOrder,
+                                 int[] formatIds,
+                                 int[] keyDecodingMap,
+                                 int[] keyTablePositionMap,
+                                 DataValueFactory dataValueFactory,
+                                 String tableVersion,
+                                 boolean rowIdKey,
+                                 ExecRow templateRow) throws StandardException {
+        assert dataValueFactory != null;
+        try {
+            if (rowIdKey) {
+                DataValueDescriptor[] dvd = null;
+                if (startKeyValue != null && startKeyValue.length > 0) {
+                    dvd = new DataValueDescriptor[1];
+                    dvd[0] = new HBaseRowLocation(Bytes.fromHex(startKeyValue[0].getString()));
+                    startKeyValue = dvd;
+                }
+                if (stopKeyValue != null && stopKeyValue.length > 0) {
+                    dvd = new DataValueDescriptor[1];
+                    dvd[0] = new HBaseRowLocation(Bytes.fromHex(stopKeyValue[0].getString()));
+                    stopKeyValue = dvd;
+                }
+            }
+            return getScanKey(startKeyValue, startSearchOperator,
+                              stopKeyValue, stopKeyPrefix, stopSearchOperator,
+                              sortOrder, formatIds, keyTablePositionMap, keyDecodingMap,
+                              dataValueFactory, tableVersion, rowIdKey,
+                              templateRow);
+
+//            if (!rowIdKey) {
+//                buildPredicateFilter(qualifiers, scanColumnList, scan, keyDecodingMap);
+//            }
+
+
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
 
     public static DataScan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
                                  DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
@@ -132,10 +187,11 @@ public class Scans extends SpliceUtils {
                                  int[] keyTablePositionMap,
                                  DataValueFactory dataValueFactory,
                                  String tableVersion,
-                                 boolean rowIdKey) throws StandardException {
+                                 boolean rowIdKey,
+                                 SpliceConglomerate conglomerate) throws StandardException {
         return setupScan(startKeyValue, startSearchOperator, stopKeyValue, null, stopSearchOperator, qualifiers,
                 sortOrder, scanColumnList, txn, sameStartStopPosition, scannedRow, keyDecodingMap,
-                keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
+                keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey, conglomerate, null);
     }
 
     public static void buildPredicateFilter(Qualifier[][] qualifiers,
@@ -185,22 +241,27 @@ public class Scans extends SpliceUtils {
         return new EntryPredicateFilter(colsToReturn, true);
     }
 
-    private static void attachScanKeys(DataScan scan,
-                                       DataValueDescriptor[] startKeyValue, int startSearchOperator,
-                                       DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix,
-                                       int stopSearchOperator,
-                                       boolean[] sortOrder,
-                                       ExecRow scannedRow, //template row
-                                       int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
-                                       int[] keyDecodingMap,
-                                       DataValueFactory dataValueFactory,
-                                       String tableVersion,
-                                       boolean rowIdKey) throws IOException {
+    private static Pair<byte [], byte []>
+    buildStartAndStopKeys(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                           DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix,
+                           int stopSearchOperator,
+                           boolean[] sortOrder,
+                           ExecRow scannedRow, //template row
+                           int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
+                           int[] keyDecodingMap,
+                           DataValueFactory dataValueFactory,
+                           String tableVersion,
+                           boolean rowIdKey) throws IOException {
+
+        boolean generateStartKey = false;
+        boolean generateStopKey = false;
+        byte[] startRow = null;
+        byte[] stopRow = null;
+
         try {
             // Determines whether we can generate a key and also handles type conversion...
             // gd according to Scott, startKey and stopKey are independent, so need to be evaluated as such
-            boolean generateStartKey = false;
-            boolean generateStopKey = false;
+
 
             if (startKeyValue != null) {
                 generateStartKey = true;
@@ -243,23 +304,179 @@ public class Scans extends SpliceUtils {
             }
 
             if (generateStartKey) {
-                byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey);
-                scan.startKey(startRow);
+                startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey);
+
                 if (startRow == null)
-                    scan.startKey(SIConstants.EMPTY_BYTE_ARRAY);
+                    startRow = SIConstants.EMPTY_BYTE_ARRAY;
             }
             if (generateStopKey) {
-                byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
+                stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
                 if (stopKeyPrefix != null) {
                     stopRow = Bytes.unsignedCopyAndIncrement(stopRow);
                 }
-                scan.stopKey(stopRow);
+
                 if (stopRow == null)
-                    scan.stopKey(SIConstants.EMPTY_BYTE_ARRAY);
+                    stopRow = SIConstants.EMPTY_BYTE_ARRAY;
             }
         } catch (StandardException e) {
             throw new IOException(e);
         }
+        return new Pair(startRow, stopRow);
+    }
+
+    private static void attachScanKeys(DataScan scan,
+                                       DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                                       DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix,
+                                       int stopSearchOperator,
+                                       boolean[] sortOrder,
+                                       ExecRow scannedRow, //template row
+                                       int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
+                                       int[] keyDecodingMap,
+                                       DataValueFactory dataValueFactory,
+                                       String tableVersion,
+                                       boolean rowIdKey,
+                                       int[] columnTypes,
+                                       List<Pair<ExecRow, ExecRow>> keyRows) throws IOException {
+        Pair<byte [], byte []> startStopKeys =
+            buildStartAndStopKeys(startKeyValue, startSearchOperator,
+                           stopKeyValue, stopKeyPrefix,
+                           stopSearchOperator,
+                           sortOrder,
+                           scannedRow, //template row
+                           keyTablePositionMap, //the location in the ENTIRE row of the key columns
+                           keyDecodingMap,
+                           dataValueFactory,
+                           tableVersion,
+                           rowIdKey);
+
+        byte [] startKey = startStopKeys.getFirst();
+        byte [] stopKey = startStopKeys.getSecond();
+
+        if (startKey != null)
+            scan.startKey(startKey);
+
+        if (stopKey != null)
+            scan.stopKey(stopKey);
+
+        DataValueDescriptor[] startKeyDVDs = null, stopKeyDVDs = null;
+
+        if (keyRows != null && !isMemPlatform()) {
+            List<Pair<byte [], byte []>> keys = new ArrayList<>();
+            for (Pair<ExecRow, ExecRow> keyRow : keyRows) {
+                if (keyRow.getFirst() != null)
+                    startKeyDVDs = keyRow.getFirst().getClone().getRowArray();
+                else
+                    startKeyDVDs = null;
+
+                if (keyRow.getSecond() != null)
+                    stopKeyDVDs = keyRow.getSecond().getClone().getRowArray();
+                else
+                    stopKeyDVDs = null;
+                startStopKeys =
+                  buildStartAndStopKeys(startKeyDVDs, ScanController.GE,
+                                        stopKeyDVDs, null,
+                                        ScanController.GT,
+                                        sortOrder,
+                                        scannedRow, //template row
+                                        keyTablePositionMap, //the location in the ENTIRE row of the key columns
+                                        keyDecodingMap,
+                                        dataValueFactory,
+                                        tableVersion,
+                                        false);
+                startKey = startStopKeys.getFirst();
+                stopKey = startStopKeys.getSecond();
+                if (startKey != null && stopKey != null)
+                    keys.add(new Pair(startKey, stopKey));
+            }
+
+            // Convert the list of keys into a MultiRowRangeFilter.
+            if (!keys.isEmpty())
+                scan.addRowkeyRangesFilter(keys);
+        }
+
+    }
+
+    private static Pair<byte[],byte[]> getScanKey(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                                                  DataValueDescriptor[] stopKeyValue, DataValueDescriptor[] stopKeyPrefix,
+                                                  int stopSearchOperator,
+                                                  boolean[] sortOrder,
+                                                  int[] columnTypes, //the types of the column in the ENTIRE Row
+                                                  int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
+                                                  int[] keyDecodingMap,
+                                                  DataValueFactory dataValueFactory,
+                                                  String tableVersion,
+                                                  boolean rowIdKey,
+                                                  ExecRow templateRow) throws IOException, StandardException {
+        byte[] startRow;
+        byte[] stopRow;
+        try {
+            boolean generateStartKey = false;
+            boolean generateStopKey = false;
+
+            if (startKeyValue != null) {
+                generateStartKey = true;
+                for (int i = 0; i < startKeyValue.length; i++) {
+                    DataValueDescriptor startDesc = startKeyValue[i];
+                    if (startDesc == null) {
+                        generateStartKey = false; // if any null encountered, don't make a start key
+                        break;
+                    }
+
+                    // we just rely on key table positions
+                    if (!isEmpty(keyDecodingMap) && keyDecodingMap[i] >= 0 && !isEmpty(keyTablePositionMap)) {
+                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
+                        DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
+                        if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
+                            startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetDesc, dataValueFactory);
+                        }
+                    }
+                }
+            }
+            DataValueDescriptor[] stop = stopKeyValue;
+            if (stop == null)
+                stop = stopKeyPrefix;
+            if (stop != null) {
+                generateStopKey = true;
+                for (int i = 0; i < stop.length; i++) {
+                    DataValueDescriptor stopDesc = stop[i];
+                    if (stopDesc == null) {
+                        generateStopKey = false; // if any null encountered, don't make a stop key
+                        break;
+                    }
+
+                    //  we just rely on key table positions
+                    if (!isEmpty(keyDecodingMap) && !isEmpty(keyTablePositionMap)) {
+                        int targetColFormatId = columnTypes[keyTablePositionMap[keyDecodingMap[i]]];
+                        DataValueDescriptor targetDesc = templateRow.getColumn(keyTablePositionMap[keyDecodingMap[i]] + 1); // the maps are 0-based, get Column is 1-based
+                        if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
+                            stop[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetDesc, dataValueFactory);
+                        }
+                    }
+                }
+            }
+
+            if (generateStartKey) {
+                startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey);
+                if (startRow == null)
+                    throw StandardException.newException(PARAMETER_CANNOT_BE_NULL, "startRow");
+            }
+            else
+                throw StandardException.newException(PARAMETER_CANNOT_BE_NULL, "startRow");
+
+            if (generateStopKey) {
+                stopRow = DerbyBytesUtil.generateScanKeyForIndex(stop, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
+                if (stopKeyPrefix != null) {
+                    stopRow = Bytes.unsignedCopyAndIncrement(stopRow);
+                }
+                if (stopRow == null)
+                    throw StandardException.newException(PARAMETER_CANNOT_BE_NULL, "stopRow");
+            }
+            else
+                throw StandardException.newException(PARAMETER_CANNOT_BE_NULL, "stopRow");
+        } catch (StandardException e) {
+            throw new IOException(e);
+        }
+        return new Pair(startRow,stopRow);
     }
 
     private static boolean isEmpty(int[] array) {
@@ -326,8 +543,7 @@ public class Scans extends SpliceUtils {
             row_qualifies =
                     columnValue.compare(
                             q.getOperator(),
-                            (probeValue==null || i >= numProbeValues) ? q.getOrderable():
-                            (numProbeValues == 1 ? probeValue : ((ListDataType) probeValue).getDVD(i)),
+                            q.getOrderable(),
                             q.getOrderedNulls(),
                             q.getUnknownRV());
             

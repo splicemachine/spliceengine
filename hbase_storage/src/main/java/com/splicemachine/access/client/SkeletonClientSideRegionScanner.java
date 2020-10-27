@@ -35,6 +35,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.TableDescriptor;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils;
 import org.apache.hadoop.hbase.ipc.ServerRpcController;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
@@ -316,7 +317,8 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
 
     private KeyValueScanner getMemStoreScanner() throws IOException {
         Scan memScan = new Scan(scan);
-        memScan.setFilter(null);   // Remove SamplingFilter if the scan has it
+        if (!(scan.getFilter() instanceof MultiRowRangeFilter))   
+            memScan.setFilter(null);   // Remove SamplingFilter if the scan has it
         memScan.setAsyncPrefetch(false); // async would keep buffering rows indefinitely
         memScan.setReadType(Scan.ReadType.PREAD);
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_ONLY,SIConstants.TRUE_BYTES);
