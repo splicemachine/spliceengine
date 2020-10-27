@@ -30,13 +30,17 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.BaseTransaction;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -150,17 +154,17 @@ public class IndexConglomerate extends SpliceConglomerate{
             SanityManager.ASSERT((nUniqueColumns==nKeyFields) || (nUniqueColumns==(nKeyFields-1)));
         }
         try{
-//            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
             ConglomerateUtils.createConglomerate(isExternal,
                     containerId,
                     this,
-                    ((SpliceTransaction)rawtran).getTxn(),
+                    ((BaseSpliceTransaction<? extends BaseTransaction>)rawtran).getTxnInformation(),
                     properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
                     splitKeys, priority );
         }catch(Exception e){
             LOG.error(e.getMessage(),e);
+            throw e;
         }
     }
 
