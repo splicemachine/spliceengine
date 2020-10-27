@@ -174,6 +174,11 @@ public class SubqueryNode extends ValueNode{
     private boolean foundCorrelation;
     private boolean doneCorrelationCheck;
     /*
+    ** List of correlated columns, constructed lazily.
+     */
+    private boolean correlationCRsConstructed;
+    private List<ValueNode> correlationCRs;
+    /*
     ** Indicate whether we found an invariant node
     ** below us or not. And track whether we have
     ** checked yet.
@@ -222,6 +227,7 @@ public class SubqueryNode extends ValueNode{
          */
         underTopAndNode=false;
         this.leftOperand=(ValueNode)leftOperand;
+        this.correlationCRsConstructed = false;
     }
 
     public void setProperties(Properties properties) throws StandardException {
@@ -999,6 +1005,53 @@ public class SubqueryNode extends ValueNode{
         }
 
         return foundCorrelation;
+    }
+
+    public List<ValueNode> getCorrelationCRs() throws StandardException {
+        if(correlationCRsConstructed) {
+            return correlationCRs;
+        }
+        correlationCRsConstructed = true;
+        correlationCRs = new ArrayList<>();
+        if(!hasCorrelatedCRs()) {
+            return correlationCRs;
+        }
+        ResultSetNode realSubquery=resultSet;
+        ResultColumnList oldRCL=null;
+
+        /* If we have pushed the new join predicate on top, we want to disregard it
+         * to see if anything under the predicate is correlated.  If nothing correlated
+         * under the new join predicate, we could then materialize the subquery.
+         * See beetle 4373.
+         */
+        if(pushedNewPredicate){
+            if(SanityManager.DEBUG){
+                SanityManager.ASSERT(resultSet instanceof ProjectRestrictNode,
+                        "resultSet expected to be a ProjectRestrictNode!");
+            }
+
+            realSubquery=((ProjectRestrictNode)resultSet).getChildResult();
+            oldRCL=realSubquery.getResultColumns();
+
+            /* Only first column matters.
+             */
+            if(oldRCL.size()>1){
+                ResultColumnList newRCL=new ResultColumnList();
+                newRCL.addResultColumn(oldRCL.getResultColumn(1));
+                realSubquery.setResultColumns(newRCL);
+            }
+        }
+
+        // do we need to treat SelectNode separately (similar to above)?
+        CorrelationCRCollector collector = new CorrelationCRCollector();
+        realSubquery.accept(collector);
+        correlationCRs = collector.getCorrelationCRs();
+
+        if(pushedNewPredicate && (oldRCL.size()>1)){
+            realSubquery.setResultColumns(oldRCL);
+        }
+
+        return correlationCRs;
     }
 
     /**
