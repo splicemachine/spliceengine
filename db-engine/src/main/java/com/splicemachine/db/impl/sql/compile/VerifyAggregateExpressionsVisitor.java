@@ -36,9 +36,11 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
+import java.util.List;
+
 /**
  * If a RCL (SELECT list) contains an aggregate, then we must verify
- * that the RCL (SELECT list) is valid.  
+ * that the RCL (SELECT list) is valid.
  * For ungrouped queries,
  * the RCL must be composed entirely of valid aggregate expressions -
  * in this case, no column references outside of an aggregate.
@@ -66,14 +68,14 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 
 	/**
 	 * Verify that this expression is ok
-	 * for an aggregate query.  
+	 * for an aggregate query.
 	 *
 	 * @param node 	the node to process
 	 *
 	 * @return me
 	 *
 	 * @exception StandardException on ColumnReference not
-	 * 	in group by list, ValueNode or	
+	 * 	in group by list, ValueNode or
 	 * 	JavaValueNode that isn't under an
 	 * 	aggregate
 	 */
@@ -82,7 +84,7 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 		if (node instanceof ColumnReference)
 		{
 			ColumnReference cr = (ColumnReference)node;
-		
+
 			if (groupByList == null)
 			{
 				throw StandardException.newException(SQLState.LANG_INVALID_COL_REF_NON_GROUPED_SELECT_LIST, cr.getSQLColumnName());
@@ -92,8 +94,8 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 			{
 				throw StandardException.newException(SQLState.LANG_INVALID_COL_REF_GROUPED_SELECT_LIST, cr.getSQLColumnName());
 			}
-		} 
-		
+		}
+
 		/*
 		** Subqueries are only valid if they do not have
 		** correlations and are expression subqueries.  RESOLVE:
@@ -106,26 +108,46 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 		else if (node instanceof SubqueryNode)
 		{
 			SubqueryNode subq = (SubqueryNode)node;
-		
+
 			if ((subq.getSubqueryType() != SubqueryNode.EXPRESSION_SUBQUERY) ||
 				 subq.hasCorrelatedCRs())
 			{
-				throw StandardException.newException( (groupByList == null) ?
-							SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST :
-							SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
+				if(groupByList != null) {
+					List<ValueNode> correlationCRs = subq.getCorrelationCRs();
+					for(ValueNode correlationCR : correlationCRs) {
+						if(correlationCR instanceof ColumnReference) {
+							boolean included = false;
+							for(OrderedColumn column : groupByList.getNodes()) {
+								if(column.getValueNode().equals(correlationCR)) {
+									included = true;
+									break;
+								}
+							}
+							if(!included) {
+								throw StandardException.newException( SQLState.LANG_INVALID_GROUPED_SELECT_LIST );
+							}
+						} else {
+							throw StandardException.newException( SQLState.LANG_INVALID_GROUPED_SELECT_LIST );
+						}
+					}
+				} else {
+					throw StandardException.newException(SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST);
+				}
 			}
 
-			/*
-			** TEMPORARY RESTRICTION: we cannot handle an aggregate
-			** in the subquery 
-			*/
-			HasNodeVisitor visitor = new HasNodeVisitor(AggregateNode.class);
-			subq.accept(visitor);
-			if (visitor.hasNode())
-			{	
-				throw StandardException.newException( (groupByList == null) ?
+			if(!subq.hasCorrelatedCRs()) {
+				/*
+				 ** TEMPORARY RESTRICTION: we cannot handle an aggregate
+				 ** in the subquery
+				 */
+				HasNodeVisitor visitor = new HasNodeVisitor(AggregateNode.class);
+				subq.accept(visitor);
+				if (visitor.hasNode())
+				{
+					throw StandardException.newException( (groupByList == null) ?
 							SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST :
 							SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
+				}
 			}
 		} else if (node instanceof GroupingFunctionNode) {
 			if (groupByList == null || !groupByList.isRollup()) {
@@ -148,18 +170,18 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 	 * @param node 	the node to process
 	 *
 	 * @return true/false
-	 * @throws StandardException 
+	 * @throws StandardException
 	 */
-	public boolean skipChildren(Visitable node) throws StandardException 
+	public boolean skipChildren(Visitable node) throws StandardException
 	{
 		// skip aggregate node but not window function node
 		return ((node instanceof AggregateNode && !(node instanceof WindowFunctionNode)) ||
 				(node instanceof SubqueryNode) ||
 				(node instanceof ValueNode &&
-						groupByList != null 
+						groupByList != null
 						&& groupByList.findGroupingColumn((ValueNode)node) != null));
 	}
-	
+
 	public boolean stopTraversal()
 	{
 		return false;
