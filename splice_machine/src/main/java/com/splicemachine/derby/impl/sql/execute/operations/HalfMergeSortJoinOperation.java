@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.CountJoinedLeftFunction;
@@ -34,6 +35,8 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import org.apache.log4j.Logger;
 
 import java.util.Arrays;
+
+import static com.splicemachine.db.iapi.sql.compile.CompilerContext.NewMergeJoinExecutionType.SYSTEM;
 
 /**
  * @author P Trolard
@@ -74,7 +77,7 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
                 -1, -1, activation, restriction,
                 resultSetNumber, oneRowRightSide, semiJoinType, rightFromSSQ, optimizerEstimatedRowCount,
-                optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString);
+                optimizerEstimatedCost, userSuppliedOptimizerOverrides, sparkExpressionTreeAsString, SYSTEM);
     }
 
     @Override
@@ -92,12 +95,12 @@ public class HalfMergeSortJoinOperation extends MergeJoinOperation {
 
             DataSet<ExecRow> sorted = leftDataSet.partitionBy(getPartitioner(dsp), new RowComparator(getRightOrder()), operationContext).values(operationContext);
             if (isOuterJoin())
-                return sorted.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
+                return sorted.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext, oldMergeJoin));
             else {
                 if (isAntiJoin())
-                    return sorted.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext));
+                    return sorted.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext, oldMergeJoin));
                 else {
-                    return sorted.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));
+                    return sorted.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext, oldMergeJoin));
                 }
             }
         } finally {
