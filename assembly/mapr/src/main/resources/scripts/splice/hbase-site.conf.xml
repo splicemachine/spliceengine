@@ -73,6 +73,11 @@
   </property>
 
   <property>
+    <name>hbase.master.procedure.threads</name>
+    <value>32</value>
+  </property>
+  
+  <property>
     <name>mapr.hbase.default.db</name>
     <value>hbase</value>
   </property>

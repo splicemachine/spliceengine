@@ -746,6 +746,21 @@
                     <artifactId>spark-hive_${scala.binary.version}</artifactId>
                     <version>${spark.version}</version>
                 </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-core</artifactId>
+                    <version>2.11.3</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.core</groupId>
+                    <artifactId>jackson-databind</artifactId>
+                    <version>2.10.0</version>
+                </dependency>
+                <dependency>
+                    <groupId>com.fasterxml.jackson.module</groupId>
+                    <artifactId>jackson-module-scala_2.11</artifactId>
+                    <version>2.10.0</version>
+                </dependency>
             </dependencies>
             <build>
                 <plugins>
@@ -753,7 +768,7 @@
                         <artifactId>maven-antrun-plugin</artifactId>
                         <executions>
                             <execution>
-                                <phase>generate-resources</phase>
+                                <phase>process-resources</phase>
                                 <configuration>
                                     <target>
                                         <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/splice/">
@@ -767,6 +782,9 @@
                                         <replace token="##SPARKVERSION##" value="${spark.minor.version}" dir="mapr/src/main/resources/scripts/splice/">
                                             <include name="hbase-env.sh"/>
                                             <include name="hbase-env.secure.sh"/>
+                                        </replace>
+                                        <replace token="##HBASEVERSION##" value="${envHbase}" dir="mapr/src/main/resources/scripts/service/">
+                                            <include name="mapr-splice-hbase-config.sh"/>
                                         </replace>
                                     </target>
                                 </configuration>
@@ -993,7 +1011,7 @@
                                             <groupname>root</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>mapr/src/main/resources/scripts/service/splice-init-script</location>
+                                                    <location>mapr/src/main/resources/scripts/service/warden.splice-regionserver.conf</location>
                                                     <destination>warden.splice-regionserver.conf</destination>
                                                 </source>
                                             </sources>
@@ -1059,7 +1077,7 @@
                                             <groupname>root</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>mapr/src/main/resources/scripts/service/splice-init-script</location>
+                                                    <location>mapr/src/main/resources/scripts/service/warden.splice-masterserver.conf</location>
                                                     <destination>warden.splice-masterserver.conf</destination>
                                                 </source>
                                             </sources>
@@ -1166,16 +1184,17 @@
                                     <license>Copyright © 2019 Splice Machine Inc. Licensed under the Apache License, Version 2.0.</license>
                                     <mappings>
                                         <mapping>
-                                            <directory>/opt/mapr/conf</directory>
+                                            <directory>/opt/mapr/hbase/${envHbase}-splice/conf/</directory>
                                             <configuration>true</configuration>
                                             <username>mapr</username>
                                             <groupname>mapr</groupname>
                                             <sources>
                                                 <source>
-                                                    <location>mapr/src/main/resources/scripts/splice/mapr-splice-hbase-config.sh</location>
+                                                    <location>mapr/src/main/resources/scripts/service/mapr-splice-hbase-config.sh</location>
                                                 </source>
                                             </sources>
                                             <filemode>755</filemode>
+                                            <directoryIncluded>false</directoryIncluded>
                                         </mapping>
                                         <mapping>
                                             <directory>/opt/mapr/hbase/${envHbase}-splice/bin</directory>
@@ -1274,7 +1293,6 @@
                                                     <include>com.splicemachine:splice_spark</include>
                                                     <include>tomcat:jasper-runtime</include>
                                                     <include>tomcat:tomcat-parent</include>
-                                                    <include>org.apache.commons:commons-lang</include>
                                                     <include>org.apache.kafka:*</include>
                                                     <include>javax.servlet:javax.servlet-api:3.1.0</include>
                                                     <include>org.python:jython-standalone</include>
@@ -1303,10 +1321,7 @@
                                                 <source>
                                                     <location>mapr/src/main/resources/bin</location>
                                                     <includes>
-                                                        <include>*.sh</include>
-                                                        <include>*.rb</include>
-                                                        <include>hbase</include>
-                                                        <include>hbase-jruby</include>
+                                                        <include>**/*</include>
                                                     </includes>
                                                 </source>
                                             </sources>
@@ -1341,6 +1356,25 @@
                                                     <exclude>org.mortbay.jetty:servlet-api</exclude>
                                                     <exclude>org.mortbay.jetty:servlet-api-2.5</exclude>
                                                     <exclude>org.apache.spark:spark-yarn_2.11</exclude>
+                                                    <exclude>org.apache.spark:spark-yarn_2.11</exclude>
+                                                    <exclude>org.apache.hbase:hbase-annotations</exclude>
+                                                    <exclude>org.apache.hbase:hbase-client</exclude>
+                                                    <exclude>org.apache.hbase:hbase-common</exclude>
+                                                    <exclude>org.apache.hbase:hbase-examples</exclude>
+                                                    <exclude>org.apache.hbase:hbase-hadoop2-compat</exclude>
+                                                    <exclude>org.apache.hbase:hbase-hadoop-compat</exclude>
+                                                    <exclude>org.apache.hbase:hbase-it</exclude>
+                                                    <exclude>org.apache.hbase:hbase-prefix-tree</exclude>
+                                                    <exclude>org.apache.hbase:hbase-procedure</exclude>
+                                                    <exclude>org.apache.hbase:hbase-protocol</exclude>
+                                                    <exclude>org.apache.hbase:hbase-resource-bundle</exclude>
+                                                    <exclude>org.apache.hbase:hbase-rest</exclude>
+                                                    <exclude>org.apache.hbase:hbase-server</exclude>
+                                                    <exclude>org.apache.hbase:hbase-shell</exclude>
+                                                    <exclude>javax.servlet:javax.servlet-api</exclude>
+                                                    <exclude>org.apache.hbase:hbase-thrift</exclude>
+                                                    <exclude>com.mapr.security:mapr-security-web</exclude>
+                                                    <exclude>com.mapr.hadoop:maprfs</exclude>
                                                 </excludes>
                                             </dependency>
                                             <filemode>755</filemode>

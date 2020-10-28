@@ -3,7 +3,7 @@
 # Splice Machine-customized /opt/conf/mapr-hbase-config.sh
 
 MAPR_HOME="${MAPR_HOME:-/opt/mapr}"
-HBASE_VER=##HBASEVERSION##
+HBASE_VER=hbase1.1.13
 HBASE_HOME="${MAPR_HOME}/hbase/${HBASE_VER}-splice"
 
 EXTRA_JARS="gateway-*.jar"

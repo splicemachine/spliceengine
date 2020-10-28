@@ -30,13 +30,13 @@
 # export HBASE_CLASSPATH=
 
 SPLICELIBDIR="/opt/splice/default/lib"
-SPARKLIBDIR="/opt/mapr/spark/##SPARKVERSION##/jars"
+SPARKLIBDIR="/opt/mapr/spark/spark-2.4.4/jars"
 HADOOPTOOLSDIR="/opt/mapr/hadoop/hadoop-2.7.0/share/hadoop/tools/lib"
 PREPENDSTRING="$SPLICELIBDIR:$SPARKLIBDIR:$HADOOPTOOLSDIR"
 export HBASE_CLASSPATH="${PREPENDSTRING}:${HBASE_CLASSPATH}"
 
 # explicitly use our hbase conf dir
-export HBASE_CONF_DIR="/opt/mapr/hbase/##HBASEVERSION##-splice/conf"
+export HBASE_CONF_DIR="/opt/mapr/hbase/hbase1.1.13-splice/conf"
 
 # The maximum amount of heap to use. Default is left to JVM default.
 # export HBASE_HEAPSIZE=1G
@@ -59,7 +59,7 @@ SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -XX:CMSInitiatingOccupancyFr
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -XX:+CMSParallelRemarkEnabled"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.authenticate=false"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.ssl=false"
-SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.port=10101"
+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.port=10106"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.enabled=true"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.app.name=SpliceMachine"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.appMasterEnv.HADOOP_USER=mapr"
@@ -90,10 +90,10 @@ SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.am.waitT
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.yarn.executor.memoryOverhead=2048"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraLibraryPath=/opt/mapr/hadoop/hadoop-2.7.0/lib/native"
-SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraClassPath=/opt/mapr/hbase/##HBASEVERSION##-splice/conf/*:/opt/splice/default/lib/*:${SPARKLIBDIR}/*:/opt/mapr/hbase/##HBASEVERSION##-splice/lib/*"
+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.driver.extraClassPath=/opt/mapr/hbase/hbase1.1.13-splice/conf/*:/opt/splice/default/lib/*:${SPARKLIBDIR}/*:/opt/mapr/hbase/hbase1.1.13-splice/lib/*"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraJavaOptions=-Dlog4j.configuration=file:/etc/spark/conf/log4j.properties"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraLibraryPath=/opt/mapr/hadoop/hadoop-2.7.0/lib/native"
-SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraClassPath=/opt/mapr/hbase/##HBASEVERSION##-splice/conf/*:/opt/splice/default/lib/*:${SPARKLIBDIR}/*:/opt/mapr/hbase/##HBASEVERSION##-splice/lib/*"
+SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.executor.extraClassPath=/opt/mapr/hbase/hbase1.1.13-splice/conf/*:/opt/splice/default/lib/*:${SPARKLIBDIR}/*:/opt/mapr/hbase/hbase1.1.13-splice/lib/*"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedJobs=100"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.ui.retainedStages=100"
 SPLICE_HBASE_MASTER_OPTS="$SPLICE_HBASE_MASTER_OPTS -Dsplice.spark.worker.ui.retainedExecutors=100"
@@ -132,7 +132,7 @@ SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -XX:+ParallelRef
 SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -XX:MaxGCPauseMillis=5000"
 SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dcom.sun.management.jmxremote.authenticate=false"
 SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dcom.sun.management.jmxremote.ssl=false"
-SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dcom.sun.management.jmxremote.port=10102"
+SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dcom.sun.management.jmxremote.port=10107"
 # SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -enableassertions"
 # SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=4000"
 
@@ -188,11 +188,11 @@ SPLICE_HBASE_REGIONSERVER_OPTS="$SPLICE_HBASE_REGIONSERVER_OPTS -Dcom.sun.manage
 # section in HBase Reference Guide for instructions.
 
 export HBASE_JMX_BASE="-Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false"
-export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS $HBASE_JMX_BASE $SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.port=10101"
-export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS $HBASE_JMX_BASE $SPLICE_HBASE_REGIONSERVER_OPTS -Dcom.sun.management.jmxremote.port=10102"
-# export HBASE_THRIFT_OPTS="$HBASE_THRIFT_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10103"
-export HBASE_ZOOKEEPER_OPTS="$HBASE_ZOOKEEPER_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10104"
-# export HBASE_REST_OPTS="$HBASE_REST_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10105"
+export HBASE_MASTER_OPTS="$HBASE_MASTER_OPTS $HBASE_JMX_BASE $SPLICE_HBASE_MASTER_OPTS -Dcom.sun.management.jmxremote.port=10106"
+export HBASE_REGIONSERVER_OPTS="$HBASE_REGIONSERVER_OPTS $HBASE_JMX_BASE $SPLICE_HBASE_REGIONSERVER_OPTS -Dcom.sun.management.jmxremote.port=10107"
+# export HBASE_THRIFT_OPTS="$HBASE_THRIFT_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10108"
+export HBASE_ZOOKEEPER_OPTS="$HBASE_ZOOKEEPER_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10109"
+# export HBASE_REST_OPTS="$HBASE_REST_OPTS $HBASE_JMX_BASE -Dcom.sun.management.jmxremote.port=10110"
 
 # File naming hosts on which HRegionServers will run.  $HBASE_HOME/conf/regionservers by default.
 # export HBASE_REGIONSERVERS=${HBASE_HOME}/conf/regionservers

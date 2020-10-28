@@ -48,16 +48,37 @@ done
 # Remove any additional ':' from the tail
 HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
 
-# Second set
-# JARs in ${BASE_MAPR}/lib
-MAPR_JARS="libprotodefs*.jar baseutils*.jar JPam-*.jar"
-for jar in ${MAPR_JARS}; do
-  JARS=`echo $(ls ${BASE_MAPR}/lib/${jar} 2> /dev/null) | sed 's/\s\+/:/g'`
+# Load all of MapR jars prepended into classpath
+HBASE_JARS="*.jar"
+for jar in ${HBASE_JARS}; do
+  JARS=`echo $(ls /opt/mapr/hbase/hbase-1.1.13/lib/${jar} 2> /dev/null | grep -v 'netty' | grep -v 'jackson') | sed 's/\s\+/:/g'`
   if [ "${JARS}" != "" ]; then
-    HBASE_MAPR_EXTRA_JARS=${HBASE_MAPR_EXTRA_JARS}:${JARS}
+    HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
   fi
 done
 # Remove any additional ':' from the tail
-HBASE_MAPR_EXTRA_JARS="${HBASE_MAPR_EXTRA_JARS#:}"
+HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
+ 
+# JARs in ${spark}/lib
+SPARK_JARS="*.jar"
+for jar in ${SPARK_JARS}; do
+  JARS=`echo $(ls /opt/mapr/spark/spark-2.4.4/jars/${jar} 2> /dev/null | grep -v 'jackson') | sed 's/\s\+/:/g'`
+  if [ "${JARS}" != "" ]; then
+    HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
+  fi
+done
+# Remove any additional ':' from the tail
+HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
 
-export HBASE_OPTS HBASE_MAPR_OVERRIDE_JARS HBASE_MAPR_EXTRA_JARS HBASE_IDENT_STRING
+# JARs in splice lib
+SPLICE_JAR="*.jar"
+for jar in ${SPLICE_JAR}; do
+  JARS=`echo $(ls /opt/mapr/hbase/hbase1.1.13-splice/lib/${jar} 2> /dev/null) | sed 's/\s\+/:/g'`
+  if [ "${JARS}" != "" ]; then
+    HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
+  fi
+done
+# Remove any additional ':' from the tail
+HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
+
+export HBASE_OPTS HBASE_MAPR_OVERRIDE_JARS HBASE_IDENT_STRING

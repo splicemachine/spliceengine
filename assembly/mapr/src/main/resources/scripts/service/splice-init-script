@@ -26,7 +26,7 @@ test -e ${maprhbase} || {
 	echo "${scriptname}: ${maprhbase} not found; exiting" 1>&2
 	exit 1
 }
-hbase_ver=hbase1.1.8
+hbase_ver=hbase1.1.13
 hbase_home="${maprhbase}/${hbase_ver}-splice"
 hbase_conf="${hbase_home}/conf"
 hbase_bin="${hbase_home}/bin"

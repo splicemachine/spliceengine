@@ -1536,15 +1536,15 @@
                 <envClassifier>mapr6.1.0-2.4</envClassifier>
                 <envHbase>hbase1.1.13</envHbase>
                 <hadoop.version>2.7.0-mapr-1808</hadoop.version>
-                <hbase.version>1.1.13.0-mapr-630</hbase.version>
-                <hbase.bundle.version>1.1.13.0-mapr-630</hbase.bundle.version>
+                <hbase.version>1.1.13.100-mapr-631</hbase.version>
+                <hbase.bundle.version>1.1.13.100-mapr-631</hbase.bundle.version>
                 <hive.version>2.3.6-mapr-1912</hive.version>
                 <zookeeper.version>3.4.11-mapr-1808</zookeeper.version>
                 <maprfs.version>6.1.0-mapr</maprfs.version>
-                <spark.version>2.4.4.0-mapr-630</spark.version>
+                <spark.version>2.4.4.100-mapr-631</spark.version>
                 <spark.major.version>spark2.4</spark.major.version>
                 <spark.minor.version>spark-2.4.4</spark.minor.version>
-                <assembly.spark>1.1.8-mapr-1901</assembly.spark>
+                <assembly.spark>1.1.13.100-mapr-631</assembly.spark>
                 <kafka.version>1.1.1-mapr-1912</kafka.version>
                 <netty-all.version>4.1.17.Final</netty-all.version>
                 <splice.lib.dir>/opt/splice/default/lib</splice.lib.dir>

@@ -73,6 +73,11 @@
   </property>
 
   <property>
+    <name>hbase.master.procedure.threads</name>
+    <value>32</value>
+  </property>
+
+  <property>
     <name>mapr.hbase.default.db</name>
     <value>hbase</value>
   </property>
@@ -92,6 +97,18 @@
   <property>
     <name>hbase.coprocessor.regionserver.classes</name>
     <value>org.apache.hadoop.hbase.security.token.TokenProvider,org.apache.hadoop.hbase.security.access.AccessController,com.splicemachine.hbase.RegionServerLifecycleObserver,com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices</value>
+  </property>
+
+  <!--Enabling Hbase Web UIs encryption-->
+  <property>
+    <name>hbase.ssl.enabled</name>
+    <value>true</value>
+  </property>
+
+  <!--Enabled TLS protocols-->
+  <property>
+    <name>hbase.ssl.enabled.protocols</name>
+    <value>TLSv1.2</value>
   </property>
 
   <property><name>hbase.balancer.period</name><value>60000</value></property>
@@ -164,7 +181,6 @@
   <property><name>splice.compression</name><value>snappy</value></property>
   <property><name>splice.marshal.kryoPoolSize</name><value>1100</value></property>
   <property><name>splice.olap_server.clientWaitTime</name><value>90000</value></property>
-  <property><name>splice.olap_server.external</name><value>true</value></property>
   <property><name>splice.olap_server.external</name><value>false</value></property>
   <property><name>splice.ring.bufferSize</name><value>131072</value></property>
   <property><name>splice.splitBlockSize</name><value>67108864</value></property>
@@ -182,11 +198,6 @@
   <property><name>hbase.regionserver.info.port</name><value>60031</value></property>
   <property><name>hbase.status.multicast.address.port</name><value>60101</value></property>
   <property><name>zookeeper.znode.parent</name><value>/splice-hbase</value></property>
-  <property><name>hbase.security.authentication</name><value>kerberos</value></property>  
-  <property><name>hbase.security.authorization</name><value>true</value></property> 
-  <property><name>hbase.rpc.engine</name><value>org.apache.hadoop.hbase.ipc.SecureRpcEngine</value></property>  
-  <property><name>hbase.regionserver.kerberos.principal</name><value>mapr/_HOST@EC2.INTERNAL</value></property>  
-  <property><name>hbase.master.kerberos.principal</name><value>mapr/_HOST@EC2.INTERNAL</value></property>
-  <property><name>hbase.regionserver.keytab.file</name><value>/opt/mapr/conf/mapr.keytab</value></property>
-  <property><name>hbase.master.keytab.file</name><value>/opt/mapr/conf/mapr.keytab</value></property>
+  <property><name>hbase.security.authentication</name><value>maprsasl</value></property>
+  <property><name>hbase.security.authorization</name><value>true</value></property>
 </configuration>
