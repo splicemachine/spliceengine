@@ -802,7 +802,7 @@ public class IndexIT extends SpliceUnitTest{
         //methodWatcher.executeQuery("elapsedtime on");
 
         // should have higher cost - needs index to base row lookup
-        String sql1="explain SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
+        String sql1="explain exclude no statistics SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
                 " PERSON_ADDRESS a4 --splice-properties index=B_IDX1 \n"+
                 " INNER JOIN ADDRESS a5 --splice-properties joinStrategy=SORTMERGE,index=ADDRESS_IX \n"+
                 " ON a4.ADDR_ID = a5.ADDR_ID \n"+
@@ -811,7 +811,7 @@ public class IndexIT extends SpliceUnitTest{
         List<String> arr1=methodWatcher.queryList(sql1);
 
         // should have lower cost
-        String sql2="explain SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
+        String sql2="explain exclude no statistics SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
                 " PERSON_ADDRESS a4 --splice-properties index=B_IDX1 \n"+
                 " INNER JOIN ADDRESS a5 --splice-properties joinStrategy=SORTMERGE,index=ADDRESS_IX4 \n"+
                 " ON a4.ADDR_ID = a5.ADDR_ID \n"+
