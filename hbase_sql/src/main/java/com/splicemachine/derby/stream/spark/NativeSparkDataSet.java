@@ -754,7 +754,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             else if (compression == COMPRESSION.GZ) {
                 fileOut = new GZIPOutputStream(fileOut);
             }
-            final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams());
+            final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams(), op.getSourceResultColumnDescriptors());
             return new RecordWriter<Void, ExecRow>() {
                 @Override
                 public void write(Void _, ExecRow locatedRow) throws IOException, InterruptedException {
