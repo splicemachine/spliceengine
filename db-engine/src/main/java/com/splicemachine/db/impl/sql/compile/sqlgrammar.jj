@@ -3057,14 +3057,17 @@ TOKEN [IGNORE_CASE] :
 |    <DETERMINISTIC: "deterministic">
 |    <DIGITS: "digits">
 |   <DYNAMIC: "dynamic">
+|    <ENCODING: "encoding">
 |   <EXCLUDE: "exclude">
 |   <EXTRACT: "extract">
+|    <FIELD_SEPARATOR: "field_separator">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
 |   <GROUPING: "grouping">
 |   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
+|   <HOURS: "hours">
 |    <IDENTITY_VAL_LOCAL: "identity_val_local">
 |    <IGNORE: "ignore">
 |    <INCREMENT: "increment">
@@ -3085,6 +3088,7 @@ TOKEN [IGNORE_CASE] :
 |    <LOGICAL: "logical">
 |    <MAXVALUE: "maxvalue">
 |    <MESSAGE_TEXT: "message_text">
+|    <MINUTES: "minutes">
 |    <MINVALUE: "minvalue">
 |    <MOD: "mod">
 |    <MODIFIES: "modifies">
@@ -3108,8 +3112,11 @@ TOKEN [IGNORE_CASE] :
 |   <RECURSIVE: "recursive">
 |    <RELEASE: "release">
 |    <QUARTER: "quarter">
+|    <QUOTE_CHARACTER: "quote_character">
+|    <QUOTE_MODE: "quote_mode">
 |   <REPEAT: "repeat">
 |    <REPEATABLE: "repeatable">
+|    <REPLICATION_COUNT: "replication_count">
 |    <RESPECT: "respect">
 |    <RESTART: "restart">
 |    <RETURNS: "returns">
@@ -3124,6 +3131,7 @@ TOKEN [IGNORE_CASE] :
 |    <LINES: "lines">
 |    <PARTITIONED: "partitioned">
 |    <COMPRESSED: "compressed">
+|    <COMPRESSION: "compression">
 |    <SNAPPY: "snappy">
 |    <ZLIB: "zlib">
 |    <STORED: "stored">
@@ -3139,6 +3147,7 @@ TOKEN [IGNORE_CASE] :
 |   <OPTIMIZE: "optimize">
 |    <SAVEPOINT: "savepoint">
 |    <SCALE: "scale">
+|    <SECONDS: "seconds">
 |    <SECURITY: "security">
 |    <SERIALIZABLE: "serializable">
 |   <SPLITKEYS: "splitKeys">
@@ -4121,16 +4130,16 @@ StatementNode
 explainStatement() throws StandardException :
 {
     StatementNode   statementNode;
-    StatementNode    explainStatement;
-    Token           getToken = null;
+    StatementNode   explainStatement;
+    Token           excludeToken = null;
 }
 {
-    <EXPLAIN> [getToken = <GET> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
+    <EXPLAIN> [excludeToken = <EXCLUDE> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.NONE,
-                                   (getToken != null),
+                                   (excludeToken == null),
                                    getContextManager());
     }
     | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
@@ -4187,21 +4196,73 @@ pinStatement() throws StandardException :
     }
 }
 
-
 StatementNode
 exportStatement() throws StandardException :
 {
     StatementNode   statementNode;
     Vector parameterList = new Vector();
+    ValueNode exportPath;
+    ValueNode compression = null;
+    ValueNode replicationCount = null;
+    ValueNode encoding = null;
+    ValueNode fieldSeparator = null;
+    ValueNode quoteCharacter = null;
+    ValueNode quoteMode = null;
+    ValueNode fileType = null;
 }
 {
-    <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
-    {
-        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                   statementNode,
-                                   parameterList,
-                                   getContextManager());
-    }
+    <EXPORT>
+    (
+        <TO> exportPath = orExpression(null)
+        <AS> fileType = orExpression(null)
+        [
+            <COMPRESSION> compression = orExpression(null)
+        ]
+        [
+            <REPLICATION_COUNT> replicationCount = orExpression(null)
+        ]
+        [
+            <ENCODING> encoding = orExpression(null)
+        ]
+        [
+            <FIELD_SEPARATOR> fieldSeparator = orExpression(null)
+        ]
+        [
+            <QUOTE_CHARACTER> quoteCharacter = orExpression(null)
+        ]
+        [
+            <QUOTE_MODE> quoteMode = orExpression(null)
+        ]
+        statementNode = preparableSQLDataStatement()
+        {
+            parameterList.addElement(exportPath);
+            parameterList.addElement(compression);
+            parameterList.addElement(replicationCount);
+            parameterList.addElement(encoding);
+            parameterList.addElement(fieldSeparator);
+            parameterList.addElement(quoteCharacter);
+            parameterList.addElement(quoteMode);
+            parameterList.addElement(fileType);
+            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                       statementNode,
+                                       parameterList,
+                                       getContextManager());
+        }
+    |
+        // Legacy export
+        methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+        {
+            parameterList.addElement(null); // null for legacy
+            parameterList.addElement((CharConstantNode) nodeFactory.getNode(
+                                     C_NodeTypes.CHAR_CONSTANT_NODE,
+                                     "csv",
+                                     getContextManager()));
+            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                       statementNode,
+                                       parameterList,
+                                       getContextManager());
+        }
+    )
 }
 
 StatementNode
@@ -4227,11 +4288,24 @@ binaryExportStatement() throws StandardException :
     Vector parameterList = new Vector();
 }
 {
+    // Legacy export
     <EXPORT_BINARY> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
-        return (BinaryExportNode) nodeFactory.getNode(C_NodeTypes.BINARY_EXPORT_NODE,
+        if (parameterList.size() != 3) {
+            throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "BINARY_EXPORT");
+        }
+        Vector actualParameterList = new Vector();
+        actualParameterList.addElement(parameterList.elementAt(0));
+        actualParameterList.addElement(parameterList.elementAt(1));
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(parameterList.elementAt(2));
+        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
-                                   parameterList,
+                                   actualParameterList,
                                    getContextManager());
     }
 }
@@ -6985,34 +7059,69 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
         if (farLeftOperand == null)
             return leftOperand;
 
-        switch (additiveOperator)
-        {
-          case BinaryOperatorNode.PLUS:
-            if (leftOperand instanceof TimeSpanNode) {
-                return convertAddTimeIntervalToFunction((ValueNode)farLeftOperand, (TimeSpanNode) leftOperand, false);
-            }
-            return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
-                                    farLeftOperand,
-                                    leftOperand,
-                                    getContextManager()
-                                    );
-          case BinaryOperatorNode.MINUS:
-            if (leftOperand instanceof TimeSpanNode) {
-                return convertAddTimeIntervalToFunction((ValueNode)farLeftOperand, (TimeSpanNode) leftOperand, true);
-            }
-            return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
-                                    farLeftOperand,
-                                    leftOperand,
-                                    getContextManager()
-                                    );
+        // manipulation for current timestamp operation
+        if ((farLeftOperand instanceof CurrentDatetimeOperatorNode) &&
+            ((CurrentDatetimeOperatorNode)farLeftOperand).isCurrentTimestamp()) {
+            switch (additiveOperator)
+            {
 
-          default:
-            if (SanityManager.DEBUG)
-            SanityManager.THROWASSERT(
-                    "Unexpected operator value of " + additiveOperator);
-            return null;
+              case BinaryOperatorNode.PLUS:
+                if (leftOperand instanceof TimeSpanNode) {
+                    return convertToTimestampAdd(farLeftOperand, (TimeSpanNode) leftOperand, false);
+                }
+                return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
+                                        farLeftOperand,
+                                        leftOperand,
+                                        getContextManager()
+                                        );
+              case BinaryOperatorNode.MINUS:
+                if (leftOperand instanceof TimeSpanNode) {
+                    return convertToTimestampAdd(farLeftOperand, (TimeSpanNode) leftOperand, true);
+                }
+                return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
+                                        farLeftOperand,
+                                        leftOperand,
+                                        getContextManager()
+                                        );
+
+              default:
+                if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT(
+                        "Unexpected operator value of " + additiveOperator);
+                return null;
+            }
+        } else {
+            switch (additiveOperator)
+            {
+              case BinaryOperatorNode.PLUS:
+                if (leftOperand instanceof TimeSpanNode) {
+                    return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, false);
+                }
+                return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
+                                        farLeftOperand,
+                                        leftOperand,
+                                        getContextManager()
+                                        );
+              case BinaryOperatorNode.MINUS:
+                if (leftOperand instanceof TimeSpanNode) {
+                    return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, true);
+                }
+                return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
+                                        farLeftOperand,
+                                        leftOperand,
+                                        getContextManager()
+                                        );
+
+              default:
+                if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT(
+                        "Unexpected operator value of " + additiveOperator);
+                return null;
+            }
         }
     }
 }
@@ -7039,7 +7148,8 @@ convertAddTimeIntervalToFunction(ValueNode base, TimeSpanNode timeSpanNode, bool
                 function = "ADD_YEARS";
                 break;
             default:
-                assert false: "Illegal time span unit";
+                throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION,
+                                                                                timeSpanNode.getUnit());
         }
         MethodCallNode methodNode = (MethodCallNode) nodeFactory.getNode(
                                 C_NodeTypes.STATIC_METHOD_CALL_NODE,
@@ -7067,6 +7177,59 @@ convertAddTimeIntervalToFunction(ValueNode base, TimeSpanNode timeSpanNode, bool
                                 methodNode,
                                 getContextManager());
     }
+}
+
+/*
+ * <A NAME="convertToTimestampAdd">convertToTimestampAdd</A>
+ */
+ValueNode
+convertToTimestampAdd(ValueNode base, TimeSpanNode timeSpanNode, boolean negate) throws StandardException :
+{
+    ValueNode value = null;
+    ValueNode intervalType = null;
+}
+{
+    {
+        switch (timeSpanNode.getUnit()) {
+            case DateTimeDataValue.DAY_INTERVAL:
+                intervalType = getJdbcIntervalNode(DateTimeDataValue.DAY_INTERVAL);
+                break;
+            case DateTimeDataValue.MONTH_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.MONTH_INTERVAL);
+                break;
+            case DateTimeDataValue.YEAR_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.YEAR_INTERVAL);
+                break;
+            case DateTimeDataValue.HOUR_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.HOUR_INTERVAL);
+                break;
+            case DateTimeDataValue.MINUTE_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.MINUTE_INTERVAL);
+                break;
+            case DateTimeDataValue.SECOND_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.SECOND_INTERVAL);
+                break;
+            default:
+                throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION,
+                                                                timeSpanNode.getUnit());
+        }
+        value = timeSpanNode.getValue();
+        if (negate) {
+            value = (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
+                                value,
+                                getContextManager());
+        }
+        return (ValueNode) nodeFactory.getNode( C_NodeTypes.TIMESTAMP_ADD_FN_NODE,
+                                                base,
+                                                intervalType,
+                                                value,
+                                                ReuseFactory.getInteger( TernaryOperatorNode.TIMESTAMPADD),
+                                                null,
+                                                getContextManager());
+
+    }
+
 }
 
 /*
@@ -7384,7 +7547,11 @@ getTimeSpan(ValueNode value) throws StandardException :
 {
     LOOKAHEAD ( { getToken(1).kind == YEAR || getToken(1).kind == YEARS ||
                   getToken(1).kind == MONTH || getToken(1).kind == MONTHS ||
-                  getToken(1).kind == DAY || getToken(1).kind == DAYS } )
+                  getToken(1).kind == DAY || getToken(1).kind == DAYS ||
+                  getToken(1).kind == HOUR || getToken(1).kind == HOURS ||
+                  getToken(1).kind == MINUTE || getToken(1).kind == MINUTES ||
+                  getToken(1).kind == SECOND || getToken(1).kind == SECONDS
+                  } )
     timeUnit = dateTimeIntervalUnit()
     {
         return (ValueNode) nodeFactory.getNode(
@@ -7940,6 +8107,21 @@ int dateTimeIntervalUnit() :
     (<DAY>|<DAYS>)
     {
         return DateTimeDataValue.DAY_INTERVAL;
+    }
+|
+    (<HOUR>|<HOURS>)
+    {
+        return DateTimeDataValue.HOUR_INTERVAL;
+    }
+|
+    (<MINUTE>|<MINUTES>)
+    {
+        return DateTimeDataValue.MINUTE_INTERVAL;
+    }
+|
+    (<SECOND>|<SECONDS>)
+    {
+        return DateTimeDataValue.SECOND_INTERVAL;
     }
 }
 
@@ -18090,6 +18272,7 @@ nonReservedKeyword()  :
     |   tok = <COLUMNDELIMITER>
     |    tok = <COMMITTED>
     |    tok = <COMPRESS>
+    |    tok = <COMPRESSION>
     |    tok = <CONCAT>
     |    tok = <CONTAINS>
     |    tok = <CONTENT>
@@ -18117,10 +18300,12 @@ nonReservedKeyword()  :
     |    tok = <DOCUMENT>
     |    tok = <EACH>
     |    tok = <EMPTY>
+    |    tok = <ENCODING>
     |    tok = <EXCLUDE>
     |    tok = <ESTIMATE>
     |    tok = <EXCLUSIVE>
     |    tok = <EXTRACT>
+    |    tok = <FIELD_SEPARATOR>
     |    tok = <FIRSTVALUE>
     |    tok = <FN>
     |    tok = <FORTRAN>
@@ -18130,6 +18315,7 @@ nonReservedKeyword()  :
     |    tok = <GREATEST>
     |    tok = <GROUPING>
     |    tok = <HFILE>
+    |    tok = <HOURS>
     |    tok = <IDENTITY_VAL_LOCAL>
     |    tok = <IGNORE>
     |    tok = <INCREMENT>
@@ -18173,6 +18359,7 @@ nonReservedKeyword()  :
     |    tok = <LONG>
     |    tok = <MAXVALUE>
     |    tok = <MESSAGE_TEXT>
+    |    tok = <MINUTES>
     |    tok = <MINVALUE>
     |    tok = <MESSAGE_LOCALE>
     |    tok = <METHOD>
@@ -18246,6 +18433,7 @@ nonReservedKeyword()  :
     |   tok = <SAMPLE>
     |    tok = <SCALE>
     |    tok = <SAVEPOINT>
+    |    tok = <SECONDS>
     |    tok = <SECURITY>
     |    tok = <SEQUENCE>
     |    tok = <SEQUENTIAL>
@@ -18275,6 +18463,9 @@ nonReservedKeyword()  :
     |    tok = <STRING_AGG>
     |    tok = <SYNONYM>
     |    tok = <STYLE>
+    |    tok = <QUOTE_CHARACTER>
+    |    tok = <QUOTE_MODE>
+    |    tok = <REPLICATION_COUNT>
     |    tok = <T>
     |    tok = <TEXT>
     |    tok = <THEN>

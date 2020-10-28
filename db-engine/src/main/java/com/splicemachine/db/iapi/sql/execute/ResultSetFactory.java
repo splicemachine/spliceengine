@@ -1996,19 +1996,10 @@ NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, i
                                       String encoding,
                                       String fieldSeparator,
                                       String quoteChar,
+                                      String quoteMode,
+                                      String format,
                                       int srcResultDescriptionSavedObjectNum) throws StandardException;
 
-
-    /**
-     * Binary Export
-     */
-    NoPutResultSet getBinaryExportResultSet(NoPutResultSet source,
-                                            Activation activation,
-                                            int resultSetNumber,
-                                            String exportPath,
-                                            String compression,
-                                            String format,
-                                            int srcResultDescriptionSavedObjectNum) throws StandardException;
 
     /**
      * Kafka Export

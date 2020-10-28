@@ -31,8 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
+import splice.com.google.common.collect.ArrayListMultimap;
+import splice.com.google.common.collect.Multimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;

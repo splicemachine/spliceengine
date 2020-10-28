@@ -16,7 +16,7 @@
 package com.splicemachine.olap;
 
 import splice.com.google.common.net.HostAndPort;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.DatabaseVersion;
 import com.splicemachine.access.configuration.HBaseConfiguration;
