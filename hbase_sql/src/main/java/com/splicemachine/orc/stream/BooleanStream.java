@@ -18,7 +18,7 @@ import org.apache.spark.sql.execution.vectorized.ColumnVector;
 import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;
-import static com.google.common.base.Preconditions.checkState;
+import static splice.com.google.common.base.Preconditions.checkState;
 
 @SuppressWarnings("NarrowingCompoundAssignment")
 public class BooleanStream

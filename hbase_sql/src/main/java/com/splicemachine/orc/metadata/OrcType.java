@@ -13,13 +13,13 @@
  */
 package com.splicemachine.orc.metadata;
 
-import com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableList;
 
 import java.util.List;
 import java.util.Optional;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkArgument;
 import static java.util.Objects.requireNonNull;
 
 public class OrcType

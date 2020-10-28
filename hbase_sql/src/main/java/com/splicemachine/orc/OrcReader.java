@@ -18,7 +18,7 @@ import com.splicemachine.orc.memory.AggregatedMemoryContext;
 import com.splicemachine.orc.metadata.*;
 import com.splicemachine.orc.metadata.PostScript.HiveWriterVersion;
 import com.splicemachine.orc.stream.OrcInputStream;
-import com.google.common.base.Joiner;
+import splice.com.google.common.base.Joiner;
 import io.airlift.log.Logger;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;

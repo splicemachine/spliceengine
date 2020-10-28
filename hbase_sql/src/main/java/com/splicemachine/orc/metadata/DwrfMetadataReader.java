@@ -19,9 +19,9 @@ import com.splicemachine.orc.metadata.PostScript.HiveWriterVersion;
 import com.splicemachine.orc.metadata.Stream.StreamKind;
 import com.facebook.presto.orc.proto.DwrfProto;
 import com.facebook.presto.orc.protobuf.CodedInputStream;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Iterables;
+import splice.com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableMap;
+import splice.com.google.common.collect.Iterables;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
@@ -35,8 +35,8 @@ import static com.splicemachine.orc.metadata.CompressionKind.*;
 import static com.splicemachine.orc.metadata.OrcMetadataReader.getMaxSlice;
 import static com.splicemachine.orc.metadata.OrcMetadataReader.getMinSlice;
 import static com.splicemachine.orc.metadata.PostScript.HiveWriterVersion.ORIGINAL;
-import static com.google.common.base.Preconditions.checkArgument;
-import static com.google.common.base.Preconditions.checkState;
+import static splice.com.google.common.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkState;
 import static java.lang.Math.toIntExact;
 
 public class DwrfMetadataReader

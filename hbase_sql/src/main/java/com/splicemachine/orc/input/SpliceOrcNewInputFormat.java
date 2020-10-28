@@ -14,8 +14,8 @@
 package com.splicemachine.orc.input;
 
 import com.clearspring.analytics.util.Lists;
-import com.google.common.base.Predicate;
-import com.google.common.collect.Iterables;
+import splice.com.google.common.base.Predicate;
+import splice.com.google.common.collect.Iterables;
 import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.Warehouse;

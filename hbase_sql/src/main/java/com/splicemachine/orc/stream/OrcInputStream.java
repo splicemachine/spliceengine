@@ -31,7 +31,7 @@ import java.util.zip.Inflater;
 import static com.splicemachine.orc.checkpoint.InputStreamCheckpoint.*;
 import static com.splicemachine.orc.metadata.CompressionKind.*;
 import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkArgument;
 import static io.airlift.slice.Slices.EMPTY_SLICE;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
