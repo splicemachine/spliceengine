@@ -13,8 +13,8 @@
  */
 package com.splicemachine.orc;
 
-import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.ImmutableMap;
+import splice.com.google.common.annotations.VisibleForTesting;
+import splice.com.google.common.collect.ImmutableMap;
 import io.airlift.slice.FixedLengthSliceInput;
 import io.airlift.slice.Slices;
 

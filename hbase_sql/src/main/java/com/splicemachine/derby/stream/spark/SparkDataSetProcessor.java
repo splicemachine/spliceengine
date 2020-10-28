@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;

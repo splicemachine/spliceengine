@@ -15,7 +15,7 @@
 package com.splicemachine.mrio.api.core;
 
 import breeze.util.partition;
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;

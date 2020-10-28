@@ -13,10 +13,10 @@
  */
 package com.splicemachine.orc;
 
-import com.google.common.base.Strings;
-import com.google.common.collect.AbstractIterator;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableList.Builder;
+import splice.com.google.common.base.Strings;
+import splice.com.google.common.collect.AbstractIterator;
+import splice.com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableList.Builder;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaHiveCharObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.primitive.JavaHiveDecimalObjectInspector;
 import org.apache.hadoop.hive.serde2.typeinfo.DecimalTypeInfo;
@@ -34,7 +34,7 @@ import java.math.MathContext;
 import java.sql.Timestamp;
 import java.util.*;
 import static com.splicemachine.orc.OrcTester.HIVE_STORAGE_TIME_ZONE;
-import static com.google.common.collect.Iterables.*;
+import static splice.com.google.common.collect.Iterables.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.nCopies;
 import static java.util.stream.Collectors.toList;
