@@ -1021,11 +1021,11 @@ public class SpliceTransactionManager implements XATransactionController,
      * @see StoreCostController
      **/
     @Override
-    public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd, boolean skipDictionaryStats, long defaultRowCount) throws StandardException {
+    public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd, boolean skipDictionaryStats, long defaultRowCount, int requestedSplits) throws StandardException {
         List<PartitionStatisticsDescriptor> partitionStatistics = new ArrayList<>();
         if (!skipDictionaryStats)
             partitionStatistics = cd.getDataDictionary().getPartitionStatistics(td.getBaseConglomerateDescriptor().getConglomerateNumber(),this);
-        return new StoreCostControllerImpl(td,cd,partitionStatistics, skipDictionaryStats?defaultRowCount:0);
+        return new StoreCostControllerImpl(td,cd,partitionStatistics, skipDictionaryStats?defaultRowCount:0, requestedSplits);
     }
      /**
      * @see TransactionController#getProperty

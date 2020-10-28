@@ -32,13 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
-import com.splicemachine.db.iapi.sql.compile.OptimizableList;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.OptimizerFlag;
-import com.splicemachine.db.iapi.sql.compile.OptimizerTrace;
-import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
@@ -109,6 +103,12 @@ public class Level2OptimizerImpl extends OptimizerImpl{
                 tracer = NoOpOptimizerTrace.INSTANCE;
         }
         return tracer;
+    }
+
+    public CompilerContext getCompilerContext() {
+        if (lcc != null && lcc.getContextManager() != null)
+            return (CompilerContext)lcc.getContextManager().getContext(CompilerContext.CONTEXT_ID);
+        return null;
     }
 
 }

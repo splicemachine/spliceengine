@@ -16,13 +16,16 @@ package com.splicemachine.derby.vti;
 
 import com.splicemachine.access.api.FileInfo;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.vti.VTICosting;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.ImportUtils;
+import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
 import com.splicemachine.derby.stream.function.FileFunction;
 import com.splicemachine.derby.stream.function.StreamFileFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -135,14 +138,19 @@ public class SpliceFileVTI implements DatasetProvider, VTICosting {
             ImportUtils.validateReadable(fileName, false);
             if (statusDirectory != null)
                 operationContext.setPermissive(statusDirectory, fileName, badRecordsAllowed);
+            boolean quotedEmptyIsNull = false;
+            if (op instanceof VTIOperation) {
+                VTIOperation vtiOperation = (VTIOperation)op;
+                quotedEmptyIsNull = vtiOperation.getQuotedEmptyIsNull();
+            }
             if (oneLineRecords && (charset==null || charset.toLowerCase().equals("utf-8"))) {
                 DataSet<String> textSet = dsp.readTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, true, operationContext), true);
+                return textSet.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, true, operationContext, quotedEmptyIsNull), true);
             } else {
                 PairDataSet<String,InputStream> streamSet = dsp.readWholeTextFile(fileName, op);
                 operationContext.pushScopeForOp("Parse File");
-                return streamSet.values(operationContext).flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext), true);
+                return streamSet.values(operationContext).flatMap(new StreamFileFunction(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat, dateTimeFormat, timestampFormat, charset, operationContext, quotedEmptyIsNull), true);
             }
         } finally {
             operationContext.popScope();
