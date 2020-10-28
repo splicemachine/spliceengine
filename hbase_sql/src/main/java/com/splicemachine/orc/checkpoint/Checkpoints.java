@@ -17,7 +17,7 @@ import com.splicemachine.orc.metadata.*;
 import com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind;
 import com.splicemachine.orc.metadata.OrcType.OrcTypeKind;
 import com.splicemachine.orc.metadata.Stream.StreamKind;
-import com.google.common.collect.*;
+import splice.com.google.common.collect.*;
 
 import java.util.List;
 import java.util.Map;
@@ -26,7 +26,7 @@ import java.util.Set;
 import static com.splicemachine.orc.checkpoint.InputStreamCheckpoint.createInputStreamCheckpoint;
 import static com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind.*;
 import static com.splicemachine.orc.metadata.Stream.StreamKind.*;
-import static com.google.common.base.Predicates.equalTo;
+import static splice.com.google.common.base.Predicates.equalTo;
 import static java.util.Objects.requireNonNull;
 import static java.lang.String.format;
 

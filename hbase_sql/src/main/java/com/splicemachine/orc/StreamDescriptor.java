@@ -14,7 +14,7 @@
 package com.splicemachine.orc;
 
 import com.splicemachine.orc.metadata.OrcType.OrcTypeKind;
-import com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableList;
 import java.util.List;
 import static com.google.common.base.MoreObjects.toStringHelper;
 import static java.util.Objects.requireNonNull;
