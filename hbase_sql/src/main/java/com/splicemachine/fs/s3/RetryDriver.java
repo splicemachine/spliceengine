@@ -13,8 +13,8 @@
  */
 package com.splicemachine.fs.s3;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
+import splice.com.google.common.base.Throwables;
+import splice.com.google.common.collect.ImmutableList;
 import io.airlift.log.Logger;
 import io.airlift.units.Duration;
 
