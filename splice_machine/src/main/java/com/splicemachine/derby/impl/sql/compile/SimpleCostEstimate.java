@@ -14,10 +14,10 @@
 
 package com.splicemachine.derby.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
+import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
 
 import java.text.DecimalFormat;
@@ -36,6 +36,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private double localCost = Double.MAX_VALUE;
     private double remoteCost;
     private int numPartitions;
+    private int parallelism = 1;
     private double numRows = Double.MAX_VALUE;
     private double singleScanRowCount = Double.MAX_VALUE;
     private RowOrdering rowOrdering;
@@ -52,27 +53,34 @@ public class SimpleCostEstimate implements CostEstimate{
     protected double projectionCost =-1.0d;
     protected double projectionRows =-1.0d;
     protected double scannedBaseTableRows = -1.0d;
-    private double localCostPerPartition;
-    private double remoteCostPerPartition;
+    private double localCostPerParallelTask;
+    private double remoteCostPerParallelTask;
     /* consecutive broadcast joins memory used in bytes */
     private double accumulatedMemory = 0.0d;
     private boolean singleRow = false;
+    private Optimizer optimizer;
+    private boolean disablePerParallelTaskJoinCosting = CompilerContext.DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+    private boolean disablePerParallelTaskJoinCostingSet = false;
 
     public SimpleCostEstimate(){ }
 
     public SimpleCostEstimate(double theCost,double theRowCount,double theSingleScanRowCount){
-        this(theCost,0d,theRowCount,theSingleScanRowCount,1);
+        this(theCost,0d,theRowCount,theSingleScanRowCount,1,1);
     }
 
-    public SimpleCostEstimate(double localCost,double remoteCost,double numRows,double singleScanRowCount,int numPartitions){
+    public SimpleCostEstimate(double localCost,double remoteCost,double numRows,double singleScanRowCount,int numPartitions, int parallelism){
         this.localCost=localCost;
         this.remoteCost=remoteCost;
         this.numRows=numRows>1?numRows:1;
         this.singleScanRowCount=singleScanRowCount;
         this.numPartitions=numPartitions;
-        setLocalCostPerPartition(localCost, numPartitions);
-        setLocalCostPerPartition(remoteCost, numPartitions);
+        this.parallelism = parallelism;
+        setLocalCostPerParallelTask(localCost, getParallelism());
+        setRemoteCostPerParallelTask(remoteCost, getParallelism());
     }
+
+    @Override
+    public Optimizer getOptimizer() { return optimizer; }
 
     @Override public double getOpenCost(){ return openCost; }
     @Override public double getCloseCost(){ return closeCost; }
@@ -82,17 +90,19 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public void setCost(double cost,double rowCount,double singleScanRowCount){
-        setCost(cost,rowCount,singleScanRowCount,1);
+        setCost(cost,rowCount,singleScanRowCount,1,1);
     }
 
     @Override
-    public void setCost(double cost,double rowCount,double singleScanRowCount,int numPartitions){
+    public void setCost(double cost,double rowCount,double singleScanRowCount,int numPartitions,int parallelism){
         this.localCost = cost;
         this.numRows = rowCount > 1 ? rowCount : 1;
         this.singleScanRowCount = singleScanRowCount;
         this.numPartitions = numPartitions;
+        this.parallelism = parallelism;
         assert (numPartitions >= 1);
-        this.localCostPerPartition = localCost/numPartitions;
+        assert (parallelism >= 1);
+        this.localCostPerParallelTask = localCost/getParallelism();
     }
 
     @Override
@@ -102,6 +112,8 @@ public class SimpleCostEstimate implements CostEstimate{
         this.localCost = other.localCost();
         this.remoteCost = other.remoteCost();
         this.numPartitions =other.partitionCount();
+        this.parallelism = other.getParallelism();
+        this.optimizer = other.getOptimizer();
         this.numRows = other.rowCount();
         this.singleScanRowCount = other.singleScanRowCount();
         RowOrdering rowOrdering=other.getRowOrdering();
@@ -126,8 +138,8 @@ public class SimpleCostEstimate implements CostEstimate{
         this.projectionCost = other.getProjectionCost();
         this.projectionRows = other.getProjectionRows();
         this.scannedBaseTableRows = other.getScannedBaseTableRows();
-        this.localCostPerPartition = other.getLocalCostPerPartition();
-        this.remoteCostPerPartition = other.getRemoteCostPerPartition();
+        this.localCostPerParallelTask = other.getLocalCostPerParallelTask();
+        this.remoteCostPerParallelTask = other.getRemoteCostPerParallelTask();
         this.accumulatedMemory = other.getAccumulatedMemory();
         this.setSingleRow(other.isSingleRow());
     }
@@ -203,6 +215,7 @@ public class SimpleCostEstimate implements CostEstimate{
         sb.append(attrDelim).append("outputRows=").append(rows);
         sb.append(attrDelim).append("outputHeapSize=").append(df.format(eHeap)).append(unit);
         sb.append(attrDelim).append("partitions=").append(partitionCount());
+        sb.append(attrDelim).append("parallelTasks=").append(getParallelism());
 
         return sb.toString();
     }
@@ -235,6 +248,7 @@ public class SimpleCostEstimate implements CostEstimate{
                 +",outputRows="+getEstimatedRowCount()
                 +",outputHeapSize="+getEstimatedHeapSize()+
                 ",partitions="+partitionCount()+
+                ",parallelism="+getParallelism()+
                 ",rowOrdering="+rowOrdering+
                 ",predicateList="+predicateList+
                 ",singleRow="+isSingleRow()+")";
@@ -245,7 +259,22 @@ public class SimpleCostEstimate implements CostEstimate{
     }
     @Override public void setRemoteCost(double remoteCost){ this.remoteCost = remoteCost; }
     @Override public void setSingleScanRowCount(double singleRowScanCount){this.singleScanRowCount = singleRowScanCount;}
-    @Override public void setNumPartitions(int numPartitions){ this.numPartitions = numPartitions; }
+    @Override public void setNumPartitions(int numPartitions){
+        this.numPartitions = numPartitions; }
+
+    @Override public void setParallelism(int numparallelTasks) {
+        parallelism = numparallelTasks;
+    }
+
+    @Override public int getParallelism() {
+        if (disablePerParallelTaskJoinCosting)
+            return partitionCount();
+        if (optimizer == null || optimizer.isForSpark())
+            return parallelism;
+        else
+            return 1;
+    }
+
     @Override public double rowCount(){ return numRows; }
     @Override public double singleScanRowCount(){ return singleScanRowCount; }
     @Override public int partitionCount(){ return numPartitions; }
@@ -290,7 +319,7 @@ public class SimpleCostEstimate implements CostEstimate{
         if(this.rowOrdering!=null){
             roClone =this.rowOrdering.getClone();
         }
-        SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions);
+        SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions,parallelism);
         clone.isAntiJoin = this.isAntiJoin;
         clone.joinType = this.getJoinType();
         clone.setRowOrdering(roClone);
@@ -308,9 +337,13 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setProjectionCost(projectionCost);
         clone.setProjectionRows(projectionRows);
         clone.setScannedBaseTableRows(scannedBaseTableRows);
-        clone.setLocalCostPerPartition(localCostPerPartition);
-        clone.setRemoteCostPerPartition(remoteCostPerPartition);
+        clone.setLocalCostPerParallelTask(localCostPerParallelTask);
+        clone.setRemoteCostPerParallelTask(remoteCostPerParallelTask);
         clone.setSingleRow(singleRow);
+        clone.setParallelism(parallelism);
+        clone.setDisablePerParallelTaskJoinCosting(disablePerParallelTaskJoinCosting);
+        clone.setDisablePerParallelTaskJoinCostingSet(disablePerParallelTaskJoinCostingSet);
+        clone.setOptimizer(optimizer);
         return clone;
     }
 
@@ -370,15 +403,15 @@ public class SimpleCostEstimate implements CostEstimate{
 
         double sumLocalCost = addend.localCost()+localCost;
         double sumRemoteCost = addend.remoteCost()+remoteCost;
-        double sumRemoteCostPerPartition = addend.getRemoteCostPerPartition()+remoteCostPerPartition;
+        double sumRemoteCostPerParallelTask = addend.getRemoteCostPerParallelTask()+ remoteCostPerParallelTask;
         double rowCount = addend.rowCount()+numRows;
 
         if(retval==null)
             retval = new SimpleCostEstimate();
 
         retval.setRemoteCost(sumRemoteCost);
-        retval.setRemoteCostPerPartition(sumRemoteCostPerPartition);
-        retval.setCost(sumLocalCost,rowCount,singleScanRowCount,numPartitions);
+        retval.setRemoteCostPerParallelTask(sumRemoteCostPerParallelTask);
+        retval.setCost(sumLocalCost,rowCount,singleScanRowCount,numPartitions,parallelism);
         retval.setEstimatedHeapSize(estimatedHeapSize+addend.getEstimatedHeapSize());
         return retval;
     }
@@ -398,15 +431,15 @@ public class SimpleCostEstimate implements CostEstimate{
 
         double multLocalCost = localCost*multiplicand;
         double multRemoteCost = remoteCost*multiplicand;
-        double multRemoteCostPerPartition = remoteCostPerPartition*multiplicand;
+        double multRemoteCostPerPartition = remoteCostPerParallelTask *multiplicand;
         double rowCount = numRows*multiplicand;
 
         if(retval==null)
             retval = new SimpleCostEstimate();
 
         retval.setRemoteCost(multRemoteCost);
-        retval.setRemoteCostPerPartition(multRemoteCostPerPartition);
-        retval.setCost(multLocalCost,rowCount,singleScanRowCount,numPartitions);
+        retval.setRemoteCostPerParallelTask(multRemoteCostPerPartition);
+        retval.setCost(multLocalCost,rowCount,singleScanRowCount,numPartitions,parallelism);
         retval.setEstimatedHeapSize((long)(estimatedHeapSize*multiplicand));
         return retval;
     }
@@ -415,15 +448,15 @@ public class SimpleCostEstimate implements CostEstimate{
     public CostEstimate divide(double divisor,CostEstimate retval){
         double dividedLocalCost = localCost/divisor;
         double dividedRemoteCost = remoteCost/divisor;
-        double dividedRemoteCostPerPartition = remoteCostPerPartition/divisor;
+        double dividedRemoteCostPerPartition = remoteCostPerParallelTask /divisor;
         double rowCount = numRows/divisor;
 
         if(retval==null)
             retval = new SimpleCostEstimate();
 
         retval.setRemoteCost(dividedRemoteCost);
-        retval.setRemoteCostPerPartition(dividedRemoteCostPerPartition);
-        retval.setCost(dividedLocalCost,rowCount,singleScanRowCount,numPartitions);
+        retval.setRemoteCostPerParallelTask(dividedRemoteCostPerPartition);
+        retval.setCost(dividedLocalCost,rowCount,singleScanRowCount,numPartitions,parallelism);
         retval.setEstimatedHeapSize((long)(estimatedHeapSize/divisor));
         return retval;
     }
@@ -532,37 +565,37 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     @Override
-    public double getLocalCostPerPartition() {
-        return localCostPerPartition;
+    public double getLocalCostPerParallelTask() {
+        return localCostPerParallelTask;
     }
 
     @Override
-    public void setLocalCostPerPartition(double localCostPerPartition) {
-        this.localCostPerPartition = localCostPerPartition;
+    public void setLocalCostPerParallelTask(double localCostPerPartition) {
+        this.localCostPerParallelTask = localCostPerPartition;
     }
 
     @Override
-    public void setLocalCostPerPartition(double localCost, int numPartitions) {
-        if (numPartitions <= 0)
-            numPartitions = 1;
-        setLocalCostPerPartition(localCost / numPartitions);
+    public void setLocalCostPerParallelTask(double localCost, int parallelism) {
+        if (parallelism <= 0)
+            parallelism = 1;
+        setLocalCostPerParallelTask(localCost / parallelism);
     }
 
     @Override
-    public void setRemoteCostPerPartition(double remoteCost, int numPartitions) {
-        if (numPartitions <= 0)
-            numPartitions = 1;
-        setRemoteCostPerPartition(remoteCost / numPartitions);
+    public void setRemoteCostPerParallelTask(double remoteCost, int parallelism) {
+        if (parallelism <= 0)
+            parallelism = 1;
+        setRemoteCostPerParallelTask(remoteCost / parallelism);
     }
 
     @Override
-    public double getRemoteCostPerPartition() {
-        return remoteCostPerPartition;
+    public double getRemoteCostPerParallelTask() {
+        return remoteCostPerParallelTask;
     }
 
     @Override
-    public void setRemoteCostPerPartition(double remoteCostPerPartition) {
-        this.remoteCostPerPartition = remoteCostPerPartition;
+    public void setRemoteCostPerParallelTask(double remoteCostPerParallelTask) {
+        this.remoteCostPerParallelTask = remoteCostPerParallelTask;
     }
 
     @Override
@@ -578,4 +611,26 @@ public class SimpleCostEstimate implements CostEstimate{
     public boolean isSingleRow() {return singleRow;}
 
     public void setSingleRow(boolean singleRowInRelation) { singleRow = singleRowInRelation;}
+
+    public void setOptimizer(Optimizer optimizer) {
+        this.optimizer = optimizer;
+        if (optimizer instanceof Level2OptimizerImpl &&
+            !disablePerParallelTaskJoinCostingSet) {
+            Level2OptimizerImpl level2Optimizer = (Level2OptimizerImpl) optimizer;
+            CompilerContext cc = level2Optimizer.getCompilerContext();
+            if (cc != null) {
+                disablePerParallelTaskJoinCosting = cc.getDisablePerParallelTaskJoinCosting();
+                disablePerParallelTaskJoinCostingSet = true;
+            }
+        }
+    }
+
+    private void setDisablePerParallelTaskJoinCosting (boolean newVal) {
+        disablePerParallelTaskJoinCosting = newVal;
+    }
+
+    private void setDisablePerParallelTaskJoinCostingSet (boolean newVal) {
+        disablePerParallelTaskJoinCostingSet = newVal;
+    }
+
 }

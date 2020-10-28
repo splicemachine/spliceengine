@@ -441,6 +441,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
         }
     }
 
+    @Override
+    public void reOpen() {
+        isOpen = true;
+        for (SpliceOperation op : getSubOperations()) {
+            op.reOpen();
+        }
+    }
+
     public void openCore(DataSetProcessor dsp) throws StandardException{
         try {
             this.execRowIterator = Collections.emptyIterator();
@@ -956,6 +964,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     @Override
     public ExecIndexRow getStartPosition() throws StandardException{
         throw new RuntimeException("getStartPosition not implemented");
+    }
+
+    @Override
+    public ExecIndexRow getStopPosition() throws StandardException{
+        throw new RuntimeException("getStopPosition not implemented");
+    }
+
+    @Override
+    public boolean getSameStartStopPosition() {
+        throw new RuntimeException("getSameStartStopPosition not implemented");
     }
 
     @Override

@@ -234,7 +234,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     @Test
     public void testInnerJoinWithNestedSubqueriesFilterExactCriteria() throws Exception {
     	fourthRowContainsQuery(
-            format("explain SELECT a2.pid FROM %s a2 " + 
+            format("explain SELECT a2.pid FROM %s a2 --splice-properties useSpark=false\n" +
             		  "INNER JOIN " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
@@ -321,7 +321,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             format("explain select a2.pid from " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " left outer join %s a2 " +
+            		  " left outer join %s a2 --splice-properties useSpark=false\n" +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
            BROADCAST_JOIN, methodWatcher);
@@ -333,7 +333,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             format("explain select a2.pid from " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " join %s a2 " +
+            		  " join %s a2 --splice-properties useSpark=false\n" +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
             BROADCAST_JOIN, methodWatcher);

@@ -824,71 +824,662 @@ public interface ResultSetFactory {
                                           String explainPlan)
             throws StandardException;
 
-    /*
-     * This method was purely added to get some stored prepared statements to pass the validation stage of their compilation.
-     * The existing method used a String for pushedQualifiersField.  However, nothing was done with the initial value that
-     * was passed into the constructor.  So this method does the same thing and ignores the pushedQualifiersField which is
-     * an com.splicemachine.db.iapi.store.access.Qualifier[][].
-     */
-    NoPutResultSet getVTIResultSet(
-            Activation activation,
-            GeneratedMethod row,
+
+	/**
+		A VTI result set wraps a user supplied result set.
+
+		@param activation the activation for this result set,
+			against which the row operation is performed to
+			create the result set.
+		@param row a reference to a method in the activation
+			that creates the expected row.
+			<verbatim>
+				ExecRow row() throws StandardException;
+			</verbatim>
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param constructor		The GeneratedMethod for the user's constructor
+		@param javaClassName	The java class name for the VTI
+		@param erdNumber		int for referenced column BitSet (so it can be turned back into an object)
+		@param version2			Whether or not VTI is a version 2 VTI.
+		@param isTarget			Whether or not VTI is a target VTI.
+		@param optimizerEstimatedRowCount	Estimated total # of rows by optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@param isDerbyStyleTableFunction    True if this is a Derby-style table function
+		@param returnTypeNumber	Which saved object contains the return type (a multi-set) serialized as a byte array
+		@param vtiProjectionNumber	Which saved object contains the projection for a RestrictedVTI
+		@param vtiRestrictionNumber	Which saved object contains the restriction for a RestrictedVTI
+	    @param vtiResultDescriptionNumber Which saved object contains the result description of a VTI
+		@return the row as a result set.
+		@exception StandardException thrown when unable to create the
+			result set
+	 */
+	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+								   int resultSetNumber,
+								   GeneratedMethod constructor,
+								   String javaClassName,
+								   String pushedQualifiersField,
+								   int erdNumber,
+								   int ctcNumber,
+								   boolean isTarget,
+								   int scanIsolationLevel,
+								   double optimizerEstimatedRowCount,
+								   double optimizerEstimatedCost,
+								   boolean isDerbyStyleTableFunction,
+								   int returnTypeNumber,
+								   int vtiProjectionNumber,
+								   int vtiRestrictionNumber,
+								   int vtiResultDescriptionNumber,
+								   String explainPlan,
+								   boolean quotedEmptyIsNull)
+		 throws StandardException;
+
+	/*
+	 * This method was purely added to get some stored prepared statements to pass the validation stage of their compilation.
+	 * The existing method used a String for pushedQualifiersField.  However, nothing was done with the initial value that
+	 * was passed into the constructor.  So this method does the same thing and ignores the pushedQualifiersField which is
+	 * an com.splicemachine.db.iapi.store.access.Qualifier[][].
+	 */
+	NoPutResultSet getVTIResultSet(
+			Activation activation,
+			GeneratedMethod row,
+			int resultSetNumber,
+			GeneratedMethod constructor,
+			String javaClassName,
+			com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+			int erdNumber,
+			int ctcNumber,
+			boolean isTarget,
+			int scanIsolationLevel,
+			double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost,
+			boolean isDerbyStyleTableFunction,
+			int returnTypeNumber,
+			int vtiProjectionNumber,
+			int vtiRestrictionNumber,
+			int vtiResultDescriptionNumber,
+			String explainPlan,
+			boolean quotedEmptyIsNull)
+					throws StandardException;
+
+	NoPutResultSet getVTIResultSet(
+			Activation activation,
+			GeneratedMethod row,
+			int resultSetNumber,
+			GeneratedMethod constructor,
+			String javaClassName,
+			com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+			int erdNumber,
+			int ctcNumber,
+			boolean isTarget,
+			int scanIsolationLevel,
+			double optimizerEstimatedRowCount,
+			double optimizerEstimatedCost,
+			boolean isDerbyStyleTableFunction,
+			int returnTypeNumber,
+			int vtiProjectionNumber,
+			int vtiRestrictionNumber,
+			int vtiResultDescriptionNumber,
+			String explainPlan)
+					throws StandardException;
+	/**
+		A distinct scan result set pushes duplicate elimination into
+		the scan.
+		<p>
+
+		@param activation the activation for this result set,
+			which provides the context for the row allocation operation.
+		@param conglomId the conglomerate of the table to be scanned.
+		@param scociItem The saved item for the static conglomerate info.
+		@param resultRowAllocator a reference to a method in the activation
+			that creates a holder for the rows from the scan.
+			<verbatim>
+				ExecRow rowAllocator() throws StandardException;
+			</verbatim>
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param hashKeyColumn	The 0-based column # for the hash key.
+		@param tableName		The full name of the table
+		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
+		@param indexName		The name of the index, if one used to access table.
+		@param isConstraint		If index, if used, is a backing index for a constraint.
+		@param colRefItem		An saved item for a bitSet of columns that
+								are referenced in the underlying table.  -1 if
+								no item.
+		@param lockMode			The lock granularity to use (see
+								TransactionController in access)
+		@param tableLocked		Whether or not the table is marked as using table locking
+								(in sys.systables)
+		@param isolationLevel	Isolation level (specified or not) to use on scans
+		@param optimizerEstimatedRowCount	Estimated total # of rows by
+											optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@return the table scan operation as a result set.
+		@exception StandardException thrown when unable to create the
+			result set
+	 */
+	NoPutResultSet getDistinctScanResultSet(
+			                    Activation activation,
+								long conglomId,
+								int scociItem,			
+								GeneratedMethod resultRowAllocator,
+								int resultSetNumber,
+								int hashKeyColumn,
+								String tableName,
+								String userSuppliedOptimizerOverrides,
+								String indexName,
+								boolean isConstraint,
+								int colRefItem,
+								int lockMode,
+								boolean tableLocked,
+								int isolationLevel,
+								double optimizerEstimatedRowCount,
+								double optimizerEstimatedCost,
+                                String tableVersion,
+								String explainPlan,
+								boolean pin,
+								int splits,
+								String delimited,
+								String escaped,
+								String lines,
+								String storedAs,
+								String location,
+								int partitionByRefItem,
+								GeneratedMethod defaultRowFunc,
+								int defaultValueMapItem)
+			throws StandardException;
+
+	/**
+		A table scan result set forms a result set on a scan
+		of a table.
+		The rows can be constructed as they are requested from the
+		result set.
+		<p>
+		This form of the table scan operation is simple, and is
+		to be used when there are no predicates to be passed down
+		to the scan to limit its scope on the target table.
+
+		@param conglomId the conglomerate of the table to be scanned.
+		@param scociItem The saved item for the static conglomerate info.
+		@param activation the activation for this result set,
+			which provides the context for the row allocation operation.
+		@param resultRowAllocator a reference to a method in the activation
+			that creates a holder for the result row of the scan.  May
+			be a partial row.
+			<verbatim>
+				ExecRow rowAllocator() throws StandardException;
+			</verbatim>
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param startKeyGetter a reference to a method in the activation
+			that gets the start key indexable row for the scan.  Null
+			means there is no start key.
+			<verbatim>
+				ExecIndexRow startKeyGetter() throws StandardException;
+			</verbatim>
+		@param startSearchOperator The start search operator for opening
+			the scan
+		@param stopKeyGetter	a reference to a method in the activation
+			that gets the stop key indexable row for the scan.  Null means
+			there is no stop key.
+			<verbatim>
+				ExecIndexRow stopKeyGetter() throws StandardException;
+			</verbatim>
+		@param stopSearchOperator	The stop search operator for opening
+			the scan
+		@param sameStartStopPosition	Re-use the startKeyGetter for the stopKeyGetter
+										(Exact match search.)
+		@param qualifiersField the array of Qualifiers for the scan.
+			Null or an array length of zero means there are no qualifiers.
+		@param tableName		The full name of the table
+		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
+		@param indexName		The name of the index, if one used to access table.
+		@param isConstraint		If index, if used, is a backing index for a constraint.
+		@param forUpdate		True means open for update
+		@param colRefItem		An saved item for a bitSet of columns that
+								are referenced in the underlying table.  -1 if
+								no item.
+		@param lockMode			The lock granularity to use (see
+								TransactionController in access)
+		@param tableLocked		Whether or not the table is marked as using table locking
+								(in sys.systables)
+		@param isolationLevel	Isolation level (specified or not) to use on scans
+		@param oneRowScan		Whether or not this is a 1 row scan.
+		@param optimizerEstimatedRowCount	Estimated total # of rows by
+											optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+	    @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
+        @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
+
+		@return the table scan operation as a result set.
+		@exception StandardException thrown when unable to create the
+			result set
+	 */
+	NoPutResultSet getTableScanResultSet(
+			                    Activation activation,
+								long conglomId,
+								int scociItem,
+								GeneratedMethod resultRowAllocator,
+								int resultSetNumber,
+								GeneratedMethod startKeyGetter,
+								int startSearchOperator,
+								GeneratedMethod stopKeyGetter,
+								int stopSearchOperator,
+								boolean sameStartStopPosition,
+                                boolean rowIdKey,
+								String qualifiersField,
+								String tableName,
+								String userSuppliedOptimizerOverrides,
+								String indexName,
+								boolean isConstraint,
+								boolean forUpdate,
+								int colRefItem,
+								int indexColItem,
+								int lockMode,
+								boolean tableLocked,
+								int isolationLevel,
+								boolean oneRowScan,
+								double optimizerEstimatedRowCount,
+								double optimizerEstimatedCost,
+                                String tableVersion,
+                                String explainPlan,
+								boolean pin,
+								int splits,
+								String delimited,
+								String escaped,
+								String lines,
+								String storedAs,
+								String location,
+								int partitionByRefItem,
+								GeneratedMethod defaultRowFunc,
+								int defaultValueMapItem,
+								GeneratedMethod pastTxFunctor,
+                                long minRetentionPeriod
+								)
+			throws StandardException;
+
+    NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
+										 int leftNumCols,
+										 NoPutResultSet rightResultSet,
+										 int rightNumCols,
+										 int leftHashKeyItem,
+										 int rightHashKeyItem,
+										 int rightHashKeyToBaseTableMapItem,
+										 int rightHashKeySortOrderItem,
+										 GeneratedMethod joinClause,
+										 int resultSetNumber,
+										 boolean oneRowRightSide,
+										 byte semiJoinType,
+										 boolean rightFromSSQ,
+										 double optimizerEstimatedRowCount,
+										 double optimizerEstimatedCost,
+										 String userSuppliedOptimizerOverrides,
+										 String explainPlan,
+										 String sparkExpressionTreeAsString,
+										 int encodedNewMergeJoin)
+					   throws StandardException;
+
+    NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
+											 int leftNumCols,
+											 NoPutResultSet rightResultSet,
+											 int rightNumCols,
+											 int leftHashKeyItem,
+											 int rightHashKeyItem,
+											 boolean noCacheBroadcastJoinRight,
+											 GeneratedMethod joinClause,
+											 int resultSetNumber,
+											 boolean oneRowRightSide,
+											 byte semiJoinType,
+											 boolean rightFromSSQ,
+											 double optimizerEstimatedRowCount,
+											 double optimizerEstimatedCost,
+											 String userSuppliedOptimizerOverrides,
+											 String explainPlan,
+											 String sparkExpressionTreeAsString)
+			           throws StandardException;
+
+	/**
+		A nested loop join result set forms a result set on top of
+		2 other result sets.
+		The rows can be constructed as they are requested from the
+		result set.
+		<p>
+		This form of the nested loop join operation is simple, and is
+		to be used when there are no join predicates to be passed down
+		to the join to limit its scope on the right ResultSet.
+
+		@param leftResultSet	Outer ResultSet for join.
+		@param leftNumCols		Number of columns in the leftResultSet
+		@param rightResultSet	Inner ResultSet for join.
+		@param rightNumCols		Number of columns in the rightResultSet
+		@param joinClause a reference to a method in the activation
+			that is applied to the activation's "current row" field
+			to determine whether the joinClause is satisfied or not.
+			The signature of this method is
+			<verbatim>
+				Boolean joinClause() throws StandardException;
+			</verbatim>
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param emptyRowFun a reference to a method in the activation
+							that is called if the right child returns no rows
+		@param wasRightOuterJoin	Whether or not this was originally a right outer join
+		@param oneRowRightSide	boolean, whether or not the right side returns
+								a single row.  (No need to do 2nd next() if it does.)
+		@param notExistsRightSide	boolean, whether or not the right side resides a
+									NOT EXISTS base table
+		@param optimizerEstimatedRowCount	Estimated total # of rows by
+											optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
+		@return the nested loop join operation as a result set.
+		@exception StandardException thrown when unable to create the
+			result set
+	 */
+	NoPutResultSet getNestedLoopLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+													   int leftNumCols,
+													   NoPutResultSet rightResultSet,
+													   int rightNumCols,
+													   GeneratedMethod joinClause,
+													   int resultSetNumber,
+													   GeneratedMethod emptyRowFun,
+													   boolean wasRightOuterJoin,
+													   boolean oneRowRightSide,
+													   byte semiJoinType,
+													   boolean rightFromSSQ,
+													   double optimizerEstimatedRowCount,
+													   double optimizerEstimatedCost,
+													   String userSuppliedOptimizerOverrides,
+													   String explainPlan,
+													   String sparkExpressionTreeAsString)
+			throws StandardException;
+
+	/**
+		A left outer join using a hash join.
+
+		@param leftResultSet	Outer ResultSet for join.
+		@param leftNumCols		Number of columns in the leftResultSet
+		@param rightResultSet	Inner ResultSet for join.
+		@param rightNumCols		Number of columns in the rightResultSet
+		@param joinClause a reference to a method in the activation
+			that is applied to the activation's "current row" field
+			to determine whether the joinClause is satisfied or not.
+			The signature of this method is
+			<verbatim>
+				Boolean joinClause() throws StandardException;
+			</verbatim>
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param emptyRowFun a reference to a method in the activation
+							that is called if the right child returns no rows
+		@param wasRightOuterJoin	Whether or not this was originally a right outer join
+		@param oneRowRightSide	boolean, whether or not the right side returns
+								a single row.  (No need to do 2nd next() if it does.)
+		@param notExistsRightSide	boolean, whether or not the right side resides a
+									NOT EXISTS base table
+		@param optimizerEstimatedRowCount	Estimated total # of rows by
+											optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
+		@return the nested loop join operation as a result set.
+		@exception StandardException thrown when unable to create the
+			result set
+	 */
+	NoPutResultSet getHashLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+												 int leftNumCols,
+												 NoPutResultSet rightResultSet,
+												 int rightNumCols,
+												 int leftHashKeyItem,
+												 int rightHashKeyItem,
+												 GeneratedMethod joinClause,
+												 int resultSetNumber,
+												 GeneratedMethod emptyRowFun,
+												 boolean wasRightOuterJoin,
+												 boolean oneRowRightSide,
+												 byte semiJoinType,
+												 boolean rightFromSSQ,
+												 double optimizerEstimatedRowCount,
+												 double optimizerEstimatedCost,
+												 String userSuppliedOptimizerOverrides,
+												 String explainPlan,
+												 String sparkExpressionTreeAsString)
+			throws StandardException;
+
+	/**
+		A ResultSet which materializes the underlying ResultSet tree into a 
+		temp table on the 1st open.  All subsequent "scans" of this ResultSet
+		will return results from the temp table.
+
+		@param source the result set input to this result set.
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param optimizerEstimatedRowCount	Estimated total # of rows by
+											optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@return the materialization operation as a result set.
+
+	 	@exception StandardException		Thrown on failure
+	 */
+	NoPutResultSet getMaterializedResultSet(NoPutResultSet source, 
+											int resultSetNumber,
+											double optimizerEstimatedRowCount,
+											double optimizerEstimatedCost) 
+		throws StandardException;
+
+	/**
+		A ResultSet which provides the insensitive scrolling functionality
+		for the underlying result set by materializing the underlying ResultSet 
+		tree into a hash table while scrolling forward.
+
+		@param source the result set input to this result set.
+		@param activation the activation for this result set,
+			which provides the context for normalization.
+		@param resultSetNumber	The resultSetNumber for the ResultSet
+		@param sourceRowWidth	The # of columns in the source row.
+		@param optimizerEstimatedRowCount	Estimated total # of rows by
+											optimizer
+		@param optimizerEstimatedCost		Estimated total cost by optimizer
+		@return the materialization operation as a result set.
+
+	 	@exception StandardException		Thrown on failure
+	 */
+	NoPutResultSet getScrollInsensitiveResultSet(NoPutResultSet source,
+	                                        Activation activation, 
+											int resultSetNumber,
+											int sourceRowWidth,
+											boolean scrollable,
+											double optimizerEstimatedRowCount,
+											double optimizerEstimatedCost,
+											String explainPlan) 
+		throws StandardException;
+	/**
+	 A left outer join using a sort merge join.
+
+	 @return the sortmerge join operation as a result set.
+	@exception StandardException thrown when unable to create the
+		result set
+	 * @param resultSetNumber	The resultSetNumber for the ResultSet
+	 * @param leftResultSet    Outer ResultSet for join.
+	 * @param leftNumCols        Number of columns in the leftResultSet
+	 * @param rightResultSet    Inner ResultSet for join.
+	 * @param rightNumCols        Number of columns in the rightResultSet
+	 * @param joinClause a reference to a method in the activation
+    that is applied to the activation's "current row" field
+    to determine whether the joinClause is staisfied or not.
+    The signature of this method is
+    <verbatim>
+        Boolean joinClause() throws StandardException;
+    </verbatim>
+	 * @param emptyRowFun a reference to a method in the activation
+    that is called if the right child returns no rows
+	 * @param wasRightOuterJoin    Whether or not this was originally a right outer join
+	 * @param oneRowRightSide    boolean, whether or not the right side returns
+    a single row. (No need to do 2nd next() if it does.)
+	 * @param semiJoinType
+	 * @param optimizerEstimatedRowCount    Estimated total # of rows by
+         optimizer
+	 * @param optimizerEstimatedCost    Estimated total cost by optimizer
+	 * @param userSuppliedOptimizerOverrides    Overrides specified by the user on the sql
+	*/
+	NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+													  int leftNumCols,
+													  NoPutResultSet rightResultSet,
+													  int rightNumCols,
+													  int leftHashKeyItem,
+													  int rightHashKeyItem,
+													  GeneratedMethod joinClause,
+													  int resultSetNumber,
+													  GeneratedMethod emptyRowFun,
+													  boolean wasRightOuterJoin,
+													  boolean oneRowRightSide,
+													  byte semiJoinType,
+													  boolean rightFromSSQ,
+													  double optimizerEstimatedRowCount,
+													  double optimizerEstimatedCost,
+													  String userSuppliedOptimizerOverrides,
+													  String explainPlan,
+													  String sparkExpressionTreeAsString)
+			throws StandardException;
+
+	NoPutResultSet getHalfMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+														  int leftNumCols,
+														  NoPutResultSet rightResultSet,
+														  int rightNumCols,
+														  int leftHashKeyItem,
+														  int rightHashKeyItem,
+														  GeneratedMethod joinClause,
+														  int resultSetNUmber,
+														  GeneratedMethod emptyRowFun,
+														  boolean wasRightOuterJoin,
+														  boolean oneRowRightSide,
+														  byte semiJoinType,
+														  boolean rightFromSSQ,
+														  double optimizerEstimatedRowCount,
+														  double optimizerEstimatedCost,
+														  String userSuppliedOptimizerOverrides,
+														  String explainPlan,
+														  String sparkExpressionTreeAsString)
+			throws StandardException;
+
+	NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+												  int leftNumCols,
+												  NoPutResultSet rightResultSet,
+												  int rightNumCols,
+												  int leftHashKeyItem,
+												  int rightHashKeyItem,
+												  int rightHashKeyToBaseTableMapItem,
+												  int rightHashKeySortOrderItem,
+												  GeneratedMethod joinClause,
+												  int resultSetNUmber,
+												  GeneratedMethod emptyRowFun,
+												  boolean wasRightOuterJoin,
+												  boolean oneRowRightSide,
+												  byte semiJoinType,
+												  boolean rightFromSSQ,
+												  double optimizerEstimatedRowCount,
+												  double optimizerEstimatedCost,
+												  String userSuppliedOptimizerOverrides,
+												  String explainPlan,
+												  String sparkExpressionTreeAsString,
+												  int encodedNewMergeJoin)
+	throws StandardException;
+
+	NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
+													  int leftNumCols,
+													  NoPutResultSet rightResultSet,
+													  int rightNumCols,
+													  int leftHashKeyItem,
+													  int rightHashKeyItem,
+													  boolean noCacheBroadcastJoinRight,
+													  GeneratedMethod joinClause,
+													  int resultSetNUmber,
+													  GeneratedMethod emptyRowFun,
+													  boolean wasRightOuterJoin,
+													  boolean oneRowRightSide,
+													  byte semiJoinType,
+													  boolean rightFromSSQ,
+													  double optimizerEstimatedRowCount,
+													  double optimizerEstimatedCost,
+													  String userSuppliedOptimizerOverrides,
+													  String explainPlan,
+													  String sparkExpressionTreeAsString)
+	throws StandardException;
+
+	/**
+          Support old versions of getXXXJoinResultSet, so SHOW SCHEMAS and other statements
+	  which store these serialized objects on disk won't break upon upgrade.
+	 */
+
+	NoPutResultSet getNestedLoopJoinResultSet(NoPutResultSet leftResultSet,
+											  int leftNumCols,
+											  NoPutResultSet rightResultSet,
+											  int rightNumCols,
+											  GeneratedMethod joinClause,
+											  int resultSetNumber,
+											  boolean oneRowRightSide,
+											  byte semiJoinType,
+											  boolean rightFromSSQ,
+											  double optimizerEstimatedRowCount,
+											  double optimizerEstimatedCost,
+											  String userSuppliedOptimizerOverrides,
+											  String explainPlan)
+			throws StandardException;
+
+	NoPutResultSet getCrossJoinResultSet(NoPutResultSet leftResultSet,
+										 int leftNumCols,
+										 NoPutResultSet rightResultSet,
+										 int rightNumCols,
+										 int leftHashKeyItem,
+										 int rightHashKeyItem,
+										 GeneratedMethod joinClause,
+										 int resultSetNumber,
+										 boolean oneRowRightSide,
+										 byte semiJoinType,
+										 boolean rightFromSSQ,
+										 boolean broadcastRightSide,
+										 double optimizerEstimatedRowCount,
+										 double optimizerEstimatedCost,
+										 String userSuppliedOptimizerOverrides,
+										 String explainPlan)
+			throws StandardException;
+
+	NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
+											 int leftNumCols,
+											 NoPutResultSet rightResultSet,
+											 int rightNumCols,
+											 int leftHashKeyItem,
+											 int rightHashKeyItem,
+											 GeneratedMethod joinClause,
+											 int resultSetNumber,
+											 boolean oneRowRightSide,
+											 byte semiJoinType,
+											 boolean rightFromSSQ,
+											 double optimizerEstimatedRowCount,
+											 double optimizerEstimatedCost,
+											 String userSuppliedOptimizerOverrides,
+											 String explainPlan)
+			throws StandardException;
+
+NoPutResultSet getNestedLoopLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet,
+            int leftNumCols,
+            NoPutResultSet rightResultSet,
+            int rightNumCols,
+            GeneratedMethod joinClause,
             int resultSetNumber,
-            GeneratedMethod constructor,
-            String javaClassName,
-            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
-            int erdNumber,
-            int ctcNumber,
-            boolean isTarget,
-            int scanIsolationLevel,
+            GeneratedMethod emptyRowFun,
+            boolean wasRightOuterJoin,
+            boolean oneRowRightSide,
+            byte semiJoinType,
+            boolean rightFromSSQ,
             double optimizerEstimatedRowCount,
             double optimizerEstimatedCost,
-            boolean isDerbyStyleTableFunction,
-            int returnTypeNumber,
-            int vtiProjectionNumber,
-            int vtiRestrictionNumber,
-            int vtiResultDescriptionNumber,
-            String explainPlan)
-            throws StandardException;
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException;
 
-    /**
-     * A distinct scan result set pushes duplicate elimination into
-     * the scan.
-     * <p>
-     *
-     * @param activation                     the activation for this result set,
-     *                                       which provides the context for the row allocation operation.
-     * @param conglomId                      the conglomerate of the table to be scanned.
-     * @param scociItem                      The saved item for the static conglomerate info.
-     * @param resultRowAllocator             a reference to a method in the activation
-     *                                       that creates a holder for the rows from the scan.
-     *                                       <verbatim>
-     *                                       ExecRow rowAllocator() throws StandardException;
-     *                                       </verbatim>
-     * @param resultSetNumber                The resultSetNumber for the ResultSet
-     * @param hashKeyColumn                  The 0-based column # for the hash key.
-     * @param tableName                      The full name of the table
-     * @param userSuppliedOptimizerOverrides Overrides specified by the user on the sql
-     * @param indexName                      The name of the index, if one used to access table.
-     * @param isConstraint                   If index, if used, is a backing index for a constraint.
-     * @param colRefItem                     An saved item for a bitSet of columns that
-     *                                       are referenced in the underlying table.  -1 if
-     *                                       no item.
-     * @param lockMode                       The lock granularity to use (see
-     *                                       TransactionController in access)
-     * @param tableLocked                    Whether or not the table is marked as using table locking
-     *                                       (in sys.systables)
-     * @param isolationLevel                 Isolation level (specified or not) to use on scans
-     * @param optimizerEstimatedRowCount     Estimated total # of rows by
-     *                                       optimizer
-     * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
-     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
-     * @return the table scan operation as a result set.
-     * @throws StandardException thrown when unable to create the
-     *                           result set
-     */
-    NoPutResultSet getDistinctScanResultSet(
+NoPutResultSet getNormalizeResultSet(NoPutResultSet source,
+                                                int resultSetNumber,
+                                                int erdNumber,
+                                                double optimizerEstimatedRowCount,
+                                                double optimizerEstimatedCost,
+                                                boolean forUpdate,
+                                                String explainPlan) throws StandardException;
+
+NoPutResultSet getDistinctScanResultSet(
             Activation activation,
             long conglomId,
             int scociItem,
@@ -918,167 +1509,22 @@ public interface ResultSetFactory {
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod)
-            throws StandardException;
+            long minRetentionPeriod ) throws StandardException;
 
-    /**
-     * A table scan result set forms a result set on a scan
-     * of a table.
-     * The rows can be constructed as they are requested from the
-     * result set.
-     * <p>
-     * This form of the table scan operation is simple, and is
-     * to be used when there are no predicates to be passed down
-     * to the scan to limit its scope on the target table.
-     *
-     * @param conglomId                      the conglomerate of the table to be scanned.
-     * @param scociItem                      The saved item for the static conglomerate info.
-     * @param activation                     the activation for this result set,
-     *                                       which provides the context for the row allocation operation.
-     * @param resultRowAllocator             a reference to a method in the activation
-     *                                       that creates a holder for the result row of the scan.  May
-     *                                       be a partial row.
-     *                                       <verbatim>
-     *                                       ExecRow rowAllocator() throws StandardException;
-     *                                       </verbatim>
-     * @param resultSetNumber                The resultSetNumber for the ResultSet
-     * @param startKeyGetter                 a reference to a method in the activation
-     *                                       that gets the start key indexable row for the scan.  Null
-     *                                       means there is no start key.
-     *                                       <verbatim>
-     *                                       ExecIndexRow startKeyGetter() throws StandardException;
-     *                                       </verbatim>
-     * @param startSearchOperator            The start search operator for opening
-     *                                       the scan
-     * @param stopKeyGetter                  a reference to a method in the activation
-     *                                       that gets the stop key indexable row for the scan.  Null means
-     *                                       there is no stop key.
-     *                                       <verbatim>
-     *                                       ExecIndexRow stopKeyGetter() throws StandardException;
-     *                                       </verbatim>
-     * @param stopSearchOperator             The stop search operator for opening
-     *                                       the scan
-     * @param sameStartStopPosition          Re-use the startKeyGetter for the stopKeyGetter
-     *                                       (Exact match search.)
-     * @param qualifiersField                the array of Qualifiers for the scan.
-     *                                       Null or an array length of zero means there are no qualifiers.
-     * @param tableName                      The full name of the table
-     * @param userSuppliedOptimizerOverrides Overrides specified by the user on the sql
-     * @param indexName                      The name of the index, if one used to access table.
-     * @param isConstraint                   If index, if used, is a backing index for a constraint.
-     * @param forUpdate                      True means open for update
-     * @param colRefItem                     An saved item for a bitSet of columns that
-     *                                       are referenced in the underlying table.  -1 if
-     *                                       no item.
-     * @param lockMode                       The lock granularity to use (see
-     *                                       TransactionController in access)
-     * @param tableLocked                    Whether or not the table is marked as using table locking
-     *                                       (in sys.systables)
-     * @param isolationLevel                 Isolation level (specified or not) to use on scans
-     * @param oneRowScan                     Whether or not this is a 1 row scan.
-     * @param optimizerEstimatedRowCount     Estimated total # of rows by
-     *                                       optimizer
-     * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
-     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
-     * @return the table scan operation as a result set.
-     * @throws StandardException thrown when unable to create the
-     *                           result set
-     */
-    NoPutResultSet getTableScanResultSet(
-            Activation activation,
-            long conglomId,
-            int scociItem,
-            GeneratedMethod resultRowAllocator,
-            int resultSetNumber,
-            GeneratedMethod startKeyGetter,
-            int startSearchOperator,
-            GeneratedMethod stopKeyGetter,
-            int stopSearchOperator,
-            boolean sameStartStopPosition,
-            boolean rowIdKey,
-            String qualifiersField,
-            String tableName,
-            String userSuppliedOptimizerOverrides,
-            String indexName,
-            boolean isConstraint,
-            boolean forUpdate,
-            int colRefItem,
-            int indexColItem,
-            int lockMode,
-            boolean tableLocked,
-            int isolationLevel,
-            boolean oneRowScan,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-            String tableVersion,
-            String explainPlan,
-            boolean pin,
-            int splits,
-            String delimited,
-            String escaped,
-            String lines,
-            String storedAs,
-            String location,
-            int partitionByRefItem,
-            GeneratedMethod defaultRowFunc,
-            int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod
-    )
-            throws StandardException;
-
-    /**
-     * A multi-probe result set, used for probing an index with one or more
-     * target values (probeValues) and returning the matching rows.  This
-     * type of result set is useful for IN lists as it allows us to avoid
-     * scannning an entire, potentially very large, index for a mere handful
-     * of rows (DERBY-47).
-     * <p>
-     * All arguments are the same as for TableScanResultSet, plus the
-     * following:
-     *
-     * @param getProbeValsFunc function pointer to get list of values with which to probe the underlying
-     *                         table. Should not be null.
-     * @param sortRequired     Which type of sort we need for the values
-     *                         (ascending, descending, or none).
-     * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
-     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
-     */
-    NoPutResultSet getMultiProbeTableScanResultSet(
-            Activation activation,
-            long conglomId,
-            int scociItem,
-            GeneratedMethod resultRowAllocator,
-            int resultSetNumber,
-            GeneratedMethod startKeyGetter,
-            int startSearchOperator,
-            GeneratedMethod stopKeyGetter,
-            int stopSearchOperator,
-            boolean sameStartStopPosition,
-            boolean rowIdKey,
-            String qualifiersField,
-            GeneratedMethod getProbeValsFunc,
-            int sortRequired,
-            int inlistPosition,
+NoPutResultSet getMultiProbeTableScanResultSet(
+            Activation activation, long conglomId, int scociItem,
+            GeneratedMethod resultRowAllocator, int resultSetNumber,
+            GeneratedMethod startKeyGetter, int startSearchOperator,
+            GeneratedMethod stopKeyGetter, int stopSearchOperator,
+            boolean sameStartStopPosition, boolean rowIdKey, String qualifiersField,
+            GeneratedMethod getProbeValsFunc, int sortRequired, int inlistPosition,
             int inlistTypeArrayItem,
-            String tableName,
-            String userSuppliedOptimizerOverrides,
-            String indexName,
-            boolean isConstraint,
-            boolean forUpdate,
-            int colRefItem,
-            int indexColItem,
-            int lockMode,
-            boolean tableLocked,
-            int isolationLevel,
-            boolean oneRowScan,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-            String tableVersion,
-            String explainPlan,
-            boolean pin,
-            int splits,
+            String tableName, String userSuppliedOptimizerOverrides,
+            String indexName, boolean isConstraint, boolean forUpdate,
+            int colRefItem, int indexColItem, int lockMode,
+            boolean tableLocked, int isolationLevel, boolean oneRowScan,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion,
+            String explainPlan, boolean pin, int splits,
             String delimited,
             String escaped,
             String lines,
@@ -1088,679 +1534,63 @@ public interface ResultSetFactory {
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod
-    )
-            throws StandardException;
+            long minRetentionPeriod ) throws StandardException;
 
-    /**
-     * An index row to base row result set gets an index row from its source
-     * and uses the RowLocation in its last column to get the row from the
-     * base conglomerate.
-     * <p>
-     *
-     * @param conglomId                  Conglomerate # for the heap.
-     * @param scoci                      The saved item for the static conglomerate info.
-     * @param source                     the source result set, which is expected to provide
-     *                                   rows from an index conglomerate
-     * @param resultRowAllocator         a reference to a method in the activation
-     *                                   that creates a holder for the rows from the scan.
-     *                                   <verbatim>
-     *                                   ExecRow rowAllocator() throws StandardException;
-     *                                   </verbatim>
-     * @param resultSetNumber            The resultSetNumber for the ResultSet
-     * @param indexName                  The name of the index.
-     * @param heapColRefItem             A saved item for a bitImpl of columns that
-     *                                   are referenced in the underlying heap.  -1 if
-     *                                   no item.
-     * @param allColRefItem              A saved item for a bitImpl of columns
-     *                                   that are referenced in the underlying
-     *                                   index and heap.  -1 if no item.
-     * @param heapOnlyColRefItem         A saved item for a bitImpl of
-     *                                   columns that are referenced in the
-     *                                   underlying heap only.  -1 if no item.
-     * @param indexColMapItem            A saved item for a ReferencedColumnsDescriptorImpl
-     *                                   which tell  which columms are coming from the index.
-     * @param restriction                The restriction, if any, to be applied to the base row
-     * @param forUpdate                  True means to open for update
-     * @param optimizerEstimatedRowCount Estimated total # of rows by
-     *                                   optimizer
-     * @param optimizerEstimatedCost     Estimated total cost by optimizer
-     * @return the index row to base row operation as a result set.
-     * @throws StandardException thrown when unable to create the
-     *                           result set
-     */
-    NoPutResultSet getIndexRowToBaseRowResultSet(
-            long conglomId,
-            int scoci,
-            NoPutResultSet source,
-            GeneratedMethod resultRowAllocator,
-            int resultSetNumber,
-            String indexName,
-            int heapColRefItem,
-            int allColRefItem,
-            int heapOnlyColRefItem,
-            int indexColMapItem,
-            GeneratedMethod restriction,
-            boolean forUpdate,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-            String tableVersion,
+NoPutResultSet getMergeSortLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException;
+
+NoPutResultSet getMergeLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            int rightHashKeyToBaseTableMapItem,
+            int rightHashKeySortOrderItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException;
+
+NoPutResultSet getMergeLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            int rightHashKeyToBaseTableMapItem,
+            int rightHashKeySortOrderItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
             String explainPlan,
-            GeneratedMethod defaultRowFunc,
-            int defaultValueMapItem)
-            throws StandardException;
+            String sparkExpressionTreeAsString) throws StandardException;
 
+NoPutResultSet getBroadcastLeftOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            boolean noCacheBroadcastJoinRight,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod emptyRowFun, boolean wasRightOuterJoin,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException;
 
-    /**
-     * A OLAP window on top of a regular result set. It is used to realize
-     * window functions.
-     *
-     * @param source                     the result set from which to take rows to be
-     *                                   filtered by this operation.
-     * @param isInSortedOrder            true if the source result set is in sorted order
-     * @param aggregateItem              entry in preparedStatement's savedObjects for aggregates
-     * @param rowAllocator               a reference to a method in the activation
-     *                                   that generates rows of the right size and shape for the source
-     * @param rowSize                    the size of the row that is allocated by rowAllocator.
-     *                                   size should be the maximum size of the sum of all the datatypes.
-     *                                   user type are necessarily approximated
-     * @param resultSetNumber            The resultSetNumber for the ResultSet
-     * @param optimizerEstimatedRowCount Estimated total # of rows by
-     *                                   optimizer
-     * @param optimizerEstimatedCost     Estimated total cost by optimizer
-     * @return the scalar aggregation operation as a result set.
-     * @throws StandardException thrown when unable to create the
-     *                           result set
-     */
-    NoPutResultSet getWindowResultSet(NoPutResultSet source,
-                                      boolean isInSortedOrder,
-                                      int aggregateItem,
-                                      GeneratedMethod rowAllocator,
-                                      int rowSize,
-                                      int resultSetNumber,
-                                      double optimizerEstimatedRowCount,
-                                      double optimizerEstimatedCost,
-                                      String explainPlan)
-            throws StandardException;
-
-
-    /**
-     * A nested loop left outer join result set forms a result set on top of
-     * 2 other result sets.
-     * The rows can be constructed as they are requested from the
-     * result set.
-     * <p>
-     * This form of the nested loop join operation is simple, and is
-     * to be used when there are no join predicates to be passed down
-     * to the join to limit its scope on the right ResultSet.
-     *
-     * @param leftResultSet                  Outer ResultSet for join.
-     * @param leftNumCols                    Number of columns in the leftResultSet
-     * @param rightResultSet                 Inner ResultSet for join.
-     * @param rightNumCols                   Number of columns in the rightResultSet
-     * @param joinClause                     a reference to a method in the activation
-     *                                       that is applied to the activation's "current row" field
-     *                                       to determine whether the joinClause is satisfied or not.
-     *                                       The signature of this method is
-     *                                       <verbatim>
-     *                                       Boolean joinClause() throws StandardException;
-     *                                       </verbatim>
-     * @param resultSetNumber                The resultSetNumber for the ResultSet
-     * @param oneRowRightSide                boolean, whether or not the right side returns
-     *                                       a single row.  (No need to do 2nd next() if it does.)
-     * @param semiJoinType                   boolean, whether or not the right side resides a
-     *                                       NOT EXISTS base table
-     * @param optimizerEstimatedRowCount     Estimated total # of rows by
-     *                                       optimizer
-     * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param userSuppliedOptimizerOverrides Overrides specified by the user on the sql
-     * @return the nested loop join operation as a result set.
-     * @throws StandardException thrown when unable to create the
-     *                           result set
-     */
-    NoPutResultSet getNestedLoopJoinResultSet(NoPutResultSet leftResultSet,
-                                              int leftNumCols,
-                                              NoPutResultSet rightResultSet,
-                                              int rightNumCols,
-                                              GeneratedMethod joinClause,
-                                              int resultSetNumber,
-                                              boolean oneRowRightSide,
-                                              byte semiJoinType,
-                                              boolean rightFromSSQ,
-                                              double optimizerEstimatedRowCount,
-                                              double optimizerEstimatedCost,
-                                              String userSuppliedOptimizerOverrides,
-                                              String explainPlan,
-                                              String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    NoPutResultSet getCrossJoinResultSet(NoPutResultSet leftResultSet,
-                                         int leftNumCols,
-                                         NoPutResultSet rightResultSet,
-                                         int rightNumCols,
-                                         int leftHashKeyItem,
-                                         int rightHashKeyItem,
-                                         GeneratedMethod joinClause,
-                                         int resultSetNumber,
-                                         boolean oneRowRightSide,
-                                         byte semiJoinType,
-                                         boolean rightFromSSQ,
-                                         boolean broadcastRightSide,
-                                         double optimizerEstimatedRowCount,
-                                         double optimizerEstimatedCost,
-                                         String userSuppliedOptimizerOverrides,
-                                         String explainPlan,
-                                         String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
-                                             int leftNumCols,
-                                             NoPutResultSet rightResultSet,
-                                             int rightNumCols,
-                                             int leftHashKeyItem,
-                                             int rightHashKeyItem,
-                                             GeneratedMethod joinClause,
-                                             int resultSetNumber,
-                                             boolean oneRowRightSide,
-                                             byte semiJoinType,
-                                             boolean rightFromSSQ,
-                                             double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost,
-                                             String userSuppliedOptimizerOverrides,
-                                             String explainPlan,
-                                             String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    NoPutResultSet getHalfMergeSortJoinResultSet(NoPutResultSet leftResultSet,
-                                                 int leftNumCols,
-                                                 NoPutResultSet rightResultSet,
-                                                 int rightNumCols,
-                                                 int leftHashKeyItem,
-                                                 int rightHashKeyItem,
-                                                 GeneratedMethod joinClause,
-                                                 int resultSetNumber,
-                                                 boolean oneRowRightSide,
-                                                 byte semiJoinType,
-                                                 boolean rightFromSSQ,
-                                                 double optimizerEstimatedRowCount,
-                                                 double optimizerEstimatedCost,
-                                                 String userSuppliedOptimizerOverrides,
-                                                 String explainPlan,
-                                                 String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
-                                         int leftNumCols,
-                                         NoPutResultSet rightResultSet,
-                                         int rightNumCols,
-                                         int leftHashKeyItem,
-                                         int rightHashKeyItem,
-                                         int rightHashKeyToBaseTableMapItem,
-                                         int rightHashKeySortOrderItem,
-                                         GeneratedMethod joinClause,
-                                         int resultSetNumber,
-                                         boolean oneRowRightSide,
-                                         byte semiJoinType,
-                                         boolean rightFromSSQ,
-                                         double optimizerEstimatedRowCount,
-                                         double optimizerEstimatedCost,
-                                         String userSuppliedOptimizerOverrides,
-                                         String explainPlan,
-                                         String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
-                                             int leftNumCols,
-                                             NoPutResultSet rightResultSet,
-                                             int rightNumCols,
-                                             int leftHashKeyItem,
-                                             int rightHashKeyItem,
-                                             boolean noCacheBroadcastJoinRight,
-                                             GeneratedMethod joinClause,
-                                             int resultSetNumber,
-                                             boolean oneRowRightSide,
-                                             byte semiJoinType,
-                                             boolean rightFromSSQ,
-                                             double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost,
-                                             String userSuppliedOptimizerOverrides,
-                                             String explainPlan,
-                                             String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    /**
-     * A nested loop join result set forms a result set on top of
-     * 2 other result sets.
-     * The rows can be constructed as they are requested from the
-     * result set.
-     * <p>
-     * This form of the nested loop join operation is simple, and is
-     * to be used when there are no join predicates to be passed down
-     * to the join to limit its scope on the right ResultSet.
-     *
-     * @param leftResultSet                  Outer ResultSet for join.
-     * @param leftNumCols                    Number of columns in the leftResultSet
-     * @param rightResultSet                 Inner ResultSet for join.
-     * @param rightNumCols                   Number of columns in the rightResultSet
-     * @param joinClause                     a reference to a method in the activation
-     *                                       that is applied to the activation's "current row" field
-     *                                       to determine whether the joinClause is satisfied or not.
-     *                                       The signature of this method is
-     *                                       <verbatim>
-     *                                       Boolean joinClause() throws StandardException;
-     *                                       </verbatim>
-     * @param resultSetNumber                The resultSetNumber for the ResultSet
-     * @param emptyRowFun                    a reference to a method in the activation
-     *                                       that is called if the right child returns no rows
-     * @param wasRightOuterJoin              Whether or not this was originally a right outer join
-     * @param oneRowRightSide                boolean, whether or not the right side returns
-     *                                       a single row.  (No need to do 2nd next() if it does.)
-     * @param semiJoinType                   boolean, whether or not the right side resides a
-     *                                       NOT EXISTS base table
-     * @param optimizerEstimatedRowCount     Estimated total # of rows by
-     *                                       optimizer
-     * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param userSuppliedOptimizerOverrides Overrides specified by the user on the sql
-     * @return the nested loop join operation as a result set.
-     * @throws StandardException thrown when unable to create the
-     *                           result set
-     */
-    NoPutResultSet getNestedLoopLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                       int leftNumCols,
-                                                       NoPutResultSet rightResultSet,
-                                                       int rightNumCols,
-                                                       GeneratedMethod joinClause,
-                                                       int resultSetNumber,
-                                                       GeneratedMethod emptyRowFun,
-                                                       boolean wasRightOuterJoin,
-                                                       boolean oneRowRightSide,
-                                                       byte semiJoinType,
-                                                       boolean rightFromSSQ,
-                                                       double optimizerEstimatedRowCount,
-                                                       double optimizerEstimatedCost,
-                                                       String userSuppliedOptimizerOverrides,
-                                                       String explainPlan,
-                                                       String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    /**
-     * A left outer join using a hash join.
-     *
-     * @param leftResultSet                  Outer ResultSet for join.
-     * @param leftNumCols                    Number of columns in the leftResultSet
-     * @param rightResultSet                 Inner ResultSet for join.
-     * @param rightNumCols                   Number of columns in the rightResultSet
-     * @param joinClause                     a reference to a method in the activation
-     *                                       that is applied to the activation's "current row" field
-     *                                       to determine whether the joinClause is satisfied or not.
-     *                                       The signature of this method is
-     *                                       <verbatim>
-     *                                       Boolean joinClause() throws StandardException;
-     *                                       </verbatim>
-     * @param resultSetNumber                The resultSetNumber for the ResultSet
-     * @param emptyRowFun                    a reference to a method in the activation
-     *                                       that is called if the right child returns no rows
-     * @param wasRightOuterJoin              Whether or not this was originally a right outer join
-     * @param oneRowRightSide                boolean, whether or not the right side returns
-     *                                       a single row.  (No need to do 2nd next() if it does.)
-     * @param semiJoinType                   boolean, whether or not the right side resides a
-     *                                       NOT EXISTS base table
-     * @param optimizerEstimatedRowCount     Estimated total # of rows by
-     *                                       optimizer
-     * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param userSuppliedOptimizerOverrides Overrides specified by the user on the sql
-     * @return the hash join operation as a result set.
-     * @throws StandardException thrown when unable to create the
-     *                           result set
-     */
-    NoPutResultSet getHashLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                 int leftNumCols,
-                                                 NoPutResultSet rightResultSet,
-                                                 int rightNumCols,
-                                                 int leftHashKeyItem,
-                                                 int rightHashKeyItem,
-                                                 GeneratedMethod joinClause,
-                                                 int resultSetNumber,
-                                                 GeneratedMethod emptyRowFun,
-                                                 boolean wasRightOuterJoin,
-                                                 boolean oneRowRightSide,
-                                                 byte semiJoinType,
-                                                 boolean rightFromSSQ,
-                                                 double optimizerEstimatedRowCount,
-                                                 double optimizerEstimatedCost,
-                                                 String userSuppliedOptimizerOverrides,
-                                                 String explainPlan,
-                                                 String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    /**
-     * A ResultSet which materializes the underlying ResultSet tree into a
-     * temp table on the 1st open.  All subsequent "scans" of this ResultSet
-     * will return results from the temp table.
-     *
-     * @param source                     the result set input to this result set.
-     * @param resultSetNumber            The resultSetNumber for the ResultSet
-     * @param optimizerEstimatedRowCount Estimated total # of rows by
-     *                                   optimizer
-     * @param optimizerEstimatedCost     Estimated total cost by optimizer
-     * @return the materialization operation as a result set.
-     * @throws StandardException Thrown on failure
-     */
-    NoPutResultSet getMaterializedResultSet(NoPutResultSet source,
-                                            int resultSetNumber,
-                                            double optimizerEstimatedRowCount,
-                                            double optimizerEstimatedCost)
-            throws StandardException;
-
-    /**
-     * A ResultSet which provides the insensitive scrolling functionality
-     * for the underlying result set by materializing the underlying ResultSet
-     * tree into a hash table while scrolling forward.
-     *
-     * @param source                     the result set input to this result set.
-     * @param activation                 the activation for this result set,
-     *                                   which provides the context for normalization.
-     * @param resultSetNumber            The resultSetNumber for the ResultSet
-     * @param sourceRowWidth             The # of columns in the source row.
-     * @param optimizerEstimatedRowCount Estimated total # of rows by
-     *                                   optimizer
-     * @param optimizerEstimatedCost     Estimated total cost by optimizer
-     * @return the materialization operation as a result set.
-     * @throws StandardException Thrown on failure
-     */
-    NoPutResultSet getScrollInsensitiveResultSet(NoPutResultSet source,
-                                                 Activation activation,
-                                                 int resultSetNumber,
-                                                 int sourceRowWidth,
-                                                 boolean scrollable,
-                                                 double optimizerEstimatedRowCount,
-                                                 double optimizerEstimatedCost,
-                                                 String explainPlan)
-            throws StandardException;
-
-    /**
-     * A left outer join using a sort merge join.
-     *
-     * @param resultSetNumber                The resultSetNumber for the ResultSet
-     * @param leftResultSet                  Outer ResultSet for join.
-     * @param leftNumCols                    Number of columns in the leftResultSet
-     * @param rightResultSet                 Inner ResultSet for join.
-     * @param rightNumCols                   Number of columns in the rightResultSet
-     * @param joinClause                     a reference to a method in the activation
-     *                                       that is applied to the activation's "current row" field
-     *                                       to determine whether the joinClause is staisfied or not.
-     *                                       The signature of this method is
-     *                                       <verbatim>
-     *                                       Boolean joinClause() throws StandardException;
-     *                                       </verbatim>
-     * @param emptyRowFun                    a reference to a method in the activation
-     *                                       that is called if the right child returns no rows
-     * @param wasRightOuterJoin              Whether or not this was originally a right outer join
-     * @param oneRowRightSide                boolean, whether or not the right side returns
-     *                                       a single row. (No need to do 2nd next() if it does.)
-     * @param semiJoinType
-     * @param optimizerEstimatedRowCount     Estimated total # of rows by
-     *                                       optimizer
-     * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param userSuppliedOptimizerOverrides Overrides specified by the user on the sql
-     * @return the sortmerge join operation as a result set.
-     * @throws StandardException thrown when unable to create the result set
-     */
-    NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                      int leftNumCols,
-                                                      NoPutResultSet rightResultSet,
-                                                      int rightNumCols,
-                                                      int leftHashKeyItem,
-                                                      int rightHashKeyItem,
-                                                      GeneratedMethod joinClause,
-                                                      int resultSetNumber,
-                                                      GeneratedMethod emptyRowFun,
-                                                      boolean wasRightOuterJoin,
-                                                      boolean oneRowRightSide,
-                                                      byte semiJoinType,
-                                                      boolean rightFromSSQ,
-                                                      double optimizerEstimatedRowCount,
-                                                      double optimizerEstimatedCost,
-                                                      String userSuppliedOptimizerOverrides,
-                                                      String explainPlan,
-                                                      String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    NoPutResultSet getHalfMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                          int leftNumCols,
-                                                          NoPutResultSet rightResultSet,
-                                                          int rightNumCols,
-                                                          int leftHashKeyItem,
-                                                          int rightHashKeyItem,
-                                                          GeneratedMethod joinClause,
-                                                          int resultSetNUmber,
-                                                          GeneratedMethod emptyRowFun,
-                                                          boolean wasRightOuterJoin,
-                                                          boolean oneRowRightSide,
-                                                          byte semiJoinType,
-                                                          boolean rightFromSSQ,
-                                                          double optimizerEstimatedRowCount,
-                                                          double optimizerEstimatedCost,
-                                                          String userSuppliedOptimizerOverrides,
-                                                          String explainPlan,
-                                                          String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                  int leftNumCols,
-                                                  NoPutResultSet rightResultSet,
-                                                  int rightNumCols,
-                                                  int leftHashKeyItem,
-                                                  int rightHashKeyItem,
-                                                  int rightHashKeyToBaseTableMapItem,
-                                                  int rightHashKeySortOrderItem,
-                                                  GeneratedMethod joinClause,
-                                                  int resultSetNUmber,
-                                                  GeneratedMethod emptyRowFun,
-                                                  boolean wasRightOuterJoin,
-                                                  boolean oneRowRightSide,
-                                                  byte semiJoinType,
-                                                  boolean rightFromSSQ,
-                                                  double optimizerEstimatedRowCount,
-                                                  double optimizerEstimatedCost,
-                                                  String userSuppliedOptimizerOverrides,
-                                                  String explainPlan,
-                                                  String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                      int leftNumCols,
-                                                      NoPutResultSet rightResultSet,
-                                                      int rightNumCols,
-                                                      int leftHashKeyItem,
-                                                      int rightHashKeyItem,
-                                                      boolean noCacheBroadcastJoinRight,
-                                                      GeneratedMethod joinClause,
-                                                      int resultSetNUmber,
-                                                      GeneratedMethod emptyRowFun,
-                                                      boolean wasRightOuterJoin,
-                                                      boolean oneRowRightSide,
-                                                      byte semiJoinType,
-                                                      boolean rightFromSSQ,
-                                                      double optimizerEstimatedRowCount,
-                                                      double optimizerEstimatedCost,
-                                                      String userSuppliedOptimizerOverrides,
-                                                      String explainPlan,
-                                                      String sparkExpressionTreeAsString)
-            throws StandardException;
-
-    /**
-     * Support old versions of getXXXJoinResultSet, so SHOW SCHEMAS and other statements
-     * which store these serialized objects on disk won't break upon upgrade.
-     */
-
-    NoPutResultSet getNestedLoopJoinResultSet(NoPutResultSet leftResultSet,
-                                              int leftNumCols,
-                                              NoPutResultSet rightResultSet,
-                                              int rightNumCols,
-                                              GeneratedMethod joinClause,
-                                              int resultSetNumber,
-                                              boolean oneRowRightSide,
-                                              byte semiJoinType,
-                                              boolean rightFromSSQ,
-                                              double optimizerEstimatedRowCount,
-                                              double optimizerEstimatedCost,
-                                              String userSuppliedOptimizerOverrides,
-                                              String explainPlan)
-            throws StandardException;
-
-    NoPutResultSet getCrossJoinResultSet(NoPutResultSet leftResultSet,
-                                         int leftNumCols,
-                                         NoPutResultSet rightResultSet,
-                                         int rightNumCols,
-                                         int leftHashKeyItem,
-                                         int rightHashKeyItem,
-                                         GeneratedMethod joinClause,
-                                         int resultSetNumber,
-                                         boolean oneRowRightSide,
-                                         byte semiJoinType,
-                                         boolean rightFromSSQ,
-                                         boolean broadcastRightSide,
-                                         double optimizerEstimatedRowCount,
-                                         double optimizerEstimatedCost,
-                                         String userSuppliedOptimizerOverrides,
-                                         String explainPlan)
-            throws StandardException;
-
-    NoPutResultSet getMergeSortJoinResultSet(NoPutResultSet leftResultSet,
-                                             int leftNumCols,
-                                             NoPutResultSet rightResultSet,
-                                             int rightNumCols,
-                                             int leftHashKeyItem,
-                                             int rightHashKeyItem,
-                                             GeneratedMethod joinClause,
-                                             int resultSetNumber,
-                                             boolean oneRowRightSide,
-                                             byte semiJoinType,
-                                             boolean rightFromSSQ,
-                                             double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost,
-                                             String userSuppliedOptimizerOverrides,
-                                             String explainPlan)
-            throws StandardException;
-
-
-    NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
-                                         int leftNumCols,
-                                         NoPutResultSet rightResultSet,
-                                         int rightNumCols,
-                                         int leftHashKeyItem,
-                                         int rightHashKeyItem,
-                                         int rightHashKeyToBaseTableMapItem,
-                                         int rightHashKeySortOrderItem,
-                                         GeneratedMethod joinClause,
-                                         int resultSetNumber,
-                                         boolean oneRowRightSide,
-                                         byte semiJoinType,
-                                         boolean rightFromSSQ,
-                                         double optimizerEstimatedRowCount,
-                                         double optimizerEstimatedCost,
-                                         String userSuppliedOptimizerOverrides,
-                                         String explainPlan)
-            throws StandardException;
-
-    NoPutResultSet getBroadcastJoinResultSet(NoPutResultSet leftResultSet,
-                                             int leftNumCols,
-                                             NoPutResultSet rightResultSet,
-                                             int rightNumCols,
-                                             int leftHashKeyItem,
-                                             int rightHashKeyItem,
-                                             boolean noCacheBroadcastJoinRight,
-                                             GeneratedMethod joinClause,
-                                             int resultSetNumber,
-                                             boolean oneRowRightSide,
-                                             byte semiJoinType,
-                                             boolean rightFromSSQ,
-                                             double optimizerEstimatedRowCount,
-                                             double optimizerEstimatedCost,
-                                             String userSuppliedOptimizerOverrides,
-                                             String explainPlan)
-            throws StandardException;
-
-
-    NoPutResultSet getNestedLoopLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                       int leftNumCols,
-                                                       NoPutResultSet rightResultSet,
-                                                       int rightNumCols,
-                                                       GeneratedMethod joinClause,
-                                                       int resultSetNumber,
-                                                       GeneratedMethod emptyRowFun,
-                                                       boolean wasRightOuterJoin,
-                                                       boolean oneRowRightSide,
-                                                       byte semiJoinType,
-                                                       boolean rightFromSSQ,
-                                                       double optimizerEstimatedRowCount,
-                                                       double optimizerEstimatedCost,
-                                                       String userSuppliedOptimizerOverrides,
-                                                       String explainPlan)
-            throws StandardException;
-
-    NoPutResultSet getMergeSortLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                      int leftNumCols,
-                                                      NoPutResultSet rightResultSet,
-                                                      int rightNumCols,
-                                                      int leftHashKeyItem,
-                                                      int rightHashKeyItem,
-                                                      GeneratedMethod joinClause,
-                                                      int resultSetNUmber,
-                                                      GeneratedMethod emptyRowFun,
-                                                      boolean wasRightOuterJoin,
-                                                      boolean oneRowRightSide,
-                                                      byte semiJoinType,
-                                                      boolean rightFromSSQ,
-                                                      double optimizerEstimatedRowCount,
-                                                      double optimizerEstimatedCost,
-                                                      String userSuppliedOptimizerOverrides,
-                                                      String explainPlan)
-            throws StandardException;
-
-    NoPutResultSet getMergeLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                  int leftNumCols,
-                                                  NoPutResultSet rightResultSet,
-                                                  int rightNumCols,
-                                                  int leftHashKeyItem,
-                                                  int rightHashKeyItem,
-                                                  int rightHashKeyToBaseTableMapItem,
-                                                  int rightHashKeySortOrderItem,
-                                                  GeneratedMethod joinClause,
-                                                  int resultSetNUmber,
-                                                  GeneratedMethod emptyRowFun,
-                                                  boolean wasRightOuterJoin,
-                                                  boolean oneRowRightSide,
-                                                  byte semiJoinType,
-                                                  boolean rightFromSSQ,
-                                                  double optimizerEstimatedRowCount,
-                                                  double optimizerEstimatedCost,
-                                                  String userSuppliedOptimizerOverrides,
-                                                  String explainPlan)
-            throws StandardException;
-
-    NoPutResultSet getBroadcastLeftOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                      int leftNumCols,
-                                                      NoPutResultSet rightResultSet,
-                                                      int rightNumCols,
-                                                      int leftHashKeyItem,
-                                                      int rightHashKeyItem,
-                                                      boolean noCacheBroadcastJoinRight,
-                                                      GeneratedMethod joinClause,
-                                                      int resultSetNUmber,
-                                                      GeneratedMethod emptyRowFun,
-                                                      boolean wasRightOuterJoin,
-                                                      boolean oneRowRightSide,
-                                                      byte semiJoinType,
-                                                      boolean rightFromSSQ,
-                                                      double optimizerEstimatedRowCount,
-                                                      double optimizerEstimatedCost,
-                                                      String userSuppliedOptimizerOverrides,
-                                                      String explainPlan)
-            throws StandardException;
-
-    NoPutResultSet getMergeSortFullOuterJoinResultSet(
+NoPutResultSet getMergeSortFullOuterJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem,
@@ -1773,7 +1603,7 @@ public interface ResultSetFactory {
             String userSuppliedOptimizerOverrides,
             String explainPlan) throws StandardException;
 
-    NoPutResultSet getMergeSortFullOuterJoinResultSet(
+NoPutResultSet getMergeSortFullOuterJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
             NoPutResultSet rightResultSet, int rightNumCols,
             int leftHashKeyItem, int rightHashKeyItem,
@@ -1787,102 +1617,136 @@ public interface ResultSetFactory {
             String explainPlan,
             String sparkExpressionTreeAsString) throws StandardException;
 
-    NoPutResultSet getBroadcastFullOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                      int leftNumCols,
-                                                      NoPutResultSet rightResultSet,
-                                                      int rightNumCols,
-                                                      int leftHashKeyItem,
-                                                      int rightHashKeyItem,
-                                                      boolean noCacheBroadcastJoinRight,
-                                                      GeneratedMethod joinClause,
-                                                      int resultSetNUmber,
-                                                      GeneratedMethod leftEmptyRowFun,
-                                                      GeneratedMethod rightEmptyRowFun,
-                                                      boolean wasRightOuterJoin,
-                                                      boolean oneRowRightSide,
-                                                      byte semiJoinType,
-                                                      boolean rightFromSSQ,
-                                                      double optimizerEstimatedRowCount,
-                                                      double optimizerEstimatedCost,
-                                                      String userSuppliedOptimizerOverrides,
-                                                      String explainPlan,
-                                                      String sparkExpressionTreeAsString)
-            throws StandardException;
+NoPutResultSet getBroadcastFullOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem, boolean noCacheBroadcastJoinRight,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
+            boolean wasRightOuterJoin,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException;
 
-    NoPutResultSet getBroadcastFullOuterJoinResultSet(NoPutResultSet leftResultSet,
-                                                      int leftNumCols,
-                                                      NoPutResultSet rightResultSet,
-                                                      int rightNumCols,
-                                                      int leftHashKeyItem,
-                                                      int rightHashKeyItem,
-                                                      boolean noCacheBroadcastJoinRight,
-                                                      GeneratedMethod joinClause,
-                                                      int resultSetNUmber,
-                                                      GeneratedMethod leftEmptyRowFun,
-                                                      GeneratedMethod rightEmptyRowFun,
-                                                      boolean wasRightOuterJoin,
-                                                      boolean oneRowRightSide,
-                                                      byte semiJoinType,
-                                                      boolean rightFromSSQ,
-                                                      double optimizerEstimatedRowCount,
-                                                      double optimizerEstimatedCost,
-                                                      String userSuppliedOptimizerOverrides,
-                                                      String explainPlan)
-            throws StandardException;
+NoPutResultSet getBroadcastFullOuterJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem, boolean noCacheBroadcastJoinRight,
+            GeneratedMethod joinClause, int resultSetNumber,
+            GeneratedMethod leftEmptyRowFun, GeneratedMethod rightEmptyRowFun,
+            boolean wasRightOuterJoin,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString) throws StandardException;
 
-    /**
-     * REMIND: needs more description...
-     *
-     * @param source                     the result set input to this result set.
-     * @param resultSetNumber            The resultSetNumber for the ResultSet
-     * @param erdNumber                  int for ResultDescription
-     *                                   (so it can be turned back into an object)
-     * @param optimizerEstimatedRowCount Estimated total # of rows by
-     *                                   optimizer
-     * @param optimizerEstimatedCost     Estimated total cost by optimizer
-     * @return the normalization operation as a result set.
-     * @throws StandardException Thrown on failure
-     */
-    NoPutResultSet getNormalizeResultSet(NoPutResultSet source,
-                                         int resultSetNumber,
-                                         int erdNumber,
-                                         double optimizerEstimatedRowCount,
-                                         double optimizerEstimatedCost,
-                                         boolean forUpdate,
-                                         String explainPlan)
-            throws StandardException;
+NoPutResultSet getNestedLoopJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            GeneratedMethod joinClause, int resultSetNumber,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString) throws StandardException;
 
-    /**
-     * A current of result set forms a result set on the
-     * current row of an open cursor.
-     * It is used to perform positioned operations such as
-     * positioned update and delete, using the result set paradigm.
-     *
-     * @param cursorName      the name of the cursor providing the row.
-     * @param resultSetNumber The resultSetNumber for the ResultSet
-     */
-    NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation,
-                                         int resultSetNumber);
+NoPutResultSet getCrossJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            GeneratedMethod joinClause, int resultSetNumber,
+            boolean oneRowRightSide, byte semiJoinType,
+            boolean rightFromSSQ, boolean broadcastRightSide,
+            double optimizerEstimatedRowCount, double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString) throws StandardException;
 
-    /**
-     * The Union interface is used to evaluate the union (all) of two ResultSets.
-     * (Any duplicate elimination is performed above this ResultSet.)
-     * <p>
-     * Forms a ResultSet returning the union of the rows in two source
-     * ResultSets.  The column types in source1 and source2 are assumed to be
-     * the same.
-     *
-     * @param source1                    The first ResultSet whose rows go into the union
-     * @param source2                    The second ResultSet whose rows go into the
-     *                                   union
-     * @param resultSetNumber            The resultSetNumber for the ResultSet
-     * @param optimizerEstimatedRowCount Estimated total # of rows by
-     *                                   optimizer
-     * @param optimizerEstimatedCost     Estimated total cost by optimizer
-     * @throws StandardException Thrown on failure
-     * @return A ResultSet from which the caller can get the union
-     * of the two source ResultSets.
-     */
+NoPutResultSet getMergeSortJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
+            int resultSetNumber, boolean oneRowRightSide,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString) throws StandardException;
+
+NoPutResultSet getHalfMergeSortJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem, GeneratedMethod joinClause,
+            int resultSetNumber, boolean oneRowRightSide,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan,
+            String sparkExpressionTreeAsString,
+            int encodedNewMergeJoin) throws StandardException;
+
+NoPutResultSet getMergeJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem,
+            int rightHashKeyToBaseTableMapItem,
+            int rightHashKeySortOrderItem,
+            GeneratedMethod joinClause,
+            int resultSetNumber, boolean oneRowRightSide,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException;
+
+NoPutResultSet getBroadcastJoinResultSet(
+            NoPutResultSet leftResultSet, int leftNumCols,
+            NoPutResultSet rightResultSet, int rightNumCols,
+            int leftHashKeyItem, int rightHashKeyItem, boolean noCacheBroadcastJoinRight,
+            GeneratedMethod joinClause,
+            int resultSetNumber, boolean oneRowRightSide,
+            byte semiJoinType, boolean rightFromSSQ, double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String userSuppliedOptimizerOverrides,
+            String explainPlan) throws StandardException;
+
+NoPutResultSet getWindowResultSet(NoPutResultSet source,
+                                             boolean isInSortedOrder,
+                                             int aggregateItem,
+                                             GeneratedMethod rowAllocator,
+                                             int maxRowSize,
+                                             int resultSetNumber,
+                                             double optimizerEstimatedRowCount,
+                                             double optimizerEstimatedCost,
+                                             String explainPlan)
+        throws StandardException;
+
+NoPutResultSet getIndexRowToBaseRowResultSet(long conglomId,
+                                                        int scociItem,
+                                                        NoPutResultSet source,
+                                                        GeneratedMethod resultRowAllocator,
+                                                        int resultSetNumber,
+                                                        String indexName,
+                                                        int heapColRefItem,
+                                                        int allColRefItem,
+                                                        int heapOnlyColRefItem,
+                                                        int indexColMapItem,
+                                                        GeneratedMethod restriction,
+                                                        boolean forUpdate,
+                                                        double optimizerEstimatedRowCount,
+                                                        double optimizerEstimatedCost,
+                                                        String tableVersion,
+                                                        String explainPlan,
+                                                        GeneratedMethod defaultRowFunc,
+                                                        int defaultValueMapItem)
+        throws StandardException;
+
+NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, int resultSetNumber);
+
     NoPutResultSet getUnionResultSet(NoPutResultSet source1,
                                      NoPutResultSet source2,
                                      int resultSetNumber,
@@ -1890,7 +1754,6 @@ public interface ResultSetFactory {
                                      double optimizerEstimatedCost,
                                      String explainPlan)
             throws StandardException;
-
 
     /**
      * The SetOpResultSet is used to implement an INTERSECT or EXCEPT operation.
@@ -1959,8 +1822,9 @@ public interface ResultSetFactory {
      * @param optimizerEstimatedRowCount     Estimated total # of rows by
      *                                       optimizer
      * @param optimizerEstimatedCost         Estimated total cost by optimizer
-     * @param pastTxFunctor                  a functor that returns the id of a committed transaction for time-travel queries
+     * @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
      * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
+     *
      * @return the scan operation as a result set.
      * @throws StandardException thrown when unable to create the
      *                           result set
