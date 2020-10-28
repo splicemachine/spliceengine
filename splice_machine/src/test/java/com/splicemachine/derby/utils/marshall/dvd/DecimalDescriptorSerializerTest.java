@@ -50,7 +50,8 @@ public class DecimalDescriptorSerializerTest {
     }
     
     public void testDecodeDirect(DescriptorSerializer dds, String value, int precision, int scale) throws StandardException {
-        SQLDecimal source = new SQLDecimal( new BigDecimal(value) );
+        BigDecimal bdSource = new BigDecimal(value);
+        SQLDecimal source = new SQLDecimal( bdSource );
         byte[] bytes = dds.encodeDirect(source, false);
         
         SQLDecimal target = new SQLDecimal(null, precision, scale);
@@ -61,7 +62,7 @@ public class DecimalDescriptorSerializerTest {
         );
 
         assertEquals(
-            stringOf(source, precision, scale),
+            stringOf(new SQLDecimal( bdSource.stripTrailingZeros() ), precision, scale),
             stringOf(target, target.getPrecision(), target.getScale())
         );
     }
