@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.storage.DataScan;
+import com.splicemachine.utils.Pair;
 
 import java.util.List;
 
@@ -59,7 +60,7 @@ public interface ScanInformation<T> {
 
     DataScan getScan(TxnView txn) throws StandardException;
 
-    DataScan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, T stopKeyPrefix) throws StandardException;
+    DataScan getScan(TxnView txn, T startKeyHint,int[] keyDecodingMap, T stopKeyPrefix, List<Pair<T, T>> keyRows) throws StandardException;
 
     Qualifier[][] getScanQualifiers() throws StandardException;
 
@@ -72,6 +73,8 @@ public interface ScanInformation<T> {
     SpliceConglomerate getConglomerate() throws StandardException;
 
     ExecIndexRow getStartPosition() throws StandardException;
+
+    ExecIndexRow getStopPosition() throws StandardException;
 
     ExecRow getDefaultRow() throws StandardException;
 

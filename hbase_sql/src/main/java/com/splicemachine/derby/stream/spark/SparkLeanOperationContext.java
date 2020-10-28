@@ -447,4 +447,10 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
             return operationContext;
         }
     }
+
+    @Override
+    public long getBadRecordThreshold() { return badRecordThreshold; }
+
+    @Override
+    public String getImportFileName() { return importFileName; }
 }

@@ -267,8 +267,9 @@ public class ScanCostFunction{
         scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
         scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        scanCost.setLocalCostPerPartition(scanCost.localCost(), scanCost.partitionCount());
-        scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.partitionCount());
+        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
+        scanCost.setLocalCostPerParallelTask(scanCost.localCost(), scanCost.getParallelism());
+        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
         if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("%n" +
                             "============= generateOneRowCost() for table: %s =============%n" +
@@ -395,8 +396,9 @@ public class ScanCostFunction{
         assert localCost >= 0 : "localCost cannot be negative -> " + localCost;
         scanCost.setLocalCost(localCost);
         scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        scanCost.setLocalCostPerPartition((baseCost + lookupCost + projectionCost), scanCost.partitionCount());
-        scanCost.setRemoteCostPerPartition(scanCost.remoteCost(), scanCost.partitionCount());
+        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
+        scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), scanCost.getParallelism());
+        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
 
         if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("%n" +
