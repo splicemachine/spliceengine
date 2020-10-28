@@ -22,7 +22,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
-import com.google.common.collect.ArrayListMultimap;
+import splice.com.google.common.collect.ArrayListMultimap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.catalog.types.*;

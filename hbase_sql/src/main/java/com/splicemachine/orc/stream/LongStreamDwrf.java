@@ -21,7 +21,7 @@ import org.apache.spark.sql.types.DataType;
 
 import java.io.IOException;
 import static com.splicemachine.orc.stream.LongDecode.readDwrfLong;
-import static com.google.common.base.Preconditions.checkPositionIndex;
+import static splice.com.google.common.base.Preconditions.checkPositionIndex;
 import static java.lang.Math.toIntExact;
 
 public class LongStreamDwrf

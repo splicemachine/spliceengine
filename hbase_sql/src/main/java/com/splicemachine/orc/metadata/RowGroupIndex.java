@@ -13,7 +13,7 @@
  */
 package com.splicemachine.orc.metadata;
 
-import com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableList;
 
 import java.util.List;
 

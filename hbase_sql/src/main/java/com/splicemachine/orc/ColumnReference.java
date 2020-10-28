@@ -16,7 +16,7 @@ package com.splicemachine.orc;
 import org.apache.spark.sql.types.DataType;
 
 import static java.util.Objects.requireNonNull;
-import static com.google.common.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.MoreObjects.toStringHelper;
 
 /**

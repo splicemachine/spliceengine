@@ -13,8 +13,8 @@
  */
 package com.splicemachine.orc.metadata;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
+import splice.com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableMap;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 
@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.collect.Maps.transformValues;
+import static splice.com.google.common.collect.Maps.transformValues;
 import static java.util.Objects.requireNonNull;
 
 public class Footer

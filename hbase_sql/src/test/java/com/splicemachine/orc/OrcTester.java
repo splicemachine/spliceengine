@@ -13,15 +13,15 @@
  */
 package com.splicemachine.orc;
 
-import com.google.common.base.Preconditions;
+import splice.com.google.common.base.Preconditions;
 import com.splicemachine.orc.block.BlockFactory;
 import com.splicemachine.orc.block.ColumnBlock;
 import com.splicemachine.orc.memory.AggregatedMemoryContext;
 import com.splicemachine.orc.metadata.DwrfMetadataReader;
 import com.splicemachine.orc.metadata.MetadataReader;
 import com.splicemachine.orc.metadata.OrcMetadataReader;
-import com.google.common.base.Throwables;
-import com.google.common.collect.*;
+import splice.com.google.common.base.Throwables;
+import splice.com.google.common.collect.*;
 import io.airlift.units.DataSize;
 import io.airlift.units.DataSize.Unit;
 import org.apache.commons.io.FileUtils;
@@ -60,8 +60,8 @@ import static com.splicemachine.orc.OrcTester.Compression.ZLIB;
 import static com.splicemachine.orc.OrcTester.Format.DWRF;
 import static com.splicemachine.orc.OrcTester.Format.ORC_12;
 import static com.splicemachine.orc.OrcTester.Format.ORC_11;
-import static com.google.common.base.Functions.constant;
-import static com.google.common.collect.Iterables.transform;
+import static splice.com.google.common.base.Functions.constant;
+import static splice.com.google.common.collect.Iterables.transform;
 import static com.google.common.io.Files.createTempDir;
 import static io.airlift.testing.FileUtils.deleteRecursively;
 import static io.airlift.units.DataSize.succinctBytes;
