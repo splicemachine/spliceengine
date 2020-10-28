@@ -14,7 +14,7 @@
 package com.splicemachine.orc.memory;
 
 import static com.google.common.base.MoreObjects.toStringHelper;
-import static com.google.common.base.Preconditions.checkState;
+import static splice.com.google.common.base.Preconditions.checkState;
 import static java.util.Objects.requireNonNull;
 
 public class AggregatedMemoryContext

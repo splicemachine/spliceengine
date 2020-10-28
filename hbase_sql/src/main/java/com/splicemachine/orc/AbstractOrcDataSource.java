@@ -13,7 +13,7 @@
  */
 package com.splicemachine.orc;
 
-import com.google.common.collect.ImmutableMap;
+import splice.com.google.common.collect.ImmutableMap;
 import io.airlift.slice.*;
 import io.airlift.slice.ChunkedSliceInput.BufferReference;
 import io.airlift.slice.ChunkedSliceInput.SliceLoader;
@@ -26,7 +26,7 @@ import java.util.Map.Entry;
 
 import static com.splicemachine.orc.OrcDataSourceUtils.getDiskRangeSlice;
 import static com.splicemachine.orc.OrcDataSourceUtils.mergeAdjacentDiskRanges;
-import static com.google.common.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 

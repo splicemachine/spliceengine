@@ -18,7 +18,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
-import com.google.common.collect.Lists;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -104,6 +105,7 @@ public class ZooKeeperDDLWatchChecker implements DDLWatchChecker{
     }
 
     @Override
+    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-10605")
     public void notifyProcessed(Collection<Pair<DDLMessage.DDLChange,String>> processedChanges) throws IOException{
         /*
          * Notify the relevant controllers that their change has been processed
