@@ -15,6 +15,7 @@
 package com.splicemachine.si.impl;
 
 import com.carrotsearch.hppc.LongHashSet;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.filter.RowAccumulator;
 import com.splicemachine.si.api.filter.TxnFilter;
 import com.splicemachine.si.api.readresolve.ReadResolver;
@@ -29,6 +30,8 @@ import com.splicemachine.storage.CellType;
 import com.splicemachine.storage.DataCell;
 import com.splicemachine.storage.DataFilter;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -40,6 +43,9 @@ import java.io.IOException;
  *         Date: 6/23/14
  */
 public class SimpleTxnFilter implements TxnFilter{
+
+    private static final Logger LOG = Logger.getLogger(SimpleTxnFilter.class);
+
     private final TxnSupplier transactionStore;
     private final TxnView myTxn;
     private final ReadResolver readResolver;
@@ -154,6 +160,13 @@ public class SimpleTxnFilter implements TxnFilter{
             case USER_DATA:
                 return checkVisibility(keyValue);
             default:
+                SpliceLogUtils.info(LOG, "unexpected key value:");
+                long timestamp = keyValue.version();
+                SpliceLogUtils.info(LOG, "timestamp = %d", timestamp);
+                byte[] key = keyValue.key();
+                SpliceLogUtils.info(LOG, "key = %s", Bytes.toStringBinary(key));
+                byte[] value = keyValue.value();
+                SpliceLogUtils.info(LOG, "value = %s", Bytes.toStringBinary(value));
                 //TODO -sf- do better with this?
                 throw new AssertionError("Unexpected Data type: "+type);
         }
