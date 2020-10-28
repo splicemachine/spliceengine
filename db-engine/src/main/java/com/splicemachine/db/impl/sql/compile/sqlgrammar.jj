@@ -3057,8 +3057,10 @@ TOKEN [IGNORE_CASE] :
 |    <DETERMINISTIC: "deterministic">
 |    <DIGITS: "digits">
 |   <DYNAMIC: "dynamic">
+|    <ENCODING: "encoding">
 |   <EXCLUDE: "exclude">
 |   <EXTRACT: "extract">
+|    <FIELD_SEPARATOR: "field_separator">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
@@ -3110,8 +3112,11 @@ TOKEN [IGNORE_CASE] :
 |   <RECURSIVE: "recursive">
 |    <RELEASE: "release">
 |    <QUARTER: "quarter">
+|    <QUOTE_CHARACTER: "quote_character">
+|    <QUOTE_MODE: "quote_mode">
 |   <REPEAT: "repeat">
 |    <REPEATABLE: "repeatable">
+|    <REPLICATION_COUNT: "replication_count">
 |    <RESPECT: "respect">
 |    <RESTART: "restart">
 |    <RETURNS: "returns">
@@ -3126,6 +3131,7 @@ TOKEN [IGNORE_CASE] :
 |    <LINES: "lines">
 |    <PARTITIONED: "partitioned">
 |    <COMPRESSED: "compressed">
+|    <COMPRESSION: "compression">
 |    <SNAPPY: "snappy">
 |    <ZLIB: "zlib">
 |    <STORED: "stored">
@@ -4190,21 +4196,73 @@ pinStatement() throws StandardException :
     }
 }
 
-
 StatementNode
 exportStatement() throws StandardException :
 {
     StatementNode   statementNode;
     Vector parameterList = new Vector();
+    ValueNode exportPath;
+    ValueNode compression = null;
+    ValueNode replicationCount = null;
+    ValueNode encoding = null;
+    ValueNode fieldSeparator = null;
+    ValueNode quoteCharacter = null;
+    ValueNode quoteMode = null;
+    ValueNode fileType = null;
 }
 {
-    <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
-    {
-        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                   statementNode,
-                                   parameterList,
-                                   getContextManager());
-    }
+    <EXPORT>
+    (
+        <TO> exportPath = orExpression(null)
+        <AS> fileType = orExpression(null)
+        [
+            <COMPRESSION> compression = orExpression(null)
+        ]
+        [
+            <REPLICATION_COUNT> replicationCount = orExpression(null)
+        ]
+        [
+            <ENCODING> encoding = orExpression(null)
+        ]
+        [
+            <FIELD_SEPARATOR> fieldSeparator = orExpression(null)
+        ]
+        [
+            <QUOTE_CHARACTER> quoteCharacter = orExpression(null)
+        ]
+        [
+            <QUOTE_MODE> quoteMode = orExpression(null)
+        ]
+        statementNode = preparableSQLDataStatement()
+        {
+            parameterList.addElement(exportPath);
+            parameterList.addElement(compression);
+            parameterList.addElement(replicationCount);
+            parameterList.addElement(encoding);
+            parameterList.addElement(fieldSeparator);
+            parameterList.addElement(quoteCharacter);
+            parameterList.addElement(quoteMode);
+            parameterList.addElement(fileType);
+            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                       statementNode,
+                                       parameterList,
+                                       getContextManager());
+        }
+    |
+        // Legacy export
+        methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+        {
+            parameterList.addElement(null); // null for legacy
+            parameterList.addElement((CharConstantNode) nodeFactory.getNode(
+                                     C_NodeTypes.CHAR_CONSTANT_NODE,
+                                     "csv",
+                                     getContextManager()));
+            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                       statementNode,
+                                       parameterList,
+                                       getContextManager());
+        }
+    )
 }
 
 StatementNode
@@ -4230,11 +4288,24 @@ binaryExportStatement() throws StandardException :
     Vector parameterList = new Vector();
 }
 {
+    // Legacy export
     <EXPORT_BINARY> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
-        return (BinaryExportNode) nodeFactory.getNode(C_NodeTypes.BINARY_EXPORT_NODE,
+        if (parameterList.size() != 3) {
+            throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "BINARY_EXPORT");
+        }
+        Vector actualParameterList = new Vector();
+        actualParameterList.addElement(parameterList.elementAt(0));
+        actualParameterList.addElement(parameterList.elementAt(1));
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(parameterList.elementAt(2));
+        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
-                                   parameterList,
+                                   actualParameterList,
                                    getContextManager());
     }
 }
@@ -18201,6 +18272,7 @@ nonReservedKeyword()  :
     |   tok = <COLUMNDELIMITER>
     |    tok = <COMMITTED>
     |    tok = <COMPRESS>
+    |    tok = <COMPRESSION>
     |    tok = <CONCAT>
     |    tok = <CONTAINS>
     |    tok = <CONTENT>
@@ -18228,10 +18300,12 @@ nonReservedKeyword()  :
     |    tok = <DOCUMENT>
     |    tok = <EACH>
     |    tok = <EMPTY>
+    |    tok = <ENCODING>
     |    tok = <EXCLUDE>
     |    tok = <ESTIMATE>
     |    tok = <EXCLUSIVE>
     |    tok = <EXTRACT>
+    |    tok = <FIELD_SEPARATOR>
     |    tok = <FIRSTVALUE>
     |    tok = <FN>
     |    tok = <FORTRAN>
@@ -18389,6 +18463,9 @@ nonReservedKeyword()  :
     |    tok = <STRING_AGG>
     |    tok = <SYNONYM>
     |    tok = <STYLE>
+    |    tok = <QUOTE_CHARACTER>
+    |    tok = <QUOTE_MODE>
+    |    tok = <REPLICATION_COUNT>
     |    tok = <T>
     |    tok = <TEXT>
     |    tok = <THEN>
