@@ -133,8 +133,6 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
         writeBuffer=transformWriteBuffer(bufferToTransform);
         encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
         flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
-        if (triggerHandler != null && triggerHandler.hasStatementTriggerWithReferencingClause())
-            triggerRowsEncoder=new PairEncoder(getTriggerKeyEncoder(),getTriggerRowHash(),KVPair.Type.INSERT);
     }
 
     public KeyEncoder getKeyEncoder() throws StandardException{
