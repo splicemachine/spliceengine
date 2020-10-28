@@ -218,7 +218,7 @@ public abstract class DMLStatementNode extends StatementNode {
         resultSet.accept(cnv);
         for (Object obj : cnv.getList()) {
             if (obj instanceof FromBaseTable) {
-                ((FromBaseTable) obj).determineSpark();
+                  ((FromBaseTable) obj).determineSpark();
             }
             type = type.combine(((FromTable) obj).getDataSetProcessorType());
         }

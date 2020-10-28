@@ -1393,6 +1393,7 @@ public interface SQLState {
     String LANG_STOP_AFTER_BINDING                                     = "42Z56.U";
     String LANG_STOP_AFTER_OPTIMIZING                                  = "42Z57.U";
     String LANG_STOP_AFTER_GENERATING                                  = "42Z58.U";
+	String LANG_INTERNAL_ERROR                                         = "42Z59.U";
 
     // PARSER EXCEPTIONS
     String LANG_UNBINDABLE_REWRITE                                     = "X0A00.S";
