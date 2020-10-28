@@ -49,6 +49,7 @@ import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructType;
 
@@ -62,6 +63,7 @@ import java.util.Arrays;
 /**
  * Created by jleach on 2/27/17.
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class StatisticsOperation extends SpliceBaseOperation {
     private static Logger LOG=Logger.getLogger(StatisticsOperation.class);
 
@@ -212,6 +214,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         }
     }
 
+    @SuppressFBWarnings("DMI_NONSERIALIZABLE_OBJECT_WRITTEN") // DB-10600
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
