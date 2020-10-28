@@ -15,7 +15,7 @@ package com.splicemachine.orc;
 
 import com.splicemachine.orc.metadata.ColumnEncoding;
 import com.splicemachine.orc.stream.StreamSources;
-import com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableList;
 
 import java.util.List;
 

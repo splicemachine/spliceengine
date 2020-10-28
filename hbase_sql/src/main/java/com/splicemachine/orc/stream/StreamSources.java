@@ -16,10 +16,10 @@ package com.splicemachine.orc.stream;
 import com.splicemachine.orc.StreamDescriptor;
 import com.splicemachine.orc.StreamId;
 import com.splicemachine.orc.metadata.Stream.StreamKind;
-import com.google.common.collect.ImmutableMap;
+import splice.com.google.common.collect.ImmutableMap;
 import javax.annotation.Nonnull;
 import java.util.Map;
-import static com.google.common.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkArgument;
 import static com.splicemachine.orc.stream.MissingStreamSource.missingStreamSource;
 import static java.util.Objects.requireNonNull;
 
