@@ -4286,6 +4286,7 @@ binaryExportStatement() throws StandardException :
     Vector parameterList = new Vector();
 }
 {
+    // Legacy export
     <EXPORT_BINARY> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
         if (parameterList.size() != 3) {
@@ -4302,7 +4303,7 @@ binaryExportStatement() throws StandardException :
         actualParameterList.addElement(parameterList.elementAt(2));
         return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
-                                   parameterList,
+                                   actualParameterList,
                                    getContextManager());
     }
 }
