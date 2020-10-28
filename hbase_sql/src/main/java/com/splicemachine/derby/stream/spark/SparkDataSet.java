@@ -783,7 +783,7 @@ public class SparkDataSet<V> implements DataSet<V> {
                 dataSchema);
 
         return new NativeSparkDataSet<>(insertDF, context)
-                .writeAvroFile(dsp, dataSchema, partitionBy, location, compression, context);
+                .writeAvroFile(dataSchema, partitionBy, location, compression, context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
