@@ -664,16 +664,16 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     kafkaTopics.create()
   }
   
-  def sendData_streaming(dataFrame: DataFrame, topicName: String): (Seq[RowForKafka], Long) = {
+  def sendData_streaming(dataFrame: DataFrame, topicName: String): (Seq[RowForKafka], Long, Array[String]) = {
     insAccum.reset
     lastRowsToSend.reset
     debug("SMC.sds sendData")
-    sendData(topicName, dataFrame.rdd, dataFrame.schema, true)
+    val ptnInfo = sendData(topicName, dataFrame.rdd, dataFrame.schema, true)
 
     val rows = lastRowsToSend.value.asScala
     trace(s"SMC.sds last rows ${rows.mkString("\n")}")
 
-    (rows, insAccum.sum)
+    (rows, insAccum.sum, ptnInfo)
   }
   
 //  /** checkRecovery was written to help debug an issue and normally won't need to be called.
@@ -821,10 +821,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     ).collect
   }
   
-  private[this] def activePartitions(ptnInfo: Array[String]): Seq[Int] =
+  def activePartitions(ptnInfo: Array[String]): Seq[Int] =
     ptnInfo.filter( _.split(" ")(1).toInt > 0 ).map( _.split(" ")(0).toInt )
 
-  private[this] def topicSuffix(ptnInfo: Array[String], numPartitionsSpark: Int): String = {
+  def topicSuffix(ptnInfo: Array[String], numPartitionsSpark: Int): String = {
     val activePtn = activePartitions(ptnInfo)
     if (activePtn.size == numPartitionsSpark) { "" }
     else { s"::${activePtn.mkString(",")}" }
