@@ -15,9 +15,12 @@
 
 package com.splicemachine.derby.stream.output;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public abstract class KafkaDataSetWriterBuilder<V> {
     protected String topicName;
 
+    @SuppressFBWarnings(value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD", justification = "planned to be used in subclasses")
     public KafkaDataSetWriterBuilder<V> topicName(String topicName) {
         this.topicName = topicName;
         return this;

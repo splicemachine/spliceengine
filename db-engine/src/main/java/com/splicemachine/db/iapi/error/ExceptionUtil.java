@@ -92,6 +92,8 @@ public class ExceptionUtil
                 case '8':
                     lseverity = ExceptionSeverity.SESSION_SEVERITY;
                     break;
+                default:
+                    break;
                 }
                 break;	
             case '2':
@@ -105,6 +107,8 @@ public class ExceptionUtil
                     break;
                 case '2':
                     lseverity = ExceptionSeverity.STATEMENT_SEVERITY;
+                    break;
+                default:
                     break;
                 }
                 break;	
@@ -130,6 +134,8 @@ public class ExceptionUtil
                 break;
             case 'U':
                 lseverity = ExceptionSeverity.NO_APPLICABLE_SEVERITY;
+                break;
+            default:
                 break;
             }
             break;

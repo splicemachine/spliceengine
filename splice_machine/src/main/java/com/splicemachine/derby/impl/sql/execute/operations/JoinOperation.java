@@ -34,6 +34,8 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -142,8 +144,77 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				this.leftResultSetNumber = leftResultSet.resultSetNumber();
 				this.rightResultSet = rightResultSet;
 				this.sparkExpressionTreeAsString = sparkExpressionTreeAsString;
+			}
+
+		@Override
+		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+				super.readExternal(in);
+				leftResultSetNumber = in.readInt();
+				leftNumCols = in.readInt();
+				rightNumCols = in.readInt();
+				restrictionMethodName = readNullableString(in);
+				userSuppliedOptimizerOverrides = readNullableString(in);
+				oneRowRightSide = in.readBoolean();
+				semiJoinType = in.readByte();
+				rightFromSSQ = in.readBoolean();
+                wasRightOuterJoin = in.readBoolean();
+                joinType = in.readInt();
+                rightEmptyRowFunMethodName = readNullableString(in);
+				boolean readMerged=false;
+				if(in.readBoolean()){
+						leftResultSet = (SpliceOperation) in.readObject();
+						serializeLeftResultSet=true;
+				}else readMerged=true;
+				if(in.readBoolean()){
+						rightResultSet = (SpliceOperation) in.readObject();
+						serializeRightResultSet=true;
+				}else readMerged=true;
+				if(readMerged){
+						mergedRow = (ExecRow) in.readObject();
+						leftRow = (ExecRow)in.readObject();
+						rightRow = (ExecRow)in.readObject();
+                        mergedRowTemplate = (ExecRow)in.readObject();
+				}
+				if (in.readBoolean()) {
+					sparkExpressionTreeAsString = in.readUTF();
+				}
+				else
+					sparkExpressionTreeAsString = null;
 		}
 
+		@Override
+		public void writeExternal(ObjectOutput out) throws IOException {
+				super.writeExternal(out);
+				out.writeInt(leftResultSetNumber);
+				out.writeInt(leftNumCols);
+				out.writeInt(rightNumCols);
+				writeNullableString(restrictionMethodName, out);
+				writeNullableString(userSuppliedOptimizerOverrides, out);
+				out.writeBoolean(oneRowRightSide);
+				out.writeByte(semiJoinType);
+				out.writeBoolean(rightFromSSQ);
+                out.writeBoolean(wasRightOuterJoin);
+                out.writeInt(joinType);
+                writeNullableString(rightEmptyRowFunMethodName, out);
+				out.writeBoolean(serializeLeftResultSet);
+				if(serializeLeftResultSet)
+						out.writeObject(leftResultSet);
+				out.writeBoolean(serializeRightResultSet);
+				if(serializeRightResultSet)
+						out.writeObject(rightResultSet);
+				if(!serializeRightResultSet||!serializeLeftResultSet){					
+					out.writeObject(mergedRow);
+						out.writeObject(leftRow);
+						out.writeObject(rightRow);
+                        out.writeObject(mergedRowTemplate);
+				}
+				boolean sparkExpressionPresent = (sparkExpressionTreeAsString != null &&
+				                                  sparkExpressionTreeAsString.length() != 0);
+
+				out.writeBoolean(sparkExpressionPresent);
+				if (sparkExpressionPresent)
+				    out.writeUTF(sparkExpressionTreeAsString);
+		}
 		@Override
 		public List<SpliceOperation> getSubOperations() {
 				SpliceLogUtils.trace(LOG, "getSubOperations");
