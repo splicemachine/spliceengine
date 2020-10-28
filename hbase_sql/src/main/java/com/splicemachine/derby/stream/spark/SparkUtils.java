@@ -250,7 +250,7 @@ public class SparkUtils {
             JavaRDD<ExecRow> rdd = ((SparkDataSet)spliceDataSet).rdd;
             return SpliceSpark.getSession().createDataFrame(rdd.map(new LocatedRowToRowFunction()), schema);
         } else {
-            return ((NativeSparkDataSet) spliceDataSet).dataset.toDF( schema.fieldNames() );
+            return ((NativeSparkDataSet) spliceDataSet).getDataset().toDF( schema.fieldNames() );
         }
     }
 

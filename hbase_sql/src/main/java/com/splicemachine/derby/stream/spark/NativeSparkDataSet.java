@@ -71,7 +71,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     private static String SPARK_COMPRESSION_OPTION = "compression";
 
-    public Dataset<Row> dataset;
+    private Dataset<Row> dataset;
     private Map<String,String> attributes;
     private ExecRow execRow;
     private OperationContext context;
@@ -112,6 +112,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
+    }
+
+    public Dataset<Row> getDataset() {
+        return dataset;
     }
 
     @Override
@@ -980,7 +984,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                              String compression, OperationContext context) throws StandardException {
         compression = SparkExternalTableUtil.getParquetCompression( compression );
         try( CountingListener counter = new CountingListener(context) ) {
-            getDataFrameWriter(generateTableSchema(context), partitionBy, context)
+            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy)
                     .option(SPARK_COMPRESSION_OPTION, compression)
                     .parquet(location);
         }
@@ -999,19 +1003,18 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         StructType dataSchema = SparkExternalTableUtil.getDataSchemaAvro(dsp, tableSchema, partitionBy, location);
         if (dataSchema == null)
             dataSchema = tableSchema;
-        return writeAvroFile(dsp, dataSchema, partitionBy, location, compression, context);
+        return writeAvroFile(dataSchema, partitionBy, location, compression, context);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeAvroFile(DataSetProcessor dsp,
-                                          StructType tableSchema,
+    public DataSet<ExecRow> writeAvroFile(StructType tableSchema,
                                           int[] partitionBy,
                                           String location,
                                           String compression,
                                           OperationContext context) throws StandardException {
         compression = SparkExternalTableUtil.getAvroCompression(compression);
         try( CountingListener counter = new CountingListener(context) ) {
-            getDataFrameWriter(tableSchema, partitionBy, context)
+            getDataFrameWriter(dataset, tableSchema, partitionBy)
                     .option(SPARK_COMPRESSION_OPTION, compression)
                     .format("com.databricks.spark.avro").save(location);
         }
@@ -1022,7 +1025,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
                                           OperationContext context) throws StandardException {
         try( CountingListener counter = new CountingListener(context) ) {
-            getDataFrameWriter(generateTableSchema(context), partitionBy, context)
+            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy)
                     .options(getCsvOptions(csvOptions))
                     .csv(location);
         }
@@ -1032,7 +1035,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                     OperationContext context) throws StandardException {
         try( CountingListener counter = new CountingListener(context) ) {
-            getDataFrameWriter(generateTableSchema(context), partitionBy, context)
+            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy)
                     .option(SPARK_COMPRESSION_OPTION, compression)
                     .orc(location);
         }
@@ -1078,8 +1081,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
-    private DataFrameWriter getDataFrameWriter(StructType tableSchema, int[] partitionBy,
-                                               OperationContext context) throws StandardException {
+    static private DataFrameWriter getDataFrameWriter(Dataset<Row> dataset, StructType tableSchema,
+                                                      int[] partitionBy) throws StandardException {
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 dataset.rdd(),
                 tableSchema);
