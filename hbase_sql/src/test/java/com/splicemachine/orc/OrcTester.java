@@ -62,7 +62,7 @@ import static com.splicemachine.orc.OrcTester.Format.ORC_12;
 import static com.splicemachine.orc.OrcTester.Format.ORC_11;
 import static splice.com.google.common.base.Functions.constant;
 import static splice.com.google.common.collect.Iterables.transform;
-import static com.google.common.io.Files.createTempDir;
+import static splice.com.google.common.io.Files.createTempDir;
 import static io.airlift.testing.FileUtils.deleteRecursively;
 import static io.airlift.units.DataSize.succinctBytes;
 import static java.lang.Math.toIntExact;

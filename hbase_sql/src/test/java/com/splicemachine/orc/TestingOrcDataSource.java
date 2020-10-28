@@ -13,7 +13,7 @@
  */
 package com.splicemachine.orc;
 
-import com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableList;
 import io.airlift.slice.FixedLengthSliceInput;
 import java.io.IOException;
 import java.util.List;

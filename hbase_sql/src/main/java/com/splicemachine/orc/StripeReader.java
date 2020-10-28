@@ -23,11 +23,11 @@ import com.splicemachine.orc.metadata.OrcType.OrcTypeKind;
 import com.splicemachine.orc.metadata.PostScript.HiveWriterVersion;
 import com.splicemachine.orc.metadata.Stream.StreamKind;
 import com.splicemachine.orc.stream.*;
-import com.google.common.base.Predicates;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
+import splice.com.google.common.base.Predicates;
+import splice.com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableMap;
+import splice.com.google.common.collect.ImmutableSet;
+import splice.com.google.common.collect.Maps;
 import io.airlift.slice.FixedLengthSliceInput;
 import io.airlift.slice.Slices;
 
@@ -42,7 +42,7 @@ import static com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind.D
 import static com.splicemachine.orc.metadata.ColumnEncoding.ColumnEncodingKind.DICTIONARY_V2;
 import static com.splicemachine.orc.metadata.Stream.StreamKind.*;
 import static com.splicemachine.orc.stream.CheckpointStreamSource.createCheckpointStreamSource;
-import static com.google.common.base.Preconditions.checkArgument;
+import static splice.com.google.common.base.Preconditions.checkArgument;
 import static java.lang.Math.toIntExact;
 import static java.util.Objects.requireNonNull;
 
