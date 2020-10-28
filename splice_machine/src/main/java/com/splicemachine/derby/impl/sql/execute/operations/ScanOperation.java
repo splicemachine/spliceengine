@@ -50,7 +50,9 @@ import java.io.ObjectOutput;
 import java.sql.Timestamp;
 import java.util.Arrays;
 
-public abstract class ScanOperation extends SpliceBaseOperation{
+import static com.splicemachine.si.constants.SIConstants.OLDEST_TIME_TRAVEL_TX;
+
+public abstract class ScanOperation extends SpliceBaseOperation {
     private static final Logger LOG=Logger.getLogger(ScanOperation.class);
     private static final long serialVersionUID=7l;
     public int lockMode;
@@ -102,7 +104,7 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                          double optimizerEstimatedCost,String tableVersion,
                          boolean pin, int splits, String delimited, String escaped, String lines,
                          String storedAs, String location, int partitionRefItem, GeneratedMethod defaultRowFunc,
-                         int defaultValueMapItem, GeneratedMethod pastTxFunctor
+                         int defaultValueMapItem, GeneratedMethod pastTxFunctor, long minRetentionPeriod
     ) throws StandardException{
         super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.lockMode=lockMode;
@@ -135,9 +137,9 @@ public abstract class ScanOperation extends SpliceBaseOperation{
                 defaultValueMapItem
         );
         if(pastTxFunctor != null) {
-            this.pastTx = mapToTxId((DataValueDescriptor)pastTxFunctor.invoke(activation));
+            this.pastTx = mapToTxId((DataValueDescriptor)pastTxFunctor.invoke(activation), minRetentionPeriod);
             if(pastTx == -1){
-                pastTx = SIConstants.OLDEST_TIME_TRAVEL_TX; // force going back to the oldest transaction instead of ignoring it.
+                pastTx = OLDEST_TIME_TRAVEL_TX; // force going back to the oldest transaction instead of ignoring it.
             }
         } else {
             this.pastTx = -1; // nothing is set, go ahead and use the latest transaction.
@@ -484,20 +486,56 @@ public abstract class ScanOperation extends SpliceBaseOperation{
         return scanInformation.getAccessedColumns();
     }
 
-    private long mapToTxId(DataValueDescriptor dataValue) throws StandardException {
-        if(dataValue instanceof SQLTimestamp) {
-            Timestamp ts = ((SQLTimestamp)dataValue).getTimestamp(null);
-            SpliceLogUtils.trace(LOG,"time travel ts=%s", ts.toString());
-            try {
-                return SIDriver.driver().getTxnStore().getTxnAt(ts.getTime());
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
+    private long mapToTxId(DataValueDescriptor dataValue, long minRetentionPeriod) throws StandardException {
+        try {
+            if (dataValue instanceof SQLTimestamp) {
+                Timestamp ts = ((SQLTimestamp) dataValue).getTimestamp(null);
+                SpliceLogUtils.trace(LOG, "time travel ts=%s", ts.toString());
+                if (minRetentionPeriod != -1) {
+                    if (within(minRetentionPeriod, ts)) {
+                        return SIDriver.driver().getTxnStore().getTxnAt(ts.getTime());
+                    } else {
+                        throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_OUTSIDE_MIN_RETENTION_PERIOD, minRetentionPeriod);
+                    }
+                } else {
+                    return SIDriver.driver().getTxnStore().getTxnAt(ts.getTime());
+                }
+            } else if (dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
+                if(dataValue.isNull()) {
+                    throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID, "null");
+                }
+                long pastTx = dataValue.getLong();
+                if(minRetentionPeriod != -1) {
+                    if(within(minRetentionPeriod, pastTx)) {
+                        return pastTx;
+                    } else {
+                        throw StandardException.newException(SQLState.LANG_TIME_TRAVEL_INVALID_PAST_TRANSACTION_ID, minRetentionPeriod);
+                    }
+                }
+                return dataValue.getLong();
+            } else {
+                throw StandardException.newException(SQLState.NOT_IMPLEMENTED, dataValue.getClass().getSimpleName() + " can not be used with time travel query"); // fix me, we should read SqlTime as well.
             }
-        }else if(dataValue instanceof SQLTinyint || dataValue instanceof SQLSmallint || dataValue instanceof SQLInteger || dataValue instanceof SQLLongint) {
-            return dataValue.getLong();
-        }else {
-            throw StandardException.newException(SQLState.NOT_IMPLEMENTED, dataValue.getClass().getSimpleName() + " can not be used with time travel query"); // fix me, we should read SqlTime as well.
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
         }
+    }
+
+    private static boolean within(long period, long pastTx) throws IOException {
+        if(pastTx < OLDEST_TIME_TRAVEL_TX) {
+            return false;
+        }
+        long mrpTx = SIDriver.driver().getTxnStore().getTxnAt(System.currentTimeMillis() - period * 1000);
+        return mrpTx <= pastTx;
+    }
+
+    private static boolean within(long period, Timestamp ts) {
+        // should we handle different calendars?
+        Timestamp currentTs = new Timestamp(System.currentTimeMillis());
+        if(ts.after(currentTs)) { // future time travel is no-op anyway
+            return true;
+        }
+        return ((System.currentTimeMillis() - ts.getTime()) / 1000) <= period;
     }
 
     /**
