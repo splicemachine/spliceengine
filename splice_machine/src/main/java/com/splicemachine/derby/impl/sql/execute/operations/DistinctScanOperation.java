@@ -120,7 +120,8 @@ public class DistinctScanOperation extends ScanOperation {
                                  int partitionByRefItem,
                                  GeneratedMethod defaultRowFunc,
                                  int defaultValueMapItem,
-                                 GeneratedMethod pastTxFunctor) throws StandardException {
+                                 GeneratedMethod pastTxFunctor,
+                                 Long minRetentionPeriod) throws StandardException {
         super(conglomId,
                 activation,
                 resultSetNumber,
@@ -142,7 +143,8 @@ public class DistinctScanOperation extends ScanOperation {
                 optimizerEstimatedCost,
                 tableVersion,
                 pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
-                pastTxFunctor);
+                pastTxFunctor,
+                minRetentionPeriod);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;
@@ -255,10 +257,6 @@ public class DistinctScanOperation extends ScanOperation {
 
         dsp.prependSpliceExplainString(this.explainPlan);
         assert currentTemplate != null: "Current Template Cannot Be Null";
-        int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
-        for (int i = 0; i< currentTemplate.nColumns(); i++) {
-            execRowTypeFormatIds[i] = currentTemplate.getColumn(i+1).getTypeFormatId();
-        }
         FormatableBitSet cols = scanInformation.getAccessedColumns();
         int[] colMap;
         if(cols!=null){

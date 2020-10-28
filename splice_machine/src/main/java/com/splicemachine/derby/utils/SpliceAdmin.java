@@ -1469,16 +1469,16 @@ public class SpliceAdmin extends BaseAdminProcedures{
      *
      * @param schemaName Name of the schema.
      * @param tableName Name of the table, if NULL, then `retentionPeriod` will be set for all tables in `schema`.
-     * @param retentionPeriod Retention period (in seconds).
+     * @param retentionPeriod Retention period (in seconds), can be null.
      * @throws StandardException If table or schema does not exist.
      * @throws SQLException is table name or schema name is not valid.
      */
-    public static void SET_MIN_RETENTION_PERIOD(String schemaName, String tableName, long retentionPeriod) throws StandardException, SQLException {
+    public static void SET_MIN_RETENTION_PERIOD(String schemaName, String tableName, Long retentionPeriod) throws StandardException, SQLException {
         // if schemaName was null => get the current schema.
         schemaName = EngineUtils.validateSchema(schemaName);
         // if tableName is null => set min. retention period for all tables in schemaName.
         tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
-        if(retentionPeriod < 0) {
+        if(retentionPeriod != null && retentionPeriod < 0) {
             throw StandardException.newException(SQLState.LANG_INVALID_VALUE_RANGE, retentionPeriod, "non-negative number");
         }
 

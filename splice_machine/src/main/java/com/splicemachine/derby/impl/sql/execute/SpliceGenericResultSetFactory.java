@@ -442,7 +442,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int partitionByRefItem,
                                                 GeneratedMethod defaultRowFunc,
                                                 int defaultValueMapItem,
-                                                GeneratedMethod pastTxFunctor )
+                                                GeneratedMethod pastTxFunctor,
+                                                long minRetentionPeriod )
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -486,7 +487,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor );
+                    pastTxFunctor,
+                    minRetentionPeriod );
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -763,7 +765,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             partitionByRefItem,
             defaultRowFunc,
             defaultValueMapItem,
-            (GeneratedMethod)null);
+            (GeneratedMethod)null,
+            -1);
     }
 
     @Override
@@ -796,7 +799,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor ) throws StandardException {
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod ) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             ScanOperation op = new DistinctScanOperation(
@@ -827,7 +831,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor);
+                    pastTxFunctor,
+                    minRetentionPeriod);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1021,7 +1026,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor )
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod )
 
             throws StandardException {
         try{
@@ -1069,7 +1075,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor
+                    pastTxFunctor,
+                    minRetentionPeriod
                     );
             op.setExplainPlan(explainPlan);
             return op;
@@ -2075,6 +2082,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         return op;
     }
 
+    @Override
     public NoPutResultSet getLastIndexKeyResultSet
             (
                     Activation activation,
@@ -2092,7 +2100,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     double optimizerEstimatedCost,
                     String tableVersion,
                     String explainPlan,
-                    GeneratedMethod pastTxFunctor
+                    GeneratedMethod pastTxFunctor,
+                    long minRetentionPeriod
             ) throws StandardException {
         SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
         ScanOperation op = new LastIndexKeyOperation(
@@ -2108,7 +2117,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 tableLocked,
                 isolationLevel,
                 optimizerEstimatedRowCount,
-                optimizerEstimatedCost, tableVersion, pastTxFunctor);
+                optimizerEstimatedCost, tableVersion, pastTxFunctor, minRetentionPeriod);
         op.setExplainPlan(explainPlan);
         return op;
     }
