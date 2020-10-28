@@ -867,11 +867,6 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
-    public Visitable visit(BinaryExportNode node) throws StandardException {
-        return defaultVisit(node);
-    }
-
-    @Override
     public Visitable visit(KafkaExportNode node) throws StandardException {
         return defaultVisit(node);
     }

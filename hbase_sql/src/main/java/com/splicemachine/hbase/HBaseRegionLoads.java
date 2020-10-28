@@ -26,7 +26,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import com.google.common.collect.Maps;
+import splice.com.google.common.collect.Maps;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
