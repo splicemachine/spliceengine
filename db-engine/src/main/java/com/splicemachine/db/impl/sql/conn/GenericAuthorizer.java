@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DatabaseDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.StatementPermission;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -142,64 +143,65 @@ public class GenericAuthorizer implements Authorizer {
             if (SanityManager.DEBUG)
                 SanityManager.THROWASSERT("Bad operation code "+operation);
         }
-        if( activation != null)
+        if( activation == null) {
+            return;
+        }
+        List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
+        if (requiredPermissionsList == null || requiredPermissionsList.isEmpty()) {
+            return;
+        }
+        String dbo = lcc.getCurrentDatabase().getAuthorizationId();
+        List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
+
+        // splicedb database Owner can access any object. Ignore
+        // requiredPermissionsList for Database Owner
+        if (lcc.getCurrentDatabase().getDatabaseName().equals(DatabaseDescriptor.STD_DB_NAME) &&
+                lcc.getCurrentUserId(activation).equals(dbo) || (groupuserlist != null && groupuserlist.contains(dbo))) {
+            return;
+        }
+
+         /*
+          * The system may need to read the permission descriptor(s)
+          * from the system table(s) if they are not available in the
+          * permission cache.  So start an internal read-only nested
+          * transaction for this.
+          *
+          * The reason to use a nested transaction here is to not hold
+          * locks on system tables on a user transaction.  e.g.:  when
+          * attempting to revoke an user, the statement may time out
+          * since the user-to-be-revoked transaction may have acquired
+          * shared locks on the permission system tables; hence, this
+          * may not be desirable.
+          *
+          * All locks acquired by StatementPermission object's check()
+          * method will be released when the system ends the nested
+          * transaction.
+          *
+          * In Derby, the locks from read nested transactions come from
+          * the same space as the parent transaction; hence, they do not
+          * conflict with parent locks.
+          */
+        lcc.beginNestedTransaction(true);
+
+        try
         {
-            List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
-            String dbo = lcc.getCurrentDatabase().getAuthorizationId();
-            List<String> groupuserlist = lcc.getCurrentGroupUser(activation);
-
-            // Database Owner can access any object. Ignore
-            // requiredPermissionsList for Database Owner
-            if( requiredPermissionsList != null    && 
-                !requiredPermissionsList.isEmpty() &&
-                    !(lcc.getCurrentUserId(activation).equals(dbo)
-                            || (groupuserlist != null && groupuserlist.contains(dbo))))
+            try
             {
-
-                 /*
-                  * The system may need to read the permission descriptor(s) 
-                  * from the system table(s) if they are not available in the 
-                  * permission cache.  So start an internal read-only nested 
-                  * transaction for this.
-                  * 
-                  * The reason to use a nested transaction here is to not hold
-                  * locks on system tables on a user transaction.  e.g.:  when
-                  * attempting to revoke an user, the statement may time out
-                  * since the user-to-be-revoked transaction may have acquired 
-                  * shared locks on the permission system tables; hence, this
-                  * may not be desirable.  
-                  * 
-                  * All locks acquired by StatementPermission object's check()
-                  * method will be released when the system ends the nested 
-                  * transaction.
-                  * 
-                  * In Derby, the locks from read nested transactions come from
-                  * the same space as the parent transaction; hence, they do not
-                  * conflict with parent locks.
-                  */  
-                lcc.beginNestedTransaction(true);
-
-                try 
-                {
-                    try 
-                    {
-                        // perform the permission checking
-                        for (Object aRequiredPermissionsList : requiredPermissionsList) {
-                            ((StatementPermission) aRequiredPermissionsList).check
-                                    (lcc, false, activation);
-                        }
-                    } 
-                    finally
-                    {
-                    }
-                } 
-                finally 
-                {
-                    // make sure we commit; otherwise, we will end up with
-                    // mismatch nested level in the language connection context.
-                    lcc.commitNestedTransaction();
+                // perform the permission checking
+                for (Object aRequiredPermissionsList : requiredPermissionsList) {
+                    ((StatementPermission) aRequiredPermissionsList).check
+                            (lcc, false, activation);
                 }
             }
+            finally
+            {
+            }
+        }
+        finally
+        {
+            // make sure we commit; otherwise, we will end up with
+            // mismatch nested level in the language connection context.
+            lcc.commitNestedTransaction();
         }
     }
 

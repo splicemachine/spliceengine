@@ -103,7 +103,7 @@ public class StatementSchemaPermission extends StatementPermission
                 if (sd == null)
                     return;
 
-                // if current user is owner, it can access the schema
+                // if current user is owner, it can access the schema // XXX (arnaud multidb) check current user of correct DB?
                 if (currentUserId.equals(sd.getAuthorizationId()) ||
                         currentGroupuserlist != null && currentGroupuserlist.contains(sd.getAuthorizationId()))
                     return;
