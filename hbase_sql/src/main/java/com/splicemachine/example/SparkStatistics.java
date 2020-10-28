@@ -15,7 +15,7 @@
 package com.splicemachine.example;
 
 import splice.com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;

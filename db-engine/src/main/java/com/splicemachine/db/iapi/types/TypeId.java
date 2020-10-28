@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.impl.sql.execute.CurrentDatetime;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.DecimalType;
 import org.apache.spark.sql.types.StructField;
@@ -1012,6 +1011,18 @@ public class TypeId{
         return (formatId==StoredFormatIds.CHAR_TYPE_ID);
     }
 
+    /**
+     * Is this a fixed string type?
+     *
+     * @return true if this is CHAR
+     */
+    public boolean isFixedBitDataTypeId(){
+        return (formatId==StoredFormatIds.BIT_TYPE_ID);
+    }
+
+    public boolean isVarBitDataTypeId(){
+        return (formatId==StoredFormatIds.VARBIT_TYPE_ID);
+    }
     /**
      * Does this TypeId represent a CHAR or VARCHAR.
      *

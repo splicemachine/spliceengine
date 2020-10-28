@@ -20,11 +20,11 @@ import java.util.NavigableSet;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.RegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -63,6 +63,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
     private final byte[] stopRow;
     private Filter filter;
     private int batch;
+    private boolean checkFilter = false;
 
     public MemStoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
                                      final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException {
@@ -75,6 +76,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
         this.stopRow = Bytes.equals(scan.getStopRow(), HConstants.EMPTY_END_ROW) ? null : scan.getStopRow();
         this.filter = scan.getFilter();
         this.batch = scan.getBatch();
+        this.checkFilter = filter instanceof MultiRowRangeFilter;
     }
     
     protected boolean isStopRow(Cell peek) {
@@ -174,6 +176,16 @@ public class MemStoreFlushAwareScanner extends StoreScanner implements RegionSca
                 outResult.add(ClientRegionConstants.MEMSTORE_BEGIN_FLUSH);
             }
             return HBasePlatformUtils.scannerEndReached(scannerContext);
+        }
+
+        if (checkFilter) {
+            Cell nextCell = super.peek();
+
+            // Set up the filter return code.
+            // It's needed by the call to super.next() below.
+            // The store file scanner should be doing this for us!
+            if (nextCell != null)
+                filter.filterRowKey(nextCell);
         }
         if (super.next(outResult,scannerContext)) {
             if (LOG.isTraceEnabled())
