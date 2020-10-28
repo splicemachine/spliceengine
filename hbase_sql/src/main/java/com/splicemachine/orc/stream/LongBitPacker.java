@@ -13,6 +13,7 @@
  */
 package com.splicemachine.orc.stream;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.airlift.slice.Slice;
 import io.airlift.slice.Slices;
 import java.io.IOException;
@@ -138,6 +139,7 @@ public final class LongBitPacker
         }
     }
 
+    @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT", justification = "DB-10605")
     private static void unpack1Unaligned(long[] buffer, int outputIndex, int length, int value)
     {
         switch (length) {
@@ -195,6 +197,7 @@ public final class LongBitPacker
         }
     }
 
+    @SuppressFBWarnings(value = {"SF_SWITCH_FALLTHROUGH", "SF_SWITCH_NO_DEFAULT"}, justification = "DB-10605")
     private static void unpack2Unaligned(long[] buffer, int outputIndex, int length, int value)
     {
         switch (length) {
