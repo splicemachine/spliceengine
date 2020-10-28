@@ -68,8 +68,8 @@ class DecimalDescriptorSerializer implements DescriptorSerializer {
 				int precision = d.getPrecision();
 				int scale = d.getScale();
 				d.setBigDecimal( Encoding.decodeBigDecimal(data,offset,length,desc) );
-				d.setWidth(precision, scale, true);
 				d.setPrecision( precision );
+				d.setScale( scale );
 		}
 
 		@Override public boolean isScalarType() { return false; }
