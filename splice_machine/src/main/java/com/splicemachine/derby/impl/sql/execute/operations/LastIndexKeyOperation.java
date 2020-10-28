@@ -18,6 +18,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
@@ -28,6 +29,8 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -87,6 +90,25 @@ public class LastIndexKeyOperation extends ScanOperation {
     @Override
     public List<SpliceOperation> getSubOperations() {
         return Collections.emptyList();
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        tableName = in.readUTF();
+        if (in.readBoolean())
+            indexName = in.readUTF();
+        tableVersion = GenericColumnDescriptor.readNullableUTF(in);
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeUTF(tableName);
+        out.writeBoolean(indexName != null);
+        if (indexName != null)
+            out.writeUTF(indexName);
+        GenericColumnDescriptor.writeNullableUTF(out, tableVersion);
     }
 
     @Override

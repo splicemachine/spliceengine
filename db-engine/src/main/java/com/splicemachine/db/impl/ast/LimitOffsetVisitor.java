@@ -320,9 +320,8 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
         } else {
             costEstimate.setEstimatedRowCount(currentOffset+currentFetchFirst);
             costEstimate.setRemoteCost(scaleFactor*costEstimate.getRemoteCost());
-            costEstimate.setRemoteCostPerPartition(costEstimate.remoteCost(), costEstimate.partitionCount());
+            costEstimate.setRemoteCostPerParallelTask(costEstimate.remoteCost(), costEstimate.getParallelism());
         }
-
     }
 
     /**
@@ -339,7 +338,6 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
             return;
         CostEstimate costEstimate = rsn.getFinalCostEstimate(false);
         long totalRowCount = costEstimate.getEstimatedRowCount();
-        long currentOffset = offset==-1?0:offset;
         long currentFetchFirst = fetchFirst==-1?totalRowCount:fetchFirst;
         scaleFactor = (double) currentFetchFirst/(double) totalRowCount;
         if (scaleFactor >= 1.0d) {
@@ -356,7 +354,7 @@ public class LimitOffsetVisitor extends AbstractSpliceVisitor {
                 costEstimate.setFromBaseTableRows(costEstimate.getFromBaseTableRows()*scaleFactor);
                 costEstimate.setScannedBaseTableRows(costEstimate.getScannedBaseTableRows()*scaleFactor);
                 costEstimate.setEstimatedCost(costEstimate.getEstimatedCost()*scaleFactor);
-                costEstimate.setRemoteCostPerPartition(costEstimate.remoteCost(), costEstimate.partitionCount());
+                costEstimate.setRemoteCostPerParallelTask(costEstimate.remoteCost(), costEstimate.getParallelism());
         }
     }
 

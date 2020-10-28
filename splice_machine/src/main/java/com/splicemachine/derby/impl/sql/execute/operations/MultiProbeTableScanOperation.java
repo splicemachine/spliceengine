@@ -31,6 +31,8 @@ import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.storage.DataScan;
 
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -197,6 +199,19 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     }
 
     @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        inlistPosition = in.readInt();
+
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(inlistPosition);
+    }
+
+    @Override
     public String toString() {
         return "MultiProbe"+super.toString();
     }
@@ -208,7 +223,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
         try {
             TxnView txn = getCurrentTransaction();
-            DataValueDescriptor[] probeValues = ((MultiProbeDerbyScanInformation)scanInformation).getProbeValues();
             List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
@@ -233,7 +247,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .keyDecodingMap(getKeyDecodingMap())
                         .rowDecodingMap(getRowDecodingMap())
                         .baseColumnMap(baseColumnMap)
-                        .optionalProbeValue(probeValues[i])
                         .defaultRow(defaultRow, scanInformation.getDefaultValueMap());
 
                 datasets.add(ssb);
