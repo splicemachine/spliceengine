@@ -92,4 +92,6 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     TxnView getTxn();
     OperationContext getClone() throws IOException, ClassNotFoundException;
     ActivationHolder getActivationHolder();
+    long getBadRecordThreshold();
+    String getImportFileName();
 }

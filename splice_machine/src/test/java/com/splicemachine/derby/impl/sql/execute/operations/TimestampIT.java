@@ -47,9 +47,9 @@ public class TimestampIT extends SpliceUnitTest {
     private static final String SCHEMA = TimestampIT.class.getSimpleName().toUpperCase();
     private Boolean useSpark;
     private static boolean extendedTimestamps = true;
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
-    protected static SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+    protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
+    protected static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    protected static final SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     private static File BADDIR;
 
@@ -72,10 +72,19 @@ public class TimestampIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void createDataSet() throws Exception {
-        methodWatcher.setAutoCommit(false);
         spliceClassWatcher.setAutoCommit(false);
         createSharedTables(spliceClassWatcher.getOrCreateConnection());
         spliceClassWatcher.closeAll();
+    }
+
+    @After
+    public void after() throws Exception {
+        // reset autocommit to true if we failed within a non-autocommit test
+        if(!methodWatcher.getOrCreateConnection().getAutoCommit()) {
+            methodWatcher.rollback();
+            methodWatcher.setAutoCommit(true);
+        }
+        methodWatcher.closeAll();
     }
 
     public static void createSharedTables(Connection conn) throws Exception {
@@ -246,14 +255,12 @@ public class TimestampIT extends SpliceUnitTest {
         ps.setTimestamp(3, new Timestamp(3 - 1900/*year*/, 0 /*month-1*/, 1 /*day*/, 0 /*hour*/, 0/*minute*/, 0 /*second*/, 0 /*nano*/));
         ps.setTimestamp(4, new Timestamp(4 - 1900/*year*/, 0 /*month-1*/, 1 /*day*/, 0 /*hour*/, 0/*minute*/, 0 /*second*/, 0 /*nano*/));
 
-        try {
-            ResultSet rs = ps.executeQuery();
+        try (ResultSet rs = ps.executeQuery()) {
             int i = 0;
             while (rs.next()) {
                 i++;
             }
             Assert.assertEquals("Incorrect count returned!", 4, i);
-            rs.close();
         }
         catch (SQLException e) {
             if (extendedTimestamps)
@@ -731,7 +738,7 @@ public class TimestampIT extends SpliceUnitTest {
         TestUtils.FormattedResult.ResultFactory.toString(rs));  */
 
         methodWatcher.rollback();
-        methodWatcher.setAutoCommit(false);
+        methodWatcher.setAutoCommit(true);
 
         String match = extendedTimestamps ?
         "COL1          |COL2 |\n" +
@@ -779,4 +786,26 @@ public class TimestampIT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testCurrentTimeStampOperations() throws Exception {
+        String[] units = new String[] {"years", "year", "months", "month", "days", "day",
+                "hours", "hour", "minutes", "minute", "seconds", "second"};
+        String[] units2 = new String[] {"SQL_TSI_YEAR", "SQL_TSI_YEAR", "SQL_TSI_MONTH", "SQL_TSI_MONTH",
+                "SQL_TSI_DAY", "SQL_TSI_DAY", "SQL_TSI_HOUR", "SQL_TSI_HOUR",
+                "SQL_TSI_MINUTE", "SQL_TSI_MINUTE", "SQL_TSI_SECOND", "SQL_TSI_SECOND"};
+
+        for (int i=0; i< units.length; i++) {
+            String sqlText = format("select current_timestamp - 3 %s, timestampadd(%s, -3, current_timestamp) from sysibm.sysdummy1 --splice-properties useSpark=%s", units[i], units2[i], useSpark);
+
+            ResultSet rs = methodWatcher.executeQuery(sqlText);
+            assertTrue("Result does not match!", !rs.next() || rs.getTimestamp(1) != rs.getTimestamp(2));
+            rs.close();
+
+            sqlText = format("select current_timestamp + 3 %s, timestampadd(%s, 3, current_timestamp) from sysibm.sysdummy1 --splice-properties useSpark=%s", units[i], units2[i], useSpark);
+
+            rs = methodWatcher.executeQuery(sqlText);
+            assertTrue("Result does not match!", !rs.next() || rs.getTimestamp(1) != rs.getTimestamp(2));
+            rs.close();
+        }
+    }
 }

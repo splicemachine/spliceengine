@@ -23,6 +23,7 @@ import org.junit.rules.TestRule;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -51,7 +52,7 @@ public class WithStatementIT extends SpliceUnitTest {
     protected static final String TEST_PASSWORD = "ajkglja233";
     protected static final String TEST_ROLE = "read_only";
 
-    protected static TestConnection testUserConn;
+    private static TestConnection testUserConn;
 
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
@@ -95,7 +96,9 @@ public class WithStatementIT extends SpliceUnitTest {
 
         testUserConn = spliceClassWatcher.connectionBuilder().user(TEST_USER).password(TEST_PASSWORD).build();
 
-        connection.createStatement().execute(format("grant access,select on schema %s to %s", SCHEMA, TEST_USER));
+        try(Statement s = connection.createStatement()) {
+            s.execute(format("grant access,select on schema %s to %s", SCHEMA, TEST_USER));
+        }
     }
 
     private static class CreateDynamicViewTask implements Runnable {
@@ -109,9 +112,8 @@ public class WithStatementIT extends SpliceUnitTest {
 
         @Override
         public void run() {
-            try {
-                connection.createStatement().executeQuery(
-                        format("with %s as (select * from t12) select * from %s", viewName, viewName));
+            try (Statement s = connection.createStatement()){
+                s.executeQuery(format("with %s as (select * from t12) select * from %s", viewName, viewName)).close();
             } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
@@ -133,7 +135,7 @@ public class WithStatementIT extends SpliceUnitTest {
 
     @Test
     public void testSimpleWithStatementWithAggregateExplain() throws Exception {
-        String query = "explain with footest as " +
+        String query = "explain exclude no statistics with footest as " +
                 "(select count(*) as count, col2 from foo group by col2) " +
                 "select foo2.col1, count from foo2 " +
                 "inner join footest on foo2.col1 = footest.col2";
@@ -176,7 +178,7 @@ public class WithStatementIT extends SpliceUnitTest {
 
     @Test
     public void testMultipleDependentWithStatementsWithAggregatesExplain() throws Exception {
-        String query = "explain with footest as " +
+        String query = "explain exclude no statistics with footest as " +
                 "(select count(*) as count, col2, max(col1) as col1 from foo group by col2), " +
                 "footest1 as (select sum(count) as count, sum(col1) as " +
                 "sum_col1, col2 from footest group by col2)" +
@@ -266,7 +268,8 @@ public class WithStatementIT extends SpliceUnitTest {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
 
-        try (ResultSet rs = testUserConn.createStatement().executeQuery("values current schema")) {
+        try (Statement s = testUserConn.createStatement();
+             ResultSet rs = s.executeQuery("values current schema")) {
             String expectedSchema = "1        |\n" +
                     "-----------------\n" +
                     "WITHSTATEMENTIT |";
@@ -274,7 +277,8 @@ public class WithStatementIT extends SpliceUnitTest {
         }
 
         // user with no write privilege, dynamic view in SESSION schema
-        try (ResultSet rs = testUserConn.createStatement().executeQuery(format("with dt as (select * from t12) select * from dt"))) {
+        try (Statement s = testUserConn.createStatement();
+             ResultSet rs = s.executeQuery(format("with dt as (select * from t12) select * from dt"))) {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
         // user with no write privilege, dynamic view in current schema

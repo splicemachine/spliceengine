@@ -60,12 +60,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     private TxnLifecycleStore lifecycleStore;
     private volatile boolean isTxnTable=false;
 
-    public static final CountedReference<TransactionResolver> resolverRef=new CountedReference<>(new Supplier<TransactionResolver>(){
-        @Override
-        public TransactionResolver get(){
-            return new TransactionResolver(SIDriver.driver().getTxnSupplier(),2,128);
-        }
-    }, new CountedReference.ShutdownAction<TransactionResolver>(){
+    public static final CountedReference<TransactionResolver> resolverRef=new CountedReference<>(() -> new TransactionResolver(SIDriver.driver().getTxnSupplier(),2,128), new CountedReference.ShutdownAction<TransactionResolver>(){
         @Override
         public void shutdown(TransactionResolver instance){
             instance.shutdown();

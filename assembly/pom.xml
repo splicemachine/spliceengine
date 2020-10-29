@@ -1301,14 +1301,6 @@
 
         <profile>
             <id>dbaas</id>
-            <dependencies>
-                <dependency>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                    <version>${guava.version}</version>
-                </dependency>
-            </dependencies>
-
             <build>
                 <plugins>
                     <plugin>
@@ -1328,7 +1320,6 @@
                                     </excludeArtifactIds>
                                     <includeArtifactIds>
                                         commonArtifacts,
-                                        guava,
                                         snappy-java,
                                         kryo-shaded,
                                         kryo-serializers,

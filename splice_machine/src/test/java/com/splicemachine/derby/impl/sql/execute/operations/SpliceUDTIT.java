@@ -42,8 +42,8 @@ import static org.junit.Assert.assertThat;
 @Category(SerialTest.class) //serial because it loads a jar
 public class SpliceUDTIT extends SpliceUnitTest {
     public static final String CLASS_NAME = SpliceUDTIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
+    protected static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static final String CALL_INSTALL_JAR_FORMAT_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
     private static final String CALL_REMOVE_JAR_FORMAT_STRING = "CALL SQLJ.REMOVE_JAR('%s', 0)";
@@ -57,158 +57,147 @@ public class SpliceUDTIT extends SpliceUnitTest {
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher);
     @ClassRule
-    public static SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
+    public static final SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @BeforeClass
     public static void setup() throws Exception {
-        createData(spliceClassWatcher.getOrCreateConnection());
+        createData(spliceClassWatcher);
     }
 
-    @AfterClass
-    public static void tearDown() throws Exception {
-        methodWatcher.execute(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
-        methodWatcher.execute("DROP DERBY AGGREGATE Median RESTRICT");
-        methodWatcher.execute("DROP DERBY AGGREGATE string_concat RESTRICT");
-        methodWatcher.execute("DROP table orders");
-        methodWatcher.execute("DROP FUNCTION makePrice");
-        methodWatcher.execute("DROP FUNCTION getAmount");
-        methodWatcher.execute("DROP TYPE price restrict");
-        methodWatcher.execute("drop function testConnection");
-        methodWatcher.execute("drop table test");
-        methodWatcher.execute("drop table t");
-        methodWatcher.execute("drop table t1");
-        methodWatcher.execute("drop table strings");
-    }
-
-    private static void createData(Connection conn) throws Exception {
-        try(Statement s = conn.createStatement()){
-            s.execute(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
+    private static void createData(SpliceWatcher w) throws Exception {
+        try {
+            w.execute(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
         }catch(SQLException se){
             if(!"SE014".equals(se.getSQLState())){
                 //write-conflict. That means someone ELSE is loading this same jar. That's cool, just keep going
                 throw se;
             }
         }
-        try(Statement s = conn.createStatement()){
-            s.execute(String.format(CALL_SET_CLASSPATH_FORMAT_STRING,JAR_FILE_SQL_NAME));
-            s.execute("create derby aggregate median for int external name 'com.splicemachine.customer.Median'");
+        w.execute(String.format(CALL_SET_CLASSPATH_FORMAT_STRING,JAR_FILE_SQL_NAME));
+        w.execute("create derby aggregate median for int external name 'com.splicemachine.customer.Median'");
 
-            new TableCreator(conn)
-                    .withCreate("create table t(i int)")
-                    .withInsert("insert into t values(?)")
-                    .withRows(rows(
-                            row(1),
-                            row(2),
-                            row(3),
-                            row(4),
-                            row(5)))
-                    .create();
+        Connection conn = w.getOrCreateConnection();
+        new TableCreator(conn)
+                .withCreate("create table t(i int)")
+                .withInsert("insert into t values(?)")
+                .withRows(rows(
+                        row(1),
+                        row(2),
+                        row(3),
+                        row(4),
+                        row(5)))
+                .create();
 
-            new TableCreator(conn)
-                    .withCreate("create table t1(itemName varchar(30), rawPrice int)")
-                    .withInsert("insert into t1 values(?, ?)")
-                    .withRows(rows(
-                    row("Coffee", 4),
-                    row("Tea", 3),
-                    row("Milk", 2),
-                    row("Soda", 2),
-                    row("Bagel", 1),
-                    row("Donut", 1)))
-                    .create();
+        new TableCreator(conn)
+                .withCreate("create table t1(itemName varchar(30), rawPrice int)")
+                .withInsert("insert into t1 values(?, ?)")
+                .withRows(rows(
+                row("Coffee", 4),
+                row("Tea", 3),
+                row("Milk", 2),
+                row("Soda", 2),
+                row("Bagel", 1),
+                row("Donut", 1)))
+                .create();
 
-            s.execute("CREATE TYPE price EXTERNAL NAME 'com.splicemachine.customer.Price' language Java");
-            s.execute("CREATE FUNCTION makePrice(varchar(30), double)\n"+
-                    "RETURNS Price\n"+
-                    "LANGUAGE JAVA\n"+
-                    "PARAMETER STYLE JAVA\n"+
-                    "NO SQL EXTERNAL NAME 'com.splicemachine.customer.CreatePrice.createPriceObject'");
+        w.execute("CREATE TYPE price EXTERNAL NAME 'com.splicemachine.customer.Price' language Java");
+        w.execute("CREATE FUNCTION makePrice(varchar(30), double)\n"+
+                "RETURNS Price\n"+
+                "LANGUAGE JAVA\n"+
+                "PARAMETER STYLE JAVA\n"+
+                "NO SQL EXTERNAL NAME 'com.splicemachine.customer.CreatePrice.createPriceObject'");
 
-            s.execute("create function getAmount( int ) returns double language java parameter style java no sql\n" +
-                           "external name 'com.splicemachine.customer.Price.getAmount'\n" );
+        w.execute("create function getAmount( int ) returns double language java parameter style java no sql\n" +
+                       "external name 'com.splicemachine.customer.Price.getAmount'\n" );
 
-            s.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
-            s.execute("insert into orders values (12345, 12, makePrice('USD', 12))");
+        w.execute("create table orders(orderID INT,customerID INT,totalPrice price)");
+        w.execute("insert into orders values (12345, 12, makePrice('USD', 12))");
 
-            s.execute("CREATE FUNCTION testConnection()\n" +
-                    "RETURNS VARCHAR(100)\n" +
-                    "LANGUAGE JAVA\n" +
-                    "PARAMETER STYLE JAVA \n" +
-                    "EXTERNAL NAME 'com.splicemachine.customer.NielsenTesting.testInternalConnection'");
-            s.execute("create table test(id integer, name varchar(30))");
-            s.execute("insert into test values(1,'erin')");
-        }
+        w.execute("CREATE FUNCTION testConnection()\n" +
+                "RETURNS VARCHAR(100)\n" +
+                "LANGUAGE JAVA\n" +
+                "PARAMETER STYLE JAVA \n" +
+                "EXTERNAL NAME 'com.splicemachine.customer.NielsenTesting.testInternalConnection'");
+        w.execute("create table test(id integer, name varchar(30))");
+        w.execute("insert into test values(1,'erin')");
 
     }
 
     @Test
     public void testAggregationReferencingUDF() throws Exception {
-        ResultSet rs;
-        rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
+        try(ResultSet rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
                                                 "(\n" +
                                                 "SELECT makePrice('USD', t1.rawPrice) AS ItemPrice\n" +
                                                 "FROM t1" +
-                                                ") x");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(6, rs.getInt(1));
+                                                ") x")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(6, rs.getInt(1));
+        }
 
-        rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
-        "(\n" +
-        "SELECT makePrice('USD', t1.rawPrice) AS ItemPrice\n" +
-        "FROM t1 JOIN t\n" +
-        "ON t.i = t1.rawPrice\n" +
-        ") x");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(6, rs.getInt(1));
+        try(ResultSet rs =  methodWatcher.executeQuery("SELECT count(*) FROM\n" +
+            "(\n" +
+            "SELECT makePrice('USD', t1.rawPrice) AS ItemPrice\n" +
+            "FROM t1 JOIN t\n" +
+            "ON t.i = t1.rawPrice\n" +
+            ") x") ) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(6, rs.getInt(1));
+        }
 
-        rs =  methodWatcher.executeQuery("SELECT count(*) from t1 where testconnection() < 'a'");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(6, rs.getInt(1));
+        try(ResultSet rs =  methodWatcher.executeQuery("SELECT count(*) from t1 where testconnection() < 'a'") ) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(6, rs.getInt(1));
+        }
 
-        rs =  methodWatcher.executeQuery("SELECT count(testconnection()) from t1");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(6, rs.getInt(1));
+        try(ResultSet rs =  methodWatcher.executeQuery("SELECT count(testconnection()) from t1")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(6, rs.getInt(1));
+        }
     }
 
     @Test
     public void testUDA() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select median(i) from t");
-        Assert.assertTrue(rs.next());
-        Assert.assertEquals(3, rs.getInt(1));
+        try(ResultSet rs = methodWatcher.executeQuery("select median(i) from t")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(3, rs.getInt(1));
+        }
     }
 
     @Test
     public void testUDT() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery("select orderID, customerID, totalPrice from orders");
-        Assert.assertTrue(rs.next());
-        int oid = rs.getInt(1);
-        int cid = rs.getInt(2);
-        Price price = (Price)rs.getObject(3);
-        Assert.assertEquals(12345, oid);
-        Assert.assertEquals(12, cid);
-        Assert.assertEquals(12, price.amount, 0.01);
-        Assert.assertTrue(price.currencyCode.compareTo("USD") == 0);
+        try(ResultSet rs = methodWatcher.executeQuery("select orderID, customerID, totalPrice from orders")) {
+            Assert.assertTrue(rs.next());
+            int oid = rs.getInt(1);
+            int cid = rs.getInt(2);
+            Price price = (Price) rs.getObject(3);
+            Assert.assertEquals(12345, oid);
+            Assert.assertEquals(12, cid);
+            Assert.assertEquals(12, price.amount, 0.01);
+            Assert.assertTrue(price.currencyCode.compareTo("USD") == 0);
+        }
     }
 
     @Test
-    public void TestSelectStatistics() throws Exception {
+    public void testSelectStatistics() throws Exception {
         methodWatcher.execute("analyze schema " + CLASS_NAME);
-        ResultSet rs = methodWatcher.executeQuery("select count(*) from sysvw.syscolumnstatistics");
-        Assert.assertTrue(rs.next());
-        Assert.assertTrue(rs.getInt(1)>0);
+        try(ResultSet rs = methodWatcher.executeQuery("select count(*) from sysvw.syscolumnstatistics") ) {
+            Assert.assertTrue(rs.next());
+            Assert.assertTrue(rs.getInt(1) > 0);
+        }
     }
 
     @Test
     public void testConnection() throws Exception {
-        String url = "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin;useSpark=true";
-        Connection connection = DriverManager.getConnection(url, new Properties());
-        connection.setSchema(CLASS_NAME.toUpperCase());
-        Statement s = connection.createStatement();
-        ResultSet rs = s.executeQuery("select testConnection() from test");
-        String result = rs.next() ? rs.getString(1) : null;
-        Assert.assertNotNull(result);
-        Assert.assertTrue(result, result.compareTo("Got an internal connection")==0);
+        try(SpliceWatcher watcher2 = new SpliceWatcher(CLASS_NAME))
+        {
+            watcher2.setConnection( watcher2.connectionBuilder().useOLAP(true).build() );
+            try(ResultSet rs = watcher2.executeQuery("select testConnection() from test")) {
+                String result = rs.next() ? rs.getString(1) : null;
+                Assert.assertNotNull(result);
+                Assert.assertTrue(result, result.compareTo("Got an internal connection") == 0);
+            }
+        }
     }
-
 
     @Test
     public void testSparkUDA() throws Exception {
@@ -218,10 +207,11 @@ public class SpliceUDTIT extends SpliceUnitTest {
         methodWatcher.execute("insert into strings values 'a','b','c','d'");
 
         for (boolean useSpark : Arrays.asList(true, false)) {
-            ResultSet rs = methodWatcher.executeQuery("select string_concat(v) from strings --splice-properties useSpark="+useSpark);
-            Assert.assertTrue(rs.next());
-            String res = rs.getString(1);
-            assertThat(res, allOf(containsString("a"), containsString("b"), containsString("c"), containsString("d")));
+            try(ResultSet rs = methodWatcher.executeQuery("select string_concat(v) from strings --splice-properties useSpark="+useSpark)) {
+                Assert.assertTrue(rs.next());
+                String res = rs.getString(1);
+                assertThat(res, allOf(containsString("a"), containsString("b"), containsString("c"), containsString("d")));
+            }
         }
     }
 }

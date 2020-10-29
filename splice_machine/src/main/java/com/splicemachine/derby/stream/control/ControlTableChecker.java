@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.stream.control;
 
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
