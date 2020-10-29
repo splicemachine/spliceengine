@@ -497,7 +497,7 @@ public class RegionTxnStore implements TxnPartition{
         }
     }
 
-    private class UncommittedAfterSource implements Source<TxnMessage.Txn> {
+    private static class UncommittedAfterSource implements Source<TxnMessage.Txn> {
         private final Source<TxnMessage.Txn> allTxns;
         private final long afterTs;
 
