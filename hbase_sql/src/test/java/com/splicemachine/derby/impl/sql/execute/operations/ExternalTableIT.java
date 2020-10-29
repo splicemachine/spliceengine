@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.ImmutableList;
+import splice.com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
