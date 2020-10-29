@@ -204,7 +204,7 @@ public class V2TxnDecoder implements TxnDecoder{
         TxnMessage.Txn txn = composeValue(destinationTables, level, txnId, beginTs, parentTxnId, hasAdditive,
                 isAdditive, commitTs, globalTs, state, kaTime, rollbackSubIds, taskId);
 
-        boolean committedWithoutGlobalTS = txn.getInfo().getParentTxnid() > 0 && txn.getGlobalCommitTs() < 0;
+        boolean committedWithoutGlobalTS = state == Txn.State.COMMITTED && parentTxnId > 0 && globalTs < 0;
         if ((timedOut || committedWithoutGlobalTS) && txnStore != null) {
             txnStore.resolveTxn(txn);
         }
