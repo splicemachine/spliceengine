@@ -221,7 +221,7 @@ public class RegionTxnStore implements TxnPartition{
     public void recordTransaction(TxnMessage.TxnInfo txn) throws IOException{
         if(LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG,"recordTransaction txn=%s",txn);
-        Put put=newTransactionDecoder.encodeForPut(txn,getRowKey(txn.getTxnId()));
+        Put put=newTransactionDecoder.encodeForPut(txn,getRowKey(txn.getTxnId()),clock);
         region.put(put);
     }
 
@@ -425,39 +425,31 @@ public class RegionTxnStore implements TxnPartition{
 
     private TxnMessage.Txn decode(long txnId,Result result) throws IOException{
         TxnMessage.Txn txn=newTransactionDecoder.decode(this,txnId,result);
-        resolveTxn(txn);
         return txn;
 
     }
 
     private TxnMessage.Txn decode(List<Cell> keyValues) throws IOException{
         TxnMessage.Txn txn=newTransactionDecoder.decode(this,keyValues);
-        resolveTxn(txn);
         return txn;
     }
 
     @SuppressFBWarnings(value = "SF_SWITCH_NO_DEFAULT",justification = "Intentional")
-    private void resolveTxn(TxnMessage.Txn txn){
+    void resolveTxn(TxnMessage.Txn txn){
+        if (txn == null)
+            return;
         switch(Txn.State.fromInt(txn.getState())){
             case ROLLEDBACK:
-                if(isTimedOut(txn)){
-                    resolver.resolveTimedOut(RegionTxnStore.this,txn);
-                }
+                resolver.resolveTimedOut(RegionTxnStore.this,txn);
                 break;
             case COMMITTED:
-                if(txn.getInfo().getParentTxnid()>0 && txn.getGlobalCommitTs()<0){
-                    /*
-                     * Just because the transaction was committed and has a parent doesn't mean that EVERY parent
-                     * has been committed; still, submit this to the resolver on the off chance that it
-                     * has been fully committed, so we can get away with the global commit work.
-                     */
-                    resolver.resolveGlobalCommitTimestamp(RegionTxnStore.this,txn);
-                }
+                /*
+                 * Just because the transaction was committed and has a parent doesn't mean that EVERY parent
+                 * has been committed; still, submit this to the resolver on the off chance that it
+                 * has been fully committed, so we can get away with the global commit work.
+                 */
+                resolver.resolveGlobalCommitTimestamp(RegionTxnStore.this,txn);
         }
-    }
-
-    private boolean isTimedOut(TxnMessage.Txn txn){
-        return (clock.currentTimeMillis()-txn.getLastKeepAliveTime())>keepAliveTimeoutMs;
     }
 
     private class ScanIterator implements Source<TxnMessage.Txn>{
@@ -505,7 +497,7 @@ public class RegionTxnStore implements TxnPartition{
         }
     }
 
-    private class UncommittedAfterSource implements Source<TxnMessage.Txn> {
+    private static class UncommittedAfterSource implements Source<TxnMessage.Txn> {
         private final Source<TxnMessage.Txn> allTxns;
         private final long afterTs;
 
