@@ -14,7 +14,8 @@
 
 package com.splicemachine.mrio.api.core;
 
-import com.google.common.collect.Lists;
+import breeze.util.partition;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
@@ -37,6 +38,8 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -45,9 +48,7 @@ import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
@@ -105,6 +106,100 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
         }
 
         return null;
+    }
+
+    /**
+     * Given a Scan with a MultiRangeRowFilter, and a list of InputSplits,
+     * generate a new list of InputSplits that only contain the splits
+     * required to read the rowkey ranges included in the MultiRangeRowFilter.
+     *
+     * @param scan describes the attributes of a read from an HBase table.
+     * @param splits the list of {@link InputSplit InputSplits} to prune.
+     * @return if {@code scan} contains a filter of class {@link MultiRowRangeFilter},
+     * a pruned list of {@link org.apache.hadoop.mapreduce.InputSplit InputSplits}
+     * which have rowkey range overlap with at least one rowkey range in the
+     * {@link MultiRowRangeFilter}.  If no {@link MultiRowRangeFilter} exists,
+     * the original list of splits is returned.
+     *
+     * @see     Scan
+     */
+     private List<InputSplit> pruneFilteredInputSplits(Scan scan, List<InputSplit> splits) {
+        // If no row range filter, we need to read all InputSplits.
+        if (! (scan.getFilter() instanceof MultiRowRangeFilter))
+            return splits;
+
+        List<InputSplit> newList = new ArrayList<>();
+
+        MultiRowRangeFilter rangeFilter = (MultiRowRangeFilter)scan.getFilter();
+
+        List<MultiRowRangeFilter.RowRange> ranges = rangeFilter.getRowRanges();
+
+        for(InputSplit split:splits) {
+            if (!(split instanceof SMSplit))
+                return splits;
+
+            TableSplit tableSplit = ((SMSplit)split).getSplit();
+
+            byte[] regionStartKey = tableSplit.getStartRow();
+            byte[] regionStopKey = tableSplit.getEndRow();
+
+            MultiRowRangeFilter.RowRange startRange =
+              new MultiRowRangeFilter.RowRange(regionStartKey, true,
+                                               regionStartKey, true);
+            MultiRowRangeFilter.RowRange stopRange =
+              new MultiRowRangeFilter.RowRange(regionStopKey, true,
+                                               regionStopKey, true);
+
+            int startKeyIndex = Collections.binarySearch(ranges, startRange);
+            // If we find the exact key, we know it's included.
+            if (startKeyIndex >= 0) {
+                newList.add(split);
+                continue;
+            }
+            else if (regionStartKey.length == 0) {
+                // This region has no begin limit, so it is considered to
+                // be larger than all values.
+
+                // If there is no end limit, the region covers all ranges.
+                // If the first range's start value is less than or equal to
+                // the region's stop key, there is overlap.
+                // The region's stop key is not inclusive, but we'll treat
+                // it as such just to be safe.
+                if (regionStopKey.length == 0 || ranges.get(0).compareTo(stopRange) <= 0) {
+                    newList.add(split);
+                    continue;
+                }
+            }
+            int stopKeyIndex = Collections.binarySearch(ranges, stopRange);
+
+            // If we find the exact key, we know it's included.
+            if (stopKeyIndex >= 0) {
+                newList.add(split);
+                continue;
+            }
+
+            // If the partition row range spans multiple filter ranges, we have overlap.
+            if (startKeyIndex != stopKeyIndex || regionStopKey.length == 0)
+                newList.add(split);
+            else {
+                // Subtract 2 instead of 1 to get the range before
+                // the found insertion point, so we can test for inclusion.
+                // See Collections.binarySearch.
+                int overlappedRangeIndex = -startKeyIndex - 2;
+                if (overlappedRangeIndex < 0) {
+                    // Region start key is less than the first range
+                    // If there is no end limit, the region covers all ranges.
+                    // If the first range's start value is less than or equal to
+                    // the region's stop key, there is overlap.
+                    if (regionStopKey.length == 0 || ranges.get(0).compareTo(stopRange) <= 0)
+                        newList.add(split);
+                    continue;
+                }
+                if ((ranges.get(overlappedRangeIndex)).contains(regionStartKey))
+                    newList.add(split);
+            }
+        }
+        return newList;
     }
 
     @Override
@@ -186,6 +281,7 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
                     throw new RuntimeException("MAX_RETRIES exceeded during getSplits");
                 }
             } else {
+                lss = pruneFilteredInputSplits(s, lss);
                 LOG.info("Splits: " + lss);
                return lss;
             }
