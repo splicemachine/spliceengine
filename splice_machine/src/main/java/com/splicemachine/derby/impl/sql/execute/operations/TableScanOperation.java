@@ -132,6 +132,7 @@ public class TableScanOperation extends ScanOperation{
      * @param defaultRowFunc
      * @param defaultValueMapItem
      * @param pastTxFunctor a functor that returns the id of a committed transaction for time-travel queries, -1 for not set.
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
      *
      * @throws StandardException
      */
@@ -173,12 +174,13 @@ public class TableScanOperation extends ScanOperation{
                               int partitionByRefItem,
                               GeneratedMethod defaultRowFunc,
                               int defaultValueMapItem,
-                              GeneratedMethod pastTxFunctor) throws StandardException{
+                              GeneratedMethod pastTxFunctor,
+                              long minRetentionPeriod) throws StandardException{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
                 pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
-                pastTxFunctor);
+                pastTxFunctor, minRetentionPeriod);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
         this.forUpdate=forUpdate;
