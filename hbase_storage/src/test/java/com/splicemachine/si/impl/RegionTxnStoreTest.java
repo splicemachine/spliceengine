@@ -469,6 +469,57 @@ public class RegionTxnStoreTest{
         assertEquals(txnCommit, childInfo.getGlobalCommitTs());
     }
 
+    @Test
+    public void testSubtransactionRollbackDoesntGetResolved() throws Exception{
+        HRegion region=MockRegionUtils.getMockRegion();
+        TxnSupplier localSupplier = mock(TxnSupplier.class);
+
+        RegionTxnStore store= spy(new RegionTxnStore(region, localSupplier, getTransactionResolver(localSupplier), 100, clock));
+        ArgumentCaptor<Long> txnIdCapture = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> globalCommitTsCapture = ArgumentCaptor.forClass(Long.class);
+
+        doCallRealMethod().when(store).recordGlobalCommit(txnIdCapture.capture(), globalCommitTsCapture.capture());
+
+        long txnId = SIConstants.TRASANCTION_INCREMENT * 2l;
+        TxnMessage.TxnInfo info=TxnMessage.TxnInfo.newBuilder()
+                .setTxnId(txnId)
+                .setBeginTs(txnId)
+                .setAllowsWrites(true)
+                .setIsolationLevel(Txn.IsolationLevel.SNAPSHOT_ISOLATION.getLevel())
+                .setDestinationTables(ByteString.copyFrom(Bytes.toBytes("1234")))
+                .build();
+        store.recordTransaction(info); // record main txn
+
+        long childId = SIConstants.TRASANCTION_INCREMENT * 3l;
+        TxnMessage.TxnInfo child=TxnMessage.TxnInfo.newBuilder()
+                .setTxnId(childId)
+                .setBeginTs(childId)
+                .setParentTxnid(txnId)
+                .setAllowsWrites(true)
+                .setIsolationLevel(Txn.IsolationLevel.SNAPSHOT_ISOLATION.getLevel())
+                .setDestinationTables(ByteString.copyFrom(Bytes.toBytes("1234")))
+                .build();
+        store.recordTransaction(child);
+
+        store.recordRollbackSubtransactions(childId, new long[] {1});
+        long subTxnId = childId + 1;
+
+        long childCommit = SIConstants.TRASANCTION_INCREMENT * 4l;
+        long txnCommit = SIConstants.TRASANCTION_INCREMENT * 5l;
+
+        store.recordCommit(childId, childCommit);
+        store.recordCommit(txnId, txnCommit);
+
+        when(localSupplier.getTransaction(anyLong())).thenReturn(new CommittedTxn(txnId, txnCommit)); // register txn in supplier
+
+        assertEquals(Txn.State.ROLLEDBACK, getState(store.getTransaction(subTxnId)));
+        // sleep a bit for real to let disruptor process the event
+        Thread.sleep( 100);
+
+        assertEquals(Txn.State.COMMITTED, getState(store.getTransaction(txnId)));
+        assertEquals(Txn.State.COMMITTED, getState(store.getTransaction(childId)));
+    }
+
     private Txn.State getState(TxnMessage.Txn transaction) {
         return Txn.State.fromByte((byte) transaction.getState());
     }
