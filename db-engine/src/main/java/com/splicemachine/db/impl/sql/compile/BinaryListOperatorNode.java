@@ -427,8 +427,18 @@ public abstract class BinaryListOperatorNode extends ValueNode{
             return false;
         }
         BinaryListOperatorNode other = (BinaryListOperatorNode) o;
-        return !(!operator.equals(other.operator) || !leftOperandList.isEquivalent(other.getLeftOperandList())) && rightOperandList.isEquivalent(other.rightOperandList);
+        return operator.equals(other.operator) && leftOperandList.isEquivalent(other.getLeftOperandList()) && rightOperandList.isEquivalent(other.rightOperandList);
+    }
 
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        BinaryListOperatorNode other = (BinaryListOperatorNode) o;
+        return operator.equals(other.operator) &&
+                leftOperandList.isSemanticallyEquivalent(other.getLeftOperandList()) &&
+                rightOperandList.isSemanticallyEquivalent(other.rightOperandList);
     }
 
     @Override

@@ -354,6 +354,21 @@ public abstract class MultiaryFunctionNode extends ValueNode
                 functionName.equals(other.functionName));
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+
+        MultiaryFunctionNode other = (MultiaryFunctionNode)o;
+        return (argumentsList.isSemanticallyEquivalent(other.argumentsList) &&
+                functionName.equals(other.functionName));
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(functionName, argumentsList);

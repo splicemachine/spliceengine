@@ -1477,6 +1477,64 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testIndexExpressionOnMultipleColumns() throws Exception {
+        String tableName = "TEST_INDEX_EXPR_MULTIPLE_COLUMNS";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2), ('ghi', 30, 3.3)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (D + I)", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('xyz', 40, 3.3)", tableName));
+
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where d + i > 30", tableName, tableName);
+        String expected = "C  |\n" +
+                "-----\n" +
+                "ghi |\n" +
+                "xyz |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testIndexExpressionOnDeterministicFunction() throws Exception {
+        String tableName = "TEST_INDEX_EXPR_DETERMINISTIC_FN";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2), ('ghi', 30, 3.3)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (ln(i), log10(i) + sqrt(d))", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('xyz', 40, 3.3)", tableName));
+
+        // top node of an index expression is a method call
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where ln(i) > 3.2", tableName, tableName);
+
+        String[] expectedOps = new String[] {
+                "IndexLookup",
+                "IndexScan",
+                " > 3.2"            // should be on the same line as IndexScan
+        };
+        rowContainsQuery(new int[]{4,5,5}, "explain " + query, methodWatcher, expectedOps);
+
+        String expected = "C  |\n" +
+                "-----\n" +
+                "ghi |\n" +
+                "xyz |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // an index expression containing method calls (also, note operands' order of plus)
+        query = format("select c from %s --splice-properties index=%s_IDX\n where sqrt(d) + log10(i) > 3.2", tableName, tableName);
+
+        rowContainsQuery(new int[]{4,5,5}, "explain " + query, methodWatcher, expectedOps);
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
     public void testJoinOnTheSameIndexExpressionText() throws Exception {
         String tableName_1 = "TEST_SAME_EXPR_TEXT_EXPR_INDEX_1";
         methodWatcher.executeUpdate(format("create table %s (c char(4))", tableName_1));

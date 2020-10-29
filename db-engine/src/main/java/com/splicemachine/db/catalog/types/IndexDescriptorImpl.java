@@ -39,15 +39,19 @@ import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  *
@@ -112,9 +116,14 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     // stores the class names of the generated classes in original order
     private String[]             generatedClassNames;
 
+    // following fields are used to cache objects used in compilation
+    // they are not serialized/deserialized
+
     // an array to cache instances of the generated classes
-    // this is not serialized/deserialized
     private BaseExecutableIndexExpression[] executableExprs;
+
+    // an array to cache parsed expressions
+    private ValueNode[] exprAsts;
 
 
     /**
@@ -167,6 +176,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         this.generatedClassNames = generatedClassNames;
         assert this.exprBytecode.length == this.generatedClassNames.length;
         this.executableExprs = new BaseExecutableIndexExpression[this.exprBytecode.length];
+        exprAsts = null;
     }
 
     /** Constructor for non-expression based index */
@@ -386,6 +396,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
             }
         }
         executableExprs = new BaseExecutableIndexExpression[numIndexExpr];
+        exprAsts = null;
     }
 
     /**
@@ -553,10 +564,90 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
                 : "index has expression but generated class name is unknown";
         LanguageConnectionContext lcc = (LanguageConnectionContext) ContextService.getContext
                 (LanguageConnectionContext.CONTEXT_ID);
+        assert lcc != null;
         ClassFactory classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
         GeneratedClass gc = classFactory.loadGeneratedClass(
                 generatedClassNames[indexColumnPosition], exprBytecode[indexColumnPosition]);
         executableExprs[indexColumnPosition] = (BaseExecutableIndexExpression) gc.newInstance(lcc);
         return executableExprs[indexColumnPosition];
+    }
+
+    /** @see IndexDescriptor#getParsedIndexExpressions */
+    @Override
+    public ValueNode[] getParsedIndexExpressions(LanguageConnectionContext context, Optimizable optTable)
+            throws StandardException
+    {
+        LanguageConnectionContext lcc = context;
+        if (lcc == null) {
+            lcc = (LanguageConnectionContext) ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
+        }
+        assert lcc != null;
+
+        if (exprAsts != null) {
+            for (ValueNode ast : exprAsts) {
+                setTableNumberToIndexExpr(ast, optTable);
+                bindNecessaryNodesInIndexExpr(ast, optTable, lcc);
+            }
+            return exprAsts;
+        }
+
+        exprAsts = new ValueNode[exprTexts.length];
+        CompilerContext oldCC = (CompilerContext) ContextService.getContext(CompilerContext.CONTEXT_ID);
+        assert(oldCC != null);
+        CompilerContext newCC = lcc.pushCompilerContext();
+        newCC.setCurrentDependent(oldCC.getCurrentDependent());
+        Parser p = newCC.getParser();
+
+        for (int i = 0; i < exprTexts.length; i++) {
+            ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
+            setTableNumberToIndexExpr(exprAst, optTable);
+            bindNecessaryNodesInIndexExpr(exprAst, optTable, lcc);
+            exprAsts[i] = exprAst;
+        }
+        lcc.popCompilerContext(newCC);
+        return exprAsts;
+    }
+
+    /**
+     * Set table number of all column references in the given index expression AST to the current optimizable.
+     * @param ast the index expression AST to set
+     * @param optTable the current optimizable
+     * @throws StandardException
+     */
+    private static void setTableNumberToIndexExpr(ValueNode ast, Optimizable optTable) throws StandardException {
+        CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
+        ast.accept(cnv);
+        List<ColumnReference> crList = cnv.getList();
+        for (ColumnReference cr : crList) {
+            cr.setTableNumber(optTable.getTableNumber());
+        }
+    }
+
+    /**
+     * Bind all nodes in an index expression for which binding is necessary before expression comparison.
+     * @param ast the index expression AST to bind
+     * @param optTable the current optimizable
+     * @param lcc a LanguageConnectionContext instance
+     * @throws StandardException
+     */
+    private static void bindNecessaryNodesInIndexExpr(ValueNode ast, Optimizable optTable, LanguageConnectionContext lcc)
+            throws StandardException
+    {
+        // JavaToSQLValueNode has to be bound because the subtree structure might change during binding.
+        // Also, in case of a method call, method name may be resolved to a different one.
+        CollectNodesVisitor cnv = new CollectNodesVisitor(JavaToSQLValueNode.class);
+        ast.accept(cnv);
+        List<JavaToSQLValueNode> jtsvList = cnv.getList();
+        if (!jtsvList.isEmpty() && optTable instanceof FromTable) {
+            NodeFactory nf = lcc.getLanguageConnectionFactory().getNodeFactory();
+            FromList fromList = (FromList) nf.getNode(
+                    C_NodeTypes.FROM_LIST,
+                    nf.doJoinOrderOptimization(),
+                    optTable,
+                    lcc.getContextManager());
+            for (JavaToSQLValueNode jtsvNode : jtsvList) {
+                jtsvNode.bindExpression(fromList, new SubqueryList(), new ArrayList<AggregateNode>() {});
+            }
+        }
     }
 }

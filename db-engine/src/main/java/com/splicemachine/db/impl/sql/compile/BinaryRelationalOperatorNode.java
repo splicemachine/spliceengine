@@ -613,7 +613,7 @@ public class BinaryRelationalOperatorNode
 
         /* Is the key column on the left or the right? */
         List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
-        if (columnReferences != null && columnReferences.size() == 1) {
+        if (columnReferences != null && (leftMatchIndexExpr >= 0 || columnReferences.size() == 1)) {
             if (valNodeReferencesOptTable(columnReferences.get(0), (FromTable) optTable, false, true)) {
                 /* The left operand is the key column */
                 left = true;
@@ -624,7 +624,7 @@ public class BinaryRelationalOperatorNode
             if(!left){
                 boolean right = false;
                 columnReferences = rightOperand.getHashableJoinColumnReference();
-                if (columnReferences != null && columnReferences.size() ==1) {
+                if (columnReferences != null && (rightMatchIndexExpr >= 0 || columnReferences.size() == 1)) {
                     if(valNodeReferencesOptTable(columnReferences.get(0),(FromTable)optTable,false,true)){
                     /* The right operand is the key column */
                         right=true;

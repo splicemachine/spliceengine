@@ -1321,6 +1321,26 @@ public class ColumnReference extends ValueNode {
     }
 
     @Override
+    public boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        ColumnReference other = (ColumnReference)o;
+        if (tableNumber != other.tableNumber)
+            return false;
+        if (columnName.equals(other.getColumnName())) {
+            // A ColumnReference with zero-length column name may be an expression.
+            // Compare the source trees in this case to see if they really
+            // are equivalent.
+            if (columnName.length() == 0)
+                return this.getSource().isSemanticallyEquivalent(other.getSource());
+            else
+                return true;
+        }
+        return false;
+    }
+
+    @Override
     public int hashCode(){
         int hc = tableNumber;
         hc = hc*31+columnName.hashCode();
