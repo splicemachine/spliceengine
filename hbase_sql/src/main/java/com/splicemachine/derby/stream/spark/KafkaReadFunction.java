@@ -94,7 +94,7 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
             int maxRetries = 10;
             int retries = 0;
             final Duration shortTimeout = java.time.Duration.ofMillis(500L);
-            final Duration longTimeout = java.time.Duration.ofMinutes(1L);
+            final Duration longTimeout = java.time.Duration.ofSeconds(6L);
             
             private ConsumerRecords<Integer, byte[]> kafkaRecords(int maxAttempts, Duration timeout) throws TaskKilledException {
                 int attempt = 1;
@@ -111,7 +111,7 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
                 return records;
             }
             
-            private boolean hasMoreRecords(int maxAttempts, Duration timeout) throws TaskKilledException {
+            private boolean hasMoreRecords(int maxAttempts, Duration timeout) {
                 ConsumerRecords<Integer, byte[]> records = kafkaRecords(maxAttempts, timeout);
                 if( noRecords.test(records) ) {
                     if( !prevMessage.last() && retries < maxRetries ) {
@@ -125,7 +125,9 @@ public class KafkaReadFunction extends SpliceFlatMapFunction<ExportKafkaOperatio
                     }
                     //consumer.close();
                     if( !prevMessage.last() ) {
-                        LOG.error(id + " KRF.call Didn't get full batch after " + retries + " retries, got " + totalCount + " records");
+                        String msg = "KRF.call Didn't get full batch after " + retries + " retries, got " + totalCount + " records";
+                        LOG.error(id+" "+msg);
+                        throw new RuntimeException(msg+" from topic-partition "+topicName+"-"+partition);
                     }
                     return false;
                 } else {
