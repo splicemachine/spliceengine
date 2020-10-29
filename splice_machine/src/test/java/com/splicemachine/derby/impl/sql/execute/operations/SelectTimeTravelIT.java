@@ -4,7 +4,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.utils.SpliceDateTimeFormatter;
+import com.splicemachine.test.HBaseTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.sql.ResultSet;
@@ -14,6 +16,10 @@ import java.text.SimpleDateFormat;
 
 import static org.junit.Assert.fail;
 
+// there are some MRP tests in this suite that reach a code path which calls TxnStore.getTxnAt, this method
+// is not implemented in mem profile, that's why we limit this test suite to run only in HBase-providing profiles
+// for these tests to run properly.
+@Category(HBaseTest.class)
 public class SelectTimeTravelIT {
 
     private static final String SCHEMA = SelectTimeTravelIT.class.getSimpleName().toUpperCase();
