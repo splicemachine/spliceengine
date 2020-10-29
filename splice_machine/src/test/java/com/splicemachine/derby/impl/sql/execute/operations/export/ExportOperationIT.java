@@ -491,7 +491,15 @@ public class ExportOperationIT {
 
         // wrong compression format
         try {
-            methodWatcher.executeQuery(buildExportSQL("select 1 from sys.sysaliases", "/tmp/", "WrongFormat", 1, null, null, null));
+            methodWatcher.executeQuery("EXPORT TO '/tmp/' AS 'csv' COMPRESSION 'WrongFormat' select 1 from sys.sysaliases");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid error state", "XIE13", e.getSQLState());
+            assertEquals("Invalid error message", "Unsuported compression format: WRONGFORMAT", e.getMessage());
+        }
+
+        try {
+            methodWatcher.executeQuery("EXPORT('/tmp/', 'WrongFormat', null, null, null, null) select 1 from sys.sysaliases");
             fail();
         } catch (SQLException e) {
             assertEquals("Invalid error state", "XIE13", e.getSQLState());
@@ -536,9 +544,9 @@ public class ExportOperationIT {
         if (useNativeSyntax) {
             StringBuilder sql = new StringBuilder();
             sql.append("EXPORT TO '").append(exportPath).append("'");
-            sql.append(" AS 'csv' ");
+            sql.append(" AS csv ");
             if (compression != null) {
-                sql.append(" COMPRESSION '").append(compression).append("'");
+                sql.append(" COMPRESSION ").append(compression);
             }
             if (replicationCount != null) {
                 sql.append(" REPLICATION_COUNT ").append(replicationCount);
@@ -553,7 +561,7 @@ public class ExportOperationIT {
                 sql.append(" QUOTE_CHARACTER '").append(quoteCharacter).append("'");
             }
             if (quoteMode != null) {
-                sql.append(" QUOTE_MODE '").append(quoteMode).append("'");
+                sql.append(" QUOTE_MODE ").append(quoteMode);
             }
             sql.append(" ").append(selectQuery);
             return sql.toString();
