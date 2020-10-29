@@ -31,18 +31,15 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -202,6 +199,41 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 			}
 		}
 
+        if ((leftTypeId.isFixedBitDataTypeId() || leftTypeId.isVarBitDataTypeId()) && rightTypeId.isStringTypeId()) {
+            // pad the constant value before casting for fixed bit data type
+            if ((leftOperand instanceof ColumnReference) && leftTypeId.isFixedBitDataTypeId() && (rightOperand instanceof CharConstantNode)) {
+                rightPadCharConstantNode((CharConstantNode) rightOperand, (ColumnReference) leftOperand);
+            }
+            // cast String to BitType but keep the original string's length
+            rightOperand = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.CAST_NODE,
+                    rightOperand,
+                    new DataTypeDescriptor(
+                            leftTypeId,
+                            true,
+                            rightOperand.getTypeServices().getMaximumWidth()),
+                    getContextManager());
+            ((CastNode) rightOperand).bindCastNodeOnly();
+            rightTypeId = rightOperand.getTypeId();
+        } else if ((rightTypeId.isFixedBitDataTypeId() || rightTypeId.isVarBitDataTypeId()) && leftTypeId.isStringTypeId()) {
+            // pad the constant value before casting for fixed bit data type
+            if ((rightOperand instanceof ColumnReference) && rightTypeId.isFixedBitDataTypeId() && (leftOperand instanceof CharConstantNode)) {
+                rightPadCharConstantNode((CharConstantNode) leftOperand, (ColumnReference) rightOperand);
+            }
+
+            // cast String to BitType
+            leftOperand = (ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.CAST_NODE,
+                    leftOperand,
+                    new DataTypeDescriptor(
+                            rightTypeId,
+                            true,
+                            leftOperand.getTypeServices().getMaximumWidth()),
+                    getContextManager());
+            ((CastNode) leftOperand).bindCastNodeOnly();
+            leftTypeId = leftOperand.getTypeId();
+        }
+
 		if ((leftTypeId.isIntegerNumericTypeId() && rightTypeId.isDecimalTypeId()) ||
                 (leftTypeId.isDecimalTypeId() && rightTypeId.isIntegerNumericTypeId())) {
 
@@ -246,6 +278,13 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
             rightPadCharConstantNode((CharConstantNode) leftOperand, (ColumnReference) rightOperand);
         }
 
+        // do similar padding for fixed bit data type
+        if ((leftOperand instanceof ColumnReference) && leftTypeId.isFixedBitDataTypeId() && (rightOperand instanceof BitConstantNode)) {
+            rightPadBitDataConstantNode((BitConstantNode) rightOperand, (ColumnReference) leftOperand);
+        } else if ((rightOperand instanceof ColumnReference) && rightTypeId.isFixedBitDataTypeId() && (leftOperand instanceof BitConstantNode)) {
+            rightPadBitDataConstantNode((BitConstantNode) leftOperand, (ColumnReference) rightOperand);
+        }
+
 		/* Test type compatibility and set type info for this node */
 		bindComparisonOperator();
 
@@ -255,9 +294,38 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
     private static void rightPadCharConstantNode(CharConstantNode constantNode, ColumnReference columnReference) throws StandardException {
         String stringConstant = constantNode.getString();
         int maxSize = columnReference.getTypeServices().getMaximumWidth();
-        constantNode.setValue(new SQLChar(StringUtil.padRight(stringConstant, SQLChar.PAD, maxSize)));
+        String newStringConstant = StringUtil.padRight(stringConstant, SQLChar.PAD, maxSize);
+        constantNode.setValue(new SQLChar(newStringConstant));
+        DataTypeDescriptor updatedType = new DataTypeDescriptor(
+                constantNode.getTypeId(),
+                true,
+                newStringConstant.length());
+        constantNode.setType(updatedType);
     }
 
+    private static byte[] padBitData(byte[] value, byte padVal, int sizeWithPad) {
+        if (value == null || value.length >= sizeWithPad)
+            return value;
+
+        byte[] newVal = new byte[sizeWithPad];
+
+        System.arraycopy(value, 0, newVal, 0, value.length);
+        Arrays.fill(newVal, value.length, sizeWithPad, padVal);
+
+        return newVal;
+    }
+
+    private static void rightPadBitDataConstantNode(BitConstantNode constantNode, ColumnReference columnReference) throws StandardException {
+        byte[] bitDataConstant = (byte[])constantNode.getConstantValueAsObject();
+        int maxSize = columnReference.getTypeServices().getMaximumWidth();
+        byte[] newBitDataConstant = padBitData(bitDataConstant, (byte) 0x20, maxSize);
+        constantNode.setValue(new SQLBit(newBitDataConstant));
+        DataTypeDescriptor updatedType = new DataTypeDescriptor(
+                constantNode.getTypeId(),
+                true,
+                newBitDataConstant.length);
+        constantNode.setType(updatedType);
+    }
 
     /**
 	 * Test the type compatability of the operands and set the type info

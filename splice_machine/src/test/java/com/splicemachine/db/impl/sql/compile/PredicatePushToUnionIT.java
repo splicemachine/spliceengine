@@ -426,18 +426,10 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
         11 rows selected
          */
 
-        /* for spark path, only one inlist can be used in the access path, so the plans under spark and control are different */
-        if (!useSpark) {
-            rowContainsQuery(new int[]{7, 9}, "explain " + sqlText, methodWatcher,
-                    new String[]{"MultiProbeTableScan", "preds=[((A6[3:1],B6[3:2],C6[3:3]) IN ((abcde,2,2018-12-01),(abcde,2,2018-12-05),(splice,2,2018-12-01),(splice,2,2018-12-05)))]"},
-                    new String[]{"MultiProbeTableScan", "preds=[((A5[0:1],B5[0:2],C5[0:3]) IN ((abcde,2,2018-12-01),(abcde,2,2018-12-05),(splice,2,2018-12-01),(splice,2,2018-12-05)))]"});
-        } else {
-            rowContainsQuery(new int[]{7, 8, 10, 11}, "explain " + sqlText, methodWatcher,
-                    new String[]{"ProjectRestrict", "preds=[(C6[3:3] IN (2018-12-01,2018-12-05))]"},
-                    new String[]{"MultiProbeTableScan", "preds=[(A6[3:1] IN (abcde,splice)),(B6[3:2] = 2)]"},
-                    new String[]{"ProjectRestrict", "preds=[(C5[0:3] IN (2018-12-01,2018-12-05))]"},
-                    new String[]{"MultiProbeTableScan", "preds=[(A5[0:1] IN (abcde,splice)),(B5[0:2] = 2)]"});
-        }
+        rowContainsQuery(new int[]{7, 9}, "explain " + sqlText, methodWatcher,
+                new String[]{"MultiProbeTableScan", "preds=[((A6[3:1],B6[3:2],C6[3:3]) IN ((abcde,2,2018-12-01),(abcde,2,2018-12-05),(splice,2,2018-12-01),(splice,2,2018-12-05)))]"},
+                new String[]{"MultiProbeTableScan", "preds=[((A5[0:1],B5[0:2],C5[0:3]) IN ((abcde,2,2018-12-01),(abcde,2,2018-12-05),(splice,2,2018-12-01),(splice,2,2018-12-05)))]"});
+
 
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
@@ -496,17 +488,9 @@ public class PredicatePushToUnionIT extends SpliceUnitTest {
 
         11 rows selected
          */
-        if (!useSpark) {
-            rowContainsQuery(new int[]{7, 9}, "explain " + sqlText, methodWatcher,
-                    new String[]{"MultiProbeTableScan", "preds=[((A6[3:1],B6[3:2],C6[3:3]) IN ((substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"},
-                    new String[]{"MultiProbeTableScan", "preds=[((A5[0:1],B5[0:2],C5[0:3]) IN ((substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"});
-        } else {
-            rowContainsQuery(new int[]{7, 8, 10, 11}, "explain " + sqlText, methodWatcher,
-                    new String[]{"ProjectRestrict", "preds=[(C6[3:3] IN (dataTypeServices: DATE ,dataTypeServices: DATE ))]"},
-                    new String[]{"MultiProbeTableScan", "preds=[(A6[3:1] IN (substring(abcdeNNN, 1, 5) ,splice)),(B6[3:2] = 2)]"},
-                    new String[]{"ProjectRestrict", "preds=[(C5[0:3] IN (dataTypeServices: DATE ,dataTypeServices: DATE ))]"},
-                    new String[]{"MultiProbeTableScan", "preds=[(A5[0:1] IN (substring(abcdeNNN, 1, 5) ,splice)),(B5[0:2] = 2)]"});
-        }
+        rowContainsQuery(new int[]{7, 9}, "explain " + sqlText, methodWatcher,
+                new String[]{"MultiProbeTableScan", "preds=[((A6[3:1],B6[3:2],C6[3:3]) IN ((substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"},
+                new String[]{"MultiProbeTableScan", "preds=[((A5[0:1],B5[0:2],C5[0:3]) IN ((substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(substring(abcdeNNN, 1, 5) ,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE ),(splice,2,dataTypeServices: DATE )))]"});
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =

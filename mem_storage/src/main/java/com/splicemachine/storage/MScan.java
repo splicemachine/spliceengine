@@ -14,10 +14,11 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.io.IOException;
+import java.util.*;
 
 /**
  * @author Scott Fines
@@ -33,6 +34,12 @@ public class MScan implements DataScan{
     private long lowTs = 0l;
     private boolean descending = false;
 
+    @Override
+    public void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs)  throws IOException {
+        // No implementation on mem platform for now.
+        // If this function is getting called, it is an error condition.
+        throw new IOException();
+    }
     @Override
     @SuppressFBWarnings("EI_EXPOSE_REP2")
     public DataScan startKey(byte[] startKey){

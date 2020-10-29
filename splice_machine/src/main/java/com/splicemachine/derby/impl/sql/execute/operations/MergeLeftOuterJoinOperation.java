@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -59,12 +60,13 @@ public class MergeLeftOuterJoinOperation extends MergeJoinOperation {
                                        double optimizerEstimatedRowCount,
                                        double optimizerEstimatedCost,
                                        String userSuppliedOptimizerOverrides,
-                                       String sparkExpressionTreeAsString) throws StandardException {
+                                       String sparkExpressionTreeAsString,
+                                       int encodedNewMergeJoin) throws StandardException {
         super(leftResultSet, leftNumCols, rightResultSet, rightNumCols, leftHashKeyItem, rightHashKeyItem,
                  rightHashKeyToBaseTableMapItem, rightHashKeySortOrderItem,
                  activation, restriction, resultSetNumber, oneRowRightSide, semiJoinType, rightFromSSQ,
                  optimizerEstimatedRowCount, optimizerEstimatedCost, userSuppliedOptimizerOverrides,
-                 sparkExpressionTreeAsString);
+                 sparkExpressionTreeAsString, CompilerContext.NewMergeJoinExecutionType.values()[encodedNewMergeJoin]);
         SpliceLogUtils.trace(LOG, "instantiate");
         rightEmptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
         this.wasRightOuterJoin = wasRightOuterJoin;

@@ -48,6 +48,7 @@ public class FunctionIT extends SpliceUnitTest {
             13.21958329568391029385, 12.132435242330192856728391029584, 1.9082847283940982746172849098273647589099};
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("B",FunctionIT.class.getSimpleName(),"(col decimal(14,4))");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("TMM",FunctionIT.class.getSimpleName(),"(i int, db double, dc decimal(3,1), c char(4), vc varchar(4), ts timestamp, bl blob(1K), cl clob(1K))");  // XML column not implemented
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("COA",FunctionIT.class.getSimpleName(),"(d date, i int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -56,6 +57,7 @@ public class FunctionIT extends SpliceUnitTest {
         .around(spliceTableWatcher)
         .around(spliceTableWatcher1)
         .around(spliceTableWatcher2)
+        .around(spliceTableWatcher3)
         .around(spliceFunctionWatcher)
         .around(new SpliceDataWatcher(){
             @Override
@@ -186,6 +188,20 @@ public class FunctionIT extends SpliceUnitTest {
         vetThreeArgCoalesce("values nvl(cast(? as char(1)), ?, ?)");
         vetThreeArgCoalesce("values nvl(?, cast(? as char(1)), ?)");
         vetThreeArgCoalesce("values nvl(?, ?, cast(? as char(1)))");
+
+    }
+
+    // DB-10522
+    @Test
+    public void testCoalesceImplicitConversion() throws SQLException {
+        try (ResultSet rs = methodWatcher.executeQuery(format("select coalesce(max(d),'0001-01-01') from %s", spliceTableWatcher3))) {
+            rs.next();
+            Assert.assertEquals("0001-01-01", rs.getString(1));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(format("select coalesce(max(d),'0001-01-01') from %s --splice-properties useSpark=true\n", spliceTableWatcher3))) {
+            rs.next();
+            Assert.assertEquals("0001-01-01", rs.getString(1));
+        }
 
     }
 

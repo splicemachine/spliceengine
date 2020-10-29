@@ -26,18 +26,14 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
-import com.splicemachine.derby.catalog.TriggerOldTransitionRows;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.sql.execute.TriggerRowHolderImpl;
-import com.splicemachine.derby.stream.function.TriggerRowsMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -128,6 +124,7 @@ public class VTIOperation extends SpliceBaseOperation {
     private int resultDescriptionItemNumber;
     private ResultDescription resultDescription;
     private boolean convertTimestamps;
+    private boolean quotedEmptyIsNull;
 
 
 	/**
@@ -165,7 +162,8 @@ public class VTIOperation extends SpliceBaseOperation {
                  int returnTypeNumber,
                  int vtiProjectionNumber,
                  int vtiRestrictionNumber,
-                 int resultDescriptionNumber
+                 int resultDescriptionNumber,
+                 boolean quotedEmptyIsNull
                  ) 
 		throws StandardException
 	{
@@ -207,7 +205,7 @@ public class VTIOperation extends SpliceBaseOperation {
         }
         // if database property is not set, treat it as false
 		this.convertTimestamps = convertTimestampsString != null && Boolean.valueOf(convertTimestampsString);
-
+        this.quotedEmptyIsNull = quotedEmptyIsNull;
         init();
     }
 
@@ -359,4 +357,5 @@ public class VTIOperation extends SpliceBaseOperation {
         return resultColumnTypes;
     }
     public boolean isConvertTimestampsEnabled() { return convertTimestamps; }
+    public boolean getQuotedEmptyIsNull() { return quotedEmptyIsNull; }
 }

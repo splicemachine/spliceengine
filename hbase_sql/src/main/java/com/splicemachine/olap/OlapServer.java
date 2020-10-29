@@ -14,7 +14,8 @@
 
 package com.splicemachine.olap;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -50,6 +51,7 @@ public class OlapServer {
         this.clock=clock;
     }
 
+    @SuppressFBWarnings(value = {"BC_IMPOSSIBLE_INSTANCEOF", "DLS_DEAD_LOCAL_STORE"}, justification = "DB-10605")
     public void startServer(SConfiguration config) throws IOException {
 
         ScheduledExecutorService executor = Executors.newScheduledThreadPool(15, new ThreadFactoryBuilder().setNameFormat("OlapServer-%d").setDaemon(true).build());

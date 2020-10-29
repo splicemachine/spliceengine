@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
+import splice.com.google.common.collect.ArrayListMultimap;
+import splice.com.google.common.collect.Multimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
