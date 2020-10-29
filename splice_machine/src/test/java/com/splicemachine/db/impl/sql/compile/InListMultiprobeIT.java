@@ -641,7 +641,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         while (rs.next()) {
             String resultString = rs.getString(1);
             if (level == 3) {
-                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+                Assert.assertTrue("MultiProbeIndexScan is expected, but got " + resultString, resultString.contains("MultiProbeIndexScan"));
             }
             level++;
         }
@@ -665,7 +665,9 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         /** explain should look like the following:
          Cursor(n=3,rows=17,updateMode=READ_ONLY (1),engine=control)
          ->  ScrollInsensitive(n=2,totalCost=8.199,outputRows=17,outputHeapSize=34 B,partitions=1)
-         ->  MultiProbeIndexScan[IX_FLOAT(2689)](n=1,totalCost=4.027,scannedRows=17,outputRows=17,outputHeapSize=49 B,partitions=1,baseTable=TS_FLOAT(2672),preds=[((F[0:1],N[0:2]) IN ((1.0,1),(1.0,3),(1.0,4),(1.0,5),(2.0,1),(2.0,3),(2.0,4),(2.0,5),(3.0,1),(3.0,3),(3.0,4),(3.0,5),(4.0,1),(4.0,3),(4.0,4),(4.0,5))),(C[0:3] = 4.0)]) */
+         ->  ProjectRestrict(n=1,totalCost=4.027,outputRows=1,outputHeapSize=0 B,partitions=1,preds=[(F[0:1] <> 8)])
+         ->  MultiProbeIndexScan[IX_FLOAT(7697)](n=0,totalCost=4.027,scannedRows=17,outputRows=1,outputHeapSize=0 B,partitions=1,baseTable=TS_FLOAT(7680),preds=[((F[0:1],N[0:2],R[0:3]) IN ((1.0,1,4.0),(1.0,3,4.0),(1.0,4,4.0),(1.0,5,4.0),(2.0,1,4.0),(2.0,3,4.0),(2.0,4,4.0),(2.0,5,4.0),(3.0,1,4.0),(3.0,3,4.0),(3.0,4,4.0),(3.0,5,4.0),(4.0,1,4.0),(4.0,3,4.0),(4.0,4,4.0),(4.0,5,4.0))),(F[0:1] <> 6),(F[0:1] <> 7),(R[0:3] <> 55),(R[0:3] <> 33),(R[0:3] <> 44),(R[0:3] <> 55)]) |
+         */
         level = 1;
         while (rs.next()) {
             String resultString = rs.getString(1);
@@ -990,8 +992,8 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
         level = 1;
         while (rs.next()) {
             String resultString = rs.getString(1);
-            if (level == 4) {
-                Assert.assertTrue("MultiProbeIndexScan is expected", resultString.contains("MultiProbeIndexScan"));
+            if (level == 3) {
+                Assert.assertTrue("MultiProbeIndexScan is expected, but is " + resultString, resultString.contains("MultiProbeIndexScan"));
             }
             level++;
         }
@@ -2486,7 +2488,7 @@ public class InListMultiprobeIT  extends SpliceUnitTest {
     public void testInListWithUdfExpressionsOnPK() throws Exception {
         // step 1: create user defined function and load library
         // install jar file and set classpath
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
+        String STORED_PROCS_JAR_FILE = SpliceUnitTest.getSqlItJarFile();
         String JAR_FILE_SQL_NAME = CLASS_NAME + "." + "SQLJ_IT_PROCS_JAR";
         methodWatcher.execute(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
         methodWatcher.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
