@@ -15,8 +15,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Iterators;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.SQLLongint;
@@ -754,7 +754,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             else if (compression == COMPRESSION.GZ) {
                 fileOut = new GZIPOutputStream(fileOut);
             }
-            final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams());
+            final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams(), op.getSourceResultColumnDescriptors());
             return new RecordWriter<Void, ExecRow>() {
                 @Override
                 public void write(Void _, ExecRow locatedRow) throws IOException, InterruptedException {

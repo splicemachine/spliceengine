@@ -35,7 +35,7 @@ import java.nio.file.*;
 import java.util.*;
 import java.util.stream.Stream;
 
-import static com.google.common.collect.Iterables.toArray;
+import static splice.com.google.common.collect.Iterables.toArray;
 
 /**
  * @author Scott Fines
