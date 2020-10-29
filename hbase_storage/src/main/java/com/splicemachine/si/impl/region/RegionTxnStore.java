@@ -463,10 +463,6 @@ public class RegionTxnStore implements TxnPartition{
         }
     }
 
-    private boolean isTimedOut(TxnMessage.Txn txn){
-        return (clock.currentTimeMillis()-txn.getLastKeepAliveTime())>keepAliveTimeoutMs;
-    }
-
     private class ScanIterator implements Source<TxnMessage.Txn>{
         private final RegionScanner regionScanner;
         protected TxnMessage.Txn next;
