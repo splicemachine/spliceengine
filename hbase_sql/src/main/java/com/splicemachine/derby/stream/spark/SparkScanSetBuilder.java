@@ -96,13 +96,11 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
                 locatedRows = dsp.readAvroFile(schema, baseColumnMap, partitionByColumns, location, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
             }
             else if (storedAs.equals("O"))
-
-                locatedRows = dsp.readORCFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction, false);
+                locatedRows = dsp.readORCFile(schema, baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
-            if (hasVariantQualifiers(qualifiers) || storedAs.equals("O")) {
-                // The predicates have variant qualifiers (or we are reading ORC with our own reader), we couldn't push them down to the scan, process them here
+            if (hasVariantQualifiers(qualifiers)) {
                 return locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
             }
             return locatedRows;

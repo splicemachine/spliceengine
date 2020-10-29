@@ -644,7 +644,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testReportMissingTableStatistics() throws Exception {
-        String query ="explain get no statistics select * from t3";
+        String query ="explain select * from t3";
         String[] expected = {
                 "Table statistics are missing or skipped for the following tables",
                 CLASS_NAME + ".T3"
@@ -659,7 +659,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testTableSkipStatistics() throws Exception {
-        String query ="explain get no statistics select * from t5 --splice-properties skipStats=true";
+        String query ="explain select * from t5 --splice-properties skipStats=true";
         methodWatcher.executeQuery(format("analyze table %s.t5", CLASS_NAME));
 
         String[] expected = {
@@ -671,7 +671,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testReportMissingColumnStatisticsUsedOnly() throws Exception {
-        String query ="explain get no statistics select * from t5";
+        String query ="explain select * from t5";
         methodWatcher.execute(format("CALL SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s', 'T5', 'E5')", CLASS_NAME));
         methodWatcher.executeQuery(format("analyze table %s.t5", CLASS_NAME));
 
@@ -693,7 +693,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     @Test
     public void testReportMissingColumnStatisticsInListAndRange() throws Exception {
         String query =
-                "explain get no statistics select * from t1 --splice-properties joinStrategy=NESTEDLOOP\n" +
+                "explain select * from t1 --splice-properties joinStrategy=NESTEDLOOP\n" +
                 " , t2 --splice-properties joinStrategy=NESTEDLOOP\n" +
                 " where t1.c1 = t2.c1 and t1.c2 in (3, 5, 7) and t2.c1 between 1 and 10";
         methodWatcher.execute(format("CALL SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s', 'T1', 'c2')", CLASS_NAME));
@@ -717,7 +717,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
     @Test
     public void testReportMissingColumnStatisticsJoinSelectivity() throws Exception {
         String query =
-                "explain get no statistics select * from t1\n" +
+                "explain select * from t1\n" +
                 " , t2 --splice-properties joinStrategy=BROADCAST\n" +
                 " where t1.c1 = t2.c1";
         methodWatcher.execute(format("CALL SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s', 'T1', 'c2')", CLASS_NAME));
@@ -739,7 +739,7 @@ public class ExplainPlanIT extends SpliceUnitTest  {
 
     @Test
     public void testReportMissingColumnStatisticsGroupByAndAggregates() throws Exception {
-        String query = "explain get no statistics select b6, avg(a6), sum(c6) from t6 group by b6";
+        String query = "explain select b6, avg(a6), sum(c6) from t6 group by b6";
         methodWatcher.execute(format("CALL SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s', 'T6', 'b6')", CLASS_NAME));
         methodWatcher.execute(format("CALL SYSCS_UTIL.DISABLE_COLUMN_STATISTICS('%s', 'T6', 'c6')", CLASS_NAME));
         methodWatcher.executeQuery(format("analyze table %s.t6", CLASS_NAME));
