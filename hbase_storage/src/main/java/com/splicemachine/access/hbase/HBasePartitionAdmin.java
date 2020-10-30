@@ -28,7 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.access.api.ReplicationPeerDescription;
 import com.splicemachine.access.configuration.HBaseConfiguration;

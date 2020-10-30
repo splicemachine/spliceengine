@@ -201,6 +201,8 @@ public class FromBaseTable extends FromTable {
 
     private ValueNode pastTxIdExpression = null;
 
+    private long minRetentionPeriod = -1;
+
     @Override
     public boolean isParallelizable(){
         return false;
@@ -716,13 +718,14 @@ public class FromBaseTable extends FromTable {
                 }
                 if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
-            } else if (key.equals("broadcastCrossRight")) {
+            } else if (key.equals("broadcastCrossRight") || key.equals("unboundedTimeTravel")) {
                 // no op since parseBoolean never throw
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
                         "index, constraint, joinStrategy, useSpark, useOLAP, pin, skipStats, splits, " +
-                                "useDefaultRowcount, defaultSelectivityFactor");
+                                "useDefaultRowcount, defaultSelectivityFactor, broadcastCrossRight," +
+                                "unboundedTimeTravel");
             }
 
 
@@ -1056,6 +1059,12 @@ public class FromBaseTable extends FromTable {
             }
             else if(tableType==TableDescriptor.WITH_TYPE) {
                 throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "common table expressions");
+            }
+            if(tableProperties != null && Boolean.parseBoolean(tableProperties.getProperty("unboundedTimeTravel"))) {
+                this.minRetentionPeriod = -1;
+            } else {
+                Long minRetentionPeriod = tableDescriptor.getMinRetentionPeriod();
+                this.minRetentionPeriod = minRetentionPeriod == null ? -1 : minRetentionPeriod;
             }
         }
 
@@ -2214,8 +2223,8 @@ public class FromBaseTable extends FromTable {
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
         generatePastTxFunc(acb, mb);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,16);
-
+        mb.push(minRetentionPeriod);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,17);
     }
 
     private void generateDistinctScan ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
@@ -2295,8 +2304,9 @@ public class FromBaseTable extends FromTable {
         mb.push(partitionReferenceItem);
         generateDefaultRow((ActivationClassBuilder)acb, mb);
         generatePastTxFunc(acb, mb);
+        mb.push(minRetentionPeriod);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,29);
+                ClassName.NoPutResultSet,30);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
@@ -2408,6 +2418,9 @@ public class FromBaseTable extends FromTable {
 
         // also add the past transaction id functor
         generatePastTxFunc(acb, mb);
+        numArgs++;
+
+        mb.push(minRetentionPeriod);
         numArgs++;
 
         return numArgs;
