@@ -1,0 +1,26 @@
+option java_package = "com.splicemachine.db.impl.sql.catalog";
+option java_outer_classname = "CatalogMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message SpliceConglomerate {
+  optional int32 conglomerateFormatId=2;
+  optional int32 tmpFlag=3;
+  optional int64 containerId=4;
+  repeated int32 formatIds=5;
+  repeated int32 collationIds=6;
+  repeated int32 columnOrdering=7;
+}
+
+message IndexConglomerate {
+  optional SpliceConglomerate base=1;
+  optional bool uniqueWithDuplicateNulls=2;
+  optional int32 nKeyFields=3;
+  optional int32 nUniqueColumns=4;
+  optional bool allowDuplicates=5;
+  optional bool maintainParentLinks=6;
+  optional int64 baseConglomerateId=7;
+  optional int32 rowLocationColumn=8;
+  repeated bool ascDescInfo=9;
+}
