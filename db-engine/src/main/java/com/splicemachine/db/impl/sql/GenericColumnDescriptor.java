@@ -230,6 +230,8 @@ public final class GenericColumnDescriptor
      * @exception IOException thrown on error
      */
     public void writeExternal(ObjectOutput out) throws IOException {
+
+        // DANGER: do NOT change this serialization unless you have an upgrade script, see DB-10566
         out.writeUTF(name == null ? "" : name);
         if (tableName != null) {
             out.writeBoolean(true);
