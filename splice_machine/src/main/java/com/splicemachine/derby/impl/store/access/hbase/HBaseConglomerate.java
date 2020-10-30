@@ -14,7 +14,11 @@
 
 package com.splicemachine.derby.impl.store.access.hbase;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
@@ -25,6 +29,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -43,14 +48,14 @@ import org.apache.spark.sql.types.StructField;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.Properties;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.stream.Collectors;
 
 /**
  * A hbase object corresponds to an instance of a hbase conglomerate.
  **/
-
 public class HBaseConglomerate extends SpliceConglomerate{
     public static final long serialVersionUID=5l;
     private static final Logger LOG=Logger.getLogger(HBaseConglomerate.class);
@@ -58,6 +63,10 @@ public class HBaseConglomerate extends SpliceConglomerate{
 
     public HBaseConglomerate(){
         super();
+    }
+
+    public HBaseConglomerate(TypeMessage.HBaseConglomerate conglomerate) {
+        init(conglomerate);
     }
 
     protected void create(boolean isExternal,
@@ -72,7 +81,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                           TxnOperationFactory operationFactory,
                           PartitionFactory partitionFactory,
                           byte[][] splitKeys, Priority priority) throws StandardException{
-        super.create(isExternal,rawtran,
+        super.create(rawtran,
                 input_containerid,
                 template,
                 columnOrder,
@@ -320,15 +329,8 @@ public class HBaseConglomerate extends SpliceConglomerate{
         return StoredFormatIds.ACCESS_HEAP_V3_ID;
     }
 
-    /**
-     * Store the stored representation of column value in stream.
-     * <p/>
-     * This routine uses the current database version to either store the
-     * the 10.2 format (ACCESS_HEAP_V2_ID) or the current format
-     * (ACCESS_HEAP_V3_ID).
-     * <p/>
-     **/
-    public void writeExternal(ObjectOutput out) throws IOException{
+    @Override
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
         FormatIdUtil.writeFormatIdInteger(out,conglom_format_id);
         FormatIdUtil.writeFormatIdInteger(out,tmpFlag);
         out.writeLong(containerId);
@@ -340,6 +342,28 @@ public class HBaseConglomerate extends SpliceConglomerate{
         ConglomerateUtil.writeFormatIdArray(columnOrdering,out);
     }
 
+    @Override
+    public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+        TypeMessage.HBaseConglomerate hbaseConglomerate = TypeMessage.HBaseConglomerate.newBuilder()
+                .setConglomerateFormatId(conglom_format_id)
+                .setTmpFlag(tmpFlag)
+                .setContainerId(containerId)
+                .addAllFormatIds(Arrays.stream(format_ids).boxed().collect(Collectors.toList()))
+                .addAllCollationIds(Arrays.stream(collation_ids).boxed().collect(Collectors.toList()))
+                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()))
+                .build();
+
+        TypeMessage.SpliceConglomerate spliceConglomerate = TypeMessage.SpliceConglomerate.newBuilder()
+                .setType(TypeMessage.SpliceConglomerate.Type.HBaseConglomerate)
+                .setExtension(TypeMessage.HBaseConglomerate.hbaseConglomerate, hbaseConglomerate)
+                .build();
+
+        TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.newBuilder()
+                .setType(TypeMessage.DataValueDescriptor.Type.SpliceConglomerate)
+                .setExtension(TypeMessage.SpliceConglomerate.spliceConglomerate, spliceConglomerate)
+                .build();
+        return dvd;
+    }
     /**
      * Restore the in-memory representation from the stream.
      * <p/>
@@ -349,38 +373,86 @@ public class HBaseConglomerate extends SpliceConglomerate{
      *                                the stream could not be found.
      * @see java.io.Externalizable#readExternal
      **/
-    private void localReadExternal(ObjectInput in)
-            throws IOException, ClassNotFoundException{
-//        SpliceLogUtils.trace(LOG,"localReadExternal");
-        // read the format id of this conglomerate.
+    @Override
+    public void readExternal(ObjectInput in) throws IOException {
+
+        try {
+            String version = null;
+            SIDriver driver = SIDriver.driver();
+            if (driver != null) {
+                partitionFactory = driver.getTableFactory();
+                opFactory = driver.getOperationFactory();
+                PartitionAdmin admin = partitionFactory.getAdmin();
+                version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
+            }
+
+            if (version == null ||  version.equals("1")) {
+                readExternalOld(in);
+            }
+            else {
+                readExternalNew(in);
+            }
+        } catch (StandardException e) {
+            throw new IOException(e);
+        }
+    }
+
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         conglom_format_id=FormatIdUtil.readFormatIdInteger(in);
         tmpFlag=FormatIdUtil.readFormatIdInteger(in);
         containerId=in.readLong();
         // read the number of columns in the heap.
         int num_columns=in.readInt();
         // read the array of format ids.
-        format_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
+        format_ids= ConglomerateUtil.readFormatIdArray(num_columns,in);
         this.conglom_format_id=getTypeFormatId();
         num_columns=in.readInt();
         collation_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
         num_columns=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(num_columns,in);
+    }
 
-        if( SIDriver.driver() != null ) {
-            partitionFactory = SIDriver.driver().getTableFactory();
-            opFactory = SIDriver.driver().getOperationFactory();
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtobufUtils.createDVDExtensionRegistry();
+        TypeMessage.DataValueDescriptor dvd =
+                TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        TypeMessage.SpliceConglomerate spliceConglomerate =
+                dvd.getExtension(TypeMessage.SpliceConglomerate.spliceConglomerate);
+        TypeMessage.HBaseConglomerate hbaseConglomerate =
+                spliceConglomerate.getExtension(TypeMessage.HBaseConglomerate.hbaseConglomerate);
+
+        init(hbaseConglomerate);
+    }
+
+    private void init(TypeMessage.HBaseConglomerate hbaseConglomerate) {
+        conglom_format_id = hbaseConglomerate.getConglomerateFormatId();
+        tmpFlag = hbaseConglomerate.getTmpFlag();
+        containerId = hbaseConglomerate.getContainerId();
+
+        format_ids = new int[hbaseConglomerate.getFormatIdsCount()];
+        for (int i = 0; i < format_ids.length; ++i) {
+            format_ids[i] = hbaseConglomerate.getFormatIds(i);
+        }
+
+        collation_ids = new int[hbaseConglomerate.getCollationIdsCount()];
+        for (int i = 0; i < collation_ids.length; ++i) {
+            collation_ids[i] = hbaseConglomerate.getCollationIds(i);
+        }
+
+        columnOrdering = new int[hbaseConglomerate.getColumnOrderingCount()];
+        for (int i = 0; i < columnOrdering.length; ++i) {
+            columnOrdering[i] = hbaseConglomerate.getColumnOrdering(i);
         }
     }
-
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        localReadExternal(in);
-    }
-
 
     public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException{
         if(LOG.isTraceEnabled())
             LOG.trace("readExternalFromArray: ");
-        localReadExternal(in);
+        readExternalOld(in);
     }
 
     @Override

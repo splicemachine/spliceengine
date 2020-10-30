@@ -14,10 +14,13 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.access.util.ByteComparisons;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.utils.ByteSlice;
@@ -58,6 +61,10 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     public HBaseRowLocation(ByteSlice slice) {
         this.slice = slice;
         isNull = evaluateNull();
+    }
+
+    public HBaseRowLocation(TypeMessage.HBaseRowLocation rowLocation) {
+        init(rowLocation);
     }
 
     /**
@@ -176,16 +183,54 @@ public class HBaseRowLocation extends DataType implements RowLocation {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
         out.writeBoolean(slice!=null);
         if (slice!=null)
             out.writeObject(slice);
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        if (in.readBoolean())
-            slice = (ByteSlice) in.readObject();
+    public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+        TypeMessage.HBaseRowLocation.Builder builder = TypeMessage.HBaseRowLocation.newBuilder();
+        builder.setIsNull(slice == null);
+        if (slice != null) {
+            builder.setSlice(slice.toProtobuf());
+        }
+
+        TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.newBuilder()
+                .setType(TypeMessage.DataValueDescriptor.Type.HBaseRowLocation)
+                .setExtension(TypeMessage.HBaseRowLocation.hbaseRowLocation, builder.build())
+                .build();
+        return dvd;
+    }
+
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(TypeMessage.HBaseRowLocation.hbaseRowLocation);
+        TypeMessage.DataValueDescriptor dataValueDescriptor =
+                TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        TypeMessage.HBaseRowLocation rowLocation =
+                dataValueDescriptor.getExtension(TypeMessage.HBaseRowLocation.hbaseRowLocation);
+        init(rowLocation);
+    }
+
+    private void init(TypeMessage.HBaseRowLocation rowLocation) {
+        if (!rowLocation.getIsNull()) {
+            slice = ProtobufUtils.fromProtobuf(rowLocation.getSlice());
+        }
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
+        try {
+            if (in.readBoolean()) {
+                slice = (ByteSlice) in.readObject();
+            }
+        } catch (ClassNotFoundException e) {
+            throw new IOException(e);
+        }
     }
 
     @Override

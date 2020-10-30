@@ -35,11 +35,16 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 
 /**
  * Describe a G (Aggregate) alias. The AggregateAliasInfo maintains a version stamp so that it
@@ -132,11 +137,30 @@ public class AggregateAliasInfo implements AliasInfo, Formatable
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
+	public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew( ObjectInput in ) throws IOException, ClassNotFoundException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+		extensionRegistry.add(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+		extensionRegistry.add(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+		CatalogMessage.AggregateAliasInfo aggregateAliasInfo =
+				CatalogMessage.AggregateAliasInfo.parseFrom(bs, extensionRegistry);
+		_forType = ProtobufUtils.fromProtobuf(aggregateAliasInfo.getForType());
+		_returnType = ProtobufUtils.fromProtobuf(aggregateAliasInfo.getReturnType());
+	}
+
+	protected void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException {
         // as the persistent form evolves, switch on this value
-        int oldVersion = in.readInt();
+        in.readInt();
 
         _forType = (TypeDescriptor) in.readObject();
         _returnType = (TypeDescriptor) in.readObject();
@@ -149,15 +173,32 @@ public class AggregateAliasInfo implements AliasInfo, Formatable
 	 *
 	 * @exception IOException		thrown on error
 	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew( ObjectOutput out ) throws IOException {
+		CatalogMessage.AggregateAliasInfo aggregateAliasInfo =
+				CatalogMessage.AggregateAliasInfo.newBuilder()
+						.setForType(((TypeDescriptorImpl)_forType).toProtobuf())
+						.setReturnType(((TypeDescriptorImpl)_returnType).toProtobuf())
+						.build();
+		ArrayUtil.writeByteArray(out, aggregateAliasInfo.toByteArray());
+	}
+
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
 		out.writeInt( FIRST_VERSION );
 
-        out.writeObject( _forType );
-        out.writeObject( _returnType );
+		out.writeObject( _forType );
+		out.writeObject( _returnType );
 	}
- 
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *

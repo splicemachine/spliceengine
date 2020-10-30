@@ -34,6 +34,9 @@ package com.splicemachine.db.iapi.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.impl.sql.CatalogMessage;
+
+import java.io.IOException;
 
 /**
  *	This interface describes actions that are ALWAYS performed for a
@@ -61,5 +64,10 @@ public interface ConstantAction
 
 	default long getTargetConglomId() {
 		return 0L;
+	}
+
+	default CatalogMessage.WriteCursorConstantOperation.Builder toProtobufBuilder() throws IOException {
+		String error = String.format("Class %s is not serializable", this.getClass().getName());
+		throw new RuntimeException(error);
 	}
 }

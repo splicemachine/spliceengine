@@ -31,10 +31,10 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import java.io.ObjectOutput;
@@ -69,9 +69,7 @@ import org.apache.spark.sql.types.StructField;
  * possible for this implementation -- it new's Short
  * more than it probably wants to.
  */
-public final class SQLSmallint
-	extends NumberDataType
-{
+public final class SQLSmallint extends NumberDataType {
 	/*
 	 * DataValueDescriptor interface
 	 * (mostly implemented in DataType)
@@ -192,9 +190,25 @@ public final class SQLSmallint
 		return StoredFormatIds.SQL_SMALLINT_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(isNull);
 		out.writeShort(value);
+	}
+
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLSmallint.Builder builder = TypeMessage.SQLSmallint.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull){
+			builder.setValue(value);
+		}
+		TypeMessage.DataValueDescriptor dvd =
+				TypeMessage.DataValueDescriptor.newBuilder()
+						.setType(TypeMessage.DataValueDescriptor.Type.SQLSmallint)
+						.setExtension(TypeMessage.SQLSmallint.sqlSmallint, builder.build())
+						.build();
+		return dvd;
 	}
 
 	/** @see java.io.Externalizable#readExternal */
@@ -202,7 +216,26 @@ public final class SQLSmallint
 		isNull = in.readBoolean();
 		value = in.readShort();
 	}
-	public void readExternal(ObjectInput in) throws IOException {
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(TypeMessage.SQLSmallint.sqlSmallint);
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLSmallint smallint = dvd.getExtension(TypeMessage.SQLSmallint.sqlSmallint);
+		init(smallint);
+	}
+
+	private void init(TypeMessage.SQLSmallint smallint) {
+		isNull = smallint.getIsNull();
+		if (!isNull) {
+			value = (short) smallint.getValue();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		value = in.readShort();
 	}
@@ -339,6 +372,9 @@ public final class SQLSmallint
 			setValue(obj.shortValue());
 	}
 
+	public SQLSmallint (TypeMessage.SQLSmallint smallint) {
+		init(smallint);
+	}
 	/**
 		@exception StandardException thrown if string not accepted
 	 */

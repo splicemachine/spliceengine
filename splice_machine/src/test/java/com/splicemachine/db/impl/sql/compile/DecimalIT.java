@@ -588,7 +588,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
     }
-
+    
     @Test
     public void testMultiProbe() throws Exception {
 

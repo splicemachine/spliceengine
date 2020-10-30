@@ -31,12 +31,15 @@
 
 package com.splicemachine.db.iapi.services.io;
 
+import com.google.protobuf.ByteString;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * FormatableBitSet is implemented as a packed array of bytes.
@@ -123,6 +126,10 @@ public final class FormatableBitSet implements Formatable, Cloneable
 									 " is not allowed");
 		}
 		initializeBits(numBits);
+	}
+
+	public FormatableBitSet(CatalogMessage.FormatableBitSet bitSet) {
+		init(bitSet);
 	}
 
 	private void initializeBits(int numBits)
@@ -878,12 +885,35 @@ public final class FormatableBitSet implements Formatable, Cloneable
 	 *
 	 * @see java.io.Externalizable#writeExternal
 	*/
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
 		// never called when value is null
 		if (SanityManager.DEBUG)
 			SanityManager.ASSERT(value != null);
 
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew(ObjectOutput out) throws IOException {
+		CatalogMessage.FormatableBitSet bitSet = toProtobuf();
+		ArrayUtil.writeByteArray(out, bitSet.toByteArray());
+	}
+
+	public CatalogMessage.FormatableBitSet toProtobuf() {
+		int byteLen = getLengthInBytes();
+		byte[] v = Arrays.copyOfRange(value, 0, byteLen);
+		CatalogMessage.FormatableBitSet bitSet = CatalogMessage.FormatableBitSet.newBuilder()
+				.setLengthAsBits(lengthAsBits)
+				.setValue(ByteString.copyFrom(v)).build();
+		return bitSet;
+	}
+
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeInt(getLength());
 		int byteLen = getLengthInBytes();
 		if (byteLen > 0)
@@ -906,8 +936,29 @@ public final class FormatableBitSet implements Formatable, Cloneable
 	 *
 	 * @see java.io.Externalizable#readExternal
 	 */
-	public void readExternal(ObjectInput in) throws IOException
-	{
+	@Override
+	public void readExternal(ObjectInput in) throws IOException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		} else {
+			readExternalNew(in);
+		}
+	}
+
+	private void init(CatalogMessage.FormatableBitSet bitSet) {
+		value = bitSet.getValue().toByteArray();
+		int lenInBits = bitSet.getLengthAsBits();
+		bitsInLastByte = numBitsInLastByte(lenInBits);
+		lengthAsBits = lenInBits;
+	}
+
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.FormatableBitSet bitSet = CatalogMessage.FormatableBitSet.parseFrom(bs);
+		init(bitSet);
+	}
+
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		int lenInBits;
 		int lenInBytes;
 

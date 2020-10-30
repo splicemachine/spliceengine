@@ -1306,11 +1306,11 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     @Override
-    public String getCatalogVersion(long conglomerateNumber) throws StandardException {
+    public String getCatalogVersion(String conglomerate) throws StandardException {
         SIDriver driver=SIDriver.driver();
         PartitionFactory tableFactory=driver.getTableFactory();
         try (PartitionAdmin admin = tableFactory.getAdmin()) {
-            return admin.getCatalogVersion(conglomerateNumber);
+            return admin.getCatalogVersion(conglomerate);
         }
         catch (IOException e) {
             throw StandardException.plainWrapException(e);
@@ -1318,16 +1318,41 @@ public class SpliceTransactionManager implements XATransactionController,
     }
 
     @Override
-    public void setCatalogVersion(long conglomerateNumber, String version) throws StandardException {
+    public void setCatalogVersion(String conglomerate, String version) throws StandardException {
         SIDriver driver=SIDriver.driver();
         PartitionFactory tableFactory=driver.getTableFactory();
         try (PartitionAdmin admin = tableFactory.getAdmin()) {
-            admin.setCatalogVersion(conglomerateNumber, version);
+            admin.setCatalogVersion(conglomerate, version);
         }
         catch (IOException e) {
             throw StandardException.plainWrapException(e);
         }
     }
+
+    @Override
+    public void truncate(String conglomerateNumber) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            admin.truncate(conglomerateNumber);
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    @Override
+    public void snapshot(String snapshotName, String tableName) throws StandardException {
+        SIDriver driver=SIDriver.driver();
+        PartitionFactory tableFactory=driver.getTableFactory();
+        try (PartitionAdmin admin = tableFactory.getAdmin()) {
+            admin.snapshot(snapshotName, tableName);
+        }
+        catch (IOException e) {
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
     /**************************************************************************
      * Public Methods implementing the XATransactionController interface.
      **************************************************************************

@@ -25,10 +25,13 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
@@ -102,29 +105,20 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 	@Override
 	public byte[] getBytes() throws StandardException {
-		ObjectOutput output = null;
-		try {
-			ByteArrayOutputStream stream = new ByteArrayOutputStream();
-			output = new ObjectOutputStream(stream);
+		try (ByteArrayOutputStream stream = new ByteArrayOutputStream();
+			 ObjectOutput output = new ObjectOutputStream(stream)) {
 			output.writeBoolean(value !=null);
 			if (value != null) {
 				output.writeInt(value.length);
-                for (DataValueDescriptor aValue : value) {
-                    output.writeObject(aValue);
-                }
+				for (DataValueDescriptor aValue : value) {
+					output.writeObject(aValue);
+				}
 			}
 			output.flush();
 			return stream.toByteArray();
-		} catch (Exception e) {
+		} catch (IOException e) {
 			throw StandardException.plainWrapException(e);
-		} finally {
-			try {
-				if (output != null) {
-					output.close();
-				}
-			} catch (Exception ignored) {}
 		}
-
 	}
 
 
@@ -175,40 +169,83 @@ public class SQLArray extends DataType implements ArrayDataValue {
 		return (value == null);
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLArray.Builder builder = TypeMessage.SQLArray.newBuilder();
+		if (type != null) {
+			builder.setDatatype(type.toProtobuf());
+		}
+		builder.setIsNull(value == null);
+		if (value != null) {
+			for (DataValueDescriptor aValue : value) {
+				builder.addValue(aValue.toProtobuf());
+			}
+		}
+
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.newBuilder()
+				.setType(TypeMessage.DataValueDescriptor.Type.SQLArray)
+				.setExtension(TypeMessage.SQLArray.sqlArray, builder.build())
+				.build();
+
+		return dvd;
+	}
+
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(type!=null);
 		if (type!=null)
 			out.writeObject(type);
 		out.writeBoolean(value != null);
-        if (value != null) {
+		if (value != null) {
 			out.writeInt(value.length);
-            for (DataValueDescriptor aValue : value) out.writeObject(aValue);
-        }
-	}
-
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										read from the stream can't be found
-	 *										(not likely, since it's supposed to
-	 *										be SQLRef).
-	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		if (in.readBoolean())
-			type = (DataValueDescriptor) in.readObject();
-        boolean nonNull = in.readBoolean();
-		if (nonNull) {
-			setIsNull(false);
-			value = new DataValueDescriptor[in.readInt()];
-			for (int i =0; i< value.length; i++) {
-				value[i] = (DataValueDescriptor) in.readObject();
-			}
-        } else {
-			setIsNull(true);
+			for (DataValueDescriptor aValue : value) out.writeObject(aValue);
 		}
 	}
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtobufUtils.createDVDExtensionRegistry();
+		TypeMessage.DataValueDescriptor dataValueDescriptor =
+				TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLArray sqlArray =
+				dataValueDescriptor.getExtension(TypeMessage.SQLArray.sqlArray);
+		init(sqlArray);
+	}
+
+	private void init(TypeMessage.SQLArray sqlArray) {
+		type = ProtobufUtils.fromProtobuf(sqlArray.getDatatype());
+		isNull = sqlArray.getIsNull();
+		if (!isNull) {
+			setIsNull(false);
+			value = new DataValueDescriptor[sqlArray.getValueCount()];
+			for (int i = 0; i < value.length; ++i) {
+				value[i] = ProtobufUtils.fromProtobuf(sqlArray.getValue(i));
+			}
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
+		try {
+			if (in.readBoolean())
+				type = (DataValueDescriptor) in.readObject();
+			boolean nonNull = in.readBoolean();
+			if (nonNull) {
+				setIsNull(false);
+				value = new DataValueDescriptor[in.readInt()];
+				for (int i = 0; i < value.length; i++) {
+					value[i] = (DataValueDescriptor) in.readObject();
+				}
+			} else {
+				setIsNull(true);
+			}
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
+		}
+	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
 		if (in.readBoolean())
 			type = (DataValueDescriptor) in.readObject();
@@ -372,6 +409,10 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 	public SQLArray(DataValueDescriptor[] dvds) {
 		setValue(dvds);
+	}
+
+	public SQLArray(TypeMessage.SQLArray sqlArray) {
+		init(sqlArray);
 	}
 
     @Override

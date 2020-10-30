@@ -31,8 +31,11 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.catalog.TypeDescriptor;
@@ -66,7 +69,7 @@ public class SQLRef extends DataType implements RefDataValue {
 
 	/*
 	 ** DataValueDescriptor interface
-	 ** (mostly implemented in DataType)
+	 ** (mostly implemented in DataType)HBaseRowLocation
 	 */
 
 	public String getString()
@@ -124,7 +127,8 @@ public class SQLRef extends DataType implements RefDataValue {
 		return (value == null);
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 
 		out.writeBoolean(value != null);
 		if (value != null) {
@@ -132,22 +136,56 @@ public class SQLRef extends DataType implements RefDataValue {
 		}
 	}
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										read from the stream can't be found
-	 *										(not likely, since it's supposed to
-	 *										be SQLRef).
-	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-	{
-		boolean nonNull = in.readBoolean();
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLRef.Builder builder = TypeMessage.SQLRef.newBuilder();
+		builder.setIsNull(value == null);
+		if (value != null) {
+			builder.setData(value.toProtobuf());
+		}
+
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.newBuilder()
+				.setType(TypeMessage.DataValueDescriptor.Type.SQLRef)
+				.setExtension(TypeMessage.SQLRef.sqlRef, builder.build())
+				.build();
+		return dvd;
+	}
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(TypeMessage.SQLRef.sqlRef);
+		extensionRegistry.add(TypeMessage.HBaseRowLocation.hbaseRowLocation);
+		extensionRegistry.add(TypeMessage.SQLRowId.sqlRowId);
+		TypeMessage.DataValueDescriptor dataValueDescriptor =
+				TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLRef sqlRef =
+				dataValueDescriptor.getExtension(TypeMessage.SQLRef.sqlRef);
+		init(sqlRef);
+	}
+
+	private void init(TypeMessage.SQLRef sqlRef){
+		boolean nonNull = !sqlRef.getIsNull();
 		if (nonNull) {
-			setValue((RowLocation) in.readObject());
+			DataValueDescriptor dvd = ProtobufUtils.fromProtobuf(sqlRef.getData());
+			setValue((RowLocation) dvd);
 		}
 	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException
+	{
+		try {
+			boolean nonNull = in.readBoolean();
+			if (nonNull) {
+				setValue((RowLocation) in.readObject());
+			}
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
+		}
+	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException
 	{
 		setValue((RowLocation) in.readObject());
@@ -252,6 +290,10 @@ public class SQLRef extends DataType implements RefDataValue {
 	public SQLRef(RowLocation rowLocation)
 	{
 		setValue(rowLocation);
+	}
+
+	public SQLRef(TypeMessage.SQLRef sqlRef) {
+		init(sqlRef);
 	}
 
 	@Override

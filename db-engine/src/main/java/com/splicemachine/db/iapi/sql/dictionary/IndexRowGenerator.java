@@ -36,9 +36,7 @@ import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.io.Formatable;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -47,9 +45,11 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.util.ByteArray;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.compile.ValueNode;
 import com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
@@ -152,6 +152,13 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 		id = indexDescriptor;
 	}
 
+	public IndexRowGenerator(CatalogMessage.IndexRowGenerator indexRowGenerator) throws IOException {
+		init(indexRowGenerator);
+	}
+
+	private void init(CatalogMessage.IndexRowGenerator indexRowGenerator) throws IOException{
+		id = ProtobufUtils.fromProtobuf(indexRowGenerator.getId());
+	}
 	/**
 	 * Get a template for the index row, to be used with getIndexRow.
 	 *
@@ -536,8 +543,23 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	 * @exception IOException	Thrown on read error
 	 * @exception ClassNotFoundException	Thrown on read error
 	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-	{
+	@Override
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.IndexRowGenerator irg = CatalogMessage.IndexRowGenerator.parseFrom(bs);
+		init(irg);
+	}
+
+	protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
 		id = (IndexDescriptor)in.readObject();
 	}
 
@@ -545,9 +567,31 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	 *
 	 * @exception IOException	Thrown on write error
 	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeObject(id);
+	}
+
+	protected void writeExternalNew(ObjectOutput out) throws IOException {
+		CatalogMessage.IndexRowGenerator indexRowGenerator = toProtobuf();
+		ArrayUtil.writeByteArray(out, indexRowGenerator.toByteArray());
+	}
+
+	public CatalogMessage.IndexRowGenerator toProtobuf() {
+		CatalogMessage.IndexDescriptorImpl indexDescriptor = ((IndexDescriptorImpl)id).toProtobuf();
+		CatalogMessage.IndexRowGenerator indexRowGenerator = CatalogMessage.IndexRowGenerator.newBuilder()
+				.setId(indexDescriptor)
+				.build();
+		return indexRowGenerator;
 	}
 
 	/* TypedFormat interface */

@@ -59,6 +59,14 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final int		    SYSCOLUMNS_CORE_NUM = 2;
 	protected static final int		    SYSSCHEMAS_CORE_NUM = 3;
 	protected static final int          NUM_CORE = 4;
+	public static final String		CFG_CATALOG_SERIALIZATION_VERSION = "CatalogSerializationVersion";
+
+	@SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "intentional")
+	public static boolean READ_NEW_FORMAT = true;
+
+	@SuppressFBWarnings(value = "MS_SHOULD_BE_FINAL", justification = "intentional")
+	public static boolean WRITE_NEW_FORMAT = true;
+
 	/**
 	* SYSFUN functions. Table of functions that automatically appear
 	* in the SYSFUN schema. These functions are resolved to directly

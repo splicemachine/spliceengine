@@ -17,6 +17,7 @@ package com.splicemachine.derby.impl.sql.catalog.upgrade;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -103,6 +104,7 @@ public class SpliceCatalogUpgradeScripts{
         addUpgradeScript(baseVersion4, 1985, new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
         addUpgradeScript(baseVersion4, 1989, new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
         addUpgradeScript(baseVersion4, 1992, new UpgradeScriptForTablePriorities(sdd, tc));
+        addUpgradeScript(baseVersion4, 1993,  new UpgradeStoredObjects(sdd, tc));
 
         // remember to add your script to SpliceCatalogUpgradeScriptsTest too, otherwise test fails
     }
@@ -141,12 +143,17 @@ public class SpliceCatalogUpgradeScripts{
 
     public void runUpgrades(Splice_DD_Version catalogVersion) throws StandardException{
         LOG.info("Catalog is on version " + catalogVersion + ". checking for upgrades...");
+
         // Set the current version to upgrade from.
         // This flag should only be true for the master server.
         Splice_DD_Version currentVersion=catalogVersion;
         SConfiguration configuration= SIDriver.driver().getConfiguration();
         if(configuration.upgradeForced()) {
             currentVersion=new Splice_DD_Version(null,configuration.getUpgradeForcedFrom());
+        }
+        if (currentVersion.getSprintVersionNumber() < 1993) {
+            BaseDataDictionary.WRITE_NEW_FORMAT = false;
+            BaseDataDictionary.READ_NEW_FORMAT = false;
         }
         runAllScripts(getScriptsToUpgrade(scripts, currentVersion));
 

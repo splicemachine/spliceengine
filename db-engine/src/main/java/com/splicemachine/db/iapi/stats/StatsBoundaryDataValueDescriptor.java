@@ -30,8 +30,12 @@
  */
 package com.splicemachine.db.iapi.stats;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.types.*;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import com.yahoo.sketches.theta.UpdateSketch;
@@ -490,13 +494,49 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        TypeMessage.DataValueDescriptor dvd = toProtobuf();
+        ArrayUtil.writeByteArray(out, dvd.toByteArray());
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
         dvd.writeExternal(out);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         dvd.readExternal(in);
+    }
+
+    protected void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtobufUtils.createDVDExtensionRegistry();
+        TypeMessage.DataValueDescriptor dataValueDescriptor =
+                TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        dvd = ProtobufUtils.fromProtobuf(dataValueDescriptor);
+    }
+
+    @Override
+    public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+        return dvd.toProtobuf();
     }
 
     @Override

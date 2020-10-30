@@ -36,12 +36,15 @@ import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -113,9 +116,29 @@ public class DDdependableFinder implements	DependableFinder, Formatable
 	 *
 	 * @param in read this.
 	 */
-    public void readExternal( ObjectInput in )
+    @Override
+	public void readExternal( ObjectInput in )
 			throws IOException, ClassNotFoundException
 	{
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew( ObjectInput in ) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.DDdependableFinder dDdependableFinder = CatalogMessage.DDdependableFinder.parseFrom(bs);
+		init(dDdependableFinder);
+	}
+
+	protected void init(CatalogMessage.DDdependableFinder dDdependableFinder) {
+		formatId = dDdependableFinder.getFormatId();
+	}
+
+	protected void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException {
 		formatId = in.readInt();
 	}
 
@@ -125,11 +148,32 @@ public class DDdependableFinder implements	DependableFinder, Formatable
 	 *
 	 * @param out write bytes here.
 	 */
-    public void writeExternal( ObjectOutput out )
-			throws IOException
-	{
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
 		out.writeInt(formatId);
 	}
+
+    protected void writeExternalNew( ObjectOutput out ) throws IOException {
+		CatalogMessage.DDdependableFinder dDdependableFinder = toProtobuf();
+		ArrayUtil.writeByteArray(out, dDdependableFinder.toByteArray());
+	}
+
+	public CatalogMessage.DDdependableFinder toProtobuf() {
+		CatalogMessage.DDdependableFinder dDdependableFinder = CatalogMessage.DDdependableFinder.newBuilder()
+				.setFormatId(formatId)
+				.build();
+		return dDdependableFinder;
+	}
+
 
 	/**
 	 * Get the formatID which corresponds to this class.

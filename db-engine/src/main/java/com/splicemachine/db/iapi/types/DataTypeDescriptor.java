@@ -35,16 +35,20 @@ import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
 import com.splicemachine.db.catalog.types.RowMultiSetImpl;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.types.StructField;
 
@@ -403,6 +407,9 @@ public class DataTypeDescriptor implements Formatable{
                 maximumWidth);
     }
 
+    public DataTypeDescriptor(CatalogMessage.DataTypeDescriptor dataTypeDescriptor) throws IOException {
+        init(dataTypeDescriptor);
+    }
     /**
      * Constructor to use when the caller doesn't know if it is requesting
      * numeric or no-numeric DTD. For instance, when dealing with MAX/MIN
@@ -1643,18 +1650,46 @@ public class DataTypeDescriptor implements Formatable{
      * @throws IOException            thrown on error
      * @throws ClassNotFoundException thrown on error
      */
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    public void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.DataTypeDescriptor dataTypeDescriptor = CatalogMessage.DataTypeDescriptor.parseFrom(bs);
+        init(dataTypeDescriptor);
+    }
+
+    private void init(CatalogMessage.DataTypeDescriptor dataTypeDescriptor) throws IOException{
+        CatalogMessage.TypeDescriptorImpl typeDescriptorImpl = dataTypeDescriptor.getTypeDescriptor();
+        typeDescriptor = ProtobufUtils.fromProtobuf(typeDescriptorImpl);
+        collationDerivation = dataTypeDescriptor.getCollationDerivation();
+        init();
+    }
+
+    public void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException{
         typeDescriptor=(TypeDescriptorImpl)in.readObject();
         collationDerivation=in.readInt();
+        init();
+    }
+
+    private void init() throws IOException {
+
 
         String typeName=this.getTypeName();
         typeId=TypeId.getBuiltInTypeId(typeName);
         if(typeId==null && typeName!=null){
-         /*
-          * This is a User-defined TypeId, which we serialize. For whatever reason,
-          * derby does not approve of serializing the TypeId information for user-defined
-          * types, so we have to make do with this instead
-          */
+            /*
+             * This is a User-defined TypeId, which we serialize. For whatever reason,
+             * derby does not approve of serializing the TypeId information for user-defined
+             * types, so we have to make do with this instead
+             */
             try{
                 typeId=TypeId.getUserDefinedTypeId(typeName,false);
             }catch(StandardException se){
@@ -1669,10 +1704,35 @@ public class DataTypeDescriptor implements Formatable{
      * @param out write bytes here.
      * @throws IOException thrown on error
      */
-    public void writeExternal(ObjectOutput out) throws IOException{
+    @Override
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException{
         out.writeObject(typeDescriptor);
         out.writeInt(getCollationDerivation());
     }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException{
+        CatalogMessage.DataTypeDescriptor dataTypeDescriptor = toProtobuf();
+        ArrayUtil.writeByteArray(out, dataTypeDescriptor.toByteArray());
+    }
+
+    public CatalogMessage.DataTypeDescriptor toProtobuf() {
+        CatalogMessage.TypeDescriptorImpl typeDescriptorImpl = typeDescriptor.toProtobuf();
+        CatalogMessage.DataTypeDescriptor dataTypeDescriptor = CatalogMessage.DataTypeDescriptor.newBuilder()
+                .setTypeDescriptor(typeDescriptorImpl)
+                .setCollationDerivation(getCollationDerivation())
+                .build();
+        return dataTypeDescriptor;
+    }
+
 
     /**
      * Get the formatID which corresponds to this class.

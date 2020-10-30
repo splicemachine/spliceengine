@@ -14,13 +14,16 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
 import java.util.Properties;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -32,8 +35,11 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 
@@ -199,7 +205,119 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	 * @exception ClassNotFoundException		thrown on error
 	 */
     @Override
-	public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		} else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew( ObjectInput in ) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.InsertConstantOperation.insertConstantOperation);
+		extensionRegistry.add(CatalogMessage.UpdateConstantOperation.updateConstantOperation);
+		extensionRegistry.add(CatalogMessage.DeleteConstantOperation.deleteConstantOperation);
+		extensionRegistry.add(TypeMessage.SpliceConglomerate.spliceConglomerate);
+		extensionRegistry.add(TypeMessage.HBaseConglomerate.hbaseConglomerate);
+		extensionRegistry.add(TypeMessage.IndexConglomerate.indexConglomerate);
+		CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation =
+				CatalogMessage.WriteCursorConstantOperation.parseFrom(bs, extensionRegistry);
+		init(writeCursorConstantOperation);
+	}
+
+	protected void init(CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation) throws IOException{
+        conglomId = writeCursorConstantOperation.getConglomId();
+        if (writeCursorConstantOperation.hasHeapSCOCI()) {
+        	TypeMessage.SpliceConglomerate spliceConglomerate =  writeCursorConstantOperation.getHeapSCOCI();
+			heapSCOCI = SpliceConglomerate.fromProtobuf(spliceConglomerate);
+		}
+
+        int length = writeCursorConstantOperation.getIndexRowGeneratorCount();
+		irgs = new IndexRowGenerator[length];
+		for (int i = 0; i < length; ++i) {
+			irgs[i] = ProtobufUtils.fromProtobuf(writeCursorConstantOperation.getIndexRowGenerator(i));
+		}
+
+		length = writeCursorConstantOperation.getIndexCIDSCount();
+		indexCIDS = new long[length];
+		for (int i = 0; i < length; ++i) {
+			indexCIDS[i] = writeCursorConstantOperation.getIndexCIDS(i);
+		}
+
+		length = writeCursorConstantOperation.getIndexSCOCIsCount();
+		indexSCOCIs = new StaticCompiledOpenConglomInfo[length];
+		for (int i = 0; i < length; ++i) {
+			indexSCOCIs[i] = SpliceConglomerate.fromProtobuf(writeCursorConstantOperation.getIndexSCOCIs(i));
+		}
+
+		deferred = writeCursorConstantOperation.getDeferred();
+		if (writeCursorConstantOperation.hasTargetProperties()) {
+			byte[] ba = writeCursorConstantOperation.getTargetProperties().toByteArray();
+			try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+				 ObjectInputStream ois = new ObjectInputStream(bis)) {
+				targetProperties = (Properties) ois.readObject();
+			}
+			catch (ClassNotFoundException e) {
+				throw new IOException(e);
+			}
+		}
+
+		if (writeCursorConstantOperation.hasTargetUUID()) {
+			targetUUID = ProtobufUtils.fromProtobuf(writeCursorConstantOperation.getTargetUUID());
+		}
+		lockMode = writeCursorConstantOperation.getLockMode();
+
+		length = writeCursorConstantOperation.getFkInfoCount();
+		fkInfo = new FKInfo[length];
+		for (int i = 0; i < length; ++i) {
+			fkInfo[i] = ProtobufUtils.fromProtobuf(writeCursorConstantOperation.getFkInfo(i));
+		}
+
+		if (writeCursorConstantOperation.hasTriggerInfo()) {
+			triggerInfo = ProtobufUtils.fromProtobuf(writeCursorConstantOperation.getTriggerInfo());
+		}
+
+		if (writeCursorConstantOperation.hasBaseRowReadList()) {
+			baseRowReadList = ProtobufUtils.fromProtobuf(writeCursorConstantOperation.getBaseRowReadList());
+		}
+
+		length = writeCursorConstantOperation.getBaseRowReadMapCount();
+		if (length > 0) {
+			baseRowReadMap = new int[length];
+			for (int i = 0; i < length; ++i) {
+				baseRowReadMap[i] = writeCursorConstantOperation.getBaseRowReadMap(i);
+			}
+		}
+
+		length = writeCursorConstantOperation.getStreamStorableHeapColIdsCount();
+		if (length > 0) {
+			streamStorableHeapColIds = new int[length];
+			for (int i = 0; i < length; ++i) {
+				streamStorableHeapColIds[i] = writeCursorConstantOperation.getStreamStorableHeapColIds(i);
+			}
+		}
+		singleRowSource = writeCursorConstantOperation.getSingleRowSource();
+
+		length = writeCursorConstantOperation.getIndexNamesCount();
+		if (length > 0) {
+			indexNames = new String[length];
+			for (int i = 0; i < length; ++i) {
+				indexNames[i] = writeCursorConstantOperation.getIndexNames(i);
+			}
+		}
+
+		length = writeCursorConstantOperation.getPkColumnsCount();
+		if (length > 0) {
+			pkColumns = new int[length];
+			for (int i = 0; i < length; ++i) {
+				pkColumns[i] = writeCursorConstantOperation.getPkColumns(i);
+			}
+		}
+	}
+
+	protected void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException {
 		conglomId = in.readLong();
 		heapSCOCI = (StaticCompiledOpenConglomInfo) in.readObject();
 		irgs = new IndexRowGenerator[ArrayUtil.readArrayLength(in)];
@@ -242,6 +360,112 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	 */
     @Override
 	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew( ObjectOutput out ) throws IOException {
+		CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation = toProtobufBuilder().build();
+		ArrayUtil.writeByteArray(out, writeCursorConstantOperation.toByteArray());
+	}
+
+	public  CatalogMessage.WriteCursorConstantOperation.Builder toProtobufBuilder() throws IOException {
+		CatalogMessage.WriteCursorConstantOperation.Builder builder =
+				CatalogMessage.WriteCursorConstantOperation.newBuilder()
+				.setConglomId(conglomId)
+				.setDeferred(deferred)
+				.setLockMode(lockMode)
+				.setSingleRowSource(singleRowSource);
+
+		if (heapSCOCI != null) {
+			TypeMessage.DataValueDescriptor dvd = heapSCOCI.toProtobuf();
+			TypeMessage.SpliceConglomerate spliceConglomerate =
+					dvd.getExtension(TypeMessage.SpliceConglomerate.spliceConglomerate);
+			builder.setHeapSCOCI(spliceConglomerate);
+		}
+
+		if (irgs != null) {
+			for (int i = 0; i < irgs.length; ++i) {
+				builder.addIndexRowGenerator(irgs[i].toProtobuf());
+			}
+		}
+
+		if (indexCIDS != null) {
+			for (int i = 0; i < indexCIDS.length; ++i) {
+				builder.addIndexCIDS(indexCIDS[i]);
+			}
+		}
+		if (indexSCOCIs != null) {
+			for (int i = 0; i < indexSCOCIs.length; ++i) {
+				TypeMessage.DataValueDescriptor dvd = indexSCOCIs[i].toProtobuf();
+				TypeMessage.SpliceConglomerate spliceConglomerate =
+						dvd.getExtension(TypeMessage.SpliceConglomerate.spliceConglomerate);
+				builder.addIndexSCOCIs(spliceConglomerate);
+			}
+		}
+
+		if (targetProperties != null) {
+			try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				 ObjectOutputStream os = new ObjectOutputStream(bos)) {
+				os.writeObject(targetProperties);
+				os.flush();
+				byte[] bs = bos.toByteArray();
+				builder.setTargetProperties(ByteString.copyFrom(bs));
+			}
+		}
+
+		if (targetUUID != null) {
+			builder.setTargetUUID(targetUUID.toProtobuf());
+		}
+
+		if (fkInfo != null) {
+			for (int i = 0; i < fkInfo.length; ++i) {
+				builder.addFkInfo(fkInfo[i].toProtoBuf());
+			}
+		}
+
+		if (triggerInfo != null) {
+			builder.setTriggerInfo(triggerInfo.toProtobuf());
+		}
+
+		if (baseRowReadList != null) {
+			builder.setBaseRowReadList(baseRowReadList.toProtobuf());
+		}
+
+		if (baseRowReadMap != null) {
+			for (int i = 0; i < baseRowReadMap.length; ++i) {
+				builder.addBaseRowReadMap(baseRowReadMap[i]);
+			}
+		}
+
+		if (streamStorableHeapColIds != null) {
+			for (int i = 0; i < streamStorableHeapColIds.length; ++i) {
+				builder.addStreamStorableHeapColIds(streamStorableHeapColIds[i]);
+			}
+		}
+
+		if (indexNames != null) {
+			for (int i = 0; i < indexNames.length; ++i) {
+				if (indexNames[i] != null) {
+					builder.addIndexNames(indexNames[i]);
+				}
+			}
+		}
+
+		if (pkColumns != null) {
+			for (int i = 0; i < pkColumns.length; ++i) {
+				builder.addPkColumns(pkColumns[i]);
+			}
+		}
+
+		return builder;
+	}
+
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
 		out.writeLong(conglomId);
 		out.writeObject(heapSCOCI);
 		ArrayUtil.writeArray(out, irgs);
@@ -279,8 +503,6 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
                 out.writeInt(pkColumns[i]);
             }
         }
-
-
 	}
 
 	// ACCESSORS
@@ -349,4 +571,19 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 
 	public FormatableBitSet getBaseRowReadList() { return baseRowReadList; }
 
+	public static WriteCursorConstantOperation fromProtobuf(
+			CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation) throws IOException{
+
+		CatalogMessage.WriteCursorConstantOperation.Type type = writeCursorConstantOperation.getType();
+		switch (type) {
+			case DeleteConstantOperation:
+				return new DeleteConstantOperation(writeCursorConstantOperation);
+			case InsertConstantOperation:
+				return new InsertConstantOperation(writeCursorConstantOperation);
+			case UpdateConstantOperation:
+				return new UpdateConstantOperation(writeCursorConstantOperation);
+			default:
+				throw new RuntimeException("Unexpected type " + type);
+		}
+	}
 }

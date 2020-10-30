@@ -31,18 +31,21 @@
 
 package com.splicemachine.db.impl.sql;
 
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecCursorTableReference;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.util.Arrays;
+
 /**
  * A basic holder for information about cursors
  * for execution.
@@ -96,6 +99,28 @@ public class CursorInfo
 		this.updateColumns = updateColumns;
 	}
 
+	public CursorInfo(CatalogMessage.CursorInfo cursorInfo) throws IOException {
+		init(cursorInfo);
+	}
+
+	private void init(CatalogMessage.CursorInfo cursorInfo) throws IOException {
+		updateMode = cursorInfo.getUpdateMode();
+		targetTable = ProtobufUtils.fromProtobuf(cursorInfo.getTargetTable());
+		int len = cursorInfo.getTargetColumnsCount();
+		if (len != 0) {
+			targetColumns = new ResultColumnDescriptor[len];
+			for (int i = 0; i < len; ++i) {
+				targetColumns[i] = ProtobufUtils.fromProtobuf(cursorInfo.getTargetColumns(i));
+			}
+		}
+		len = cursorInfo.getUpdateColumnsCount();
+		if (len != 0) {
+			updateColumns = new String[len];
+			for (int i = 0; i < len; ++i) {
+				updateColumns[i] = cursorInfo.getUpdateColumns(i);
+			}
+		}
+	}
 	//////////////////////////////////////////////
 	//
 	// FORMATABLE
@@ -108,7 +133,39 @@ public class CursorInfo
 	 *
  	 * @exception IOException thrown on error
 	 */
-	public void writeExternal(ObjectOutput out) throws IOException
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew(ObjectOutput out) throws IOException {
+		CatalogMessage.CursorInfo cursorInfo = toProtobuf();
+		ArrayUtil.writeByteArray(out, cursorInfo.toByteArray());
+	}
+
+	public CatalogMessage.CursorInfo toProtobuf() {
+		CatalogMessage.CursorInfo.Builder builder = CatalogMessage.CursorInfo.newBuilder();
+		builder.setUpdateMode(updateMode);
+		if (targetTable != null) {
+			builder.setTargetTable(targetTable.toProtobuf());
+		}
+		if (targetColumns != null) {
+			for (int i = 0; i < targetColumns.length; ++i) {
+				builder.addTargetColumns(i, targetColumns[i].toProtobuf());
+			}
+		}
+		if (updateColumns != null) {
+			builder.addAllUpdateColumns(Arrays.asList(updateColumns));
+		}
+		return builder.build();
+	}
+
+	protected void writeExternalOld(ObjectOutput out) throws IOException
 	{
 		out.writeInt(updateMode);
 		out.writeObject(targetTable);
@@ -125,8 +182,23 @@ public class CursorInfo
 	 * @exception ClassNotFoundException		thrown on error
 	 */
 	public void readExternal(ObjectInput in)
-		throws IOException, ClassNotFoundException
-	{
+			throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	public void readExternalNew(ObjectInput in)
+			throws IOException, ClassNotFoundException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.CursorInfo cursorInfo = CatalogMessage.CursorInfo.parseFrom(bs);
+		init(cursorInfo);
+	}
+
+	public void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
 		updateMode = in.readInt();
 		targetTable = (ExecCursorTableReference)in.readObject();
 		int len = ArrayUtil.readArrayLength(in);
@@ -142,7 +214,10 @@ public class CursorInfo
 			ArrayUtil.readArrayItems(in, updateColumns);
 		}
 	}
-	
+
+	public static CursorInfo fromProtobuf(CatalogMessage.CursorInfo cursorInfo) throws IOException {
+		return new CursorInfo(cursorInfo);
+	}
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *

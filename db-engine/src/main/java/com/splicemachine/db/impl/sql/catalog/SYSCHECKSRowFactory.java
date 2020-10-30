@@ -110,7 +110,6 @@ public class SYSCHECKSRowFactory extends CatalogRowFactory
 	public ExecRow makeRow(boolean latestVersion, TupleDescriptor	td, TupleDescriptor parent)
 					throws StandardException 
 	{
-		DataValueDescriptor		col;
 		ExecIndexRow			row;
 		ReferencedColumns rcd = null;
 		String					checkDefinition = null;
@@ -118,19 +117,33 @@ public class SYSCHECKSRowFactory extends CatalogRowFactory
 
 		if (td != null)
 		{
-			if (!(td instanceof CheckConstraintDescriptor))
+			if (!(td instanceof CheckConstraintDescriptor) && !(td instanceof SubCheckConstraintDescriptor))
 				throw new RuntimeException("Unexpected TupleDescriptor " + td.getClass().getName());
 
-			CheckConstraintDescriptor cd = (CheckConstraintDescriptor)td;
-			/*
-			** We only allocate a new UUID if the descriptor doesn't already have one.
-			** For descriptors replicated from a Source system, we already have an UUID.
-			*/
-			constraintID = cd.getUUID().toString();
+			if (td instanceof CheckConstraintDescriptor) {
+				CheckConstraintDescriptor cd = (CheckConstraintDescriptor) td;
+				/*
+				 ** We only allocate a new UUID if the descriptor doesn't already have one.
+				 ** For descriptors replicated from a Source system, we already have an UUID.
+				 */
+				constraintID = cd.getUUID().toString();
 
-			checkDefinition = cd.getConstraintText();
+				checkDefinition = cd.getConstraintText();
 
-			rcd = cd.getReferencedColumnsDescriptor();
+				rcd = cd.getReferencedColumnsDescriptor();
+			}
+			else if (td instanceof SubCheckConstraintDescriptor) {
+				SubCheckConstraintDescriptor cd = (SubCheckConstraintDescriptor) td;
+				/*
+				 ** We only allocate a new UUID if the descriptor doesn't already have one.
+				 ** For descriptors replicated from a Source system, we already have an UUID.
+				 */
+				constraintID = cd.getUUID().toString();
+
+				checkDefinition = cd.getConstraintText();
+
+				rcd = cd.getReferencedColumnsDescriptor();
+			}
 		}
 
 		/* Build the row */

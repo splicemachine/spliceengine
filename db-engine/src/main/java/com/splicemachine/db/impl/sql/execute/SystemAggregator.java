@@ -31,9 +31,15 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
@@ -66,36 +72,77 @@ abstract class SystemAggregator implements ExecAggregator
 
 	protected abstract void accumulate(DataValueDescriptor addend)
 		throws StandardException;
-	/////////////////////////////////////////////////////////////
-	// 
-	// EXTERNALIZABLE INTERFACE
-	// 
-	/////////////////////////////////////////////////////////////
 
-	public void writeExternal(ObjectOutput out) throws IOException
+	public String toString()
 	{
-		out.writeBoolean(eliminatedNulls);
+		try
+		{
+			return super.toString() + "[" + getResult().getString() + "]";
+		}
+		catch (Exception e)
+		{
+			return e.getMessage();
+		}
 	}
-
-	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException
-	{
-		eliminatedNulls = in.readBoolean();
-	}
-        public String toString()
-        {
-            try
-            {
-            return super.toString() + "[" + getResult().getString() + "]";
-            }
-            catch (Exception e)
-            {
-                return e.getMessage();
-            }
-        }
 
 	@Override
 	public boolean isUserDefinedAggregator() {
 		return false;
+	}
+
+	/////////////////////////////////////////////////////////////
+	//
+	// EXTERNALIZABLE INTERFACE
+	//
+	/////////////////////////////////////////////////////////////
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew(ObjectOutput out) throws IOException {
+		CatalogMessage.SystemAggregator systemAggregator = toProtobufBuilder().build();
+		ArrayUtil.writeByteArray(out, systemAggregator.toByteArray());
+	}
+
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
+		out.writeBoolean(eliminatedNulls);
+	}
+
+	@Override
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtobufUtils.createAggregatorExtensionRegistry();
+		CatalogMessage.SystemAggregator systemAggregator =
+				CatalogMessage.SystemAggregator.parseFrom(bs, extensionRegistry);
+		init(systemAggregator);
+	}
+
+	protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
+		eliminatedNulls = in.readBoolean();
+	}
+
+	protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException{
+		CatalogMessage.SystemAggregator.Builder builder = CatalogMessage.SystemAggregator.newBuilder()
+				.setEliminatedNulls(eliminatedNulls);
+		return builder;
+	}
+
+	protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
+		eliminatedNulls = systemAggregator.getEliminatedNulls();
 	}
 }

@@ -18,7 +18,7 @@
  *
  * http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software distributed
+ * Unless required by applicable law or agreed to in wriing, software distributed
  * under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
  * CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -74,7 +75,11 @@ public class SQLBlob extends SQLBinary
         {
 			super(val);
         }
-	
+
+    public SQLBlob(TypeMessage.SQLBinary sqlBinary) {
+	    init(sqlBinary);
+    }
+
 	public String getTypeName()
         {
 			return TypeId.BLOB_NAME;
