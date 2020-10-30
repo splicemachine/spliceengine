@@ -32,16 +32,16 @@
 package com.splicemachine.db.iapi.types;
 
 
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.Storable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.util.StringUtil;
-import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectOutput;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -71,8 +71,7 @@ import org.apache.spark.sql.types.StructField;
  * possible for this implementation -- it new's Integer
  * more than it probably wants to.
  */
-public final class SQLBoolean
-    extends DataType implements BooleanDataValue {
+public final class SQLBoolean extends DataType implements BooleanDataValue {
     public static final byte F = 0x01;
     public static final byte T = 0x02;
     /*
@@ -198,16 +197,52 @@ public final class SQLBoolean
         return StoredFormatIds.SQL_BOOLEAN_ID;
     }
 
-    public void writeExternal(ObjectOutput out) throws IOException {
+    @Override
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
         out.writeBoolean(isNull);
         out.writeBoolean(value);
     }
 
-    /** @see java.io.Externalizable#readExternal */
-    public void readExternal(ObjectInput in) throws IOException {
+    @Override
+    public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+        TypeMessage.SQLBoolean.Builder builder = TypeMessage.SQLBoolean.newBuilder();
+        builder.setIsNull(isNull);
+        if (!isNull) {
+            builder.setValue(value);
+        }
+        TypeMessage.DataValueDescriptor dvd =
+                TypeMessage.DataValueDescriptor.newBuilder()
+                        .setType(TypeMessage.DataValueDescriptor.Type.SQLBoolean)
+                        .setExtension(TypeMessage.SQLBoolean.sqlBoolean, builder.build())
+                        .build();
+        return dvd;
+    }
+
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(TypeMessage.SQLBoolean.sqlBoolean);
+        TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        TypeMessage.SQLBoolean sqlBoolean = dvd.getExtension(TypeMessage.SQLBoolean.sqlBoolean);
+        init(sqlBoolean);
+        init(sqlBoolean);
+    }
+
+    private void init(TypeMessage.SQLBoolean sqlBoolean) {
+        isNull = sqlBoolean.getIsNull();
+        if (!isNull) {
+            value = sqlBoolean.getValue();
+        }
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
         value = in.readBoolean();
     }
+
+
     public void readExternalFromArray(ArrayInputStream in) throws IOException {
         isNull = in.readBoolean();
         value = in.readBoolean();
@@ -370,6 +405,10 @@ public final class SQLBoolean
             ;
         else
             setValue(obj.booleanValue());
+    }
+
+    public SQLBoolean(TypeMessage.SQLBoolean sqlBoolean) {
+        init(sqlBoolean);
     }
 
     /* This constructor gets used for the cloneValue method */

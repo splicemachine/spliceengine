@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
@@ -103,6 +104,10 @@ public class SQLVarcharDB2Compatible extends SQLVarchar
 	}
 
     public SQLVarcharDB2Compatible( char[] val ) { super( val ); }
+
+    public SQLVarcharDB2Compatible(TypeMessage.SQLChar sqlChar) {
+		init(sqlChar);
+	}
 
 	/*
 	 * DataValueDescriptor interface

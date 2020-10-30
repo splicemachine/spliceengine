@@ -31,16 +31,22 @@
 
 package com.splicemachine.db.catalog.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
 
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.catalog.DefaultInfo;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class DefaultInfoImpl implements DefaultInfo, Formatable
 {
@@ -155,7 +161,36 @@ public class DefaultInfoImpl implements DefaultInfo, Formatable
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
-	public void readExternal( ObjectInput in )
+	@Override
+	public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	protected void readExternalNew( ObjectInput in ) throws IOException, ClassNotFoundException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtobufUtils.createDVDExtensionRegistry();
+		CatalogMessage.DefaultInfoImpl defaultInfo = CatalogMessage.DefaultInfoImpl.parseFrom(bs, extensionRegistry);
+		defaultText = defaultInfo.hasDefaultText() ? defaultInfo.getDefaultText() : null;
+		defaultValue = defaultInfo.hasDefaultValue() ? ProtobufUtils.fromProtobuf(defaultInfo.getDefaultValue()) : null;
+		type = defaultInfo.getType();
+		if (isGeneratedColumn()) {
+			int count = defaultInfo.getReferencedColumnNamesCount();
+			referencedColumnNames = new String[ count ];
+			for ( int i = 0; i < count; i++ ) {
+				referencedColumnNames[i] = defaultInfo.getReferencedColumnNames(i);
+			}
+			if (defaultInfo.hasOriginalCurrentSchema()) {
+				originalCurrentSchema = defaultInfo.getOriginalCurrentSchema();
+			}
+		}
+	}
+
+	protected void readExternalOld( ObjectInput in )
 		 throws IOException, ClassNotFoundException
 	{
 		defaultText = (String) in.readObject();
@@ -178,7 +213,35 @@ public class DefaultInfoImpl implements DefaultInfo, Formatable
 	 *
 	 * @exception IOException		thrown on error
 	 */
-	public void writeExternal( ObjectOutput out )
+	@Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	protected void writeExternalNew( ObjectOutput out ) throws IOException{
+		CatalogMessage.DefaultInfoImpl.Builder builder = CatalogMessage.DefaultInfoImpl.newBuilder();
+		if (defaultText != null) {
+			builder.setDefaultText(defaultText);
+		}
+		if (defaultValue != null) {
+			builder.setDefaultValue(defaultValue.toProtobuf());
+		}
+		builder.setType(type);
+		if (isGeneratedColumn()) {
+			builder.addAllReferencedColumnNames(Arrays.asList(referencedColumnNames));
+			if (originalCurrentSchema != null) {
+				builder.setOriginalCurrentSchema(originalCurrentSchema);
+			}
+		}
+		ArrayUtil.writeByteArray(out, builder.build().toByteArray());
+	}
+
+	protected void writeExternalOld( ObjectOutput out )
 		 throws IOException
 	{
 		out.writeObject( defaultText );

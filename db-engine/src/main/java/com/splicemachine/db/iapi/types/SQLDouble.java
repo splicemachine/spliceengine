@@ -35,6 +35,9 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Storable;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import java.io.ObjectOutput;
@@ -223,37 +226,6 @@ public final class SQLDouble extends FloatingPointDataType
         return StoredFormatIds.SQL_DOUBLE_ID;
     }
 
-    public void writeExternal(ObjectOutput out) throws IOException {
-
-
-        out.writeBoolean(isNull);
-        out.writeDouble(value);
-    }
-
-    /** @see java.io.Externalizable#readExternal */
-    public void readExternal(ObjectInput in) throws IOException {
-        isNull = in.readBoolean();
-        value = in.readDouble();
-    }
-
-    /** @see java.io.Externalizable#readExternal */
-    public void readExternalFromArray(ArrayInputStream in) throws IOException {
-        isNull = in.readBoolean();
-        value = in.readDouble();
-    }
-
-    /**
-     * @see Storable#restoreToNull
-     *
-     */
-
-    public void restoreToNull()
-    {
-        value = 0;
-        isNull = true;
-    }
-
-
     /** @exception StandardException        Thrown on error */
     protected int typeCompare(DataValueDescriptor arg) throws StandardException
     {
@@ -295,12 +267,78 @@ public final class SQLDouble extends FloatingPointDataType
      * @exception StandardException        Thrown on error
      * @exception SQLException        Thrown on error
      */
-    public void setValueFromResultSet(ResultSet resultSet, int colNumber,
-                                      boolean isNullable)
-        throws StandardException, SQLException
-    {
-            double dv = resultSet.getDouble(colNumber);
-            isNull = (isNullable && resultSet.wasNull());
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
+		out.writeBoolean(isNull);
+		out.writeDouble(value);
+	}
+
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLDouble.Builder builder = TypeMessage.SQLDouble.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setValue(value);
+		}
+		TypeMessage.DataValueDescriptor dvd =
+				TypeMessage.DataValueDescriptor.newBuilder()
+						.setType(TypeMessage.DataValueDescriptor.Type.SQLDouble)
+						.setExtension(TypeMessage.SQLDouble.sqlDouble, builder.build())
+						.build();
+		return dvd;
+	}
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(TypeMessage.SQLDouble.sqlDouble);
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLDouble sqlDouble = dvd.getExtension(TypeMessage.SQLDouble.sqlDouble);
+		init(sqlDouble);
+	}
+
+	private void init(TypeMessage.SQLDouble sqlDouble) {
+		isNull = sqlDouble.getIsNull();
+		if (!isNull) {
+			value = sqlDouble.getValue();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
+		isNull = in.readBoolean();
+		value = in.readDouble();
+	}
+	/** @see java.io.Externalizable#readExternal */
+	public void readExternalFromArray(ArrayInputStream in) throws IOException {
+		isNull = in.readBoolean();
+		value = in.readDouble();
+	}
+
+	/**
+	 * @see Storable#restoreToNull
+	 *
+	 */
+
+	public void restoreToNull()
+	{
+		value = 0;
+		isNull = true;
+	}
+
+	/** 
+	 * @see DataValueDescriptor#setValueFromResultSet 
+	 *
+	 * @exception StandardException		Thrown on error
+	 * @exception SQLException		Thrown on error
+	 */
+	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
+									  boolean isNullable)
+		throws StandardException, SQLException
+	{
+			double dv = resultSet.getDouble(colNumber);
+			isNull = (isNullable && resultSet.wasNull());
             if (isNull)
                 value = 0;
             else 
@@ -357,6 +395,10 @@ public final class SQLDouble extends FloatingPointDataType
             setValue(NumberDataType.normalizeDOUBLE(obj));
     }
 
+    public SQLDouble(TypeMessage.SQLDouble sqlDouble) {
+        init(sqlDouble);
+    }
+
     private SQLDouble(double val, boolean startsnull) throws StandardException
     {
         value = NumberDataType.normalizeDOUBLE(val); // maybe only do if !startsnull
@@ -387,6 +429,7 @@ public final class SQLDouble extends FloatingPointDataType
         {
             double doubleValue = 0;
             try {
+
                 // ??? jsk: rounding???
                 doubleValue = Double.parseDouble(theValue.trim());
             } catch (NumberFormatException nfe) {

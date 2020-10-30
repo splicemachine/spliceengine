@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -37,20 +38,20 @@ import java.io.IOException;
 
 public class UpdateConstantOperation extends WriteCursorConstantOperation {
 	/********************************************************
-	**
-	**	This class implements Formatable. But it is NOT used
- 	**	across either major or minor releases.  It is only
-	** 	written persistently in stored prepared statements, 
-	**	not in the replication stage.  SO, IT IS OK TO CHANGE
-	**	ITS read/writeExternal.
-	**
-	********************************************************/
-	
-	/* 
-	** Integer array of columns that are being updated.
-	*/
+	 **
+	 **	This class implements Formatable. But it is NOT used
+	 **	across either major or minor releases.  It is only
+	 ** 	written persistently in stored prepared statements,
+	 **	not in the replication stage.  SO, IT IS OK TO CHANGE
+	 **	ITS read/writeExternal.
+	 **
+	 ********************************************************/
+
+	/*
+	 ** Integer array of columns that are being updated.
+	 */
 	int[]	changedColumnIds;
-    int[]	storagePositionIds;
+	int[]	storagePositionIds;
 	private boolean positionedUpdate;
 	int numColumns;
 	// CONSTRUCTORS
@@ -58,9 +59,9 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 	 * Public niladic constructor. Needed for Formatable interface to work.
 	 *
 	 */
-    public	UpdateConstantOperation() { 
-    	super(); 
-    }
+	public	UpdateConstantOperation() {
+		super();
+	}
 
 	/**
 	 *	Make the ConstantAction for an UPDATE statement.
@@ -83,83 +84,133 @@ public class UpdateConstantOperation extends WriteCursorConstantOperation {
 	 *						if any (may be null)
 	 *  @param baseRowReadList Map of columns read in.  1 based.
 	 *  @param baseRowReadMap BaseRowReadMap[heapColId]->ReadRowColumnId. (0 based)
-     *  @param streamStorableHeapColIds Null for non rep. (0 based)
+	 *  @param streamStorableHeapColIds Null for non rep. (0 based)
 	 *  @param numColumns	Number of columns being read.
 	 *  @param positionedUpdate	is this a positioned update
 	 *  @param singleRowSource		Whether or not source is a single row source
 	 */
 	@SuppressFBWarnings(value = "EI_EXPOSE_REP2",justification = "Intentional")
 	public	UpdateConstantOperation(long conglomId,
-								StaticCompiledOpenConglomInfo heapSCOCI,
-                                int[] pkColumns,
-								IndexRowGenerator[]	irgs,
-								long[] indexCIDS,
-								StaticCompiledOpenConglomInfo[] indexSCOCIs,
-								String[] indexNames,
-								ExecRow emptyHeapRow,
-								boolean deferred,
-								UUID targetUUID,
-								int	lockMode,
-								int[] changedColumnIds,
-								FKInfo[] fkInfo,
-								TriggerInfo triggerInfo,
-								FormatableBitSet baseRowReadList,
-								int[] baseRowReadMap,
-								int[] streamStorableHeapColIds,
-								int	numColumns,
-								boolean positionedUpdate,
-								boolean singleRowSource,
-                                int[] storagePositionArray) {
-		super(conglomId, heapSCOCI, pkColumns, irgs, indexCIDS, indexSCOCIs, indexNames, 
-			deferred,null, targetUUID, lockMode, fkInfo, triggerInfo, emptyHeapRow,
-			baseRowReadList, baseRowReadMap, streamStorableHeapColIds, singleRowSource);
-        this.changedColumnIds = changedColumnIds;
-        this.storagePositionIds = storagePositionArray;
-        this.positionedUpdate = positionedUpdate;
-        this.numColumns = numColumns;
+									  StaticCompiledOpenConglomInfo heapSCOCI,
+									  int[] pkColumns,
+									  IndexRowGenerator[]	irgs,
+									  long[] indexCIDS,
+									  StaticCompiledOpenConglomInfo[] indexSCOCIs,
+									  String[] indexNames,
+									  ExecRow emptyHeapRow,
+									  boolean deferred,
+									  UUID targetUUID,
+									  int	lockMode,
+									  int[] changedColumnIds,
+									  FKInfo[] fkInfo,
+									  TriggerInfo triggerInfo,
+									  FormatableBitSet baseRowReadList,
+									  int[] baseRowReadMap,
+									  int[] streamStorableHeapColIds,
+									  int	numColumns,
+									  boolean positionedUpdate,
+									  boolean singleRowSource,
+									  int[] storagePositionArray) {
+		super(conglomId, heapSCOCI, pkColumns, irgs, indexCIDS, indexSCOCIs, indexNames,
+				deferred,null, targetUUID, lockMode, fkInfo, triggerInfo, emptyHeapRow,
+				baseRowReadList, baseRowReadMap, streamStorableHeapColIds, singleRowSource);
+		this.changedColumnIds = changedColumnIds;
+		this.storagePositionIds = storagePositionArray;
+		this.positionedUpdate = positionedUpdate;
+		this.numColumns = numColumns;
 	}
 
+	public	UpdateConstantOperation(
+			CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation) throws IOException{
+		init(writeCursorConstantOperation);
+	}
 	// INTERFACE METHODS
 
 
 	// Formatable methods
-
 	/**
-	  @see java.io.Externalizable#readExternal
-	  @exception IOException thrown on error
-	  @exception ClassNotFoundException	thrown on error
-	  */
-	public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
-		super.readExternal(in);
+	 @see java.io.Externalizable#readExternal
+	 @exception IOException thrown on error
+	 @exception ClassNotFoundException	thrown on error
+	 */
+	@Override
+	protected void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException {
+		super.readExternalOld(in);
 		changedColumnIds = ArrayUtil.readIntArray(in);
-        storagePositionIds = ArrayUtil.readIntArray(in);
+		storagePositionIds = ArrayUtil.readIntArray(in);
 		positionedUpdate = in.readBoolean();
 		numColumns = in.readInt();
 	}
 
+	@Override
+	protected void init(CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation) throws IOException {
+		super.init(writeCursorConstantOperation);
+		CatalogMessage.UpdateConstantOperation updateConstantOperation =
+				writeCursorConstantOperation.getExtension(CatalogMessage.UpdateConstantOperation.updateConstantOperation);
+		int length = updateConstantOperation.getChangedColumnIdsCount();
+		if (length > 0) {
+			changedColumnIds = new int[length];
+			for (int i = 0; i < length; ++i) {
+				changedColumnIds[i] = updateConstantOperation.getChangedColumnIds(i);
+			}
+		}
+
+		length = updateConstantOperation.getStoragePositionIdsCount();
+		if (length > 0) {
+			storagePositionIds = new int[length];
+			for (int i = 0; i < length; ++i) {
+				storagePositionIds[i] = updateConstantOperation.getStoragePositionIds(i);
+			}
+		}
+		positionedUpdate = updateConstantOperation.getPositionedUpdate();
+		numColumns = updateConstantOperation.getNumColumns();
+	}
 	/**
-	  @see java.io.Externalizable#writeExternal
-	  @exception IOException thrown on error
-	  */
-	public void writeExternal( ObjectOutput out ) throws IOException {
-		super.writeExternal(out);
+	 @see java.io.Externalizable#writeExternal
+	 @exception IOException thrown on error
+	 */
+	@Override
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
+		super.writeExternalOld(out);
 		ArrayUtil.writeIntArray(out,changedColumnIds);
-        ArrayUtil.writeIntArray(out,storagePositionIds);
+		ArrayUtil.writeIntArray(out,storagePositionIds);
 		out.writeBoolean(positionedUpdate);
 		out.writeInt(numColumns);
 	}
 
+	public  CatalogMessage.WriteCursorConstantOperation.Builder toProtobufBuilder() throws IOException {
+		CatalogMessage.WriteCursorConstantOperation.Builder builder = super.toProtobufBuilder();
+		CatalogMessage.UpdateConstantOperation.Builder updateConstantOperationBuilder =
+				CatalogMessage.UpdateConstantOperation.newBuilder()
+						.setNumColumns(numColumns)
+						.setPositionedUpdate(positionedUpdate);
+		if (changedColumnIds != null) {
+			for (int i = 0; i < changedColumnIds.length; ++i) {
+				updateConstantOperationBuilder.addChangedColumnIds(changedColumnIds[i]);
+			}
+		}
+		if (storagePositionIds != null) {
+			for (int i = 0; i < storagePositionIds.length; ++i) {
+				updateConstantOperationBuilder.addStoragePositionIds(storagePositionIds[i]);
+			}
+		}
+
+		builder.setType(CatalogMessage.WriteCursorConstantOperation.Type.UpdateConstantOperation)
+				.setExtension(CatalogMessage.UpdateConstantOperation.updateConstantOperation, updateConstantOperationBuilder.build());
+
+		return builder;
+	}
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *
 	 *	@return	the formatID of this class
 	 */
 	public int getTypeFormatId()	{
-		return StoredFormatIds.UPDATE_CONSTANT_ACTION_V01_ID; 
+		return StoredFormatIds.UPDATE_CONSTANT_ACTION_V01_ID;
 	}
 
-    public int[] getStoragePositionIds() {
-        return storagePositionIds;
-    }
+	public int[] getStoragePositionIds() {
+		return storagePositionIds;
+	}
 
 }

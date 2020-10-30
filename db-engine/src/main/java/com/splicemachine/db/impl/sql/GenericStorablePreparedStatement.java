@@ -31,14 +31,17 @@
 
 package com.splicemachine.db.impl.sql;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.StorablePreparedStatement;
@@ -46,12 +49,11 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import com.splicemachine.db.iapi.util.ByteArray;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
 
 /**
  * Prepared statement that can be made persistent.
@@ -148,9 +150,66 @@ public class GenericStorablePreparedStatement extends GenericPreparedStatement
     //
     /////////////////////////////////////////////////////////////
 
-    @SuppressFBWarnings("DMI_NONSERIALIZABLE_OBJECT_WRITTEN") // todo in DB-10583
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        CatalogMessage.GenericStorablePreparedStatement statement = toProtobuf();
+        ArrayUtil.writeByteArray(out, statement.toByteArray());
+    }
+
+    public CatalogMessage.GenericStorablePreparedStatement toProtobuf() throws IOException{
+        CatalogMessage.GenericStorablePreparedStatement.Builder builder =
+                CatalogMessage.GenericStorablePreparedStatement.newBuilder();
+        CursorInfo cursorInfo = (CursorInfo)getCursorInfo();
+        builder.setCursorInfo(cursorInfo.toProtobuf())
+                .setNeedsSavepoint(needsSavepoint())
+                .setIsAtomic(isAtomic);
+        if (executionConstants != null) {
+            try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                 ObjectOutputStream os = new ObjectOutputStream(bos)) {
+                os.writeObject(executionConstants);
+                os.flush();
+                byte[] bs = bos.toByteArray();
+                builder.setExecutionConstants(ByteString.copyFrom(bs));
+            }
+        }
+        if (resultDesc != null) {
+            builder.setResultDescription(((GenericResultDescription)resultDesc).toProtobuf());
+        }
+        if (savedObjects != null) {
+            try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                 ObjectOutputStream os = new ObjectOutputStream(bos)) {
+                ArrayUtil.writeArrayLength(os, savedObjects);
+                ArrayUtil.writeArrayItems(os, savedObjects);
+                os.flush();
+                byte[] bs = bos.toByteArray();
+                builder.setSavedObjects(ByteString.copyFrom(bs));
+            }
+        }
+        if (className != null) {
+            builder.setClassName(className);
+        }
+        if (byteCode != null) {
+            builder.setByteCode(byteCode.toProtobuf());
+        }
+        if (paramTypeDescriptors != null) {
+            for (int i = 0; i < paramTypeDescriptors.length; ++i) {
+                if (paramTypeDescriptors[i] != null) {
+                    builder.addParamTypeDescriptors(paramTypeDescriptors[i].toProtobuf());
+                }
+            }
+        }
+        return builder.build();
+    }
+    @SuppressFBWarnings("DMI_NONSERIALIZABLE_OBJECT_WRITTEN") // todo in DB-10583
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
 
         // DANGER: do NOT change this serialization unless you have an upgrade script, see DB-10566
         out.writeObject(getCursorInfo());
@@ -183,7 +242,75 @@ public class GenericStorablePreparedStatement extends GenericPreparedStatement
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+    public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.InsertConstantOperation.insertConstantOperation);
+        extensionRegistry.add(CatalogMessage.UpdateConstantOperation.updateConstantOperation);
+        extensionRegistry.add(CatalogMessage.DeleteConstantOperation.deleteConstantOperation);
+        extensionRegistry.add(TypeMessage.SpliceConglomerate.spliceConglomerate);
+        extensionRegistry.add(TypeMessage.HBaseConglomerate.hbaseConglomerate);
+        extensionRegistry.add(TypeMessage.IndexConglomerate.indexConglomerate);
+        CatalogMessage.GenericStorablePreparedStatement statement =
+                CatalogMessage.GenericStorablePreparedStatement.parseFrom(bs, extensionRegistry);
+        init(statement);
+    }
+
+    private void init(CatalogMessage.GenericStorablePreparedStatement statement) throws IOException {
+        if (statement.hasCursorInfo()) {
+            setCursorInfo(ProtobufUtils.fromProtobuf(statement.getCursorInfo()));
+        }
+        setNeedsSavepoint(statement.getNeedsSavepoint());
+        isAtomic = statement.getIsAtomic();
+        if (statement.hasExecutionConstants()) {
+            byte[] ba = statement.getExecutionConstants().toByteArray();
+            try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+                 ObjectInputStream ois = new ObjectInputStream(bis)) {
+                executionConstants = (ConstantAction)ois.readObject();
+            }
+            catch (ClassNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        if (statement.hasResultDescription()) {
+            resultDesc = ProtobufUtils.fromProtobuf(statement.getResultDescription());
+        }
+        if (statement.hasSavedObjects()) {
+            byte[] ba = statement.getSavedObjects().toByteArray();
+            try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+                 ObjectInputStream ois = new ObjectInputStream(bis)) {
+                savedObjects = new Object[ArrayUtil.readArrayLength(ois)];
+                ArrayUtil.readArrayItems(ois, savedObjects);
+            }
+            catch (ClassNotFoundException e) {
+                throw new IOException(e);
+            }
+
+        }
+        className = statement.hasClassName() ? statement.getClassName() : null;
+        if (statement.hasByteCode()) {
+            byteCode = ProtobufUtils.fromProtobuf(statement.getByteCode());
+        }
+
+        int length = statement.getParamTypeDescriptorsCount();
+        if (length > 0) {
+            paramTypeDescriptors = new DataTypeDescriptor[length];
+            for (int i = 0; i < length; ++i) {
+                paramTypeDescriptors[i] = ProtobufUtils.fromProtobuf(statement.getParamTypeDescriptors(i));
+            }
+        }
+    }
+
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         setCursorInfo((CursorInfo) in.readObject());
         setNeedsSavepoint(in.readBoolean());
         isAtomic = (in.readBoolean());

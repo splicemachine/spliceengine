@@ -14,10 +14,9 @@
 
 package com.splicemachine.access.configuration;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
+import com.google.common.collect.ImmutableMap;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import com.splicemachine.primitives.Bytes;
@@ -251,6 +250,23 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String DROPPED_CONGLOMERATES_TABLE_NAME = "DROPPED_CONGLOMERATES";
     public static final String MASTER_SNAPSHOTS_TABLE_NAME = "SPLICE_MASTER_SNAPSHOTS";
     public static final String REPLICA_REPLICATION_PROGRESS_TABLE_NAME = "SPLICE_REPLICATION_PROGRESS";
+    public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
+
+    public static final byte[] SEQUENCE_TABLE_NAME_BYTES = Bytes.toBytes("SPLICE_SEQUENCES");
+    public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
+
+    public static final ImmutableMap<String, String> catalogVersions;
+
+    static {
+        Map<String, String> m = new HashMap<>();
+        m.put(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.CONGLOMERATE_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.SEQUENCE_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.MASTER_SNAPSHOTS_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME, "2");
+        m.put(HBaseConfiguration.IGNORE_TXN_TABLE_NAME, "2");
+        catalogVersions = ImmutableMap.copyOf(m);
+    }
 
     public static final String[] internalTablesArr = {
             TRANSACTION_TABLE, TENTATIVE_TABLE, SEQUENCE_TABLE_NAME, IGNORE_TXN_TABLE_NAME,

@@ -31,21 +31,22 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 
-import java.io.Serializable;
+import java.io.*;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -62,9 +63,8 @@ import org.apache.spark.sql.types.StructField;
  *
  */
 
-public class UserType extends DataType
-						implements UserDataValue
-{
+public class UserType extends DataType implements UserDataValue {
+
 	private Object	value = null;
 
 	/*
@@ -289,35 +289,77 @@ public class UserType extends DataType
 		return StoredFormatIds.SQL_USERTYPE_ID_V3;
 	}
 
-	/** 
-		@exception IOException error writing data
-
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(isNull());
 		if (!isNull())
 			out.writeObject(value);
 	}
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										is not found
-	 */
-	public void readExternal(ObjectInput in) 
-        throws IOException, ClassNotFoundException
-	{
-		boolean readIsNull = in.readBoolean();
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.UserType.Builder builder = TypeMessage.UserType.newBuilder();
+		builder.setIsNull(isNull());
+		if (!isNull()) {
+			try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				 ObjectOutputStream os = new ObjectOutputStream(bos)) {
+				os.writeObject(value);
+				os.flush();
+				byte[] bs = bos.toByteArray();
+				builder.setData(ByteString.copyFrom(bs));
+			}
+		}
+
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.newBuilder()
+				.setType(TypeMessage.DataValueDescriptor.Type.UserType)
+				.setExtension(TypeMessage.UserType.userType, builder.build())
+				.build();
+		return dvd;
+	}
+
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtobufUtils.createDVDExtensionRegistry();
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.UserType userType = dvd.getExtension(TypeMessage.UserType.userType);
+		init(userType);
+	}
+
+	private void init(TypeMessage.UserType userType) {
+		boolean readIsNull = userType.getIsNull();
 		if (!readIsNull) {
 			/* RESOLVE: Sanity check for right class */
-			value = in.readObject();
-			isNull = evaluateNull();
+			byte[] ba = userType.getData().toByteArray();
+			try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+				 ObjectInputStream ois = new ObjectInputStream(bis)) {
+				value = ois.readObject();
+				isNull = evaluateNull();
+			} catch (IOException|ClassNotFoundException e) {
+				throw new RuntimeException(e);
+			}
 		} else {
 			restoreToNull();
 		}
 	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
+		boolean readIsNull = in.readBoolean();
+		try {
+			if (!readIsNull) {
+				/* RESOLVE: Sanity check for right class */
+				value = in.readObject();
+				isNull = evaluateNull();
+			} else {
+				restoreToNull();
+			}
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
+		}
+	}
+
 	public void readExternalFromArray(ArrayInputStream in) 
         throws IOException, ClassNotFoundException
 	{
@@ -388,7 +430,7 @@ public class UserType extends DataType
 		 */
 		if (typePrecedence() < other.typePrecedence())
 		{
-			return - (other.compare(this));
+			return  compare(other);
 		}
 
 		boolean thisNull, otherNull;
@@ -492,6 +534,10 @@ public class UserType extends DataType
 	{
 		this.value = value;
 		isNull = evaluateNull();
+	}
+
+	public UserType(TypeMessage.UserType userType) {
+		init(userType);
 	}
 	/**
 	 * @see UserDataValue#setValue

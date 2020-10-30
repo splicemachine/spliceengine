@@ -39,16 +39,16 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Aggregator for COUNT()/COUNT(*).  
  */
-public final class CountAggregator 
-	extends SystemAggregator
+public final class CountAggregator extends SystemAggregator
 {
 	private long value;
 	private boolean isCountStar;
@@ -135,46 +135,65 @@ public final class CountAggregator
 
 	/////////////////////////////////////////////////////////////
 	// 
-	// EXTERNALIZABLE INTERFACE
+	// FORMATABLE INTERFACE
 	// 
 	/////////////////////////////////////////////////////////////
-	/** 
+	/**
 	 * Although we are not expected to be persistent per se,
 	 * we may be written out by the sorter temporarily.  So
 	 * we need to be able to write ourselves out and read
-	 * ourselves back in.  
-	 * 
+	 * ourselves back in.
+	 *
 	 * @exception IOException thrown on error
 	 */
-	public final void writeExternal(ObjectOutput out) throws IOException
-	{
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		super.writeExternal(out);
 		out.writeBoolean(isCountStar);
 		out.writeLong(value);
 	}
 
-	/** 
-	* @see java.io.Externalizable#readExternal 
-	*
-	* @exception IOException io exception
-	* @exception ClassNotFoundException on error
-	*/
-	public final void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException
-	{
+	/**
+	 * @see java.io.Externalizable#readExternal
+	 *
+	 * @exception IOException io exception
+	 * @exception ClassNotFoundException on error
+	 */
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
 		super.readExternal(in);
 		isCountStar = in.readBoolean();
 		value = in.readLong();
-	}	
-	/////////////////////////////////////////////////////////////
-	// 
-	// FORMATABLE INTERFACE
-	// 
-	/////////////////////////////////////////////////////////////
+	}
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *
 	 *	@return	the formatID of this class
 	 */
 	public	int	getTypeFormatId() { return StoredFormatIds.AGG_COUNT_V01_ID; }
+
+	@Override
+	protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException {
+		CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
+
+		CatalogMessage.CountAggregator countAggregator = CatalogMessage.CountAggregator.newBuilder()
+				.setIsCountStar(isCountStar)
+				.setValue(value)
+				.build();
+
+		builder.setType(CatalogMessage.SystemAggregator.Type.CountAggregator)
+				.setExtension(CatalogMessage.CountAggregator.countAggregator, countAggregator);
+
+		return builder;
+	}
+
+	@Override
+	protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
+		super.init(systemAggregator);
+		CatalogMessage.CountAggregator countAggregator =
+				systemAggregator.getExtension(CatalogMessage.CountAggregator.countAggregator);
+		isCountStar = countAggregator.getIsCountStar();
+		value = countAggregator.getValue();
+	}
 }

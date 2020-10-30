@@ -37,14 +37,16 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Iterator;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIED_FINAL_TABLE;
 
 /**
  * This is a simple class used to store the run time information
@@ -64,6 +66,9 @@ public final class TriggerInfo implements Formatable {
     public TriggerInfo() {
     }
 
+    public TriggerInfo(CatalogMessage.TriggerInfo triggerInfo) {
+        init(triggerInfo);
+    }
     /**
      * Constructor for TriggerInfo
      *
@@ -188,7 +193,40 @@ public final class TriggerInfo implements Formatable {
      * @param out write bytes here
      */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        CatalogMessage.TriggerInfo triggerInfo = toProtobuf();
+        ArrayUtil.writeByteArray(out, triggerInfo.toByteArray());
+    }
+
+    public CatalogMessage.TriggerInfo toProtobuf() {
+        CatalogMessage.TriggerInfo.Builder builder = CatalogMessage.TriggerInfo.newBuilder();
+        if (triggerDescriptors != null) {
+            for (int i = 0; i < triggerDescriptors.length; ++i) {
+                builder.addTriggerDescriptor(triggerDescriptors[i].toProtobufBuilder().build());
+            }
+        }
+
+        if (columnIds != null) {
+            for (int i = 0; i < columnIds.length; ++i) {
+                builder.addColumnId(columnIds[i]);
+            }
+        }
+        if (columnNames != null) {
+            builder.addAllColumnNames(Arrays.asList(columnNames));
+        }
+        return builder.build();
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
         // DO NOT CHANGE THIS SERIALIZATION
         ArrayUtil.writeArray(out, triggerDescriptors);
         ArrayUtil.writeIntArray(out, columnIds);
@@ -202,6 +240,48 @@ public final class TriggerInfo implements Formatable {
      */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    private void init(CatalogMessage.TriggerInfo triggerInfo) {
+        int length = triggerInfo.getTriggerDescriptorCount();
+        triggerDescriptors = new TriggerDescriptor[length];
+        for (int i = 0; i < length; ++i) {
+            triggerDescriptors[i] = ProtobufUtils.fromProtobuf(triggerInfo.getTriggerDescriptor(i));
+        }
+
+        length = triggerInfo.getColumnIdCount();
+        if (length > 0) {
+            columnIds = new int[length];
+            for (int i = 0; i < length; ++i) {
+                columnIds[i] = triggerInfo.getColumnId(i);
+            }
+        }
+
+        length = triggerInfo.getColumnNamesCount();
+        if (length > 0) {
+            columnNames = new String[length];
+            for (int i = 0; i < length; ++i) {
+                columnNames[i] = triggerInfo.getColumnNames(i);
+            }
+        }
+    }
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.TriggerDescriptorV2.triggerDescriptorV2);
+        extensionRegistry.add(CatalogMessage.TriggerDescriptorV3.triggerDescriptorV3);
+        extensionRegistry.add(CatalogMessage.TriggerDescriptorV4.triggerDescriptorV4);
+        CatalogMessage.TriggerInfo triggerInfo = CatalogMessage.TriggerInfo.parseFrom(bs, extensionRegistry);
+        init(triggerInfo);
+    }
+
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         // DO NOT CHANGE THIS SERIALIZATION
         triggerDescriptors = new TriggerDescriptor[ArrayUtil.readArrayLength(in)];
         ArrayUtil.readArrayItems(in, triggerDescriptors);

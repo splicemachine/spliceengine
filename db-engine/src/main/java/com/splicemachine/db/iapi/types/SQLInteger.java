@@ -31,12 +31,11 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
+import com.splicemachine.db.iapi.services.io.*;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.Storable;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
@@ -59,9 +58,7 @@ import org.apache.spark.sql.types.StructField;
 /**
  * SQLInteger represents an INTEGER value.
  */
-public final class SQLInteger
-	extends NumberDataType
-{
+public final class SQLInteger extends NumberDataType {
 	/*
 	 * DataValueDescriptor interface
 	 * (mostly implemented in DataType)
@@ -160,20 +157,55 @@ public final class SQLInteger
 		return StoredFormatIds.SQL_INTEGER_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLInteger.Builder builder = TypeMessage.SQLInteger.newBuilder();
+		builder.setIsNull(isNull());
+		if (!isNull()) {
+			builder.setValue(value);
+		}
+
+		TypeMessage.DataValueDescriptor dvd =
+				TypeMessage.DataValueDescriptor.newBuilder()
+						.setType(TypeMessage.DataValueDescriptor.Type.SQLInteger)
+						.setExtension(TypeMessage.SQLInteger.sqlInteger, builder.build())
+						.build();
+		return dvd;
+	}
+
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(isNull());
 		if (!isNull())
 			out.writeInt(value);
 	}
 
-	/** @see java.io.Externalizable#readExternal */
-	public final void readExternal(ObjectInput in) 
-        throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(TypeMessage.SQLInteger.sqlInteger);
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLInteger integer = dvd.getExtension(TypeMessage.SQLInteger.sqlInteger);
+		init(integer);
+	}
+
+	private void init(TypeMessage.SQLInteger integer) {
+		if (!integer.getIsNull()) {
+			setValue(integer.getValue());
+		}
+		else {
+			setToNull();
+		}
+	}
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		if (!in.readBoolean())
 			setValue(in.readInt());
 		else
 			setToNull();
 	}
+
 	public final void readExternalFromArray(ArrayInputStream in) 
         throws IOException {
 		if (!in.readBoolean())
@@ -300,6 +332,9 @@ public final class SQLInteger
 			setValue(obj.intValue());
 	}
 
+	public SQLInteger(TypeMessage.SQLInteger sqlInteger) {
+		init(sqlInteger);
+	}
 	/**
 		@exception StandardException thrown if string not accepted
 	 */

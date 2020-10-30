@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
@@ -94,9 +97,8 @@ import java.util.regex.Pattern;
 
  **/
 
-public class SQLChar
-    extends DataType implements StringDataValue, StreamStorable
-{
+public class SQLChar extends DataType implements StringDataValue, StreamStorable {
+
     private static Logger logger = Logger.getLogger(SQLChar.class);
     /**************************************************************************
      * static fields of the class
@@ -213,6 +215,9 @@ public class SQLChar
         setValue( val );
     }
 
+    public SQLChar(TypeMessage.SQLChar sqlChar) {
+        init(sqlChar);
+    }
     /**
      * <p>
      * This is a special constructor used when we need to represent a password
@@ -890,118 +895,58 @@ public class SQLChar
         return ((value == null) && (rawLength == -1) && (stream == null) && (_clobValue == null));
     }
 
-    /**
-        Writes a non-Clob data value to the modified UTF-8 format used by Derby.
-
-        The maximum stored size is based upon the UTF format
-        used to stored the String. The format consists of
-        a two byte length field and a maximum number of three
-        bytes for each character.
-        <BR>
-        This puts an upper limit on the length of a stored
-        String. The maximum stored length is 65535, these leads to
-        the worse case of a maximum string length of 21844 ((65535 - 2) / 3).
-        <BR>
-        Strings with stored length longer than 64K is handled with
-        the following format:
-        (1) 2 byte length: will be assigned 0.
-        (2) UTF formated string data.
-        (3) terminate the string with the following 3 bytes:
-            first byte is:
-            +---+---+---+---+---+---+---+---+
-            | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
-            +---+---+---+---+---+---+---+---+
-            second byte is:
-            +---+---+---+---+---+---+---+---+
-            | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-            +---+---+---+---+---+---+---+---+
-            third byte is:
-            +---+---+---+---+---+---+---+---+
-            | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
-            +---+---+---+---+---+---+---+---+
-
-
-        The UTF format:
-        Writes a string to the underlying output stream using UTF-8
-        encoding in a machine-independent manner.
-        <p>
-        First, two bytes are written to the output stream as if by the
-        <code>writeShort</code> method giving the number of bytes to
-        follow. This value is the number of bytes actually written out,
-        not the length of the string. Following the length, each character
-        of the string is output, in sequence, using the UTF-8 encoding
-        for the character.
-        @exception  IOException  if an I/O error occurs.
-        @since      JDK1.0
-
-
-      @exception IOException thrown by writeUTF
-
-      @see java.io.DataInputStream
-
-    */
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-
-        if (isNull()) {
-            return;
-        }
-
-        //
-        // This handles the case that a CHAR or VARCHAR value was populated from
-        // a user Clob.
-        //
-        if ( _clobValue != null )
-        {
-            writeClobUTF( out );
-            return;
-        }
-
-        String lvalue = null;
-        char[] data = null;
-
-        int strlen = rawLength;
-        boolean isRaw;
-
-        if (strlen < 0) {
-            lvalue = value;
-            strlen = lvalue.length();
-            isRaw = false;
-        } else {
-            data = rawData;
-            isRaw = true;
-        }
-
-        // byte length will always be at least string length
-        int utflen = strlen;
-
-        for (int i = 0 ; (i < strlen) && (utflen <= 65535); i++)
-        {
-            int c = isRaw ? data[i] : lvalue.charAt(i);
-            if ((c >= 0x0001) && (c <= 0x007F))
-            {
-                // 1 byte for character
-            }
-            else if (c > 0x07FF)
-            {
-                utflen += 2; // 3 bytes for character
-            }
-            else
-            {
-                utflen += 1; // 2 bytes for character
+    @Override
+    public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+        TypeMessage.SQLChar.Builder builder = TypeMessage.SQLChar.newBuilder();
+        builder.setIsNull(isNull);
+        if (!isNull) {
+            if (_clobValue != null) {
+                try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                     ObjectOutputStream os = new ObjectOutputStream(bos)) {
+                    writeClobUTF(os);
+                    os.flush();
+                    byte[] bs = bos.toByteArray();
+                    builder.setClob(ByteString.copyFrom(bs));
+                }
+            } else {
+                if (value != null) {
+                    builder.setValue(value);
+                }
+                else if (rawData != null ){
+                    for (char c : rawData) {
+                        builder.addRawData(c);
+                    }
+                }
             }
         }
-
-        StreamHeaderGenerator header = getStreamHeaderGenerator();
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(!header.expectsCharCount());
+        if (this instanceof SQLVarchar) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLVarchar);
+        } else if (this instanceof SQLClob) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLClob);
+        } else if (this instanceof SQLLongvarchar) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLLongVarchar);
+        } else if (this instanceof SQLVarcharDB2Compatible) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLVarcharDB2Compatible);
+        } else if (this instanceof CollatorSQLChar) {
+            builder.setType(TypeMessage.SQLChar.Type.CollatorSQLChar);
+        } else if (this instanceof CollatorSQLClob) {
+            builder.setType(TypeMessage.SQLChar.Type.CollatorSQLClob);
+        } else if (this instanceof CollatorSQLLongvarchar) {
+            builder.setType(TypeMessage.SQLChar.Type.CollatorSQLLongVarchar);
+        } else if (this instanceof CollatorSQLVarchar) {
+            builder.setType(TypeMessage.SQLChar.Type.CollatorSQLVarchar);
+        } else if (this instanceof CollatorSQLVarcharDB2Compatible) {
+            builder.setType(TypeMessage.SQLChar.Type.SQLVarcharDB2Compatible);
         }
-        // Generate the header, write it to the destination stream, write the
-        // user data and finally write an EOF-marker is required.
-        header.generateInto(out, utflen);
-        writeUTF(out, strlen, isRaw, null );
-        header.writeEOF(out, utflen);
+
+        TypeMessage.DataValueDescriptor dvd =
+                TypeMessage.DataValueDescriptor.newBuilder()
+                        .setType(TypeMessage.DataValueDescriptor.Type.SQLChar)
+                        .setExtension(TypeMessage.SQLChar.sqlChar, builder.build())
+                        .build();
+        return dvd;
     }
+
 
     /**
      * Writes the user data value to a stream in the modified UTF-8 format.
@@ -1179,8 +1124,169 @@ public class SQLChar
         cKey = null;
         isNull = evaluateNull();
     }
+    /**
+     Writes a non-Clob data value to the modified UTF-8 format used by Derby.
 
-    public void readExternal(ObjectInput in) throws IOException {
+     The maximum stored size is based upon the UTF format
+     used to stored the String. The format consists of
+     a two byte length field and a maximum number of three
+     bytes for each character.
+     <BR>
+     This puts an upper limit on the length of a stored
+     String. The maximum stored length is 65535, these leads to
+     the worse case of a maximum string length of 21844 ((65535 - 2) / 3).
+     <BR>
+     Strings with stored length longer than 64K is handled with
+     the following format:
+     (1) 2 byte length: will be assigned 0.
+     (2) UTF formated string data.
+     (3) terminate the string with the following 3 bytes:
+     first byte is:
+     +---+---+---+---+---+---+---+---+
+     | 1 | 1 | 1 | 0 | 0 | 0 | 0 | 0 |
+     +---+---+---+---+---+---+---+---+
+     second byte is:
+     +---+---+---+---+---+---+---+---+
+     | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+     +---+---+---+---+---+---+---+---+
+     third byte is:
+     +---+---+---+---+---+---+---+---+
+     | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 |
+     +---+---+---+---+---+---+---+---+
+
+
+     The UTF format:
+     Writes a string to the underlying output stream using UTF-8
+     encoding in a machine-independent manner.
+     <p>
+     First, two bytes are written to the output stream as if by the
+     <code>writeShort</code> method giving the number of bytes to
+     follow. This value is the number of bytes actually written out,
+     not the length of the string. Following the length, each character
+     of the string is output, in sequence, using the UTF-8 encoding
+     for the character.
+     @exception  IOException  if an I/O error occurs.
+     @since      JDK1.0
+
+
+     @exception IOException thrown by writeUTF
+
+     @see java.io.DataInputStream
+
+     */
+    @Override
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+        out.writeBoolean(isNull);
+
+        if (isNull()) {
+            return;
+        }
+
+        //
+        // This handles the case that a CHAR or VARCHAR value was populated from
+        // a user Clob.
+        //
+        if ( _clobValue != null )
+        {
+            writeClobUTF( out );
+            return;
+        }
+
+        String lvalue = null;
+        char[] data = null;
+
+        int strlen = rawLength;
+        boolean isRaw;
+
+        if (strlen < 0) {
+            lvalue = value;
+            strlen = lvalue.length();
+            isRaw = false;
+        } else {
+            data = rawData;
+            isRaw = true;
+        }
+
+        // byte length will always be at least string length
+        int utflen = strlen;
+
+        for (int i = 0 ; (i < strlen) && (utflen <= 65535); i++)
+        {
+            int c = isRaw ? data[i] : lvalue.charAt(i);
+            if ((c >= 0x0001) && (c <= 0x007F))
+            {
+                // 1 byte for character
+            }
+            else if (c > 0x07FF)
+            {
+                utflen += 2; // 3 bytes for character
+            }
+            else
+            {
+                utflen += 1; // 2 bytes for character
+            }
+        }
+
+        StreamHeaderGenerator header = getStreamHeaderGenerator();
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(!header.expectsCharCount());
+        }
+        // Generate the header, write it to the destination stream, write the
+        // user data and finally write an EOF-marker is required.
+        header.generateInto(out, utflen);
+        writeUTF(out, strlen, isRaw, null );
+        header.writeEOF(out, utflen);
+    }
+
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(TypeMessage.SQLChar.sqlChar);
+        extensionRegistry.add(TypeMessage.SQLVarchar.sqlVarchar);
+        extensionRegistry.add(TypeMessage.SQLClob.sqlClob);
+        extensionRegistry.add(TypeMessage.SQLLongVarchar.sqlLongVarchar);
+        extensionRegistry.add(TypeMessage.SQLVarcharDB2Compatible.sqlVarcharDB2Compatible);
+        extensionRegistry.add(TypeMessage.CollatorSQLChar.collatorSQLChar);
+        extensionRegistry.add(TypeMessage.CollatorSQLVarchar.collatorSQLVarchar);
+        extensionRegistry.add(TypeMessage.CollatorSQLClob.collatorSQLClob);
+        extensionRegistry.add(TypeMessage.CollatorSQLLongVarchar.collatorSQLLongVarchar);
+        extensionRegistry.add(TypeMessage.CollatorSQLVarcharDB2Compatible.collatorSQLVarcharDB2Compatible);
+
+        TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        TypeMessage.SQLChar sqlChar = dvd.getExtension(TypeMessage.SQLChar.sqlChar);
+        init(sqlChar);
+    }
+
+    protected void init(TypeMessage.SQLChar sqlChar) {
+        isNull = sqlChar.getIsNull();
+        if (!isNull) {
+            if (sqlChar.hasValue()) {
+                value = sqlChar.getValue();
+            }
+            else if (sqlChar.hasClob()) {
+                byte[] ba = sqlChar.getClob().toByteArray();
+                try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+                     ObjectInputStream ois = new ObjectInputStream(bis)) {
+                    int utflen = ois.readUnsignedShort();
+                    readExternal(ois, utflen, 0);
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            else {
+                int size = sqlChar.getRawDataCount();
+                rawData = new char[size];
+                for (int i = 0; i < size; ++i) {
+                    rawData[i] = (char)sqlChar.getRawData(i);
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
 
         if (isNull()) {

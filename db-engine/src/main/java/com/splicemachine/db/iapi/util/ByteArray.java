@@ -31,6 +31,11 @@
 
 package com.splicemachine.db.iapi.util;
 
+import com.google.protobuf.ByteString;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
+import com.splicemachine.db.impl.sql.CatalogMessage;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -59,6 +64,10 @@ public final class ByteArray implements Externalizable {
 
     public ByteArray(byte[] array) {
         this(array, 0, array.length);
+    }
+
+    public ByteArray(CatalogMessage.ByteArray byteArray) {
+        init(byteArray);
     }
 
     // Attention: Don't change the default ctor because the logic of loading an
@@ -134,6 +143,27 @@ public final class ByteArray implements Externalizable {
      */
     @Override
     public void readExternal(ObjectInput in) throws IOException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    public void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.ByteArray byteArray = CatalogMessage.ByteArray.parseFrom(bs);
+        init(byteArray);
+    }
+
+    private void init(CatalogMessage.ByteArray byteArray) {
+        array = byteArray.getArray().toByteArray();
+        length = byteArray.getLength();
+        offset = byteArray.getOffset();
+    }
+
+    public void readExternalOld(ObjectInput in) throws IOException {
         int len = length = in.readInt();
         offset = 0;
         array = new byte[len];
@@ -146,12 +176,35 @@ public final class ByteArray implements Externalizable {
      * Write the byte array out w/o compression
      */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
         out.writeInt(length);
         out.write(array, offset, length);
     }
 
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        CatalogMessage.ByteArray byteArray = toProtobuf();
+        ArrayUtil.writeByteArray(out, byteArray.toByteArray());
+    }
 
+
+    public CatalogMessage.ByteArray toProtobuf() {
+        CatalogMessage.ByteArray byteArray = CatalogMessage.ByteArray.newBuilder()
+                .setArray(ByteString.copyFrom(array))
+                .setLength(length)
+                .setOffset(offset)
+                .build();
+
+        return byteArray;
+    }
     /**
      * Compare two byte arrays using value equality. Two byte arrays are equal if their length is
      * identical and their contents are identical.

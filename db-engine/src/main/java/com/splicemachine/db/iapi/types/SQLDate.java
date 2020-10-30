@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -38,6 +40,8 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -72,9 +76,7 @@ import java.util.GregorianCalendar;
  * do to the overhead of Date.valueOf(), etc. methods.
  */
 
-public final class SQLDate extends DataType
-						implements DateTimeDataValue
-{
+public final class SQLDate extends DataType implements DateTimeDataValue {
 
 	/**
 	 +     * The JodaTime has problems with all the years before 1884
@@ -225,21 +227,51 @@ public final class SQLDate extends DataType
 		return StoredFormatIds.SQL_DATE_ID;
 	}
 
-	/** 
-		@exception IOException error writing data
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLDate.Builder builder = TypeMessage.SQLDate.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setEncodedDate(encodedDate);
+		}
+		TypeMessage.DataValueDescriptor dvd =
+				TypeMessage.DataValueDescriptor.newBuilder()
+						.setType(TypeMessage.DataValueDescriptor.Type.SQLDate)
+						.setExtension(TypeMessage.SQLDate.sqlDate, builder.build())
+						.build();
 
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
+		return dvd;
+	}
+
+	/**
+	 @exception IOException error writing data
+
+	 */
+	@Override
+	public void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(isNull);
 		out.writeInt(encodedDate);
 	}
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 */
-	public void readExternal(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(TypeMessage.SQLDate.sqlDate);
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLDate date = dvd.getExtension(TypeMessage.SQLDate.sqlDate);
+		init(date);
+	}
+
+	private void init(TypeMessage.SQLDate date) {
+		isNull = date.getIsNull();
+		if (!isNull) {
+			encodedDate = date.getEncodedDate();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		setValue(in.readInt());
 	}
@@ -419,6 +451,10 @@ public final class SQLDate extends DataType
 	public SQLDate(int encodedDate) throws StandardException
 	{
 		setValue(encodedDate);
+	}
+
+	public SQLDate(TypeMessage.SQLDate sqlDate) {
+		init(sqlDate);
 	}
 
     /**

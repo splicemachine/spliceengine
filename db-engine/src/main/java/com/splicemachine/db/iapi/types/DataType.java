@@ -31,16 +31,22 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.joda.time.DateTime;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.sql.*;
 import java.util.Calendar;
 
@@ -64,9 +70,7 @@ import java.util.Calendar;
  *
  */
 @SuppressFBWarnings(value="HE_EQUALS_USE_HASHCODE", justification="DB-9277")
-public abstract class DataType extends NullValueData
-    implements DataValueDescriptor, Comparable
-{
+public abstract class DataType extends NullValueData implements DataValueDescriptor, Comparable {
     /*
      * DataValueDescriptor Interface
      */
@@ -1403,4 +1407,33 @@ public abstract class DataType extends NullValueData
         return getObject();
     }
 
+    @Override
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        TypeMessage.DataValueDescriptor dvd = toProtobuf();
+        ArrayUtil.writeByteArray(out, dvd.toByteArray());
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+
+    abstract protected void readExternalNew(ObjectInput in) throws IOException;
+    abstract protected void readExternalOld(ObjectInput in) throws IOException;
+    abstract protected void writeExternalOld(ObjectOutput out) throws IOException;
 }

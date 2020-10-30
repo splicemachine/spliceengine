@@ -20,12 +20,14 @@ import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.spark.sql.types.StructField;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.*;
 import java.sql.Types;
 import java.util.Arrays;
 
+@Ignore
 public class SerializationTest {
     KryoPool kryoPool = SpliceKryoRegistry.getInstance();
 

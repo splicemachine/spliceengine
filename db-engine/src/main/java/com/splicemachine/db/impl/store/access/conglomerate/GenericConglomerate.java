@@ -53,9 +53,7 @@ the Conglomerate interface.
 
 **/
 
-public abstract class GenericConglomerate 
-    extends DataType implements Conglomerate
-{
+public abstract class GenericConglomerate extends DataType implements Conglomerate {
 
     /**************************************************************************
      * Public Methods implementing DataValueDescriptor interface.

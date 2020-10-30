@@ -31,9 +31,12 @@
 
 package com.splicemachine.db.iapi.store.access;
 
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.iapi.services.io.Storable;
+
+import java.io.IOException;
 
 
 /**
@@ -63,4 +66,6 @@ public interface StaticCompiledOpenConglomInfo extends Storable
      * routine for internal use of store only.
      **/
     DataValueDescriptor  getConglom();
+
+    TypeMessage.DataValueDescriptor toProtobuf() throws IOException;
 }

@@ -16,13 +16,12 @@ package com.splicemachine.access.hbase;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.access.configuration.SIConfigurations;
+import com.splicemachine.access.configuration.HBaseConfiguration;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.regionserver.BloomType;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -32,7 +31,9 @@ import javax.annotation.concurrent.ThreadSafe;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static com.splicemachine.si.constants.SIConstants.DEFAULT_FAMILY_BYTES;
 import static com.splicemachine.si.constants.SIConstants.SI_PERMISSION_FAMILY;
@@ -149,23 +150,29 @@ public class HBaseConnectionFactory{
     //        admin.deleteTable(id);
     //    }
 
-    public HTableDescriptor generateDefaultSIGovernedTable(String tableName){
-        HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));
-        desc.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
-        desc.addFamily(createDataFamily());
-        return desc;
+    public TableDescriptor generateDefaultSIGovernedTable(String tableName){
+        TableDescriptor descriptor = TableDescriptorBuilder
+                .newBuilder(TableName.valueOf(namespace,tableName))
+                .setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY)
+                .setColumnFamily(createDataFamily())
+                .setValue(SIConstants.CATALOG_VERSION_ATTR, HBaseConfiguration.catalogVersions.get(tableName))
+                .build();
+        return descriptor;
     }
 
-    public HTableDescriptor generateNonSITable(String tableName){
-        HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespace,tableName));
-        desc.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
-        desc.addFamily(createDataFamily());
-        return desc;
+    public TableDescriptor generateNonSITable(String tableName){
+        TableDescriptor descriptor = TableDescriptorBuilder
+                .newBuilder(TableName.valueOf(namespace,tableName))
+                .setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY)
+                .setColumnFamily(createDataFamily())
+                .setValue(SIConstants.CATALOG_VERSION_ATTR, HBaseConfiguration.catalogVersions.get(tableName))
+                .build();
+        return descriptor;
     }
 
-    public HTableDescriptor generateTransactionTable(){
-        HTableDescriptor desc=new HTableDescriptor(TableName.valueOf(namespaceBytes, HConfiguration.TRANSACTION_TABLE_BYTES));
-        HColumnDescriptor columnDescriptor=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
+    public TableDescriptor generateTransactionTable(){
+        ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor columnDescriptor =
+                new ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor(DEFAULT_FAMILY_BYTES);
         columnDescriptor.setMaxVersions(5);
         Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
         columnDescriptor.setCompressionType(compress);
@@ -173,10 +180,13 @@ public class HBaseConnectionFactory{
         columnDescriptor.setBlockCacheEnabled(HConfiguration.DEFAULT_BLOCKCACHE);
         columnDescriptor.setBloomFilterType(BloomType.valueOf(HConfiguration.DEFAULT_BLOOMFILTER.toUpperCase()));
         columnDescriptor.setTimeToLive(HConfiguration.DEFAULT_TTL);
-        desc.setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY);
-        desc.addFamily(columnDescriptor);
-        desc.addFamily(new HColumnDescriptor(Bytes.toBytes(SI_PERMISSION_FAMILY)));
-        return desc;
+        TableDescriptor descriptor = TableDescriptorBuilder
+                .newBuilder(TableName.valueOf(namespaceBytes, HConfiguration.TRANSACTION_TABLE_BYTES))
+                .setPriority(HBaseTableDescriptor.HIGH_TABLE_PRIORITY)
+                .setColumnFamily(columnDescriptor)
+                .setColumnFamily(new ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor(Bytes.toBytes(SI_PERMISSION_FAMILY)))
+                .build();
+        return descriptor;
     }
 
     public static byte[][] generateTransactionSplits(){
@@ -187,8 +197,9 @@ public class HBaseConnectionFactory{
         return result;
     }
 
-    public HColumnDescriptor createDataFamily(){
-        HColumnDescriptor snapshot=new HColumnDescriptor(DEFAULT_FAMILY_BYTES);
+    public ColumnFamilyDescriptor createDataFamily(){
+        ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor snapshot =
+                new ColumnFamilyDescriptorBuilder.ModifyableColumnFamilyDescriptor(DEFAULT_FAMILY_BYTES);
         snapshot.setMaxVersions(Integer.MAX_VALUE);
         Compression.Algorithm compress=Compression.getCompressionAlgorithmByName(config.getCompressionAlgorithm());
         snapshot.setCompressionType(compress);
@@ -206,25 +217,21 @@ public class HBaseConnectionFactory{
             admin.createNamespace(NamespaceDescriptor.create("splice").build());
 
             if(!admin.tableExists(TableName.valueOf(namespace,HConfiguration.TRANSACTION_TABLE))){
-                HTableDescriptor td=generateTransactionTable();
+                TableDescriptor td=generateTransactionTable();
                 admin.createTable(td,generateTransactionSplits());
                 SpliceLogUtils.info(LOG,HConfiguration.TRANSACTION_TABLE+" created");
             }
-            if(!admin.tableExists(TableName.valueOf(namespace,HConfiguration.TENTATIVE_TABLE))){
-                HTableDescriptor td=generateDefaultSIGovernedTable(HConfiguration.TENTATIVE_TABLE);
+
+            if(!admin.tableExists(TableName.valueOf(namespace, HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME))){
+                TableDescriptor td=generateDefaultSIGovernedTable(HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG,HConfiguration.TENTATIVE_TABLE+" created");
-            }
-            if(!admin.tableExists(TableName.valueOf(namespace, com.splicemachine.access.configuration.HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME))){
-                HTableDescriptor td=generateDefaultSIGovernedTable(com.splicemachine.access.configuration.HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG, com.splicemachine.access.configuration.HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME+" created");
+                SpliceLogUtils.info(LOG, HBaseConfiguration.DROPPED_CONGLOMERATES_TABLE_NAME+" created");
             }
 
-            if(!admin.tableExists(TableName.valueOf(namespaceBytes, SIConfigurations.CONGLOMERATE_TABLE_NAME_BYTES))){
-                HTableDescriptor td=generateDefaultSIGovernedTable(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+            if(!admin.tableExists(TableName.valueOf(namespaceBytes, HBaseConfiguration.CONGLOMERATE_TABLE_NAME_BYTES))){
+                TableDescriptor td=generateDefaultSIGovernedTable(HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG,SIConfigurations.CONGLOMERATE_TABLE_NAME+" created");
+                SpliceLogUtils.info(LOG,HBaseConfiguration.CONGLOMERATE_TABLE_NAME+" created");
             }
 
                 /*
@@ -233,21 +240,20 @@ public class HBaseConnectionFactory{
                  * transactionally.
                  */
             if(!admin.tableExists(TableName.valueOf(namespace,HConfiguration.SEQUENCE_TABLE_NAME))){
-                HTableDescriptor td=generateNonSITable(HConfiguration.SEQUENCE_TABLE_NAME);
+                TableDescriptor td=generateNonSITable(HConfiguration.SEQUENCE_TABLE_NAME);
                 admin.createTable(td);
-                SpliceLogUtils.info(LOG,
-                        com.splicemachine.si.constants.SIConstants.SEQUENCE_TABLE_NAME+" created");
+                SpliceLogUtils.info(LOG, HBaseConfiguration.SEQUENCE_TABLE_NAME+" created");
             }
 
             if(!admin.tableExists(TableName.valueOf(namespace, HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME))){
-                HTableDescriptor td=generateNonSITable(HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME);
+                TableDescriptor td=generateNonSITable(HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME);
                 admin.createTable(td);
                 SpliceLogUtils.info(LOG,
                         HConfiguration.MASTER_SNAPSHOTS_TABLE_NAME + " created");
             }
 
             if(!admin.tableExists(TableName.valueOf(namespace, HConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME))){
-                HTableDescriptor td=generateNonSITable(HConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME);
+                TableDescriptor td=generateNonSITable(HConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME);
                 admin.createTable(td);
                 SpliceLogUtils.info(LOG,
                         HConfiguration.REPLICA_REPLICATION_PROGRESS_TABLE_NAME + " created");
@@ -263,7 +269,7 @@ public class HBaseConnectionFactory{
     public void createRestoreTable() {
 
         try(Admin admin=connection.getAdmin()){
-            HTableDescriptor td=generateNonSITable(HConfiguration.IGNORE_TXN_TABLE_NAME);
+            TableDescriptor td=generateNonSITable(HConfiguration.IGNORE_TXN_TABLE_NAME);
             admin.createTable(td);
             SpliceLogUtils.info(LOG, HConfiguration.IGNORE_TXN_TABLE_NAME +" created");
         }catch(Exception e) {

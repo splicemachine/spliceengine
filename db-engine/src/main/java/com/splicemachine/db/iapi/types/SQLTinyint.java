@@ -31,10 +31,10 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import java.io.ObjectOutput;
@@ -65,9 +65,7 @@ import org.apache.spark.sql.types.StructField;
  * and simply return a 0-length array for the stored form
  * when the value is null.
  */
-public final class SQLTinyint
-	extends NumberDataType
-{
+public final class SQLTinyint extends NumberDataType {
 
 	/*
 	 * constants
@@ -122,6 +120,9 @@ public final class SQLTinyint
 			setValue(obj.byteValue());
 	}
 
+	public SQLTinyint(TypeMessage.SQLTinyint tinyint) {
+		init(tinyint);
+	}
 	//////////////////////////////////////////////////////////////
 	//
 	// DataValueDescriptor interface
@@ -234,14 +235,47 @@ public final class SQLTinyint
 		return StoredFormatIds.SQL_TINYINT_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
+	@Override
+	protected void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeBoolean(isNull());
 		if (!isNull)
 			out.writeByte(value);
 	}
 
-	/** @see java.io.Externalizable#readExternal */
-	public void readExternal(ObjectInput in) throws IOException {
+	@Override
+	public TypeMessage.DataValueDescriptor toProtobuf() throws IOException {
+		TypeMessage.SQLTinyint.Builder builder = TypeMessage.SQLTinyint.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setValue(value);
+		}
+		TypeMessage.DataValueDescriptor dvd =
+				TypeMessage.DataValueDescriptor.newBuilder()
+						.setType(TypeMessage.DataValueDescriptor.Type.SQLTinyint)
+						.setExtension(TypeMessage.SQLTinyint.sqlTinyint, builder.build())
+						.build();
+		return  dvd;
+	}
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(TypeMessage.SQLTinyint.sqlTinyint);
+		TypeMessage.DataValueDescriptor dvd = TypeMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		TypeMessage.SQLTinyint tinyint = dvd.getExtension(TypeMessage.SQLTinyint.sqlTinyint);
+		init(tinyint);
+	}
+
+	private void init (TypeMessage.SQLTinyint tinyint) {
+		isNull = tinyint.getIsNull();
+		if (!isNull) {
+			setValue((byte)tinyint.getValue());
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		if (!in.readBoolean()) {
 			setValue(in.readByte());
 			setIsNull(false);

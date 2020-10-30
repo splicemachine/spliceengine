@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.impl.sql;
 
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecCursorTableReference;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
@@ -87,6 +89,15 @@ public class CursorTableReference
 		this.schemaName = schemaName;
 	}
 
+	public CursorTableReference(CatalogMessage.CursorTableReference cursorTableReference) {
+		init(cursorTableReference);
+	}
+
+	public void init(CatalogMessage.CursorTableReference cursorTableReference) {
+		baseName = cursorTableReference.getBaseName();
+		exposedName = cursorTableReference.getExposedName();
+		schemaName = cursorTableReference.getSchemaName();
+	}
 	/**
 	 * Return the base name of the table
  	 *
@@ -132,8 +143,32 @@ public class CursorTableReference
 	 *
  	 * @exception IOException thrown on error
 	 */
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		if (DataInputUtil.shouldWriteOldFormat()) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	public void writeExternalNew(ObjectOutput out) throws IOException {
+		byte[] bs = toProtobuf().toByteArray();
+		ArrayUtil.writeByteArray(out, bs);
+	}
+
+	public CatalogMessage.CursorTableReference toProtobuf() {
+		CatalogMessage.CursorTableReference cursorTableReference = CatalogMessage.CursorTableReference.newBuilder()
+						.setBaseName(baseName)
+						.setExposedName(exposedName)
+						.setSchemaName(schemaName)
+						.build();
+
+		return cursorTableReference;
+	}
+
+	public void writeExternalOld(ObjectOutput out) throws IOException {
 		out.writeObject(baseName);
 		out.writeObject(exposedName);
 		out.writeObject(schemaName);
@@ -147,14 +182,28 @@ public class CursorTableReference
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
-	public void readExternal(ObjectInput in)
-		throws IOException, ClassNotFoundException
-	{
+	@Override
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		if (DataInputUtil.shouldReadOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	public void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.CursorTableReference cursorTableReference = CatalogMessage.CursorTableReference.parseFrom(bs);
+		init((cursorTableReference));
+	}
+
+	public void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
 		baseName = (String)in.readObject();
 		exposedName = (String)in.readObject();
 		schemaName = (String)in.readObject();
 	}
-	
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *

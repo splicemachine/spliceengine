@@ -14,20 +14,26 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.google.protobuf.ByteString;
+import com.splicemachine.db.catalog.types.TypeMessage;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.iapi.types.HBaseRowLocation;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.db.catalog.UUID;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.collect.Lists;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
+import java.io.*;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 /**
@@ -130,12 +136,18 @@ public class InsertConstantOperation extends WriteCursorConstantOperation {
 		this.indexNames = indexNames;
 	}
 
+	public	InsertConstantOperation(
+			CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation) throws IOException{
+		init(writeCursorConstantOperation);
+	}
+
 	// INTERFACE METHODS
 
 	// Formatable methods
-	public void readExternal (ObjectInput in) throws IOException, ClassNotFoundException {
+	@Override
+	protected void readExternalOld (ObjectInput in) throws IOException, ClassNotFoundException {
 		Object[] objectArray = null;
-		super.readExternal(in);
+		super.readExternalOld(in);
 		indexedCols = ArrayUtil.readBooleanArray(in);
 
 		// RESOLVEAUTOINCREMENT: this is the new stuff-- probably version!!
@@ -160,7 +172,44 @@ public class InsertConstantOperation extends WriteCursorConstantOperation {
 		autoincIncrement = ArrayUtil.readLongArray(in);
 	}
 
+	@Override
+	protected void init(CatalogMessage.WriteCursorConstantOperation writeCursorConstantOperation) throws IOException{
+		super.init(writeCursorConstantOperation);
+		CatalogMessage.InsertConstantOperation insertConstantOperation =
+				writeCursorConstantOperation.getExtension(CatalogMessage.InsertConstantOperation.insertConstantOperation);
+		int length = insertConstantOperation.getIndexColsCount();
+		indexedCols = new boolean[length];
+		for (int i = 0; i < length; ++i) {
+			indexedCols[i] = insertConstantOperation.getIndexCols(i);
+		}
+		if (insertConstantOperation.hasAutoincRowLocation()) {
 
+			byte[] ba = insertConstantOperation.getAutoincRowLocation().toByteArray();
+			try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+				 ObjectInputStream ois = new ObjectInputStream(bis)) {
+				int n = ArrayUtil.readArrayLength(ois);
+				autoincRowLocation = new RowLocation[n];
+				ArrayUtil.readArrayItems(ois, autoincRowLocation);
+			}
+			catch (ClassNotFoundException e) {
+				throw new IOException(e);
+			}
+		}
+		schemaName = insertConstantOperation.hasSchemaName() ? insertConstantOperation.getSchemaName() : null;
+		tableName = insertConstantOperation.hasTableName() ? insertConstantOperation.getTableName() : null;
+		length = insertConstantOperation.getColumnNamesCount();
+		if (length > 0) {
+			columnNames = new String[length];
+			for (int i = 0; i < length; ++i) {
+				columnNames[i] = insertConstantOperation.getColumnNames(i);
+			}
+		}
+		length = insertConstantOperation.getAutoincIncrementCount();
+		autoincIncrement = new long[length];
+		for (int i = 0; i < length; ++i) {
+			autoincIncrement[i] = insertConstantOperation.getAutoincIncrement(i);
+		}
+	}
 
 	/**
 	 * Write this object to a stream of stored objects.
@@ -169,8 +218,9 @@ public class InsertConstantOperation extends WriteCursorConstantOperation {
 	 *
 	 * @exception IOException		thrown on error
 	 */
-	public void writeExternal( ObjectOutput out ) throws IOException {
-		super.writeExternal(out);
+	@Override
+	protected void writeExternalOld( ObjectOutput out ) throws IOException {
+		super.writeExternalOld(out);
 		ArrayUtil.writeBooleanArray(out, indexedCols);
 		ArrayUtil.writeArray(out, autoincRowLocation);
 		out.writeObject(schemaName);
@@ -179,11 +229,56 @@ public class InsertConstantOperation extends WriteCursorConstantOperation {
 		ArrayUtil.writeLongArray(out, autoincIncrement);
 	}
 
-	/**
-	  *	Gets the name of the schema that the table is in
-	  *
-	  *	@return	schema name
-	  */
+	@Override
+	public  CatalogMessage.WriteCursorConstantOperation.Builder toProtobufBuilder() throws IOException {
+		CatalogMessage.WriteCursorConstantOperation.Builder builder = super.toProtobufBuilder();
+
+		CatalogMessage.InsertConstantOperation.Builder insertConstantOperationBuilder =
+				CatalogMessage.InsertConstantOperation.newBuilder();
+		if (indexedCols != null) {
+			for (int i = 0; i < indexedCols.length; ++i) {
+				insertConstantOperationBuilder.addIndexCols(indexedCols[i]);
+			}
+		}
+
+		if (autoincRowLocation != null) {
+			try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				 ObjectOutputStream os = new ObjectOutputStream(bos)) {
+				ArrayUtil.writeArray(os, autoincRowLocation);
+				os.flush();
+				byte[] bs = bos.toByteArray();
+				insertConstantOperationBuilder.setAutoincRowLocation(ByteString.copyFrom(bs));
+			}
+		}
+		if (schemaName != null) {
+			insertConstantOperationBuilder.setSchemaName(schemaName);
+		}
+		if (tableName != null) {
+			insertConstantOperationBuilder.setTableName(tableName);
+		}
+
+		if (columnNames != null) {
+			insertConstantOperationBuilder.addAllColumnNames(Arrays.asList(columnNames));
+		}
+
+		if (autoincIncrement != null) {
+			for (int i = 0; i < autoincIncrement.length; ++i) {
+				insertConstantOperationBuilder.addAutoincIncrement(autoincIncrement[i]);
+			}
+		}
+
+		builder.setType(CatalogMessage.WriteCursorConstantOperation.Type.InsertConstantOperation)
+				.setExtension(CatalogMessage.InsertConstantOperation.insertConstantOperation,
+						insertConstantOperationBuilder.build());
+
+		return builder;
+	}
+
+		/**
+          *	Gets the name of the schema that the table is in
+          *
+          *	@return	schema name
+          */
 	public String getSchemaName() { 
 		return schemaName; 
 	}

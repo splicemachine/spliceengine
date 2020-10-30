@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.iapi.sql.execute;
 
+
+import com.splicemachine.db.impl.sql.CatalogMessage;
+
 /**
  * This is a table name reference that can be retrieved from
  * an active cursor.  
@@ -62,4 +65,6 @@ public interface ExecCursorTableReference
 	 * @return the schema name
 	 */
 	String getSchemaName();
+
+	CatalogMessage.CursorTableReference toProtobuf();
 }

@@ -32,6 +32,7 @@
 package com.splicemachine.db.iapi.sql.dictionary;
 
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import java.io.IOException;
@@ -127,6 +128,10 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
         this.version = 2;
     }
 
+    public TriggerDescriptorV2(CatalogMessage.TriggerDescriptor triggerDescriptor) {
+        init(triggerDescriptor);
+    }
+
     @Override
     public int getNumBaseTableColumns() {
         return numBaseTableColumns;
@@ -155,8 +160,8 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
      * @throws ClassNotFoundException thrown on error
      */
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternalOld(in);
         numBaseTableColumns = in.readInt();
     }
 
@@ -166,9 +171,31 @@ public class TriggerDescriptorV2 extends TriggerDescriptor {
      * @param out write bytes here.
      */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+        super.writeExternalOld(out);
         out.writeInt(numBaseTableColumns);
+    }
+
+    @Override
+    public CatalogMessage.TriggerDescriptor.Builder toProtobufBuilder() {
+        CatalogMessage.TriggerDescriptor.Builder builder = super.toProtobufBuilder();
+
+        CatalogMessage.TriggerDescriptorV2 triggerDescriptorV2 = CatalogMessage.TriggerDescriptorV2.newBuilder()
+                .setNumBaseTableColumns(numBaseTableColumns)
+                .build();
+
+        builder.setType(CatalogMessage.TriggerDescriptor.Type.TriggerDescriptorV2)
+                .setExtension(CatalogMessage.TriggerDescriptorV2.triggerDescriptorV2, triggerDescriptorV2);
+
+        return  builder;
+    }
+
+    @Override
+    protected void init(CatalogMessage.TriggerDescriptor triggerDescriptor) {
+        super.init(triggerDescriptor);
+        CatalogMessage.TriggerDescriptorV2 triggerDescriptorV2 =
+                triggerDescriptor.getExtension(CatalogMessage.TriggerDescriptorV2.triggerDescriptorV2);
+        numBaseTableColumns = triggerDescriptorV2.getNumBaseTableColumns();
     }
 }
 

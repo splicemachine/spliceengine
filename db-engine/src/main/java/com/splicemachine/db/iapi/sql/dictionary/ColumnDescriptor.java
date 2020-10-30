@@ -268,7 +268,8 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.uuid = uuid;
         this.defaultUUID = defaultUUID;
         this.collectStatistics = collectStats;
-        assertAutoinc(autoincInc!=0, autoincInc, columnDefaultInfo);
+        // TODO : uncomment
+        //assertAutoinc(autoincInc!=0, autoincInc, columnDefaultInfo);
         this.autoincStart = autoincStart;
         this.autoincValue = autoincValue;
         this.autoincInc = autoincInc;

@@ -14,14 +14,22 @@
 
 package com.splicemachine.utils;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.TypeMessage;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.hash.Hash32;
 import com.splicemachine.hash.HashFunctions;
 import com.splicemachine.primitives.Bytes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable {
     private static final Hash32 hashFunction = HashFunctions.murmur3(0);
@@ -43,6 +51,10 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
             this.hashSet = other.hashSet;
             assertLengthCorrect(buffer, offset, length);
         }
+    }
+
+    public ByteSlice(TypeMessage.ByteSlice bs) {
+        init(bs);
     }
 
     public static ByteSlice cachedEmpty(){
@@ -238,6 +250,41 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
 
     @Override
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    private void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        TypeMessage.ByteSlice byteSlice = TypeMessage.ByteSlice.parseFrom(bs);
+        init(byteSlice);
+    }
+
+    private void init (TypeMessage.ByteSlice byteSlice) {
+        offset = byteSlice.getOffset();
+        length = byteSlice.getLength();
+        if (byteSlice.hasBuffer()) {
+            buffer = byteSlice.getBuffer().toByteArray();
+        }
+        else {
+            buffer = new byte[length];
+        }
+
+        hashSet = false;
+        if (buffer.length > 0) {
+            assertLengthCorrect(buffer, offset, length);
+        } else {
+            // If there's nothing in the buffer, reset offset and length
+            // to prevent ArrayIndexOutOfBoundsException
+            offset = length = 0;
+        }
+    }
+
+    private void readExternalOld(ObjectInput in) throws IOException {
         offset = in.readInt();
         length = in.readInt();
         buffer = new byte[length];
@@ -255,7 +302,24 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        // the deserialized offset MUST be zero, since we're slicing the array
+        // using offset as a starting point.
+        TypeMessage.ByteSlice byteSlice = toProtobuf();
+
+        ArrayUtil.writeByteArray(out, byteSlice.toByteArray());
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
         // the deserialized offset MUST be zero, since we're slicing the array
         // using offset as a starting point.
         out.writeInt(0);
@@ -264,6 +328,17 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
             out.write(buffer, offset, length);
         }
         out.flush();
+    }
+
+    public TypeMessage.ByteSlice toProtobuf() {
+        TypeMessage.ByteSlice.Builder builder = TypeMessage.ByteSlice.newBuilder();
+
+        builder.setOffset(0);
+        builder.setLength(length);
+        if (buffer != null) {
+            builder.setBuffer(ByteString.copyFrom(Arrays.copyOfRange(buffer, offset, offset + length)));
+        }
+        return builder.build();
     }
 
     public void reverse() {
@@ -285,8 +360,8 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice>,Cloneable
         return -1;
     }
 
+    @SuppressFBWarnings(value="CN_IDIOM_NO_SUPER_CALL", justification="intentional")
     @Override
-    @SuppressWarnings("CloneDoesntCallSuperClone") //intentionally doesn't call it
     public ByteSlice clone() {
         if(buffer == null) return new ByteSlice();
         return new ByteSlice(getByteCopy(), 0, length);
