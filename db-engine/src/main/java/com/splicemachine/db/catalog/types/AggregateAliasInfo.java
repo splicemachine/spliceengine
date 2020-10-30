@@ -35,6 +35,9 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -133,6 +136,29 @@ public class AggregateAliasInfo implements AliasInfo, Formatable
 	 * @exception ClassNotFoundException		thrown on error
 	 */
 	public void readExternal( ObjectInput in )
+			throws IOException, ClassNotFoundException {
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	public void readExternalNew( ObjectInput in )
+			throws IOException, ClassNotFoundException
+	{
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+		extensionRegistry.add(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+		extensionRegistry.add(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+		CatalogMessage.AggregateAliasInfo aggregateAliasInfo = CatalogMessage.AggregateAliasInfo.parseFrom(bs, extensionRegistry);
+		_forType = TypeDescriptorImpl.fromProtobuf(aggregateAliasInfo.getForType());
+		_returnType = TypeDescriptorImpl.fromProtobuf(aggregateAliasInfo.getReturnType());
+	}
+
+	public void readExternalOld( ObjectInput in )
 		 throws IOException, ClassNotFoundException
 	{
         // as the persistent form evolves, switch on this value
@@ -149,15 +175,18 @@ public class AggregateAliasInfo implements AliasInfo, Formatable
 	 *
 	 * @exception IOException		thrown on error
 	 */
+	@Override
 	public void writeExternal( ObjectOutput out )
-		 throws IOException
+			throws IOException
 	{
-		out.writeInt( FIRST_VERSION );
-
-        out.writeObject( _forType );
-        out.writeObject( _returnType );
+		CatalogMessage.AggregateAliasInfo aggregateAliasInfo =
+				CatalogMessage.AggregateAliasInfo.newBuilder()
+						.setForType(((TypeDescriptorImpl)_forType).toProtobuf())
+						.setReturnType(((TypeDescriptorImpl)_returnType).toProtobuf())
+						.build();
+		ArrayUtil.writeByteArray(out, aggregateAliasInfo.toByteArray());
 	}
- 
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *

@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -38,6 +40,8 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
@@ -266,23 +270,61 @@ public final class SQLTimestamp extends DataType
 
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-		out.writeBoolean(isNull);
-		/*
-		** Timestamp is written out 3 ints, encoded date, encoded time, and
-		** nanoseconds
-		*/
-		out.writeInt(encodedDate);
-		out.writeInt(encodedTime);
-		out.writeInt(nanos);
+		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+		ArrayUtil.writeByteArray(out, dvd.toByteArray());
 	}
 
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLTimestamp.Builder builder = CatalogMessage.SQLTimestamp.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setEncodedDate(encodedDate);
+			builder.setEncodedTime(encodedTime);
+			builder.setNanos(nanos);
+		}
+		CatalogMessage.DataValueDescriptor dvd =
+				CatalogMessage.DataValueDescriptor.newBuilder()
+						.setType(CatalogMessage.DataValueDescriptor.Type.SQLTimestamp)
+						.setExtension(CatalogMessage.SQLTimestamp.sqlTimestamp, builder.build())
+						.build();
+		return dvd;
+	}
 	/**
 	 * @see java.io.Externalizable#readExternal
 	 *
 	 * @exception IOException	Thrown on error reading the object
 	 */
-	public void readExternal(ObjectInput in) throws IOException
+	@Override
+	public void readExternal(ObjectInput in) throws IOException {
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	private void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLTimestamp.sqlTimestamp);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLTimestamp timestamp = dvd.getExtension(CatalogMessage.SQLTimestamp.sqlTimestamp);
+		init(timestamp);
+	}
+
+	private void init(CatalogMessage.SQLTimestamp timestamp) {
+		isNull = timestamp.getIsNull();
+		if (!isNull) {
+			int date = timestamp.getEncodedDate();
+			int time = timestamp.getEncodedTime();
+			int nanos = timestamp.getNanos();
+			setValue(date, time, nanos);
+		}
+	}
+
+	private void readExternalOld(ObjectInput in) throws IOException
 	{
 		int date;
 		int time;
@@ -293,6 +335,7 @@ public final class SQLTimestamp extends DataType
 		nanos = in.readInt();
 		setValue(date, time, nanos);
 	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException
 	{
 		int date;
@@ -514,6 +557,9 @@ public final class SQLTimestamp extends DataType
 		setValue(encodedDateLocal, encodedTimeLocal);
     }
 
+    public SQLTimestamp(CatalogMessage.SQLTimestamp sqlTimestamp) {
+		init(sqlTimestamp);
+	}
     /**
      * Construct a timestamp from a string. The allowed formats are:
      *<ol>

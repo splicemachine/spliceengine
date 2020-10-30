@@ -34,9 +34,7 @@ package com.splicemachine.db.catalog.types;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.io.Formatable;
-import com.splicemachine.db.iapi.services.io.FormatableHashtable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.sql.compile.*;
@@ -354,7 +352,66 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      *
      * @exception IOException    Thrown on read error
      */
+    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+    public void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.IndexDescriptorImpl indexDescriptorImpl = CatalogMessage.IndexDescriptorImpl.parseFrom(bs);
+        isUnique = indexDescriptorImpl.getIsUnique();
+        int count = indexDescriptorImpl.getIsAscendingCount();
+        isAscending = new boolean[count];
+        for (int i = 0; i < count; ++i) {
+            isAscending[i] = indexDescriptorImpl.getIsAscending(i);
+        }
+        count = indexDescriptorImpl.getBaseColumnPositionsCount();
+        baseColumnPositions = new int[count];
+        for (int i = 0; i < baseColumnPositions.length; ++i) {
+            baseColumnPositions[i] = indexDescriptorImpl.getBaseColumnPositions(i);
+         }
+        numberOfOrderedColumns = indexDescriptorImpl.getNumberOfOrderedColumns();
+        indexType = indexDescriptorImpl.getIndexType();
+        isUniqueWithDuplicateNulls = indexDescriptorImpl.getIsUniqueWithDuplicateNulls();
+        excludeNulls = indexDescriptorImpl.getExcludeNulls();
+        excludeDefaults = indexDescriptorImpl.getExcludeDefaults();
+
+        count = indexDescriptorImpl.getGeneratedClassNamesCount();
+        generatedClassNames = new String[count];
+        for (int i = 0; i < count; ++i) {
+            generatedClassNames[i] = indexDescriptorImpl.getGeneratedClassNames(i);
+        }
+
+        count = indexDescriptorImpl.getExprTextsCount();
+        exprTexts = new String[count];
+        for (int i = 0; i < count; ++i) {
+            exprTexts[i] = indexDescriptorImpl.getExprTexts(i);
+        }
+
+        count = indexDescriptorImpl.getExprBytecodeCount();
+        exprBytecode = new ByteArray[count];
+        for (int i = 0; i < count; ++i) {
+            CatalogMessage.ByteArray byteArray = indexDescriptorImpl.getExprBytecode(i);
+            exprBytecode[i] = ByteArray.fromProtobuf(byteArray);
+        }
+
+        count = indexDescriptorImpl.getIndexColumnTypesCount();
+        indexColumnTypes = new DataTypeDescriptor[count];
+        for (int i = 0; i < count; ++i) {
+            CatalogMessage.DataTypeDescriptor dataTypeDescriptor = indexDescriptorImpl.getIndexColumnTypes(i);
+            indexColumnTypes[i] = DataTypeDescriptor.fromProtobuf(dataTypeDescriptor);
+        }
+        synchronized (this) {
+            executableExprs = new BaseExecutableIndexExpression[indexDescriptorImpl.getExprBytecodeCount()];
+        }
+    }
+
+    public void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         FormatableHashtable fh = (FormatableHashtable) in.readObject();
         isUnique = fh.getBoolean(IS_UNIQUE_KEY);
         int keyLength = fh.getInt(KEY_LENGTH_KEY);
@@ -401,7 +458,45 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
      *
      * @exception IOException    Thrown on write error
      */
-    public void writeExternal(ObjectOutput out) throws IOException
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        CatalogMessage.IndexDescriptorImpl.Builder builder = CatalogMessage.IndexDescriptorImpl.newBuilder();
+        builder.setIsUnique(isUnique)
+                .setNumberOfOrderedColumns(numberOfOrderedColumns)
+                .setIndexType(indexType)
+                .setIsUniqueWithDuplicateNulls(isUniqueWithDuplicateNulls)
+                .setExcludeNulls(excludeNulls)
+                .setExcludeDefaults(excludeDefaults);
+        for (boolean asc : isAscending) {
+            builder.addIsAscending(asc);
+        }
+
+        for (int pos : baseColumnPositions) {
+            builder.addBaseColumnPositions(pos);
+        }
+
+        assert generatedClassNames.length == exprBytecode.length;
+        for (String className : generatedClassNames) {
+            builder.addGeneratedClassNames(className);
+        }
+
+        assert exprTexts.length == exprBytecode.length;
+        for (String exprText : exprTexts) {
+            builder.addExprTexts(exprText);
+        }
+
+        assert indexColumnTypes.length == exprBytecode.length;
+        for (ByteArray byteArray : exprBytecode) {
+            builder.addExprBytecode(byteArray.toProtobuf());
+        }
+
+        for (DataTypeDescriptor dataTypeDescriptor : indexColumnTypes) {
+            builder.addIndexColumnTypes(dataTypeDescriptor.toProtobuf());
+        }
+        ArrayUtil.writeByteArray(out, builder.build().toByteArray());
+    }
+
+    public void writeExternalOld(ObjectOutput out) throws IOException
     {
         FormatableHashtable fh = new FormatableHashtable();
         fh.putBoolean(IS_UNIQUE_KEY, isUnique);

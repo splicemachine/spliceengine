@@ -33,12 +33,15 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.catalog.types.RowMultiSetImpl;
 import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
@@ -1643,18 +1646,40 @@ public class DataTypeDescriptor implements Formatable{
      * @throws IOException            thrown on error
      * @throws ClassNotFoundException thrown on error
      */
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    public void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.DataTypeDescriptor dataTypeDescriptor = CatalogMessage.DataTypeDescriptor.parseFrom(bs);
+        CatalogMessage.TypeDescriptorImpl typeDescriptorImpl = dataTypeDescriptor.getTypeDescriptor();
+        typeDescriptor = TypeDescriptorImpl.fromProtobuf(typeDescriptorImpl);
+        collationDerivation = dataTypeDescriptor.getCollationDerivation();
+        init();
+    }
+
+    public void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException{
         typeDescriptor=(TypeDescriptorImpl)in.readObject();
         collationDerivation=in.readInt();
+        init();
+    }
 
+    private void init() throws IOException {
         String typeName=this.getTypeName();
         typeId=TypeId.getBuiltInTypeId(typeName);
         if(typeId==null && typeName!=null){
-         /*
-          * This is a User-defined TypeId, which we serialize. For whatever reason,
-          * derby does not approve of serializing the TypeId information for user-defined
-          * types, so we have to make do with this instead
-          */
+            /*
+             * This is a User-defined TypeId, which we serialize. For whatever reason,
+             * derby does not approve of serializing the TypeId information for user-defined
+             * types, so we have to make do with this instead
+             */
             try{
                 typeId=TypeId.getUserDefinedTypeId(typeName,false);
             }catch(StandardException se){
@@ -1670,10 +1695,29 @@ public class DataTypeDescriptor implements Formatable{
      * @throws IOException thrown on error
      */
     public void writeExternal(ObjectOutput out) throws IOException{
-        out.writeObject(typeDescriptor);
-        out.writeInt(getCollationDerivation());
+        CatalogMessage.DataTypeDescriptor dataTypeDescriptor = toProtobuf();
+        ArrayUtil.writeByteArray(out, dataTypeDescriptor.toByteArray());
     }
 
+    public CatalogMessage.DataTypeDescriptor toProtobuf() {
+        CatalogMessage.TypeDescriptorImpl typeDescriptorImpl = typeDescriptor.toProtobuf();
+        CatalogMessage.DataTypeDescriptor dataTypeDescriptor = CatalogMessage.DataTypeDescriptor.newBuilder()
+                .setTypeDescriptor(typeDescriptorImpl)
+                .setCollationDerivation(getCollationDerivation())
+                .build();
+        return dataTypeDescriptor;
+    }
+
+    public static DataTypeDescriptor fromProtobuf(CatalogMessage.DataTypeDescriptor dataTypeDescriptor) throws IOException {
+        int collationDerivation = dataTypeDescriptor.getCollationDerivation();
+        CatalogMessage.TypeDescriptorImpl typeDescriptor = dataTypeDescriptor.getTypeDescriptor();
+        TypeDescriptorImpl typeDescriptorImpl = TypeDescriptorImpl.fromProtobuf(typeDescriptor);
+        DataTypeDescriptor dtd = new DataTypeDescriptor();
+        dtd.typeDescriptor = typeDescriptorImpl;
+        dtd.collationDerivation = collationDerivation;
+        dtd.init();
+        return dtd;
+    }
     /**
      * Get the formatID which corresponds to this class.
      *

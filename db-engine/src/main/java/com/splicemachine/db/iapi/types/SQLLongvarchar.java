@@ -33,6 +33,7 @@ package com.splicemachine.db.iapi.types;
 
 import java.text.RuleBasedCollator;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
 
@@ -133,6 +134,10 @@ public class SQLLongvarchar
 	public SQLLongvarchar(String val)
 	{
 		super(val);
+	}
+
+	public SQLLongvarchar(CatalogMessage.SQLChar sqlChar) {
+		init(sqlChar);
 	}
 
 	protected void normalize(DataTypeDescriptor desiredType, String sourceValue)

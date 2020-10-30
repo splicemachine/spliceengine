@@ -31,7 +31,10 @@
 
 package com.splicemachine.db.catalog.types;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.StringDataValue;
@@ -523,7 +526,66 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
      */
     @Override
     public void readExternal( ObjectInput in )
-         throws IOException, ClassNotFoundException
+            throws IOException, ClassNotFoundException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    public void readExternalNew( ObjectInput in )
+            throws IOException
+    {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+        extensionRegistry.add(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+        extensionRegistry.add(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+
+        CatalogMessage.TypeDescriptorImpl typeDescriptor = CatalogMessage.TypeDescriptorImpl.parseFrom(bs, extensionRegistry);
+        typeId = BaseTypeIdImpl.fromProtobuf(typeDescriptor.getTypeId());
+        precision = typeDescriptor.getPrecision();
+
+        //Scale does not apply to character data types. Starting 10.3 release,
+        //the scale field in TypeDescriptor in SYSCOLUMNS will be used to save
+        //the collation type of the character data types. Because of this, in
+        //this method, we check if we are dealing with character types. If yes,
+        //then read the on-disk scale field of TypeDescriptor into collation
+        //type. In other words, the on-disk scale field has 2 different
+        //meanings depending on what kind of data type we are dealing with.
+        //For character data types, it really represents the collation type of
+        //the character data type. For all the other data types, it represents
+        //the scale of that data type.
+        switch (typeId.getJDBCTypeId()) {
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.CLOB:
+                scale = 0;
+                collationType = typeDescriptor.getCollationType();
+                break;
+            default:
+                scale = typeDescriptor.getScale();
+                collationType = 0;
+                break;
+        }
+
+        isNullable = typeDescriptor.getIsNullable();
+        maximumWidth = typeDescriptor.getMaximumWidth();
+        if (typeId.getJDBCTypeId() == Types.ARRAY) {
+            if (typeDescriptor.getChildrenCount() > 0) {
+                // if it's not the end of stream, check
+                children = new TypeDescriptorImpl[typeDescriptor.getChildrenCount()];
+                for (int i = 0; i < children.length; i++) {
+                    children[i] = TypeDescriptorImpl.fromProtobuf(typeDescriptor.getChildren(i));
+                }
+            }
+        }
+    }
+
+    public void readExternalOld( ObjectInput in ) throws IOException, ClassNotFoundException
     {
         typeId = (BaseTypeIdImpl) in.readObject();
         precision = in.readInt();
@@ -573,50 +635,12 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
      * @exception IOException        thrown on error
      */
     @Override
-    public void writeExternal( ObjectOutput out )
-         throws IOException
+    public void writeExternal(ObjectOutput out) throws IOException
     {
-        // DO NOT CHANGE THIS CODE UNLESS PROVIDING AN UPGRADE SCRIPT
-        out.writeObject( typeId );
-        out.writeInt( precision );
-
-        //Scale does not apply to character data types. Starting 10.3 release,
-        //the scale field in TypeDescriptor in SYSCOLUMNS will be used to save
-        //the collation type of the character data types. Because of this, in
-        //this method, we check if we are dealing with character types. If yes,
-        //then write the collation type into the on-disk scale field of
-        //TypeDescriptor. But if we are dealing with non-character data types,
-        //then write the scale of that data type into the on-disk scale field
-        //of TypeDescriptor. In other words, the on-disk scale field has 2
-        //different meanings depending on what kind of data type we are dealing
-        //with. For character data types, it really represents the collation
-        //type of the character data type. For all the other data types, it
-        //represents the scale of that data type.
-        switch (typeId.getJDBCTypeId()) {
-        case Types.CHAR:
-        case Types.VARCHAR:
-        case Types.LONGVARCHAR:
-        case Types.CLOB:
-            out.writeInt( collationType );
-            break;
-        default:
-            out.writeInt( scale );
-            break;
-        }
-
-        out.writeBoolean( isNullable );
-        out.writeInt( maximumWidth );
-        if (typeId.getJDBCTypeId() == Types.ARRAY) {
-            out.writeBoolean(children != null);
-            if (children != null) {
-                out.writeInt(children.length);
-                for (TypeDescriptor aChildren : children) {
-                    out.writeObject(aChildren);
-                }
-            }
-        }
+        byte[] bs = toProtobuf().toByteArray();
+        ArrayUtil.writeByteArray(out, bs);
     }
- 
+
     /**
      * Get the formatID which corresponds to this class.
      *
@@ -646,4 +670,93 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
         this.children = children;
     }
 
+    public static TypeDescriptorImpl fromProtobuf(CatalogMessage.TypeDescriptorImpl typeDescriptor) {
+        TypeDescriptorImpl type = new TypeDescriptorImpl();
+        type.typeId = BaseTypeIdImpl.fromProtobuf(typeDescriptor.getTypeId());
+        type.precision = typeDescriptor.getPrecision();
+
+        //Scale does not apply to character data types. Starting 10.3 release,
+        //the scale field in TypeDescriptor in SYSCOLUMNS will be used to save
+        //the collation type of the character data types. Because of this, in
+        //this method, we check if we are dealing with character types. If yes,
+        //then read the on-disk scale field of TypeDescriptor into collation
+        //type. In other words, the on-disk scale field has 2 different
+        //meanings depending on what kind of data type we are dealing with.
+        //For character data types, it really represents the collation type of
+        //the character data type. For all the other data types, it represents
+        //the scale of that data type.
+        switch (type.typeId.getJDBCTypeId()) {
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.CLOB:
+                type.scale = 0;
+                type.collationType = typeDescriptor.getCollationType();
+                break;
+            default:
+                type.scale = typeDescriptor.getScale();
+                type.collationType = 0;
+                break;
+        }
+
+        type.isNullable = typeDescriptor.getIsNullable();
+        type.maximumWidth = typeDescriptor.getMaximumWidth();
+        if (type.typeId.getJDBCTypeId() == Types.ARRAY) {
+            if (typeDescriptor.getChildrenCount() > 0) {
+                // if it's not the end of stream, check
+                type.children = new TypeDescriptorImpl[typeDescriptor.getChildrenCount()];
+                for (int i = 0; i < type.children.length; i++) {
+                    type.children[i] = TypeDescriptorImpl.fromProtobuf(typeDescriptor.getChildren(i));
+                }
+            }
+        }
+        return type;
+    }
+
+    public CatalogMessage.TypeDescriptorImpl toProtobuf() {
+        CatalogMessage.BaseTypeIdImpl baseTypeId = typeId.toProtobuf();
+        CatalogMessage.TypeDescriptorImpl.Builder builder = CatalogMessage.TypeDescriptorImpl.newBuilder();
+        builder.setTypeId(baseTypeId)
+                .setPrecision(precision)
+                .build();
+
+        //Scale does not apply to character data types. Starting 10.3 release,
+        //the scale field in TypeDescriptor in SYSCOLUMNS will be used to save
+        //the collation type of the character data types. Because of this, in
+        //this method, we check if we are dealing with character types. If yes,
+        //then write the collation type into the on-disk scale field of
+        //TypeDescriptor. But if we are dealing with non-character data types,
+        //then write the scale of that data type into the on-disk scale field
+        //of TypeDescriptor. In other words, the on-disk scale field has 2
+        //different meanings depending on what kind of data type we are dealing
+        //with. For character data types, it really represents the collation
+        //type of the character data type. For all the other data types, it
+        //represents the scale of that data type.
+        switch (typeId.getJDBCTypeId()) {
+            case Types.CHAR:
+            case Types.VARCHAR:
+            case Types.LONGVARCHAR:
+            case Types.CLOB:
+                builder.setCollationType(collationType);
+                break;
+            default:
+                builder.setScale(scale);
+                break;
+        }
+
+        builder.setIsNullable(isNullable);
+        builder.setMaximumWidth(maximumWidth);
+
+        if (typeId.getJDBCTypeId() == Types.ARRAY) {
+            if (children != null) {
+                for (TypeDescriptor aChildren : children) {
+                    TypeDescriptorImpl impl = (TypeDescriptorImpl) aChildren;
+                    builder.addChildren(impl.toProtobuf());
+                }
+            }
+        }
+
+        CatalogMessage.TypeDescriptorImpl typeDescriptor = builder.build();
+        return typeDescriptor;
+    }
 }

@@ -174,12 +174,12 @@ public class MEnginePartitionAdmin implements PartitionAdmin{
         return false;
     }
     @Override
-    public void setCatalogVersion(long conglomerateNumber, String version) throws IOException {
+    public void setCatalogVersion(String conglomerate, String version) throws IOException {
         throw new UnsupportedOperationException("Operation not supported in mem storage engine");
     }
     @Override
-    public String getCatalogVersion(long conglomerateNumber) {
-        throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+    public String getCatalogVersion(String conglomerate) {
+        return "2";
     }
 
     @Override

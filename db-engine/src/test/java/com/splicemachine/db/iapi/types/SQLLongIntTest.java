@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.primitives.Bytes;
 import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.Test;
@@ -142,22 +143,24 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
 
         class MockObjectOutput extends ObjectOutputStream {
                 public MockObjectOutput() throws IOException { super(); }
-                public Boolean isNull = null;
-                public Long value = null;
+                public int len = 0;
+                public byte[] bs = null;
+
                 @Override
-                public void writeBoolean(boolean bool) { isNull = bool; }
+                public void writeInt(int val) { len = val; }
                 @Override
-                public void writeLong(long val) { value = val; }
+                public void write(byte[] val) { bs = val; }
+
         }
 
         class MockObjectInput extends ObjectInputStream {
                 public MockObjectInput() throws IOException { super(); }
-                public Boolean isNull = null;
-                public Long value = null;
+                public int len = 0;
+                public byte[] bs = null;
                 @Override
-                public boolean readBoolean() { return isNull; }
+                public int readInt() { return len; }
                 @Override
-                public long readLong() { return value; }
+                public void readFully(byte[] result) { System.arraycopy(bs, 0, result, 0, bs.length); }
         }
 
         @Test
@@ -165,16 +168,16 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
                 SQLLongint lint = new SQLLongint(42);
                 MockObjectOutput moo = new MockObjectOutput();
                 lint.writeExternal(moo);
-                Assert.assertFalse("Shouldn't be null", moo.isNull);
-                Assert.assertTrue("Unexpected value", moo.value == 42);
+                Assert.assertEquals(9, moo.len);
+                Assert.assertEquals(Bytes.toHex(moo.bs), "0804DA3E040800102A");
         }
 
         @Test
         public void readExternal() throws IOException {
                 SQLLongint lint = new SQLLongint();
                 MockObjectInput moi = new MockObjectInput();
-                moi.isNull = false;
-                moi.value = 42L;
+                moi.len = 9;
+                moi.bs = Bytes.fromHex("0804DA3E040800102A");
                 lint.readExternal(moi);
                 Assert.assertFalse("Shouldn't be null", lint.isNull());
                 Assert.assertTrue("Unexpected value", lint.getLong() == 42);
@@ -185,15 +188,16 @@ public class SQLLongIntTest extends SQLDataValueDescriptorTest {
                 SQLLongint lint = new SQLLongint();
                 MockObjectOutput moo = new MockObjectOutput();
                 lint.writeExternal(moo);
-                Assert.assertTrue("Should be null", moo.isNull);
+                Assert.assertEquals(7, moo.len);
+                Assert.assertEquals(Bytes.toHex(moo.bs), "0804DA3E020801");
         }
 
         @Test
         public void readExternalNull() throws IOException {
                 SQLLongint lint = new SQLLongint();
                 MockObjectInput moi = new MockObjectInput();
-                moi.isNull = true;
-                moi.value = 0L;
+                moi.len = 7;
+                moi.bs = Bytes.fromHex("0804DA3E020801");
                 lint.readExternal(moi);
                 Assert.assertTrue("Should be null", lint.isNull());
         }

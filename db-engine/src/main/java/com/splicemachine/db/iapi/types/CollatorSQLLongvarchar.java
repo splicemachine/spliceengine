@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
@@ -77,6 +78,9 @@ class CollatorSQLLongvarchar extends SQLLongvarchar implements CollationElements
 		setCollator(collatorForCharacterDatatypes);
 	}
 
+	public CollatorSQLLongvarchar(CatalogMessage.SQLChar sqlChar) {
+		init(sqlChar);
+	}
 	/**
 	 * Set the RuleBasedCollator for this instance of CollatorSQLLongvarchar. 
 	 * It will be used to do the collation.

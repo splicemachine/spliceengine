@@ -31,21 +31,23 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 
-import java.io.Serializable;
+import java.io.*;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -293,12 +295,32 @@ public class UserType extends DataType
 		@exception IOException error writing data
 
 	*/
+	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull());
-		if (!isNull())
-			out.writeObject(value);
+		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+		ArrayUtil.writeByteArray(out, dvd.toByteArray());
 	}
 
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.UserType.Builder builder = CatalogMessage.UserType.newBuilder();
+		builder.setIsNull(isNull());
+		if (!isNull()) {
+			try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				 ObjectOutputStream os = new ObjectOutputStream(bos)) {
+				os.writeObject(value);
+				os.flush();
+				byte[] bs = bos.toByteArray();
+				builder.setData(ByteString.copyFrom(bs));
+			}
+		}
+
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.newBuilder()
+				.setType(CatalogMessage.DataValueDescriptor.Type.UserType)
+				.setExtension(CatalogMessage.UserType.userType, builder.build())
+				.build();
+		return dvd;
+	}
 	/**
 	 * @see java.io.Externalizable#readExternal
 	 *
@@ -306,8 +328,44 @@ public class UserType extends DataType
 	 * @exception ClassNotFoundException	Thrown if the class of the object
 	 *										is not found
 	 */
+	@Override
 	public void readExternal(ObjectInput in) 
-        throws IOException, ClassNotFoundException
+        throws IOException, ClassNotFoundException {
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	private void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.UserType userType = dvd.getExtension(CatalogMessage.UserType.userType);
+		init(userType);
+	}
+
+	private void init(CatalogMessage.UserType userType) {
+		boolean readIsNull = userType.getIsNull();
+		if (!readIsNull) {
+			/* RESOLVE: Sanity check for right class */
+			byte[] ba = userType.getData().toByteArray();
+			try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+				 ObjectInputStream ois = new ObjectInputStream(bis)) {
+				value = ois.readObject();
+				isNull = evaluateNull();
+			} catch (IOException|ClassNotFoundException e) {
+				throw new RuntimeException(e);
+			}
+		} else {
+			restoreToNull();
+		}
+	}
+
+	private void readExternalOld(ObjectInput in)
+			throws IOException, ClassNotFoundException
 	{
 		boolean readIsNull = in.readBoolean();
 		if (!readIsNull) {
@@ -318,6 +376,7 @@ public class UserType extends DataType
 			restoreToNull();
 		}
 	}
+
 	public void readExternalFromArray(ArrayInputStream in) 
         throws IOException, ClassNotFoundException
 	{
@@ -492,6 +551,10 @@ public class UserType extends DataType
 	{
 		this.value = value;
 		isNull = evaluateNull();
+	}
+
+	public UserType(CatalogMessage.UserType userType) {
+		init(userType);
 	}
 	/**
 	 * @see UserDataValue#setValue

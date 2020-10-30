@@ -25,10 +25,14 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
@@ -176,16 +180,30 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	}
 
 	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(type!=null);
-		if (type!=null)
-			out.writeObject(type);
-		out.writeBoolean(value != null);
-        if (value != null) {
-			out.writeInt(value.length);
-            for (DataValueDescriptor aValue : value) out.writeObject(aValue);
-        }
+		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+		ArrayUtil.writeByteArray(out, dvd.toByteArray());
 	}
 
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLArray.Builder builder = CatalogMessage.SQLArray.newBuilder();
+		if (type != null) {
+			builder.setDatatype(type.toProtobuf());
+		}
+		builder.setIsNull(value == null);
+		if (value != null) {
+			for (DataValueDescriptor aValue : value) {
+				builder.addValue(aValue.toProtobuf());
+			}
+		}
+
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.newBuilder()
+				.setType(CatalogMessage.DataValueDescriptor.Type.SQLArray)
+				.setExtension(CatalogMessage.SQLArray.sqlArray, builder.build())
+				.build();
+
+		return dvd;
+	}
 	/**
 	 * @see java.io.Externalizable#readExternal
 	 *
@@ -195,20 +213,53 @@ public class SQLArray extends DataType implements ArrayDataValue {
 	 *										(not likely, since it's supposed to
 	 *										be SQLRef).
 	 */
+	@Override
 	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	private void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException {
+
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
+		CatalogMessage.DataValueDescriptor dataValueDescriptor =
+				CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLArray sqlArray =
+				dataValueDescriptor.getExtension(CatalogMessage.SQLArray.sqlArray);
+		init(sqlArray);
+	}
+
+	private void init(CatalogMessage.SQLArray sqlArray) {
+		type = ProtoBufUtils.fromProtobuf(sqlArray.getDatatype());
+		isNull = sqlArray.getIsNull();
+		if (!isNull) {
+			setIsNull(false);
+			value = new DataValueDescriptor[sqlArray.getValueCount()];
+			for (int i = 0; i < value.length; ++i) {
+				value[i] = ProtoBufUtils.fromProtobuf(sqlArray.getValue(i));
+			}
+		}
+	}
+	private void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
 		if (in.readBoolean())
 			type = (DataValueDescriptor) in.readObject();
-        boolean nonNull = in.readBoolean();
+		boolean nonNull = in.readBoolean();
 		if (nonNull) {
 			setIsNull(false);
 			value = new DataValueDescriptor[in.readInt()];
 			for (int i =0; i< value.length; i++) {
 				value[i] = (DataValueDescriptor) in.readObject();
 			}
-        } else {
+		} else {
 			setIsNull(true);
 		}
 	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
 		if (in.readBoolean())
 			type = (DataValueDescriptor) in.readObject();
@@ -372,6 +423,10 @@ public class SQLArray extends DataType implements ArrayDataValue {
 
 	public SQLArray(DataValueDescriptor[] dvds) {
 		setValue(dvds);
+	}
+
+	public SQLArray(CatalogMessage.SQLArray sqlArray) {
+		init(sqlArray);
 	}
 
     @Override

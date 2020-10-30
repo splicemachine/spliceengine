@@ -64,7 +64,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
     }
 
     protected void create(
-            boolean isExternal,
             Transaction rawtran,
             long input_containerid,
             DataValueDescriptor[] template,

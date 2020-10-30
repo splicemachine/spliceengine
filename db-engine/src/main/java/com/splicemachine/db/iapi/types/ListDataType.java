@@ -31,10 +31,14 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -156,18 +160,57 @@ public final class ListDataType extends DataType {
 
     @Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-		out.writeInt(numElements);
-        for (int i = 0; i < numElements; i++) {
-            out.writeBoolean(dvd[i] != null);
-            if (dvd[i] != null)
-                out.writeObject(dvd[i]);
-        }
+        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+        ArrayUtil.writeByteArray(out, dvd.toByteArray());
 	}
+
+	@Override
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+        CatalogMessage.ListDataType.Builder builder = CatalogMessage.ListDataType.newBuilder();
+        builder.setIsNull(isNull);
+        for (int i = 0; i < numElements; ++i) {
+            if (dvd[i] != null) {
+                builder.setDvd(i, dvd[i].toProtobuf());
+            }
+        }
+
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.newBuilder()
+                .setType(CatalogMessage.DataValueDescriptor.Type.ListDataType)
+                .setExtension(CatalogMessage.ListDataType.listDataType, builder.build())
+                .build();
+
+        return dvd;
+    }
 
 	/** @see java.io.Externalizable#readExternal */
 	@Override
 	public void readExternal(ObjectInput in) throws IOException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+	}
+
+    private void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
+        CatalogMessage.DataValueDescriptor dataValueDescriptor =
+                CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        CatalogMessage.ListDataType listDataType =
+                dataValueDescriptor.getExtension(CatalogMessage.ListDataType.listDataType);
+        init(listDataType);
+    }
+
+    private void init(CatalogMessage.ListDataType listDataType) {
+        isNull = listDataType.getIsNull();
+        setLength(listDataType.getDvdCount());
+        for (int i = 0; i < numElements; i++) {
+            dvd[i] = ProtoBufUtils.fromProtobuf(listDataType.getDvd(i));
+        }
+    }
+    private void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
         setLength(in.readInt());
         try {
@@ -178,9 +221,9 @@ public final class ListDataType extends DataType {
         }
         catch (ClassNotFoundException e) {
             throw new IOException(
-                String.format("Class not found while deserializing %s", this.getClass().getName()), e);
+                    String.format("Class not found while deserializing %s", this.getClass().getName()), e);
         }
-	}
+    }
 
     @Override
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
@@ -263,7 +306,10 @@ public final class ListDataType extends DataType {
         setLength(numElements);
 	}
 
-	
+    public ListDataType(CatalogMessage.ListDataType listDataType) {
+	    init(listDataType);
+    }
+
     public DataValueDescriptor getDVD(int index) {
         return dvd[index];
     }

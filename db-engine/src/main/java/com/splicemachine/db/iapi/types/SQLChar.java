@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
@@ -213,6 +216,9 @@ public class SQLChar
         setValue( val );
     }
 
+    public SQLChar(CatalogMessage.SQLChar sqlChar) {
+        init(sqlChar);
+    }
     /**
      * <p>
      * This is a special constructor used when we need to represent a password
@@ -940,7 +946,65 @@ public class SQLChar
       @see java.io.DataInputStream
 
     */
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
+        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+        ArrayUtil.writeByteArray(out, dvd.toByteArray());
+    }
+
+    @Override
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+        CatalogMessage.SQLChar.Builder builder = CatalogMessage.SQLChar.newBuilder();
+        builder.setIsNull(isNull);
+        if (!isNull) {
+            if (_clobValue != null) {
+                try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                     ObjectOutputStream os = new ObjectOutputStream(bos)) {
+                    writeClobUTF(os);
+                    os.flush();
+                    byte[] bs = bos.toByteArray();
+                    builder.setClob(ByteString.copyFrom(bs));
+                }
+            } else {
+                if (value != null) {
+                    builder.setValue(value);
+                }
+                else if (rawData != null ){
+                    for (char c : rawData) {
+                        builder.addRawData(c);
+                    }
+                }
+            }
+        }
+        if (this instanceof SQLVarchar) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLVarchar);
+        } else if (this instanceof SQLClob) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLClob);
+        } else if (this instanceof SQLLongvarchar) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLLongVarchar);
+        } else if (this instanceof SQLVarcharDB2Compatible) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLVarcharDB2Compatible);
+        } else if (this instanceof CollatorSQLChar) {
+            builder.setType(CatalogMessage.SQLChar.Type.CollatorSQLChar);
+        } else if (this instanceof CollatorSQLClob) {
+            builder.setType(CatalogMessage.SQLChar.Type.CollatorSQLClob);
+        } else if (this instanceof CollatorSQLLongvarchar) {
+            builder.setType(CatalogMessage.SQLChar.Type.CollatorSQLLongVarchar);
+        } else if (this instanceof CollatorSQLVarchar) {
+            builder.setType(CatalogMessage.SQLChar.Type.CollatorSQLVarchar);
+        } else if (this instanceof CollatorSQLVarcharDB2Compatible) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLVarcharDB2Compatible);
+        }
+
+        CatalogMessage.DataValueDescriptor dvd =
+                CatalogMessage.DataValueDescriptor.newBuilder()
+                        .setType(CatalogMessage.DataValueDescriptor.Type.SQLChar)
+                        .setExtension(CatalogMessage.SQLChar.sqlChar, builder.build())
+                        .build();
+        return dvd;
+    }
+
+    private void writeExternalOld(ObjectOutput out) throws IOException {
         out.writeBoolean(isNull);
 
         if (isNull()) {
@@ -1180,7 +1244,62 @@ public class SQLChar
         isNull = evaluateNull();
     }
 
+    @Override
     public void readExternal(ObjectInput in) throws IOException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    private void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.SQLChar.sqlChar);
+        extensionRegistry.add(CatalogMessage.SQLVarchar.sqlVarchar);
+        extensionRegistry.add(CatalogMessage.SQLClob.sqlClob);
+        extensionRegistry.add(CatalogMessage.SQLLongVarchar.sqlLongVarchar);
+        extensionRegistry.add(CatalogMessage.SQLVarcharDB2Compatible.sqlVarcharDB2Compatible);
+        extensionRegistry.add(CatalogMessage.CollatorSQLChar.collatorSQLChar);
+        extensionRegistry.add(CatalogMessage.CollatorSQLVarchar.collatorSQLVarchar);
+        extensionRegistry.add(CatalogMessage.CollatorSQLClob.collatorSQLClob);
+        extensionRegistry.add(CatalogMessage.CollatorSQLLongVarchar.collatorSQLLongVarchar);
+        extensionRegistry.add(CatalogMessage.CollatorSQLVarcharDB2Compatible.collatorSQLVarcharDB2Compatible);
+
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        CatalogMessage.SQLChar sqlChar = dvd.getExtension(CatalogMessage.SQLChar.sqlChar);
+        init(sqlChar);
+    }
+
+    protected void init(CatalogMessage.SQLChar sqlChar) {
+        isNull = sqlChar.getIsNull();
+        if (!isNull) {
+            if (sqlChar.hasValue()) {
+                value = sqlChar.getValue();
+            }
+            else if (sqlChar.hasClob()) {
+                byte[] ba = sqlChar.getClob().toByteArray();
+                try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+                     ObjectInputStream ois = new ObjectInputStream(bis)) {
+                    int utflen = ois.readUnsignedShort();
+                    readExternal(ois, utflen, 0);
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            else {
+                int size = sqlChar.getRawDataCount();
+                rawData = new char[size];
+                for (int i = 0; i < size; ++i) {
+                    rawData[i] = (char)sqlChar.getRawData(i);
+                }
+            }
+        }
+    }
+    private void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
 
         if (isNull()) {

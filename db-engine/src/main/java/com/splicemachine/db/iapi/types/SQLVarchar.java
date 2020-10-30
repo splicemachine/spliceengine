@@ -31,12 +31,15 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+import java.io.IOException;
+import java.io.ObjectOutput;
 import java.sql.Clob;
 import java.text.RuleBasedCollator;
 
@@ -138,6 +141,9 @@ public class SQLVarchar
 		super(val);
 	}
 
+	public SQLVarchar(CatalogMessage.SQLChar sqlChar) {
+		init(sqlChar);
+	}
     /**
      * <p>
      * This is a special constructor used when we need to represent a password

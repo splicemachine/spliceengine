@@ -26,8 +26,6 @@ import com.splicemachine.primitives.Bytes;
  *         Date: 12/15/15
  */
 public class SIConfigurations implements ConfigurationDefault {
-    public static final String CONGLOMERATE_TABLE_NAME = "SPLICE_CONGLOMERATE";
-    public static final byte[] CONGLOMERATE_TABLE_NAME_BYTES = Bytes.toBytes(CONGLOMERATE_TABLE_NAME);
 
     public static final String completedTxnCacheSize="splice.txn.completedTxns.cacheSize";
     private static final int DEFAULT_COMPLETED_TRANSACTION_CACHE_SIZE=1<<20; // want to hold lots of completed transactions

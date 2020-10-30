@@ -31,13 +31,11 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.StreamStorable;
-import com.splicemachine.db.iapi.services.io.Storable;
-import com.splicemachine.db.iapi.services.io.TypedFormat;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -156,6 +154,9 @@ public class XML
 		isNull = true;
     }
 
+    public XML(CatalogMessage.XML xml) {
+        init(xml);
+    }
     /**
      * Private constructor used for the {@code cloneValue} method.
      * Returns a new instance of XML whose fields are clones
@@ -508,7 +509,44 @@ public class XML
      * Read an XML value from an input stream.
      * @param in The stream from which we're reading.
      */
+    @Override
     public void readExternal(ObjectInput in) throws IOException
+    {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    private void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.XML.xml);
+        CatalogMessage.DataValueDescriptor dataValueDescriptor =
+                CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        CatalogMessage.XML xml =
+                dataValueDescriptor.getExtension(CatalogMessage.XML.xml);
+        init(xml);
+    }
+
+    private void init(CatalogMessage.XML xml) {
+        if (xmlStringValue == null)
+            xmlStringValue = new SQLChar();
+
+
+        // Now just read the XML data as UTF-8.
+        xmlStringValue = (SQLChar) ProtoBufUtils.fromProtobuf(xml.getXmlStringValue());
+
+        // If we read it from disk then it must have type
+        // XML_DOC_ANY because that's all we allow to be
+        // written into an XML column.
+        setXType(XML_DOC_ANY);
+        isNull = evaluateNull();
+    }
+
+    private void readExternalOld(ObjectInput in) throws IOException
     {
         if (xmlStringValue == null)
             xmlStringValue = new SQLChar();
@@ -527,26 +565,38 @@ public class XML
         // XML_DOC_ANY because that's all we allow to be
         // written into an XML column.
         setXType(XML_DOC_ANY);
-		isNull = evaluateNull();
+        isNull = evaluateNull();
     }
 
     /**
      * Write an XML value. 
      * @param out The stream to which we're writing.
      */
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException
     {
         // never called when value is null
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(!isNull());
 
-        // Write out the XML store impl id.
-        out.writeShort(UTF8_IMPL_ID);
-
-        // Now write out the data.
-        xmlStringValue.writeExternal(out);
+        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+        ArrayUtil.writeByteArray(out, dvd.toByteArray());
     }
 
+    @Override
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+        CatalogMessage.DataValueDescriptor sqlChar = xmlStringValue.toProtobuf();
+        CatalogMessage.XML xml = CatalogMessage.XML.newBuilder()
+                .setImplId(UTF8_IMPL_ID)
+                .setXmlStringValue(sqlChar.getExtension(CatalogMessage.SQLChar.sqlChar))
+                .build();
+
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.newBuilder()
+                .setType(CatalogMessage.DataValueDescriptor.Type.XML)
+                .setExtension(CatalogMessage.XML.xml, xml)
+                .build();
+        return dvd;
+    }
     /* ****
      * StreamStorable interface
      * */

@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.primitives.Bytes;
 import org.apache.spark.sql.Row;
 import org.junit.Assert;
 import org.junit.Test;
@@ -142,22 +143,22 @@ public class SQLSmallIntTest extends SQLDataValueDescriptorTest {
 
         class MockObjectOutput extends ObjectOutputStream {
                 public MockObjectOutput() throws IOException { super(); }
-                public Boolean isNull = null;
-                public Integer value = null;
+                public int len = 0;
+                public byte[] value = null;
                 @Override
-                public void writeBoolean(boolean bool) { isNull = bool; }
+                public void writeInt(int val) { len = val; }
                 @Override
-                public void writeShort(int val) { value = val; }
+                public void write(byte[] val) { value = val; }
         }
 
         class MockObjectInput extends ObjectInputStream {
                 public MockObjectInput() throws IOException { super(); }
-                public Boolean isNull = null;
-                public Short value = null;
+                public int len = 0;
+                public byte[] value = null;
                 @Override
-                public boolean readBoolean() { return isNull; }
+                public int readInt() { return len; }
                 @Override
-                public short readShort() { return value; }
+                public void readFully(byte[] result) { System.arraycopy(value, 0, result, 0, value.length); }
         }
         
         @Test
@@ -165,16 +166,16 @@ public class SQLSmallIntTest extends SQLDataValueDescriptorTest {
                 SQLSmallint s = new SQLSmallint(42);
                 MockObjectOutput moo = new MockObjectOutput();
                 s.writeExternal(moo);
-                Assert.assertFalse("Shouldn't be null", moo.isNull);
-                Assert.assertTrue("Unexpected value", moo.value == 42);
+                Assert.assertEquals(9, moo.len);
+                Assert.assertEquals("0802CA3E040800102A", Bytes.toHex(moo.value));
         }
 
         @Test
         public void readExternal() throws IOException {
                 SQLSmallint s = new SQLSmallint();
                 MockObjectInput moi = new MockObjectInput();
-                moi.isNull = false;
-                moi.value = 42;
+                moi.len = 9;
+                moi.value = Bytes.fromHex("0802CA3E040800102A");
                 s.readExternal(moi);
                 Assert.assertFalse("Shouldn't be null", s.isNull());
                 Assert.assertTrue("Unexpected value", s.getShort() == 42);
@@ -185,15 +186,16 @@ public class SQLSmallIntTest extends SQLDataValueDescriptorTest {
                 SQLSmallint s = new SQLSmallint();
                 MockObjectOutput moo = new MockObjectOutput();
                 s.writeExternal(moo);
-                Assert.assertTrue("Should be null", moo.isNull);
+                Assert.assertEquals(7, moo.len);
+                Assert.assertEquals("0802CA3E020801", Bytes.toHex(moo.value));
         }
 
         @Test
         public void readExternalNull() throws IOException {
                 SQLSmallint s = new SQLSmallint();
                 MockObjectInput moi = new MockObjectInput();
-                moi.isNull = true;
-                moi.value = 0;
+                moi.len = 7;
+                moi.value = Bytes.fromHex("0802CA3E020801");
                 s.readExternal(moi);
                 Assert.assertTrue("Should be null", s.isNull());
         }

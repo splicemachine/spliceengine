@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -74,7 +75,11 @@ public class SQLBlob extends SQLBinary
         {
 			super(val);
         }
-	
+
+    public SQLBlob(CatalogMessage.SQLBinary sqlBinary) {
+	    init(sqlBinary);
+    }
+
 	public String getTypeName()
         {
 			return TypeId.BLOB_NAME;

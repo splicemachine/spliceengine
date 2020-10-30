@@ -31,10 +31,10 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import java.io.ObjectOutput;
@@ -216,19 +216,56 @@ public final class SQLDouble extends NumberDataType
 		return StoredFormatIds.SQL_DOUBLE_ID;
 	}
 
+	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
-
-
-		out.writeBoolean(isNull);
-		out.writeDouble(value);
+		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+		ArrayUtil.writeByteArray(out, dvd.toByteArray());
 	}
 
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLDouble.Builder builder = CatalogMessage.SQLDouble.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setValue(value);
+		}
+		CatalogMessage.DataValueDescriptor dvd =
+				CatalogMessage.DataValueDescriptor.newBuilder()
+						.setType(CatalogMessage.DataValueDescriptor.Type.SQLDouble)
+						.setExtension(CatalogMessage.SQLDouble.sqlDouble, builder.build())
+						.build();
+		return dvd;
+	}
 	/** @see java.io.Externalizable#readExternal */
+	@Override
 	public void readExternal(ObjectInput in) throws IOException {
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	private void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLDouble.sqlDouble);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLDouble sqlDouble = dvd.getExtension(CatalogMessage.SQLDouble.sqlDouble);
+		init(sqlDouble);
+	}
+
+	private void init(CatalogMessage.SQLDouble sqlDouble) {
+		isNull = sqlDouble.getIsNull();
+		if (!isNull) {
+			value = sqlDouble.getValue();
+		}
+	}
+	private void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		value = in.readDouble();
 	}
-
 	/** @see java.io.Externalizable#readExternal */
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 		isNull = in.readBoolean();
@@ -348,6 +385,10 @@ public final class SQLDouble extends NumberDataType
             ;
 		else
 			setValue(NumberDataType.normalizeDOUBLE(obj));
+	}
+
+	public SQLDouble(CatalogMessage.SQLDouble sqlDouble) {
+		init(sqlDouble);
 	}
 
 	private SQLDouble(double val, boolean startsnull) throws StandardException
