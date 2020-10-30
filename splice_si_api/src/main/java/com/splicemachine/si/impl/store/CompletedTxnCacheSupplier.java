@@ -21,6 +21,7 @@ import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnSupplier;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.txn.RolledBackTxn;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 
@@ -80,6 +81,7 @@ public class CompletedTxnCacheSupplier implements TxnSupplier{
     }
 
     @Override
+    @SuppressFBWarnings(value = "SF_SWITCH_FALLTHROUGH", justification = "intentional")
     public TxnView getTransaction(long txnId, boolean getDestinationTables) throws IOException {
         if (txnId == -1) {
             return Txn.ROOT_TRANSACTION;
