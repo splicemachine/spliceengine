@@ -14,6 +14,8 @@
 
 package com.splicemachine.si.impl.server;
 
+import java.io.IOException;
+
 public class PurgeConfigBuilder {
     private PurgeConfig.PurgeLatestTombstone purgeLatestTombstone = null;
     private Boolean respectActiveTransactions = null;
@@ -100,7 +102,7 @@ public class PurgeConfigBuilder {
         return this;
     }
 
-    public PurgeConfig build() {
+    public PurgeConfig build() throws IOException {
         assert purgeDeletes != null;
         assert purgeUpdates != null;
         assert purgeLatestTombstone != null;
