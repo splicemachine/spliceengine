@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -44,8 +44,6 @@ import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
-import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
-import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.system.CsvOptions;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -725,44 +723,27 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,
-                                      DataValueDescriptor probeValue, ExecRow execRow,
-                                      boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
-        assert baseColumnMap != null:"baseColumnMap Null";
-        assert partitionColumnMap != null:"partitionColumnMap Null";
+    public <V> DataSet<V> readORCFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
+                                      String location, OperationContext context, Qualifier[][] qualifiers,
+                                      DataValueDescriptor probeValue,  ExecRow execRow, boolean useSample,
+                                      double sampleFraction) throws StandardException {
         try {
-            DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
-            if( empty_ds != null ) return empty_ds;
+            Dataset<Row> table = null;
+            ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
-            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
-            Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
-            configuration.set(SpliceOrcNewInputFormat.SPLICE_PREDICATE,predicate.serialize());
-            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType(baseColumnMap).json());
-            configuration.set(SpliceOrcNewInputFormat.SPLICE_COLUMNS,intArrayToString(baseColumnMap));
-            configuration.set(SpliceOrcNewInputFormat.SPLICE_PARTITIONS,intArrayToString(partitionColumnMap));
-            if (statsjob)
-                configuration.set(SpliceOrcNewInputFormat.SPLICE_COLLECTSTATS, "true");
-
-            JavaRDD<Row> rows;
             try {
-                rows = SpliceSpark.getContext().newAPIHadoopFile(
-                        location,
-                        SpliceOrcNewInputFormat.class,
-                        NullWritable.class,
-                        Row.class,
-                        configuration)
-                        .values();
-            }
-            catch (Exception e) {
+                table = SpliceSpark.getSession()
+                        .read()
+                        .schema(tableSchema)
+                        .orc(location);
+            } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, false);
             }
 
-            if (useSample) {
-                return new SparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)));
-            } else {
-                return new SparkDataSet(rows.map(new RowToLocatedRowFunction(context, execRow)));
-            }
+            checkNumColumns(location, baseColumnMap, table);
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
+            return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
+                    execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());

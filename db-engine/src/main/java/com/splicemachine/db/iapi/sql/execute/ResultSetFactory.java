@@ -1046,6 +1046,7 @@ public interface ResultSetFactory {
 											optimizer
 		@param optimizerEstimatedCost		Estimated total cost by optimizer
 	    @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
+        @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
 
 		@return the table scan operation as a result set.
 		@exception StandardException thrown when unable to create the
@@ -1089,7 +1090,8 @@ public interface ResultSetFactory {
 								int partitionByRefItem,
 								GeneratedMethod defaultRowFunc,
 								int defaultValueMapItem,
-								GeneratedMethod pastTxFunctor
+								GeneratedMethod pastTxFunctor,
+                                long minRetentionPeriod
 								)
 			throws StandardException;
 
@@ -1506,7 +1508,8 @@ NoPutResultSet getDistinctScanResultSet(
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor ) throws StandardException;
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod ) throws StandardException;
 
 NoPutResultSet getMultiProbeTableScanResultSet(
             Activation activation, long conglomId, int scociItem,
@@ -1530,7 +1533,8 @@ NoPutResultSet getMultiProbeTableScanResultSet(
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor ) throws StandardException;
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod ) throws StandardException;
 
 NoPutResultSet getMergeSortLeftOuterJoinResultSet(
             NoPutResultSet leftResultSet, int leftNumCols,
@@ -1819,6 +1823,8 @@ NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, i
      *                                       optimizer
      * @param optimizerEstimatedCost         Estimated total cost by optimizer
      * @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
+     *
      * @return the scan operation as a result set.
      * @throws StandardException thrown when unable to create the
      *                           result set
@@ -1840,7 +1846,8 @@ NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, i
             double optimizerEstimatedCost,
             String tableVersion,
             String explainPlan,
-            GeneratedMethod pastTxFunctor
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod
     ) throws StandardException;
 
 
@@ -1989,19 +1996,10 @@ NoPutResultSet getCurrentOfResultSet(String cursorName, Activation activation, i
                                       String encoding,
                                       String fieldSeparator,
                                       String quoteChar,
+                                      String quoteMode,
+                                      String format,
                                       int srcResultDescriptionSavedObjectNum) throws StandardException;
 
-
-    /**
-     * Binary Export
-     */
-    NoPutResultSet getBinaryExportResultSet(NoPutResultSet source,
-                                            Activation activation,
-                                            int resultSetNumber,
-                                            String exportPath,
-                                            String compression,
-                                            String format,
-                                            int srcResultDescriptionSavedObjectNum) throws StandardException;
 
     /**
      * Kafka Export
