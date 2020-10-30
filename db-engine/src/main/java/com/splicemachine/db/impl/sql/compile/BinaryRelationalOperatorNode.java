@@ -613,7 +613,7 @@ public class BinaryRelationalOperatorNode
 
         /* Is the key column on the left or the right? */
         List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
-        if (columnReferences != null && columnReferences.size() == 1) {
+        if (columnReferences != null && (leftMatchIndexExpr >= 0 || columnReferences.size() == 1)) {
             if (valNodeReferencesOptTable(columnReferences.get(0), (FromTable) optTable, false, true)) {
                 /* The left operand is the key column */
                 left = true;
@@ -624,7 +624,7 @@ public class BinaryRelationalOperatorNode
             if(!left){
                 boolean right = false;
                 columnReferences = rightOperand.getHashableJoinColumnReference();
-                if (columnReferences != null && columnReferences.size() ==1) {
+                if (columnReferences != null && (rightMatchIndexExpr >= 0 || columnReferences.size() == 1)) {
                     if(valNodeReferencesOptTable(columnReferences.get(0),(FromTable)optTable,false,true)){
                     /* The right operand is the key column */
                         right=true;
@@ -1682,12 +1682,14 @@ public class BinaryRelationalOperatorNode
             maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
         }
 
+        final int innerColumnPos = innerColumn.getSource().getColumnPosition();
+        final int outerColumnPos = outerColumn.getSource().getColumnPosition();
         if (innerTableCostController != null) {
             long rc = (long)innerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minInnerColumn = innerTableCostController.minValue(innerColumn.getSource().getColumnPosition());
-            maxInnerColumn = innerTableCostController.maxValue(innerColumn.getSource().getColumnPosition());
+            minInnerColumn = innerTableCostController.minValue(innerColumnPos);
+            maxInnerColumn = innerTableCostController.maxValue(innerColumnPos);
         }
 
         DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
@@ -1697,6 +1699,22 @@ public class BinaryRelationalOperatorNode
                 endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
             selectivity *= innerTableCostController.getSelectivity(innerColumn.getSource().getColumnPosition(),
                     startKey, true, endKey, true, false);
+        }
+        else if (this.operatorType == EQUALS_RELOP) {
+            // Use a more realistic selectivity that takes the
+            // inner table RPV into account instead of defaulting
+            // to a selectivity of 1.
+            double outerCardinality =
+                     outerTableCostController.cardinality(outerColumnPos);
+            double innerCardinality =
+                        innerTableCostController.cardinality(innerColumnPos);
+
+            // If cardinality values are uninitialized (zero),
+            // we can't apply this estimation formula.
+            if (outerCardinality != 0.0d && innerCardinality != 0.0d) {
+                double tempSelectivity = outerCardinality / innerCardinality;
+                selectivity = Math.min(tempSelectivity, 1.0d);
+            }
         }
 
         return selectivity;

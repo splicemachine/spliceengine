@@ -14,11 +14,15 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import org.supercsv.io.CsvListWriter;
 import org.supercsv.prefs.CsvPreference;
 import org.supercsv.quote.ColumnQuoteMode;
 
 import java.io.*;
+import java.util.Arrays;
+import java.util.stream.IntStream;
 
 /**
  * Constructs/configures CsvListWriter objects used during export.
@@ -28,17 +32,26 @@ public class ExportCSVWriterBuilder {
     /* On a local 4-node cluster varying this buffer size by 3 orders of magnitude had almost no effect. */
     private static final int WRITE_BUFFER_SIZE_BYTES = 16 * 1024;
 
-    public CsvListWriter build(OutputStream outputStream, ExportParams exportParams) throws IOException {
+    public CsvListWriter build(OutputStream outputStream, ExportParams exportParams, ResultColumnDescriptor[] exportColumns) throws IOException {
         OutputStreamWriter stream = new OutputStreamWriter(outputStream, exportParams.getCharacterEncoding());
         Writer writer = new BufferedWriter(stream, WRITE_BUFFER_SIZE_BYTES);
-        CsvPreference preference = new CsvPreference.Builder(
+        CsvPreference.Builder preference = new CsvPreference.Builder(
                 exportParams.getQuoteChar(),
                 exportParams.getFieldDelimiter(),
-                exportParams.getRecordDelimiter())
-                .useQuoteMode(new ColumnQuoteMode())
-                .build();
-
-        return new CsvListWriter(writer, preference);
+                exportParams.getRecordDelimiter());
+        switch (exportParams.getQuoteMode()) {
+            case ALWAYS:
+                boolean[] toQuote = new boolean[exportColumns.length];
+                IntStream.range(0, exportColumns.length).forEach(i -> toQuote[i] = exportColumns[i].getType().getTypeId().isCharOrVarChar());
+                preference.useQuoteMode(new ColumnQuoteMode(toQuote));
+                break;
+            case DEFAULT:
+                preference.useQuoteMode(new ColumnQuoteMode());
+                break;
+            default:
+                assert false;
+        }
+        return new CsvListWriter(writer, preference.build());
     }
 
 }

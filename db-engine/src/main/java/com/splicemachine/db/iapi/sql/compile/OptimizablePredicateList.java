@@ -128,7 +128,7 @@ public interface OptimizablePredicateList {
 	 * predicates in the list to be evaluated during the probe into the
 	 * hash table on a next are qualifiers.
 	 */
-	void markAllPredicatesQualifiers();
+	void markAllPredicatesQualifiers() throws StandardException;
 	
 	/**
 	 * Check into the predicate list if the passed column has an equijoin 
@@ -378,4 +378,12 @@ public interface OptimizablePredicateList {
 	 */
 	boolean canSupportIndexExcludedDefaults(int tableNumber, ConglomerateDescriptor cd, TableDescriptor td) throws StandardException;
 
+	/**
+	 *
+	 * Recompute the scan flags of a predicate list so that their
+	 * values are consistent with eachother.
+	 *
+	 * @return
+	 */
+	void countScanFlags();
 }

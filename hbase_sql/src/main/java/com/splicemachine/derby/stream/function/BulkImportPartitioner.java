@@ -14,7 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import org.apache.spark.Partitioner;
 import scala.Tuple2;
 

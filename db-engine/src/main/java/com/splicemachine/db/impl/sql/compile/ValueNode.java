@@ -1476,6 +1476,37 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     }
 
     /**
+     * Enhanced version of <code>isEquivalent</code> (to be extended):
+     * <ul>
+     *   <li> Calls to the same deterministic method with the same arguments
+     *        are equivalent.
+     *   <li> Commutative operators on the same set of operands are equivalent,
+     *        e.g., a + b == b + a, a OR b == b OR a.
+     * </ul>
+     * @param other the node to compare this ValueNode against.
+     * @return <code>true</code> if the two nodes are semantically equivalent,
+     *         <code>false</code> otherwise.
+     * @throws StandardException
+     */
+    protected boolean isSemanticallyEquivalent(ValueNode other) throws StandardException {
+        return this.isEquivalent(other);
+    }
+
+    public boolean semanticallyEquals(Object o) {
+        boolean result;
+        if(o instanceof ValueNode){
+            try{
+                result = isSemanticallyEquivalent((ValueNode) o);
+            }catch (StandardException e){
+                throw new RuntimeException(e);
+            }
+        }else{
+            result = super.equals(o);
+        }
+        return result;
+    }
+
+    /**
      * Tests if this node is of the same type as the specified node as
      * reported by {@link QueryTreeNode#getNodeType()}.
      *

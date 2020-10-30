@@ -300,12 +300,23 @@ public class VirtualColumnNode extends ValueNode
     {
         sourceColumn.setType(dtd);
     }
-    
+
+    @Override
     protected boolean isEquivalent(ValueNode o) throws StandardException
     {
         if (isSameNodeType(o)) {
             VirtualColumnNode other = (VirtualColumnNode)o;
             return sourceColumn.isEquivalent(other.sourceColumn);
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (isSameNodeType(o)) {
+            VirtualColumnNode other = (VirtualColumnNode)o;
+            return sourceColumn.isSemanticallyEquivalent(other.sourceColumn);
         }
         return false;
     }

@@ -35,11 +35,14 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
+import com.splicemachine.db.impl.ast.SpliceDerbyVisitorAdapter;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
 
 import java.util.Collection;
@@ -177,6 +180,15 @@ public abstract class DMLStatementNode extends StatementNode {
             resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d, false);
         }
 
+        // Before calling shouldRunSpark(), adjust cost by considering limit and offset values.
+        if (resultSet instanceof SelectNode) {
+            ResultSetNode temp = ((SelectNode)resultSet).genRowCount(resultSet);
+            if (temp != resultSet) {
+                ASTVisitor v = new SpliceDerbyVisitorAdapter(new LimitOffsetVisitor());
+                temp.accept(v);
+            }
+        }
+
         if (shouldRunSpark(resultSet)) {
             CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
             resultSet.accept(cnv);
@@ -218,7 +230,7 @@ public abstract class DMLStatementNode extends StatementNode {
         resultSet.accept(cnv);
         for (Object obj : cnv.getList()) {
             if (obj instanceof FromBaseTable) {
-                ((FromBaseTable) obj).determineSpark();
+                  ((FromBaseTable) obj).determineSpark();
             }
             type = type.combine(((FromTable) obj).getDataSetProcessorType());
         }

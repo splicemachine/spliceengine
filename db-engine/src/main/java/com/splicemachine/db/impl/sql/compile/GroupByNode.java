@@ -1452,6 +1452,9 @@ public class GroupByNode extends SingleChildResultSetNode{
         assert costEstimate != null : "Trying to get columns missing statistic but there is no cost estimation.";
 
         HashSet<String> noStatsColumns = new HashSet<>();
+        if (groupingList == null) {
+            return noStatsColumns;
+        }
         CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
         for (OrderedColumn oc : groupingList) {
             oc.accept(cnv);

@@ -1963,6 +1963,17 @@ public class ResultColumn extends ValueNode
         return false;
     }
 
+    public boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (o.getNodeType() == getNodeType()) {
+            ResultColumn other = (ResultColumn)o;
+            if (expression != null) {
+                return expression.isSemanticallyEquivalent(other.expression);
+            }
+        }
+        return false;
+    }
+
     public boolean equals(Object o){
         return this == o;
     }
@@ -2004,7 +2015,7 @@ public class ResultColumn extends ValueNode
             return 0;
         ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
         int leftPosition = getColumnPosition();
-        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false, 0).cardinality(leftPosition);
+        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false, 0, 0).cardinality(leftPosition);
     }
     /**
      *

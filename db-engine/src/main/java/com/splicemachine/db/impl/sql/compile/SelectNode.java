@@ -1454,22 +1454,8 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
-        if(offset!=null || fetchFirst!=null){
-            // Keep the same RCL on top, since there may be references to
-            // its result columns above us.
-            ResultColumnList topList=prnRSN.getResultColumns();
-            ResultColumnList newSelectList=topList.copyListAndObjects();
-            prnRSN.setResultColumns(newSelectList);
-            topList.genVirtualColumnNodes(prnRSN,newSelectList);
-            prnRSN=(ResultSetNode)getNodeFactory().getNode(
-                    C_NodeTypes.ROW_COUNT_NODE,
-                    prnRSN,
-                    topList,
-                    offset,
-                    fetchFirst,
-                    hasJDBClimitClause,
-                    getContextManager());
-        }
+        // generate RowCountNode for limit offset if present
+        prnRSN=genRowCount(prnRSN);
 
 
         if(wasGroupBy && resultColumns.numGeneratedColumnsForGroupBy()>0 && ! hasWindows()) {
@@ -1528,6 +1514,43 @@ public class SelectNode extends ResultSetNode{
 //            prnRSN.costEstimate=costEstimate.cloneMe();
 
         return prnRSN;
+    }
+
+    public ResultSetNode genRowCount(ResultSetNode topNode) throws StandardException {
+        if(offset == null && fetchFirst == null) {
+            return topNode;
+        }
+        if (topNode == this) {
+            /* Entering this branch means we are not generating RowCountNode for modifying access path.
+             * In this case, do not generate the RowCountNode in any of the following cases:
+             * 1. GroupByNode is needed later
+             * 2. OrderByNode is needed later
+             * 3. DistinctNode is needed or distinct scan is possible, i.e., isDistinct == true
+             * 4. WindowResultSetNode is needed later
+             * 5. Not a single table scan
+             * It is necessary because the semantic of RowCountNode does not propagate down across these nodes.
+             * LimitOffsetVisitor will handle other blocking operators.
+             */
+            boolean needGroupBy = (selectAggregates != null && !selectAggregates.isEmpty()) || groupByList != null;
+            boolean needOrderBy = orderByList != null && orderByList.isSortNeeded();
+            if (needGroupBy || needOrderBy || isDistinct || hasWindows() || fromList.size() != 1) {
+                return topNode;
+            }
+        }
+        // Keep the same RCL on top, since there may be references to
+        // its result columns above us.
+        ResultColumnList topList=topNode.getResultColumns();
+        ResultColumnList newSelectList=topList.copyListAndObjects();
+        topNode.setResultColumns(newSelectList);
+        topList.genVirtualColumnNodes(topNode,newSelectList);
+        return (ResultSetNode)getNodeFactory().getNode(
+                C_NodeTypes.ROW_COUNT_NODE,
+                topNode,
+                topList,
+                offset,
+                fetchFirst,
+                hasJDBClimitClause,
+                getContextManager());
     }
 
     /**

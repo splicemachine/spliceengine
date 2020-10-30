@@ -47,6 +47,8 @@ import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+
 /**
  * A Predicate represents a top level predicate.
  */
@@ -84,6 +86,10 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     private boolean scoped;
 
     private boolean matchIndexExpression;
+
+    // The original list of IN list probe predicates that were combined
+    // to make the current combined multicolumn IN list probe predicate.
+    private PredicateList originalInListPredList;
 
     public void setPulled(boolean pulled){
         this.pulled=pulled;
@@ -136,7 +142,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public void markStartKey(){
+    public void markStartKey() {
         startKey=true;
     }
 
@@ -165,7 +171,13 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public void markQualifier(){
+    public void markQualifier() throws StandardException{
+        // In list probe predicates should never be marked as
+        // qualifiers because a qualifier can only filter
+        // a single value, and each probe does not have its
+        // own separate thread or Dataset any more.
+        if (isInListProbePredicate())
+            throw StandardException.newException(LANG_INTERNAL_ERROR, "Attempt to mark an in-list probe predicate as a qualifier.");
         isQualifier=true;
     }
 
@@ -1249,6 +1261,17 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return andNode.getLeftOperand().isInListProbeNode();
     }
 
+    public boolean isMultiColumnInListProbePredicate() throws StandardException {
+        if (isInListProbePredicate()) {
+            InListOperatorNode ilop = getSourceInList(true);
+            if (ilop == null)
+                return false;
+            else
+                return ilop.leftOperandList.size() > 1;
+        }
+        return false;
+    }
+
     /**
      * If this predicate corresponds to an IN-list, return the underlying
      * InListOperatorNode from which it was built.  There are two forms
@@ -1478,4 +1501,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         return op.collectExpressions(exprMap);
     }
+
+    public PredicateList getOriginalInListPredList() { return originalInListPredList; }
+
+    public void setOriginalInListPredList (PredicateList predList) { originalInListPredList = predList;}
 }
