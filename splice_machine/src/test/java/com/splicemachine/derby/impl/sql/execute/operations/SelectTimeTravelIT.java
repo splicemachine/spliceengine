@@ -445,6 +445,15 @@ public class SelectTimeTravelIT {
         }
     }
 
+    private static String MicrosecondTimestampFormat = "yyyy-MM-dd HH:mm:ss.SSSSSS";
+
+    private String serverTimestamp() throws SQLException {
+        try(ResultSet rs = watcher.executeQuery("values current_timestamp")) {
+            Assert.assertTrue(rs.next());
+            return rs.getTimestamp(1).toString();
+        }
+    }
+
     @Test
     public void testTimeTravelOutsideMinRetentionPeriodWorks() throws Exception {
         String someTable = generateTableName();
@@ -455,10 +464,10 @@ public class SelectTimeTravelIT {
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
         Thread.sleep(mrp * 1000 + 300);
         shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable,
-                new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis() - (mrp + 2) * 1000))));
+                new SimpleDateFormat(MicrosecondTimestampFormat).format(new Timestamp(System.currentTimeMillis() - (mrp + 2) * 1000))));
         watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', null)", SCHEMA, someTable));
         try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable,
-                new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis() - (mrp + 200) * 1000))))) {
+                new SimpleDateFormat(MicrosecondTimestampFormat).format(new Timestamp(System.currentTimeMillis() - (mrp + 200) * 1000))))) {
             Assert.assertFalse(rs.next());
         }
     }
@@ -471,8 +480,7 @@ public class SelectTimeTravelIT {
         watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
-        Thread.sleep(1000);
-        String timestamp = new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis()));
+        String timestamp = serverTimestamp();
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 200", someTable));
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 400", someTable));
         try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s') ORDER BY a1 ASC", someTable, timestamp))) {
@@ -490,7 +498,7 @@ public class SelectTimeTravelIT {
         watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
         int mrp = 2; // seconds
         watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
-        String initialTime = new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis()));
+        String initialTime = serverTimestamp();
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 3", someTable));
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 4", someTable));
         Thread.sleep(mrp * 1000 * 2); // we are already beyond MRP for upcoming SELECTs
@@ -509,7 +517,7 @@ public class SelectTimeTravelIT {
         int mrp = 2; // seconds
         watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable1, mrp));
         watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable2, mrp));
-        String initialTime = new SimpleDateFormat(SpliceDateTimeFormatter.defaultTimestampFormatString).format(new Timestamp(System.currentTimeMillis()));
+        String initialTime = serverTimestamp();
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 3", someTable1));
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 4", someTable1));
         watcher.executeUpdate(String.format("INSERT INTO %s VALUES 3", someTable2));
