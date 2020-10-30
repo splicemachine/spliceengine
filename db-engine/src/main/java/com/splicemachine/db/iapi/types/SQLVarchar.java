@@ -261,7 +261,7 @@ public class SQLVarchar
      */
     protected int stringCompare(StringDataValue char1, StringDataValue char2)
             throws StandardException {
-        return stringCompare(char1.getString(), char2.getString());
+        return super.stringCompare(char1.getString(), char2.getString());
     }
 
     /**
