@@ -1652,9 +1652,9 @@ conglomerates are removed.
 
     boolean isElevated();
 
-    String getCatalogVersion(long conglomerateNumber) throws StandardException;
+    String getCatalogVersion(String conglomerateNumber) throws StandardException;
 
-    void setCatalogVersion(long conglomerteNumber, String version) throws StandardException;
+    void setCatalogVersion(String conglomerateNumber, String version) throws StandardException;
 
 	long getActiveStateTxId();
 }

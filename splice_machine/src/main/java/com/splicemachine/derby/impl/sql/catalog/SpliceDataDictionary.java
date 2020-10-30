@@ -1454,7 +1454,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             toUpgrade.add(s);
         }
         toUpgrade.add("16"); // splice:16 core table
-        toUpgrade.add(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+        toUpgrade.add(HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
 
         return admin.upgradeTablePrioritiesFromList(toUpgrade);
     }
@@ -1764,12 +1764,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void addCatalogVersion(TransactionController tc) throws StandardException{
         for (int i = 0; i < coreInfo.length; ++i) {
             long conglomerateId = coreInfo[i].getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i));
+            tc.setCatalogVersion(Long.toString(conglomerateId), catalogVersions.get(i));
         }
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
             long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
+            tc.setCatalogVersion(Long.toString(conglomerateId), catalogVersions.get(i + NUM_CORE));
 
         }
     }

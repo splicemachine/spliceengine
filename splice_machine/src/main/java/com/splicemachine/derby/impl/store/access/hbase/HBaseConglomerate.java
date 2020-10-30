@@ -14,7 +14,9 @@
 
 package com.splicemachine.derby.impl.store.access.hbase;
 
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
@@ -25,6 +27,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.ScanManager;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.catalog.CatalogMessage;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -42,12 +45,13 @@ import org.apache.spark.sql.types.StructField;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /**
  * A hbase object corresponds to an instance of a hbase conglomerate.
  **/
-
 public class HBaseConglomerate extends SpliceConglomerate{
     public static final long serialVersionUID=5l;
     private static final Logger LOG=Logger.getLogger(HBaseConglomerate.class);
@@ -68,7 +72,7 @@ public class HBaseConglomerate extends SpliceConglomerate{
                           TxnOperationFactory operationFactory,
                           PartitionFactory partitionFactory,
                           byte[][] splitKeys, Priority priority) throws StandardException{
-        super.create(isExternal,rawtran,
+        super.create(rawtran,
                 input_containerid,
                 template,
                 columnOrder,
@@ -315,7 +319,38 @@ public class HBaseConglomerate extends SpliceConglomerate{
      * (ACCESS_HEAP_V3_ID).
      * <p/>
      **/
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException{
+        partitionFactory=SIDriver.driver().getTableFactory();
+        opFactory=SIDriver.driver().getOperationFactory();
+        PartitionAdmin admin = partitionFactory.getAdmin();
+        try {
+            String version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
+            if (version == null ||  version.equals("1")) {
+                writeExternlOld(out);
+            }
+            else {
+                writeExternalNew(out);
+            }
+        } catch (StandardException e) {
+            throw new IOException(e);
+        }
+    }
+
+    private void writeExternalNew(ObjectOutput out) throws IOException {
+        CatalogMessage.SpliceConglomerate spliceConglomerate = CatalogMessage.SpliceConglomerate.newBuilder()
+                .setConglomerateFormatId(conglom_format_id)
+                .setTmpFlag(tmpFlag)
+                .setContainerId(containerId)
+                .addAllFormatIds(Arrays.stream(format_ids).boxed().collect(Collectors.toList()))
+                .addAllCollationIds(Arrays.stream(collation_ids).boxed().collect(Collectors.toList()))
+                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()))
+                .build();
+        byte[] bs = spliceConglomerate.toByteArray();
+        ArrayUtil.writeByteArray(out, bs);
+    }
+
+    private void writeExternlOld(ObjectOutput out) throws IOException {
         FormatIdUtil.writeFormatIdInteger(out,conglom_format_id);
         FormatIdUtil.writeFormatIdInteger(out,tmpFlag);
         out.writeLong(containerId);
@@ -325,8 +360,8 @@ public class HBaseConglomerate extends SpliceConglomerate{
         ConglomerateUtil.writeFormatIdArray(collation_ids,out);
         out.writeInt(columnOrdering.length);
         ConglomerateUtil.writeFormatIdArray(columnOrdering,out);
-    }
 
+    }
     /**
      * Restore the in-memory representation from the stream.
      * <p/>
@@ -336,29 +371,61 @@ public class HBaseConglomerate extends SpliceConglomerate{
      *                                the stream could not be found.
      * @see java.io.Externalizable#readExternal
      **/
-    private void localReadExternal(ObjectInput in)
-            throws IOException, ClassNotFoundException{
-//        SpliceLogUtils.trace(LOG,"localReadExternal");
-        // read the format id of this conglomerate.
+    private void localReadExternal(ObjectInput in) throws IOException {
+
+        partitionFactory=SIDriver.driver().getTableFactory();
+        opFactory=SIDriver.driver().getOperationFactory();
+        PartitionAdmin admin = partitionFactory.getAdmin();
+        try {
+            String version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
+            if (version == null ||  version.equals("1")) {
+                localReadExternalOld(in);
+            }
+            else {
+                localReadExternalNew(in);
+            }
+        } catch (StandardException e) {
+            throw new IOException(e);
+        }
+    }
+
+    private void localReadExternalOld(ObjectInput in) throws IOException {
         conglom_format_id=FormatIdUtil.readFormatIdInteger(in);
         tmpFlag=FormatIdUtil.readFormatIdInteger(in);
         containerId=in.readLong();
         // read the number of columns in the heap.
         int num_columns=in.readInt();
         // read the array of format ids.
-        format_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
+        format_ids= ConglomerateUtil.readFormatIdArray(num_columns,in);
         this.conglom_format_id=getTypeFormatId();
         num_columns=in.readInt();
         collation_ids=ConglomerateUtil.readFormatIdArray(num_columns,in);
         num_columns=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(num_columns,in);
+    }
+    
+    private void localReadExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.SpliceConglomerate spliceConglomerate = CatalogMessage.SpliceConglomerate.parseFrom(bs);
+        conglom_format_id = spliceConglomerate.getConglomerateFormatId();
+        tmpFlag = spliceConglomerate.getTmpFlag();
+        containerId = spliceConglomerate.getContainerId();
 
-        if( SIDriver.driver() != null ) {
-            partitionFactory = SIDriver.driver().getTableFactory();
-            opFactory = SIDriver.driver().getOperationFactory();
+        format_ids = new int[spliceConglomerate.getFormatIdsCount()];
+        for (int i = 0; i < format_ids.length; ++i) {
+            format_ids[i] = spliceConglomerate.getFormatIds(i);
+        }
+
+        collation_ids = new int[spliceConglomerate.getCollationIdsCount()];
+        for (int i = 0; i < collation_ids.length; ++i) {
+            collation_ids[i] = spliceConglomerate.getCollationIds(i);
+        }
+
+        columnOrdering = new int[spliceConglomerate.getColumnOrderingCount()];
+        for (int i = 0; i < columnOrdering.length; ++i) {
+            columnOrdering[i] = spliceConglomerate.getColumnOrdering(i);
         }
     }
-
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         localReadExternal(in);
     }
