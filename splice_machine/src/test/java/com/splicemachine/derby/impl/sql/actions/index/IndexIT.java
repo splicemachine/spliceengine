@@ -802,7 +802,7 @@ public class IndexIT extends SpliceUnitTest{
         //methodWatcher.executeQuery("elapsedtime on");
 
         // should have higher cost - needs index to base row lookup
-        String sql1="explain SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
+        String sql1="explain exclude no statistics SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
                 " PERSON_ADDRESS a4 --splice-properties index=B_IDX1 \n"+
                 " INNER JOIN ADDRESS a5 --splice-properties joinStrategy=SORTMERGE,index=ADDRESS_IX \n"+
                 " ON a4.ADDR_ID = a5.ADDR_ID \n"+
@@ -811,7 +811,7 @@ public class IndexIT extends SpliceUnitTest{
         List<String> arr1=methodWatcher.queryList(sql1);
 
         // should have lower cost
-        String sql2="explain SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
+        String sql2="explain exclude no statistics SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
                 " PERSON_ADDRESS a4 --splice-properties index=B_IDX1 \n"+
                 " INNER JOIN ADDRESS a5 --splice-properties joinStrategy=SORTMERGE,index=ADDRESS_IX4 \n"+
                 " ON a4.ADDR_ID = a5.ADDR_ID \n"+
@@ -1005,6 +1005,33 @@ public class IndexIT extends SpliceUnitTest{
         rowContainsQuery(new int[]{1,2,3},format("select i from %s --splice-properties index=%s_IDX\n order by i nulls last", tableName, tableName),methodWatcher,
                 "10","NULL","NULL");
          */
+    }
+
+    // DB-10431
+    @Test
+    public void testCreateIndexAndInsertWithExpressionsBatchWithFullNullRow() throws Exception {
+        String tableName = "TEST_IDX_BATCH_INSERT";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 10, 1.1), ('def', 20, 2.2)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (upper(c), i + 2)", tableName, tableName));
+
+        // Without the fix, the following insert fails sporadically. It depends on the order of inserting rows. If
+        // (NULL, NULL, NULL) is inserted first, it fails. With the fix, it should never fail.
+        methodWatcher.executeUpdate(format("insert into %s values ('jkl', 30, 2.2), (NULL, NULL, NULL)", tableName));
+        methodWatcher.executeUpdate(format("update %s set c = 'def' where i = 10", tableName));
+
+        String query = format("select c from %s order by c nulls last", tableName);
+        String expected = "C  |\n" +
+                "------\n" +
+                " def |\n" +
+                " def |\n" +
+                " jkl |\n" +
+                "NULL |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 
     @Test

@@ -84,7 +84,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     /**
      * Constructor.  Just save off the relevant probing state and pass
      * everything else up to TableScanResultSet.
-     * 
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
      * @exception StandardException thrown on failure to open
      */
     public MultiProbeTableScanOperation(long conglomId,
@@ -113,18 +113,18 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         boolean oneRowScan,
         double optimizerEstimatedRowCount,
         double optimizerEstimatedCost, String tableVersion,
-                                        boolean pin,
-                                        int splits,
-                                        String delimited,
-                                        String escaped,
-                                        String lines,
-                                        String storedAs,
-                                        String location,
-                                        int partitionByRefItem,
-                                        GeneratedMethod defaultRowFunc,
-                                        int defaultValueMapItem,
-                                        GeneratedMethod pastTxFunctor
-                                        )
+        boolean pin,
+        int splits,
+        String delimited,
+        String escaped,
+        String lines,
+        String storedAs,
+        String location,
+        int partitionByRefItem,
+        GeneratedMethod defaultRowFunc,
+        int defaultValueMapItem,
+        GeneratedMethod pastTxFunctor,
+        Long minRetentionPeriod )
             throws StandardException
     {
         /* Note: We use '1' as rows per read because we do not currently
@@ -157,15 +157,16 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
             oneRowScan,
             optimizerEstimatedRowCount,
             optimizerEstimatedCost,tableVersion,pin,splits,
-                delimited,
-                escaped,
-                lines,
-                storedAs,
-                location,
-                partitionByRefItem,
-                defaultRowFunc,
-                defaultValueMapItem,
-                pastTxFunctor);
+            delimited,
+            escaped,
+            lines,
+            storedAs,
+            location,
+            partitionByRefItem,
+            defaultRowFunc,
+            defaultValueMapItem,
+            pastTxFunctor,
+            minRetentionPeriod);
 
         this.inlistPosition = inlistPosition;
 
@@ -208,7 +209,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 
         try {
             TxnView txn = getCurrentTransaction();
-            DataValueDescriptor[] probeValues = ((MultiProbeDerbyScanInformation)scanInformation).getProbeValues();
             List<DataScan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
             DataSet<ExecRow> dataSet = dsp.getEmpty();
             OperationContext<MultiProbeTableScanOperation> operationContext = dsp.<MultiProbeTableScanOperation>createOperationContext(this);
@@ -233,7 +233,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                         .keyDecodingMap(getKeyDecodingMap())
                         .rowDecodingMap(getRowDecodingMap())
                         .baseColumnMap(baseColumnMap)
-                        .optionalProbeValue(probeValues[i])
                         .defaultRow(defaultRow, scanInformation.getDefaultValueMap());
 
                 datasets.add(ssb);

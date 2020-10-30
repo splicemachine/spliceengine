@@ -14,7 +14,8 @@
 
 package com.splicemachine.olap;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.concurrent.Clock;
 import com.splicemachine.derby.iapi.sql.olap.DistributedJob;
@@ -49,6 +50,7 @@ class OlapRequestHandler extends AbstractOlapHandler{
 
 
     @Override
+    @SuppressFBWarnings(value = "RV_RETURN_VALUE_IGNORED_BAD_PRACTICE", justification = "DB-10605")
     protected void channelRead0(ChannelHandlerContext ctx, OlapMessage.Command jobRequest) throws Exception {
         assert jobRequest!=null;
         if(jobRequest.getType()!=OlapMessage.Command.Type.SUBMIT){

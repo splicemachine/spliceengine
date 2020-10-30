@@ -14,6 +14,11 @@
 
 package com.splicemachine.storage;
 
+import com.splicemachine.utils.Pair;
+
+import java.io.IOException;
+import java.util.List;
+
 /**
  * @author Scott Fines
  *         Date: 12/15/15
@@ -54,4 +59,10 @@ public interface DataScan extends Attributable{
     void returnAllVersions();
 
     void setSmall(boolean small);
+
+    // Given a list of [startKey, endKey) pairs, add a filter to this DataScan
+    // that that excludes rows not covered by any range.
+    // Currently not supported on the mem platform, where attempting to add this
+    // filter will throw an IOException.
+    void addRowkeyRangesFilter(List<Pair<byte[],byte[]>> rowkeyPairs) throws IOException;
 }

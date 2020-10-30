@@ -432,6 +432,16 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
     }
 
     @Override
+    public ExecIndexRow getStopPosition() throws StandardException {
+        return source.getStopPosition();
+    }
+
+    @Override
+    public boolean getSameStartStopPosition() {
+        return source.getSameStartStopPosition();
+    }
+
+    @Override
     public FormatableBitSet getAccessedColumns() throws StandardException {
         return source.getAccessedColumns();
     }

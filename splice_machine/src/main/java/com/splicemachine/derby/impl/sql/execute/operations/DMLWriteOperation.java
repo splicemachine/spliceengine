@@ -247,6 +247,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
             );
             this.triggerHandler.setIsSpark(isSpark);
         }
+        //re-init with current activation
+        if(generationClausesFunMethodName!=null){
+            this.generationClauses=new SpliceMethod<>(generationClausesFunMethodName,activation);
+        }
     }
 
     public byte[] getDestinationTable(){
