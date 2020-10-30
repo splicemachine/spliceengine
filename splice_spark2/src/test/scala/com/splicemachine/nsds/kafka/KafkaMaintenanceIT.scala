@@ -24,7 +24,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{BeforeAndAfterAll, FunSuite, Matchers}
 import kafka.server.{KafkaConfig, KafkaServerStartable}
-import org.apache.kafka.clients.admin.NewTopic
+import org.apache.kafka.clients.admin.{AdminClient, NewTopic}
 import com.splicemachine.test.LongerThanTwoMinutes
 import org.junit.experimental.categories.Category
 
@@ -40,7 +40,7 @@ class KafkaMaintenanceIT extends FunSuite with Matchers with BeforeAndAfterAll {
   val kafkaPort = s"19$id"
   val kafkaServer = s"localhost:$kafkaPort"
   
-  val admin = KafkaMaintenance.adminClient(kafkaServer)
+  var admin: AdminClient = _
 
   val tmpDir = System.getProperty("java.io.tmpdir", "target/tmp")
   val dataFile = Paths.get( s"$tmpDir/splice_spark2-${getClass.getSimpleName}-data-$id.txt" )
@@ -55,6 +55,8 @@ class KafkaMaintenanceIT extends FunSuite with Matchers with BeforeAndAfterAll {
 
     kafka = new KafkaServerStartable(new KafkaConfig(props))
     kafka.startup
+    
+    admin = KafkaMaintenance.adminClient(kafkaServer)
     
     clean
     
