@@ -1823,7 +1823,7 @@ public class BinaryRelationalOperatorNode
                  return false;
          }
 
-         if (!indexExpr.equals(expr)) {
+         if (!indexExpr.semanticallyEquals(expr)) {
              return false;
          }
 

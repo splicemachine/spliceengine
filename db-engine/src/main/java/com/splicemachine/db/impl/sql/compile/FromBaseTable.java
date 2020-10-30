@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -580,25 +579,13 @@ public class FromBaseTable extends FromTable {
             return new ArrayList<>();
         }
 
-        LanguageConnectionContext lcc = getLanguageConnectionContext();
-        CompilerContext newCC = lcc.pushCompilerContext();
-        Parser p = newCC.getParser();
-
-        String[] exprTexts = id.getExprTexts();
-        ValueNode[] exprAsts = new ValueNode[exprTexts.length];
-        for (int i = 0; i < exprTexts.length; i++) {
-            ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-            PredicateList.setTableNumber(exprAst, this);
-            exprAsts[i] = exprAst;
-        }
-        lcc.popCompilerContext(newCC);
-
+        ValueNode[] exprAsts = id.getParsedIndexExpressions(getLanguageConnectionContext(), this);
         List<Integer> exprIndexPositions = new ArrayList<>();
         boolean match;
         for (ValueNode refExpr : referencingExpressions) {
             match = false;
             for (int j = 0; j < exprAsts.length; j++) {
-                if (refExpr.equals(exprAsts[j])) {
+                if (refExpr.semanticallyEquals(exprAsts[j])) {
                     exprIndexPositions.add(j);
                     match = true;
                     break;
@@ -1857,8 +1844,13 @@ public class FromBaseTable extends FromTable {
         /* No need to go to the data page if this is a covering index */
         /* Derby-1087: use data page when returning an updatable resultset */
         if(ap.getCoveringIndexScan() && (!cursorTargetTable())){
-            /* Massage resultColumns so that it matches the index. */
-            resultColumns=newResultColumns(resultColumns,
+            /* Generate new resultColumns so that it matches the index.
+             * Do not assign to resultColumns yet because the next call to
+             * newResultColumns below may need to bind expressions, which
+             * requires the base table resultColumns. Assign only when the
+             * base table resultColumns are not needed anymore.
+             */
+            ResultColumnList newResultColumns = newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
                     false);
@@ -1867,17 +1859,19 @@ public class FromBaseTable extends FromTable {
              * The template row will have the RID but the result row will not
              * since there is no need to go to the data page.
              */
-            templateColumns=newResultColumns(resultColumns,
+            ResultColumnList newTemplateColumns = newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
                     false);
-            templateColumns.addRCForRID();
+            newTemplateColumns.addRCForRID();
 
             // If this is for update then we need to get the RID in the result row
             if(forUpdate()){
-                resultColumns.addRCForRID();
+                newResultColumns.addRCForRID();
             }
 
+            resultColumns = newResultColumns;
+            templateColumns = newTemplateColumns;
             if (isOnExpression) {
                 resultColumns.markAllUnreferenced();
                 /* Don't try to "optimize" the following by setting ref expr index positions
@@ -2077,29 +2071,21 @@ public class FromBaseTable extends FromTable {
 
         if (irg.isOnExpression()) {
             assert !oldColumns.isEmpty();
-            LanguageConnectionContext lcc = getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = irg.getExprTexts();
             DataTypeDescriptor[] indexColumnTypes = irg.getIndexColumnTypes();
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(getLanguageConnectionContext(), this);
 
             for (int i = 0; i < indexColumnTypes.length; i++) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-                PredicateList.setTableNumber(exprAst, this);
-
                 ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN,
                         indexColumnTypes[i],
-                        exprAst,
+                        exprAsts[i],
                         getContextManager());
-                rc.setIndexExpression(exprAst);
+                rc.setIndexExpression(exprAsts[i]);
                 rc.setReferenced();
                 rc.setVirtualColumnId(i + 1);  // virtual column IDs are 1-based
                 rc.setName(idxCD.getConglomerateName() + "_col" + rc.getColumnPosition());
                 newCols.addResultColumn(rc);
             }
-            lcc.popCompilerContext(newCC);
         } else {
             int[] baseCols = irg.baseColumnPositions();
             for (int basePosition : baseCols) {

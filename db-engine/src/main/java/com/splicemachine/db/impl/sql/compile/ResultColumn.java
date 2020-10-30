@@ -2130,7 +2130,8 @@ public class ResultColumn extends ValueNode
     /**
      * Get a ColumnReference node referring to this ResultColumn. This method should be used only in
      * case of replacing an index expression.
-     * @param originalExpr Original expression to be replaced. originalExpr.equals(getIndexExpression()) should always be true.
+     * @param originalExpr Original expression to be replaced.
+     *                     originalExpr.semanticallyEquals(getIndexExpression()) should always be true.
      * @return A column reference referring to this ResultColumn.
      */
     public ColumnReference getColumnReference(ValueNode originalExpr) throws StandardException {

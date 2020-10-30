@@ -261,7 +261,7 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
 		if (!isNullNode() || !isNullOkay)
 			return false;
 
-		return indexExpr.equals(operand);
+		return indexExpr.semanticallyEquals(operand);
 	}
 
     /**

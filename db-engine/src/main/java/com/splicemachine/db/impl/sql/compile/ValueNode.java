@@ -1558,7 +1558,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         // by default, try replace this whole subtree
         if (childRCL != null) {
             for (ResultColumn childRC : childRCL) {
-                if (this.equals(childRC.getIndexExpression())) {
+                if (this.semanticallyEquals(childRC.getIndexExpression())) {
                     return childRC.getColumnReference(this);
                 }
             }
