@@ -260,10 +260,10 @@ public class AutoCastIT  extends SpliceUnitTest {
     public void testVarcharOnLeftSide() throws Exception {
         String expected = "CHAR1 |\n" +
                 "--------\n" +
-                "  -1   |\n" +
-                "   1   |";
-        testQuery(format("select char1 from t1 --splice-properties useSpark=%s\n where char2 = num6" +
-            "\n order by char1", useSpark), expected);
+                "   1   |\n" +
+                "  -1   |";
+        testQuery(format("select char1 from t1 --splice-properties useSpark=%s\n where char2 = num6 order by 1 desc", useSpark),
+                expected);
     }
 
 }

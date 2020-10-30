@@ -11,6 +11,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import java.io.IOException;
 
 public class UpgradeConglomerateTable extends UpgradeScriptBase {
+
+    private static boolean tableCreated = false;
     public UpgradeConglomerateTable(SpliceDataDictionary sdd, TransactionController tc) {
         super(sdd, tc);
     }
@@ -23,19 +25,29 @@ public class UpgradeConglomerateTable extends UpgradeScriptBase {
             admin = SIDriver.driver().getTableFactory().getAdmin();
             if (!admin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
                 admin.createSITable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
+                admin.setCatalogVersion(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME, "1");
                 UpgradeUtils.initializeConglomerateSITable(tc);
+                tableCreated = true;
             }
         }
         catch (Exception e) {
             // If upgrade fails for some reasons, roll back CONGLOMERATE_SI table and throw an exception
-            try {
-                if (admin != null && admin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
-                    admin.deleteTable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
-                }
+            rollBack();
+            throw StandardException.plainWrapException(e);
+        }
+    }
+
+    public static boolean isTableCreated() {
+        return tableCreated;
+    }
+
+    public static void rollBack() throws StandardException {
+        try {
+            PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
+            if (admin.tableExists(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME)) {
+                admin.deleteTable(HBaseConfiguration.CONGLOMERATE_SI_TABLE_NAME);
             }
-            catch (IOException ioe) {
-                throw StandardException.plainWrapException(ioe);
-            }
+        } catch (Exception e) {
             throw StandardException.plainWrapException(e);
         }
     }

@@ -36,6 +36,10 @@
             <artifactId>utilities</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.splicemachine</groupId>
+            <artifactId>db-engine</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.esotericsoftware</groupId>
             <artifactId>kryo-shaded</artifactId>
             <version>3.0.3</version>

@@ -31,12 +31,15 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -50,6 +53,8 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.ProtobufUtils;
+import com.splicemachine.db.impl.sql.CatalogMessage;
 import com.splicemachine.db.impl.sql.catalog.ManagedCache;
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
@@ -181,7 +186,11 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.numBaseTableColumns = td.getNumberOfColumns();
         this.version = 1;
     }
-    
+
+    public TriggerDescriptor(CatalogMessage.TriggerDescriptor triggerDescriptor) {
+        init(triggerDescriptor);
+    }
+
     /**
      * Get the trigger UUID
      */
@@ -372,6 +381,9 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         boolean wasValid = sps.isValid();
         boolean needsSpecialRecompile = !sps.isValid() && isRow && usesReferencingClause;
 
+        if (sps.getDataDictionary() == null) {
+            sps.setDataDictionary(lcc.getDataDictionary());
+        }
 
         // lcc.commitNestedTransaction();
 
@@ -862,6 +874,78 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.shouldReadOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtobufUtils.getExtensionRegistry();
+        CatalogMessage.TriggerDescriptor triggerDescriptor =
+                CatalogMessage.TriggerDescriptor.parseFrom(bs, extensionRegistry);
+        init(triggerDescriptor);
+    }
+
+    protected void init(CatalogMessage.TriggerDescriptor triggerDescriptor) {
+        id = ProtobufUtils.fromProtobuf(triggerDescriptor.getId());
+        name = triggerDescriptor.getName();
+        triggerSchemaId = ProtobufUtils.fromProtobuf(triggerDescriptor.getTriggerSchemaId());
+        triggerTableId = ProtobufUtils.fromProtobuf(triggerDescriptor.getTriggerTableId());
+        triggerDML = TriggerEventDML.fromId(triggerDescriptor.getTriggerDMLId());
+        isBefore = triggerDescriptor.getIsBefore();
+        isRow = triggerDescriptor.getIsRow();
+        isEnabled = triggerDescriptor.getIsEnabled();
+        if (triggerDescriptor.hasWhenSPSId()) {
+            whenSPSId = ProtobufUtils.fromProtobuf(triggerDescriptor.getWhenSPSId());
+        }
+
+        int length = triggerDescriptor.getActionSPSIdListCount();
+        if (length > 0) {
+            actionSPSIdList = new ArrayList<>();
+            for (int i = 0; i < triggerDescriptor.getActionSPSIdListCount(); ++i) {
+                actionSPSIdList.add(ProtobufUtils.fromProtobuf(triggerDescriptor.getActionSPSIdList(i)));
+            }
+        }
+
+        length = triggerDescriptor.getReferencedColsCount();
+        if (length > 0) {
+            referencedCols = new int[length];
+            for (int i = 0; i < length; i++) {
+                referencedCols[i] = triggerDescriptor.getReferencedCols(i);
+            }
+        }
+        length = triggerDescriptor.getReferencedColsInTriggerActionCount();
+        if (length > 0) {
+            referencedColsInTriggerAction = new int[length];
+            for (int i = 0; i < length; i++) {
+                referencedColsInTriggerAction[i] = triggerDescriptor.getReferencedColsInTriggerAction(i);
+            }
+        }
+        length = triggerDescriptor.getTriggerDefinitionListCount();
+        if (length > 0) {
+            triggerDefinitionList = new ArrayList<>();
+            for (int i = 0; i < length; ++i) {
+                triggerDefinitionList.add(triggerDescriptor.getTriggerDefinitionList(i));
+            }
+        }
+
+        referencingOld = triggerDescriptor.getReferencingOld();
+        referencingNew = triggerDescriptor.getReferencingNew();
+        if (triggerDescriptor.hasOldReferencingName()) {
+            oldReferencingName = triggerDescriptor.getOldReferencingName();
+        }
+        if (triggerDescriptor.hasNewReferencingName()) {
+            newReferencingName = triggerDescriptor.getNewReferencingName();
+        }
+        if (triggerDescriptor.hasWhenClauseText()) {
+            whenClauseText = triggerDescriptor.getWhenClauseText();
+        }
+    }
+
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         Object obj;
         id = (UUID) in.readObject();
         name = (String) in.readObject();
@@ -926,11 +1010,75 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @param out write bytes here.
      */
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
+    public void writeExternal( ObjectOutput out ) throws IOException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(triggerSchemaId != null, "triggerSchemaId expected to be non-null");
             SanityManager.ASSERT(triggerTableId != null, "triggerTableId expected to be non-null");
         }
+
+        if (DataInputUtil.shouldWriteOldFormat()) {
+            writeExternalOld(out);
+        }
+        else {
+            writeExternalNew(out);
+        }
+    }
+
+    protected void writeExternalNew(ObjectOutput out) throws IOException {
+        CatalogMessage.TriggerDescriptor triggerDescriptor = toProtobufBuilder().build();
+        ArrayUtil.writeByteArray(out, triggerDescriptor.toByteArray());
+    }
+
+    public CatalogMessage.TriggerDescriptor.Builder toProtobufBuilder() {
+        CatalogMessage.TriggerDescriptor.Builder builder = CatalogMessage.TriggerDescriptor.newBuilder();
+        builder.setId(id.toProtobuf())
+                .setName(name)
+                .setTriggerSchemaId(triggerSchemaId.toProtobuf())
+                .setTriggerTableId(triggerTableId.toProtobuf())
+                .setTriggerDMLId(triggerDML.getId())
+                .setIsBefore(isBefore)
+                .setIsRow(isRow)
+                .setIsEnabled(isEnabled)
+                .setReferencingOld(referencingOld)
+                .setReferencingNew(referencingNew);
+
+        for (int i = 0; i < actionSPSIdList.size(); ++i) {
+            builder.addActionSPSIdList(actionSPSIdList.get(i).toProtobuf());
+        }
+
+        if (referencedCols != null) {
+            for (int i = 0; i < referencedCols.length; ++i) {
+                builder.addReferencedCols(referencedCols[i]);
+            }
+        }
+
+        if (referencedColsInTriggerAction != null) {
+            for (int i = 0; i < referencedColsInTriggerAction.length; ++i) {
+                builder.addReferencedColsInTriggerAction(referencedColsInTriggerAction[i]);
+            }
+        }
+
+        for (int i = 0; i < triggerDefinitionList.size(); ++i) {
+            builder.addTriggerDefinitionList(triggerDefinitionList.get(i));
+        }
+
+        if (whenSPSId != null) {
+            builder.setWhenSPSId(whenSPSId.toProtobuf());
+        }
+        if (oldReferencingName != null) {
+            builder.setOldReferencingName(oldReferencingName);
+        }
+        if (newReferencingName != null) {
+            builder.setNewReferencingName(newReferencingName);
+        }
+        if (whenClauseText != null) {
+            builder.setWhenClauseText(whenClauseText);
+        }
+        return builder;
+    }
+
+    protected void writeExternalOld(ObjectOutput out) throws IOException {
+
         out.writeObject(id);
         out.writeObject(name);
         out.writeObject(triggerSchemaId);
