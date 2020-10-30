@@ -160,6 +160,8 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 
+import com.splicemachine.db.impl.sql.compile.GrammarImpl;
+
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.catalog.AliasInfo;
@@ -186,7 +188,10 @@ import java.util.Vector;
 import java.util.Arrays;
 import java.lang.Character;
 
-public class SQLParser
+
+import  com.splicemachine.db.impl.sql.compile.GrammarImpl;
+
+public class SQLParser extends GrammarImpl
 {
     private static final String[] SAVEPOINT_CLAUSE_NAMES = {"UNIQUE", "ON ROLLBACK RETAIN LOCKS", "ON ROLLBACK RETAIN CURSORS"};
 
@@ -254,10 +259,7 @@ public class SQLParser
 
     private Object[]                    paramDefaults;
     private String                        statementSQLText;
-    private NodeFactory                    nodeFactory;
-    private ContextManager                cm;
-    private CompilerContext                compilerContext;
-
+    
     /* The number of the next ? parameter */
     private int            parameterNumber;
 
@@ -298,106 +300,6 @@ public class SQLParser
         Vector explicitlyNullableColumnsList = new Vector();
 
 
-    final void setCompilerContext(CompilerContext cc) {
-        this.compilerContext = cc;
-        this.cm = cc.getContextManager();
-    }
-
-    /**
-      *    Get the NodeFactory for this database.
-      *
-      *    @return    The NodeFactory for this database.
-      * @exception StandardException        Thrown on error
-      */
-    private    final NodeFactory    getNodeFactory()    throws StandardException
-    {
-        if ( nodeFactory == null )
-        {
-            nodeFactory = getCompilerContext().getNodeFactory();
-        }
-
-        return    nodeFactory;
-    }
-
-    private final CompilerContext getCompilerContext()
-    {
-        return compilerContext;
-    }
-
-    private DataTypeDescriptor getDataTypeServices(int type, int precision, int scale,
-            int length)
-        throws StandardException
-    {
-        return new DataTypeDescriptor(
-                    TypeId.getBuiltInTypeId(type),
-                    precision,
-                    scale,
-                    true, /* assume nullable for now, change it if not nullable */
-                    length
-                );
-    }
-
-    private DataTypeDescriptor getJavaClassDataTypeDescriptor(TableName typeName)
-        throws StandardException
-    {
-        return new DataTypeDescriptor
-            (
-                TypeId.getUserDefinedTypeId( typeName.getSchemaName(), typeName.getTableName(), null ),
-                true
-            );
-    }
-    private LanguageConnectionContext getLanguageConnectionContext()
-    {
-        return (LanguageConnectionContext) getContextManager().getContext(
-                                        LanguageConnectionContext.CONTEXT_ID);
-    }
-
-    /**
-        Utility method for checking that the underlying database has been
-        upgraded to the required level to use this functionality. Used to
-        disallow SQL statements that would leave on-disk formats that would
-        not be understood by a engine that matches the current upgrade level
-        of the database. Throws an exception if the database is not a the required level.
-        <P>
-        Typically used for CREATE statements at the parser level. Called usually just
-        before the node is created, or can be called in just a partial syntax fragment
-
-        @param version Data Dictionary major version (DataDictionary.DD_ constant)
-        @param feature SQL Feature name, for error text.
-    */
-    private boolean checkVersion(int version, String feature) throws StandardException
-    {
-        return getLanguageConnectionContext()
-                .getDataDictionary().checkVersion(version, feature);
-    }
-
-    /**
-        Utility method for checking that the underlying database uses SQL standard
-        permission checking (GRANT/REVOKE).
-
-        @param command "GRANT", "REVOKE", "CREATE/DROP/SET ROLE" or CURRENT_ROLE
-    */
-    private void checkSqlStandardAccess( String command) throws StandardException
-    {
-        if( getLanguageConnectionContext().usesSqlAuthorization())
-            return;
-
-        throw StandardException.newException(SQLState.LANG_GRANT_REVOKE_WITH_LEGACY_ACCESS,
-                                            command,
-                                            Property.SQL_AUTHORIZATION_PROPERTY,
-                                            "TRUE");
-    }
-
-    /**
-        Prevent NEXT VALUE FOR clauses when we get to the bind() phase.
-    */
-    private void forbidNextValueFor()
-    {
-        CompilerContext cc = getCompilerContext();
-
-        cc.setReliability( cc.getReliability() | CompilerContext.NEXT_VALUE_FOR_ILLEGAL );
-    }
-
     /**
         Check that the current mode supports internal extensions.
 
@@ -411,48 +313,7 @@ public class SQLParser
 //        if ((cc.getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0)
 //            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, feature);
     }
-
-    /**
-     * check if the type length is ok for the given type.
-     */
-    private void checkTypeLimits(int type, int length)
-        throws StandardException
-    {
-    boolean valid = true;
-
-
-    switch (type) {
-        case Types.BINARY:
-        case Types.CHAR:
-            if (length  > Limits.DB2_CHAR_MAXWIDTH)
-                valid = false;
-            break;
-
-        case Types.VARBINARY:
-        case Types.VARCHAR:
-            if (length  > Limits.DB2_VARCHAR_MAXWIDTH)
-                valid = false;
-
-            break;
-        default:
-            break;
-    }
-    if (!valid)  // If these limits are too big
-        {
-            DataTypeDescriptor charDTD =
-                DataTypeDescriptor.getBuiltInDataTypeDescriptor(type, length);
-
-            throw StandardException.newException(SQLState.LANG_DB2_LENGTH_PRECISION_SCALE_VIOLATION, charDTD.getSQLstring());
-        }
-    }
-
-
-
-    // Get the current ContextManager
-    private final ContextManager getContextManager()
-    {
-        return cm;
-    }
+    
 
     private static void verifyImageLength(String image) throws StandardException
         {
@@ -846,47 +707,6 @@ public class SQLParser
         return retval;
     }
 
-    /**
-     * Get a DELETE node given the pieces.
-     *
-     *
-     *    @exception    StandardException
-     */
-     private StatementNode getDeleteNode(FromTable fromTable,
-                                         TableName tableName,
-                                         ValueNode whereClause,
-                                         Properties targetProperties)
-        throws StandardException
-    {
-        FromList   fromList = (FromList) nodeFactory.getNode(
-                                C_NodeTypes.FROM_LIST,
-                                getContextManager());
-
-        fromList.addFromTable(fromTable);
-
-        SelectNode resultSet = (SelectNode) nodeFactory.getNode(
-                                        C_NodeTypes.SELECT_NODE,
-                                        null,
-                                        null,     /* AGGREGATE list */
-                                        fromList, /* FROM list */
-                                          whereClause, /* WHERE clause */
-                                        null, /* GROUP BY list */
-                                        null, /* having clause */
-                                        null, /* window list */
-                                        getContextManager());
-
-        StatementNode retval =
-            (StatementNode) nodeFactory.getNode(
-                            C_NodeTypes.DELETE_NODE,
-                            tableName,
-                            resultSet,
-                            targetProperties,
-                            getContextManager());
-
-        setUpAndLinkParameters();
-
-        return retval;
-    }
 
     /**
      * Get an UPDATE node given the pieces.
@@ -2161,9 +1981,9 @@ public class SQLParser
     {
         /* Do per-statement initialization here */
         parameterNumber = 0;
-       this.statementSQLText = statementSQLText;
+        this.statementSQLText = statementSQLText;
         this.paramDefaults = paramDefaults;
-        nodeFactory = getNodeFactory();
+        getNodeFactory();
         initUnnamedParameterList();
     } // End of initStatement
 
@@ -4232,7 +4052,7 @@ deleteBody() throws StandardException :
                                     (Properties) null,
                                     getContextManager());
 
-        return getDeleteNode(fromTable, tableName, whereClause, null);
+        return getDeleteNode(fromTable, tableName, whereClause, null, parameterList);
     }
 |
     <FROM> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
@@ -4303,7 +4123,7 @@ deleteBody() throws StandardException :
             ((FromBaseTable) fromTable).setTableProperties(tableProperties);
         }
 
-        return getDeleteNode(fromTable, tableName, whereClause, deleteProperties);
+        return getDeleteNode(fromTable, tableName, whereClause, deleteProperties, parameterList);
     }
 }
 
@@ -11114,6 +10934,7 @@ FromTable tableFactor() throws StandardException :
         return fromTable;
     }
 |
+
     /* identifier() used to be correlationName() */
     tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
         optionalTableClauses = optionalTableClauses()
