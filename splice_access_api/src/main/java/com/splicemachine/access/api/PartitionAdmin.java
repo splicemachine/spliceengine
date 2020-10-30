@@ -80,9 +80,9 @@ public interface PartitionAdmin extends AutoCloseable{
 
     boolean replicationEnabled(String tableName) throws IOException;
 
-    void setCatalogVersion(long conglomerateNumber, String version) throws IOException;
+    void setCatalogVersion(String conglomerate, String version) throws IOException;
 
-    String getCatalogVersion(long conglomerateNumber) throws StandardException;
+    String getCatalogVersion(String conglomerate) throws StandardException;
 
     /**
      * Upgrade Script to update HBase Tables Priorities so that System tables are loaded with higher priorities
@@ -93,4 +93,12 @@ public interface PartitionAdmin extends AutoCloseable{
     int upgradeTablePrioritiesFromList(List<String> conglomerateIdList) throws Exception;
 
     int getTableCount() throws IOException;
+
+    default void cloneSnapshot(String snapshotName, String tableName) throws IOException {
+        throw new UnsupportedOperationException("Operation not supported");
+    }
+
+    default void truncate(String tableName) throws IOException {
+        throw new UnsupportedOperationException("Operation not supported");
+    }
 }

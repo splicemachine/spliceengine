@@ -24,6 +24,7 @@ import org.apache.log4j.Logger;
 
 import java.util.Comparator;
 import java.util.NavigableSet;
+import java.util.Properties;
 import java.util.TreeMap;
 
 /**
@@ -63,6 +64,7 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1917), new UpgradeScriptForMultiTenancy(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,2,8,0, 1924), new UpgradeScriptToAddPermissionViewsForMultiTenancy(sdd,tc));
 
+
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1933), new UpgradeScriptToUpdateViewForSYSCONGLOMERATEINSCHEMAS(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1938), new UpgradeScriptForTriggerWhenClause(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,1,0, 1940), new UpgradeScriptForReplicationSystemTables(sdd,tc));
@@ -81,9 +83,11 @@ public class SpliceCatalogUpgradeScripts{
         scripts.put(new Splice_DD_Version(sdd,3,2,0, 1983), new UpgradeScriptToAddBaseTableSchemaColumnsToSysTablesInSYSIBM(sdd,tc));
         scripts.put(new Splice_DD_Version(sdd,3,2,0, 1985), new UpgradeScriptToAddSysNaturalNumbersTable(sdd, tc));
         scripts.put(new Splice_DD_Version(sdd,3,2,0, 1989), new UpgradeScriptToAddIndexColUseViewInSYSCAT(sdd, tc));
+        scripts.put(new Splice_DD_Version(sdd,3,2,0, 1990), new UpgradeStoredObjects(sdd, tc));
     }
-    public void run() throws StandardException{
 
+    public void run(Properties startParams) throws StandardException{
+        
         // Set the current version to upgrade from.
         // This flag should only be true for the master server.
         Splice_DD_Version currentVersion=catalogVersion;
@@ -100,7 +104,7 @@ public class SpliceCatalogUpgradeScripts{
                 }
             }
             UpgradeScript script=scripts.get(version);
-            script.run();
+            script.run(startParams);
         }
 
         // Always update system procedures and stored statements

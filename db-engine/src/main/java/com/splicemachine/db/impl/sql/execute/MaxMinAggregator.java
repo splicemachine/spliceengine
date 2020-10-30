@@ -31,16 +31,16 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.ProtoBufUtils;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  * Aggregator for MAX()/MIN().  Defers most of its work
@@ -88,35 +88,30 @@ public final class MaxMinAggregator extends OrderableAggregator {
 		return ma;
 	}
 
-	/////////////////////////////////////////////////////////////
-	// 
-	// FORMATABLE INTERFACE
-	// 
-	// Formatable implementations usually invoke the super()
-	// version of readExternal or writeExternal first, then
-	// do the additional actions here. However, since the
-	// superclass of this class requires that its externalized
-	// data must be the last data in the external stream, we
-	// invoke the superclass's read/writeExternal method
-	// last, not first. See DERBY-3219 for more discussion.
-	/////////////////////////////////////////////////////////////
-	public void writeExternal(ObjectOutput out) throws IOException
-	{
-		out.writeBoolean(isMax);
-		super.writeExternal(out);
+	@Override
+	protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException {
+		CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
+
+		CatalogMessage.MaxMinAggregator aggregator = CatalogMessage.MaxMinAggregator.newBuilder()
+				.setIsMax(isMax)
+				.setValue(value.toProtobuf())
+				.build();
+
+		builder.setType(CatalogMessage.SystemAggregator.Type.MaxMinAggregator)
+				.setExtension(CatalogMessage.MaxMinAggregator.maxMinAggregator, aggregator);
+
+		return builder;
 	}
 
-	/** 
-	 * @see java.io.Externalizable#readExternal 
-	 *
-	 * @exception IOException on error
-	 * @exception ClassNotFoundException on error
-	 */
-	public void readExternal(ObjectInput in) 
-		throws IOException, ClassNotFoundException {
-		isMax = in.readBoolean();
-		super.readExternal(in);
+	@Override
+	protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
+		super.init(systemAggregator);
+		CatalogMessage.MaxMinAggregator aggregator =
+				systemAggregator.getExtension(CatalogMessage.MaxMinAggregator.maxMinAggregator);
+		isMax = aggregator.getIsMax();
+		value = ProtoBufUtils.fromProtobuf(aggregator.getValue());
 	}
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *

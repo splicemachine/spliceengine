@@ -31,8 +31,12 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.catalog.TypeDescriptor;
@@ -66,7 +70,7 @@ public class SQLRef extends DataType implements RefDataValue {
 
 	/*
 	 ** DataValueDescriptor interface
-	 ** (mostly implemented in DataType)
+	 ** (mostly implemented in DataType)HBaseRowLocation
 	 */
 
 	public String getString()
@@ -124,30 +128,56 @@ public class SQLRef extends DataType implements RefDataValue {
 		return (value == null);
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
-
-		out.writeBoolean(value != null);
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLRef.Builder builder = CatalogMessage.SQLRef.newBuilder();
+		builder.setIsNull(value == null);
 		if (value != null) {
-			out.writeObject(value);
+			builder.setData(value.toProtobuf());
+		}
+
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.newBuilder()
+				.setType(CatalogMessage.DataValueDescriptor.Type.SQLRef)
+				.setExtension(CatalogMessage.SQLRef.sqlRef, builder.build())
+				.build();
+		return dvd;
+	}
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLRef.sqlRef);
+		extensionRegistry.add(CatalogMessage.HBaseRowLocation.hbaseRowLocation);
+		extensionRegistry.add(CatalogMessage.SQLRowId.sqlRowId);
+		CatalogMessage.DataValueDescriptor dataValueDescriptor =
+				CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLRef sqlRef =
+				dataValueDescriptor.getExtension(CatalogMessage.SQLRef.sqlRef);
+		init(sqlRef);
+	}
+
+	private void init(CatalogMessage.SQLRef sqlRef){
+		boolean nonNull = !sqlRef.getIsNull();
+		if (nonNull) {
+			DataValueDescriptor dvd = ProtoBufUtils.fromProtobuf(sqlRef.getData());
+			setValue((RowLocation) dvd);
 		}
 	}
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										read from the stream can't be found
-	 *										(not likely, since it's supposed to
-	 *										be SQLRef).
-	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException
 	{
-		boolean nonNull = in.readBoolean();
-		if (nonNull) {
-			setValue((RowLocation) in.readObject());
+		try {
+			boolean nonNull = in.readBoolean();
+			if (nonNull) {
+				setValue((RowLocation) in.readObject());
+			}
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
 		}
 	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException
 	{
 		setValue((RowLocation) in.readObject());
@@ -252,6 +282,10 @@ public class SQLRef extends DataType implements RefDataValue {
 	public SQLRef(RowLocation rowLocation)
 	{
 		setValue(rowLocation);
+	}
+
+	public SQLRef(CatalogMessage.SQLRef sqlRef) {
+		init(sqlRef);
 	}
 
 	@Override

@@ -1,0 +1,635 @@
+option java_package = "com.splicemachine.db.catalog.types";
+option java_outer_classname = "CatalogMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message AggregateAliasInfo {
+    optional TypeDescriptorImpl forType=1;
+    optional TypeDescriptorImpl returnType=2;
+}
+
+message TypeDescriptorImpl {
+  optional BaseTypeIdImpl typeId=1;
+  optional int32 precision=2;
+  optional int32 scale=3;
+  optional int32 collationType=4;
+  optional bool isNullable=5;
+  optional int32 maximumWidth=6;
+  repeated TypeDescriptorImpl children=7;
+}
+
+message BaseTypeIdImpl {
+  extensions 1000 to 1999;
+  enum Type
+  {
+    BaseTypeIdImpl = 1;
+    UserDefinedTypeIdImpl = 2;
+    DecimalTypeIdImpl = 3;
+    RowMultiSetImpl=4;
+  }
+  optional Type type = 1;
+
+  optional int32 JDBCTypeId=2;
+  optional int32 formatId = 3;
+  optional string schemaName=4;
+  optional string unqualifiedName=5;
+}
+
+message MethodAliasInfo {
+  optional string methodName=1;
+}
+
+message RoutineAliasInfo{
+    optional string specificName=1;
+    optional int32 dynamicResultSets=2;
+    optional int32 parameterStyle=3;
+    optional int32 sqlOptions=4;
+    optional TypeDescriptorImpl returnType=5;
+    optional bool calledOnNullInput=6;
+    optional int32 expansionNum=7;
+    repeated string parameterNames=8;
+    repeated TypeDescriptorImpl parameterTypes=9;
+    repeated int32 parameterModes=10;
+    optional string language=11;
+    optional bytes compiledPyCode=12;
+}
+
+message SynonymAliasInfo {
+  optional string schemaName=1;
+  optional string tableName=2;
+}
+
+message UserDefinedTypeIdImpl {
+  extend BaseTypeIdImpl
+  {
+    required UserDefinedTypeIdImpl userDefinedTypeImpl = 1000;
+  }
+  optional string className=1;
+}
+
+message DecimalTypeIdImpl {
+  extend BaseTypeIdImpl
+  {
+    required DecimalTypeIdImpl decimalTypeIdImpl = 1001;
+  }
+  optional bool isNumeric=1;
+}
+
+message RowMultiSetImpl {
+  extend BaseTypeIdImpl
+  {
+    required RowMultiSetImpl rowMultiSetImpl = 1002;
+  }
+  repeated string columnNames = 1;
+  repeated TypeDescriptorImpl types = 2;
+}
+
+message ReferencedColumnsDescriptorImpl {
+  optional bool isReferencedColumnsNull = 1;
+  repeated int32 referencedColumns = 2;
+  optional bool isReferencedColumnsInTriggerActionNull = 3;
+  repeated int32 referencedColumnsInTriggerAction = 4;
+}
+
+message FormatableBitSet {
+  optional bytes value = 1;
+  optional int32 lengthAsBits = 2;
+}
+
+message ByteArray {
+  optional bytes array = 1;
+  optional int32 offset = 2;
+  optional int32 length = 3;
+}
+
+message IndexDescriptorImpl {
+  optional bool isUnique = 1;
+  repeated bool isAscending = 2;
+  repeated int32 baseColumnPositions = 3;
+  optional int32 numberOfOrderedColumns = 4;
+  optional string indexType = 5;
+  optional bool isUniqueWithDuplicateNulls = 6;
+  optional bool excludeNulls = 7;
+  optional bool excludeDefaults = 8;
+  repeated string generatedClassNames = 9;
+  repeated string exprTexts = 10;
+  repeated ByteArray exprBytecode = 11;
+  repeated DataTypeDescriptor indexColumnTypes = 12;
+}
+
+message DataTypeDescriptor {
+  optional TypeDescriptorImpl typeDescriptor = 1;
+  optional int32 collationDerivation = 2;
+}
+
+message DDdependableFinder {
+  extensions 1000 to 1100;
+  enum Type
+  {
+    DDdependableFinder = 1;
+    DDColumnDependableFinder = 2;
+  }
+  optional Type type = 1;
+  optional int32 formatId=2;
+}
+
+message DDColumnDependableFinder {
+  extend DDdependableFinder
+  {
+    required DDColumnDependableFinder dDColumnDependableFinder = 1000;
+  }
+  optional bytes columnBitMap = 1;
+}
+
+message DataValueDescriptor {
+  extensions 1000 to 4999;
+  enum Type
+    {
+      SQLTinyint = 1;
+      SQLSmallint = 2;
+      SQLInteger = 3;
+      SQLLongint = 4;
+      SQLReal = 5;
+      SQLDouble = 6;
+      SQLDecimal = 7;
+      SQLDecfloat = 8;
+      SQLDate = 9;
+      SQLTime = 10;
+      SQLTimestamp = 11;
+      SQLBoolean = 12;
+      SQLChar = 13;
+      SQLBinary = 14;
+      SQLArray = 15;
+      ListDataType = 16;
+      XML = 17;
+      UserType = 18;
+      SQLRef = 19;
+      SQLRowId = 20;
+      HBaseRowLocation = 21;
+      HBaseConglomerate = 22;
+      IndexConglomerate = 23;
+    }
+    optional Type type = 1;
+}
+
+message SQLInteger {
+  extend DataValueDescriptor
+  {
+    required SQLInteger sqlInteger = 1000;
+  }
+  optional bool isNull = 1;
+  optional int32 value = 2;
+}
+
+message SQLSmallint {
+  extend DataValueDescriptor
+  {
+    required SQLSmallint sqlSmallint = 1001;
+  }
+  optional bool isNull = 1;
+  optional int32 value = 2;
+}
+
+message SQLTinyint {
+  extend DataValueDescriptor
+  {
+    required SQLTinyint sqlTinyint = 1002;
+  }
+  optional bool isNull = 1;
+  optional int32 value = 2;
+}
+
+message SQLLongint {
+  extend DataValueDescriptor
+  {
+    required SQLLongint sqlLongint = 1003;
+  }
+  optional bool isNull = 1;
+  optional int64 value = 2;
+}
+
+message SQLReal {
+  extend DataValueDescriptor
+  {
+    required SQLReal sqlReal = 1004;
+  }
+  optional bool isNull = 1;
+  optional float value = 2;
+}
+
+message SQLDouble {
+  extend DataValueDescriptor
+  {
+    required SQLDouble sqlDouble = 1005;
+  }
+  optional bool isNull = 1;
+  optional double value = 2;
+}
+
+message SQLDecimal {
+  extend DataValueDescriptor
+  {
+    required SQLDecimal sqlDecimal = 1006;
+  }
+  optional bool isNull = 1;
+  optional int32 rawScale = 2;
+  optional bytes rawData = 3;
+}
+
+message SQLDecfloat {
+  extend DataValueDescriptor
+  {
+    required SQLDecfloat sqlDecfloat = 1007;
+  }
+  optional bool isNull = 1;
+  optional int32 rawScale = 2;
+  optional bytes rawData = 3;
+}
+
+message SQLDate {
+  extend DataValueDescriptor
+  {
+    required SQLDate sqlDate = 1008;
+  }
+  optional bool isNull = 1;
+  optional int32 encodedDate = 2;
+}
+
+message SQLTime {
+  extend DataValueDescriptor
+  {
+    required SQLTime sqlTime = 1009;
+  }
+  optional bool isNull = 1;
+  optional int32 encodedTime = 2;
+  optional int32 encodedTimeFraction = 3;
+}
+
+message SQLTimestamp {
+  extend DataValueDescriptor
+  {
+    required SQLTimestamp sqlTimestamp = 1010;
+  }
+  optional bool isNull = 1;
+  optional int32 encodedDate = 2;
+  optional int32 encodedTime = 3;
+  optional int32 nanos = 4;
+}
+
+message SQLBoolean {
+  extend DataValueDescriptor
+    {
+      required SQLBoolean sqlBoolean = 1011;
+    }
+  optional bool isNull = 1;
+  optional bool value = 2;
+}
+
+message DefaultInfoImpl {
+  optional DataValueDescriptor defaultValue = 1;
+  optional string defaultText = 2;
+  optional int32 type = 3;
+  repeated string referencedColumnNames = 4;
+  optional string originalCurrentSchema = 5;
+}
+
+message SQLChar{
+  extend DataValueDescriptor
+  {
+    required SQLChar sqlChar = 1012;
+  }
+  extensions 3000 to 3999;
+  enum Type
+  {
+    SQLVarchar = 1;
+    SQLClob = 2;
+    SQLLongVarchar = 3;
+    SQLVarcharDB2Compatible = 4;
+    CollatorSQLChar = 5;
+    CollatorSQLVarchar = 6;
+    CollatorSQLClob = 7;
+    CollatorSQLLongVarchar = 8;
+    CollatorSQLVarcharDB2Compatible = 9;
+  }
+  optional Type type = 1;
+  optional bool isNull = 2;
+  optional string value = 3;
+  repeated int32 rawData = 4;
+  optional bytes clob = 5;
+}
+
+message SQLVarchar {
+  extend SQLChar
+    {
+      required SQLVarchar sqlVarchar = 3000;
+    }
+}
+
+message SQLClob {
+  extend SQLChar
+    {
+      required SQLClob sqlClob = 3001;
+    }
+}
+
+message SQLLongVarchar {
+  extend SQLChar
+    {
+      required SQLLongVarchar sqlLongVarchar = 3002;
+    }
+}
+
+message SQLVarcharDB2Compatible {
+  extend SQLChar
+    {
+      required SQLVarcharDB2Compatible sqlVarcharDB2Compatible = 3003;
+    }
+}
+
+message CollatorSQLChar {
+  extend SQLChar
+    {
+      required CollatorSQLChar collatorSQLChar = 3004;
+    }
+}
+
+message CollatorSQLVarchar {
+  extend SQLChar
+    {
+      required CollatorSQLVarchar collatorSQLVarchar = 3005;
+    }
+}
+
+message CollatorSQLClob {
+  extend SQLChar
+    {
+      required CollatorSQLClob collatorSQLClob = 3006;
+    }
+}
+
+message CollatorSQLLongVarchar {
+  extend SQLChar
+    {
+      required CollatorSQLLongVarchar collatorSQLLongVarchar = 3007;
+    }
+}
+
+message CollatorSQLVarcharDB2Compatible {
+  extend SQLChar
+    {
+      required CollatorSQLVarcharDB2Compatible CollatorSQLVarcharDB2Compatible = 3008;
+    }
+}
+
+message SQLBinary {
+  extend DataValueDescriptor
+  {
+    required SQLBinary sqlBinary = 1013;
+  }
+  extensions 4000 to 4099;
+  enum Type
+  {
+    SQLBit = 1;
+    SQLBlob = 2;
+    SQLLongVarbit = 3;
+    SQLVarbit = 4;
+  }
+  optional Type type = 1;
+  optional bool isNull = 2;
+  optional bytes dataValue = 3;
+  optional bytes blob = 4;
+}
+
+message SQLBit {
+  extend SQLBinary
+  {
+      required SQLBit sqlBit = 4000;
+  }
+}
+
+message SQLBlob {
+  extend SQLBinary
+  {
+      required SQLBlob sqlBlob = 4001;
+  }
+}
+
+message SQLLongVarbit {
+  extend SQLBinary
+  {
+      required SQLLongVarbit sqlLongVarbit = 4002;
+  }
+}
+
+message SQLVarbit {
+  extend SQLBinary
+  {
+      required SQLVarbit sqlVarbit = 4003;
+  }
+}
+
+message SQLArray {
+  extend DataValueDescriptor
+  {
+    required SQLArray sqlArray = 1014;
+  }
+  optional bool isNull = 1;
+  optional DataValueDescriptor datatype = 2;
+  repeated DataValueDescriptor value = 3;
+}
+
+message ListDataType {
+  extend DataValueDescriptor
+  {
+    required ListDataType listDataType = 1015;
+  }
+  optional bool isNull = 1;
+  repeated DataValueDescriptor dvd = 2;
+}
+
+message XML {
+  extend DataValueDescriptor
+  {
+    required XML xml = 1016;
+  }
+  optional int32 implId= 1;
+  optional SQLChar xmlStringValue = 2;
+}
+
+message UserType {
+  extend DataValueDescriptor
+  {
+    required UserType userType = 1017;
+  }
+  optional bool isNull = 1;
+  optional bytes data = 2;
+}
+
+
+message SQLRef {
+  extend DataValueDescriptor
+  {
+    required SQLRef sqlRef = 1018;
+  }
+  optional bool isNull = 1;
+  optional DataValueDescriptor data = 2;
+}
+
+
+message SQLRowId {
+  extend DataValueDescriptor
+  {
+    required SQLRowId sqlRowId = 1019;
+  }
+  optional bool isNull = 1;
+  optional bytes data = 2;
+}
+
+message HBaseRowLocation {
+  extend DataValueDescriptor
+  {
+    required HBaseRowLocation hbaseRowLocation = 1020;
+  }
+  optional bool isNull = 1;
+  optional ByteSlice slice = 2;
+}
+
+message ByteSlice {
+  optional int32 offset = 1;
+  optional int32 length = 2;
+  optional bytes buffer = 3;
+}
+
+message HBaseConglomerate {
+  extend DataValueDescriptor
+  {
+    required HBaseConglomerate hbaseConglomerate = 1021;
+  }
+  optional int32 conglomerateFormatId=1;
+  optional int32 tmpFlag=2;
+  optional int64 containerId=3;
+  repeated int32 formatIds=4;
+  repeated int32 collationIds=5;
+  repeated int32 columnOrdering=6;
+}
+
+message IndexConglomerate {
+  extend DataValueDescriptor
+  {
+    required IndexConglomerate indexConglomerate = 1022;
+  }
+  optional HBaseConglomerate base=1;
+  optional bool uniqueWithDuplicateNulls=2;
+  optional int32 nKeyFields=3;
+  optional int32 nUniqueColumns=4;
+  optional bool allowDuplicates=5;
+  optional bool maintainParentLinks=6;
+  optional int64 baseConglomerateId=7;
+  optional int32 rowLocationColumn=8;
+  repeated bool ascDescInfo=9;
+}
+
+message ColumnStatisticsImpl {
+  optional int64 nullCount = 1;
+  optional DataValueDescriptor dvd = 2;
+  optional bytes quantilesSketch = 3;
+  optional bytes frequenciesSketch = 4;
+  optional bytes thetaSketch = 5;
+}
+
+message FakeColumnStatisticsImpl {
+  optional DataValueDescriptor dvd = 1;
+  optional int64 totalCount = 2;
+  optional int64 nullCount = 3;
+  optional int64 cardinality = 4;
+  optional int64 rpv = 5;
+}
+
+message SystemAggregator {
+  extensions 1000 to max;
+  enum Type
+  {
+    CountAggregator = 1;
+    AvgAggregator = 2;
+    DecimalBufferedSumAggregator = 3;
+    DoubleBufferedSumAggregator = 4;
+    LongBufferedSumAggregator = 5;
+    MaxMinAggregator = 6;
+    StringAggregator = 7;
+    SumAggregator = 8;
+  }
+  optional Type type = 1;
+  optional bool eliminatedNulls = 2;
+}
+
+message CountAggregator {
+  extend SystemAggregator
+  {
+    required CountAggregator countAggregator = 1000;
+  }
+  optional bool isCountStar = 1;
+  optional int64 value = 2;
+}
+
+message AvgAggregator {
+  extend SystemAggregator
+  {
+    required AvgAggregator avgAggregator = 1001;
+  }
+  optional SystemAggregator sumAggregator = 1;
+  optional int64 count = 2;
+  optional int32 scale = 3;
+}
+
+message DecimalBufferedSumAggregator {
+  extend SystemAggregator
+  {
+    required DecimalBufferedSumAggregator decimalBufferedSumAggregator = 1002;
+  }
+  optional bool isNull = 1;
+  optional bytes sum = 2;
+}
+
+message DoubleBufferedSumAggregator {
+  extend SystemAggregator
+  {
+    required DoubleBufferedSumAggregator doubleBufferedSumAggregator = 1003;
+  }
+  optional bool isNull = 1;
+  optional bytes sumTree = 2;
+}
+
+message LongBufferedSumAggregator {
+  extend SystemAggregator
+  {
+    required LongBufferedSumAggregator longBufferedSumAggregator = 1004;
+  }
+  optional bool isNull = 1;
+  optional int64 sum = 2;
+}
+
+message MaxMinAggregator {
+  extend SystemAggregator
+  {
+    required MaxMinAggregator maxMinAggregator = 1005;
+  }
+  optional bool isMax = 1;
+  optional DataValueDescriptor value = 2;
+}
+
+message StringAggregator {
+  extend SystemAggregator
+  {
+    required StringAggregator stringAggregator = 1006;
+  }
+  optional bytes aggregator = 1;
+  optional string separator = 2;
+}
+
+message SumAggregator {
+  extend SystemAggregator
+  {
+    required SumAggregator sumAggregator = 1007;
+  }
+}

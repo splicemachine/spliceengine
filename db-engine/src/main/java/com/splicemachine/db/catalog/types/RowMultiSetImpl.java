@@ -30,13 +30,20 @@
  */
 
 package com.splicemachine.db.catalog.types;
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import splice.com.google.common.collect.Lists;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * <p>
@@ -44,6 +51,7 @@ import java.util.Arrays;
  * in part 2, section 4.8.
  * </p>
  */
+@SuppressFBWarnings(value = "EQ_DOESNT_OVERRIDE_EQUALS",justification = "Intentional")
 public class RowMultiSetImpl extends BaseTypeIdImpl
 {
     /********************************************************
@@ -72,8 +80,8 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    private String[]                            _columnNames;
-    private TypeDescriptor[]    _types;
+    protected String[]                            _columnNames;
+    protected TypeDescriptor[]    _types;
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -188,7 +196,43 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
      * Read ourself from a formatable stream.
      * </p>
      */
-    public  void readExternal( ObjectInput in )
+    @Override
+    public void readExternal( ObjectInput in )
+            throws IOException, ClassNotFoundException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    public  void readExternalNew( ObjectInput in )
+            throws IOException, ClassNotFoundException
+    {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+        CatalogMessage.BaseTypeIdImpl baseTypeId = CatalogMessage.BaseTypeIdImpl.parseFrom(bs, extensionRegistry);
+        init(baseTypeId);
+
+    }
+
+    @Override
+    protected void init(CatalogMessage.BaseTypeIdImpl baseTypeId) {
+        super.init(baseTypeId);
+        CatalogMessage.RowMultiSetImpl rowMultiSet
+                = baseTypeId.getExtension(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+        int count = rowMultiSet.getTypesCount();
+        _columnNames = new String[ count ];
+        _types = new TypeDescriptor[ count ];
+        for (int i = 0; i < count; ++i) {
+            _columnNames[i] = rowMultiSet.getColumnNames(i);
+            _types[i] = TypeDescriptorImpl.fromProtobuf(rowMultiSet.getTypes(i));
+        }
+    }
+
+    public  void readExternalOld( ObjectInput in )
         throws IOException, ClassNotFoundException
     {
         int     count = in.readInt();
@@ -205,25 +249,31 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
      * Write ourself to a formatable stream.
      * </p>
      */
+    @Override
     public  void writeExternal( ObjectOutput out )
-        throws IOException
+            throws IOException
     {
-        int     count = _columnNames.length;
-
-        out.writeInt( count );
-
-        for (String _columnName : _columnNames) {
-            out.writeUTF(_columnName);
-        }
-        for ( int i = 0; i < count; i++ ) { out.writeObject( _types[ i ] ); }
+        CatalogMessage.BaseTypeIdImpl typeId = toProtobuf();
+        byte[] bs = typeId.toByteArray();
+        ArrayUtil.writeByteArray(out, bs);
     }
 
-    ///////////////////////////////////////////////////////////////////////////////////
-    //
-    // MINIONS
-    //
-    ///////////////////////////////////////////////////////////////////////////////////
+    @Override
+    public CatalogMessage.BaseTypeIdImpl toProtobuf() {
 
+        List<CatalogMessage.TypeDescriptorImpl> types = Lists.newArrayList();
+        for (int i = 0; i < _types.length; ++i) {
+            types.add(((TypeDescriptorImpl)_types[i]).toProtobuf());
+        }
+        CatalogMessage.RowMultiSetImpl rowMultiSet = CatalogMessage.RowMultiSetImpl.newBuilder()
+                .addAllColumnNames(Arrays.asList(_columnNames))
+                .addAllTypes(types)
+                .build();
 
-
+        CatalogMessage.BaseTypeIdImpl baseTypeId = super.toProtobuf();
+        CatalogMessage.BaseTypeIdImpl.Builder builder = CatalogMessage.BaseTypeIdImpl.newBuilder().mergeFrom(baseTypeId);
+        builder.setType(CatalogMessage.BaseTypeIdImpl.Type.RowMultiSetImpl)
+                .setExtension(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl, rowMultiSet);
+        return builder.build();
+    }
 }

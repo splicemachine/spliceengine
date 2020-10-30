@@ -30,16 +30,15 @@
  */
 package com.splicemachine.db.iapi.stats;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLBoolean;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLDate;
-import com.splicemachine.db.iapi.types.SQLDouble;
-import com.splicemachine.db.iapi.types.SQLTime;
-import com.splicemachine.db.iapi.types.SQLTimestamp;
+import com.splicemachine.db.iapi.types.*;
 import com.yahoo.memory.NativeMemory;
 import com.yahoo.sketches.frequencies.ErrorType;
 import com.yahoo.sketches.quantiles.ItemsSketch;
@@ -109,21 +108,62 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeLong(nullCount);
-        out.writeObject(dvd);
         byte[] quantilesSketchBytes = quantilesSketch.toByteArray(new DVDArrayOfItemsSerDe(dvd));
-        out.writeInt(quantilesSketchBytes.length);
-        out.write(quantilesSketchBytes);
         byte[] frequenciesSketchBytes = frequenciesSketch.toByteArray(new DVDArrayOfItemsSerDe(dvd));
-        out.writeInt(frequenciesSketchBytes.length);
-        out.write(frequenciesSketchBytes);
         byte[] thetaSketchBytes = thetaSketch.toByteArray();
-        out.writeInt(thetaSketchBytes.length);
-        out.write(thetaSketchBytes);
+
+        CatalogMessage.ColumnStatisticsImpl columnStatistics = CatalogMessage.ColumnStatisticsImpl.newBuilder()
+                .setNullCount(nullCount)
+                .setDvd(dvd.toProtobuf())
+                .setQuantilesSketch(ByteString.copyFrom(quantilesSketchBytes))
+                .setFrequenciesSketch(ByteString.copyFrom(frequenciesSketchBytes))
+                .setThetaSketch(ByteString.copyFrom(thetaSketchBytes))
+                .build();
+        ArrayUtil.writeByteArray(out, columnStatistics.toByteArray());
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    protected void readExternalNew(ObjectInput in) throws IOException, ClassNotFoundException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
+        CatalogMessage.ColumnStatisticsImpl columnStatistics =
+                CatalogMessage.ColumnStatisticsImpl.parseFrom(bs, extensionRegistry);
+        NativeMemory quantMem = null;
+        NativeMemory freqMem = null;
+        NativeMemory thetaMem = null;
+        try {
+            nullCount = columnStatistics.getNullCount();
+            dvd = ProtoBufUtils.fromProtobuf(columnStatistics.getDvd());
+            byte[] quantiles = columnStatistics.getQuantilesSketch().toByteArray();
+            quantMem = new NativeMemory(quantiles);
+            quantilesSketch = com.yahoo.sketches.quantiles.ItemsSketch.getInstance(quantMem, dvd, new DVDArrayOfItemsSerDe(dvd));
+            byte[] frequencies = columnStatistics.getFrequenciesSketch().toByteArray();
+            freqMem = new NativeMemory(frequencies);
+            frequenciesSketch = com.yahoo.sketches.frequencies.ItemsSketch.getInstance(freqMem, new DVDArrayOfItemsSerDe(dvd));
+            byte[] thetaSketchBytes = columnStatistics.getThetaSketch().toByteArray();
+            thetaMem = new NativeMemory(thetaSketchBytes);
+            thetaSketch = Sketch.heapify(thetaMem);
+        } finally {
+            if (quantMem!=null)
+                quantMem.freeMemory();
+            if (freqMem!=null)
+                freqMem.freeMemory();
+            if (thetaMem!=null)
+                thetaMem.freeMemory();
+
+        }
+
+    }
+    protected void readExternalOld(ObjectInput in) throws IOException, ClassNotFoundException {
         NativeMemory quantMem = null;
         NativeMemory freqMem = null;
         NativeMemory thetaMem = null;
@@ -507,7 +547,7 @@ public class ColumnStatisticsImpl implements ItemStatistics<DataValueDescriptor>
         double stopSelectivity = stop == null || stop.isNull() ? 1.0d : quantilesSketch.getCDF(new DataValueDescriptor[]{stop})[0];
         double totalSelectivity = stopSelectivity - startSelectivity;
         double count = (double) quantilesSketch.getN();
-        if (totalSelectivity == Double.NaN || count == 0)
+        if (Double.valueOf(totalSelectivity).isNaN() || count == 0)
             qualifiedRows = 0;
         else
             qualifiedRows = Math.round(totalSelectivity * count);

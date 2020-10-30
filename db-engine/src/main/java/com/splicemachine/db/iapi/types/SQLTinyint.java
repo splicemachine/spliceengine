@@ -31,10 +31,10 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import java.io.ObjectOutput;
@@ -122,6 +122,9 @@ public final class SQLTinyint
 			setValue(obj.byteValue());
 	}
 
+	public SQLTinyint(CatalogMessage.SQLTinyint tinyint) {
+		init(tinyint);
+	}
 	//////////////////////////////////////////////////////////////
 	//
 	// DataValueDescriptor interface
@@ -234,14 +237,40 @@ public final class SQLTinyint
 		return StoredFormatIds.SQL_TINYINT_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull());
-		if (!isNull)
-			out.writeByte(value);
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLTinyint.Builder builder = CatalogMessage.SQLTinyint.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setValue(value);
+		}
+		CatalogMessage.DataValueDescriptor dvd =
+				CatalogMessage.DataValueDescriptor.newBuilder()
+						.setType(CatalogMessage.DataValueDescriptor.Type.SQLTinyint)
+						.setExtension(CatalogMessage.SQLTinyint.sqlTinyint, builder.build())
+						.build();
+		return  dvd;
 	}
 
-	/** @see java.io.Externalizable#readExternal */
-	public void readExternal(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLTinyint.sqlTinyint);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLTinyint tinyint = dvd.getExtension(CatalogMessage.SQLTinyint.sqlTinyint);
+		init(tinyint);
+	}
+
+	private void init (CatalogMessage.SQLTinyint tinyint) {
+		isNull = tinyint.getIsNull();
+		if (!isNull) {
+			setValue((byte)tinyint.getValue());
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		if (!in.readBoolean()) {
 			setValue(in.readByte());
 			setIsNull(false);

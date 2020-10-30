@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
@@ -49,6 +50,10 @@ class CollatorSQLVarcharDB2Compatible extends SQLVarcharDB2Compatible implements
     {
 
     }
+
+    public CollatorSQLVarcharDB2Compatible(CatalogMessage.SQLChar sqlChar) {
+    	init(sqlChar);
+	}
 
     /**
      * Create SQL VARCHAR value initially set to NULL that

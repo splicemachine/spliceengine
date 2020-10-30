@@ -31,12 +31,12 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.Storable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
@@ -219,16 +219,44 @@ public final class SQLReal
 		return StoredFormatIds.SQL_REAL_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull);
-		out.writeFloat(value);
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLReal.Builder builder = CatalogMessage.SQLReal.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setValue(value);
+		}
+		CatalogMessage.DataValueDescriptor dvd =
+				CatalogMessage.DataValueDescriptor.newBuilder()
+						.setType(CatalogMessage.DataValueDescriptor.Type.SQLReal)
+						.setExtension(CatalogMessage.SQLReal.sqlReal, builder.build())
+						.build();
+		return dvd;
 	}
 
-	/** @see java.io.Externalizable#readExternal */
-	public void readExternal(ObjectInput in) throws IOException {
-		isNull = in.readBoolean();
-        value = in.readFloat();
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLReal.sqlReal);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLReal sqlReal = dvd.getExtension(CatalogMessage.SQLReal.sqlReal);
+		init(sqlReal);
 	}
+
+	public void init(CatalogMessage.SQLReal sqlReal) {
+		isNull = sqlReal.getIsNull();
+		if (!isNull) {
+			value = sqlReal.getValue();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
+		isNull = in.readBoolean();
+		value = in.readFloat();
+	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 		isNull = in.readBoolean();
         value = in.readFloat();
@@ -352,8 +380,11 @@ public final class SQLReal
 			setValue(NumberDataType.normalizeREAL(obj));
 		}
 	}
+	public SQLReal(CatalogMessage.SQLReal sqlReal) {
+		init(sqlReal);
+	}
 
-	/**
+				   /**
 		@exception StandardException thrown if string not accepted
 	 */
 	public void setValue(String theValue)

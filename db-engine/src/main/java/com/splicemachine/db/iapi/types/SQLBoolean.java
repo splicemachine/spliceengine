@@ -32,9 +32,9 @@
 package com.splicemachine.db.iapi.types;
 
 
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.Storable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
@@ -198,16 +198,47 @@ public final class SQLBoolean
         return StoredFormatIds.SQL_BOOLEAN_ID;
     }
 
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-        out.writeBoolean(value);
+
+    @Override
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+        CatalogMessage.SQLBoolean.Builder builder = CatalogMessage.SQLBoolean.newBuilder();
+        builder.setIsNull(isNull);
+        if (!isNull) {
+            builder.setValue(value);
+        }
+        CatalogMessage.DataValueDescriptor dvd =
+                CatalogMessage.DataValueDescriptor.newBuilder()
+                        .setType(CatalogMessage.DataValueDescriptor.Type.SQLBoolean)
+                        .setExtension(CatalogMessage.SQLBoolean.sqlBoolean, builder.build())
+                        .build();
+        return dvd;
     }
 
-    /** @see java.io.Externalizable#readExternal */
-    public void readExternal(ObjectInput in) throws IOException {
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.SQLBoolean.sqlBoolean);
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        CatalogMessage.SQLBoolean sqlBoolean = dvd.getExtension(CatalogMessage.SQLBoolean.sqlBoolean);
+        init(sqlBoolean);
+        init(sqlBoolean);
+    }
+
+    private void init(CatalogMessage.SQLBoolean sqlBoolean) {
+        isNull = sqlBoolean.getIsNull();
+        if (!isNull) {
+            value = sqlBoolean.getValue();
+        }
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
         value = in.readBoolean();
     }
+
+
     public void readExternalFromArray(ArrayInputStream in) throws IOException {
         isNull = in.readBoolean();
         value = in.readBoolean();
@@ -370,6 +401,10 @@ public final class SQLBoolean
             ;
         else
             setValue(obj.booleanValue());
+    }
+
+    public SQLBoolean(CatalogMessage.SQLBoolean sqlBoolean) {
+        init(sqlBoolean);
     }
 
     /* This constructor gets used for the cloneValue method */

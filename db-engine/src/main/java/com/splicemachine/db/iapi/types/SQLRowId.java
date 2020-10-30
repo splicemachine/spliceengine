@@ -31,9 +31,14 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.yahoo.sketches.theta.UpdateSketch;
@@ -65,6 +70,10 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
             System.arraycopy(other.bytes, 0, b, 0, other.bytes.length);
             setValue(b);
         }
+    }
+
+    public SQLRowId(CatalogMessage.SQLRowId sqlRowId) {
+        init(sqlRowId);
     }
 
 	public void setValue(byte[] bytesArg)
@@ -141,33 +150,53 @@ public class SQLRowId extends DataType implements RowLocation, RowId{
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        if (bytes == null) {
-            out.writeInt(0);
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+        CatalogMessage.SQLRowId.Builder builder = CatalogMessage.SQLRowId.newBuilder();
+        builder.setIsNull(bytes == null);
+        if (bytes != null) {
+            builder.setData(ByteString.copyFrom(bytes));
         }
-        else {
-            int len = bytes.length;
-            out.writeInt(len);
-            for (byte aByte : bytes) {
-                out.writeByte(aByte);
-            }
-        }
-    }
 
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.newBuilder()
+                .setType(CatalogMessage.DataValueDescriptor.Type.SQLRowId)
+                .setExtension(CatalogMessage.SQLRowId.sqlRowId, builder.build())
+                .build();
+        return dvd;
+    }
     @Override
     public String getTypeName() {
         return "SQLRowId";
     }
 
     @Override
-    public void readExternal(ObjectInput in)  throws IOException, ClassNotFoundException {
+    protected void readExternalNew(ObjectInput in)  throws IOException  {
+
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.SQLRowId.sqlRowId);
+        CatalogMessage.DataValueDescriptor dataValueDescriptor =
+                CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        CatalogMessage.SQLRowId sqlRowId =
+                dataValueDescriptor.getExtension(CatalogMessage.SQLRowId.sqlRowId);
+        init(sqlRowId);
+    }
+
+    private void init(CatalogMessage.SQLRowId sqlRowId){
+        isNull = sqlRowId.getIsNull();
+        if (!isNull) {
+            bytes = sqlRowId.getData().toByteArray();
+        }
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in)  throws IOException {
         int len = in.readInt();
         if (len > 0) {
             bytes = new byte[len];
             for (int i = 0; i < len; ++i) {
                 bytes[i] = in.readByte();
             }
-			isNull = evaluateNull();
+            isNull = evaluateNull();
         }
     }
 

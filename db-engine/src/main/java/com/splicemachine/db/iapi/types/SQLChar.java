@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
@@ -213,6 +216,9 @@ public class SQLChar
         setValue( val );
     }
 
+    public SQLChar(CatalogMessage.SQLChar sqlChar) {
+        init(sqlChar);
+    }
     /**
      * <p>
      * This is a special constructor used when we need to represent a password
@@ -940,68 +946,58 @@ public class SQLChar
       @see java.io.DataInputStream
 
     */
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-
-        if (isNull()) {
-            return;
-        }
-
-        //
-        // This handles the case that a CHAR or VARCHAR value was populated from
-        // a user Clob.
-        //
-        if ( _clobValue != null )
-        {
-            writeClobUTF( out );
-            return;
-        }
-
-        String lvalue = null;
-        char[] data = null;
-
-        int strlen = rawLength;
-        boolean isRaw;
-
-        if (strlen < 0) {
-            lvalue = value;
-            strlen = lvalue.length();
-            isRaw = false;
-        } else {
-            data = rawData;
-            isRaw = true;
-        }
-
-        // byte length will always be at least string length
-        int utflen = strlen;
-
-        for (int i = 0 ; (i < strlen) && (utflen <= 65535); i++)
-        {
-            int c = isRaw ? data[i] : lvalue.charAt(i);
-            if ((c >= 0x0001) && (c <= 0x007F))
-            {
-                // 1 byte for character
-            }
-            else if (c > 0x07FF)
-            {
-                utflen += 2; // 3 bytes for character
-            }
-            else
-            {
-                utflen += 1; // 2 bytes for character
+    @Override
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+        CatalogMessage.SQLChar.Builder builder = CatalogMessage.SQLChar.newBuilder();
+        builder.setIsNull(isNull);
+        if (!isNull) {
+            if (_clobValue != null) {
+                try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                     ObjectOutputStream os = new ObjectOutputStream(bos)) {
+                    writeClobUTF(os);
+                    os.flush();
+                    byte[] bs = bos.toByteArray();
+                    builder.setClob(ByteString.copyFrom(bs));
+                }
+            } else {
+                if (value != null) {
+                    builder.setValue(value);
+                }
+                else if (rawData != null ){
+                    for (char c : rawData) {
+                        builder.addRawData(c);
+                    }
+                }
             }
         }
-
-        StreamHeaderGenerator header = getStreamHeaderGenerator();
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(!header.expectsCharCount());
+        if (this instanceof SQLVarchar) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLVarchar);
+        } else if (this instanceof SQLClob) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLClob);
+        } else if (this instanceof SQLLongvarchar) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLLongVarchar);
+        } else if (this instanceof SQLVarcharDB2Compatible) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLVarcharDB2Compatible);
+        } else if (this instanceof CollatorSQLChar) {
+            builder.setType(CatalogMessage.SQLChar.Type.CollatorSQLChar);
+        } else if (this instanceof CollatorSQLClob) {
+            builder.setType(CatalogMessage.SQLChar.Type.CollatorSQLClob);
+        } else if (this instanceof CollatorSQLLongvarchar) {
+            builder.setType(CatalogMessage.SQLChar.Type.CollatorSQLLongVarchar);
+        } else if (this instanceof CollatorSQLVarchar) {
+            builder.setType(CatalogMessage.SQLChar.Type.CollatorSQLVarchar);
+        } else if (this instanceof CollatorSQLVarcharDB2Compatible) {
+            builder.setType(CatalogMessage.SQLChar.Type.SQLVarcharDB2Compatible);
         }
-        // Generate the header, write it to the destination stream, write the
-        // user data and finally write an EOF-marker is required.
-        header.generateInto(out, utflen);
-        writeUTF(out, strlen, isRaw, null );
-        header.writeEOF(out, utflen);
+
+        CatalogMessage.DataValueDescriptor dvd =
+                CatalogMessage.DataValueDescriptor.newBuilder()
+                        .setType(CatalogMessage.DataValueDescriptor.Type.SQLChar)
+                        .setExtension(CatalogMessage.SQLChar.sqlChar, builder.build())
+                        .build();
+        return dvd;
     }
+
 
     /**
      * Writes the user data value to a stream in the modified UTF-8 format.
@@ -1180,7 +1176,55 @@ public class SQLChar
         isNull = evaluateNull();
     }
 
-    public void readExternal(ObjectInput in) throws IOException {
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.SQLChar.sqlChar);
+        extensionRegistry.add(CatalogMessage.SQLVarchar.sqlVarchar);
+        extensionRegistry.add(CatalogMessage.SQLClob.sqlClob);
+        extensionRegistry.add(CatalogMessage.SQLLongVarchar.sqlLongVarchar);
+        extensionRegistry.add(CatalogMessage.SQLVarcharDB2Compatible.sqlVarcharDB2Compatible);
+        extensionRegistry.add(CatalogMessage.CollatorSQLChar.collatorSQLChar);
+        extensionRegistry.add(CatalogMessage.CollatorSQLVarchar.collatorSQLVarchar);
+        extensionRegistry.add(CatalogMessage.CollatorSQLClob.collatorSQLClob);
+        extensionRegistry.add(CatalogMessage.CollatorSQLLongVarchar.collatorSQLLongVarchar);
+        extensionRegistry.add(CatalogMessage.CollatorSQLVarcharDB2Compatible.collatorSQLVarcharDB2Compatible);
+
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        CatalogMessage.SQLChar sqlChar = dvd.getExtension(CatalogMessage.SQLChar.sqlChar);
+        init(sqlChar);
+    }
+
+    protected void init(CatalogMessage.SQLChar sqlChar) {
+        isNull = sqlChar.getIsNull();
+        if (!isNull) {
+            if (sqlChar.hasValue()) {
+                value = sqlChar.getValue();
+            }
+            else if (sqlChar.hasClob()) {
+                byte[] ba = sqlChar.getClob().toByteArray();
+                try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+                     ObjectInputStream ois = new ObjectInputStream(bis)) {
+                    int utflen = ois.readUnsignedShort();
+                    readExternal(ois, utflen, 0);
+                }
+                catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            else {
+                int size = sqlChar.getRawDataCount();
+                rawData = new char[size];
+                for (int i = 0; i < size; ++i) {
+                    rawData[i] = (char)sqlChar.getRawData(i);
+                }
+            }
+        }
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         isNull = in.readBoolean();
 
         if (isNull()) {

@@ -31,24 +31,19 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import com.google.protobuf.ByteString;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecAggregator;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.NumberDataValue;
 import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.iapi.types.StringDataValue;
-import com.splicemachine.db.iapi.types.TypeId;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import java.io.*;
 
 public final class StringAggregator extends OrderableAggregator {
-    private final int VERSION = 1;
     private StringBuilder aggregator;
     private String separator;
 
@@ -117,33 +112,37 @@ public final class StringAggregator extends OrderableAggregator {
         return strAggregator;
     }
 
-    /////////////////////////////////////////////////////////////
-    //
-    // EXTERNALIZABLE INTERFACE
-    //
-    /////////////////////////////////////////////////////////////
 
-    /**
-     * @throws IOException on error
-     */
-    public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeInt(VERSION);
-        out.writeObject(aggregator);
-        out.writeBoolean(eliminatedNulls);
-        out.writeUTF(separator);
+    @Override
+    protected CatalogMessage.SystemAggregator.Builder toProtobufBuilder() throws IOException{
+        CatalogMessage.SystemAggregator.Builder builder = super.toProtobufBuilder();
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             ObjectOutputStream os = new ObjectOutputStream(bos)) {
+            os.writeObject(aggregator);
+            os.flush();
+            byte[] bs = bos.toByteArray();
+
+            CatalogMessage.StringAggregator aggregator = CatalogMessage.StringAggregator.newBuilder()
+                    .setSeparator(separator)
+                    .setAggregator(ByteString.copyFrom(bs))
+                    .build();
+            builder.setType(CatalogMessage.SystemAggregator.Type.StringAggregator)
+                    .setExtension(CatalogMessage.StringAggregator.stringAggregator, aggregator);
+            return builder;
+        }
     }
 
-    /**
-     * @throws IOException on error
-     * @see java.io.Externalizable#readExternal
-     */
-    public void readExternal(ObjectInput in)
-            throws IOException, ClassNotFoundException {
-        int v = in.readInt();
-        assert v == VERSION;
-        aggregator = (StringBuilder) in.readObject();
-        eliminatedNulls = in.readBoolean();
-        separator = in.readUTF();
+    @Override
+    protected void init(CatalogMessage.SystemAggregator systemAggregator) throws IOException, ClassNotFoundException {
+        super.init(systemAggregator);
+        CatalogMessage.StringAggregator aggregator =
+                systemAggregator.getExtension(CatalogMessage.StringAggregator.stringAggregator);
+        this.separator = aggregator.getSeparator();
+        byte[] ba = aggregator.getAggregator().toByteArray();
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+             ObjectInputStream ois = new ObjectInputStream(bis)) {
+            this.aggregator = (StringBuilder) ois.readObject();
+        }
     }
 
     /////////////////////////////////////////////////////////////

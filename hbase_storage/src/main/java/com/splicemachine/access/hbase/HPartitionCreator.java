@@ -24,11 +24,8 @@ import com.splicemachine.storage.PartitionInfoCache;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.client.TableDescriptor;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.Admin;
-import org.apache.hadoop.hbase.client.Connection;
-import org.apache.hadoop.hbase.client.TableDescriptorBuilder;
 
 import java.io.IOException;
 
@@ -40,13 +37,14 @@ public class HPartitionCreator implements PartitionCreator{
     private TableDescriptorBuilder descriptorBuilder;
     private TableName tableName;
     private final Connection connection;
-    private final HColumnDescriptor userDataFamilyDescriptor;
+    private final ColumnFamilyDescriptor userDataFamilyDescriptor;
     private final Clock clock;
     private final HBaseTableInfoFactory tableInfoFactory;
     private final PartitionInfoCache partitionInfoCache;
     private byte[][] splitKeys;
 
-    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory,Connection connection,Clock clock,HColumnDescriptor userDataFamilyDescriptor,PartitionInfoCache partitionInfoCache){
+    public HPartitionCreator(HBaseTableInfoFactory tableInfoFactory, Connection connection, Clock clock,
+                             ColumnFamilyDescriptor userDataFamilyDescriptor, PartitionInfoCache partitionInfoCache){
         this.connection = connection;
         this.userDataFamilyDescriptor = userDataFamilyDescriptor;
         this.tableInfoFactory = tableInfoFactory;

@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -38,6 +40,8 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -192,25 +196,46 @@ public final class SQLTime extends DataType
 		return StoredFormatIds.SQL_TIME_ID;
 	}
 
-	/** 
-		@exception IOException error writing data
-
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull);
-		out.writeInt(encodedTime);
-		out.writeInt(encodedTimeFraction);
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLTime.Builder builder = CatalogMessage.SQLTime.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setEncodedTime(encodedTime);
+			builder.setEncodedTimeFraction(encodedTimeFraction);
+		}
+		CatalogMessage.DataValueDescriptor dvd =
+				CatalogMessage.DataValueDescriptor.newBuilder()
+						.setType(CatalogMessage.DataValueDescriptor.Type.SQLTime)
+						.setExtension(CatalogMessage.SQLTime.sqlTime, builder.build())
+						.build();
+		return dvd;
 	}
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 */
-	public void readExternal(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLTime.sqlTime);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLTime time = dvd.getExtension(CatalogMessage.SQLTime.sqlTime);
+		init(time);
+	}
+
+	private void init(CatalogMessage.SQLTime time) {
+		isNull = time.getIsNull();
+		if (!isNull) {
+			encodedTime = time.getEncodedTime();
+			encodedTimeFraction = time.getEncodedTimeFraction();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		setValue(in.readInt(), in.readInt());
 	}
+
 	public void readExternalFromArray(ArrayInputStream in) throws IOException {
 		isNull = in.readBoolean();
 		setValue(in.readInt(), in.readInt());
@@ -374,6 +399,10 @@ public final class SQLTime extends DataType
 	public SQLTime(Time value) throws StandardException
 	{
 		parseTime(value);
+	}
+
+	public SQLTime(CatalogMessage.SQLTime sqlTime) {
+		init(sqlTime);
 	}
 
     private void parseTime(java.util.Date value) throws StandardException

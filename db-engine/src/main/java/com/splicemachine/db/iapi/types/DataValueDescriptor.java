@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.services.io.Storable;
@@ -1099,5 +1100,5 @@ public interface DataValueDescriptor extends Storable, Orderable, Comparator<Dat
      */
     void setSparkObject(Object sparkObject) throws StandardException;
 
-
+    CatalogMessage.DataValueDescriptor toProtobuf() throws IOException;
 }

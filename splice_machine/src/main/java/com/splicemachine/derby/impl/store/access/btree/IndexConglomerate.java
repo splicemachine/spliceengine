@@ -15,7 +15,11 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.access.api.PartitionFactory;
+import com.splicemachine.access.configuration.SQLConfiguration;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
@@ -31,14 +35,11 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.si.api.data.TxnOperationFactory;
-import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.BaseTransaction;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -46,15 +47,19 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructField;
+import splice.com.google.common.collect.Lists;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /**
  * An index object corresponds to an instance of a btree conglomerate.
  **/
-
 
 public class IndexConglomerate extends SpliceConglomerate{
     private static final Logger LOG=Logger.getLogger(IndexConglomerate.class);
@@ -95,7 +100,7 @@ public class IndexConglomerate extends SpliceConglomerate{
                           TxnOperationFactory opFactory,
                           PartitionFactory partitionFactory,
                           byte[][] splitKeys, Conglomerate.Priority priority) throws StandardException{
-        super.create(isExternal,rawtran,
+        super.create(rawtran,
                 input_containerid,
                 template,
                 columnOrder,
@@ -452,7 +457,44 @@ public class IndexConglomerate extends SpliceConglomerate{
      *
      * @see java.io.Externalizable#writeExternal
      **/
-    public void writeExternal(ObjectOutput out) throws IOException{
+    @Override
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+
+        CatalogMessage.HBaseConglomerate spliceConglomerate = CatalogMessage.HBaseConglomerate.newBuilder()
+                .setConglomerateFormatId(conglom_format_id)
+                .setTmpFlag(tmpFlag)
+                .setContainerId(containerId)
+                .addAllFormatIds(Arrays.stream(format_ids).boxed().collect(Collectors.toList()))
+                .addAllCollationIds(Arrays.stream(collation_ids).boxed().collect(Collectors.toList()))
+                .addAllColumnOrdering(Arrays.stream(columnOrdering).boxed().collect(Collectors.toList()))
+                .build();
+
+        List<Boolean> ascDescInfoList = Lists.newArrayList();
+        for (boolean info : ascDescInfo) {
+            ascDescInfoList.add(info);
+        }
+
+        CatalogMessage.IndexConglomerate indexConglomerate = CatalogMessage.IndexConglomerate.newBuilder()
+                .setBase(spliceConglomerate)
+                .setUniqueWithDuplicateNulls(uniqueWithDuplicateNulls)
+                .setNKeyFields(nKeyFields)
+                .setNUniqueColumns(nUniqueColumns)
+                .setAllowDuplicates(allowDuplicates)
+                .setMaintainParentLinks(maintainParentLinks)
+                .setBaseConglomerateId(baseConglomerateId)
+                .setRowLocationColumn(rowLocationColumn)
+                .addAllAscDescInfo(ascDescInfoList)
+                .build();
+
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.newBuilder()
+                .setType(CatalogMessage.DataValueDescriptor.Type.IndexConglomerate)
+                .setExtension(CatalogMessage.IndexConglomerate.indexConglomerate, indexConglomerate)
+                .build();
+
+        return dvd;
+    }
+
+    public void writeExternalOld(ObjectOutput out) throws IOException{
         if(LOG.isTraceEnabled())
             LOG.trace("writeExternal");
         writeExternal_v10_3(out);
@@ -474,8 +516,102 @@ public class IndexConglomerate extends SpliceConglomerate{
      *                                the stream could not be found.
      * @see java.io.Externalizable#readExternal
      **/
-    private void localReadExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-//        SpliceLogUtils.trace(LOG,"localReadExternal");
+    @Override
+    public void readExternal(ObjectInput in) throws IOException {
+        if (LOG.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG, "localReadExternal");
+        }
+        partitionFactory =SIDriver.driver().getTableFactory();
+        opFactory = SIDriver.driver().getOperationFactory();
+        PartitionAdmin admin = partitionFactory.getAdmin();
+        try {
+            String version = admin.getCatalogVersion(SQLConfiguration.CONGLOMERATE_TABLE_NAME);
+            if (version == null || version.equals("1")) {
+                readExternalOld(in);
+            }
+            else {
+                readExternalNew(in);
+            }
+        } catch (StandardException e) {
+            throw new IOException(e);
+        }
+    }
+
+    @Override
+    protected void readExternalNew(ObjectInput in) throws IOException{
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.IndexConglomerate.indexConglomerate);
+        CatalogMessage.DataValueDescriptor dvd =
+                CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+
+        CatalogMessage.IndexConglomerate indexConglomerate =
+                dvd.getExtension(CatalogMessage.IndexConglomerate.indexConglomerate);
+
+        CatalogMessage.HBaseConglomerate spliceConglomerate = indexConglomerate.getBase();
+        conglom_format_id = spliceConglomerate.getConglomerateFormatId();
+        tmpFlag = spliceConglomerate.getTmpFlag();
+        containerId = spliceConglomerate.getContainerId();
+        nKeyFields = indexConglomerate.getNKeyFields();
+        nUniqueColumns = indexConglomerate.getNUniqueColumns();
+        allowDuplicates = indexConglomerate.getAllowDuplicates();
+        maintainParentLinks = indexConglomerate.getMaintainParentLinks();
+        format_ids = new int[spliceConglomerate.getFormatIdsCount()];
+        for (int i = 0; i < format_ids.length; ++i) {
+            format_ids[i] = spliceConglomerate.getFormatIds(i);
+        }
+        baseConglomerateId = indexConglomerate.getBaseConglomerateId();
+        rowLocationColumn = indexConglomerate.getRowLocationColumn();
+        ascDescInfo=new boolean[indexConglomerate.getAscDescInfoCount()];
+        for (int i = 0; i < ascDescInfo.length; ++i) {
+            ascDescInfo[i] = indexConglomerate.getAscDescInfo(i);
+        }
+        uniqueWithDuplicateNulls = indexConglomerate.getUniqueWithDuplicateNulls();
+        // In memory maintain a collation id per column in the template.
+        collation_ids=new int[format_ids.length];
+
+        // initialize all the entries to COLLATION_TYPE_UCS_BASIC,
+        // and then reset as necessary.  For version ACCESS_B2I_V3_ID,
+        // this is the default and no resetting is necessary.
+        for(int i = 0 ; i < format_ids.length; i++) {
+            collation_ids[i] = StringDataValue.COLLATION_TYPE_UCS_BASIC;
+        }
+
+        // current format id, read collation info from disk
+        if(SanityManager.DEBUG){
+            // length must include row location column and at least
+            // one other field.
+            SanityManager.ASSERT(
+                    collation_ids.length>=2,
+                    "length = "+collation_ids.length);
+        }
+
+        hasCollatedTypes= spliceConglomerate.getCollationIdsCount()>0;
+        if (hasCollatedTypes) {
+            for (int i = 0; i < spliceConglomerate.getColumnOrderingCount(); ++i) {
+                collation_ids[i] = spliceConglomerate.getCollationIds(i);
+            }
+        }
+
+        columnOrdering = new int[spliceConglomerate.getColumnOrderingCount()];
+        for (int i = 0; i < columnOrdering.length; ++i) {
+            columnOrdering[i] = spliceConglomerate.getColumnOrdering(i);
+        }
+
+        // DataDictionaryImpl.bootstrapOneIndex creates system indexes with a null
+        // column ordering, making the IndexConglomerate inconsistent, which may
+        // lead to broken logic in places that call ScanOperation.getColumnOrdering.
+        // Fill in the missing information here so the index may be properly used.
+        if (columnOrdering == null || columnOrdering.length == 0) {
+            int extraColumnsCount = allowDuplicates ? 1 : 0;
+            columnOrdering = new int[ascDescInfo.length + extraColumnsCount];
+            for (int i=0; i < columnOrdering.length; i++)
+                columnOrdering[i] = i;
+        }
+    }
+
+    @Override
+    protected void readExternalOld(ObjectInput in) throws IOException {
         btreeReadExternal(in);
         baseConglomerateId=in.readLong();
         rowLocationColumn=in.readInt();
@@ -541,8 +677,6 @@ public class IndexConglomerate extends SpliceConglomerate{
             for (int i=0; i < columnOrdering.length; i++)
                 columnOrdering[i] = i;
         }
-        partitionFactory =SIDriver.driver().getTableFactory();
-        opFactory = SIDriver.driver().getOperationFactory();
     }
 
     /**
@@ -570,17 +704,10 @@ public class IndexConglomerate extends SpliceConglomerate{
     }
 
     @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        if(LOG.isTraceEnabled())
-            LOG.trace("readExternal");
-        localReadExternal(in);
-    }
-
-    @Override
-    public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException{
+    public void readExternalFromArray(ArrayInputStream in) throws IOException {
         if(LOG.isTraceEnabled())
             LOG.trace("readExternalFromArray");
-        localReadExternal(in);
+        readExternal(in);
     }
 
     public void btreeWriteExternal(ObjectOutput out) throws IOException{
@@ -594,7 +721,7 @@ public class IndexConglomerate extends SpliceConglomerate{
         ConglomerateUtil.writeFormatIdArray(format_ids,out);
     }
 
-    public void btreeReadExternal(ObjectInput in) throws IOException, ClassNotFoundException{
+    public void btreeReadExternal(ObjectInput in) throws IOException {
         conglom_format_id=FormatIdUtil.readFormatIdInteger(in);
         tmpFlag=FormatIdUtil.readFormatIdInteger(in);
         containerId=in.readLong();

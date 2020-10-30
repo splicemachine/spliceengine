@@ -31,12 +31,15 @@
 
 package com.splicemachine.db.iapi.services.io;
 
+import com.google.protobuf.ByteString;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.util.Arrays;
 
 /**
  * FormatableBitSet is implemented as a packed array of bytes.
@@ -884,12 +887,12 @@ public final class FormatableBitSet implements Formatable, Cloneable
 		if (SanityManager.DEBUG)
 			SanityManager.ASSERT(value != null);
 
-		out.writeInt(getLength());
 		int byteLen = getLengthInBytes();
-		if (byteLen > 0)
-		{
-			out.write(value, 0, byteLen);
-		}
+		byte[] v = Arrays.copyOfRange(value, 0, byteLen);
+		CatalogMessage.FormatableBitSet bitSet = CatalogMessage.FormatableBitSet.newBuilder()
+				.setLengthAsBits(lengthAsBits)
+				.setValue(ByteString.copyFrom(v)).build();
+		ArrayUtil.writeByteArray(out, bitSet.toByteArray());
 	}
 
 	/** 
@@ -906,7 +909,24 @@ public final class FormatableBitSet implements Formatable, Cloneable
 	 *
 	 * @see java.io.Externalizable#readExternal
 	 */
-	public void readExternal(ObjectInput in) throws IOException
+	public void readExternal(ObjectInput in) throws IOException {
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		} else {
+			readExternalNew(in);
+		}
+	}
+
+	public void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.FormatableBitSet bitSet = CatalogMessage.FormatableBitSet.parseFrom(bs);
+		value = bitSet.getValue().toByteArray();
+		int lenInBits = bitSet.getLengthAsBits();
+		bitsInLastByte = numBitsInLastByte(lenInBits);
+		lengthAsBits = lenInBits;
+	}
+
+	public void readExternalOld(ObjectInput in) throws IOException
 	{
 		int lenInBits;
 		int lenInBytes;

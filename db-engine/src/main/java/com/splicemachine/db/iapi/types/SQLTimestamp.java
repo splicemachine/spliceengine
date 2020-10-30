@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -38,6 +40,8 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
@@ -280,248 +284,266 @@ public final class SQLTimestamp extends DataType
         // maintains that since it has milli-second
         // resolutiuon.
         return SQLTime.getTime(cal, encodedTime, nanos);
-    }
+	}
 
-    public Object getObject()
-    {
-        return getTimestamp( calendar);
-    }
+	public Object getObject()
+	{
+		return getTimestamp((Calendar) null);
+	}
+		
+	/* get storage length */
+	public int getLength()
+	{
+		return 12;
+	}
 
-    /* get storage length */
-    public int getLength()
-    {
-        return 12;
-    }
+	/* this is for DataType's error generator */
+	public String getTypeName()
+	{
+		return "TIMESTAMP";
+	}
 
-    /* this is for DataType's error generator */
-    public String getTypeName()
-    {
-        return "TIMESTAMP";
-    }
+	/*
+	 * Storable interface, implies Externalizable, TypedFormat
+	 */
 
-    /*
-     * Storable interface, implies Externalizable, TypedFormat
-     */
+	/**
+		Return my format identifier.
 
-    /**
-        Return my format identifier.
+		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
+	*/
+	public int getTypeFormatId() {
+		return StoredFormatIds.SQL_TIMESTAMP_ID;
+	}
 
-        @see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-    */
-    public int getTypeFormatId() {
-        return StoredFormatIds.SQL_TIMESTAMP_ID;
-    }
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLTimestamp.Builder builder = CatalogMessage.SQLTimestamp.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setEncodedDate(encodedDate);
+			builder.setEncodedTime(encodedTime);
+			builder.setNanos(nanos);
+		}
+		CatalogMessage.DataValueDescriptor dvd =
+				CatalogMessage.DataValueDescriptor.newBuilder()
+						.setType(CatalogMessage.DataValueDescriptor.Type.SQLTimestamp)
+						.setExtension(CatalogMessage.SQLTimestamp.sqlTimestamp, builder.build())
+						.build();
+		return dvd;
+	}
 
-    /**
-        @exception IOException error writing data
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLTimestamp.sqlTimestamp);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLTimestamp timestamp = dvd.getExtension(CatalogMessage.SQLTimestamp.sqlTimestamp);
+		init(timestamp);
+	}
 
-    */
-    public void writeExternal(ObjectOutput out) throws IOException {
+	private void init(CatalogMessage.SQLTimestamp timestamp) {
+		isNull = timestamp.getIsNull();
+		if (!isNull) {
+			int date = timestamp.getEncodedDate();
+			int time = timestamp.getEncodedTime();
+			int nanos = timestamp.getNanos();
+			setValue(date, time, nanos);
+		}
+	}
 
-        out.writeBoolean(isNull);
-        /*
-        ** Timestamp is written out 3 ints, encoded date, encoded time, and
-        ** nanoseconds
-        */
-        out.writeInt(encodedDate);
-        out.writeInt(encodedTime);
-        out.writeInt(nanos);
-    }
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException
+	{
+		int date;
+		int time;
+		int nanos;
+		isNull = in.readBoolean();
+		date = in.readInt();
+		time = in.readInt();
+		nanos = in.readInt();
+		setValue(date, time, nanos);
+	}
 
-    /**
-     * @see java.io.Externalizable#readExternal
-     *
-     * @exception IOException Thrown on error reading the object
-     */
-    public void readExternal(ObjectInput in) throws IOException
-    {
-        int date;
-        int time;
-        int nanos;
-        isNull = in.readBoolean();
-        date = in.readInt();
-        time = in.readInt();
-        nanos = in.readInt();
-        setValue(date, time, nanos);
-    }
-    public void readExternalFromArray(ArrayInputStream in) throws IOException
-    {
-        int date;
-        int time;
-        int nanos;
-        isNull = in.readBoolean();
-        date = in.readInt();
-        time = in.readInt();
-        nanos = in.readInt();
-        setValue(date, time,nanos);
-    }
+	public void readExternalFromArray(ArrayInputStream in) throws IOException
+	{
+		int date;
+		int time;
+		int nanos;
+		isNull = in.readBoolean();
+		date = in.readInt();
+		time = in.readInt();
+		nanos = in.readInt();
+		setValue(date, time,nanos);
+	}
 
-    /*
-     * DataValueDescriptor interface
-     */
+	/*
+	 * DataValueDescriptor interface
+	 */
 
-    /** @see DataValueDescriptor#cloneValue */
-    public DataValueDescriptor cloneValue(boolean forceMaterialization)
-    {
-        // Call constructor with all of our info
-        if (isNull)
-            return new SQLTimestamp();
-        return new SQLTimestamp(encodedDate, encodedTime, nanos);
-    }
+	/** @see DataValueDescriptor#cloneValue */
+	public DataValueDescriptor cloneValue(boolean forceMaterialization)
+	{
+		// Call constructor with all of our info
+		if (isNull)
+			return new SQLTimestamp();
+		return new SQLTimestamp(encodedDate, encodedTime, nanos);
+	}
 
-    /**
-     * @see DataValueDescriptor#getNewNull
-     */
-    public DataValueDescriptor getNewNull()
-    {
-        return new SQLTimestamp();
-    }
-    /**
-     * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
-     *
-     */
-    public void restoreToNull()
-    {
-        // clear numeric representation
-        encodedDate = 0;
-        encodedTime = 0;
-        nanos = 0;
-        isNull = true;
+	/**
+	 * @see DataValueDescriptor#getNewNull
+	 */
+	public DataValueDescriptor getNewNull()
+	{
+		return new SQLTimestamp();
+	}
+	/**
+	 * @see com.splicemachine.db.iapi.services.io.Storable#restoreToNull
+	 *
+	 */
+	public void restoreToNull()
+	{
+		// clear numeric representation
+		encodedDate = 0;
+		encodedTime = 0;
+		nanos = 0;
+		isNull = true;
 
-    }
+	}
 
-    /*
-     * DataValueDescriptor interface
-     */
+	/*
+	 * DataValueDescriptor interface
+	 */
 
-    /**
-     * @see DataValueDescriptor#setValueFromResultSet
-     *
-     * @exception SQLException  Thrown on error
-     */
-    public void setValueFromResultSet(ResultSet resultSet, int colNumber,
-                                      boolean isNullable)
-        throws SQLException, StandardException
-    {
-            setValue(resultSet.getTimestamp(colNumber), calendar);
-    }
+	/** 
+	 * @see DataValueDescriptor#setValueFromResultSet 
+	 *
+	 * @exception SQLException		Thrown on error
+	 */
+	public void setValueFromResultSet(ResultSet resultSet, int colNumber,
+									  boolean isNullable)
+		throws SQLException, StandardException
+	{
+			setValue(resultSet.getTimestamp(colNumber), (Calendar) null);
+	}
 
-    @SuppressFBWarnings(value="RV_NEGATING_RESULT_OF_COMPARETO", justification="intended")
-    public int compare(DataValueDescriptor other)
-        throws StandardException
-    {
-        /* Use compare method from dominant type, negating result
-         * to reflect flipping of sides.
-         */
-        if (typePrecedence() < other.typePrecedence())
-        {
-            return - (other.compare(this));
-        }
+	@SuppressFBWarnings(value="RV_NEGATING_RESULT_OF_COMPARETO", justification="intended")
+	public int compare(DataValueDescriptor other)
+		throws StandardException
+	{
+		/* Use compare method from dominant type, negating result
+		 * to reflect flipping of sides.
+		 */
+		if (typePrecedence() < other.typePrecedence())
+		{
+			return - (other.compare(this));
+		}
 
-        boolean thisNull, otherNull;
+		boolean thisNull, otherNull;
 
-        thisNull = this.isNull();
-        otherNull = other.isNull();
+		thisNull = this.isNull();
+		otherNull = other.isNull();
 
-        /*
-         * thisNull otherNull return
-         * T  T    0 (this == other)
-         * F  T    -1  (this < other)
-         * T  F    1 (this > other)
-         */
-        if (thisNull || otherNull)
-        {
-            if (!thisNull)  // otherNull must be true
-                return -1;
-            if (!otherNull)  // thisNull must be true
-                return 1;
-            return 0;
-        }
+		/*
+		 * thisNull otherNull	return
+		 *	T		T		 	0	(this == other)
+		 *	F		T		 	-1 	(this < other)
+		 *	T		F		 	1	(this > other)
+		 */
+		if (thisNull || otherNull)
+		{
+			if (!thisNull)		// otherNull must be true
+				return -1;
+			if (!otherNull)		// thisNull must be true
+				return 1;
+			return 0;
+		}
 
-        /*
-            Neither are null compare them
-         */
+		/*
+			Neither are null compare them 
+		 */
 
-        int comparison;
-        /* get the comparison date values */
-        int otherEncodedDate = 0;
-        int otherEncodedTime = 0;
-        int otherNanos = 0;
+		int comparison;
+		/* get the comparison date values */
+		int otherEncodedDate = 0;
+		int otherEncodedTime = 0;
+		int otherNanos = 0;
 
-        /* if the argument is another SQLTimestamp, look up the value
-         */
-        if (other instanceof SQLTimestamp)
-        {
-            SQLTimestamp st = (SQLTimestamp)other;
-            otherEncodedDate= st.encodedDate;
-            otherEncodedTime= st.encodedTime;
-            otherNanos= st.nanos;
-        }
-        else
-        {
-            /* O.K. have to do it the hard way and calculate the numeric value
-             * from the value
-             */
-            Calendar cal = SQLDate.GREGORIAN_CALENDAR.get();
-            Timestamp otherts = other.getTimestamp(cal);
-            int[] otherDateTime = SQLTimestamp.computeEncodedDateTime(otherts,cal);
-            otherEncodedDate = otherDateTime[0];
-            otherEncodedTime = otherDateTime[1];
-            otherNanos = otherts.getNanos();
-        }
-        if (encodedDate < otherEncodedDate)
-            comparison = -1;
-        else if (encodedDate > otherEncodedDate)
-            comparison = 1;
-        else if (encodedTime < otherEncodedTime)
-            comparison = -1;
-        else if (encodedTime > otherEncodedTime)
-            comparison = 1;
-        else if (nanos < otherNanos)
-            comparison = -1;
-        else if (nanos > otherNanos)
-            comparison = 1;
-        else
-            comparison = 0;
+		/* if the argument is another SQLTimestamp, look up the value
+		 */
+		if (other instanceof SQLTimestamp)
+		{
+			SQLTimestamp st = (SQLTimestamp)other;
+			otherEncodedDate= st.encodedDate;
+			otherEncodedTime= st.encodedTime;
+			otherNanos= st.nanos;
+		}
+		else 
+		{
+			/* O.K. have to do it the hard way and calculate the numeric value
+			 * from the value
+			 */
+			Calendar cal = SQLDate.GREGORIAN_CALENDAR.get();
+			Timestamp otherts = other.getTimestamp(cal);
+			int[] otherDateTime = SQLTimestamp.computeEncodedDateTime(otherts,cal);
+			otherEncodedDate = otherDateTime[0];
+			otherEncodedTime = otherDateTime[1];
+			otherNanos = otherts.getNanos();
+		}
+		if (encodedDate < otherEncodedDate)
+			comparison = -1;
+		else if (encodedDate > otherEncodedDate)
+			comparison = 1;
+		else if (encodedTime < otherEncodedTime)
+			comparison = -1;
+		else if (encodedTime > otherEncodedTime)
+			comparison = 1;
+		else if (nanos < otherNanos)
+			comparison = -1;
+		else if (nanos > otherNanos)
+			comparison = 1;
+		else
+			comparison = 0;
 
-        return comparison;
-    }
+		return comparison;
+	}
 
-    /**
-        @exception StandardException thrown on error
-     */
-    public boolean compare(int op,
-                           DataValueDescriptor other,
-                           boolean orderedNulls,
-                           boolean unknownRV)
-        throws StandardException
-    {
-        if (!orderedNulls)  // nulls are unordered
-        {
-            if (this.isNull() || ((DataValueDescriptor)other).isNull())
-                return unknownRV;
-        }
+	/**
+		@exception StandardException thrown on error
+	 */
+	public boolean compare(int op,
+						   DataValueDescriptor other,
+						   boolean orderedNulls,
+						   boolean unknownRV)
+		throws StandardException
+	{
+		if (!orderedNulls)		// nulls are unordered
+		{
+			if (this.isNull() || ((DataValueDescriptor)other).isNull())
+				return unknownRV;
+		}
 
-        /* Do the comparison */
-        return super.compare(op, other, orderedNulls, unknownRV);
-    }
+		/* Do the comparison */
+		return super.compare(op, other, orderedNulls, unknownRV);
+	}
 
-    /*
-    ** Class interface
-    */
+	/*
+	** Class interface
+	*/
 
-    /*
-    ** Constructors
-    */
+	/*
+	** Constructors
+	*/
 
-    /** no-arg constructor required by Formattable */
-    public SQLTimestamp() { }
+	/** no-arg constructor required by Formattable */
+	public SQLTimestamp() { }
 
 
-    public SQLTimestamp(Timestamp value) throws StandardException
-    {
-        setValue(value, calendar);
-    }
+	public SQLTimestamp(Timestamp value) throws StandardException
+	{
+		setValue(value, (Calendar) null);
+	}
 
     public SQLTimestamp(org.joda.time.DateTime value) throws StandardException
     {
@@ -565,6 +587,9 @@ public final class SQLTimestamp extends DataType
         setValue(encodedDateLocal, encodedTimeLocal);
     }
 
+    public SQLTimestamp(CatalogMessage.SQLTimestamp sqlTimestamp) {
+		init(sqlTimestamp);
+	}
     /**
      * Construct a timestamp from a string. The allowed formats are:
      *<ol>

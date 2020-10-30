@@ -853,7 +853,7 @@ public class FormatableBitSetTest {
         bitset18.writeExternal(oos);
         oos.flush();
 
-        empty.readExternal
+        empty.readExternalNew
                 (new ObjectInputStream(new ByteArrayInputStream
                         (buf.toByteArray())));
         assertTrue(empty.equals(bitset18));

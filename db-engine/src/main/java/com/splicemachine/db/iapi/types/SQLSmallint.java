@@ -31,10 +31,10 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 import java.io.ObjectOutput;
@@ -192,9 +192,19 @@ public final class SQLSmallint
 		return StoredFormatIds.SQL_SMALLINT_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull);
-		out.writeShort(value);
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLSmallint.Builder builder = CatalogMessage.SQLSmallint.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull){
+			builder.setValue(value);
+		}
+		CatalogMessage.DataValueDescriptor dvd =
+				CatalogMessage.DataValueDescriptor.newBuilder()
+						.setType(CatalogMessage.DataValueDescriptor.Type.SQLSmallint)
+						.setExtension(CatalogMessage.SQLSmallint.sqlSmallint, builder.build())
+						.build();
+		return dvd;
 	}
 
 	/** @see java.io.Externalizable#readExternal */
@@ -202,7 +212,26 @@ public final class SQLSmallint
 		isNull = in.readBoolean();
 		value = in.readShort();
 	}
-	public void readExternal(ObjectInput in) throws IOException {
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLSmallint.sqlSmallint);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLSmallint smallint = dvd.getExtension(CatalogMessage.SQLSmallint.sqlSmallint);
+		init(smallint);
+	}
+
+	private void init(CatalogMessage.SQLSmallint smallint) {
+		isNull = smallint.getIsNull();
+		if (!isNull) {
+			value = (short) smallint.getValue();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		value = in.readShort();
 	}
@@ -339,6 +368,9 @@ public final class SQLSmallint
 			setValue(obj.shortValue());
 	}
 
+	public SQLSmallint (CatalogMessage.SQLSmallint smallint) {
+		init(smallint);
+	}
 	/**
 		@exception StandardException thrown if string not accepted
 	 */

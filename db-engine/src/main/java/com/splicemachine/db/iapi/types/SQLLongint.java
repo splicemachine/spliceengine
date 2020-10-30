@@ -31,12 +31,11 @@
 
 package com.splicemachine.db.iapi.types;
 
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
+import com.splicemachine.db.iapi.services.io.*;
 
 import com.splicemachine.db.iapi.reference.SQLState;
-
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.Storable;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -182,13 +181,40 @@ public final class SQLLongint extends NumberDataType {
 		return StoredFormatIds.SQL_LONGINT_ID;
 	}
 
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull);
-		out.writeLong(value);
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLLongint.Builder builder = CatalogMessage.SQLLongint.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setValue(value);
+		}
+		CatalogMessage.DataValueDescriptor dvd =
+				CatalogMessage.DataValueDescriptor.newBuilder()
+						.setType(CatalogMessage.DataValueDescriptor.Type.SQLLongint)
+						.setExtension(CatalogMessage.SQLLongint.sqlLongint, builder.build())
+						.build();
+		return dvd;
 	}
 
-	/** @see java.io.Externalizable#readExternal */
-	public void readExternal(ObjectInput in) throws IOException {
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLLongint.sqlLongint);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLLongint longint = dvd.getExtension(CatalogMessage.SQLLongint.sqlLongint);
+		init(longint);
+	}
+
+	private void init(CatalogMessage.SQLLongint longint) {
+		isNull = longint.getIsNull();
+		if (!isNull) {
+			value = longint.getValue();
+		}
+	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
 		setIsNull(in.readBoolean());
 		value = in.readLong();
 	}
@@ -310,6 +336,10 @@ public final class SQLLongint extends NumberDataType {
 			;
 		else
 			setValue(obj.longValue());
+	}
+
+	public SQLLongint(CatalogMessage.SQLLongint longint) {
+		init(longint);
 	}
 
 	/**

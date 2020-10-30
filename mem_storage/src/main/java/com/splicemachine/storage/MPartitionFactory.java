@@ -252,13 +252,13 @@ public class MPartitionFactory implements PartitionFactory<Object>{
         }
 
         @Override
-        public void setCatalogVersion(long conglomerateNumber, String version) throws IOException {
+        public void setCatalogVersion(String conglomerate, String version) throws IOException {
             throw new UnsupportedOperationException("Operation not supported in mem storage engine");
         }
 
         @Override
-        public String getCatalogVersion(long conglomerateNumber) throws StandardException {
-            throw new UnsupportedOperationException("Operation not supported in mem storage engine");
+        public String getCatalogVersion(String conglomerate) throws StandardException {
+            return null;
         }
 
         @Override

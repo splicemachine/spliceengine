@@ -31,6 +31,11 @@
 
 package com.splicemachine.db.iapi.util;
 
+import com.google.protobuf.ByteString;
+import com.splicemachine.db.catalog.types.CatalogMessage;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -134,6 +139,23 @@ public final class ByteArray implements Externalizable {
      */
     @Override
     public void readExternal(ObjectInput in) throws IOException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    public void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.ByteArray byteArray = CatalogMessage.ByteArray.parseFrom(bs);
+        array = byteArray.getArray().toByteArray();
+        length = byteArray.getLength();
+        offset = byteArray.getOffset();
+    }
+
+    public void readExternalOld(ObjectInput in) throws IOException {
         int len = length = in.readInt();
         offset = 0;
         array = new byte[len];
@@ -147,11 +169,20 @@ public final class ByteArray implements Externalizable {
      */
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeInt(length);
-        out.write(array, offset, length);
+        CatalogMessage.ByteArray byteArray = toProtobuf();
+        ArrayUtil.writeByteArray(out, byteArray.toByteArray());
     }
 
 
+    public CatalogMessage.ByteArray toProtobuf() {
+        CatalogMessage.ByteArray byteArray = CatalogMessage.ByteArray.newBuilder()
+                .setArray(ByteString.copyFrom(array))
+                .setLength(length)
+                .setOffset(offset)
+                .build();
+
+        return byteArray;
+    }
     /**
      * Compare two byte arrays using value equality. Two byte arrays are equal if their length is
      * identical and their contents are identical.
@@ -166,6 +197,11 @@ public final class ByteArray implements Externalizable {
             }
         }
         return true;
+    }
+
+    public static ByteArray fromProtobuf(CatalogMessage.ByteArray byteArray) {
+        return new ByteArray(byteArray.getArray().toByteArray(),
+                byteArray.getOffset(), byteArray.getLength());
     }
 }
 

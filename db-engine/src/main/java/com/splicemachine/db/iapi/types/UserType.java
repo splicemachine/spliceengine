@@ -31,21 +31,23 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
 
-import java.io.Serializable;
+import java.io.*;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Calendar;
@@ -289,35 +291,70 @@ public class UserType extends DataType
 		return StoredFormatIds.SQL_USERTYPE_ID_V3;
 	}
 
-	/** 
-		@exception IOException error writing data
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.UserType.Builder builder = CatalogMessage.UserType.newBuilder();
+		builder.setIsNull(isNull());
+		if (!isNull()) {
+			try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+				 ObjectOutputStream os = new ObjectOutputStream(bos)) {
+				os.writeObject(value);
+				os.flush();
+				byte[] bs = bos.toByteArray();
+				builder.setData(ByteString.copyFrom(bs));
+			}
+		}
 
-	*/
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull());
-		if (!isNull())
-			out.writeObject(value);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.newBuilder()
+				.setType(CatalogMessage.DataValueDescriptor.Type.UserType)
+				.setExtension(CatalogMessage.UserType.userType, builder.build())
+				.build();
+		return dvd;
 	}
 
-	/**
-	 * @see java.io.Externalizable#readExternal
-	 *
-	 * @exception IOException	Thrown on error reading the object
-	 * @exception ClassNotFoundException	Thrown if the class of the object
-	 *										is not found
-	 */
-	public void readExternal(ObjectInput in) 
-        throws IOException, ClassNotFoundException
-	{
-		boolean readIsNull = in.readBoolean();
+
+	@Override
+	protected void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ProtoBufUtils.createDVDExtensionRegistry();
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.UserType userType = dvd.getExtension(CatalogMessage.UserType.userType);
+		init(userType);
+	}
+
+	private void init(CatalogMessage.UserType userType) {
+		boolean readIsNull = userType.getIsNull();
 		if (!readIsNull) {
 			/* RESOLVE: Sanity check for right class */
-			value = in.readObject();
-			isNull = evaluateNull();
+			byte[] ba = userType.getData().toByteArray();
+			try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+				 ObjectInputStream ois = new ObjectInputStream(bis)) {
+				value = ois.readObject();
+				isNull = evaluateNull();
+			} catch (IOException|ClassNotFoundException e) {
+				throw new RuntimeException(e);
+			}
 		} else {
 			restoreToNull();
 		}
 	}
+
+	@Override
+	protected void readExternalOld(ObjectInput in) throws IOException {
+		boolean readIsNull = in.readBoolean();
+		try {
+			if (!readIsNull) {
+				/* RESOLVE: Sanity check for right class */
+				value = in.readObject();
+				isNull = evaluateNull();
+			} else {
+				restoreToNull();
+			}
+		} catch (ClassNotFoundException e) {
+			throw new IOException(e);
+		}
+	}
+
 	public void readExternalFromArray(ArrayInputStream in) 
         throws IOException, ClassNotFoundException
 	{
@@ -388,7 +425,7 @@ public class UserType extends DataType
 		 */
 		if (typePrecedence() < other.typePrecedence())
 		{
-			return - (other.compare(this));
+			return  compare(other);
 		}
 
 		boolean thisNull, otherNull;
@@ -492,6 +529,10 @@ public class UserType extends DataType
 	{
 		this.value = value;
 		isNull = evaluateNull();
+	}
+
+	public UserType(CatalogMessage.UserType userType) {
+		init(userType);
 	}
 	/**
 	 * @see UserDataValue#setValue
