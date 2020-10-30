@@ -1860,9 +1860,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     SpliceLogUtils.debug(LOG, "restoring snapshot %s for table %d", sname, conglomerateNumber);
                 }
 
-                admin.disableTable("splice:" + conglomerateNumber);
+                admin.disableTable(Long.toString(conglomerateNumber));
                 admin.restoreSnapshot(sname);
-                admin.enableTable("splice:" + conglomerateNumber);
+                admin.enableTable(Long.toString(conglomerateNumber));
                 dd.deleteSnapshot(snapshotName, conglomerateNumber, tc);
                 SnapshotDescriptor descriptor = new SnapshotDescriptor(snapshotName, schemaName, objectName,
                         conglomerateNumber, creationTime, lastRestoreTime);
@@ -1898,7 +1898,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             }
             SnapshotDescriptor descriptor =
                     new SnapshotDescriptor(snapshotName, schemaName, objectName, conglomerateNumber,creationTime, null);
-            admin.snapshot(sname, "splice:" + conglomerateNumber);
+            admin.snapshot(sname, Long.toString(conglomerateNumber));
             dd.addSnapshot(descriptor, tc);
             snapshotList.add(sname);
             if (LOG.isDebugEnabled())
