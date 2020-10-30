@@ -1124,4 +1124,19 @@ public class SpliceUnitTest {
         waitForStaleTransactions(methodWatcher, "Test", 5, failOnError);
         methodWatcher.closeAll();
     }
+
+    public static String getSqlItJarFile()
+    {
+        String[] paths = {
+                System.getProperty("user.dir")+"/target/sql-it/sql-it.jar",
+                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar"
+        };
+        for(String path : paths ) {
+            if( new File(path).exists())
+                return path;
+        }
+        String err = "Couldn't find procedures jar file in either of " + Arrays.toString(paths);
+        Assert.fail(err);
+        throw new RuntimeException(err);
+    }
 }
