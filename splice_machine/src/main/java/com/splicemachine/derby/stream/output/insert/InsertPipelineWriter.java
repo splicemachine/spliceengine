@@ -83,7 +83,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     }
 
     public void open() throws StandardException {
-          open(insertOperation==null?null:insertOperation.getTriggerHandler(),insertOperation, false); // TODO
+          open(insertOperation==null?null:insertOperation.getTriggerHandler(),insertOperation, loadReplaceMode);
     }
 
     public void open(TriggerHandler triggerHandler, SpliceOperation operation, boolean loadReplaceMode) throws StandardException {

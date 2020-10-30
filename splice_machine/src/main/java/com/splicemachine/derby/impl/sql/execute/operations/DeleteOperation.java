@@ -152,6 +152,7 @@ public class DeleteOperation extends DMLWriteOperation {
         super.writeExternal(out);
         writeNullableString(bulkDeleteDirectory,out);
         out.writeInt(colMapRefItem);
+        out.writeBoolean(noTriggerRI);
     }
 
     @Override
@@ -160,5 +161,6 @@ public class DeleteOperation extends DMLWriteOperation {
         super.readExternal(in);
         bulkDeleteDirectory = readNullableString(in);
         colMapRefItem = in.readInt();
+        noTriggerRI = in.readBoolean();
     }
 }
