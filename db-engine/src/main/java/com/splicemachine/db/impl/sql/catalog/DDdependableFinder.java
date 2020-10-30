@@ -34,8 +34,11 @@ package com.splicemachine.db.impl.sql.catalog;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -113,7 +116,28 @@ public class DDdependableFinder implements	DependableFinder, Formatable
 	 *
 	 * @param in read this.
 	 */
-    public void readExternal( ObjectInput in )
+    @Override
+	public void readExternal( ObjectInput in )
+			throws IOException, ClassNotFoundException
+	{
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	public void readExternalNew( ObjectInput in ) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.DDdependableFinder dDdependableFinder = CatalogMessage.DDdependableFinder.parseFrom(bs);
+		init(dDdependableFinder);
+	}
+
+	protected void init(CatalogMessage.DDdependableFinder dDdependableFinder) {
+		formatId = dDdependableFinder.getFormatId();
+	}
+	public void readExternalOld( ObjectInput in )
 			throws IOException, ClassNotFoundException
 	{
 		formatId = in.readInt();
@@ -128,7 +152,15 @@ public class DDdependableFinder implements	DependableFinder, Formatable
     public void writeExternal( ObjectOutput out )
 			throws IOException
 	{
-		out.writeInt(formatId);
+		CatalogMessage.DDdependableFinder dDdependableFinder = toProtobuf();
+		ArrayUtil.writeByteArray(out, dDdependableFinder.toByteArray());
+	}
+
+	public CatalogMessage.DDdependableFinder toProtobuf() {
+		CatalogMessage.DDdependableFinder dDdependableFinder = CatalogMessage.DDdependableFinder.newBuilder()
+				.setFormatId(formatId)
+				.build();
+		return dDdependableFinder;
 	}
 
 	/**

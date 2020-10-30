@@ -31,8 +31,13 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.Dependable;
+import com.splicemachine.db.catalog.types.CatalogMessage;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -153,7 +158,36 @@ public class DDColumnDependableFinder extends DDdependableFinder
 	 *
 	 * @param in read this.
 	 */
+	@Override
 	public void readExternal( ObjectInput in )
+			throws IOException, ClassNotFoundException
+	{
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	public void readExternalNew( ObjectInput in ) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.DDColumnDependableFinder.dDColumnDependableFinder);
+		CatalogMessage.DDdependableFinder dDdependableFinder =
+				CatalogMessage.DDdependableFinder.parseFrom(bs, extensionRegistry);
+		init(dDdependableFinder);
+	}
+
+	@Override
+	protected void init(CatalogMessage.DDdependableFinder dDdependableFinder) {
+		super.init(dDdependableFinder);
+		CatalogMessage.DDColumnDependableFinder ddColumnDependableFinder =
+				dDdependableFinder.getExtension(CatalogMessage.DDColumnDependableFinder.dDColumnDependableFinder);
+		columnBitMap = ddColumnDependableFinder.getColumnBitMap().toByteArray();
+	}
+
+	public void readExternalOld( ObjectInput in )
 			throws IOException, ClassNotFoundException
 	{
 		super.readExternal(in);
@@ -170,9 +204,19 @@ public class DDColumnDependableFinder extends DDdependableFinder
 	public void writeExternal( ObjectOutput out )
 			throws IOException
 	{
-		super.writeExternal(out);
-		FormatableHashtable fh = new FormatableHashtable();
-		fh.put("columnBitMap", columnBitMap);
-		out.writeObject(fh);
+		CatalogMessage.DDdependableFinder dDdependableFinder = super.toProtobuf();
+
+		CatalogMessage.DDColumnDependableFinder ddColumnDependableFinder = CatalogMessage.DDColumnDependableFinder
+				.newBuilder()
+				.setColumnBitMap(ByteString.copyFrom(columnBitMap))
+				.build();
+
+		CatalogMessage.DDdependableFinder.Builder builder = CatalogMessage.DDdependableFinder
+				.newBuilder()
+				.mergeFrom(dDdependableFinder);
+		builder.setType(CatalogMessage.DDdependableFinder.Type.DDColumnDependableFinder)
+				.setExtension(CatalogMessage.DDColumnDependableFinder.dDColumnDependableFinder, ddColumnDependableFinder);
+
+		ArrayUtil.writeByteArray(out, builder.build().toByteArray());
 	}
 }

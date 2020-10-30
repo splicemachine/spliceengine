@@ -33,6 +33,7 @@ package com.splicemachine.db.iapi.types;
 
 import java.sql.Clob;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
@@ -88,6 +89,9 @@ class CollatorSQLClob extends SQLClob implements CollationElementsInterface
         setCollator(collatorForCharacterDatatypes);
 	}
 
+	public CollatorSQLClob(CatalogMessage.SQLChar sqlChar) {
+		init(sqlChar);
+	}
 	/**
 	 * Set the RuleBasedCollator for this instance of CollatorSQLClob. It will
 	 * be used to do the collation.

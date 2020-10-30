@@ -350,7 +350,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             coreInfo[SYSSCHEMAS_CORE_NUM].setIndexConglomerate(
                     SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID,
                     getBootParameter(startParams,CFG_SYSSCHEMAS_INDEX2_ID,true));
-
+            SPLICE_CATALOG_SERIALIZATION_VERSION = (int)getBootParameter(startParams,CFG_CATALOG_SERIALIZATION_VERSION,false);
         }
 
         dataDictionaryCache = new DataDictionaryCache(startParams,this);
@@ -2997,7 +2997,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param keyRow Start/stop position.
      * @throws StandardException Thrown on failure
      */
-    private void dropColumnPermDescriptor(TransactionController tc,ExecIndexRow keyRow) throws StandardException{
+    protected void dropColumnPermDescriptor(TransactionController tc,ExecIndexRow keyRow) throws StandardException{
         ExecRow curRow;
         PermissionsDescriptor perm;
         TabInfoImpl ti=getNonCoreTI(SYSCOLPERMS_CATALOG_NUM);
@@ -5494,7 +5494,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc           The TransactionController
      * @throws StandardException Thrown on failure
      */
-    private void dropSubCheckConstraint(UUID constraintId,TransactionController tc) throws StandardException{
+    protected void dropSubCheckConstraint(UUID constraintId,TransactionController tc) throws StandardException{
         ExecIndexRow checkRow1;
         DataValueDescriptor constraintIdOrderable;
         TabInfoImpl ti=getNonCoreTI(SYSCHECKS_CATALOG_NUM);
@@ -6612,6 +6612,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
          */
         ExecutionContext ec=(ExecutionContext)ContextService.getContext(ExecutionContext.CONTEXT_ID);
 
+        params.put(CFG_CATALOG_SERIALIZATION_VERSION, Integer.toString(CURRENT_CATALOG_SERIALIZATION_VERSION));
+
+        SPLICE_CATALOG_SERIALIZATION_VERSION = CURRENT_CATALOG_SERIALIZATION_VERSION;
+
         ExecutorService executor=Executors.newFixedThreadPool(4);
         for(int coreCtr=0;coreCtr<NUM_CORE;coreCtr++){
             executor.execute(new CoreCreation(coreCtr,tc,ec));
@@ -6684,7 +6688,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         coreInfo[SYSSCHEMAS_CORE_NUM].getIndexConglomerate(
                                 SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID)));
 
-        //Add the SYSIBM Schema
+                //Add the SYSIBM Schema
         sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID,tc);
 
         //Add the SYSIBMADM Schema
@@ -7448,7 +7452,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             return version.orNull();
 
         TransactionController tc = getTransactionCompile();
-        String v = tc.getCatalogVersion(conglomerateNumber);
+        String v = tc.getCatalogVersion(Long.toString(conglomerateNumber));
         dataDictionaryCache.catalogVersionCacheAdd(conglomerateNumber, v == null ? Optional.absent() : Optional.of(v));
         return v;
     }

@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -64,7 +65,11 @@ public final class CollatorSQLChar extends SQLChar implements CollationElementsI
     {
         setCollator(collatorForCharacterDatatypes);
     }
-    
+
+    public CollatorSQLChar(CatalogMessage.SQLChar sqlChar) {
+    	init(sqlChar);
+	}
+
     /**
      * Create SQL CHAR value initially set to value that
      * performs collation according to collatorForCharacterDatatypes 

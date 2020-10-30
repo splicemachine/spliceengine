@@ -31,6 +31,9 @@
 
 package com.splicemachine.db.catalog.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -155,10 +158,38 @@ public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
+	@Override
 	public void readExternal( ObjectInput in )
+			throws IOException, ClassNotFoundException {
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	public void readExternalNew( ObjectInput in ) throws IOException
+	{
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+		CatalogMessage.BaseTypeIdImpl typeIdImpl = CatalogMessage.BaseTypeIdImpl.parseFrom(bs, extensionRegistry);
+		init(typeIdImpl);
+	}
+	@Override
+	protected void init(CatalogMessage.BaseTypeIdImpl typeId) {
+		super.init(typeId);
+		CatalogMessage.UserDefinedTypeIdImpl userDefinedTypeId
+				= typeId.getExtension(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+		this.className = userDefinedTypeId.getClassName();
+		this.JDBCTypeId = java.sql.Types.JAVA_OBJECT;
+	}
+
+	public void readExternalOld( ObjectInput in )
 		 throws IOException, ClassNotFoundException
 	{
-		super.readExternal( in );
+		super.readExternalOld( in );
 		className = in.readUTF();
 		JDBCTypeId = java.sql.Types.JAVA_OBJECT;
 	}
@@ -170,23 +201,39 @@ public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
 	 *
 	 * @exception IOException		thrown on error
 	 */
+	@Override
 	public void writeExternal( ObjectOutput out )
-		 throws IOException
+			throws IOException
 	{
-		super.writeExternal( out );
+		// If the class name is null, then an internal error has occurred. We
+		// are trying to persist a UDT descriptor which has not been bound yet
+		if ( className == null )
+		{
+			throw new IOException( "Internal error: class name for user defined type has not been determined yet." );
+		}
 
-        // If the class name is null, then an internal error has occurred. We
-        // are trying to persist a UDT descriptor which has not been bound yet
-        if ( className == null )
-        {
-            throw new IOException( "Internal error: class name for user defined type has not been determined yet." );
-        }
-		out.writeUTF( className );
+		CatalogMessage.BaseTypeIdImpl typeId = toProtobuf();
+		byte[] bs = typeId.toByteArray();
+		ArrayUtil.writeByteArray(out, bs);
 	}
+
 	/**
 	 * Get the formatID which corresponds to this class.
 	 *
 	 *	@return	the formatID of this class
 	 */
 	public	int	getTypeFormatId()	{ return StoredFormatIds.USERDEFINED_TYPE_ID_IMPL_V3; }
+
+	@Override
+	public CatalogMessage.BaseTypeIdImpl toProtobuf() {
+		CatalogMessage.UserDefinedTypeIdImpl userDefinedTypeId = CatalogMessage.UserDefinedTypeIdImpl.newBuilder()
+				.setClassName(className)
+				.build();
+
+		CatalogMessage.BaseTypeIdImpl baseTypeId = super.toProtobuf();
+		CatalogMessage.BaseTypeIdImpl.Builder builder = CatalogMessage.BaseTypeIdImpl.newBuilder().mergeFrom(baseTypeId);
+		builder.setType(CatalogMessage.BaseTypeIdImpl.Type.UserDefinedTypeIdImpl)
+				.setExtension(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl, userDefinedTypeId);
+		return builder.build();
+	}
 }

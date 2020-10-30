@@ -52,13 +52,16 @@ import java.util.Arrays;
  */
 public class LongBufferedSumAggregator extends SumAggregator {
 
-		private final long[] buffer;
-		private final int length;
+		private long[] buffer;
+		private int length;
 		private int position;
 
 		private long sum = 0;
 		private boolean isNull = true; //set to false when elements are added
 
+	public LongBufferedSumAggregator() {
+
+	}
 		public LongBufferedSumAggregator(int bufferSize) {
 				int s = 1;
 				while(s<bufferSize){

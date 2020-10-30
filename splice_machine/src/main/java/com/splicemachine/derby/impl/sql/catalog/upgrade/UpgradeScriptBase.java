@@ -23,6 +23,8 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
 
+import java.util.Properties;
+
 /**
  * Created by jyuan on 10/17/14.
  */
@@ -51,14 +53,18 @@ public class UpgradeScriptBase implements UpgradeScript {
         }
     }
 
+    protected void upgradeSystemTables(Properties startParams) throws StandardException {
+        upgradeSystemTables();
+    }
+
     protected void upgradeSystemTables() throws StandardException {
     }
 
     protected void upgradeSystemFunctions() throws StandardException {
-
     }
-    public void run() throws StandardException{
-    	upgradeSystemTables();
+
+    public void run(Properties startParams) throws StandardException{
+    	upgradeSystemTables(startParams);
     	upgradeSystemFunctions();
     }
 }

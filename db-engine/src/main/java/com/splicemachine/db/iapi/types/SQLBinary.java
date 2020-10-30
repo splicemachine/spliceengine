@@ -31,18 +31,17 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.MessageId;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.services.io.DerbyIOException;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.FormatIdInputStream;
-import com.splicemachine.db.iapi.services.io.InputStreamUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
@@ -51,10 +50,7 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.sql.*;
 
 /**
@@ -344,19 +340,49 @@ abstract class SQLBinary
 
      * @exception IOException        io exception
      */
+    @Override
     public final void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(evaluateNull());
-        if (evaluateNull())
-            return;
-        if ( _blobValue != null )
-        {
-            writeBlob(  out );
-            return;
-        }
-        int len = dataValue.length;
 
-        writeLength( out, len );
-        out.write(dataValue, 0, dataValue.length);
+        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+
+        ArrayUtil.writeByteArray(out, dvd.toByteArray());
+    }
+
+    @Override
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+        CatalogMessage.SQLBinary.Builder builder = CatalogMessage.SQLBinary.newBuilder();
+        builder.setIsNull(evaluateNull());
+        if (!evaluateNull()) {
+            if (_blobValue != null) {
+                try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                     ObjectOutputStream os = new ObjectOutputStream(bos)) {
+                    writeBlob(os);
+                    os.flush();
+                    byte[] bs = bos.toByteArray();
+                    builder.setBlob(ByteString.copyFrom(bs));
+                }
+            }
+            else {
+                builder.setDataValue(ByteString.copyFrom(dataValue));
+            }
+        }
+        if (this instanceof SQLBit) {
+            builder.setType(CatalogMessage.SQLBinary.Type.SQLBit);
+        } else if (this instanceof SQLBlob) {
+            builder.setType(CatalogMessage.SQLBinary.Type.SQLBlob);
+        } else if (this instanceof SQLLongVarbit) {
+            builder.setType(CatalogMessage.SQLBinary.Type.SQLLongVarbit);
+        } else if (this instanceof SQLVarbit) {
+            builder.setType(CatalogMessage.SQLBinary.Type.SQLVarbit);
+        }
+
+        CatalogMessage.DataValueDescriptor dvd =
+                CatalogMessage.DataValueDescriptor.newBuilder()
+                        .setType(CatalogMessage.DataValueDescriptor.Type.SQLBinary)
+                        .setExtension(CatalogMessage.SQLBinary.sqlBinary, builder.build())
+                        .build();
+
+        return dvd;
     }
 
     /**
@@ -424,7 +450,61 @@ abstract class SQLBinary
      * @exception IOException            io exception
      * @exception ClassNotFoundException    class not found
     */
-    public final void readExternal(ObjectInput in) throws IOException
+    @Override
+    public final void readExternal(ObjectInput in) throws IOException {
+        if (in instanceof FormatIdInputStream || DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    public final void readExternalNew(ObjectInput in) throws IOException {
+
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.SQLBinary.sqlBinary);
+        extensionRegistry.add(CatalogMessage.SQLBit.sqlBit);
+        extensionRegistry.add(CatalogMessage.SQLBlob.sqlBlob);
+        extensionRegistry.add(CatalogMessage.SQLLongVarbit.sqlLongVarbit);
+        extensionRegistry.add(CatalogMessage.SQLVarbit.sqlVarbit);
+
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        CatalogMessage.SQLBinary sqlBinary = dvd.getExtension(CatalogMessage.SQLBinary.sqlBinary);
+        init(sqlBinary);
+    }
+
+    protected void init(CatalogMessage.SQLBinary sqlBinary) {
+        // need to clear stream first, in case this object is reused, and
+        // stream is set by previous use.  Track 3794.
+        stream = null;
+        streamValueLength = -1;
+        _blobValue = null;
+
+        isNull = sqlBinary.getIsNull();
+        if (isNull) {
+            return;
+        }
+
+        if (sqlBinary.hasDataValue())
+        {
+            dataValue = sqlBinary.getDataValue().toByteArray();
+        }
+        else if (sqlBinary.hasBlob()) {
+            byte[] ba = sqlBinary.getBlob().toByteArray();
+            try (ByteArrayInputStream bis = new ByteArrayInputStream(ba);
+                 ObjectInputStream ois = new ObjectInputStream(bis)) {
+                readFromStream(ois);
+            }
+            catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+
+        }
+        isNull = evaluateNull();
+    }
+    public final void readExternalOld(ObjectInput in) throws IOException
     {
         // need to clear stream first, in case this object is reused, and
         // stream is set by previous use.  Track 3794.
@@ -455,6 +535,7 @@ abstract class SQLBinary
         }
         isNull = evaluateNull();
     }
+
     public final void readExternalFromArray(ArrayInputStream in) throws IOException
     {
         // need to clear stream first, in case this object is reused, and

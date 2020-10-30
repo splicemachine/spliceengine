@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.services.io;
 
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
+
 import java.io.DataInput;
 import java.io.IOException;
 
@@ -46,8 +48,6 @@ public final class DataInputUtil {
      *      DataInput to be skipped.
      * @param skippedBytes
      *      number of bytes to skip. if skippedBytes <= zero, do nothing.
-     * @throws EOFException
-     *      if EOF meets before requested number of bytes are skipped.
      * @throws IOException
      *      if IOException occurs. It doesn't contain EOFException.
      * @throws NullPointerException
@@ -67,5 +67,24 @@ public final class DataInputUtil {
             }
             skippedBytes -= skipped;
         }
+    }
+
+    /**
+     * The objects stored in data dictionary are serialized in old format if
+     * 1) BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION < 2 and
+     * 2) BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION != Integer.MIN_VALUE
+     *
+     * A client should always see objects in newer format after this commit, because all objects stored in dictionary
+     * are upgraded. The server may see objects in old format before/during upgrade.
+     *
+     * For server, BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION is -1 before upgrade, and set to 2 after
+     * upgrade.
+     *
+     * For clients, BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION is always Integer.MIN_VALUE
+     * @return
+     */
+    public static boolean isOldFormat() {
+        return (BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION < 2 &&
+                BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION != Integer.MIN_VALUE);
     }
 }

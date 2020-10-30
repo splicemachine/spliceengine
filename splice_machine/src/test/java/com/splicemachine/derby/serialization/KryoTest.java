@@ -125,7 +125,7 @@ public class KryoTest  {
     public void testSQLRef() throws Exception {
         SQLRef sqlRef = new SQLRef(new HBaseRowLocation(new byte[] {0, 1, 2,3,4,5,6,7,8,9}));
 
-        Output output = new Output(new byte[30],30);
+        Output output = new Output(new byte[40],40);
         Serializer serializer = kryo.getSerializer(SQLRef.class);
         serializer.write(kryo, output, sqlRef);
         
@@ -147,7 +147,7 @@ public class KryoTest  {
         assertNotNull(dvdStore.getValue(null));
 
 
-        Output output = new Output(new byte[30],30);
+        Output output = new Output(new byte[40],40);
         Serializer serializer = kryo.getSerializer(ActivationSerializer.DataValueStorage.class);
         serializer.write(kryo, output, dvdStore);
 

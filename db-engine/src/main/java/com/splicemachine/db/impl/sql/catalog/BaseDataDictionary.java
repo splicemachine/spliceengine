@@ -59,6 +59,10 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 	protected static final int		    SYSCOLUMNS_CORE_NUM = 2;
 	protected static final int		    SYSSCHEMAS_CORE_NUM = 3;
 	protected static final int          NUM_CORE = 4;
+	public static final String		CFG_CATALOG_SERIALIZATION_VERSION = "CatalogSerializationVersion";
+	public static final int CURRENT_CATALOG_SERIALIZATION_VERSION = 2;
+	public static int SPLICE_CATALOG_SERIALIZATION_VERSION = Integer.MIN_VALUE;
+
 	/**
 	* SYSFUN functions. Table of functions that automatically appear
 	* in the SYSFUN schema. These functions are resolved to directly

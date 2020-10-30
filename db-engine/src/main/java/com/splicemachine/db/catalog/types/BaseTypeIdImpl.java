@@ -33,7 +33,8 @@ package com.splicemachine.db.catalog.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
 
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
@@ -44,7 +45,6 @@ import com.splicemachine.db.iapi.reference.JDBC40Translation;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.util.IdUtil;
-
 import java.sql.Types;
 
 import java.io.ObjectOutput;
@@ -308,7 +308,26 @@ public class BaseTypeIdImpl implements Formatable
      * @exception IOException                       thrown on error
      * @exception ClassNotFoundException            thrown on error
      */
+    @Override
     public void readExternal( ObjectInput in )
+            throws IOException, ClassNotFoundException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    public void readExternalNew( ObjectInput in )
+            throws IOException, ClassNotFoundException
+    {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        CatalogMessage.BaseTypeIdImpl baseTypeId = CatalogMessage.BaseTypeIdImpl.parseFrom(bs);
+        init(baseTypeId);
+    }
+
+    public void readExternalOld( ObjectInput in )
              throws IOException, ClassNotFoundException
     {
     	JDBCTypeId = in.readInt();
@@ -335,23 +354,11 @@ public class BaseTypeIdImpl implements Formatable
      *
      * @exception IOException               thrown on error
      */
-    public void writeExternal( ObjectOutput out )
-             throws IOException
-    {
-    	out.writeInt(JDBCTypeId);
-    	out.writeInt(formatId);
-        if ( schemaName == null ) { out.writeUTF( unqualifiedName ); }
-        else
-        {
-            //
-            // Wrap the schema name in quotes. quotes are illegal characters in
-            // basic SQL type names and in Java class names, so this will flag
-            // readExternal() that this type has a 2-part name
-            // (schemaName.unqualifiedName).
-            //
-            out.writeUTF( doubleQuote( schemaName ) );
-            out.writeUTF( unqualifiedName );
-        }
+    @Override
+    public void writeExternal( ObjectOutput out ) throws IOException {
+        CatalogMessage.BaseTypeIdImpl baseTypeId = toProtobuf();
+        byte[] bs = baseTypeId.toByteArray();
+        ArrayUtil.writeByteArray(out, bs);
     }
 
     private void setTypeIdSpecificInstanceVariables()
@@ -512,6 +519,109 @@ public class BaseTypeIdImpl implements Formatable
     private String doubleQuote( String raw ) { return '"' + raw + '"'; }
 
     // strip the bracketing quotes from a string
-    private String stripQuotes( String quoted ) { return quoted.substring( 1, quoted.length() - 1 ); }
-    
+    private static String stripQuotes( String quoted ) { return quoted.substring( 1, quoted.length() - 1 ); }
+
+
+
+
+    protected void init(CatalogMessage.BaseTypeIdImpl baseTypeId) {
+        JDBCTypeId = baseTypeId.getJDBCTypeId();
+        formatId = baseTypeId.getFormatId();
+        unqualifiedName = baseTypeId.getUnqualifiedName();
+
+        //
+        // If the name begins with a quote, then it is just the first part
+        // of the type name, viz., the schema that the type lives in.
+        // Strip the quotes from around the name and then read the
+        // following  unqualified name.
+        //
+        if (baseTypeId.hasSchemaName()) {
+            schemaName = baseTypeId.getSchemaName();
+            if (schemaName.charAt(0) == '"') {
+                schemaName = stripQuotes(schemaName);
+            }
+        }
+    }
+
+    public static BaseTypeIdImpl fromProtobuf(CatalogMessage.BaseTypeIdImpl baseTypeId) {
+        CatalogMessage.BaseTypeIdImpl.Type t = baseTypeId.getType();
+        BaseTypeIdImpl typeId = null;
+        switch (t) {
+            case UserDefinedTypeIdImpl:
+                typeId = new UserDefinedTypeIdImpl();
+                UserDefinedTypeIdImpl userDefinedTypeIdImpl = (UserDefinedTypeIdImpl) typeId;
+                CatalogMessage.UserDefinedTypeIdImpl userDefinedTypeId
+                        = baseTypeId.getExtension(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+                userDefinedTypeIdImpl.className = userDefinedTypeId.getClassName();
+                userDefinedTypeIdImpl.JDBCTypeId = java.sql.Types.JAVA_OBJECT;
+                break;
+
+            case RowMultiSetImpl:
+                typeId = new RowMultiSetImpl();
+                RowMultiSetImpl rowMultiSetImpl = (RowMultiSetImpl)typeId;
+                CatalogMessage.RowMultiSetImpl rowMultiSet
+                        = baseTypeId.getExtension(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+                int count = rowMultiSet.getTypesCount();
+                rowMultiSetImpl._columnNames = new String[ count ];
+                rowMultiSetImpl._types = new TypeDescriptor[ count ];
+                for (int i = 0; i < count; ++i) {
+                    rowMultiSetImpl._columnNames[i] = rowMultiSet.getColumnNames(i);
+                    rowMultiSetImpl._types[i] = TypeDescriptorImpl.fromProtobuf(rowMultiSet.getTypes(i));
+                }
+                break;
+
+            case DecimalTypeIdImpl:
+                typeId = new DecimalTypeIdImpl();
+                DecimalTypeIdImpl decimalTypeIdImpl = (DecimalTypeIdImpl) typeId;
+                CatalogMessage.DecimalTypeIdImpl decimalTypeId =
+                        baseTypeId.getExtension(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+                boolean isNumeric = decimalTypeId.getIsNumeric();
+                if (isNumeric)
+                {
+                    decimalTypeIdImpl.setNumericType();
+                }
+                break;
+            case BaseTypeIdImpl:
+            default:
+                typeId = new BaseTypeIdImpl();
+                break;
+        }
+
+        typeId.JDBCTypeId = baseTypeId.getJDBCTypeId();
+        typeId.formatId = baseTypeId.getFormatId();
+        if (baseTypeId.hasUnqualifiedName()) {
+            typeId.unqualifiedName = baseTypeId.getUnqualifiedName();
+        }
+
+        //
+        // If the name begins with a quote, then it is just the first part
+        // of the type name, viz., the schema that the type lives in.
+        // Strip the quotes from around the name and then read the
+        // following  unqualified name.
+        //
+        if (baseTypeId.hasSchemaName()) {
+            typeId.schemaName = baseTypeId.getSchemaName();
+            if (typeId.schemaName.charAt(0) == '"') {
+                typeId.schemaName = stripQuotes(typeId.schemaName);
+            }
+        }
+
+
+        return typeId;
+    }
+
+    public CatalogMessage.BaseTypeIdImpl toProtobuf() {
+        CatalogMessage.BaseTypeIdImpl.Builder builder = CatalogMessage.BaseTypeIdImpl.newBuilder()
+                .setJDBCTypeId(JDBCTypeId)
+                .setFormatId(formatId);
+
+        if (schemaName != null) {
+            builder.setSchemaName(doubleQuote(schemaName));
+        }
+        if (unqualifiedName != null) {
+            builder.setUnqualifiedName(unqualifiedName);
+        }
+        return builder.build();
+    }
+
 }

@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.db.DatabaseContext;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -38,6 +40,8 @@ import com.splicemachine.db.iapi.services.cache.ClassSize;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.i18n.LocaleFinder;
 import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -230,16 +234,57 @@ public final class SQLDate extends DataType
 
 	*/
 	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeBoolean(isNull);
-		out.writeInt(encodedDate);
+		CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+		ArrayUtil.writeByteArray(out, dvd.toByteArray());
 	}
 
+	@Override
+	public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+		CatalogMessage.SQLDate.Builder builder = CatalogMessage.SQLDate.newBuilder();
+		builder.setIsNull(isNull);
+		if (!isNull) {
+			builder.setEncodedDate(encodedDate);
+		}
+		CatalogMessage.DataValueDescriptor dvd =
+				CatalogMessage.DataValueDescriptor.newBuilder()
+						.setType(CatalogMessage.DataValueDescriptor.Type.SQLDate)
+						.setExtension(CatalogMessage.SQLDate.sqlDate, builder.build())
+						.build();
+
+		return dvd;
+	}
 	/**
 	 * @see java.io.Externalizable#readExternal
 	 *
 	 * @exception IOException	Thrown on error reading the object
 	 */
+	@Override
 	public void readExternal(ObjectInput in) throws IOException {
+		if (DataInputUtil.isOldFormat()) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	private void readExternalNew(ObjectInput in) throws IOException {
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.SQLDate.sqlDate);
+		CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+		CatalogMessage.SQLDate date = dvd.getExtension(CatalogMessage.SQLDate.sqlDate);
+		init(date);
+	}
+
+	private void init(CatalogMessage.SQLDate date) {
+		isNull = date.getIsNull();
+		if (!isNull) {
+			encodedDate = date.getEncodedDate();
+		}
+	}
+
+	private void readExternalOld(ObjectInput in) throws IOException {
 		isNull = in.readBoolean();
 		setValue(in.readInt());
 	}
@@ -419,6 +464,10 @@ public final class SQLDate extends DataType
 	public SQLDate(int encodedDate) throws StandardException
 	{
 		setValue(encodedDate);
+	}
+
+	public SQLDate(CatalogMessage.SQLDate sqlDate) {
+		init(sqlDate);
 	}
 
     /**

@@ -31,12 +31,13 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-import com.splicemachine.db.iapi.services.io.ArrayInputStream;
-import com.splicemachine.db.iapi.services.io.Storable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.io.*;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.yahoo.sketches.theta.UpdateSketch;
@@ -153,6 +154,10 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
     public SQLDecimal(String val)
     {
         setValue(new BigDecimal(val));
+    }
+
+    public SQLDecimal(CatalogMessage.SQLDecimal sqlDecimal) {
+        init(sqlDecimal);
     }
 
     /*
@@ -391,58 +396,68 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
      *    <LI> the byte array </LI> </UL>
      *
      */
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeBoolean(isNull);
-        if (isNull)
-            return;
-
-        int scale;
-        byte[] byteArray;
-        if (value != null) {
-            scale = value.scale();
-
-            // J2SE 5.0 introduced negative scale value for BigDecimals.
-            // In previouse Java releases a negative scale was not allowed
-            // (threw an exception on setScale and the constructor that took
-            // a scale).
-            //
-            // Thus the Derby format for DECIMAL implictly assumed a
-            // positive or zero scale value, and thus now must explicitly
-            // be positive. This is to allow databases created under J2SE 5.0
-            // to continue to be supported under JDK 1.3/JDK 1.4, ie. to continue
-            // the platform independence, independent of OS/cpu and JVM.
-            //
-            // If the scale is negative set the scale to be zero, this results
-            // in an unchanged value with a new scale. A BigDecimal with a
-            // negative scale by definition is a whole number.
-            // e.g. 1000 can be represented by:
-            //    a BigDecimal with scale -3 (unscaled value of 1)
-            // or a BigDecimal with scale 0 (unscaled value of 1000)
-
-            if (scale < 0) {
-                scale = 0;
-                setValue(value.setScale(0));
-            }
-
-            BigInteger bi = value.unscaledValue();
-            byteArray = bi.toByteArray();
-        } else {
-            scale = rawScale;
-            byteArray = rawData;
-        }
-
-        if (SanityManager.DEBUG)
-        {
-            if (scale < 0)
-                SanityManager.THROWASSERT("DECIMAL scale at writeExternal is negative "
-                    + scale + " value " + toString());
-        }
-
-        out.writeByte(scale);
-        out.writeByte(byteArray.length);
-        out.write(byteArray);
+        CatalogMessage.DataValueDescriptor dvd = toProtobuf();
+        ArrayUtil.writeByteArray(out, dvd.toByteArray());
     }
 
+    @Override
+    public CatalogMessage.DataValueDescriptor toProtobuf() throws IOException {
+        CatalogMessage.SQLDecimal.Builder builder = CatalogMessage.SQLDecimal.newBuilder();
+        builder.setIsNull(isNull);
+        if (!isNull) {
+            int scale;
+            byte[] byteArray;
+            if (value != null) {
+                scale = value.scale();
+
+                // J2SE 5.0 introduced negative scale value for BigDecimals.
+                // In previouse Java releases a negative scale was not allowed
+                // (threw an exception on setScale and the constructor that took
+                // a scale).
+                //
+                // Thus the Derby format for DECIMAL implictly assumed a
+                // positive or zero scale value, and thus now must explicitly
+                // be positive. This is to allow databases created under J2SE 5.0
+                // to continue to be supported under JDK 1.3/JDK 1.4, ie. to continue
+                // the platform independence, independent of OS/cpu and JVM.
+                //
+                // If the scale is negative set the scale to be zero, this results
+                // in an unchanged value with a new scale. A BigDecimal with a
+                // negative scale by definition is a whole number.
+                // e.g. 1000 can be represented by:
+                //    a BigDecimal with scale -3 (unscaled value of 1)
+                // or a BigDecimal with scale 0 (unscaled value of 1000)
+
+                if (scale < 0) {
+                    scale = 0;
+                    setValue(value.setScale(0));
+                }
+
+                BigInteger bi = value.unscaledValue();
+                byteArray = bi.toByteArray();
+            } else {
+                scale = rawScale;
+                byteArray = rawData;
+            }
+
+            if (SanityManager.DEBUG) {
+                if (scale < 0)
+                    SanityManager.THROWASSERT("DECIMAL scale at writeExternal is negative "
+                            + scale + " value " + toString());
+            }
+
+            builder.setRawScale(scale);
+            builder.setRawData(ByteString.copyFrom(byteArray));
+        }
+        CatalogMessage.DataValueDescriptor dvd =
+                CatalogMessage.DataValueDescriptor.newBuilder()
+                        .setType(CatalogMessage.DataValueDescriptor.Type.SQLDecimal)
+                        .setExtension(CatalogMessage.SQLDecimal.sqlDecimal, builder.build())
+                        .build();
+        return dvd;
+    }
     /**
      * Note the use of rawData: we reuse the array if the
      * incoming array is the same length or smaller than
@@ -450,7 +465,40 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
      *
      * @see java.io.Externalizable#readExternal
      */
+    @Override
     public void readExternal(ObjectInput in) throws IOException {
+        if (DataInputUtil.isOldFormat()) {
+            readExternalOld(in);
+        }
+        else {
+            readExternalNew(in);
+        }
+    }
+
+    private void readExternalNew(ObjectInput in) throws IOException {
+        byte[] bs = ArrayUtil.readByteArray(in);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.SQLDecimal.sqlDecimal);
+        CatalogMessage.DataValueDescriptor dvd = CatalogMessage.DataValueDescriptor.parseFrom(bs, extensionRegistry);
+        CatalogMessage.SQLDecimal sqlDecimal = dvd.getExtension(CatalogMessage.SQLDecimal.sqlDecimal);
+        init(sqlDecimal);
+    }
+
+    private void init(CatalogMessage.SQLDecimal sqlDecimal) {
+        isNull = sqlDecimal.getIsNull();
+        if (isNull) {
+            setCoreValue(null);
+            return;
+        }
+        // clear the previous value to ensure that the
+        // rawData value will be used
+        value = null;
+
+        rawScale = sqlDecimal.getRawScale();
+        rawData = sqlDecimal.getRawData().toByteArray();
+        isNull = evaluateNull();
+    }
+    private void readExternalOld(ObjectInput in) throws IOException {
 
         if (in.readBoolean()) {
             setCoreValue(null);

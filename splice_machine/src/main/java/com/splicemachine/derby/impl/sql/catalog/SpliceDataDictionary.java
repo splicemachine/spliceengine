@@ -37,8 +37,10 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
+import com.splicemachine.db.iapi.stats.ItemStatistics;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ScanController;
@@ -57,6 +59,7 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.*;
 import com.splicemachine.derby.lifecycle.EngineLifecycleService;
+import com.splicemachine.derby.utils.StatisticsAdmin;
 import com.splicemachine.management.Manager;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
@@ -638,7 +641,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         super.loadDictionaryTables(tc,startParams);
 
         // Check splice data dictionary version to decide if upgrade is necessary
-        upgradeIfNecessary(tc);
+        upgradeIfNecessary(tc, startParams);
     }
 
     /**
@@ -817,7 +820,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return pkTable;
     }
 
-    private void upgradeIfNecessary(TransactionController tc) throws StandardException{
+    private void upgradeIfNecessary(TransactionController tc, Properties startParams) throws StandardException{
 
         boolean toUpgrade = Boolean.TRUE.equals(EngineLifecycleService.toUpgrade.get());
         // Only master can upgrade
@@ -829,7 +832,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         if(needToUpgrade(catalogVersion)){
             tc.elevate("dictionary");
             SpliceCatalogUpgradeScripts scripts=new SpliceCatalogUpgradeScripts(this,catalogVersion,tc);
-            scripts.run();
+            scripts.run(startParams);
             tc.setProperty(SPLICE_DATA_DICTIONARY_VERSION,spliceSoftwareVersion,true);
             tc.commit();
         }
@@ -1431,7 +1434,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             toUpgrade.add(s);
         }
         toUpgrade.add("16"); // splice:16 core table
-        toUpgrade.add(SIConfigurations.CONGLOMERATE_TABLE_NAME);
+        toUpgrade.add(HBaseConfiguration.CONGLOMERATE_TABLE_NAME);
 
         return admin.upgradeTablePrioritiesFromList(toUpgrade);
     }
@@ -1741,12 +1744,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     public void addCatalogVersion(TransactionController tc) throws StandardException{
         for (int i = 0; i < coreInfo.length; ++i) {
             long conglomerateId = coreInfo[i].getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i));
+            tc.setCatalogVersion(Long.toString(conglomerateId), catalogVersions.get(i));
         }
 
         for (int i = 0; i < noncoreInfo.length; ++i) {
             long conglomerateId = getNonCoreTI(i+NUM_CORE).getHeapConglomerate();
-            tc.setCatalogVersion(conglomerateId, catalogVersions.get(i + NUM_CORE));
+            tc.setCatalogVersion(Long.toString(conglomerateId), catalogVersions.get(i + NUM_CORE));
 
         }
     }
@@ -1901,5 +1904,101 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     @Override
     public boolean useTxnAwareCache() {
         return !SpliceClient.isRegionServer;
+    }
+
+
+    public GenericDescriptorList getAllDescriptors(int catalogNum) throws StandardException {
+        TabInfoImpl ti = (catalogNum < NUM_CORE) ? coreInfo[catalogNum] : getNonCoreTI(catalogNum);;
+
+        GenericDescriptorList list=new GenericDescriptorList();
+
+        getDescriptorViaHeap(null,null,ti,null,list);
+        return list;
+    }
+
+    public void upgradeDataDictionarySerializationToV2(TransactionController tc) throws StandardException {
+        int[] tables = {
+                SYSDEPENDS_CATALOG_NUM,
+                SYSALIASES_CATALOG_NUM,
+                SYSCHECKS_CATALOG_NUM,
+                SYSTRIGGERS_CATALOG_NUM,
+                SYSCOLPERMS_CATALOG_NUM,
+                SYSSEQUENCES_CATALOG_NUM,
+                SYSCOLUMNSTATS_CATALOG_NUM,
+                SYSCONGLOMERATES_CATALOG_NUM,
+                SYSCOLUMNS_CATALOG_NUM
+        };
+
+        for (int i = 0; i < tables.length; ++i) {
+            SpliceLogUtils.info(LOG, "reading descriptors for %d", tables[i]);
+            GenericDescriptorList list = getAllDescriptors(tables[i]);
+            for (Object obj : list) {
+                switch (tables[i]) {
+                    case SYSCONGLOMERATES_CATALOG_NUM:
+                        ConglomerateDescriptor conglomerateDescriptor = (ConglomerateDescriptor)obj;
+                        dropConglomerateDescriptor(conglomerateDescriptor, tc);
+                        addDescriptor(conglomerateDescriptor, null, SYSCONGLOMERATES_CATALOG_NUM, false,tc,false);
+                        break;
+
+                    case SYSCOLUMNS_CATALOG_NUM:
+                        ColumnDescriptor columnDescriptor = (ColumnDescriptor) obj;
+                        dropColumnDescriptor(columnDescriptor.getReferencingUUID(), columnDescriptor.getColumnName(), tc);
+                        addDescriptor(columnDescriptor, null, SYSCOLUMNS_CATALOG_NUM, false,tc,false);
+                        break;
+
+                    case SYSDEPENDS_CATALOG_NUM:
+                        DependencyDescriptor dependencyDescriptor = (DependencyDescriptor)obj;
+                        dropDependentsStoredDependencies(dependencyDescriptor.getUUID(), tc);
+                        addDescriptor(dependencyDescriptor, null, SYSDEPENDS_CATALOG_NUM, false,tc,false);
+                        break;
+
+                    case SYSALIASES_CATALOG_NUM:
+                        AliasDescriptor ad = (AliasDescriptor) obj;
+                        dropAliasDescriptor(ad, tc);
+                        addDescriptor(ad,null, SYSALIASES_CATALOG_NUM,false,tc,false);
+                        break;
+
+                    case SYSCHECKS_CATALOG_NUM:
+                        CheckConstraintDescriptor checkConstraintDescriptor = (CheckConstraintDescriptor)obj;
+                        dropSubCheckConstraint(checkConstraintDescriptor.getUUID(), tc);
+                        addDescriptor(checkConstraintDescriptor, null, SYSCHECKS_CATALOG_NUM,false,tc,false);
+                        break;
+
+                    case SYSTRIGGERS_CATALOG_NUM:
+                        TriggerDescriptor triggerDescriptor = (TriggerDescriptor) obj;
+                        dropTriggerDescriptor(triggerDescriptor, tc);
+                        addDescriptor(triggerDescriptor, null, SYSTRIGGERS_CATALOG_NUM,false,tc,false);
+                        break;
+
+                    case SYSCOLPERMS_CATALOG_NUM:
+                        ColPermsDescriptor colPermsDescriptor = (ColPermsDescriptor)obj;
+                        SQLChar tableIdOrderable=getIDValueAsCHAR(colPermsDescriptor.getTableUUID());
+
+                        /* Set up the start/stop position for the scan */
+                        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
+                        keyRow.setColumn(1,tableIdOrderable);
+                        dropColumnPermDescriptor(tc, keyRow);
+                        addDescriptor(colPermsDescriptor, null, SYSCOLPERMS_CATALOG_NUM,false,tc,false);
+                        break;
+
+                    case SYSSEQUENCES_CATALOG_NUM:
+                        SequenceDescriptor sequenceDescriptor = (SequenceDescriptor)obj;
+                        dropSequenceDescriptor(sequenceDescriptor, tc);
+                        addDescriptor(sequenceDescriptor, null, SYSSEQUENCES_CATALOG_NUM,false,tc,false);
+                        break;
+
+                    case SYSCOLUMNSTATS_CATALOG_NUM:
+                        ColumnStatisticsDescriptor columnStatisticsDescriptor = (ColumnStatisticsDescriptor)obj;
+                        deleteColumnStatistics(columnStatisticsDescriptor.getConglomerateId(), tc);
+                        long conglomId = columnStatisticsDescriptor.getConglomerateId();
+                        String partitionId = columnStatisticsDescriptor.getPartitionId();
+                        int columnId = columnStatisticsDescriptor.getColumnId();
+                        ItemStatistics columnStatistics = columnStatisticsDescriptor.getStats();
+                        ExecRow statsRow = StatisticsAdmin.generateRowFromStats(conglomId, partitionId, columnId, columnStatistics);
+                        addColumnStatistics(statsRow, tc);
+                        break;
+                }
+            }
+        }
     }
 }

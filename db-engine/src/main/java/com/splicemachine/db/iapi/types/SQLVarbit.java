@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.reference.Limits;
@@ -179,6 +180,9 @@ public class SQLVarbit extends SQLBit
 		super(val);
 	}
 
+	public SQLVarbit(CatalogMessage.SQLBinary sqlBinary) {
+		init(sqlBinary);
+	}
 	/*
 	 * DataValueDescriptor interface
 	 */

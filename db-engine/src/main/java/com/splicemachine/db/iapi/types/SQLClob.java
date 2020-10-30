@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.catalog.types.CatalogMessage;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
@@ -231,6 +232,9 @@ public class SQLClob
 		super(val);
 	}
 
+	public SQLClob(CatalogMessage.SQLChar sqlChar) {
+	    init(sqlChar);
+    }
 	/*
 	 * DataValueDescriptor interface
 	 */
