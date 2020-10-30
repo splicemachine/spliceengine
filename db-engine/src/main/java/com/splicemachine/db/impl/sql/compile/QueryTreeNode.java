@@ -1370,16 +1370,6 @@ public abstract class QueryTreeNode implements Node, Visitable{
     }
 
     /**
-     * Return the type of statement, something from
-     * StatementType.
-     *
-     * @return the type of statement
-     */
-    protected int getStatementType(){
-        return StatementType.UNKNOWN;
-    }
-
-    /**
      * Get the descriptor for the named table within the given schema.
      * If the schema parameter is NULL, it looks for the table in the
      * current (default) schema. Table descriptors include object ids,

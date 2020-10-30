@@ -52,6 +52,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.sql.compile.DMLModStatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import splice.com.google.common.primitives.Ints;
@@ -784,14 +785,14 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return matches;
     }
 
-    private static void assertValidStatementType(int statementType)
+    private static void assertValidStatementType(DMLModStatementNode.StatementTypeEnum statementType)
     {
         if(SanityManager.DEBUG){
-            SanityManager.ASSERT((statementType==StatementType.INSERT) ||
-                            (statementType==StatementType.BULK_INSERT_REPLACE) ||
-                            (statementType==StatementType.UPDATE) ||
-                            (statementType==StatementType.LOAD_REPLACE) ||
-                            (statementType==StatementType.DELETE),
+            SanityManager.ASSERT((statementType== DMLModStatementNode.StatementTypeEnum.INSERT) ||
+                            (statementType==DMLModStatementNode.StatementTypeEnum.BULK_INSERT_REPLACE) ||
+                            (statementType==DMLModStatementNode.StatementTypeEnum.UPDATE) ||
+                            (statementType==DMLModStatementNode.StatementTypeEnum.LOAD_REPLACE) ||
+                            (statementType==DMLModStatementNode.StatementTypeEnum.DELETE),
                     "invalid statement type "+statementType);
         }
     }
@@ -832,7 +833,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @param relevantConstraints     IN/OUT. Empty list is passed in. We hang constraints on it as we go.
      * @throws StandardException Thrown on error
      */
-    public void getAllRelevantConstraints(int statementType,
+    public void getAllRelevantConstraints(DMLModStatementNode.StatementTypeEnum statementType,
                                           boolean skipCheckConstraints,
                                           int[] changedColumnIds,
                                           boolean[] needsDeferredProcessing,

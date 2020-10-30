@@ -44,6 +44,7 @@ public interface StatementType
 	int DELETE	= 4;
 	int ENABLED = 5;
 	int DISABLED = 6;
+	int LOAD_REPLACE = 7;
 
 	int DROP_CASCADE = 0;
 	int DROP_RESTRICT = 1;
@@ -67,7 +68,6 @@ public interface StatementType
 
 	int CREATE_IF_NOT_EXISTS = 7;
 	int CREATE_DEFAULT = 8;
-	int LOAD_REPLACE = 9;
 }
 
 

@@ -906,9 +906,9 @@ public final class UpdateNode extends DMLModStatementNode
      *
      * @return the type of statement
      */
-    protected final int getStatementType()
+    protected final StatementTypeEnum getStatementType()
     {
-        return StatementType.UPDATE;
+        return StatementTypeEnum.UPDATE;
     }
 
 
@@ -1094,7 +1094,7 @@ public final class UpdateNode extends DMLModStatementNode
         ** their indexes above.
         */
         baseTable.getAllRelevantConstraints
-            ( StatementType.UPDATE, false, changedColumnIds, needsDeferredProcessing, relevantConstraints );
+            ( StatementTypeEnum.UPDATE, false, changedColumnIds, needsDeferredProcessing, relevantConstraints );
 
         int rclSize = relevantConstraints.size();
         for (int index = 0; index < rclSize; index++)

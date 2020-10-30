@@ -56,13 +56,15 @@ import org.apache.commons.lang3.ArrayUtils;
 import java.util.Hashtable;
 import java.util.Vector;
 
+import static com.splicemachine.db.iapi.sql.StatementType.*;
+
 /**
  * A DMLStatement for a table modification: to wit, INSERT
  * UPDATE or DELETE.
  *
  */
 @SuppressFBWarnings({"UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"}) // used in implementations
-abstract class DMLModStatementNode extends DMLStatementNode
+public abstract class DMLModStatementNode extends DMLStatementNode
 {
 //    protected DataDictionary    dataDictionary;
     protected FromVTI            targetVTI;
@@ -85,7 +87,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 
     // PRIVATE
     private boolean          requiresDeferredProcessing;
-    protected int            statementType;
+    protected StatementTypeEnum statementType;
     private boolean          bound;
     private ValueNode        checkConstraints;
 
@@ -103,6 +105,27 @@ abstract class DMLModStatementNode extends DMLStatementNode
     protected int[] pkColumns;
 
 
+    public enum StatementTypeEnum
+    {
+        UNKNOWN(StatementType.UNKNOWN),
+        INSERT(StatementType.INSERT),
+        BULK_INSERT_REPLACE(StatementType.BULK_INSERT_REPLACE),
+        UPDATE(StatementType.UPDATE),
+        DELETE(StatementType.DELETE),
+        ENABLED(StatementType.ENABLED),
+        DISABLED(StatementType.DISABLED),
+        LOAD_REPLACE(StatementType.LOAD_REPLACE);
+
+        int statementType;
+        StatementTypeEnum(int statementType) {
+            this.statementType = statementType;
+        }
+    }
+
+
+
+
+
     /**
      * Initializer for a DMLModStatementNode -- delegate to DMLStatementNode
      *
@@ -116,6 +139,16 @@ abstract class DMLModStatementNode extends DMLStatementNode
     }
 
     /**
+     * Return the type of statement, something from
+     * StatementType.
+     *
+     * @return the type of statement
+     */
+    protected StatementTypeEnum getStatementType(){
+        return StatementTypeEnum.UNKNOWN;
+    }
+
+    /**
      * Initializer for a DMLModStatementNode -- delegate to DMLStatementNode
      *
      * @param resultSet    A ResultSetNode for the result set of the
@@ -126,7 +159,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
     public void init(Object resultSet, Object statementType)
     {
         super.init(resultSet);
-        this.statementType = (Integer) statementType;
+        this.statementType = (StatementTypeEnum) statementType;
     }
 
     void setTarget(QueryTreeNode targetName)

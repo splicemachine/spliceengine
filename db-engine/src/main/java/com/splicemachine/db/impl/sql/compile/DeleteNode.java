@@ -769,9 +769,9 @@ public class DeleteNode extends DMLModStatementNode
      *
      * @return the type of statement
      */
-    protected final int getStatementType()
+    protected final StatementTypeEnum getStatementType()
     {
-        return StatementType.DELETE;
+        return StatementTypeEnum.DELETE;
     }
 
 

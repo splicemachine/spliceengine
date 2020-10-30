@@ -164,8 +164,7 @@ public final class InsertNode extends DMLModStatementNode {
          */
         super.init(
                 queryExpression,
-                ReuseFactory.getInteger(getStatementType(
-                                                (Properties) targetProperties))
+                getStatementType((Properties) targetProperties))
                 );
         setTarget((QueryTreeNode) targetName);
         targetColumnList = (ResultColumnList) insertColumns;
@@ -1064,9 +1063,9 @@ public final class InsertNode extends DMLModStatementNode {
      *
      * @return the type of statement
      */
-    protected final int getStatementType()
+    protected final StatementTypeEnum getStatementType()
     {
-        return StatementType.INSERT;
+        return StatementTypeEnum.INSERT;
     }
 
     /**
@@ -1076,9 +1075,9 @@ public final class InsertNode extends DMLModStatementNode {
      *
      * @return the type of statement
      */
-    static final int getStatementType(Properties targetProperties)
+    static final StatementTypeEnum getStatementType(Properties targetProperties)
     {
-        int retval = StatementType.INSERT;
+        StatementTypeEnum retval = StatementTypeEnum.INSERT;
 
         // The only property that we're currently interested in is insertMode
         String insertMode = (targetProperties == null) ? null : targetProperties.getProperty("insertMode");
@@ -1087,11 +1086,11 @@ public final class InsertNode extends DMLModStatementNode {
             String upperValue = StringUtil.SQLToUpperCase(insertMode);
             if (upperValue.equals(REPLACE))
             {
-                retval = StatementType.BULK_INSERT_REPLACE;
+                retval = StatementTypeEnum.BULK_INSERT_REPLACE;
             }
             else if(upperValue.equals(LOAD_REPLACE))
             {
-                retval = StatementType.LOAD_REPLACE;
+                retval = StatementTypeEnum.LOAD_REPLACE;
             }
         }
         return retval;
