@@ -159,6 +159,11 @@ public class FromBaseTable extends FromTable {
      */
     private String[] columnNames;
 
+    /* Keep a copy of original base table result columns for binding
+     * expressions after changeAccessPath() for index on expressions.
+     */
+    private ResultColumnList originalBaseTableResultColumns;
+
     // true if we are to do a special scan to retrieve the last value
     // in the index
     private boolean specialMaxScan;
@@ -1564,8 +1569,9 @@ public class FromBaseTable extends FromTable {
         ** matches the table we're looking at, see whether the column
         ** is in this table.
         */
+        ResultColumnList resultColumnsToUse = resultColumns.isFromExprIndex() ? originalBaseTableResultColumns : resultColumns;
         if(columnsTableName==null || columnsTableName.equals(exposedTableName) || columnsTableName.equals(temporaryTableName)){
-            resultColumn=resultColumns.getResultColumn(columnReference.getColumnName());
+            resultColumn=resultColumnsToUse.getResultColumn(columnReference.getColumnName());
             /* Did we find a match? */
             if(resultColumn!=null){
                 columnReference.setTableNumber(tableNumber);
@@ -1844,34 +1850,33 @@ public class FromBaseTable extends FromTable {
         /* No need to go to the data page if this is a covering index */
         /* Derby-1087: use data page when returning an updatable resultset */
         if(ap.getCoveringIndexScan() && (!cursorTargetTable())){
+            originalBaseTableResultColumns = resultColumns;
             /* Generate new resultColumns so that it matches the index.
-             * Do not assign to resultColumns yet because the next call to
-             * newResultColumns below may need to bind expressions, which
-             * requires the base table resultColumns. Assign only when the
-             * base table resultColumns are not needed anymore.
+             * fromExprIndex needs to be set immediately after resultColumns
+             * is modified. Otherwise it may not be possible to bind index
+             * expressions afterwards.
              */
-            ResultColumnList newResultColumns = newResultColumns(resultColumns,
+            resultColumns = newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
                     false);
+            resultColumns.setFromExprIndex(isOnExpression);
 
             /* We are going against the index.  The template row must be the full index row.
              * The template row will have the RID but the result row will not
              * since there is no need to go to the data page.
              */
-            ResultColumnList newTemplateColumns = newResultColumns(resultColumns,
+            templateColumns = newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
                     false);
-            newTemplateColumns.addRCForRID();
+            templateColumns.addRCForRID();
 
             // If this is for update then we need to get the RID in the result row
             if(forUpdate()){
-                newResultColumns.addRCForRID();
+                resultColumns.addRCForRID();
             }
 
-            resultColumns = newResultColumns;
-            templateColumns = newTemplateColumns;
             if (isOnExpression) {
                 resultColumns.markAllUnreferenced();
                 /* Don't try to "optimize" the following by setting ref expr index positions
@@ -1897,7 +1902,6 @@ public class FromBaseTable extends FromTable {
             resultColumns.setIndexRow(
                     baseConglomerateDescriptor.getConglomerateNumber(),
                     forUpdate());
-            resultColumns.setFromExprIndex(isOnExpression);
 
             if (isOnExpression) {
                 // for expressions from outer tables, replace them later
@@ -1979,7 +1983,8 @@ public class FromBaseTable extends FromTable {
         ** The template row is all the columns.  The
         ** result set is the compacted column list.
         */
-        resultColumns=newResultColumns;
+        originalBaseTableResultColumns = resultColumns;
+        resultColumns = newResultColumns;
         if (isOnExpression) {
             templateColumns = resultColumns.copyListAndObjects();
             /* newResultColumns was built with all columns set to referenced. But we only
@@ -1993,6 +1998,7 @@ public class FromBaseTable extends FromTable {
             if (nonStoreRestrictionList != null) {
                 markReferencedIndexExpr(resultColumns, nonStoreRestrictionList);
             }
+            resultColumns.setFromExprIndex(true);
         } else {
             templateColumns = newResultColumns(resultColumns,trulyTheBestConglomerateDescriptor,baseConglomerateDescriptor,false);
             /* Since we are doing a non-covered index scan, if bulkFetch is on, then
@@ -2011,6 +2017,7 @@ public class FromBaseTable extends FromTable {
                     nonStoreRestrictionList.markReferencedColumns();
                 }
             }
+            resultColumns.setFromExprIndex(false);
         }
         resultColumns.addRCForRID();
         templateColumns.addRCForRID();
@@ -2021,7 +2028,6 @@ public class FromBaseTable extends FromTable {
         resultColumns.setIndexRow(
                 baseConglomerateDescriptor.getConglomerateNumber(),
                 forUpdate());
-        resultColumns.setFromExprIndex(isOnExpression);
 
         /* We must remember if this was the cursorTargetTable
           * in order to get the right locking on the scan.
