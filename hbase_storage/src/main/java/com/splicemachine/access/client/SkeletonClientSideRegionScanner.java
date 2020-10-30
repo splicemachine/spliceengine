@@ -14,7 +14,7 @@
 
 package com.splicemachine.access.client;
 
-import com.google.common.collect.Sets;
+import splice.com.google.common.collect.Sets;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.driver.SIDriver;

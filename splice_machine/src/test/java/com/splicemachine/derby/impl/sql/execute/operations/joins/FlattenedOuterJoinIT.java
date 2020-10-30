@@ -333,7 +333,7 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
         String sqlText = "select a1, a2 from t1 left join t2 on a1=a2 where coalesce(a2,3)=3 order by a1";
 
         rowContainsQuery(new int[]{4, 5}, "explain " + sqlText, methodWatcher,
-                new String[]{"ProjectRestrict", "preds=[(coalesce(A2[4:2], 3)  = 3)]"},
+                new String[]{"ProjectRestrict", "preds=[(coalesce(A2[4:2], cast(3 as INTEGER))  = 3)]"},
                 new String[]{"LeftOuterJoin"});
 
         String expected = "A1 | A2  |\n" +
@@ -351,7 +351,7 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
         String sqlText = "select * from t1 left join (select * from t2, t3 where a2=a3) dt on a1=a2 where coalesce(a2,3)=3 order by a1";
 
         rowContainsQuery(new int[]{4, 5}, "explain " + sqlText, methodWatcher,
-                new String[]{"ProjectRestrict", "preds=[(coalesce(A2[10:4], 3)  = 3)]"},
+                new String[]{"ProjectRestrict", "preds=[(coalesce(A2[10:4], cast(3 as INTEGER))  = 3)]"},
                 new String[]{"LeftOuterJoin"});
 
         String expected = "A1 |B1 | C1  | A2  | B2  | C2  | A3  | B3  | C3  |\n" +
@@ -374,7 +374,7 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
         rowContainsQuery(new int[]{4, 5, 6, 7}, "explain " + sqlText, methodWatcher,
                 new String[]{"AntiJoin", "preds=[(A1[8:1] = A3[8:7])]"},
                 new String[]{"TableScan[T3"},
-                new String[]{"ProjectRestrict", "preds=[(coalesce(A2[4:4], 3)  = 3)]"},
+                new String[]{"ProjectRestrict", "preds=[(coalesce(A2[4:4], cast(3 as INTEGER))  = 3)]"},
                 new String[]{"LeftOuterJoin", "preds=[(A1[4:1] = A2[4:4])]"});
 
         String expected = "A1 |B1 |C1 | A2  | B2  | C2  |\n" +
@@ -393,7 +393,7 @@ public class FlattenedOuterJoinIT  extends SpliceUnitTest {
         rowContainsQuery(new int[]{3, 4, 8, 9}, "explain " + sqlText, methodWatcher,
                 new String[]{"ProjectRestrict", "preds=[is null(subq=8)]"},
                 new String[]{"Subquery"},
-                new String[]{"ProjectRestrict", "preds=[(coalesce(A2[4:4], 3)  = 3)]"},
+                new String[]{"ProjectRestrict", "preds=[(coalesce(A2[4:4], cast(3 as INTEGER))  = 3)]"},
                 new String[]{"LeftOuterJoin", "preds=[(A1[4:1] = A2[4:4])]"});
 
         String expected = "A1 |B1 |C1 | A2  | B2  | C2  |\n" +

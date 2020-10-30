@@ -36,7 +36,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
 
@@ -275,7 +274,8 @@ public class VTIOperation extends SpliceBaseOperation {
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
-        operationContext = dsp.createOperationContext(this);
+
+        dsp.createOperationContext(this);
         
         if (this.userVTI instanceof TriggerNewTransitionRows) {
             TriggerNewTransitionRows triggerTransitionRows = (TriggerNewTransitionRows) this.userVTI;
