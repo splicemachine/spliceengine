@@ -122,9 +122,6 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     // an array to cache instances of the generated classes
     private BaseExecutableIndexExpression[] executableExprs;
 
-    // an array to cache parsed expressions
-    private ValueNode[] exprAsts;
-
 
     /**
      * Constructor for an IndexDescriptorImpl
@@ -176,7 +173,6 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         this.generatedClassNames = generatedClassNames;
         assert this.exprBytecode.length == this.generatedClassNames.length;
         this.executableExprs = new BaseExecutableIndexExpression[this.exprBytecode.length];
-        exprAsts = null;
     }
 
     /** Constructor for non-expression based index */
@@ -396,7 +392,6 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
             }
         }
         executableExprs = new BaseExecutableIndexExpression[numIndexExpr];
-        exprAsts = null;
     }
 
     /**
@@ -551,7 +546,7 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 
     /** @see IndexDescriptor#getExecutableIndexExpression */
     @Override
-    public BaseExecutableIndexExpression getExecutableIndexExpression(int indexColumnPosition)
+    public synchronized BaseExecutableIndexExpression getExecutableIndexExpression(int indexColumnPosition)
             throws StandardException
     {
         if (indexColumnPosition >= exprBytecode.length)
@@ -583,15 +578,10 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
         }
         assert lcc != null;
 
-        if (exprAsts != null) {
-            for (ValueNode ast : exprAsts) {
-                setTableNumberToIndexExpr(ast, optTable);
-                bindNecessaryNodesInIndexExpr(ast, optTable, lcc);
-            }
-            return exprAsts;
-        }
-
-        exprAsts = new ValueNode[exprTexts.length];
+        // For now, always parse and return new AST instances because IndexDescriptor is effectively
+        // cached in data dictionary cache. This cache is global to all queries. Since we need to
+        // update table number each time, caching the ASTs causes data race.
+        ValueNode[] exprAsts = new ValueNode[exprTexts.length];
         CompilerContext oldCC = (CompilerContext) ContextService.getContext(CompilerContext.CONTEXT_ID);
         assert(oldCC != null);
         CompilerContext newCC = lcc.pushCompilerContext();
