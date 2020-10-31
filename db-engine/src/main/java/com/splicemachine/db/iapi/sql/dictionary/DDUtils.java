@@ -837,7 +837,9 @@ public	class	DDUtils
 									int currentDeleteRule = (Integer) dConnHashtable.get(tName);
 									if((currentDeleteRule == StatementType.RA_SETNULL
 										&& raDeleteRuleToAddTable == StatementType.RA_SETNULL) ||
-									   currentDeleteRule  != raDeleteRuleToAddTable)
+										(currentDeleteRule != raDeleteRuleToAddTable
+										&& raDeleteRuleToAddTable != StatementType.RA_RESTRICT
+										&& currentDeleteRule != StatementType.RA_RESTRICT))
 									{
 										throw
 											generateError(SQLState.LANG_DELETE_RULE_CANT_BE_CASCADE_MPATH, 

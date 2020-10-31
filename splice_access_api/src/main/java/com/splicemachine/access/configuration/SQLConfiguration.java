@@ -262,6 +262,22 @@ public class SQLConfiguration implements ConfigurationDefault {
     public static final String DEFAULT_NATIVE_SPARK_AGGREGATION_MODE="forced";
     public static final CompilerContext.NativeSparkModeType DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE=CompilerContext.NativeSparkModeType.FORCED;
 
+    /**
+     * Specify whether merge joins use the new implementation.
+     *
+     * Modes: on, off, forced
+     *
+     * on:  New merge join execution is enabled, but may not be picked
+     *      due to costing.
+     * off: All merge joins use the old implementation.
+     * forced: New merge join will be used for every merge join.
+     *
+     * Defaults to forced
+     */
+    public static final String NEW_MERGE_JOIN = "splice.execution.newMergeJoin";
+    public static final String DEFAULT_NEW_MERGE_JOIN="on";
+    public static final CompilerContext.NewMergeJoinExecutionType DEFAULT_NEW_MERGE_JOIN_VALUE= CompilerContext.NewMergeJoinExecutionType.ON;
+
 
     @Override
     public void setDefaults(ConfigurationBuilder builder, ConfigurationSource configurationSource) {
@@ -324,5 +340,18 @@ public class SQLConfiguration implements ConfigurationDefault {
             builder.nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
         else
             builder.nativeSparkAggregationMode = SQLConfiguration.DEFAULT_NATIVE_SPARK_AGGREGATION_MODE_VALUE;
+
+        String newMergeJoinString =
+            configurationSource.getString(NEW_MERGE_JOIN,
+                                          DEFAULT_NEW_MERGE_JOIN);
+        newMergeJoinString = newMergeJoinString.toLowerCase();
+        if (newMergeJoinString.equals("on"))
+            builder.newMergeJoin = CompilerContext.NewMergeJoinExecutionType.ON;
+        else if (newMergeJoinString.equals("off"))
+            builder.newMergeJoin = CompilerContext.NewMergeJoinExecutionType.OFF;
+        else if (newMergeJoinString.equals("forced"))
+            builder.newMergeJoin = CompilerContext.NewMergeJoinExecutionType.FORCED;
+        else
+            builder.newMergeJoin = SQLConfiguration.DEFAULT_NEW_MERGE_JOIN_VALUE;
     }
 }

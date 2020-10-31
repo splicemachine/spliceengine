@@ -1262,7 +1262,7 @@ public class DataTypeDescriptor implements Formatable{
 
         //Are comparable to other bit types and comparable user types
         if(typeId.isBitTypeId())
-            return (compareWithTypeID.isBitTypeId());
+            return compareWithTypeID.isBitTypeId();
 
         //Booleans are comparable to Boolean, string, and to
         //comparable user types. As part of the work on DERYB-887,
