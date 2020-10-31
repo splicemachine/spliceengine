@@ -32,6 +32,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.impl.kryo.KryoSerialization
 import com.splicemachine.derby.stream.spark.KafkaReadFunction
 import com.splicemachine.nsds.kafka.{KafkaTopics, KafkaUtils}
+import com.splicemachine.spark2.splicemachine
 import com.splicemachine.spark2.splicemachine.SplicemachineContext.RowForKafka
 import org.apache.log4j.Logger
 import org.apache.spark.TaskContext
@@ -201,64 +202,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   private[this] def trace(msg: String): Unit = {
     log.trace(s"${java.time.Instant.now} $msg")
-  }
-
-  /**
-    *
-    * Generate the schema string for create table.
-    *
-    * @param schema
-    * @param url
-    * @return
-    */
-  def schemaString(schema: StructType, url: String): String = {
-    val sb = new StringBuilder()
-    val dialect = JdbcDialects.get(url)
-    schema.fields foreach { field =>
-      val name = dialect.quoteIdentifier(field.name)
-      val typ: String = getJdbcType(field.dataType, dialect).databaseTypeDefinition
-      val nullable = if (field.nullable) "" else "NOT NULL"
-      sb.append(s", $name $typ $nullable")
-    }
-    if (sb.length < 2) "" else sb.substring(2)
-  }
-
-  /**
-    *
-    * Retrieve the JDBC type based on the Spark DataType and JDBC Dialect.
-    *
-    * @param dt
-    * @param dialect
-    * @return
-    */
-  private[this]def getJdbcType(dt: DataType, dialect: JdbcDialect): JdbcType = {
-    dialect.getJDBCType(dt).orElse(getCommonJDBCType(dt)).getOrElse(
-      throw new IllegalArgumentException(s"Can't get JDBC type for ${dt.simpleString}"))
-  }
-
-  /**
-    * Retrieve standard jdbc types.
-    *
-    * @param dt The datatype (e.g. [[org.apache.spark.sql.types.StringType]])
-    * @return The default JdbcType for this DataType
-    */
-  private[this] def getCommonJDBCType(dt: DataType) = {
-    dt match {
-      case IntegerType => Option(JdbcType("INTEGER", java.sql.Types.INTEGER))
-      case LongType => Option(JdbcType("BIGINT", java.sql.Types.BIGINT))
-      case DoubleType => Option(JdbcType("DOUBLE PRECISION", java.sql.Types.DOUBLE))
-      case FloatType => Option(JdbcType("REAL", java.sql.Types.FLOAT))
-      case ShortType => Option(JdbcType("INTEGER", java.sql.Types.SMALLINT))
-      case ByteType => Option(JdbcType("BYTE", java.sql.Types.TINYINT))
-      case BooleanType => Option(JdbcType("BIT(1)", java.sql.Types.BIT))
-      case StringType => Option(JdbcType("TEXT", java.sql.Types.CLOB))
-      case BinaryType => Option(JdbcType("BLOB", java.sql.Types.BLOB))
-      case TimestampType => Option(JdbcType("TIMESTAMP", java.sql.Types.TIMESTAMP))
-      case DateType => Option(JdbcType("DATE", java.sql.Types.DATE))
-      case t: DecimalType => Option(
-        JdbcType(s"DECIMAL(${t.precision},${t.scale})", java.sql.Types.DECIMAL))
-      case _ => None
-    }
   }
 
   /**
@@ -556,7 +499,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String): Long = insert(rdd, schema, schemaTableName, Map[String,String]())
 
   private[this] def columnList(schema: StructType): String = SpliceJDBCUtil.listColumns(schema.fieldNames)
-  private[this] def schemaString(schema: StructType): String = SpliceJDBCUtil.schemaWithoutNullableString(schema, url).replace("\"","")
 
   private[this] def insert(rdd: JavaRDD[Row], schema: StructType, schemaTableName: String, 
                            spliceProperties: scala.collection.immutable.Map[String,String]): Long = if( rdd.getNumPartitions > 0 ) {
@@ -572,7 +514,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     try {
       insAccum.reset
       debug("SMC.ins sendData")
-      val tableSchemaStr = schemaString(schemaTableName, schema)
+      val tableSchemaStr = schemaString( columnInfo(schemaTableName) , schema)
       val ptnInfo = sendData(topicName, rdd, modifySchema(schema, tableSchemaStr))
 
       if( ! insAccum.isZero ) {
@@ -613,7 +555,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   /* Sets up insertSql to be used by insert_streaming */
   def setTable(schemaTableName: String, schema: StructType): Unit = {
     val colList = columnList(schema) + fmColList
-    val schStr = schemaString(schema)
+    val schStr = schemaStringWithoutNullable(schema, url)
     // Line break at the end of the first line and before select is required, other line breaks aren't required
     insertSql = (topicName: String) => s"""insert into $schemaTableName ($colList)
                                        select $colList from 
@@ -939,29 +881,10 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       getJdbcOptionsInWrite( schemaTableName)
     )
   
-  /** Schema string built from JDBC metadata. */
-  def schemaString(schemaTableName: String, schema: StructType = new StructType()): String = {
-    val info = SpliceJDBCUtil.retrieveColumnInfo(
-      getJdbcOptionsInWrite( schemaTableName)
-    ).map(i => {
-      val colName = i(0)
-      val sqlType = i(1)
-      val size = sqlType match {
-        case "VARCHAR" => s"(${i(2)})"
-        case "DECIMAL" | "NUMERIC" => s"(${i(2)},${i(3)})"
-        case _ => ""
-      }
-      s"$colName $sqlType$size"
-    })
-
-    if( schema.isEmpty ) {
-      info.mkString(", ")
-    } else {
-      schema.map( field => {
-        info.find( col => col.toUpperCase.startsWith( s"${field.name.toUpperCase} " ) ).getOrElse("")
-      }).mkString(", ")
-    }
-  }
+  def columnInfo(schemaTableName: String): Array[Seq[String]] =
+    SpliceJDBCUtil.retrieveColumnInfo(
+      getJdbcOptionsInWrite( schemaTableName )
+    )
 
   /**
    * Modify records identified by their primary keys.
@@ -987,7 +910,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     trace( s"SMC.modifyOnKeys topic $topicName" )
     try {
       insAccum.reset
-      val tableSchemaStr = schemaString(schemaTableName, schema)
+      val tableSchemaStr = schemaString( columnInfo(schemaTableName) , schema)
       val ptnInfo = sendData(topicName, rdd, modifySchema(schema, tableSchemaStr))
 
       if( ! insAccum.isZero ) {
@@ -1007,23 +930,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     }
   }
   
-  private[this] def modifySchema(schema: StructType, tableSchemaStr: String): StructType = {
-    def hasTimeColumn: String => Boolean = schStr => schStr.contains("TIME,") || schStr.endsWith("TIME")
-    if( hasTimeColumn(tableSchemaStr) ) {
-      val tableColumns = tableSchemaStr.split(", ")
-      var i = 0
-      var timeSchema = StructType(Nil)
-      for (field <- schema.iterator) {
-        val dataType = if( hasTimeColumn(tableColumns(i)) ) { TimeType } else { field.dataType }
-        timeSchema = timeSchema.add(field.name, dataType, field.nullable)
-        i += 1
-      }
-      timeSchema
-    } else {
-      schema
-    }
-  }
-
   /**
    * Update data from a dataframe for a specified schemaTableName (schema.table).  The keys are required for the update and any other
    * columns provided will be updated in the rows.
@@ -1245,7 +1151,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       val ptnInfo = sendData(topicName, dataFrame.rdd, schema)
 
       val sqlText = exportCmd + s" select " + columnList(schema) + " from " +
-        s"new com.splicemachine.derby.vti.KafkaVTI('"+topicName+topicSuffix(ptnInfo, dataFrame.rdd.getNumPartitions)+s"') as SpliceDatasetVTI (${schemaString(schema)})"
+        s"new com.splicemachine.derby.vti.KafkaVTI('"+topicName+topicSuffix(ptnInfo, dataFrame.rdd.getNumPartitions)+s"') as SpliceDatasetVTI (${schemaStringWithoutNullable(schema, url)})"
       trace( s"SMC.export sql $sqlText" )
       execute(sqlText)
     } finally {
