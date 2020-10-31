@@ -142,7 +142,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				this.leftResultSetNumber = leftResultSet.resultSetNumber();
 				this.rightResultSet = rightResultSet;
 				this.sparkExpressionTreeAsString = sparkExpressionTreeAsString;
-		}
+			}
 
 		@Override
 		public List<SpliceOperation> getSubOperations() {

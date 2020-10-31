@@ -46,7 +46,7 @@ public interface CostEstimate extends StoreCostResult {
      */
     void setCost(double cost, double rowCount, double singleScanRowCount);
 
-    void setCost(double cost, double rowCount, double singleScanRowCount,int numPartitions);
+    void setCost(double cost, double rowCount, double singleScanRowCount,int numPartitions, int parallelism);
 
     void setRemoteCost(double remoteCost);
 
@@ -98,6 +98,22 @@ public interface CostEstimate extends StoreCostResult {
     void setSingleScanRowCount(double singleRowScanCount);
 
     void setNumPartitions(int numPartitions);
+
+    /**
+     * Set the degree of parallelism when running on Spark,
+     * ie. the number of parallel tasks that run simultaneously.
+     * On HBase, in general all rows have to flow through a
+     * single task, so parallelism is always 1 for queries
+     * run through the OLTP engine.
+     */
+
+    void setParallelism(int numparallelTasks);
+
+    /**
+     * Return the degree of parallelism when optimizing a Spark query.
+     * If optimizing for control, this method returns 1.
+     */
+    int getParallelism();
 
     /**
      * Compare this cost estimate with the given cost estimate.
@@ -275,21 +291,21 @@ public interface CostEstimate extends StoreCostResult {
 
     double getRemoteCost();
 
-    double getLocalCostPerPartition();
+    double getLocalCostPerParallelTask();
 
-    double getRemoteCostPerPartition();
+    double getRemoteCostPerParallelTask();
 
-    // Sets the value of localCostPerPartition directly.
-    void setLocalCostPerPartition(double localCostPerPartition);
+    // Sets the value of localCostPerParallelTask directly.
+    void setLocalCostPerParallelTask(double localCostPerParallelTask);
 
-    // Sets the value of remoteCostPerPartition directly.
-    void setRemoteCostPerPartition(double remoteCostPerPartition);
+    // Sets the value of remoteCostPerParallelTask directly.
+    void setRemoteCostPerParallelTask(double remoteCostPerParallelTask);
 
-    // Sets localCostPerPartition as the total localCost divided by numPartitions.
-    void setLocalCostPerPartition(double localCost, int numPartitions);
+    // Sets localCostPerParallelTask as the total localCost divided by the number of parallel tasks.
+    void setLocalCostPerParallelTask(double localCost, int parallelism);
 
-    // Sets remoteCostPerPartition as the total remoteCost divided by numPartitions.
-    void setRemoteCostPerPartition(double remoteCost, int numPartitions);
+    // Sets remoteCostPerParallelTask as the total remoteCost divided by the number of parallel tasks.
+    void setRemoteCostPerParallelTask(double remoteCost, int parallelism);
 
     double getAccumulatedMemory();
 
@@ -298,7 +314,11 @@ public interface CostEstimate extends StoreCostResult {
     /**
      * @return True, if this is a single-row relation, otherwise false
      */
-    public boolean isSingleRow();
+    boolean isSingleRow();
 
-    public void setSingleRow(boolean singleRowInRelation);
+    void setSingleRow(boolean singleRowInRelation);
+
+    void setOptimizer(Optimizer optimizer);
+
+    Optimizer getOptimizer();
 }

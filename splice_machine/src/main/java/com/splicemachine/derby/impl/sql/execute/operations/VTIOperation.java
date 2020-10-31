@@ -122,6 +122,7 @@ public class VTIOperation extends SpliceBaseOperation {
     private int resultDescriptionItemNumber;
     private ResultDescription resultDescription;
     private boolean convertTimestamps;
+    private boolean quotedEmptyIsNull;
 
 
 	/**
@@ -159,7 +160,8 @@ public class VTIOperation extends SpliceBaseOperation {
                  int returnTypeNumber,
                  int vtiProjectionNumber,
                  int vtiRestrictionNumber,
-                 int resultDescriptionNumber
+                 int resultDescriptionNumber,
+                 boolean quotedEmptyIsNull
                  ) 
 		throws StandardException
 	{
@@ -201,7 +203,7 @@ public class VTIOperation extends SpliceBaseOperation {
         }
         // if database property is not set, treat it as false
 		this.convertTimestamps = convertTimestampsString != null && Boolean.valueOf(convertTimestampsString);
-
+        this.quotedEmptyIsNull = quotedEmptyIsNull;
         init();
     }
 
@@ -321,4 +323,5 @@ public class VTIOperation extends SpliceBaseOperation {
         return resultColumnTypes;
     }
     public boolean isConvertTimestampsEnabled() { return convertTimestamps; }
+    public boolean getQuotedEmptyIsNull() { return quotedEmptyIsNull; }
 }

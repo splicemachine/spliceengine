@@ -98,24 +98,31 @@ public class SpliceScan implements ScanManager, LazyScan{
         this.trans=(BaseSpliceTransaction)trans;
         this.opFactory = operationFactory;
         this.partitionFactory = partitionFactory;
-        setupScan();
-        attachFilter();
-        tableName=Long.toString(spliceConglomerate.getConglomerate().getContainerid());
         DataValueDescriptor[] dvdArray = this.spliceConglomerate.cloneRowTemplate();
         // Hack for Indexes...
         if (dvdArray[dvdArray.length-1] == null)
             dvdArray[dvdArray.length-1] = new HBaseRowLocation();
         currentRow = new ValueRow(dvdArray.length);
         currentRow.setRowArray(dvdArray);
+        setupScan();
+        attachFilter();
+        tableName=Long.toString(spliceConglomerate.getConglomerate().getContainerid());
         serializers = VersionedSerializers.forVersion("1.0", true).getSerializers(currentRow);
         if(LOG.isTraceEnabled()){
             SpliceLogUtils.trace(LOG,"scanning with start key %s and stop key %s and transaction %s",Arrays.toString(startKeyValue),Arrays.toString(stopKeyValue),trans);
         }
     }
 
+    @SuppressFBWarnings(value = "DE_MIGHT_IGNORE", justification = "intentional")
     public void close() throws StandardException{
         try{
             if(table!=null) table.close();
+        }catch(IOException ignored){ }
+
+        // Put each close in own try block so a thrown
+        // IOException won't prevent the other item
+        // from being closed.
+        try{
             if(scanner!=null) scanner.close();
         }catch(IOException ignored){ }
     }
@@ -143,7 +150,8 @@ public class SpliceScan implements ScanManager, LazyScan{
                     currentRow,
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
                     ((SpliceConglomerate)this.spliceConglomerate.getConglomerate()).columnOrdering,
-                    trans.getDataValueFactory(),"1.0",false);
+                    trans.getDataValueFactory(),"1.0",false,
+                    (SpliceConglomerate) spliceConglomerate.getConglomerate());
             scan.setSmall(true); // Removes extra rpc calls for dictionary scans (smallish)
         }catch(Exception e){
             LOG.error("Exception creating start key");

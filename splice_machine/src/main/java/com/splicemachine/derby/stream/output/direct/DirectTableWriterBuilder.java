@@ -22,6 +22,7 @@ import com.splicemachine.derby.stream.output.DataSetWriterBuilder;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 
@@ -104,7 +105,7 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
 
     @Override
     public TableWriter buildTableWriter() throws StandardException{
-        return new DirectPipelineWriter(destConglomerate,txn,token,opCtx,skipIndex, tableVersion);
+        return new DirectPipelineWriter(destConglomerate,txn,token,opCtx);
     }
 
     @Override
@@ -139,12 +140,14 @@ public abstract class DirectTableWriterBuilder implements Externalizable,DataSet
         return (DirectTableWriterBuilder)SerializationUtils.deserialize(bytes);
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP2", justification = "intentional")
     @Override
     public DataSetWriterBuilder token(byte[] token) {
         this.token = token;
         return this;
     }
 
+    @SuppressFBWarnings(value = "EI_EXPOSE_REP", justification = "intentional")
     @Override
     public byte[] getToken() {
         return token;
