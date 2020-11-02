@@ -1084,14 +1084,12 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * @param numTables Number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
-     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
-        childResult=childResult.preprocess(numTables,gbl,fromList, exprMap);
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        childResult=childResult.preprocess(numTables,gbl,fromList);
 
         /* Build the referenced table map */
         referencedTableMap=(JBitSet)childResult.getReferencedTableMap().clone();

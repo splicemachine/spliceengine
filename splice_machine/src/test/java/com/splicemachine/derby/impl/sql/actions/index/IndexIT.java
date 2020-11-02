@@ -1492,6 +1492,7 @@ public class IndexIT extends SpliceUnitTest{
                 "abc");
     }
 
+    @Test
     public void testIndexExpressionOnMultipleColumns() throws Exception {
         String tableName = "TEST_INDEX_EXPR_MULTIPLE_COLUMNS";
         methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
@@ -1739,7 +1740,7 @@ public class IndexIT extends SpliceUnitTest{
 
         /* check plan */
         try (ResultSet rs = methodWatcher.executeQuery("explain " + format(query, ""))) {
-            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             Assert.assertTrue(explainPlanText.contains("MultiProbeIndexScan[A_IDX_1")); // in-list for ADDRESS_1
             Assert.assertTrue(explainPlanText.contains("IndexScan[PA_IDX_1"));
             Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
@@ -1840,6 +1841,79 @@ public class IndexIT extends SpliceUnitTest{
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
+    }
+
+    @Test
+    public void testCoveringIndexOnExpressionsDerivedTable() throws Exception {
+        methodWatcher.executeUpdate("create table TEST_DERIVED_TABLE(a1 int, a2 int)");
+        methodWatcher.executeUpdate("insert into TEST_DERIVED_TABLE values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
+        methodWatcher.executeUpdate("create index TEST_DERIVED_TABLE_IDX on TEST_DERIVED_TABLE(a1 * 3, a2)");
+
+        methodWatcher.executeUpdate("create table TEST_DERIVED_TABLE_2(b1 int, b2 int)");
+        methodWatcher.executeUpdate("insert into TEST_DERIVED_TABLE_2 values(1,10),(3,30),(5,50)");
+
+        // index is not covering for derived table, but query should be flattened to
+        // "select a1*3 from TEST_DERIVED_TABLE where a1*3 < 8;"
+        String query = "select a1*3 from " +
+                "(select a1 from TEST_DERIVED_TABLE --splice-properties index=TEST_DERIVED_TABLE_IDX\n) dt" +
+                " where a1 * 3 < 8";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_DERIVED_TABLE_IDX"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        String expected = "1 |\n" +
+                "----\n" +
+                " 0 |\n" +
+                " 3 |\n" +
+                " 6 |";
+        testJoinStrategy(query, "", expected);  // optimizer's choice
+
+        // index is covering for derived table, outer level references aliases, y + 1 can use
+        // a1 * 3 column from index directly, so still no IndexLookup
+        query = "select y + 1 from " +
+                "(select a2 as x, a1 * 3 as y from TEST_DERIVED_TABLE --splice-properties index=TEST_DERIVED_TABLE_IDX\n) dt" +
+                " where x < 25";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_DERIVED_TABLE_IDX"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        expected = "1 |\n" +
+                "----\n" +
+                " 1 |\n" +
+                " 4 |\n" +
+                " 7 |";
+        testJoinStrategy(query, "", expected);  // optimizer's choice
+
+        // join inside derived table, then join
+        query = "select x, t2.b2 from (select 3*a1 as x, b2 from TEST_DERIVED_TABLE --splice-properties index=TEST_DERIVED_TABLE_IDX\n" +
+                ", TEST_DERIVED_TABLE_2 where a1*3 = b1) dt, TEST_DERIVED_TABLE_2 t2\n" +
+                "where X=3";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_DERIVED_TABLE_IDX"));
+            Assert.assertTrue(explainPlanText.contains("TableScan[TEST_DERIVED_TABLE_2"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        expected = "X |B2 |\n" +
+                "--------\n" +
+                " 3 |10 |\n" +
+                " 3 |30 |\n" +
+                " 3 |50 |";
+        testJoinStrategy(query, "", expected);  // optimizer's choice
     }
 
     @Test

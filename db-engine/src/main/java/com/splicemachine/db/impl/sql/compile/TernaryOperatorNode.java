@@ -54,6 +54,7 @@ import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A TernaryOperatorNode represents a built-in ternary operators.
@@ -1513,7 +1514,7 @@ public class TernaryOperatorNode extends OperatorNode
     }
 
     @Override
-    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         // this special handling for like predicate is fine because like cannot appear in index expressions
         if (operatorType == LIKE) {
             boolean result = true;

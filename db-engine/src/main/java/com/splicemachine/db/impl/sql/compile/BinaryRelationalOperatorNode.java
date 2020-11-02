@@ -505,6 +505,19 @@ public class BinaryRelationalOperatorNode
         exprOp.generateExpression(acb,mb);
     }
 
+    @Override
+    public int getMatchingExprIndexColumnPosition(int tableNumber) {
+        if (leftMatchIndexExpr >= 0 && leftMatchIndexExpr == tableNumber) {
+            assert leftMatchIndexExprColumnPosition >= 0;
+            return leftMatchIndexExprColumnPosition;
+        } else if (rightMatchIndexExpr >= 0 && rightMatchIndexExpr == tableNumber) {
+            assert rightMatchIndexExprColumnPosition >= 0;
+            return rightMatchIndexExprColumnPosition;
+        } else {
+            return -1;
+        }
+    }
+
     /**
      * @throws StandardException Thrown on error
      * @see RelationalOperator#selfComparison

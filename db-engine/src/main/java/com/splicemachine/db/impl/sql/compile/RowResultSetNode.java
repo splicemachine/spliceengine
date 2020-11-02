@@ -50,7 +50,6 @@ import com.splicemachine.db.impl.ast.RSUtils;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A RowResultSetNode represents the result set for a VALUES clause.
@@ -366,14 +365,12 @@ public class RowResultSetNode extends FromTable {
      * @param gbl                The group by list, if any
      * @param fromList            The from list, if any
      *
-     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      *
      * @exception StandardException        Thrown on error
      */
 
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException {
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException {
 
         SubqueryList subqueryList =
           (SubqueryList) getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());

@@ -49,10 +49,7 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * A ValueNode is an abstract class for all nodes that can represent data
@@ -1592,7 +1589,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         return refTableNumber;
     }
 
-    public boolean collectSingleExpression(Map<Integer, List<ValueNode>> map) {
+    public boolean collectSingleExpression(Map<Integer, Set<ValueNode>> map) {
         if (this instanceof AggregateNode || this instanceof SubqueryNode) {
             return true;
         }
@@ -1604,12 +1601,10 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
         if (tableNumber != ValueNode.NOT_FOUND) {
             if (map.containsKey(tableNumber)) {
-                List<ValueNode> exprList = map.get(tableNumber);
-                if (!exprList.contains(this)) {
-                    exprList.add(this);
-                }
+                Set<ValueNode> exprList = map.get(tableNumber);
+                exprList.add(this);
             } else {
-                List<ValueNode> values = new ArrayList<>();
+                Set<ValueNode> values = new HashSet<>();
                 values.add(this);
                 map.put(tableNumber, values);
             }
@@ -1617,7 +1612,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         return true;
     }
 
-    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         // by default, take this whole subtree as an expression
         return collectSingleExpression(exprMap);
     }

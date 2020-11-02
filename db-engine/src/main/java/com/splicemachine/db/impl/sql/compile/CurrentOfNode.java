@@ -65,9 +65,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * The CurrentOf operator is used by positioned DELETE 
  * and UPDATE to get the current row and location
@@ -385,7 +382,6 @@ public final class CurrentOfNode extends FromTable {
      * @param gbl                The group by list, if any
      * @param fromList            The from list, if any
      *
-     * @param exprMap
      * @return ResultSetNode at top of preprocessed tree.
      *
      * @exception StandardException        Thrown on error
@@ -393,7 +389,7 @@ public final class CurrentOfNode extends FromTable {
 
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
-                                    FromList fromList, Map<Integer, List<ValueNode>> exprMap)
+                                    FromList fromList)
                                 throws StandardException
     {
         /* Generate an empty referenced table map */

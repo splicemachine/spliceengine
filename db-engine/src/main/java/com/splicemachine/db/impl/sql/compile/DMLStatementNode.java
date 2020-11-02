@@ -45,8 +45,7 @@ import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
 import com.splicemachine.db.impl.ast.SpliceDerbyVisitorAdapter;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
 
-import java.util.Collection;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A DMLStatementNode represents any type of DML statement: a cursor declaration, an INSERT statement, and UPDATE
@@ -154,7 +153,7 @@ public abstract class DMLStatementNode extends StatementNode {
         int maximalPossibleTableCount = getCompilerContext().getNumTables() + numOfWhereSubqueries;
         getCompilerContext().setMaximalPossibleTableCount(maximalPossibleTableCount);
 
-        resultSet = resultSet.preprocess(maximalPossibleTableCount, null, null, null);
+        resultSet = resultSet.preprocess(maximalPossibleTableCount, null, null);
         // Evaluate expressions with constant operands here to simplify the
         // query tree and to reduce the runtime cost. Do it before optimize()
         // since the simpler tree may have more accurate information for
@@ -170,7 +169,28 @@ public abstract class DMLStatementNode extends StatementNode {
         // prune tree based on unsat condition
         accept(new TreePruningVisitor());
 
-
+        // At this point, the query tree should be stable. Collect all expressions
+        // in the query and set them to base tables accordingly. This step is
+        // necessary for deciding if an index on expressions is a covering index.
+        Map<Integer, Set<ValueNode>> exprMap = new HashMap<>();
+        CollectNodesVisitor cnv = new CollectNodesVisitor(SelectNode.class);
+        accept(cnv);
+        List<SelectNode> snList = cnv.getList();
+        for (SelectNode sn : snList) {
+            sn.collectExpressions().forEach((k, v) -> {
+                if (exprMap.containsKey(k)) {
+                    exprMap.get(k).addAll(v);
+                } else {
+                    exprMap.put(k, v);
+                }
+            });
+        }
+        cnv = new CollectNodesVisitor(FromBaseTable.class);
+        accept(cnv);
+        List<FromBaseTable> fbtList = cnv.getList();
+        for (FromBaseTable fbt : fbtList) {
+            fbt.setReferencingExpressions(exprMap);
+        }
 
         // We should try to cost control first, and fallback to spark if necessary
         DataSetProcessorType connectionType = getLanguageConnectionContext().getDataSetProcessorType();
@@ -190,7 +210,7 @@ public abstract class DMLStatementNode extends StatementNode {
         }
 
         if (shouldRunSpark(resultSet)) {
-            CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
+            cnv = new CollectNodesVisitor(FromTable.class);
             resultSet.accept(cnv);
             for (Object obj : cnv.getList()) {
                 FromTable ft = (FromTable) obj;

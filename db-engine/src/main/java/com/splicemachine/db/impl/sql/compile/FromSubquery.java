@@ -48,7 +48,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -399,7 +398,6 @@ public class FromSubquery extends FromTable
      * @param gbl                The group by list, if any
      * @param fromList            The from list, if any
      *
-     * @param exprMap
      * @return ResultSetNode at top of preprocessed tree.
      *
      * @exception StandardException        Thrown on error
@@ -408,8 +406,7 @@ public class FromSubquery extends FromTable
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH", justification = "DB-9844")
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
-                                    FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    FromList fromList)
                                 throws StandardException
     {
 
@@ -478,7 +475,7 @@ public class FromSubquery extends FromTable
          *          (This will allow us to push restrictions down to the PRN.)
          */
 
-        subquery = subquery.preprocess(numTables, gbl, fromList, exprMap);
+        subquery = subquery.preprocess(numTables, gbl, fromList);
 
         /* Return if the FSqry is flattenable()
          * NOTE: We can't flatten a FromSubquery if there is a group by list

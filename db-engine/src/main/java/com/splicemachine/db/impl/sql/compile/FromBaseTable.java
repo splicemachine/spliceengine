@@ -209,7 +209,7 @@ public class FromBaseTable extends FromTable {
     private long minRetentionPeriod = -1;
 
     // expressions in whole query referencing columns in this base table
-    private List<ValueNode> referencingExpressions = null;
+    private Set<ValueNode> referencingExpressions = null;
 
     @Override
     public boolean isParallelizable(){
@@ -1624,21 +1624,17 @@ public class FromBaseTable extends FromTable {
      * @param numTables The number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
-     * @param exprMap
      * @return ResultSetNode at top of preprocessed tree.
      * @throws StandardException Thrown on error
      */
 
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
-                                    FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    FromList fromList)
             throws StandardException{
         /* Generate the referenced table map */
         referencedTableMap=new JBitSet(numTables);
         referencedTableMap.set(tableNumber);
-
-        referencingExpressions = exprMap.get(tableNumber);
 
         return genProjectRestrict(numTables);
     }
@@ -3731,6 +3727,10 @@ public class FromBaseTable extends FromTable {
 
     public List<Integer> getNoStatsColumnIds() {
         return new ArrayList<>(usedNoStatsColumnIds);
+    }
+
+    public void setReferencingExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        referencingExpressions = exprMap.get(tableNumber);
     }
 
     @Override

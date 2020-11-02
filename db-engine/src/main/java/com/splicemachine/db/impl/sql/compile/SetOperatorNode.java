@@ -41,8 +41,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * A SetOperatorNode represents a UNION, INTERSECT, or EXCEPT in a DML statement. Binding and optimization
@@ -859,7 +857,6 @@ abstract class SetOperatorNode extends TableOperatorNode
      * @param gbl                The group by list, if any
      * @param fromList            The from list, if any
      *
-     * @param exprMap
      * @return The preprocessed ResultSetNode that can be optimized
      *
      * @exception StandardException        Thrown on error
@@ -867,15 +864,14 @@ abstract class SetOperatorNode extends TableOperatorNode
 
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
-                                    FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    FromList fromList)
                                 throws StandardException
     {
         ResultSetNode newTop = this;
 
         /* RESOLVE - what does numTables and referencedTableMap mean here? */
-        leftResultSet = leftResultSet.preprocess(numTables, gbl, fromList, exprMap);
-        rightResultSet = rightResultSet.preprocess(numTables, gbl, fromList, exprMap);
+        leftResultSet = leftResultSet.preprocess(numTables, gbl, fromList);
+        rightResultSet = rightResultSet.preprocess(numTables, gbl, fromList);
 
         /* Build the referenced table map (left || right) */
         referencedTableMap = (JBitSet) leftResultSet.getReferencedTableMap().clone();

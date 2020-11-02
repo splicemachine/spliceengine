@@ -51,7 +51,6 @@ import com.splicemachine.db.impl.ast.PredicateUtils;
 import com.splicemachine.db.impl.ast.RSUtils;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
-import org.apache.spark.sql.catalyst.optimizer.Cost;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.base.Predicates;
 import splice.com.google.common.collect.Lists;
@@ -681,16 +680,14 @@ public class JoinNode extends TableOperatorNode{
      * @param numTables Number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
-     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
         ResultSetNode newTreeTop;
 
-        newTreeTop=super.preprocess(numTables,gbl,fromList, exprMap);
+        newTreeTop=super.preprocess(numTables,gbl,fromList);
 
         // delay preprocess of the join clause for flattenable inner join nodes
         // till after the flattening of JoinNode.

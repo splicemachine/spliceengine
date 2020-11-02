@@ -846,13 +846,11 @@ public class SelectNode extends ResultSetNode{
      * @param numTables The number of tables in the DML Statement
      * @param gbl       The outer group by list, if any
      * @param fl        The from list, if any
-     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fl,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fl) throws StandardException{
         ResultSetNode newTop=this;
 
         /* Put the expression trees in conjunctive normal form.
@@ -891,8 +889,7 @@ public class SelectNode extends ResultSetNode{
          * ProjectRestrictNode. If it is a FromBaseTable, then we will generate
          * the ProjectRestrictNode above it.
          */
-        fromList.preprocess(numTables,groupByList,whereClause,
-                exprMap == null ? collectExpression() : exprMap);
+        fromList.preprocess(numTables,groupByList,whereClause);
 
         /* selectSubquerys is always allocated at bind() time */
         assert selectSubquerys!=null: "selectSubquerys is expected to be non-null";
@@ -2935,8 +2932,8 @@ public class SelectNode extends ResultSetNode{
         return collected;
     }
 
-    private Map<Integer, List<ValueNode>> collectExpression() {
-        HashMap<Integer, List<ValueNode>> result = new HashMap<>();
+    public Map<Integer, Set<ValueNode>> collectExpressions() {
+        HashMap<Integer, Set<ValueNode>> result = new HashMap<>();
         boolean proceed = true;
 
         if (groupByList != null) {
@@ -2953,6 +2950,9 @@ public class SelectNode extends ResultSetNode{
 
         if (whereClause != null) {
             whereClause.collectExpressions(result);
+        }
+        if (wherePredicates != null) {
+            wherePredicates.collectExpressions(result);
         }
 
         if (havingClause != null) {
@@ -2977,6 +2977,11 @@ public class SelectNode extends ResultSetNode{
                 ValueNode joinClause = ((JoinNode) fromItem).getJoinClause();
                 if (joinClause != null) {
                     joinClause.collectExpressions(result);
+                }
+            } else if (fromItem instanceof ProjectRestrictNode) {
+                PredicateList restrictionList = ((ProjectRestrictNode) fromItem).getRestrictionList();
+                if (restrictionList != null) {
+                    restrictionList.collectExpressions(result);
                 }
             }
         }

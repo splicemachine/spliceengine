@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.splicemachine.db.shared.common.sanity.SanityManager.THROWASSERT;
 
@@ -506,7 +507,7 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     }
 
     @Override
-    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         boolean result = true;
         for (Object leftItem : leftOperandList) {
             result = result && ((ValueNode) leftItem).collectExpressions(exprMap);
