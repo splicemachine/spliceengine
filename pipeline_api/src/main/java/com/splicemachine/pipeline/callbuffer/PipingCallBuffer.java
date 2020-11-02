@@ -229,8 +229,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, Rebuildabl
             byte[] startKey = region.getStartKey();
             PartitionBuffer buffer = startKeyToRegionCBMap.get(startKey);
             if (buffer == null) {
-                buffer = new PartitionBuffer(region, preFlushHook, skipIndexWrites,
-                        writeConfiguration.skipConflictDetection(), writeConfiguration.skipWAL(), writeConfiguration.rollForward());
+                buffer = new PartitionBuffer(region, preFlushHook, skipIndexWrites, writeConfiguration);
                 startKeyToRegionCBMap.put(startKey, buffer);
                 regionServerCB.add(Pair.newPair(startKey, buffer));
             }
