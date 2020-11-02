@@ -26,7 +26,6 @@ import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.PermissiveInsertWriteConfiguration;
 import com.splicemachine.derby.stream.output.AbstractPipelineWriter;
-import com.splicemachine.pipeline.client.WriteCoordinator;
 import com.splicemachine.pipeline.config.RollforwardWriteConfiguration;
 import com.splicemachine.pipeline.config.UnsafeWriteConfiguration;
 import com.splicemachine.derby.utils.marshall.*;
@@ -69,8 +68,8 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                                 long tempConglomID,
                                 TxnView txn,
                                 byte[] token, OperationContext operationContext,
-                                boolean isUpsert) {
-        super(txn,token,heapConglom,tempConglomID,tableVersion, execRowDefinition, operationContext);
+                                boolean isUpsert, boolean loadReplaceMode) {
+        super(txn,token,heapConglom,tempConglomID,tableVersion, execRowDefinition, operationContext, loadReplaceMode);
         assert txn !=null:"txn not supplied";
         this.pkCols = pkCols;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
@@ -84,11 +83,11 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
     }
 
     public void open() throws StandardException {
-          open(insertOperation==null?null:insertOperation.getTriggerHandler(),insertOperation);
+          open(insertOperation==null?null:insertOperation.getTriggerHandler(),insertOperation, loadReplaceMode);
     }
 
-    public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
-        super.open(triggerHandler, operation);
+    public void open(TriggerHandler triggerHandler, SpliceOperation operation, boolean loadReplaceMode) throws StandardException {
+        super.open(triggerHandler, operation, loadReplaceMode);
         try {
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
             WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
@@ -106,6 +105,7 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
                 writeConfiguration = new RollforwardWriteConfiguration(writeConfiguration);
 
             writeConfiguration.setRecordingContext(operationContext);
+            writeConfiguration.setLoadReplaceMode(loadReplaceMode); // only necessary for FK
             this.table =SIDriver.driver().getTableFactory().getTable(Long.toString(heapConglom));
 
             writeBuffer = writeCoordinator.writeBuffer(table,txn,token,writeConfiguration);
