@@ -915,7 +915,15 @@ public final class SQLDouble extends NumberDataType
 			setToNull();
 		else {
 			isNull = false;
-			value = row.getDouble(ordinal);
+			try {
+				value = row.getDouble(ordinal);
+			} catch(ClassCastException cce) {
+				if( cce.getMessage().contains("java.lang.Float cannot be cast to java.lang.Double") ) {
+					value = Float.valueOf( row.getFloat(ordinal) ).doubleValue();
+				} else {
+					throw cce;
+				}
+			}
 			if (value == Double.POSITIVE_INFINITY ||
 			    value == Double.NEGATIVE_INFINITY ||
 			    value == Double.NaN)
