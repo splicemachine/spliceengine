@@ -32,6 +32,7 @@ import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.system.CsvOptions;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.InputSplit;
@@ -88,8 +89,11 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             ExecRow execRow = operation==null?template:op.getExecRowDefinition();
             Qualifier[][] qualifiers = operation == null?null:operation.getScanInformation().getScanQualifiers();
             DataSet locatedRows;
-            if (storedAs.equals("T"))
-                locatedRows = dsp.readTextFile(op,location,escaped,delimited,baseColumnMap,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
+            if (storedAs.equals("T")) {
+                CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines);
+                locatedRows = dsp.readTextFile(csvOptions,schema, baseColumnMap, partitionByColumns, location,
+                        operationContext, qualifiers,null, execRow, useSample, sampleFraction);
+            }
             else if (storedAs.equals("P"))
                 locatedRows = dsp.readParquetFile(schema, baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else if (storedAs.equals("A")) {
@@ -97,13 +101,11 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
                 locatedRows = dsp.readAvroFile(schema, baseColumnMap, partitionByColumns, location, operationContext, qualifiers, null, execRow, useSample, sampleFraction);
             }
             else if (storedAs.equals("O"))
-
-                locatedRows = dsp.readORCFile(baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction, false);
+                locatedRows = dsp.readORCFile(schema, baseColumnMap,partitionByColumns,location,operationContext,qualifiers,null,execRow, useSample, sampleFraction);
             else {
                 throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
             }
-            if (hasVariantQualifiers(qualifiers) || storedAs.equals("O")) {
-                // The predicates have variant qualifiers (or we are reading ORC with our own reader), we couldn't push them down to the scan, process them here
+            if (hasVariantQualifiers(qualifiers)) {
                 return locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
             }
             return locatedRows;

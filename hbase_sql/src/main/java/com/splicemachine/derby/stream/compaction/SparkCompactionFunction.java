@@ -63,6 +63,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     private byte[] tableName;
     private byte[] storeColumn;
     private boolean isMajor;
+    private long transactionLowWatermark;
     private SparkCompactionContext context;
     private InetSocketAddress[] favoredNodes;
     private RegionInfo regionInfo;
@@ -70,12 +71,14 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
     public SparkCompactionFunction(){}
 
     public SparkCompactionFunction(long smallestReadPoint, byte[] namespace, byte[] tableName, RegionInfo regionInfo,
-                                   byte[] storeColumn, boolean isMajor, InetSocketAddress[] favoredNodes) {
+                                   byte[] storeColumn, boolean isMajor, long transactionLowWatermark,
+                                   InetSocketAddress[] favoredNodes) {
         this.smallestReadPoint = smallestReadPoint;
         this.namespace = namespace;
         this.tableName = tableName;
         this.storeColumn = storeColumn;
         this.isMajor = isMajor;
+        this.transactionLowWatermark = transactionLowWatermark;
         this.favoredNodes = favoredNodes;
         this.regionInfo = regionInfo;
     }
@@ -123,7 +126,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         SpliceDefaultCompactor sdc = new SpliceDefaultCompactor(conf, store, smallestReadPoint);
         CompactionRequestImpl compactionRequest = new CompactionRequestImpl(readersToClose);
         compactionRequest.setIsMajor(isMajor, isMajor);
-        List<Path> paths = sdc.sparkCompact(compactionRequest, context, favoredNodes);
+        List<Path> paths = sdc.sparkCompact(compactionRequest, transactionLowWatermark, context, favoredNodes);
 
         if (LOG.isTraceEnabled()) {
             StringBuilder sb = new StringBuilder(100);
@@ -149,6 +152,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         out.writeInt(storeColumn.length);
         out.write(storeColumn);
         out.writeBoolean(isMajor);
+        out.writeLong(transactionLowWatermark);
         out.writeObject(context);
         out.writeInt(favoredNodes==null?0:favoredNodes.length);
         if (favoredNodes != null) {
@@ -172,6 +176,7 @@ public class SparkCompactionFunction extends SpliceFlatMapFunction<SpliceOperati
         storeColumn = new byte[in.readInt()];
         in.readFully(storeColumn);
         isMajor = in.readBoolean();
+        transactionLowWatermark = in.readLong();
         context = (SparkCompactionContext) in.readObject();
         favoredNodes = new InetSocketAddress[in.readInt()];
         for (int i = 0; i< favoredNodes.length; i++) {

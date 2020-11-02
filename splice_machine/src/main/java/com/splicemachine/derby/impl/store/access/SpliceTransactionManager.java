@@ -525,24 +525,26 @@ public class SpliceTransactionManager implements XATransactionController,
     @Override
     public long createConglomerate(boolean isExternal, String implementation,
                                    DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
-                                   int[] collationIds, Properties properties, int temporaryFlag)
-            throws StandardException {
+                                   int[] collationIds, Properties properties, int temporaryFlag, Conglomerate.Priority priority)
+                throws StandardException {
         return createConglomerateInternal(isExternal, implementation, template, columnOrder, collationIds, properties,
-                temporaryFlag, null);
+                temporaryFlag, null, priority);
     }
 
     @Override
     public long createConglomerate(boolean isExternal, String implementation,
                                    DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
-                                   int[] collationIds, Properties properties, int temporaryFlag, byte[][] splitKeys)
+                                   int[] collationIds, Properties properties, int temporaryFlag, byte[][] splitKeys,
+                                   Conglomerate.Priority priority)
             throws StandardException {
         return createConglomerateInternal(isExternal, implementation, template, columnOrder, collationIds, properties,
-                temporaryFlag, splitKeys);
+                temporaryFlag, splitKeys, priority);
     }
 
     private long createConglomerateInternal(boolean isExternal, String implementation,
                                             DataValueDescriptor[] template, ColumnOrdering[] columnOrder,
-                                            int[] collationIds, Properties properties, int temporaryFlag, byte[][] splitKeys)
+                                            int[] collationIds, Properties properties, int temporaryFlag,
+                                            byte[][] splitKeys, Conglomerate.Priority priority)
             throws StandardException {
         // Find the appropriate factory for the desired implementation.
         MethodFactory mfactory;
@@ -562,7 +564,7 @@ public class SpliceTransactionManager implements XATransactionController,
         // call the factory to actually create the conglomerate.
         Conglomerate conglom = cfactory.createConglomerate(isExternal,this,
                 conglomid, template, columnOrder, collationIds, properties,
-                temporaryFlag, splitKeys);
+                temporaryFlag, splitKeys, priority);
         long conglomId = conglom.getContainerid();
         if ((temporaryFlag & TransactionController.IS_TEMPORARY) == TransactionController.IS_TEMPORARY) {
             if (tempCongloms == null)
@@ -616,7 +618,7 @@ public class SpliceTransactionManager implements XATransactionController,
         // RESOLVE: this create the conglom LOGGED, this is slower than
         // necessary although still correct.
         long conglomId = createConglomerate(isExternal,implementation, template,
-                columnOrder, collationIds, properties, temporaryFlag);
+                columnOrder, collationIds, properties, temporaryFlag, Conglomerate.Priority.NORMAL);
 
         long rows_loaded = loadConglomerate(conglomId, true, // conglom is being
                 // created
@@ -1019,11 +1021,11 @@ public class SpliceTransactionManager implements XATransactionController,
      * @see StoreCostController
      **/
     @Override
-    public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd, boolean skipDictionaryStats, long defaultRowCount) throws StandardException {
+    public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd, boolean skipDictionaryStats, long defaultRowCount, int requestedSplits) throws StandardException {
         List<PartitionStatisticsDescriptor> partitionStatistics = new ArrayList<>();
         if (!skipDictionaryStats)
             partitionStatistics = cd.getDataDictionary().getPartitionStatistics(td.getBaseConglomerateDescriptor().getConglomerateNumber(),this);
-        return new StoreCostControllerImpl(td,cd,partitionStatistics, skipDictionaryStats?defaultRowCount:0);
+        return new StoreCostControllerImpl(td,cd,partitionStatistics, skipDictionaryStats?defaultRowCount:0, requestedSplits);
     }
      /**
      * @see TransactionController#getProperty
@@ -1895,4 +1897,9 @@ public class SpliceTransactionManager implements XATransactionController,
         cc.close();
     }
 
+    public long getActiveStateTxId() {
+        if(rawtran!=null)
+            return getRawTransaction().getActiveStateTxn().getTxnId();
+        return -1;
+    }
 }

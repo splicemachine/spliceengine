@@ -204,7 +204,6 @@ public class SpliceSpark {
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
-                TransactionsWatcher.INSTANCE.startWatching();
                 spliceStaticComponentsSetup = true;
             }
         } catch (RuntimeException e) {

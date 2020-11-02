@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -44,14 +44,11 @@ import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
-import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
-import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.utils.IndentedString;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -73,13 +70,13 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
-import java.io.Externalizable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Spark-based DataSetProcessor.
@@ -97,19 +94,8 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
-    private ExplainNode.SparkExplainKind sparkExplainKind = ExplainNode.SparkExplainKind.NONE;
-    private LinkedList<IndentedString> explainStrings = new LinkedList<>();
-    private LinkedList<IndentedString> tempOperationStrings = new LinkedList<>();
-    private LinkedList<List<IndentedString>> stashedSpliceOperationStrings = new LinkedList<>();
-    private LinkedList<List<IndentedString>> spliceOperationStrings = new LinkedList<>();
-
-    private TreeMap<Integer, Integer> numLeadingSpaces = new TreeMap<>();
-    private TreeMap<Integer, String>  spacesMap = new TreeMap<>();
-
-    // The depth of the current operation being processed via getDataSet
-    // in the operation tree.
-    private int opDepth = 0;
-    private boolean accumulators;
+    SparkExplain explain = new SparkExplain();
+    public boolean accumulators;
 
     public SparkDataSetProcessor() {
         accumulators = EngineDriver.driver().getConfiguration().getSparkAccumulatorsEnabled();
@@ -189,6 +175,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
+        OperationContext<Op> oldOperationContext =  spliceOperation.getOperationContext();
+        // Support native spark joins with MERGE_DATA_FROM_FILE.
+        // Bad records will not be counted unless the original
+        // OperationContext is used.
+        if (oldOperationContext instanceof SparkLeanOperationContext)
+            return oldOperationContext;
+
         setupBroadcastedActivation(spliceOperation.getActivation(), spliceOperation);
         OperationContext<Op> operationContext =
                 accumulators
@@ -437,7 +430,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH",justification = "Intentional")
     @Override
-    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema) throws StandardException {
+    public StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException {
         StructType schema = null;
         Configuration conf = HConfiguration.unwrapDelegate();
         FileSystem fs = null;
@@ -510,7 +503,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                 .orc(location);
                     } else if (storedAs.toLowerCase().equals("t")) {
                         // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                        dataset = SpliceSpark.getSession().read().option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ").csv(location);
+                        dataset = SpliceSpark.getSession().read().options(getCsvOptions(csvOptions)).csv(location);
                     } else {
                         throw new UnsupportedOperationException("Unsupported storedAs " + storedAs);
                     }
@@ -730,44 +723,27 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,
-                                      DataValueDescriptor probeValue, ExecRow execRow,
-                                      boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
-        assert baseColumnMap != null:"baseColumnMap Null";
-        assert partitionColumnMap != null:"partitionColumnMap Null";
+    public <V> DataSet<V> readORCFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
+                                      String location, OperationContext context, Qualifier[][] qualifiers,
+                                      DataValueDescriptor probeValue,  ExecRow execRow, boolean useSample,
+                                      double sampleFraction) throws StandardException {
         try {
-            DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
-            if( empty_ds != null ) return empty_ds;
+            Dataset<Row> table = null;
+            ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
-            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
-            Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
-            configuration.set(SpliceOrcNewInputFormat.SPLICE_PREDICATE,predicate.serialize());
-            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType(baseColumnMap).json());
-            configuration.set(SpliceOrcNewInputFormat.SPLICE_COLUMNS,intArrayToString(baseColumnMap));
-            configuration.set(SpliceOrcNewInputFormat.SPLICE_PARTITIONS,intArrayToString(partitionColumnMap));
-            if (statsjob)
-                configuration.set(SpliceOrcNewInputFormat.SPLICE_COLLECTSTATS, "true");
-
-            JavaRDD<Row> rows;
             try {
-                rows = SpliceSpark.getContext().newAPIHadoopFile(
-                        location,
-                        SpliceOrcNewInputFormat.class,
-                        NullWritable.class,
-                        Row.class,
-                        configuration)
-                        .values();
-            }
-            catch (Exception e) {
+                table = SpliceSpark.getSession()
+                        .read()
+                        .schema(tableSchema)
+                        .orc(location);
+            } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, false);
             }
 
-            if (useSample) {
-                return new SparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)));
-            } else {
-                return new SparkDataSet(rows.map(new RowToLocatedRowFunction(context, execRow)));
-            }
+            checkNumColumns(location, baseColumnMap, table);
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
+            return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
+                    execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
@@ -787,26 +763,20 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap,
-                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                                                boolean useSample, double sampleFraction) throws StandardException {
+    public <V> DataSet<ExecRow> readTextFile(CsvOptions csvOptions,
+                                             StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
+                                             String location, OperationContext context, Qualifier[][] qualifiers,
+                                             DataValueDescriptor probeValue, ExecRow execRow,
+                                             boolean useSample, double sampleFraction) throws StandardException {
         assert baseColumnMap != null:"baseColumnMap Null";
+
         try {
             Dataset<Row> table = null;
+            ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
             try {
-                HashMap<String, String> options = new HashMap<String, String>();
-
-                // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                options.put("timestampFormat","yyyy-MM-dd'T'HH:mm:ss.SSSZZ");
-
-                characterDelimiter = ImportUtils.unescape(characterDelimiter);
-                columnDelimiter = ImportUtils.unescape(columnDelimiter);
-                if (characterDelimiter!=null)
-                    options.put("escape", characterDelimiter);
-                if (columnDelimiter != null)
-                    options.put("sep", columnDelimiter);
-
-                table = SpliceSpark.getSession().read().options(options).csv(location);
+                table = SpliceSpark.getSession().read()
+                        .options(getCsvOptions(csvOptions))
+                        .schema(tableSchema).csv(location);
                 if (table.schema().fields().length == 0)
                     return getEmpty();
             } catch (Exception e) {
@@ -814,23 +784,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
 
             checkNumColumns(location, baseColumnMap, table);
-            if (op == null) {
-                // stats collection scan
-                for(int index = 0; index < execRow.schema().fields().length; index++) {
-                    StructField ft = table.schema().fields()[index];
-                    Column cl = new Column(ft.name()).cast(execRow.schema().fields()[index].dataType());
-                    table = table.withColumn(ft.name(), cl);
-                }
-            } else {
-                for( int index = 0; index< baseColumnMap.length; index++) {
-                    if (baseColumnMap[index] != -1) {
-                        StructField ft = table.schema().fields()[index];
-                        Column cl = new Column(ft.name()).cast(execRow.schema().fields()[baseColumnMap[index]].dataType());
-                        table = table.withColumn(ft.name(), cl);
-                    }
-                }
-            }
-
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
 
             return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
                     execRow, useSample, sampleFraction, table);
@@ -838,6 +792,42 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
+    }
+
+    static String unescape(String type, String in) throws StandardException {
+        try{
+            return ImportUtils.unescape(in);
+        }
+        catch( IOException e)
+        {
+            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, e, type + ". " + e.getMessage());
+        }
+    }
+
+    /**
+     * @param csvOptions
+     * @return spark dataframereader options, see
+     *         https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html#csv-scala.collection.Seq-
+     * @throws IOException
+     */
+    public static HashMap<String, String> getCsvOptions(CsvOptions csvOptions) throws StandardException {
+        HashMap<String, String> options = new HashMap<String, String>();
+
+        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+        String timestampFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ";
+        options.put("timestampFormat", timestampFormat);
+
+        String delimited = unescape("TERMINATED BY", csvOptions.columnDelimiter);
+        String escaped = unescape( "ESCAPED BY", csvOptions.escapeCharacter);
+        String lines = unescape( "LINES SEPARATED BY", csvOptions.lineTerminator);
+
+        if (delimited != null) // default ,
+            options.put("sep", delimited);
+        if (escaped != null)
+            options.put("escape", escaped); // default \
+        if( lines != null ) // default \n
+            options.put("lineSep", lines);
+        return options;
     }
 
     /// check that we don't access a column that's not there with baseColumnMap
@@ -955,296 +945,62 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     }
 
     @Override
-    public boolean isSparkExplain() { return sparkExplainKind != ExplainNode.SparkExplainKind.NONE; }
+    public boolean isSparkExplain() { return explain.isSparkExplain(); }
 
     @Override
-    public ExplainNode.SparkExplainKind getSparkExplainKind() { return sparkExplainKind; }
+    public ExplainNode.SparkExplainKind getSparkExplainKind() { return explain.getSparkExplainKind(); }
 
     @Override
-    public void setSparkExplain(ExplainNode.SparkExplainKind newValue) { sparkExplainKind = newValue; }
+    public void setSparkExplain(ExplainNode.SparkExplainKind newValue) { explain.setSparkExplain(newValue); }
 
-    private void prependIndentedStrings(List<IndentedString> indentedStrings) {
-        tempOperationStrings.addAll(0, indentedStrings);
+
+    @Override
+    public void popSpliceOperation() {
+        explain.popSpliceOperation();
     }
 
     @Override
     public void prependSpliceExplainString(String explainString) {
-        StringBuilder sb = new StringBuilder();
-        if (!explainString.isEmpty())
-            sb.append("-> ");
-        // Strip out newlines and trailing spaces.
-        sb.append(explainString.replace("\n","").replaceFirst("\\s++$", ""));
-        tempOperationStrings.addFirst(new IndentedString(getOpDepth(), sb.toString()));
+        explain.prependSpliceExplainString(explainString);
     }
 
     @Override
     public void appendSpliceExplainString(String explainString) {
-        StringBuilder sb = new StringBuilder();
-        if (!explainString.isEmpty())
-            sb.append("-> ");
-        // Strip out newlines and trailing spaces.
-        sb.append(explainString.replace("\n","").replaceFirst("\\s++$", ""));
-        tempOperationStrings.addLast(new IndentedString(getOpDepth(), sb.toString()));
+        explain.appendSpliceExplainString(explainString);
     }
 
     @Override
     public void finalizeTempOperationStrings() {
-        if (!tempOperationStrings.isEmpty()) {
-            spliceOperationStrings.addFirst(tempOperationStrings);
-            tempOperationStrings = new LinkedList<>();
-        }
-    }
-
-    private void stashTempOperationStrings() {
-        if (!tempOperationStrings.isEmpty()) {
-            stashedSpliceOperationStrings.addFirst(tempOperationStrings);
-            tempOperationStrings = new LinkedList<>();
-        }
-    }
-
-    private void popStashedOperationStrings() {
-        if (!stashedSpliceOperationStrings.isEmpty()) {
-            spliceOperationStrings.addAll(0, stashedSpliceOperationStrings);
-            stashedSpliceOperationStrings = new LinkedList<>();
-        }
-    }
-
-    private boolean topOfSavedOperationsIsSibling(IndentedString newSparkExplain) {
-        if (!spliceOperationStrings.isEmpty() &&
-             spliceOperationStrings.get(0).get(0).getIndentationLevel() == newSparkExplain.getIndentationLevel())
-            return true;
-        return false;
-    }
-
-    public void popSpliceOperation() {
-        if (!spliceOperationStrings.isEmpty() &&
-             spliceOperationStrings.get(0).get(0).getIndentationLevel() == opDepth+1)
-            tempOperationStrings.addAll(0, spliceOperationStrings.remove(0));
+        explain.finalizeTempOperationStrings();
     }
 
     @Override
     public void prependSparkExplainStrings(List<String> stringsToAdd, boolean firstOperationSource, boolean lastOperationSource) {
-        if (firstOperationSource)
-            finalizeTempOperationStrings();
-        IndentedString newSparkExplain =
-            new IndentedString(getOpDepth()+1, stringsToAdd);
-        newSparkExplain = fixupSparkExplain(newSparkExplain);
-        boolean isSecondSourceOfJoin = !firstOperationSource && lastOperationSource;
-        boolean siblingPresent = isSecondSourceOfJoin &&
-                                 tempOperationStrings.size() >= 1 &&
-                                 tempOperationStrings.get(0).getIndentationLevel() ==
-                                 newSparkExplain.getIndentationLevel();
-
-        // Handle join cases where there is still one element left in
-        // tempOperationStrings at the same of higher level as the spark operation,
-        // which needs to get tied together via a join.
-        if (tempOperationStrings.isEmpty() ||
-            tempOperationStrings.size() >= 1 &&
-            tempOperationStrings.get(0).getIndentationLevel() <=
-            newSparkExplain.getIndentationLevel()) {
-            if (!siblingPresent) {
-                finalizeTempOperationStrings();
-                if (isSecondSourceOfJoin &&
-                    topOfSavedOperationsIsSibling(newSparkExplain))
-                    popSpliceOperation();
-            }
-            tempOperationStrings.add(new IndentedString(getOpDepth() + 1, "-> NativeSparkDataSet"));
-            newSparkExplain.setIndentationLevel(getOpDepth() + 2);
-            tempOperationStrings.add(newSparkExplain);
-        }
-        else
-            explainStrings.addFirst(newSparkExplain);
-    }
-
-    private int findIndentation(Map<Integer, Integer>  numLeadingSpaces,
-                                int indentationLevel,
-                                boolean doLookup) {
-        Integer numSpaces = null;
-        if (doLookup)
-            numSpaces = numLeadingSpaces.get(indentationLevel);
-
-        if (numSpaces == null && doLookup) {
-            for (int i = indentationLevel; i >= 0; i--) {
-                Integer foundSpaces = numLeadingSpaces.get(i);
-                if (foundSpaces == null)
-                    continue;
-                numSpaces = foundSpaces + (indentationLevel - i) * 2;
-                numLeadingSpaces.put(indentationLevel, numSpaces);
-                break;
-            }
-        }
-        if (numSpaces == null)
-            numSpaces = indentationLevel * 2;
-
-        return numSpaces;
-    }
-
-    private IndentedString
-    fixupSparkExplain(IndentedString sparkExplain) {
-        finalizeTempOperationStrings();
-        if (spliceOperationStrings.isEmpty())
-            return sparkExplain;
-
-        IndentedString newSparkExplain = null;
-        LinkedList<String> newTextLines = new LinkedList<>();
-        for (String string:sparkExplain.getTextLines()) {
-            newTextLines.add(string);
-            int matchIndex =
-               StringUtils.indexOfAny(string, new String[]{"Scan ExistingRDD", "FileScan", "LogicalRDD", "Relation[", "ReusedExchange"});
-
-            int matchReusedExchange =
-               StringUtils.indexOfAny(string, new String[]{"ReusedExchange"});
-
-            if (!spliceOperationStrings.isEmpty() && matchIndex != -1) {
-                List<IndentedString> list = spliceOperationStrings.removeLast();
-                int baseIndentationLevel = list.get(0).getIndentationLevel();
-                int leadingSpaces = matchIndex;
-                {
-                    // Native spark explain is indented 3 spaces in getNativeSparkExplain().
-                    int numSpaces = leadingSpaces + 3;
-
-                    char[] charArray = new char[numSpaces];
-                    Arrays.fill(charArray, ' ');
-                    String prependString = new String(charArray);
-                    // Adjust the global indentation setting in cases we are dealing
-                    // with one source of a join, and the other source will
-                    // be processed later.
-                    numLeadingSpaces.put(baseIndentationLevel, 1);
-                    numLeadingSpaces.put(baseIndentationLevel+1, prependString.length() + sparkExplain.getIndentationLevel()*2);
-                    spacesMap.put(baseIndentationLevel, prependString);
-                    for (Integer i = numLeadingSpaces.higherKey(baseIndentationLevel); i != null;
-                                 i = numLeadingSpaces.higherKey(i))
-                        numLeadingSpaces.remove(i);
-                    for (Integer i = spacesMap.higherKey(baseIndentationLevel); i != null;
-                                 i = spacesMap.higherKey(i))
-                        spacesMap.remove(i);
-
-                }
-                boolean notMatched;
-                do {
-                    ListIterator<IndentedString> iter = list.listIterator();
-                    notMatched = true;
-
-                    IndentedString firstStringInOperationSet = list.get(0);
-
-                    if (firstStringInOperationSet != null &&
-                        firstStringInOperationSet.getIndentationLevel() <= getOpDepth() + 1) {
-
-                        stashTempOperationStrings();
-                        prependIndentedStrings(list);
-                    }
-                    else
-                    while (iter.hasNext()) {
-                        IndentedString istr = iter.next();
-                        notMatched = false;
-                        if (matchReusedExchange == -1)
-                        for (String str : istr.getTextLines()) {
-                            int indentationLevel = istr.getIndentationLevel() - baseIndentationLevel;
-                            int numExtraSpaces = indentationLevel * 2;
-                            int numSpaces = leadingSpaces + numExtraSpaces;
-                            char[] charArray = new char[numSpaces];
-                            Arrays.fill(charArray, ' ');
-                            String prependString = new String(charArray);
-                            newTextLines.add(prependString + str);
-                        }
-                    }
-                    if (notMatched && !spliceOperationStrings.isEmpty()) {
-                        list = spliceOperationStrings.removeLast();
-                        baseIndentationLevel = list.get(0).getIndentationLevel();
-                    }
-                    else
-                        notMatched = false;
-                } while (notMatched);
-            }
-        }
-        spacesMap.clear();
-        stashTempOperationStrings();
-        popStashedOperationStrings();
-        newSparkExplain = new IndentedString(sparkExplain.getIndentationLevel(), newTextLines);
-        return newSparkExplain;
+        explain.prependSparkExplainStrings(stringsToAdd, firstOperationSource, lastOperationSource);
     }
 
     @Override
     public List<String> getNativeSparkExplain() {
-        int indentationLevel = 0;
-
-        finalizeTempOperationStrings();
-        for (List<IndentedString> indentedStrings:spliceOperationStrings)
-            explainStrings.addAll(0, indentedStrings);  
-
-        if (!explainStrings.isEmpty())
-            indentationLevel = explainStrings.getFirst().getIndentationLevel();
-
-        numLeadingSpaces.put(indentationLevel, 0);
-        spacesMap.put(indentationLevel, "");
-
-        int previousIndentationLevel = -1;
-        int maxIndentationLevel = -1;
-        List<String> sparkExplain = new LinkedList<>();
-        boolean firstLine = true;
-        for (IndentedString strings:explainStrings) {
-            if (strings.getIndentationLevel() <= previousIndentationLevel) {
-                for (int i = maxIndentationLevel; i >= strings.getIndentationLevel(); i--) {
-                    spacesMap.remove(i);
-                    numLeadingSpaces.remove(i);
-                }
-            }
-            String prependString = spacesMap.get(strings.getIndentationLevel());
-            boolean nativeSpark = strings.getTextLines().size() > 1;
-            if (prependString == null)
-            {
-                int indentation = findIndentation(numLeadingSpaces,
-                                                  strings.getIndentationLevel(),
-                                                  nativeSpark);
-                char[] charArray = new char[indentation];
-                Arrays.fill(charArray, ' ');
-                prependString = new String(charArray);
-                spacesMap.put(strings.getIndentationLevel(), prependString);
-            }
-            if (nativeSpark) {
-                if (firstLine)
-                    sparkExplain.add(prependString + "NativeSparkDataSet");
-                else if (!sparkExplain.get(sparkExplain.size()-1).contains("NativeSparkDataSet"))
-                    sparkExplain.add(prependString + "-> NativeSparkDataSet");
-                prependString = prependString + "   ";
-            }
-            int newIndentPos = prependString.length();
-            for (String s:strings.getTextLines()) {
-                String newString = prependString + s;
-                sparkExplain.add(newString);
-                int tempIndentPos = newString.indexOf("+-");
-                if (tempIndentPos > newIndentPos) {
-                    newIndentPos = tempIndentPos;
-                    numLeadingSpaces.put(strings.getIndentationLevel(), newIndentPos);
-                }
-            }
-            previousIndentationLevel = strings.getIndentationLevel();
-            if (previousIndentationLevel > maxIndentationLevel)
-                maxIndentationLevel = previousIndentationLevel;
-            firstLine = false;
-        }
-        return sparkExplain;
+        return explain.getNativeSparkExplain();
     }
 
     @Override
-    public int getOpDepth() { return opDepth; }
+    public int getOpDepth() { return explain.getOpDepth(); }
 
     @Override
     public void incrementOpDepth() {
-        if (isSparkExplain())
-            opDepth++;
+        explain.incrementOpDepth();
     }
 
     @Override
     public void decrementOpDepth() {
-        if (isSparkExplain())
-            opDepth--;
+        explain.decrementOpDepth();
     }
 
     @Override
-    public void resetOpDepth() { opDepth = 0; }
+    public void resetOpDepth() { explain.resetOpDepth(); }
 
-    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicInfo, OperationContext context) throws StandardException {
         Properties props = new Properties();
         String consumerGroupId = "spark-consumer-dss-sdsp";
         String bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
@@ -1254,13 +1010,29 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
 
-        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
-        List ps = consumer.partitionsFor(topicName);
-        List<Integer> partitions = new ArrayList<>(ps.size());
-        for (int i = 0; i < ps.size(); ++i) {
-            partitions.add(i);
+        List<Integer> partitions;
+        String topicName;
+        if( topicInfo.contains("::") ) {
+            String[] sp = topicInfo.split("::");
+            topicName = sp[0];
+            if( sp.length > 1 ) {
+                partitions = Arrays.stream( sp[1].split(",") )
+                        .map(s -> Integer.valueOf(s))
+                        .collect(Collectors.toList());
+            } else {
+                partitions = new ArrayList<>(1);
+                partitions.add(0);
+            }
+        } else {
+            topicName = topicInfo;
+            KafkaConsumer<Integer, byte[]> consumer = new KafkaConsumer<Integer, byte[]>(props);
+            List ps = consumer.partitionsFor(topicName);
+            partitions = new ArrayList<>(ps.size());
+            for (int i = 0; i < ps.size(); ++i) {
+                partitions.add(i);
+            }
+            consumer.close();
         }
-        consumer.close();
 
         SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
         return rdd.flatMap(new KafkaReadFunction(context, topicName, bootstrapServers));

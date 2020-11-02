@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+
 import java.util.BitSet;
 
 /**
@@ -242,6 +243,15 @@ public interface StoreCostController extends RowCountable{
 
     /**
      *
+     * Estimate of the number of parallel tasks Spark will use to read this table.
+     * This is meant to replace numPartitions for the purposes of optimizer join costing.
+     *
+     * @return
+     */
+    int getParallelism();
+
+    /**
+     *
      * Column Size factor of the current conglomerate.  This represents the ratio of data being returned.
      *
      * @param validColumns
@@ -268,4 +278,8 @@ public interface StoreCostController extends RowCountable{
     DataValueDescriptor maxValue(int columnNumber) ;
 
     double getSelectivityExcludingValueIfSkewed(int columnNumber, DataValueDescriptor value);
+
+    boolean useRealTableStatistics();
+
+    boolean useRealColumnStatistics(int columnId);
 }

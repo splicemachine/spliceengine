@@ -510,6 +510,11 @@ public class ColumnReference extends ValueNode {
         return columnName;
     }
 
+    public String getSchemaQualifiedColumnName() throws StandardException
+    {
+        return source.getSchemaName() + "." + source.getFullName();
+    }
+
     /**
      * Get the table number for this ColumnReference.
      *
@@ -1469,7 +1474,7 @@ public class ColumnReference extends ValueNode {
         // TODO THROW EXCEPTION HERE JL
         if (cd != null && cd.getTableDescriptor() != null) {
             ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-            storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(), outercCD, getCompilerContext().skipStats(getTableNumber()), 0);
+            storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(), outercCD, getCompilerContext().skipStats(getTableNumber()), 0, 0);
         }
         return storeCostController;
     }
@@ -1478,6 +1483,19 @@ public class ColumnReference extends ValueNode {
      */
     public double rowCountEstimate() throws StandardException {
         return getStoreCostController().rowCount();
+    }
+
+    public boolean useRealColumnStatistics() throws StandardException {
+        StoreCostController scc = getStoreCostController();
+        if (scc != null) {
+            return getStoreCostController().useRealColumnStatistics(columnNumber);
+        }
+        // There are cases in which scc is null because of no columnDescriptor. An
+        // example can be this column comes from a dynamic view defined in with clause.
+        // Do not report such cases because they should not be used in any cost
+        // estimation (otherwise other calls like rowCountEstimate() above will also
+        // fail) and their original source columns should be reported correctly anyway.
+        return true;
     }
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {

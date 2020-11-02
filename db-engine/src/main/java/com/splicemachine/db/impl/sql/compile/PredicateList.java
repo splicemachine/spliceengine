@@ -56,6 +56,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import static com.splicemachine.db.iapi.types.Orderable.*;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /**
  * A PredicateList represents the list of top level predicates.
@@ -236,7 +237,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 true,
                 ap.getNonMatchingIndexScan(),
                 ap.getCoveringIndexScan(),
-                true);
+                true,
+                false);
     }
 
     @Override
@@ -248,17 +250,19 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         ** this method call will help determine that.  So, let's say they're
         ** false for now.
         */
-        orderUsefulPredicates(optTable,cd,false,false,false, considerJoinPredicateAsKey);
+        orderUsefulPredicates(optTable,cd,false,false,false, considerJoinPredicateAsKey, false);
     }
 
     @Override
-    public void markAllPredicatesQualifiers(){
+    public void markAllPredicatesQualifiers() throws StandardException{
         int size=size();
+        numberOfQualifiers = 0;
         for(int index=0;index<size;index++){
-            elementAt(index).markQualifier();
+            if (!elementAt(index).isInListProbePredicate()) {
+                elementAt(index).markQualifier();
+                numberOfQualifiers++;
+            }
         }
-
-        numberOfQualifiers=size;
     }
 
     @Override
@@ -673,12 +677,21 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return retval;
     }
 
+    private void saveOriginalInListPreds(Predicate newPred, List<Predicate> predsForNewInList) throws StandardException {
+        PredicateList origList =
+            (PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
+        for (Predicate p:predsForNewInList)
+            origList.addPredicate(p);
+        newPred.setOriginalInListPredList(origList);
+    }
+
     private void orderUsefulPredicates(Optimizable optTable,
                                        ConglomerateDescriptor cd,
                                        boolean pushPreds,
                                        boolean nonMatchingIndexScan,
                                        boolean coveringIndexScan,
-                                       boolean considerJoinPredicateAsKey) throws StandardException{
+                                       boolean considerJoinPredicateAsKey,
+                                       boolean rewriteList) throws StandardException{
         boolean primaryKey=false;
         int[] baseColumnPositions=null;
         boolean[] isAscending=null;
@@ -1021,9 +1034,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                 if (andNode instanceof AndNode) {
                     multiColumnInListBuilt = true;
-                    JBitSet newJBitSet = new JBitSet(getCompilerContext().getNumTables());
+                    JBitSet newJBitSet = new JBitSet(usefulPredicates[firstPred].getReferencedSet().size());
                     Predicate newPred = (Predicate) getNodeFactory().getNode(C_NodeTypes.PREDICATE,
                             andNode, newJBitSet, getContextManager());
+
+                    saveOriginalInListPreds(newPred, predsForNewInList);
 
                     // The index position is the position of the first column in the
                     // multicolumn IN list.
@@ -1197,7 +1212,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         numColsInStartPred = thisPred.numColumnsInQualifier();
                         thisPredMarked=true;
                         seenGT=(thisPred.getStartOperator(optTable)==ScanController.GT);
-                        thisPred.markQualifier();
+                        if (!thisPred.isInListProbePredicate())
+                            thisPred.markQualifier();
                     }
                 }
             }
@@ -1218,7 +1234,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         numColsInStopPred = thisPred.numColumnsInQualifier();
                         thisPredMarked=true;
                         seenGE=(thisPred.getStopOperator(optTable)==ScanController.GE);
-                        thisPred.markQualifier();
+                        if (!thisPred.isInListProbePredicate())
+                            thisPred.markQualifier();
                     }
                 }
             }
@@ -1334,6 +1351,19 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 if (thisPred != multiColumnInListPred) {
                     removeOptPredicate(thisPred);
                     addOptPredicate(thisPred, i);
+                }
+            }
+            // If this is the final classification of the predicate list,
+            // we need to make sure any multicolumn IN list predicates are
+            // properly represented.
+            if (rewriteList) {
+                if (thisPred.isMultiColumnInListProbePredicate()) {
+                    PredicateList origList = thisPred.getOriginalInListPredList();
+                    for(int idx=0;idx < origList.size();idx++) {
+                        Predicate pred = origList.elementAt(idx);
+                        removeOptPredicate(pred);
+                    }
+                    addOptPredicate(thisPred);
                 }
             }
         }
@@ -1666,8 +1696,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
     }
 
-    private void countScanFlags(){
+    public void countScanFlags(){
         Predicate predicate;
+
+        numberOfStartPredicates = 0;
+        numberOfStopPredicates  = 0;
+        numberOfQualifiers      = 0;
 
         int size=size();
         for(int index=0;index<size;index++){
@@ -2690,7 +2724,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * class after it in the list.  (Actually, we remove all of the predicates
      * in the same equivalence class that appear after this one.)
      */
-    void removeRedundantPredicates(){
+    void removeRedundantPredicates() throws StandardException {
             /* Walk backwards since we may remove 1 or more
            * elements for each predicate in the outer pass.
              */
@@ -2733,7 +2767,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                             // we mark a start/stop as qualifier if we have already seen a previous column in composite
                             // index whose RELOPS do not include '=' or IS NULL. And hence we should not disregard
                             // the qualifier flag of inner predicate
-                            if(!predicate.isQualifier()){
+                            if(!predicate.isQualifier() &&
+                               !predicate.isInListProbePredicate()){
                                 predicate.markQualifier();
                                 numberOfQualifiers++;
                             }
@@ -2805,9 +2840,25 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                         /* Clear all of the scan flags since they may be different
                          * due to the splitting of the list.
                          */
-                predicate.clearScanFlags();
+
                 // Do the actual xfer
-                theOtherList.addPredicate(predicate);
+                predicate.clearScanFlags();
+                if (predicate.isMultiColumnInListProbePredicate()) {
+                    // We are trying a new access path so we need to restore
+                    // the original IN list predicates.
+                    PredicateList origList = predicate.getOriginalInListPredList();
+                    if (origList == null)
+                        throw StandardException.newException(LANG_INTERNAL_ERROR, "Malformed multicolumn IN list predicate.");
+
+                    for(int i=0;i < origList.size();i++) {
+                        Predicate pred = origList.elementAt(i);
+                        pred.clearScanFlags();
+                        theOtherList.addPredicate(pred);
+                    }
+                }
+                else {
+                    theOtherList.addPredicate(predicate);
+                }
                 removeElementAt(index);
             }
         }
@@ -2823,6 +2874,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 false,
                 ap.getNonMatchingIndexScan(),
                 ap.getCoveringIndexScan(),
+                true,
                 true);
 
         // count the start/stop positions and qualifiers
@@ -3318,7 +3370,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     num_of_or_conjunctions++;
                 }
                 else
-                if (elementAt(i).isInListProbePredicate()) {
+                if (elementAt(i).isInListProbePredicate() && elementAt(i).isQualifier()) {
                     InListOperatorNode ilop = elementAt(i).getSourceInList(true);
                     if (ilop != null)
                         numExtraInListColumns += (ilop.leftOperandList.size()-1);
@@ -4410,10 +4462,14 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
     }
 
-    public boolean isUnsatisfiable() {
-        for (int i=0; i<size(); i++)
-            if (elementAt(i).isUnsatisfiable())
+    public boolean isUnsatisfiable(boolean checkOJCond) {
+        for (int i=0; i<size(); i++) {
+            Predicate pred = elementAt(i);
+            if (checkOJCond && pred.getOuterJoinLevel() > 0)
+                continue;
+            if (pred.isUnsatisfiable())
                 return true;
+        }
         return false;
     }
     @Override

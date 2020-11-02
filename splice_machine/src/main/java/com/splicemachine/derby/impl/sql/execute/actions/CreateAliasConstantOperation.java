@@ -66,7 +66,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 		SpliceLogUtils.trace(LOG, "CreateAliasConstantOperation with alias {%s} on schema %s with aliasInfo %s",aliasName, schemaName, aliasInfo);
 		this.aliasName = aliasName;
 		this.schemaName = schemaName;
-		this.javaClassName = javaClassName;
+		this.javaClassName = javaClassName == null ? "NULL" : javaClassName;
 		this.aliasInfo = aliasInfo;
 		this.aliasType = aliasType;
 		switch (aliasType) {
@@ -300,7 +300,7 @@ public class CreateAliasConstantOperation extends DDLConstantOperation {
 			DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 			td = ddg.newTableDescriptor(aliasName, sd, TableDescriptor.SYNONYM_TYPE,
 						TableDescriptor.DEFAULT_LOCK_GRANULARITY,-1,
-					null,null,null,null,null,null,false,false);
+					null,null,null,null,null,null,false,false,null);
 			dd.addDescriptor(td, sd, DataDictionary.SYSTABLES_CATALOG_NUM, false, tc, false);
             break;
 		

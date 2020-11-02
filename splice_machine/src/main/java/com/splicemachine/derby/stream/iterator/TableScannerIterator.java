@@ -26,6 +26,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.stream.function.IteratorUtils;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.derby.utils.Scans;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.Closeable;
 import java.io.IOException;
@@ -47,12 +49,10 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
     protected Qualifier[][] qualifiers;
     protected int[] baseColumnMap;
     protected boolean rowIdKey; // HACK Row ID Qualifiers point to the projection above them ?  TODO JL
-    protected HBaseRowLocation hBaseRowLocation;
 
     public TableScannerIterator(TableScannerBuilder siTableBuilder, SpliceOperation operation) throws StandardException {
         this.siTableBuilder = siTableBuilder;
         this.operation = (operation instanceof ScanOperation) ? (ScanOperation) operation : null;
-        this.hBaseRowLocation = new HBaseRowLocation();
         if (this.operation != null) {
             this.qualifiers = this.operation.getScanInformation().getScanQualifiers();
             this.baseColumnMap = this.operation.getOperationInformation().getBaseColumnMap();
@@ -108,6 +108,7 @@ public class TableScannerIterator implements Iterable<ExecRow>, Iterator<ExecRow
         }
     }
 
+    @SuppressFBWarnings(value = "IT_NO_SUCH_ELEMENT", justification = "intentional")
     @Override
     public ExecRow next() {
         slotted = false;

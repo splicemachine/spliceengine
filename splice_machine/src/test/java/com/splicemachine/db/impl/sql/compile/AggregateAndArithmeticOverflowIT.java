@@ -898,11 +898,31 @@ public class AggregateAndArithmeticOverflowIT  extends SpliceUnitTest {
 
         sqlText = format("select a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a/3 from ts_decimal --splice-properties useSpark=%s", useSpark);
 
-        expected = "1       |\n" +
-                "----------------\n" +
-                "153333333328.7 |\n" +
-                "153333333331.8 |\n" +
-                "153333333331.8 |";
+        expected = "1             |\n" +
+                "---------------------------\n" +
+                "153333333328.733333333333 |\n" +
+                "153333333331.800000000000 |\n" +
+                "153333333331.800000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select (a+a)/cast(3 as decimal(11,1)) from ts_decimal --splice-properties useSpark=%s", useSpark);
+
+        expected = "1            |\n" +
+                "-------------------------\n" +
+                "6666666666.466666666667 |\n" +
+                "6666666666.600000000000 |\n" +
+                "6666666666.600000000000 |";
+
+        testQuery(sqlText, expected, methodWatcher);
+
+        sqlText = format("select (cast(a as decimal(20,10)) + cast(a as decimal(20,10)))/cast(3 as decimal(20,10)) from ts_decimal --splice-properties useSpark=%s", useSpark);
+
+        expected = "1              |\n" +
+                "------------------------------\n" +
+                "6666666666.46666666666666667 |\n" +
+                "6666666666.60000000000000000 |\n" +
+                "6666666666.60000000000000000 |";
 
         testQuery(sqlText, expected, methodWatcher);
 

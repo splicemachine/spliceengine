@@ -19,25 +19,28 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.0.1973-SNAPSHOT</version>
+        <version>3.0.1.1982-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_encoding</artifactId>
-            <version>3.0.0.1973-SNAPSHOT</version>
+            <version>3.0.1.1982-SNAPSHOT</version>
         </dependency>
         <dependency>
-            <groupId>io.netty</groupId>
-            <artifactId>netty</artifactId>
-            <version>3.6.6.Final</version>
-            <scope>provided</scope>
+		<groupId>io.netty</groupId>
+		<artifactId>netty-all</artifactId>
+		<version>4.0.23.Final</version>
         </dependency>
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>splice_protocol</artifactId>
             <version>${project.version}</version>
             <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.google.code.findbugs</groupId>
+            <artifactId>annotations</artifactId>
         </dependency>
     </dependencies>
 </project>

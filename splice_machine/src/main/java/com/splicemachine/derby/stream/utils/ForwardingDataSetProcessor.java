@@ -25,6 +25,7 @@ import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.si.api.txn.TxnView;
+import com.splicemachine.system.CsvOptions;
 import org.apache.spark.sql.types.StructType;
 
 import java.io.InputStream;
@@ -173,15 +174,24 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
-                                      boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
-        return delegate.readORCFile(baseColumnMap, partitionColumnMap, location, context,qualifiers,probeValue,execRow, useSample, sampleFraction, statsjob);
+    public <V> DataSet<V> readORCFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                      String location, OperationContext context, Qualifier[][] qualifiers,
+                                      DataValueDescriptor probeValue, ExecRow execRow, boolean useSample,
+                                      double sampleFraction) throws StandardException {
+        return delegate.readORCFile(schema, baseColumnMap, partitionColumnMap,location, context, qualifiers,
+                probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override
-    public <V> DataSet<ExecRow> readTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter, int[] baseColumnMap, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
-                                                boolean useSample, double sampleFraction) throws StandardException {
-        return delegate.readTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context,  qualifiers, probeValue, execRow, useSample, sampleFraction);
+    public <V> DataSet<ExecRow> readTextFile(CsvOptions csvOptions,
+                                             StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                             String location, OperationContext context, Qualifier[][] qualifiers,
+                                             DataValueDescriptor probeValue, ExecRow execRow, boolean useSample,
+                                             double sampleFraction
+    ) throws StandardException {
+        return delegate.readTextFile(csvOptions,
+                schema, baseColumnMap, partitionColumnMap,location, context, qualifiers,
+                probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override

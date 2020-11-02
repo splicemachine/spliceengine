@@ -1352,15 +1352,15 @@ public interface Property {
     /**
      * The maximum number of IN list items the optimizer is allowed to generate by combining
      * IN lists involving index or primary key columns into a single multicolumn IN list.
+     * Default value is 5000.  The maximum value for this parameter is 10000.
      */
     String MAX_MULTICOLUMN_PROBE_VALUES =
             "derby.database.maxMulticolumnProbeValues";
 
     /**
      * If true, allow conversion of single-column IN lists into a multicolumn IN list
-     * for use as a probe predicate when executing on Spark.  By default, this
-     * optimization is only used on control because the greater number of union
-     * operations on Spark leads to worse performance.
+     * for use as a probe predicate when executing on Spark.
+     * By default, this is true.
      *
      */
     String MULTICOLUMN_INLIST_PROBE_ON_SPARK_ENABLED =
@@ -1458,6 +1458,8 @@ public interface Property {
 
     String SSQ_FLATTENING_FOR_UPDATE_DISABLED = "derby.database.ssqFlatteningForUpdateDisabled";
 
+    String DISABLE_NLJ_PREIDCATE_PUSH_DOWN =
+            "derby.database.disableNLJPredicatePushDown";
     /**
      * Default schema for this connection
      */
@@ -1505,5 +1507,21 @@ public interface Property {
     String SPARK_RESULT_STREAMING_BATCHES = "sparkResultStreamingBatches";
 
     String SPARK_RESULT_STREAMING_BATCH_SIZE = "sparkResultStreamingBatchSize";
+
+    String CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN = "disableNLJPredicatePushDown";
+
+    String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
+
+    String SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE = "splice.db2.import.empty_string_compatible";
+
+    String SPLICE_NEW_MERGE_JOIN =
+            "splice.execution.newMergeJoin";
+
+    /**
+     * If enabled, disable calculation of join costs as cost per parallel task
+     * and revert to using the old units: cost per partition (cost per region).
+     */
+    String DISABLE_PARALLEL_TASKS_JOIN_COSTING =
+            "splice.optimizer.disablePerParallelTaskJoinCosting";
 }
 

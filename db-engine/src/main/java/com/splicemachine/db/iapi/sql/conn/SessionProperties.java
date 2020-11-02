@@ -53,7 +53,8 @@ public interface SessionProperties {
         OLAPSHUFFLEPARTITIONS(8),
         SPARK_RESULT_STREAMING_BATCHES(9),
         SPARK_RESULT_STREAMING_BATCH_SIZE(10),
-        TABLELIMITFOREXHAUSTIVESEARCH(11);
+        TABLELIMITFOREXHAUSTIVESEARCH(11),
+        DISABLE_NLJ_PREDICATE_PUSH_DOWN(12);
 
         public static final int COUNT = PROPERTYNAME.values().length;
 
@@ -97,6 +98,7 @@ public interface SessionProperties {
             case USEOLAP:
             case SKIPSTATS:
             case DISABLE_TC_PUSHED_DOWN_INTO_VIEWS:
+            case DISABLE_NLJ_PREDICATE_PUSH_DOWN:
                 try {
                     Boolean.parseBoolean(valString);
                 } catch (Exception e) {

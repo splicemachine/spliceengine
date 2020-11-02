@@ -43,6 +43,8 @@ import java.sql.Statement;
 import java.sql.Types;
 import java.sql.ResultSet;
 import java.util.Arrays;
+
+import com.splicemachine.db.client.am.ClientConnection;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
@@ -460,9 +462,9 @@ public class CacheSessionDataTest extends BaseJDBCTestCase {
     }
     
     private void verifyCachedSchema(Connection c) throws SQLException {
-        if (c instanceof com.splicemachine.db.client.am.Connection) {
+        if (c instanceof ClientConnection) {
             String cached =
-                    ((com.splicemachine.db.client.am.Connection) c).
+                    ((ClientConnection) c).
                     getCurrentSchemaName();
             Statement s = c.createStatement();
             ResultSet rs = s.executeQuery("VALUES CURRENT SCHEMA");

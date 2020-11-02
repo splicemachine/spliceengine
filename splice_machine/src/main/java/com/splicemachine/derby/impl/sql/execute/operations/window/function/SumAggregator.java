@@ -68,8 +68,15 @@ public class SumAggregator extends SpliceGenericWindowFunction {
 
     @Override
     public DataValueDescriptor getResult() throws StandardException {
-        // Iterate through each chunk, compute the max/min of each chunk
+        // For window frame like ROWS BETWEEN 1 PROCEDING AND 2 PROCEDING, when we get to the first rows,
+        // or for window frame like ROWS BETWEEN 1 FOLLOWING AND 2 FOLLOWING, when we get to the last rows,
+        // there are no corresponding rows before or after them,
+        // so chunks may not be populated with rows
+        if (chunks.isEmpty() || chunks.get(0).isEmpty())
+            return null;
+
         WindowChunk first = chunks.get(0);
+
         NumberDataValue result = (NumberDataValue)first.getResult().cloneValue(false);
         for (int i = 1; i < chunks.size(); ++i) {
             NumberDataValue dvd = (NumberDataValue)chunks.get(i).getResult();

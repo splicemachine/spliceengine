@@ -43,7 +43,6 @@ import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.function.SplicePredicateFunction;
 import com.splicemachine.derby.stream.function.TakeFunction;
-import com.splicemachine.derby.stream.function.ZipperFunction;
 import com.splicemachine.derby.stream.iapi.*;
 import com.splicemachine.derby.stream.output.BulkDeleteDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.BulkInsertDataSetWriterBuilder;
@@ -54,6 +53,7 @@ import com.splicemachine.derby.stream.output.UpdateDataSetWriterBuilder;
 import com.splicemachine.derby.stream.output.*;
 import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
+import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
 import org.apache.commons.codec.binary.Base64;
@@ -598,7 +598,7 @@ public class SparkDataSet<V> implements DataSet<V> {
             else if (compression == COMPRESSION.GZ) {
                 fileOut = new GZIPOutputStream(fileOut);
             }
-            final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams());
+            final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams(), op.getSourceResultColumnDescriptors());
             return new RecordWriter<Void, ExecRow>() {
                 @Override
                 public void write(Void _, ExecRow locatedRow) throws IOException, InterruptedException {
@@ -833,9 +833,8 @@ public class SparkDataSet<V> implements DataSet<V> {
     {
         StructType tableSchema = generateTableSchema( context );
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
+                rdd.map(new LocatedRowToRowFunction()),
                 tableSchema);
-
         return new NativeSparkDataSet<>(insertDF, context);
     }
 
@@ -877,15 +876,13 @@ public class SparkDataSet<V> implements DataSet<V> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeTextFile(SpliceOperation op, String location, String characterDelimiter, String columnDelimiter,
-                                                int[] baseColumnMap,
+    public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
                                                 OperationContext context) throws StandardException {
-
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
-                rdd.map(new SparkSpliceFunctionWrapper<>(new CountWriteFunction(context))).map(new LocatedRowToRowFunction()),
+                rdd.map(new LocatedRowToRowFunction()),
                 context.getOperation().schema());
 
-        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(op, location, characterDelimiter, columnDelimiter, baseColumnMap, context);
+        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(partitionBy, location, csvOptions, context);
     }
 
     @Override @SuppressWarnings({ "unchecked", "rawtypes" })

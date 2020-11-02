@@ -194,7 +194,7 @@ public class DSCreateShutdownDBTest extends BaseJDBCTestCase {
         // straightforward create and shutdown
         assertPositive(dbName);
         
-        // what happens when you combine set*Database and 
+        // what happens when you combine set*Database and
         // matching connection attribute? (should work)
         dbName = composeDatabaseName(ADDITIONAL_DBS[2]);
         assertNoDB(dbName);

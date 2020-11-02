@@ -584,6 +584,21 @@ public interface DataDictionary{
     boolean isSchemaEmpty(SchemaDescriptor sd) throws StandardException;
 
     /**
+     * get the list of objects existing in the specified schema
+     * @param sd
+     * @return
+     */
+    ArrayList<TupleDescriptor> getTablesInSchema(SchemaDescriptor sd) throws StandardException;
+
+    ArrayList<AliasDescriptor> getAliasesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<SequenceDescriptor> getSequencesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<FileInfoDescriptor> getFilesInSchema(String schemaId) throws StandardException;
+
+    ArrayList<TriggerDescriptor> getTriggersInSchema(String schemaId) throws StandardException;
+
+    /**
      * Get the descriptor for the named table within the given schema.
      * If the schema parameter is NULL, it looks for the table in the
      * current (default) schema. Table descriptors include object ids,
@@ -616,6 +631,19 @@ public interface DataDictionary{
      * @throws StandardException Thrown on failure
      */
     TableDescriptor getTableDescriptor(UUID tableID) throws StandardException;
+
+    /**
+     * Get a list of TableDescriptors whose table names are in a given range within the given schema.
+     *
+     * @param tableNameStart Starting table name, inclusive.
+     * @param tableNameEnd Ending table name, exclusive.
+     * @param schema The descriptor for the schema the table lives in.
+     *               If null, use the system schema.
+     * @return A list of TableDescriptors whose table names are in range of [tableNameStart, tableNameEnd) in given schema.
+     * @throws StandardException
+     */
+    List<TableDescriptor> getTableDescriptors(String tableNameStart,String tableNameEnd,
+                                              SchemaDescriptor schema) throws StandardException;
 
     /**
      * Drop the table descriptor.
@@ -2231,5 +2259,10 @@ public interface DataDictionary{
 
     boolean schemaReplicationEnabled(String schemaName) throws StandardException;
 
+
     String getCatalogVersion(long conglomerateNumber) throws StandardException;
+
+    long getSystablesMinRetentionPeriod();
+
+    boolean useTxnAwareCache();
 }

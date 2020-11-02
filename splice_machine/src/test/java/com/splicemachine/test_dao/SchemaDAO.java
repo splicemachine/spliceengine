@@ -129,14 +129,13 @@ public class SchemaDAO {
         try {
             DatabaseMetaData metaData=connection.getMetaData();
             String uSchema=schemaName.toUpperCase();
-            cleanSchemaObjects(schemaName, connection, metaData);
 
             //
             // Drop schema
             //
             try(ResultSet resultSet = metaData.getSchemas(null,uSchema)){
                 while(resultSet.next()){
-                    jdbcTemplate.executeUpdate("drop schema "+schemaName+" RESTRICT");
+                    jdbcTemplate.executeUpdate("drop schema "+schemaName+" CASCADE");
                 }
             }
         } catch (Exception e) {

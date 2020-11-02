@@ -1,9 +1,6 @@
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.HBaseTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -51,38 +48,38 @@ public class CreateAliasIT extends SpliceUnitTest {
     @Test
     public void testCreateSynonym() throws  Exception {
         methodWatcher.executeUpdate("create synonym t2 for t1");
-        ResultSet rs = methodWatcher.executeQuery("select c1 from t2");
-        rs.next();
-        assertEquals(1, rs.getInt("C1"));
-        rs.close();
+        try(ResultSet rs = methodWatcher.executeQuery("select c1 from t2")) {
+            rs.next();
+            assertEquals(1, rs.getInt("C1"));
+        }
         methodWatcher.executeUpdate("drop synonym t2");
 
         // create a synonym with the same name again, and it should be successful
         // to confirm that dictionary cache has cleared the entry for previous t2.
         methodWatcher.executeUpdate("create synonym t2 for t1");
-        rs = methodWatcher.executeQuery("select c1 from t2");
-        rs.next();
-        assertEquals(1, rs.getInt("C1"));
-        rs.close();
+        try(ResultSet rs = methodWatcher.executeQuery("select c1 from t2")) {
+            rs.next();
+            assertEquals(1, rs.getInt("C1"));
+        }
         methodWatcher.executeUpdate("drop synonym t2");
     }
 
     @Test
     public void testCreateAlias() throws  Exception {
         methodWatcher.executeUpdate("create alias t3 for t1");
-        ResultSet rs = methodWatcher.executeQuery("select c1 from t3");
-        rs.next();
-        assertEquals(1, rs.getInt("C1"));
-        rs.close();
+        try(ResultSet rs = methodWatcher.executeQuery("select c1 from t3")) {
+            rs.next();
+            assertEquals(1, rs.getInt("C1"));
+        }
         methodWatcher.executeUpdate("drop alias t3");
 
         // create a synonym with the same name again, and it should be successful
         // to confirm that dictionary cache has cleared the entry for previous t2.
         methodWatcher.executeUpdate("create alias t3 for t1");
-        rs = methodWatcher.executeQuery("select c1 from t3");
-        rs.next();
-        assertEquals(1, rs.getInt("C1"));
-        rs.close();
+        try(ResultSet rs = methodWatcher.executeQuery("select c1 from t3")) {
+            rs.next();
+            assertEquals(1, rs.getInt("C1"));
+        }
         methodWatcher.executeUpdate("drop alias t3");
 
         // SHOW ALIASES is also working but cannot test through query since it is an ij command
@@ -93,27 +90,36 @@ public class CreateAliasIT extends SpliceUnitTest {
         // step 1: create alias on RS0
         methodWatcher.executeUpdate("create alias a4 for t1");
         // step 2: select on RS1 to populate the cache
-        TestConnection rs1Conn = spliceClassWatcher.createConnection(remoteURLTemplate, "splice", "admin");
+        try(TestConnection rs1Conn = spliceClassWatcher.connectionBuilder().user("splice").password("admin").port(1528).create(true).build()) {
         rs1Conn.query("select c1 from a4");
         rs1Conn.commit();
 
-        // step 3: drop the alias on RS0
-        methodWatcher.executeUpdate("drop alias a4");
+            // step 3: drop the alias on RS0
+            methodWatcher.executeUpdate("drop alias a4");
 
-        // step 4: check that we can re-use the same alias name on RS1
-        try {
-            rs1Conn.execute("create alias a4 for t1");
-        } catch (SQLException e) {
-            Assert.fail("fail to re-create alias a4!");
+            // step 4: check that we can re-use the same alias name on RS1
+            try {
+                rs1Conn.execute("create alias a4 for t1");
+            } catch (SQLException e) {
+                Assert.fail("fail to re-create alias a4!");
+            }
+
+            // step 5: check that we can use the re-created alias on RS0
+            try(ResultSet rs = methodWatcher.executeQuery("select c1 from a4")) {
+                rs.next();
+                assertEquals(1, rs.getInt("C1"));
+            }
         }
-
-        // step 5: check that we can use the re-created alias on RS0
-        ResultSet rs = methodWatcher.executeQuery("select c1 from a4");
-        rs.next();
-        assertEquals(1, rs.getInt("C1"));
-        rs.close();
-
-        rs1Conn.close();
         methodWatcher.executeUpdate("drop alias a4");
+    }
+
+    @Test
+    public void testSelectingFromAliasesSysTable() throws Exception {
+        methodWatcher.executeUpdate("create alias DB10110 for t1");
+        try(ResultSet rs = methodWatcher.executeQuery("select JAVACLASSNAME from sys.sysaliases where alias='DB10110'")) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals("NULL", rs.getString(1));
+        }
+        methodWatcher.executeUpdate("drop alias DB10110");
     }
 }

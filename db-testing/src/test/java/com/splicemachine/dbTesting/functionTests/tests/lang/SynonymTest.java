@@ -84,10 +84,10 @@ public class SynonymTest extends BaseJDBCTestCase {
     }
 
     /**
-     * DERBY-5244 DatabaseMetaData.getColumns(null, null, tableName, null) 
+     * DERBY-5244 DatabaseMetaData.getColumns(null, null, tableName, null)
      * 	does not return the columns meta for a SYNONYM. This is because for
      *  synonyms, we do not add any rows in SYSCOLUMNS. But the metadata query 
-     *  for DatabaseMetaData.getColumns() looks at SYSCOLUMNS to get the 
+     *  for DatabaseMetaData.getColumns() looks at SYSCOLUMNS to get the
      *  resultset. Views and Tables do not have problems because we do keep
      *  their columns information in SYSCOLUMNS.
      * 

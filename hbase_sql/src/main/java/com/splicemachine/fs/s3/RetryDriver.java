@@ -13,8 +13,8 @@
  */
 package com.splicemachine.fs.s3;
 
-import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
+import splice.com.google.common.base.Throwables;
+import splice.com.google.common.collect.ImmutableList;
 import io.airlift.log.Logger;
 import io.airlift.units.Duration;
 
@@ -44,7 +44,7 @@ public class RetryDriver {
     private final double scaleFactor;
     private final Duration maxRetryTime;
     private final Function<Exception, Exception> exceptionMapper;
-    private final List<Class<? extends Exception>> exceptionWhiteList;
+    private final List<Class<? extends Exception>> exceptionAllowList;
     private final Optional<Runnable> retryRunnable;
 
     private RetryDriver(
@@ -54,7 +54,7 @@ public class RetryDriver {
             double scaleFactor,
             Duration maxRetryTime,
             Function<Exception, Exception> exceptionMapper,
-            List<Class<? extends Exception>> exceptionWhiteList,
+            List<Class<? extends Exception>> exceptionAllowList,
             Optional<Runnable> retryRunnable)
     {
         this.maxAttempts = maxAttempts;
@@ -63,7 +63,7 @@ public class RetryDriver {
         this.scaleFactor = scaleFactor;
         this.maxRetryTime = maxRetryTime;
         this.exceptionMapper = exceptionMapper;
-        this.exceptionWhiteList = exceptionWhiteList;
+        this.exceptionAllowList = exceptionAllowList;
         this.retryRunnable = retryRunnable;
     }
 
@@ -86,22 +86,22 @@ public class RetryDriver {
 
     public final RetryDriver maxAttempts(int maxAttempts)
     {
-        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionWhiteList, retryRunnable);
+        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionAllowList, retryRunnable);
     }
 
     public final RetryDriver exponentialBackoff(Duration minSleepTime, Duration maxSleepTime, Duration maxRetryTime, double scaleFactor)
     {
-        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionWhiteList, retryRunnable);
+        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionAllowList, retryRunnable);
     }
 
     public final RetryDriver onRetry(Runnable retryRunnable)
     {
-        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionWhiteList, Optional.ofNullable(retryRunnable));
+        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionAllowList, Optional.ofNullable(retryRunnable));
     }
 
     public final RetryDriver exceptionMapper(Function<Exception, Exception> exceptionMapper)
     {
-        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionWhiteList, retryRunnable);
+        return new RetryDriver(maxAttempts, minSleepTime, maxSleepTime, scaleFactor, maxRetryTime, exceptionMapper, exceptionAllowList, retryRunnable);
     }
 
     @SafeVarargs
@@ -109,7 +109,7 @@ public class RetryDriver {
     {
         requireNonNull(classes, "classes is null");
         List<Class<? extends Exception>> exceptions = ImmutableList.<Class<? extends Exception>>builder()
-                .addAll(exceptionWhiteList)
+                .addAll(exceptionAllowList)
                 .addAll(Arrays.asList(classes))
                 .build();
 
@@ -141,7 +141,7 @@ public class RetryDriver {
             }
             catch (Exception e) {
                 e = exceptionMapper.apply(e);
-                for (Class<? extends Exception> clazz : exceptionWhiteList) {
+                for (Class<? extends Exception> clazz : exceptionAllowList) {
                     if (clazz.isInstance(e)) {
                         throw e;
                     }

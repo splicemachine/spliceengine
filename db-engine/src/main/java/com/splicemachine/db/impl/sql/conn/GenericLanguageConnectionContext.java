@@ -32,7 +32,7 @@
 package com.splicemachine.db.impl.sql.conn;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ContextId;
@@ -57,6 +57,7 @@ import com.splicemachine.db.iapi.sql.execute.CursorActivation;
 import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.XATransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
@@ -143,7 +144,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private DataSetProcessorType type;
 
     private final String ipAddress;
-    private Database db;
+    private InternalDatabase db;
 
     private final int instanceNumber;
     private String drdaID;
@@ -342,6 +343,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String origStmtTxt;
 
     private String defaultSchema;
+    private boolean nljPredicatePushDownDisabled = false;
 
     private String replicationRole = "NONE";
 
@@ -351,7 +353,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             TransactionController tranCtrl,
             LanguageFactory lf,
             LanguageConnectionFactory lcf,
-            Database db,
+            InternalDatabase db,
             String userName,
             List<String> groupuserlist,
             int instanceNumber,
@@ -410,6 +412,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             // no op, use default value 6
         }
 
+        try {
+            String nljPredPushDownString =
+                    PropertyUtil.getCachedDatabaseProperty(this, Property.DISABLE_NLJ_PREIDCATE_PUSH_DOWN);
+            if (nljPredPushDownString != null)
+                nljPredicatePushDownDisabled = Boolean.valueOf(nljPredPushDownString);
+        } catch (Exception e) {
+            // no op, use default value 6
+        }
+
         lockEscalationThreshold=Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators=new ArrayList<>();
         triggerTables=new ArrayList<>();
@@ -433,6 +444,11 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
             setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCHES, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCHES);
             setSessionFromConnectionProperty(connectionProperties, Property.SPARK_RESULT_STREAMING_BATCH_SIZE, SessionProperties.PROPERTYNAME.SPARK_RESULT_STREAMING_BATCH_SIZE);
+            String disableNestedLoopJoinPredicatePushDown = connectionProperties.getProperty(Property.CONNECTION_DISABLE_NLJ_PREDICATE_PUSH_DOWN);
+            if (disableNestedLoopJoinPredicatePushDown != null &&
+                    disableNestedLoopJoinPredicatePushDown.equalsIgnoreCase("true")) {
+                this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN, "TRUE".toString());
+            }
         }
         if (type.isSessionHinted()) {
             this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USESPARK, type.isSpark());
@@ -756,6 +772,37 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             return true;
         }else{
             return false;
+        }
+    }
+
+    @Override
+    public String mangleTableName(String tableName) {
+        // 20 underscores + session ID
+        return String.format("%s" + LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "%d", tableName, getInstanceNumber());
+    }
+
+    @Override
+    public boolean isVisibleToCurrentSession(TableDescriptor td) throws StandardException {
+        if (td == null)
+            return false;
+        if (td.getTableType() != TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE)
+            return true;
+
+        String tableName = td.getName();
+        int lastIdx = tableName.lastIndexOf(LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR);
+        if (lastIdx < LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR || lastIdx >= tableName.length() - 1)  // -1 case included
+            throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
+        for (int i = lastIdx; i > lastIdx - LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR; i--) {
+            if (tableName.charAt(i) != LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR)
+                throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
+        }
+        try {
+            if (Integer.parseInt(tableName.substring(lastIdx + 1)) == getInstanceNumber())
+                return true;
+            return false;
+        }
+        catch (NumberFormatException e) {
+            throw StandardException.newException(SQLState.LANG_INVALID_INTERNAL_TEMP_TABLE_NAME, tableName);
         }
     }
 
@@ -1188,9 +1235,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     /**
-     * @see LanguageConnectionContext#getTableDescriptorForDeclaredGlobalTempTable
+     * @see LanguageConnectionContext#getTableDescriptorForTempTable
      */
-    public TableDescriptor getTableDescriptorForDeclaredGlobalTempTable(String tableName){
+    public TableDescriptor getTableDescriptorForTempTable(String tableName){
         TempTableInfo tempTableInfo=findDeclaredGlobalTempTable(tableName);
         if(tempTableInfo==null)
             return null;
@@ -1625,7 +1672,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                         td.getColumnCollationIds(),  // same ids as old conglomerate
                         null, // properties
                         (TransactionController.IS_TEMPORARY|
-                                TransactionController.IS_KEPT));
+                                TransactionController.IS_KEPT), Conglomerate.Priority.NORMAL);
 
         long cid=td.getHeapConglomerateId();
 
@@ -2654,7 +2701,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public Database getDatabase(){
+    public InternalDatabase getDatabase(){
         return db;
     }
 
@@ -3305,6 +3352,26 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
+    public void refreshCurrentRoles(Activation a) throws StandardException {
+        List<String> roles = getCurrentSQLSessionContext(a).getRoles();
+        List<String> rolesToRemove = new ArrayList<>();
+        for (String role : roles) {
+            if (role != null) {
+                beginNestedTransaction(true);
+                try {
+                    if (!roleIsSettable(a, role)) {
+                        // invalid role, so remove it from the currentRoles list in SQLSessionContext
+                        rolesToRemove.add(role);
+                    }
+                } finally {
+                    commitNestedTransaction();
+                }
+            }
+        }
+        removeRoles(a, rolesToRemove);
+    }
+
+    @Override
     public String getCurrentUserId(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentUser();
     }
@@ -3365,23 +3432,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
         List<String> roles=getCurrentSQLSessionContext(a).getRoles();
 
-        List<String > rolesToRemove = new ArrayList<>();
+        refreshCurrentRoles(a);
         String roleListString = null;
         for (String role : roles) {
-            if (role != null) {
-                beginNestedTransaction(true);
-
-                try {
-                    if (!roleIsSettable(a, role)) {
-                        // invalid role, so remove it from the currentRoles list in SQLSessionContext
-                        rolesToRemove.add(role);
-                        role = null;
-                    }
-                } finally {
-                    commitNestedTransaction();
-                }
-            }
-
             if (role != null) {
                 if (roleListString == null)
                     roleListString = IdUtil.normalToDelimited(role);
@@ -3389,7 +3442,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
                     roleListString = roleListString + ", " + IdUtil.normalToDelimited(role);
             }
         }
-        removeRoles(a, rolesToRemove);
         return roleListString;
     }
 
@@ -3932,5 +3984,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     public String getUserName() {
         return userName;
+    }
+
+    public boolean isNLJPredicatePushDownDisabled() {
+        Boolean disablePushDown = (Boolean) getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DISABLE_NLJ_PREDICATE_PUSH_DOWN);
+        if (disablePushDown != null) {
+            return disablePushDown;
+        }
+
+        return nljPredicatePushDownDisabled;
     }
 }

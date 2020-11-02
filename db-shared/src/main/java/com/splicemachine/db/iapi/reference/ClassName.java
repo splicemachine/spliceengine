@@ -153,4 +153,5 @@ public interface ClassName
     String SelfReferenceResultSet = "com.splicemachine.derby.impl.sql.execute.operations.SelfReferenceOperation";
 	String RecursiveUnionResultSet = "com.splicemachine.derby.impl.sql.execute.operations.RecursiveUnionOperation";
 	String RowIdUtil = "com.splicemachine.db.iapi.util.RowIdUtil";
+	String TxnUtil = "com.splicemachine.db.iapi.util.TxnUtil";
 }

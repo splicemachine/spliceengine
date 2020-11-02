@@ -22,6 +22,7 @@ package com.splicemachine.si.impl.region;
  */
 
 import com.google.protobuf.ByteString;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.encoding.DecodingIterator;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -34,7 +35,6 @@ import com.splicemachine.si.coprocessor.TxnMessage;
 import com.splicemachine.si.impl.TxnUtils;
 import com.splicemachine.utils.ByteSlice;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.collections.iterators.IteratorChain;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
 import splice.com.google.common.collect.Iterators;
@@ -180,6 +180,7 @@ public class V2TxnDecoder implements TxnDecoder{
             state=Txn.State.COMMITTED;
         }
 
+        boolean timedOut = false;
         if(state==Txn.State.ACTIVE && txnStore != null){
                                 /*
 								 * We need to check that the transaction hasn't been timed out (and therefore rolled back). This
@@ -188,6 +189,7 @@ public class V2TxnDecoder implements TxnDecoder{
 								 * we allow a little fudge factor in the timeout
 								 */
             state=txnStore.adjustStateForTimeout(state,keepAliveKv);
+            timedOut = state != Txn.State.ACTIVE;
         }
         long kaTime=decodeKeepAlive(keepAliveKv,false);
         List<Long> rollbackSubIds=decodeRollbackIds(rollbackIds);
@@ -198,9 +200,15 @@ public class V2TxnDecoder implements TxnDecoder{
         if (taskKv != null) {
             taskId = decodeTaskId(taskKv);
         }
-        return composeValue(destinationTables,level,txnId,beginTs,parentTxnId,hasAdditive,
-                isAdditive,commitTs,globalTs,state,kaTime,rollbackSubIds,taskId);
+        TxnMessage.Txn txn = composeValue(destinationTables, level, txnId, beginTs, parentTxnId, hasAdditive,
+                isAdditive, commitTs, globalTs, state, kaTime, rollbackSubIds, taskId);
 
+        boolean committedWithoutGlobalTS = state == Txn.State.COMMITTED && parentTxnId > 0 && globalTs < 0;
+        if ((timedOut || committedWithoutGlobalTS) && txnStore != null) {
+            txnStore.resolveTxn(txn);
+        }
+
+        return txn;
     }
 
     private List<Long> decodeRollbackIds(Cell rollbackIds) {
@@ -261,7 +269,7 @@ public class V2TxnDecoder implements TxnDecoder{
 	 * order: c,d,e,g,k,s,t,v
 	 * order: counter,data,destinationTable,globalCommitTimestamp,keepAlive,state,commitTimestamp,taskId
 	 */
-    public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo,byte[] rowKey) throws IOException{
+    public org.apache.hadoop.hbase.client.Put encodeForPut(TxnMessage.TxnInfo txnInfo, byte[] rowKey, Clock clock) throws IOException{
         org.apache.hadoop.hbase.client.Put put=new org.apache.hadoop.hbase.client.Put(rowKey);
         MultiFieldEncoder metaFieldEncoder=MultiFieldEncoder.create(5);
         metaFieldEncoder.encodeNext(txnInfo.getBeginTs()).encodeNext(txnInfo.getParentTxnid());
@@ -280,7 +288,7 @@ public class V2TxnDecoder implements TxnDecoder{
         Txn.State state=Txn.State.ACTIVE;
 
         put.addColumn(FAMILY,DATA_QUALIFIER_BYTES,metaFieldEncoder.build());
-        put.addColumn(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(System.currentTimeMillis()));
+        put.addColumn(FAMILY,KEEP_ALIVE_QUALIFIER_BYTES,Encoding.encode(clock.currentTimeMillis()));
         put.addColumn(FAMILY,STATE_QUALIFIER_BYTES,state.encode());
         ByteString destTableBuffer=txnInfo.getDestinationTables();
         if(destTableBuffer!=null && !destTableBuffer.isEmpty())
@@ -382,7 +390,7 @@ public class V2TxnDecoder implements TxnDecoder{
             @Override
             public ByteSlice next(){
                 ByteSlice dSlice=it.next();
-                byte[] data=Encoding.decodeBytesUnsortd(dSlice.array(),dSlice.offset(),dSlice.length());
+                byte[] data=Encoding.decodeBytesUnsorted(dSlice.array(),dSlice.offset(),dSlice.length());
                 dSlice.set(data);
                 return dSlice;
             }

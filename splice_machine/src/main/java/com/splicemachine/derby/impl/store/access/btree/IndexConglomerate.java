@@ -30,13 +30,17 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionView;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.si.api.data.TxnOperationFactory;
+import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.constants.SIConstants;
+import com.splicemachine.si.impl.BaseTransaction;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -90,7 +94,7 @@ public class IndexConglomerate extends SpliceConglomerate{
                           int tmpFlag,
                           TxnOperationFactory opFactory,
                           PartitionFactory partitionFactory,
-                          byte[][] splitKeys) throws StandardException{
+                          byte[][] splitKeys, Conglomerate.Priority priority) throws StandardException{
         super.create(isExternal,rawtran,
                 input_containerid,
                 template,
@@ -151,16 +155,25 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
         try{
 //            ((SpliceTransaction)rawtran).elevate(Bytes.toBytes(Long.toString(containerId)));
+
+            TxnView txnView = null;
+            if (rawtran instanceof SpliceTransaction) {
+                txnView = ((SpliceTransaction) rawtran).getTxnInformation();
+            }
+            else if (rawtran instanceof SpliceTransactionView) {
+                txnView = ((SpliceTransactionView) rawtran).getTxnInformation();
+            }
             ConglomerateUtils.createConglomerate(isExternal,
                     containerId,
                     this,
-                    ((SpliceTransaction)rawtran).getTxn(),
+                    ((BaseSpliceTransaction<? extends BaseTransaction>)rawtran).getTxnInformation(),
                     properties.getProperty(SIConstants.SCHEMA_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.TABLE_DISPLAY_NAME_ATTR),
                     properties.getProperty(SIConstants.INDEX_DISPLAY_NAME_ATTR),
-                    splitKeys);
+                    splitKeys, priority );
         }catch(Exception e){
             LOG.error(e.getMessage(),e);
+            throw e;
         }
     }
 
@@ -525,6 +538,17 @@ public class IndexConglomerate extends SpliceConglomerate{
         }
         int len=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(len,in);
+
+        // DataDictionaryImpl.bootstrapOneIndex creates system indexes with a null
+        // column ordering, making the IndexConglomerate inconsistent, which may
+        // lead to broken logic in places that call ScanOperation.getColumnOrdering.
+        // Fill in the missing information here so the index may be properly used.
+        if (columnOrdering == null || columnOrdering.length == 0) {
+            int extraColumnsCount = allowDuplicates ? 1 : 0;
+            columnOrdering = new int[ascDescInfo.length + extraColumnsCount];
+            for (int i=0; i < columnOrdering.length; i++)
+                columnOrdering[i] = i;
+        }
         partitionFactory =SIDriver.driver().getTableFactory();
         opFactory = SIDriver.driver().getOperationFactory();
     }

@@ -43,8 +43,13 @@ import splice.com.google.common.base.Function;
 import splice.com.google.common.collect.Lists;
 import splice.com.google.common.collect.Maps;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.BitSet;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
+
+import static com.splicemachine.EngineDriver.*;
 
 /**
  *
@@ -72,7 +77,8 @@ public class StoreCostControllerImpl implements StoreCostController {
     private final double fallbackNullFraction;
     private final double extraQualifierMultiplier;
     private int missingPartitions;
-    private TableStatistics tableStatistics;
+    private final TableStatistics tableStatistics;
+    private final boolean useRealTableStatistics;
     private final double fallbackLocalLatency;
     private final double fallbackRemoteLatencyRatio;
     private final ExecRow baseTableRow;
@@ -81,10 +87,16 @@ public class StoreCostControllerImpl implements StoreCostController {
     private boolean isSampleStats;
     private double sampleFraction;
     private boolean isMergedStats;
+    private int requestedSplits;
+
+    // The number of parallel Spark tasks that would run concurrently
+    // to access this table.
+    private int parallelism = 1;
 
 
-    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount) throws StandardException {
+    public StoreCostControllerImpl(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, List<PartitionStatisticsDescriptor> partitionStatistics, long defaultRowCount, int requestedSplits) throws StandardException {
         SConfiguration config = EngineDriver.driver().getConfiguration();
+        this.requestedSplits = requestedSplits;
         openLatency = config.getFallbackOpencloseLatency();
         closeLatency = config.getFallbackOpencloseLatency();
         fallbackNullFraction = config.getFallbackNullFraction();
@@ -174,8 +186,22 @@ public class StoreCostControllerImpl implements StoreCostController {
                     throw StandardException.plainWrapException(e);
                 }
             }
+            useRealTableStatistics = false;
         } else {
             tableStatistics = new TableStatisticsImpl(tableId, partitionStats,fallbackNullFraction,extraQualifierMultiplier);
+            useRealTableStatistics = true;
+        }
+
+        long tableSize = tableStatistics.rowCount() * tableStatistics.avgRowWidth();
+        if (isMemPlatform())
+            parallelism = 1;
+        else {
+            if (requestedSplits > 0)
+                parallelism = requestedSplits;
+            else
+                parallelism = EngineDriver.getNumSplits(tableSize, getNumPartitions());
+            if (parallelism > getMaxExecutorCores())
+                parallelism = getMaxExecutorCores();
         }
     }
 
@@ -205,8 +231,8 @@ public class StoreCostControllerImpl implements StoreCostController {
         cost.setLocalCost(fallbackLocalLatency);
         cost.setEstimatedHeapSize((long) columnSizeFactor*tableStatistics.avgRowWidth());
         cost.setNumPartitions(1);
-        cost.setRemoteCostPerPartition(cost.remoteCost());
-        cost.setLocalCostPerPartition(cost.localCost());
+        cost.setRemoteCostPerParallelTask(cost.remoteCost());
+        cost.setLocalCostPerParallelTask(cost.localCost());
         cost.setEstimatedRowCount(1l);
         cost.setOpenCost(openLatency);
         cost.setCloseCost(closeLatency);
@@ -235,7 +261,7 @@ public class StoreCostControllerImpl implements StoreCostController {
             rowCnt = rowCnt/sampleFraction;
         if (missingPartitions > 0) {
             assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0 ";
-            return rowCnt + rowCnt * (missingPartitions / tableStatistics.numPartitions());
+            return rowCnt + rowCnt * ((double)missingPartitions / tableStatistics.numPartitions());
         }
         else
             return rowCnt;
@@ -249,7 +275,7 @@ public class StoreCostControllerImpl implements StoreCostController {
             notNullCount = notNullCount/sampleFraction;
         if (missingPartitions > 0) {
             assert tableStatistics.numPartitions() > 0: "Number of partitions cannot be 0";
-            return notNullCount + notNullCount * (missingPartitions / tableStatistics.numPartitions());
+            return notNullCount + notNullCount * ((double)missingPartitions / tableStatistics.numPartitions());
         } else
             return notNullCount;
     }
@@ -336,6 +362,10 @@ public class StoreCostControllerImpl implements StoreCostController {
         return missingPartitions+tableStatistics.numPartitions();
     }
 
+    @Override
+    public int getParallelism() {
+        return parallelism;
+    }
 
     @Override
     public double baseRowCount() {
@@ -367,19 +397,11 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_EXCEPTION", justification = "DB-9844")
     public static int getPartitions(byte[] table, List<Partition> partitions, boolean refresh) throws StandardException {
-        Partition root = null;
-        try {
-            root = SIDriver.driver().getTableFactory().getTable(table);
+        try (Partition root = SIDriver.driver().getTableFactory().getTable(table)) {
             partitions.addAll(root.subPartitions(refresh));
             return partitions.size();
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
-        } finally {
-            try {
-                root.close();
-            } catch (IOException e) {
-                // ignore
-            }
         }
     }
 
@@ -389,23 +411,28 @@ public class StoreCostControllerImpl implements StoreCostController {
 
     @SuppressFBWarnings(value = "NP_NULL_ON_SOME_PATH_EXCEPTION", justification = "DB-9844")
     public static int getPartitions(String table, List<Partition> partitions, boolean refresh) throws StandardException {
-        Partition root = null;
-        try {
-            root = SIDriver.driver().getTableFactory().getTable(table);
+        try (Partition root = SIDriver.driver().getTableFactory().getTable(table)) {
             partitions.addAll(root.subPartitions(refresh));
             return partitions.size();
         } catch (Exception ioe) {
             throw StandardException.plainWrapException(ioe);
-        } finally {
-            try {
-                root.close();
-            } catch (IOException e) {
-                // ignore
-            }
         }
     }
 
     public double getSelectivityExcludingValueIfSkewed(int columnNumber, DataValueDescriptor value) {
         return tableStatistics.selectivityExcludingValueIfSkewed(value, columnNumber-1);
+    }
+
+    @Override
+    public boolean useRealTableStatistics() {
+        return useRealTableStatistics;
+    }
+
+    @Override
+    public boolean useRealColumnStatistics(int columnNumber) {
+        if (!useRealTableStatistics || columnNumber <= 0)  // rowid column number == 0
+            return false;
+        PartitionStatistics ps = tableStatistics.getPartitionStatistics().get(0);
+        return ps.getColumnStatistics(columnNumber - 1) != null;
     }
 }

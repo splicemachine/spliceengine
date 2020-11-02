@@ -92,12 +92,15 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
         try {
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
             WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
-            if(insertOperation!=null && operationContext.isPermissive())
+
+            if (insertOperation != null) {
+                if (operationContext != null && operationContext.isPermissive())
                     writeConfiguration = new PermissiveInsertWriteConfiguration(writeConfiguration,
-                            operationContext,
-                            encoder, execRowDefinition);
-            if(insertOperation.skipConflictDetection() || insertOperation.skipWAL()) {
-                writeConfiguration = new UnsafeWriteConfiguration(writeConfiguration, insertOperation.skipConflictDetection(), insertOperation.skipWAL());
+                    operationContext,
+                    encoder, execRowDefinition);
+                if (insertOperation.skipConflictDetection() || insertOperation.skipWAL()) {
+                    writeConfiguration = new UnsafeWriteConfiguration(writeConfiguration, insertOperation.skipConflictDetection(), insertOperation.skipWAL());
+                }
             }
             if(rollforward)
                 writeConfiguration = new RollforwardWriteConfiguration(writeConfiguration);
@@ -109,7 +112,6 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             if (insertOperation != null)
                 insertOperation.tableWriter = this;
             flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);
-
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
@@ -122,7 +124,10 @@ public class InsertPipelineWriter extends AbstractPipelineWriter<ExecRow>{
             beforeRow(execRow);
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
-            addRowToTriggeringResultSet(execRow, encode);
+            if (triggerRowsEncoder != null) {
+                KVPair encodeTriggerRow = triggerRowsEncoder.encode(execRow);
+                addRowToTriggeringResultSet(execRow, encodeTriggerRow);
+            }
             TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
         } catch (Exception e) {
             if (operationContext!=null && operationContext.isPermissive()) {

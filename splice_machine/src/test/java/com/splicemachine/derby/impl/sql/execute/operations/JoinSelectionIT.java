@@ -56,6 +56,8 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     private static final String LO_MERGE_SORT_JOIN = "MergeSortLeftOuterJoin";
     private static final String BROADCAST_JOIN = "BroadcastJoin";
     private static final String LO_BROADCAST_JOIN = "BroadcastLeftOuterJoin";
+    private static final String LO_NESTED_LOOP_JOIN = "NestedLoopLeftOuterJoin";
+
 
     @ClassRule
     public static TestRule rule = RuleChain.outerRule(spliceSchemaWatcher)
@@ -183,7 +185,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             		  "(select person.pid from %s) as a3 " +
             		  " on a2.pid = a3.pid " +
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
-		    LO_MERGE_SORT_JOIN, methodWatcher);
+                LO_NESTED_LOOP_JOIN, methodWatcher);
     }
     
     // should be Broadcast but comes back with MergeSort?
@@ -215,7 +217,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             				  "ON a2.PID = a3.PID " +
             				  "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
-			  LO_MERGE_SORT_JOIN, methodWatcher);
+                LO_NESTED_LOOP_JOIN, methodWatcher);
     }
 
     @Test
@@ -232,7 +234,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     @Test
     public void testInnerJoinWithNestedSubqueriesFilterExactCriteria() throws Exception {
     	fourthRowContainsQuery(
-            format("explain SELECT a2.pid FROM %s a2 " + 
+            format("explain SELECT a2.pid FROM %s a2 --splice-properties useSpark=false\n" +
             		  "INNER JOIN " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
@@ -319,7 +321,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             format("explain select a2.pid from " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " left outer join %s a2 " +
+            		  " left outer join %s a2 --splice-properties useSpark=false\n" +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
            BROADCAST_JOIN, methodWatcher);
@@ -331,7 +333,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             format("explain select a2.pid from " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            		  " join %s a2 " +
+            		  " join %s a2 --splice-properties useSpark=false\n" +
             		  " on a2.pid = a3.pid " + 
             		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
             BROADCAST_JOIN, methodWatcher);

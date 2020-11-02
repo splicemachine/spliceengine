@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.yahoo.sketches.quantiles.ItemsSketch;
 import com.yahoo.sketches.theta.UpdateSketch;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.StructField;
 import org.joda.time.DateTime;
@@ -54,6 +55,7 @@ import java.util.Calendar;
  * Implementation that allows for (,[ bounding to be applied to start and stop keys for statistics.
  *
  */
+@SuppressFBWarnings(value = "SE_NO_SUITABLE_CONSTRUCTOR_FOR_EXTERNALIZATION", justification="intended")
 public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     DataValueDescriptor dvd;
     public StatsBoundaryDataValueDescriptor(DataValueDescriptor dvd) {
@@ -373,6 +375,16 @@ public class StatsBoundaryDataValueDescriptor implements DataValueDescriptor {
     @Override
     public DataValueDescriptor coalesce(DataValueDescriptor[] list, DataValueDescriptor returnValue) throws StandardException {
         return dvd.coalesce(list,returnValue);
+    }
+
+    @Override
+    public DataValueDescriptor min(DataValueDescriptor[] list, DataValueDescriptor returnValue) throws StandardException {
+        return dvd.min(list,returnValue);
+    }
+
+    @Override
+    public DataValueDescriptor max(DataValueDescriptor[] list, DataValueDescriptor returnValue) throws StandardException {
+        return dvd.max(list,returnValue);
     }
 
     @Override

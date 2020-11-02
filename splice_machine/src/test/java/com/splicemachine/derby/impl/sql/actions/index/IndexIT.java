@@ -734,7 +734,7 @@ public class IndexIT extends SpliceUnitTest{
         //methodWatcher.executeQuery("elapsedtime on");
 
         // should have higher cost - needs index to base row lookup
-        String sql1="explain SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
+        String sql1="explain exclude no statistics SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
                 " PERSON_ADDRESS a4 --splice-properties index=B_IDX1 \n"+
                 " INNER JOIN ADDRESS a5 --splice-properties joinStrategy=SORTMERGE,index=ADDRESS_IX \n"+
                 " ON a4.ADDR_ID = a5.ADDR_ID \n"+
@@ -743,7 +743,7 @@ public class IndexIT extends SpliceUnitTest{
         List<String> arr1=methodWatcher.queryList(sql1);
 
         // should have lower cost
-        String sql2="explain SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
+        String sql2="explain exclude no statistics SELECT count(a4.PID) FROM --splice-properties joinOrder=FIXED \n"+
                 " PERSON_ADDRESS a4 --splice-properties index=B_IDX1 \n"+
                 " INNER JOIN ADDRESS a5 --splice-properties joinStrategy=SORTMERGE,index=ADDRESS_IX4 \n"+
                 " ON a4.ADDR_ID = a5.ADDR_ID \n"+
@@ -778,6 +778,7 @@ public class IndexIT extends SpliceUnitTest{
     // DB-5029
     public void testCreateIndexAndUpdateDataViaIndexScan() throws Exception {
         methodWatcher.executeUpdate("create table double_INDEXES1(column1 DOUBLE)");
+        methodWatcher.executeUpdate("INSERT INTO double_INDEXES1(column1) VALUES (-1.79769E+308),(1.79769E+308),(0)");
         methodWatcher.executeUpdate("CREATE INDEX doubleIndex2 ON double_INDEXES1(column1 ASC)");
         methodWatcher.executeUpdate("update double_INDEXES1 set column1 = -1.79769E+308 where column1 = -1.79769E+308");
         rowContainsQuery(new int[]{1,2,3},"select column1 from double_INDEXES1 --splice-properties index=doubleIndex2\n order by column1",methodWatcher,

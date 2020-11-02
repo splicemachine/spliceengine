@@ -169,7 +169,9 @@ public interface C_NodeNames
 
     String GET_CURRENT_CONNECTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GetCurrentConnectionNode";
 
-    String GRANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GrantNode";
+    String GET_NEAREST_TRANSACTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GetNearestTransactionNode";
+
+	String GRANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GrantNode";
 
     String GRANT_ROLE_NODE_NAME =
         "com.splicemachine.db.impl.sql.compile.GrantRoleNode";
@@ -252,6 +254,8 @@ public interface C_NodeNames
         "com.splicemachine.db.impl.sql.compile.RevokeRoleNode";
 
     String ROW_RESULT_SET_NODE_NAME = "com.splicemachine.db.impl.sql.compile.RowResultSetNode";
+
+    String SCALAR_MIN_MAX_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ScalarMinMaxFunctionNode";
 
     String SQL_BOOLEAN_CONSTANT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.SQLBooleanConstantNode";
 
@@ -337,8 +341,6 @@ public interface C_NodeNames
     String EXPLAIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExplainNode";
 
     String EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ExportNode";
-
-    String BINARY_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BinaryExportNode";
 
 	String KAFKA_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.KafkaExportNode";
 

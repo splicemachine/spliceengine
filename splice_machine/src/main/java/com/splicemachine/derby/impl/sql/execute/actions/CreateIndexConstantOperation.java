@@ -19,8 +19,10 @@ import com.splicemachine.EngineDriver;
 import com.splicemachine.access.api.PartitionAdmin;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -32,6 +34,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.HBaseRowLocation;
@@ -829,7 +832,8 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
              */
             conglomId = tc.createConglomerate(td.isExternal(),indexType, indexTemplateRow.getRowArray(),
                     getColumnOrderings(indexRowGenerator.baseColumnPositions()), indexRowGenerator.getColumnCollationIds(
-                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT, splitKeys);
+                            td.getColumnDescriptorList()), indexProperties, TransactionController.IS_DEFAULT,
+                    splitKeys, Conglomerate.Priority.NORMAL);
 
             PartitionAdmin admin = SIDriver.driver().getTableFactory().getAdmin();
             // Enable replication for index if that's enables for base table
@@ -895,8 +899,11 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
 
             OperationContext operationContext = dsp.createOperationContext(activation);
             ExecRow execRow = WriteReadUtils.getExecRowFromTypeFormatIds(indexFormatIds);
+            boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                operationContext.getActivation().getLanguageConnectionContext(),
+                Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
             DataSet<ExecRow> dataSet = text.flatMap(new FileFunction(characterDelimiter, columnDelimiter, execRow,
-                    null, timeFormat, dateFormat, timestampFormat, false, operationContext), true);
+                    null, timeFormat, dateFormat, timestampFormat, false, operationContext, quotedEmptyIsNull), true);
             List<ExecRow> rows = dataSet.collect();
             DataHash encoder = getEncoder(td, execRow, indexRowGenerator);
             for (ExecRow row : rows) {

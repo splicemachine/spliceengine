@@ -43,7 +43,6 @@ class SICompactionStateMutate {
     private final PurgeConfig purgeConfig;
     private Cell maxTombstone = null;
     private Cell lastSeenAntiTombstone = null;
-    private long lowWatermarkTransaction;
     private boolean firstWriteToken = false;
     private long deleteRightAfterFirstWriteTimestamp = 0;
     private boolean bypassPurge = false;
@@ -51,9 +50,8 @@ class SICompactionStateMutate {
     private Set<Long> updatesToPurgeTimestamps = new HashSet<>();
     private boolean firstUpdateCell = true;
 
-    SICompactionStateMutate(PurgeConfig purgeConfig, long lowWatermarkTransaction) {
+    SICompactionStateMutate(PurgeConfig purgeConfig) {
         this.purgeConfig = purgeConfig;
-        this.lowWatermarkTransaction = lowWatermarkTransaction;
     }
 
     private boolean isSorted(List<Cell> list) {
@@ -193,7 +191,7 @@ class SICompactionStateMutate {
                     setBypassPurgeWithWarning("maxTombstone is less than beginTimestamp.  maxTombstone = " + maxTombstone + ", beginTimestamp = " + beginTimestamp);
                 assert maxTombstoneIsNullOrValid;
                 if (maxTombstone == null &&
-                        (!purgeConfig.shouldRespectActiveTransactions() || commitTimestamp < lowWatermarkTransaction)) {
+                        (!purgeConfig.shouldRespectActiveTransactions() || commitTimestamp < purgeConfig.getTransactionLowWatermark())) {
                     if (lastSeenAntiTombstone != null && lastSeenAntiTombstone.getTimestamp() == beginTimestamp) {
                         maxTombstone = lastSeenAntiTombstone;
                     } else {
@@ -236,7 +234,7 @@ class SICompactionStateMutate {
                 deleteRightAfterFirstWriteTimestamp = beginTimestamp;
                 break;
             case USER_DATA: {
-                if (purgeConfig.shouldPurgeUpdates() && commitTimestamp < lowWatermarkTransaction) {
+                if (purgeConfig.shouldPurgeUpdates() && commitTimestamp < purgeConfig.getTransactionLowWatermark()) {
                     EntryDecoder decoder = new EntryDecoder(element.getValueArray(), element.getValueOffset(), element.getValueLength());
                     BitIndex index = decoder.getCurrentIndex();
                     if (LOG.isTraceEnabled())

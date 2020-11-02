@@ -14,11 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.Properties;
-
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
@@ -27,17 +22,17 @@ import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.util.Properties;
 
 /**
  * A Constant Action for creating a table in a Splice-efficient fashion
@@ -143,21 +138,28 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
 		TransactionController tc = lcc.getTransactionExecute();
+		String tempTableName = lcc.mangleTableName(tableName);
 
 		SchemaDescriptor sd;
-		if(tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
-			sd = dd.getSchemaDescriptor(schemaName,tc, true);
+		if(isTempTable())
+			sd = dd.getSchemaDescriptor(schemaName, tc, true);
 		else
 			sd = DDLConstantAction.getSchemaDescriptorForCreate(dd, activation, schemaName);
 
-		TableDescriptor tableDescriptor = dd.getTableDescriptor(tableName, sd,tc);
-		if (tableDescriptor != null) {
+		TableDescriptor tableDescriptor = dd.getTableDescriptor(tableName, sd, tc);
+		TableDescriptor tempTableDescriptor = dd.getTableDescriptor(tempTableName, sd, tc);
+		if (tableDescriptor != null || tempTableDescriptor != null) {
 			StandardException e = StandardException.newException(SQLState.LANG_OBJECT_ALREADY_EXISTS_IN_OBJECT,
 					"table", tableName, "schema", schemaName);
 			if (createBehavior == StatementType.CREATE_IF_NOT_EXISTS) {
 				e.setSeverity(ExceptionSeverity.WARNING_SEVERITY);
 			}
 			throw e;
+		}
+
+		if(!isTempTable() && hasNameClashWithLocalTempTable(lcc, tableName, sd)) {
+			throw StandardException.newException(SQLState.LANG_NAME_CLASH_WITH_LOCAL_TEMP_TABLE,
+					schemaName, tableName);
 		}
 
         /*
@@ -176,7 +178,7 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 			try ( // try with resources
 				  Connection conn = cc.getNestedConnection(true);
 				  PreparedStatement ps =
-						  conn.prepareStatement("insert into \""+schemaName+"\".\""+tableName+"\" "+withDataQueryString)
+						  conn.prepareStatement("insert into \""+schemaName+"\".\""+(isTempTable() ? tempTableName : tableName)+"\" "+withDataQueryString)
 			)  {
 				int rows = ps.executeUpdate();
 				activation.addRowsSeen(rows);
@@ -214,5 +216,20 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 
 	public String getScopeName() {
 		return String.format("Create Table %s", tableName);
+	}
+
+	private boolean isTempTable() {
+		return tableType == TableDescriptor.LOCAL_TEMPORARY_TABLE_TYPE;
+	}
+
+	private boolean hasNameClashWithLocalTempTable(LanguageConnectionContext lcc, String tableName, SchemaDescriptor sd)
+			throws StandardException
+	{
+		DataDictionary dd = lcc.getDataDictionary();
+
+		final String localTempTableNameStart = tableName + lcc.LOCAL_TEMP_TABLE_SUFFIX_FIX_PART;
+		final String localTempTableNameEnd = tableName + lcc.LOCAL_TEMP_TABLE_SUFFIX_FIX_PART + "a";
+
+		return !dd.getTableDescriptors(localTempTableNameStart, localTempTableNameEnd, sd).isEmpty();
 	}
 }

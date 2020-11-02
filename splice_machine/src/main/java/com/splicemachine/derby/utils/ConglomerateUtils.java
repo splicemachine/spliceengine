@@ -212,21 +212,23 @@ public class ConglomerateUtils{
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void createConglomerate(boolean isExternal,long conglomId,Conglomerate conglomerate,Txn txn) throws StandardException{
-        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,null,null,null,null,-1,null);
+        createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,
+                null,null,null,null,
+                -1,null, Conglomerate.Priority.NORMAL);
     }
 
-    public static void createConglomerate(boolean isExternal,long conglomId,
+    public static void createConglomerate(boolean isExternal, long conglomId,
                                           Conglomerate conglomerate,
-                                          Txn txn,
+                                          TxnView txn,
                                           String schemaDisplayName,
                                           String tableDisplayName,
                                           String indexDisplayName,
-                                          byte[][] splitKeys) throws StandardException{
+                                          byte[][] splitKeys, Conglomerate.Priority priority) throws StandardException{
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate), txn,
-                schemaDisplayName, tableDisplayName,indexDisplayName,null,-1,splitKeys);
+                schemaDisplayName, tableDisplayName,indexDisplayName,null,-1,splitKeys, priority);
     }
 
-    public static void createConglomerate(boolean isExternal,long conglomId,
+    public static void createConglomerate(boolean isExternal, long conglomId,
                                           Conglomerate conglomerate,
                                           TxnView txn,
                                           String schemaDisplayName,
@@ -234,9 +236,10 @@ public class ConglomerateUtils{
                                           String indexDisplayName,
                                           String catalogVersion,
                                           long partitionSize,
-                                          byte[][] splitKeys) throws StandardException{
+                                          byte[][] splitKeys,
+                                          Conglomerate.Priority priority) throws StandardException{
         createConglomerate(isExternal,Long.toString(conglomId),conglomId,DerbyBytesUtil.toBytes(conglomerate),txn,
-                schemaDisplayName, tableDisplayName,indexDisplayName,catalogVersion,partitionSize, splitKeys);
+                schemaDisplayName, tableDisplayName,indexDisplayName,catalogVersion,partitionSize, splitKeys, priority);
     }
 
 
@@ -254,6 +257,7 @@ public class ConglomerateUtils{
      * Stores information about a new conglomerate, specified by {@code tableName}.
      *
      * @param tableName the name of the table
+     * @param priority
      * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void createConglomerate(
@@ -267,7 +271,7 @@ public class ConglomerateUtils{
             String indexDisplayName,
             String catalogVersion,
             long partitionSize,
-            byte[][] splitKeys) throws StandardException{
+            byte[][] splitKeys, Conglomerate.Priority priority) throws StandardException{
         SpliceLogUtils.debug(LOG,"creating Hbase table for conglom {%s} with data {%s}",tableName,conglomData);
         Preconditions.checkNotNull(txn);
         Preconditions.checkNotNull(conglomData);
@@ -278,7 +282,7 @@ public class ConglomerateUtils{
         if (!isExternal) {
             try (PartitionAdmin admin = tableFactory.getAdmin()) {
                 PartitionCreator partitionCreator = admin.newPartition()
-                        .withName(tableName)
+                        .withName(tableName, priority)
                         .withDisplayNames(new String[]{schemaDisplayName, tableDisplayName, indexDisplayName})
                         .withTransactionId(txn.getTxnId())
                         .withCatalogVersion(catalogVersion);

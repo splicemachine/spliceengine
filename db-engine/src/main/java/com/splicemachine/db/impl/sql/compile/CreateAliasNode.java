@@ -124,7 +124,6 @@ public class CreateAliasNode extends DDLStatementNode{
     private String javaClassName;
     private String methodName;
     private char aliasType;
-    private boolean delimitedIdentifier;
 
     private AliasInfo aliasInfo;
 
@@ -211,8 +210,6 @@ public class CreateAliasNode extends DDLStatementNode{
             case AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR: {
                 this.javaClassName = (String) targetObject;
                 this.methodName = (String) methodName;
-                this.delimitedIdentifier =
-                        (Boolean) delimitedIdentifier;
 
                 //routineElements contains the description of the procedure.
                 //
@@ -458,7 +455,6 @@ public class CreateAliasNode extends DDLStatementNode{
             // to a Derby class.
             //
             TypeId[] allSystemTypeIds=TypeId.getAllBuiltinTypeIds();
-            int systemTypeCount=allSystemTypeIds.length;
 
             boolean foundConflict=javaClassName.startsWith("com.splicemachine.db.");
 

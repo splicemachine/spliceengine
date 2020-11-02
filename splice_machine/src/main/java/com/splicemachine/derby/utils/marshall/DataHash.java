@@ -33,7 +33,7 @@ public interface DataHash<T> extends Closeable {
 		/**
 		 * @return the byte encoding for the hash;
 		 */
-		byte[] encode() throws StandardException, IOException;
+		byte[] encode() throws StandardException;
 
 		KeyHashDecoder getDecoder();
 }

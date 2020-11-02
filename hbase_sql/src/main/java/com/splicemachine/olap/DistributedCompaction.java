@@ -57,7 +57,7 @@ public class DistributedCompaction extends DistributedJob{
                                  String poolName,
                                  String scope,
                                  String regionLocation,
-                                 long maxWait){
+                                 long maxWait) {
         this.compactionFunction=compactionFunction;
         this.files=files;
         this.jobDetails=jobDetails;

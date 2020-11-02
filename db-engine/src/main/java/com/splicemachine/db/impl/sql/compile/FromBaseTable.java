@@ -117,6 +117,8 @@ public class FromBaseTable extends FromTable {
     private boolean pin;
     int updateOrDelete;
     boolean skipStats;
+    boolean useRealTableStats;
+    HashSet<Integer> usedNoStatsColumnIds;
     int splits;
     long defaultRowCount;
     double defaultSelectivityFactor = -1d;
@@ -199,6 +201,8 @@ public class FromBaseTable extends FromTable {
 
     private ValueNode pastTxIdExpression = null;
 
+    private long minRetentionPeriod = -1;
+
     @Override
     public boolean isParallelizable(){
         return false;
@@ -237,6 +241,7 @@ public class FromBaseTable extends FromTable {
 
         setOrigTableName(this.tableName);
         templateColumns=resultColumns;
+        usedNoStatsColumnIds=new HashSet<>();
     }
 
     /**
@@ -711,13 +716,14 @@ public class FromBaseTable extends FromTable {
                 }
                 if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
-            } else if (key.equals("broadcastCrossRight")) {
+            } else if (key.equals("broadcastCrossRight") || key.equals("unboundedTimeTravel")) {
                 // no op since parseBoolean never throw
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
                         "index, constraint, joinStrategy, useSpark, useOLAP, pin, skipStats, splits, " +
-                                "useDefaultRowcount, defaultSelectivityFactor");
+                                "useDefaultRowcount, defaultSelectivityFactor, broadcastCrossRight," +
+                                "unboundedTimeTravel");
             }
 
 
@@ -805,10 +811,12 @@ public class FromBaseTable extends FromTable {
         /* Get the uniqueness factory for later use (see below) */
         /* Get the predicates that can be used for scanning the base table */
         baseTableRestrictionList.removeAllElements();
+        baseTableRestrictionList.countScanFlags();
 
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(tableDescriptor,cd);
+        useRealTableStats=scc.useRealTableStatistics();
         CostEstimate costEstimate=getScratchCostEstimate(optimizer);
         costEstimate.setRowOrdering(rowOrdering);
         costEstimate.setPredicateList(baseTableRestrictionList);
@@ -862,7 +870,8 @@ public class FromBaseTable extends FromTable {
                 rowTemplate,
                 baseColumnPositions,
                 forUpdate(),
-                resultColumns);
+                resultColumns,
+                usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable
         currentAccessPath.setSpecialMaxScan(false);
@@ -1048,6 +1057,12 @@ public class FromBaseTable extends FromTable {
             }
             else if(tableType==TableDescriptor.WITH_TYPE) {
                 throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "common table expressions");
+            }
+            if(tableProperties != null && Boolean.parseBoolean(tableProperties.getProperty("unboundedTimeTravel"))) {
+                this.minRetentionPeriod = -1;
+            } else {
+                Long minRetentionPeriod = tableDescriptor.getMinRetentionPeriod();
+                this.minRetentionPeriod = minRetentionPeriod == null ? -1 : minRetentionPeriod;
             }
         }
 
@@ -1389,7 +1404,6 @@ public class FromBaseTable extends FromTable {
         return this;
     }
 
-
     /**
      * Bind the table descriptor for this table.
      * <p/>
@@ -1499,12 +1513,18 @@ public class FromBaseTable extends FromTable {
 
         if(exposedTableName.getSchemaName()==null && correlationName==null)
             exposedTableName.bind(this.getDataDictionary());
+
+        TableName temporaryTableName = (TableName) getNodeFactory().getNode(
+                                           C_NodeTypes.TABLE_NAME,
+                                           exposedTableName.getSchemaName(),
+                                           getLanguageConnectionContext().mangleTableName(exposedTableName.getTableName()),
+                                           exposedTableName.getContextManager());
         /*
         ** If the column did not specify a name, or the specified name
         ** matches the table we're looking at, see whether the column
         ** is in this table.
         */
-        if(columnsTableName==null || columnsTableName.equals(exposedTableName)){
+        if(columnsTableName==null || columnsTableName.equals(exposedTableName) || columnsTableName.equals(temporaryTableName)){
             resultColumn=resultColumns.getResultColumn(columnReference.getColumnName());
             /* Did we find a match? */
             if(resultColumn!=null){
@@ -2200,8 +2220,9 @@ public class FromBaseTable extends FromTable {
         mb.push(costEstimate.getEstimatedCost());
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,15);
-
+        generatePastTxFunc(acb, mb);
+        mb.push(minRetentionPeriod);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,17);
     }
 
     private void generateDistinctScan ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
@@ -2280,8 +2301,10 @@ public class FromBaseTable extends FromTable {
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getLocation());
         mb.push(partitionReferenceItem);
         generateDefaultRow((ActivationClassBuilder)acb, mb);
+        generatePastTxFunc(acb, mb);
+        mb.push(minRetentionPeriod);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,28);
+                ClassName.NoPutResultSet,30);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
@@ -2393,6 +2416,9 @@ public class FromBaseTable extends FromTable {
 
         // also add the past transaction id functor
         generatePastTxFunc(acb, mb);
+        numArgs++;
+
+        mb.push(minRetentionPeriod);
         numArgs++;
 
         return numArgs;
@@ -2676,6 +2702,16 @@ public class FromBaseTable extends FromTable {
     public boolean referencesSessionSchema() throws StandardException{
         //If base table is a SESSION schema table, then return true.
         return isSessionSchema(tableDescriptor.getSchemaDescriptor());
+    }
+
+    /**
+     * Return true if the node references temporary tables no matter under which schema
+     *
+     * @return true if references temporary tables, else false
+     */
+    @Override
+    public boolean referencesTemporaryTable() {
+        return tableDescriptor.isTemporary();
     }
 
 
@@ -3257,11 +3293,11 @@ public class FromBaseTable extends FromTable {
         if (skipStats) {
             if (!getCompilerContext().skipStats(this.getTableNumber()))
                 getCompilerContext().getSkipStatsTableList().add(this.getTableNumber());
-            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount);
+            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount, splits);
         }
         else {
             return getCompilerContext().getStoreCostController(td, cd,
-                    getCompilerContext().skipStats(this.getTableNumber()), 0);
+                    getCompilerContext().skipStats(this.getTableNumber()), 0, splits);
         }
     }
 
@@ -3544,7 +3580,7 @@ public class FromBaseTable extends FromTable {
         if (accessPath != null &&
                 (accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
                  accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
-            return DataSetProcessorType.COST_SUGGESTED_SPARK;
+                return DataSetProcessorType.COST_SUGGESTED_SPARK;
         }
         return dataSetProcessorType;
     }
@@ -3566,5 +3602,11 @@ public class FromBaseTable extends FromTable {
 
     public AggregateNode getAggregateForSpecialMaxScan() {
         return aggrForSpecialMaxScan;
+    }
+
+    public boolean useRealTableStats() { return useRealTableStats; }
+
+    public List<Integer> getNoStatsColumnIds() {
+        return new ArrayList<>(usedNoStatsColumnIds);
     }
 }

@@ -38,12 +38,15 @@ public class ConfigurationBuilder {
     public int readResolverQueueSize;
     public int readResolverThreads;
     public int timestampClientWaitTime;
+    public int timestampClientQueues;
+    public boolean timestampClientBatched;
     public int timestampServerBindPort;
     public int transactionKeepAliveThreads;
     public int transactionLockStripes;
     public long transactionKeepAliveInterval;
     public long transactionTimeout;
     public boolean ignoreMissingTxns;
+    public long systablesMinRetentionPeriod;
 
     // OperationConfiguration
     public int sequenceBlockSize;
@@ -179,6 +182,7 @@ public class ConfigurationBuilder {
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
     public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
+    public CompilerContext.NewMergeJoinExecutionType newMergeJoin;
     public int splitsPerRegionMin;
 
     // PipelineConfiguration

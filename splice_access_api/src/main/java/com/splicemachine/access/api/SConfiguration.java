@@ -215,6 +215,8 @@ public interface SConfiguration {
     int getRollforwardSecondThreads();
 
     int getTimestampClientWaitTime();
+    int getTimestampClientQueues();
+    boolean isTimestampClientBatched();
 
     int getTimestampServerBindPort();
 
@@ -227,6 +229,8 @@ public interface SConfiguration {
     long getTransactionTimeout();
 
     boolean getIgnoreMissingTxns();
+
+    long getSystablesMinRetentionPeriod();
 
     // Olap configurations
 
@@ -399,6 +403,10 @@ public interface SConfiguration {
     void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
 
     CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
+
+    void setNewMergeJoin(CompilerContext.NewMergeJoinExecutionType newValue);
+
+    CompilerContext.NewMergeJoinExecutionType getNewMergeJoin();
 
     String getMetadataRestrictionEnabled();
 

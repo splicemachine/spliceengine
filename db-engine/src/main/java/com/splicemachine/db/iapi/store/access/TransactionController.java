@@ -32,13 +32,13 @@
 package com.splicemachine.db.iapi.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.property.PersistentSet;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import java.util.Properties;
@@ -361,87 +361,83 @@ public interface TransactionController
 
 	@return The identifier to be used to open the conglomerate later.
 
-    @param implementation Specifies what kind of conglomerate to create.
-	THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
-    For now, use "BTREE" or "heap" for a local access manager.
-
-    @param template A row which describes the prototypical
-	row that the conglomerate will be holding.
-	Typically this row gives the conglomerate
-	information about the number and type of
-	columns it will be holding.  The implementation
-	may require a specific subclass of row type.
-    Note that the createConglomerate call reads the template and makes a copy
-    of any necessary information from the template, no reference to the
-    template is kept (and thus this template can be re-used in subsequent
-    calls - such as openScan()).  This field is required when creating either
-    a heap or btree conglomerate.
-
-	@param columnOrder Specifies the colummns sort order.
-	Useful only when the conglomerate is of type BTREE, default
-	value is 'null', which means all columns needs to be sorted in 
-	Ascending order.
-
-    @param collationIds Specifies the collation id of each of the columns
-    in the new conglomerate.  Collation id along with format id may be used
-    to create DataValueDescriptor's which may subsequently be used for
-    comparisons.  For instance the correct collation specific order and
-    searching is maintained by correctly specifying the collation id of 
-    the columns in the index when the index is created.
-
-
-	@param properties Implementation-specific properties of the
-	conglomerate.  
-
-    @param  temporaryFlag
-	Where temporaryFlag can have the following values:
-	IS_DEFAULT		- no bit is set.
-    IS_TEMPORARY	- if set, the conglomerate is temporary
-    IS_KEPT			- only looked at if IS_TEMPORARY,
-					  if set, the temporary container is not
-					  removed automatically by store when
-					  transaction terminates.
-
-	If IS_TEMPORARY is set, the conglomerate is temporary.
-	Temporary conglomerates are only visible through the transaction
-	controller that created them.  Otherwise, they are opened,
-	scanned, and dropped in the same way as permanent conglomerates.
-	Changes to temporary conglomerates persist across commits, but
-	temporary conglomerates are truncated on abort (or rollback
-	to savepoint).  Updates to temporary conglomerates are not 
-	locked or logged.
-
-	A temporary conglomerate is only visible to the	transaction
-	controller that created it, even if the conglomerate IS_KEPT
-	when the transaction termination.
-
-	All temporary conglomerate is removed by store when the
-	conglomerate controller is destroyed, or if it is dropped by an explicit
-	dropConglomerate.  If Derby reboots, all temporary
-	conglomerates are removed.
-
-	@exception  StandardException  if the conglomerate could
+	 @exception  StandardException  if the conglomerate could
 	not be created for some reason.
-    **/
+    *
+	 * @param implementation Specifies what kind of conglomerate to create.
+	 THE WAY THAT THE IMPLEMENTATION IS CHOSEN STILL NEEDS SOME WORK.
+	 For now, use "BTREE" or "heap" for a local access manager.
+	 * @param template A row which describes the prototypical
+  row that the conglomerate will be holding.
+  Typically this row gives the conglomerate
+  information about the number and type of
+  columns it will be holding.  The implementation
+  may require a specific subclass of row type.
+  Note that the createConglomerate call reads the template and makes a copy
+  of any necessary information from the template, no reference to the
+  template is kept (and thus this template can be re-used in subsequent
+  calls - such as openScan()).  This field is required when creating either
+  a heap or btree conglomerate.
+	 * @param columnOrder Specifies the colummns sort order.
+Useful only when the conglomerate is of type BTREE, default
+value is 'null', which means all columns needs to be sorted in
+Ascending order.
+	 * @param collationIds Specifies the collation id of each of the columns
+in the new conglomerate.  Collation id along with format id may be used
+to create DataValueDescriptor's which may subsequently be used for
+comparisons.  For instance the correct collation specific order and
+searching is maintained by correctly specifying the collation id of
+the columns in the index when the index is created.
+	 * @param properties Implementation-specific properties of the
+conglomerate.
+	 * @param  temporaryFlag
+Where temporaryFlag can have the following values:
+IS_DEFAULT		- no bit is set.
+IS_TEMPORARY	- if set, the conglomerate is temporary
+IS_KEPT			- only looked at if IS_TEMPORARY,
+				  if set, the temporary container is not
+				  removed automatically by store when
+				  transaction terminates.
+
+If IS_TEMPORARY is set, the conglomerate is temporary.
+Temporary conglomerates are only visible through the transaction
+controller that created them.  Otherwise, they are opened,
+scanned, and dropped in the same way as permanent conglomerates.
+Changes to temporary conglomerates persist across commits, but
+temporary conglomerates are truncated on abort (or rollback
+to savepoint).  Updates to temporary conglomerates are not
+locked or logged.
+
+A temporary conglomerate is only visible to the	transaction
+controller that created it, even if the conglomerate IS_KEPT
+when the transaction termination.
+
+All temporary conglomerate is removed by store when the
+conglomerate controller is destroyed, or if it is dropped by an explicit
+dropConglomerate.  If Derby reboots, all temporary
+conglomerates are removed.
+	 * @param priority*/
     long createConglomerate(
-	boolean					isExternal,
-    String                  implementation,
-    DataValueDescriptor[]   template,
-    ColumnOrdering[]        columnOrder,
-    int[]                   collationIds,
-    Properties              properties,
-    int                     temporaryFlag)
-		throws StandardException;
+        boolean                 isExternal,
+        String                  implementation,
+        DataValueDescriptor[]   template,
+        ColumnOrdering[]        columnOrder,
+        int[]                   collationIds,
+        Properties              properties,
+        int                     temporaryFlag,
+        Conglomerate.Priority priority)
+             throws StandardException;
 
     long createConglomerate(
-            boolean					isExternal,
-            String                  implementation,
-            DataValueDescriptor[]   template,
-            ColumnOrdering[]        columnOrder,
-            int[]                   collationIds,
-            Properties              properties,
-            int                     temporaryFlag,
-            byte[][]                splitKeys)
+        boolean                 isExternal,
+        String                  implementation,
+        DataValueDescriptor[]   template,
+        ColumnOrdering[]        columnOrder,
+        int[]                   collationIds,
+        Properties              properties,
+        int                     temporaryFlag,
+        byte[][]                splitKeys,
+        Conglomerate.Priority priority)
             throws StandardException;
 
 	/** Tags this conglomerate with the transaction Id that dropped it, in order
@@ -1256,11 +1252,13 @@ public interface TransactionController
 	 *
 	 * @param defaultRowcount only takes effect when skipDictionaryStats is true, fix the rowcount to be the specified value
      *
+	 * @param requestedSplits The number of input splits requested via the splits query hint, or 0 for no hint.
+	 *
      * @exception  StandardException  Standard exception policy.
      *
      * @see StoreCostController
      **/
-    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount) throws StandardException;
+    StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor conglomerateDescriptor, boolean skipDictionaryStats, long defaultRowcount, int requestedSplits) throws StandardException;
 
     /**
      * Return a string with debug information about opened congloms/scans/sorts.
@@ -1657,4 +1655,6 @@ public interface TransactionController
     String getCatalogVersion(long conglomerateNumber) throws StandardException;
 
     void setCatalogVersion(long conglomerteNumber, String version) throws StandardException;
+
+	long getActiveStateTxId();
 }

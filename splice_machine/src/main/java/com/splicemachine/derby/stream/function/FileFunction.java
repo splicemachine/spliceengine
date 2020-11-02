@@ -16,6 +16,8 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -44,16 +46,18 @@ public class FileFunction extends AbstractFileFunction<String> {
     boolean initialized = false;
     MutableCSVTokenizer tokenizer;
     private boolean oneLineRecord;
+    private boolean quotedEmptyIsNull;
 
     public FileFunction() {
         super();
     }
 
     public FileFunction(String characterDelimiter, String columnDelimiter, ExecRow execRow, int[] columnIndex, String timeFormat,
-                        String dateTimeFormat, String timestampFormat, boolean oneLineRecord, OperationContext operationContext) {
+                        String dateTimeFormat, String timestampFormat, boolean oneLineRecord, OperationContext operationContext, boolean quotedEmptyIsNull) {
         super(characterDelimiter, columnDelimiter, execRow, columnIndex, timeFormat,
                 dateTimeFormat, timestampFormat, operationContext);
         this.oneLineRecord = oneLineRecord;
+        this.quotedEmptyIsNull = quotedEmptyIsNull;
     }
 
     /**
@@ -80,7 +84,7 @@ public class FileFunction extends AbstractFileFunction<String> {
                     valueSizeHints.add(dtd.getMaximumWidth());
                 }
             }
-            tokenizer = new MutableCSVTokenizer(reader, preference, oneLineRecord,
+            tokenizer = new MutableCSVTokenizer(reader, preference, oneLineRecord, quotedEmptyIsNull,
                     EngineDriver.driver().getConfiguration().getImportCsvScanThreshold(), valueSizeHints);
             initialized = true;
         }

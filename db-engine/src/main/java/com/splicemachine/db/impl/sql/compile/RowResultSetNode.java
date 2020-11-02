@@ -135,10 +135,7 @@ public class RowResultSetNode extends FromTable {
 
     @Override
     public CostEstimate getFinalCostEstimate(boolean useSelf) throws StandardException{
-        if(costEstimate==null){
-            costEstimate = super.getFinalCostEstimate(false);
-        }
-        return costEstimate;
+        return super.getFinalCostEstimate(useSelf);
     }
 
     @Override
@@ -595,7 +592,7 @@ public class RowResultSetNode extends FromTable {
         costEstimate = optimizer.newCostEstimate();
         costEstimate.setCost(1.0d, outerRows, outerRows);
         costEstimate.setLocalCost(1.0d);
-        costEstimate.setLocalCostPerPartition(1.0d);
+        costEstimate.setLocalCostPerParallelTask(1.0d);
         if (resultColumns != null)
             costEstimate.setEstimatedHeapSize(resultColumns.getTotalColumnSize());
         else

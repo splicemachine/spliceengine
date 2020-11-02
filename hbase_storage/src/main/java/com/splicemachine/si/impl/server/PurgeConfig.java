@@ -25,12 +25,15 @@ public class PurgeConfig {
     private final boolean respectActiveTransactions;
     private final boolean purgeDeletes;
     private final boolean purgeUpdates;
+    private final long transactionLowWatermark;
 
-    public PurgeConfig(boolean purgeDeletes, PurgeLatestTombstone purgeLatestTombstone, boolean purgeUpdates, boolean respectActiveTransactions) {
+    public PurgeConfig(boolean purgeDeletes, PurgeLatestTombstone purgeLatestTombstone,
+                       boolean purgeUpdates, boolean respectActiveTransactions, long transactionLowWatermark) {
         this.purgeDeletes = purgeDeletes;
         this.purgeLatestTombstone = purgeLatestTombstone;
         this.purgeUpdates = purgeUpdates;
         this.respectActiveTransactions = respectActiveTransactions;
+        this.transactionLowWatermark = transactionLowWatermark;
     }
 
     public PurgeLatestTombstone getPurgeLatestTombstone() {
@@ -47,6 +50,10 @@ public class PurgeConfig {
 
     public boolean shouldPurgeUpdates() {
         return purgeUpdates;
+    }
+
+    public long getTransactionLowWatermark() {
+        return transactionLowWatermark;
     }
 }
 

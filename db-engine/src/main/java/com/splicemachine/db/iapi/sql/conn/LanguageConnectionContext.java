@@ -32,7 +32,7 @@
 package com.splicemachine.db.iapi.sql.conn;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
+import com.splicemachine.db.iapi.db.InternalDatabase;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -108,6 +108,11 @@ public interface LanguageConnectionContext extends Context {
     int    UNKNOWN_CASING = -1;
     int    ANSI_CASING = 0;
     int    ANTI_ANSI_CASING = 1;
+
+    // Local temporary table handling
+    String LOCAL_TEMP_TABLE_SUFFIX_FIX_PART = "____________________";
+    char LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_CHAR = '_';
+    int LOCAL_TEMP_TABLE_SUFFIX_FIX_PART_NUM_CHAR = 20;
 
     /**
      * Initialize. For use after pushing the contexts that initialization needs.
@@ -253,13 +258,29 @@ public interface LanguageConnectionContext extends Context {
     boolean dropDeclaredGlobalTempTable(TableDescriptor td);
 
     /**
+     * Mangle a table name with current session ID as its suffix
+     * Should be used only on temporary tables
+     * @param tableName temporary table name given by user
+     * @return mangled temporary table name to be used internally
+     */
+    String mangleTableName(String tableName);
+
+    /**
+     * Check if a table is visible to current session
+     *
+     * @param td TableDescriptor of the table to check
+     * @return true if the table is visible to current session, false otherwise
+     */
+    boolean isVisibleToCurrentSession(TableDescriptor td) throws StandardException;
+
+    /**
      * Get table descriptor for the declared global temporary table from the list of temporary
      * tables known by this connection.
      * @param tableName Get table descriptor for the passed table name
      * @return TableDescriptor if found the temporary table. Else return null
      *
      */
-    TableDescriptor getTableDescriptorForDeclaredGlobalTempTable(String tableName);
+    TableDescriptor getTableDescriptorForTempTable(String tableName);
 
     /**
         Reset the connection before it is returned (indirectly) by
@@ -818,7 +839,7 @@ public interface LanguageConnectionContext extends Context {
     /**
       Returns the Database of this connection.
      */
-    Database getDatabase();
+    InternalDatabase getDatabase();
 
     /**
      * Returns true if isolation level has been set using JDBC/SQL.
@@ -1154,6 +1175,14 @@ public interface LanguageConnectionContext extends Context {
      * @return List of roleids
      */
     List<String> getCurrentRoles(Activation a);
+
+    /**
+     * Removes all revoked roles from the list of current roles of the dynamic
+     * call context associated with this activation.
+     * @param a activation of the statement wanting to refresh the roles.
+     */
+    void refreshCurrentRoles(Activation a) throws StandardException;
+
     /**
      * Get the current role authorization identifier in external delimited form
      * (not case normal form) of the dynamic call context associated with this
@@ -1450,4 +1479,7 @@ public interface LanguageConnectionContext extends Context {
 	void setReplicationRole(String role);
 
 	String getReplicationRole();
+
+    boolean isNLJPredicatePushDownDisabled();
+
 }

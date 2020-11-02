@@ -452,6 +452,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     }
 
     @Override
+    public Visitable visit(GetNearestTransactionNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
     public Visitable visit(GrantNode node) throws StandardException {
         return defaultVisit(node);
     }
@@ -643,6 +648,11 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 
     @Override
     public Visitable visit(SavepointNode node) throws StandardException {
+        return defaultVisit(node);
+    }
+
+    @Override
+    public Visitable visit(ScalarMinMaxFunctionNode node) throws StandardException {
         return defaultVisit(node);
     }
 
@@ -853,11 +863,6 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 
     @Override
     public Visitable visit(ExportNode node) throws StandardException {
-        return defaultVisit(node);
-    }
-
-    @Override
-    public Visitable visit(BinaryExportNode node) throws StandardException {
         return defaultVisit(node);
     }
 
