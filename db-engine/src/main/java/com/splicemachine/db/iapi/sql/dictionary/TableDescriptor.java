@@ -776,6 +776,18 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         return matches;
     }
 
+    private static void assertValidStatementType(int statementType)
+    {
+        if(SanityManager.DEBUG){
+            SanityManager.ASSERT((statementType==StatementType.INSERT) ||
+                            (statementType==StatementType.BULK_INSERT_REPLACE) ||
+                            (statementType==StatementType.UPDATE) ||
+                            (statementType==StatementType.LOAD_REPLACE) ||
+                            (statementType==StatementType.DELETE),
+                    "invalid statement type "+statementType);
+        }
+    }
+
     /**
      * Builds a list of all triggers which are relevant to a
      * given statement type, given a list of updated columns.
@@ -786,13 +798,7 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @throws StandardException Thrown on error
      */
     public void getAllRelevantTriggers(int statementType,int[] changedColumnIds,GenericDescriptorList relevantTriggers) throws StandardException{
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT((statementType==StatementType.INSERT) ||
-                            (statementType==StatementType.BULK_INSERT_REPLACE) ||
-                            (statementType==StatementType.UPDATE) ||
-                            (statementType==StatementType.DELETE),
-                    "invalid statement type "+statementType);
-        }
+        assertValidStatementType( statementType );
 
         DataDictionary dd=getDataDictionary();
         for(Object o : dd.getTriggerDescriptors(this)){
@@ -823,13 +829,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
                                           int[] changedColumnIds,
                                           boolean[] needsDeferredProcessing,
                                           ConstraintDescriptorList relevantConstraints) throws StandardException{
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT((statementType==StatementType.INSERT) ||
-                            (statementType==StatementType.BULK_INSERT_REPLACE) ||
-                            (statementType==StatementType.UPDATE) ||
-                            (statementType==StatementType.DELETE),
-                    "invalid statement type "+statementType);
-        }
+
+        assertValidStatementType(statementType);
 
         DataDictionary dd=getDataDictionary();
         ConstraintDescriptorList cdl=dd.getConstraintDescriptors(this);
@@ -837,6 +838,12 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
 
         for(int index=0;index<cdlSize;index++){
             ConstraintDescriptor cd=cdl.elementAt(index);
+
+            // LOAD_REPLACE mode doesn't check ForeignKey constraints
+            if( statementType==StatementType.LOAD_REPLACE
+                    && cd.getConstraintType()==DataDictionary.FOREIGNKEY_CONSTRAINT ) {
+                continue;
+            }
 
             if(skipCheckConstraints &&
                     (cd.getConstraintType()==DataDictionary.CHECK_CONSTRAINT)){

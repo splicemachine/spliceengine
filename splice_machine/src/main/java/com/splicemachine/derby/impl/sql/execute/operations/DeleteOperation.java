@@ -45,6 +45,7 @@ public class DeleteOperation extends DMLWriteOperation {
     protected String bulkDeleteDirectory;
     protected int colMapRefItem;
     protected int[] colMap;
+    protected boolean noTriggerRI;
 
 	@Override
 	public String getName() {
@@ -55,13 +56,17 @@ public class DeleteOperation extends DMLWriteOperation {
 		super();
 	}
 
+    /**
+     * @param noTriggerRI if true, DELETE will not fire triggers or check foreign key constraints
+     */
 	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost, String tableVersion,
-						   String bulkDeleteDirectory, int colMapRefItem) throws StandardException, IOException {
+                           String bulkDeleteDirectory, int colMapRefItem, boolean noTriggerRI) throws StandardException, IOException {
 
         super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
         this.bulkDeleteDirectory = bulkDeleteDirectory;
         this.colMapRefItem = colMapRefItem;
+        this.noTriggerRI = noTriggerRI;
         init();
 	}
 
@@ -107,6 +112,7 @@ public class DeleteOperation extends DMLWriteOperation {
             // initTriggerRowHolders can't be called in the TriggerHandler constructor
             // because it has to be called after getCurrentTransaction() elevates the
             // transaction to writable.
+
             if (triggerHandler != null)
                 triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
 
@@ -126,6 +132,7 @@ public class DeleteOperation extends DMLWriteOperation {
                     .operationContext(operationContext)
                     .tableVersion(tableVersion)
                     .execRowDefinition(getExecRowDefinition())
+                    .loadReplaceMode(noTriggerRI)
                     .txn(txn).build();
             return dataSetWriter.write();
 

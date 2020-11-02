@@ -44,23 +44,27 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public int rowsDeleted = 0;
     protected DeleteOperation deleteOperation;
 
-    public DeletePipelineWriter(TxnView txn,byte[] token,long heapConglom,long tempConglomID, String tableVersion, ExecRow execRowDefinition, OperationContext operationContext) throws StandardException {
-        super(txn, token, heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
+    public DeletePipelineWriter(TxnView txn, byte[] token, long heapConglom, long tempConglomID,
+                                String tableVersion, ExecRow execRowDefinition, OperationContext operationContext,
+                                boolean loadReplaceMode)
+            throws StandardException {
+        super(txn, token, heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext, loadReplaceMode);
         if (operationContext != null) {
             deleteOperation = (DeleteOperation)operationContext.getOperation();
         }
     }
 
     public void open() throws StandardException {
-        open(deleteOperation != null ? deleteOperation.getTriggerHandler() : null, deleteOperation);
+        open(deleteOperation != null ? deleteOperation.getTriggerHandler() : null, deleteOperation, loadReplaceMode);
     }
 
-    public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
-        super.open(triggerHandler, operation);
+    public void open(TriggerHandler triggerHandler, SpliceOperation operation, boolean loadReplaceMode) throws StandardException {
+        super.open(triggerHandler, operation, loadReplaceMode);
         try{
             WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
             if(rollforward)
                 writeConfiguration = new RollforwardWriteConfiguration(writeConfiguration);
+            writeConfiguration.setLoadReplaceMode(loadReplaceMode);
             writeBuffer=writeCoordinator.writeBuffer(destinationTable,txn,null, PipelineUtils.noOpFlushHook, writeConfiguration, Metrics.noOpMetricFactory());
             encoder=new PairEncoder(getKeyEncoder(),getRowHash(),dataType);
             flushCallback=triggerHandler==null?null:TriggerHandler.flushCallback(writeBuffer);
