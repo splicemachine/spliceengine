@@ -191,7 +191,7 @@ public interface ResultSetFactory {
      */
     ResultSet getDeleteResultSet(NoPutResultSet source, double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan, String bulkDeleteDirectory, String noTriggerRI, int colMapRefItem)
+                                 String explainPlan, String bulkDeleteDirectory, boolean noTriggerRI, int colMapRefItem)
             throws StandardException;
 
     /**

@@ -34,9 +34,6 @@ import java.sql.DriverManager;
 import java.util.Collection;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
 /**
  * Tests creating/defining triggers.
  */
@@ -76,8 +73,8 @@ public class LoadReplaceModeIT {
         methodWatcher.setConnection(conn);
     }
 
-    void createSignalTrigger(String name, String table, String condition, String type, String signalId) throws Exception {
-        String sql = "CREATE TRIGGER " + name + " " + condition + " ON " + table +" FOR EACH " + type + "\n" +
+    void createSignalTrigger(String table, String condition, String type, String signalId) throws Exception {
+        String sql = "CREATE TRIGGER " + signalId + " " + condition + " ON " + table +" FOR EACH " + type + "\n" +
                 "BEGIN ATOMIC\n" +
                 "   SIGNAL SQLSTATE '" + signalId + "' SET MESSAGE_TEXT ='" + condition + " fired.';\n" +
                 "END\n";
@@ -113,21 +110,21 @@ public class LoadReplaceModeIT {
         methodWatcher.executeUpdate("INSERT INTO ri1 VALUES 11, 12, 13");
         methodWatcher.executeUpdate("INSERT INTO ri2 VALUES (100,11), (200, 12), (300, 13)");
 
-//        assureFails( true, SQLState.LANG_FK_VIOLATION, "INSERT INTO ri2 VALUES (99,9)");
+       assureFails( true, SQLState.LANG_FK_VIOLATION, "INSERT INTO ri2 VALUES (99,9)");
 
         String  signalIdInsert = "B_I_R", signalIdInsertStatement = "B_I_S",
                 signalIdDelete = "B_D_R", signalIdDeleteStatement = "B_D_S",
                 signalIdDeleteAfter = "A_D_R", signalIdDeleteAfterStatement = "A_D_S",
                 signalIdInsertAfter = "A_I_R", signalIdInsertAfterStatement = "A_I_S";
-        createSignalTrigger("R_TRIG_BEFORE_DELETE", "ri1", "BEFORE DELETE", "ROW", signalIdDelete);
-        createSignalTrigger("R_TRIG_AFTER_DELETE",  "ri1", "AFTER DELETE",  "ROW", signalIdDeleteAfter);
-        createSignalTrigger("R_TRIG_BEFORE_INSERT", "ri1", "BEFORE INSERT", "ROW", signalIdInsert);
-        createSignalTrigger("R_TRIG_AFTER_INSERT",  "ri1", "AFTER INSERT",  "ROW", signalIdInsertAfter);
+        createSignalTrigger("ri1", "BEFORE DELETE", "ROW", signalIdDelete);
+        createSignalTrigger("ri1", "AFTER DELETE",  "ROW", signalIdDeleteAfter);
+        createSignalTrigger("ri1", "BEFORE INSERT", "ROW", signalIdInsert);
+        createSignalTrigger("ri1", "AFTER INSERT",  "ROW", signalIdInsertAfter);
 
-        createSignalTrigger("S_TRIG_BEFORE_DELETE", "ri1", "BEFORE DELETE", "STATEMENT", signalIdDeleteStatement);
-        createSignalTrigger("S_TRIG_AFTER_DELETE",  "ri1", "AFTER DELETE",  "STATEMENT", signalIdDeleteAfterStatement);
-        createSignalTrigger("S_TRIG_BEFORE_INSERT", "ri1", "BEFORE INSERT", "STATEMENT", signalIdInsertStatement);
-        createSignalTrigger("S_TRIG_AFTER_INSERT",  "ri1", "AFTER INSERT",  "STATEMENT", signalIdInsertAfterStatement);
+        createSignalTrigger("ri1", "BEFORE DELETE", "STATEMENT", signalIdDeleteStatement);
+        createSignalTrigger("ri1", "AFTER DELETE",  "STATEMENT", signalIdDeleteAfterStatement);
+        createSignalTrigger("ri1", "BEFORE INSERT", "STATEMENT", signalIdInsertStatement);
+        createSignalTrigger("ri1", "AFTER INSERT",  "STATEMENT", signalIdInsertAfterStatement);
 
         assureFails( true, signalIdDeleteStatement, "DELETE FROM ri1");
 
@@ -144,11 +141,7 @@ public class LoadReplaceModeIT {
         assureFails( false, signalIdInsertStatement, String.format(sql, "IMPORT_DATA") );
 
         // LOAD_REPLACE: ok
-        /// DELETE PART FAILS IN SPARK with FK constraint for C2
-        String ss = String.format(sql, "LOAD_REPLACE");
-        methodWatcher.executeQuery( ss );
-//        methodWatcher.executeUpdate("DELETE FROM ri1 " + DeleteNode.NO_TRIGGER_RI_PROPERTY); // should not fail
-//        methodWatcher.executeUpdate("INSERT INTO ri1 " + InsertNode.LOAD_REPLACE_PROPERTY + "\nVALUES 1,2,3,4,5"); // should not fail
+        methodWatcher.executeQuery( String.format(sql, "LOAD_REPLACE") );
 
         SpliceUnitTest.sqlExpectToString( methodWatcher, "select * from ri1 order by c1",
                 "C1 |\n----\n 1 |\n 2 |\n 3 |\n 4 |\n 5 |", false);
@@ -160,22 +153,7 @@ public class LoadReplaceModeIT {
         sql = "call SYSCS_UTIL.%s ('" + SCHEMA + "', 'ri2', null, '" + load_replace2 + "', '|', null, null, null, null, 0, '/tmp', true, null)";
         assureFails( false,MessageId.LANG_IMPORT_TOO_MANY_BAD_RECORDS, String.format(sql, "IMPORT_DATA") );
 
-        // INSERT INTO "LOADREPLACEMODEIT"."RI2"("C1", "C2") --splice-properties useSpark=true ,
-        // insertMode=LOAD_REPLACE, statusDirectory=/tmp, badRecordsAllowed=0,
-        // bulkImportDirectory=null, samplingOnly=false, outputKeysOnly=false, skipSampling=false SELECT "C1","C2" from new
-        // com.splicemachine.derby.vti.SpliceFileVTI('/Users/martinrupp/spliceengine/splice_machine/src/test/test-data/load_replace2.csv',NULL,'|',NULL,'HH:mm:ss','yyyy-MM-dd','yyyy-MM-dd HH:mm:ss','true','UTF-8','/tmp',0 )
-        // AS importVTI ("C1" INTEGER, "C2" INTEGER)
-
-        // FAILS (without Spark) and reports FK error
-//        methodWatcher.executeQuery( String.format(sql, "LOAD_REPLACE") );
-        ss = String.format(sql, "LOAD_REPLACE");
-        methodWatcher.executeQuery( ss );
-
-//        methodWatcher.executeUpdate("DELETE FROM ri2 " + DeleteNode.NO_TRIGGER_RI_PROPERTY); // should not fail
-//        methodWatcher.executeUpdate("INSERT INTO ri2 " + InsertNode.LOAD_REPLACE_PROPERTY + "\nVALUES (1999,199)"); // should not fail
-
-//        SpliceUnitTest.sqlExpectToString( methodWatcher, "select * from ri2 order by c1",
-//                "C1  |C2  |\n-----------\n1999 |199 |", false);
+        methodWatcher.executeQuery( String.format(sql, "LOAD_REPLACE") );
 
         // using INSERT --splice-properties insertMode=LOAD_REPLACE
         assureFails( true, SQLState.LANG_FK_VIOLATION, "INSERT INTO ri2 VALUES (777, 77)" );
@@ -189,14 +167,14 @@ public class LoadReplaceModeIT {
         assureFails( true, signalIdDeleteStatement, "DELETE FROM ri1");
         methodWatcher.executeUpdate("DELETE FROM ri1 " + DeleteNode.NO_TRIGGER_RI_PROPERTY); // should not fail
 
-        methodWatcher.execute("DROP TRIGGER R_TRIG_BEFORE_DELETE");
-        methodWatcher.execute("DROP TRIGGER S_TRIG_BEFORE_DELETE");
-        methodWatcher.execute("DROP TRIGGER R_TRIG_AFTER_DELETE");
-        methodWatcher.execute("DROP TRIGGER S_TRIG_AFTER_DELETE");
-        methodWatcher.execute("DROP TRIGGER R_TRIG_BEFORE_INSERT");
-        methodWatcher.execute("DROP TRIGGER S_TRIG_BEFORE_INSERT");
-        methodWatcher.execute("DROP TRIGGER R_TRIG_AFTER_INSERT");
-        methodWatcher.execute("DROP TRIGGER S_TRIG_AFTER_INSERT");
+        methodWatcher.execute("DROP TRIGGER " + signalIdDelete);
+        methodWatcher.execute("DROP TRIGGER " + signalIdDeleteAfter);
+        methodWatcher.execute("DROP TRIGGER " + signalIdInsert);
+        methodWatcher.execute("DROP TRIGGER " + signalIdInsertAfter);
+        methodWatcher.execute("DROP TRIGGER " + signalIdDeleteStatement);
+        methodWatcher.execute("DROP TRIGGER " + signalIdDeleteAfterStatement);
+        methodWatcher.execute("DROP TRIGGER " + signalIdInsertStatement);
+        methodWatcher.execute("DROP TRIGGER " + signalIdInsertAfterStatement);
 
         methodWatcher.execute("DROP TABLE ri2");
         methodWatcher.execute("DROP TABLE ri1");
@@ -220,16 +198,54 @@ public class LoadReplaceModeIT {
         methodWatcher.executeUpdate("INSERT INTO riB VALUES (100,11), (200, 12), (300, 13)");
         methodWatcher.executeUpdate("INSERT INTO riC VALUES (1,100), (2, 200), (3, 300)");
 
-        // fails in spark
         methodWatcher.executeUpdate("DELETE FROM riB " + DeleteNode.NO_TRIGGER_RI_PROPERTY);
         methodWatcher.executeUpdate("DELETE FROM riA"); // shouldn't fail, no indices anymore
+
+        // make sure indices are correct:
+        // we shouldn't be able to use reference 11, as it was deleted
+        assureFails( true, SQLState.LANG_FK_VIOLATION, "INSERT INTO riB VALUES (333,11)");
+
+        methodWatcher.executeUpdate("INSERT INTO riB " + InsertNode.LOAD_REPLACE_PROPERTY +
+                "\nVALUES (233,21)");
+
+        SpliceUnitTest.sqlExpectToString( methodWatcher, "select * from riB order by c1",
+                "C1  |C2 |\n" +
+                        "---------\n" +
+                        "233 |21 |", false);
+
+        // should be OK: riC has an index on values 100, 200 and 300 in riB, but since riB doesn't contain
+        // these values anymore, we only check if the value to be delete (21) is in the index 100, 200, 300,
+        // and it isn't, so we can delete.
+        methodWatcher.executeUpdate("DELETE FROM riB");
+
+        methodWatcher.executeUpdate("INSERT INTO riB " + InsertNode.LOAD_REPLACE_PROPERTY +
+                "\nVALUES (999,99)");
+        // should be able to refernce these values even when inserted with LOAD REPLACE
+        methodWatcher.executeUpdate("INSERT INTO riC VALUES (9,999)");
+
+
         methodWatcher.executeUpdate("INSERT INTO riB " + InsertNode.LOAD_REPLACE_PROPERTY +
                 "\nVALUES (100,11), (200, 12), (300, 13) ");
 
-        assureFails( true, "23503", "DELETE FROM riB");
+        assureFails( true, SQLState.LANG_FK_VIOLATION, "DELETE FROM riB");
 
         methodWatcher.execute("DROP TABLE riC");
         methodWatcher.execute("DROP TABLE riB");
+        methodWatcher.execute("DROP TABLE riA");
+    }
+
+
+    @Test
+    public void testPK() throws Exception {
+        methodWatcher.executeUpdate("CREATE TABLE riA (c1 INTEGER PRIMARY KEY)");
+        methodWatcher.executeUpdate( "INSERT INTO riA " + InsertNode.LOAD_REPLACE_PROPERTY + " VALUES 9");
+        assureFails( true, SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
+                "INSERT INTO riA " + InsertNode.LOAD_REPLACE_PROPERTY + " VALUES 9");
+        methodWatcher.executeUpdate( "DELETE from riA");
+
+        assureFails( true, SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
+                "INSERT INTO riA " + InsertNode.LOAD_REPLACE_PROPERTY + " VALUES 9, 9");
+        methodWatcher.execute("DELETE from riA");
         methodWatcher.execute("DROP TABLE riA");
     }
 }

@@ -730,7 +730,7 @@ public class DeleteNode extends DMLModStatementNode
         if ("getDeleteResultSet".equals(resultSetGetter)) {
             mb.push(this.printExplainInformationForActivation());
             BaseJoinStrategy.pushNullableString(mb, bulkDeleteDirectory);
-            BaseJoinStrategy.pushNullableString(mb, isNoTriggerRIMode() ? "1" : "0" );
+            mb.push(isNoTriggerRIMode());
 
             if (colMap != null && colMap.length > 0) {
                 mb.push(acb.addItem(colMap));
