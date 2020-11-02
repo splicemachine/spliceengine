@@ -883,13 +883,16 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         JDBCOptions.JDBC_URL -> url,
         JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
     )
-
-  def columnInfo(schemaTableName: String): Array[Seq[String]] =
-    SpliceJDBCUtil.retrieveColumnInfo(
+  
+  def columnInfo(schemaTableName: String): Array[Seq[String]] = {
+    val info = SpliceJDBCUtil.retrieveColumnInfo(
       new JDBCOptions(Map(
         JDBCOptions.JDBC_URL -> url,
         JDBCOptions.JDBC_TABLE_NAME -> schemaTableName))
     )
+    if( info.nonEmpty ) { info }
+    else{ throw new Exception(s"No column metadata found for $schemaTableName") }
+  }
 
   /**
    * Modify records identified by their primary keys.
