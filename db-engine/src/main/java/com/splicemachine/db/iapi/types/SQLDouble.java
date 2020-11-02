@@ -926,7 +926,7 @@ public final class SQLDouble extends NumberDataType
 			}
 			if (value == Double.POSITIVE_INFINITY ||
 			    value == Double.NEGATIVE_INFINITY ||
-			    value == Double.NaN)
+			    Double.isNaN(value) )
 			    throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, TypeId.DOUBLE_NAME);
 		}
 	}
