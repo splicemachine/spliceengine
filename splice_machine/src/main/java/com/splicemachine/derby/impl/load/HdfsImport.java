@@ -733,7 +733,7 @@ public class HdfsImport {
             if(isLoadReplaceMode)
             {
                 // delete table before inserting
-                try (PreparedStatement ips = conn.prepareStatement("DELETE FROM " + entityName + DeleteNode.NO_TRIGGER_RI_PROPERTY)) {
+                try (PreparedStatement ips = conn.prepareStatement("TRUNCATE TABLE " + entityName + DeleteNode.NO_TRIGGER_RI_PROPERTY)) {
                     ips.executeUpdate();
                 } catch (Exception e) {
                     throw new SQLException(e);

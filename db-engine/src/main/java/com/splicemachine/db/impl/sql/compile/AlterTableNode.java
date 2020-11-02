@@ -51,6 +51,8 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 
+import java.util.Properties;
+
 /**
  * A AlterTableNode represents a DDL statement that alters a table.
  * It contains the name of the object to be created.
@@ -107,6 +109,7 @@ public class AlterTableNode extends DDLStatementNode
 	private		int				changeType = UNKNOWN_TYPE;
 
 	private boolean             truncateTable = false;
+	private boolean             noTriggerRI = false;
 
 	// constant action arguments
 
@@ -119,14 +122,18 @@ public class AlterTableNode extends DDLStatementNode
 	 * @param objectName		The name of the table being truncated
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public void init(Object objectName)
+	Properties targetProperties;
+	public void init(Object targetProperties, Object objectName)
 		throws StandardException
-	{		
+	{
+		this.targetProperties = (Properties) targetProperties;
 		initAndCheck(objectName);
 		/* For now, this init() only called for truncate table */
 		truncateTable = true;
 		schemaDescriptor = getSchemaDescriptor();
+
+		String s =  this.targetProperties != null ? this.targetProperties.getProperty(DeleteNode.NO_TRIGGER_RI) : "0";
+		this.noTriggerRI = s.equals("1");
 	}
 	
 	/**
@@ -139,11 +146,13 @@ public class AlterTableNode extends DDLStatementNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void init(Object objectName,
+	public void init(Object targetProperties, Object objectName,
 					 Object sequential)
 		throws StandardException
 	{
 		initAndCheck(objectName);
+
+		this.targetProperties = (Properties) targetProperties;
 
 		this.sequential = (Boolean) sequential;
 		/* For now, this init() only called for compress table */
@@ -163,7 +172,7 @@ public class AlterTableNode extends DDLStatementNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public void init(Object objectName,
+	public void init(Object targetProperties, Object objectName,
 			 Object purge,
 			 Object defragment,
 			 Object truncateEndOfTable)
@@ -204,8 +213,8 @@ public class AlterTableNode extends DDLStatementNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void init(
-							Object objectName,
+	public void init(Object targetProperties,
+					 Object objectName,
 							Object changeType,
 							Object param1,
 							Object param2,
@@ -517,7 +526,7 @@ public String statementToString()
             numConstraints = tableElementList.genColumnInfos(colInfos,null);
         }
 
-		/* If we've seen a constraint, then build a constraint list */
+        /* If we've seen a constraint, then build a constraint list */
         ConstantAction[] conActions = new ConstantAction[0];
         if (numConstraints > 0) {
             conActions = getGenericConstantActionFactory().createConstraintConstantActionArray(numConstraints);
@@ -542,26 +551,28 @@ public String statementToString()
             }
         }
 
-		return	getGenericConstantActionFactory().getAlterTableConstantAction(schemaDescriptor,
-											 getRelativeName(),
-											 baseTable.getUUID(),
-											 baseTable.getHeapConglomerateId(),
-											 TableDescriptor.BASE_TABLE_TYPE,
-											 colInfos,
-											 conActions,
-											 lockGranularity,
-											 compressTable,
-											 behavior,
-        								     sequential,
- 										     truncateTable,
- 										     purge,
- 										     defragment,
- 										     truncateEndOfTable,
- 										     updateStatistics,
- 										     updateStatisticsAll,
- 										     dropStatistics,
- 										     dropStatisticsAll,
- 										     indexNameForStatistics);
+
+        return getGenericConstantActionFactory().getAlterTableConstantAction(schemaDescriptor,
+                                             getRelativeName(),
+                                             baseTable.getUUID(),
+                                             baseTable.getHeapConglomerateId(),
+                                             TableDescriptor.BASE_TABLE_TYPE,
+                                             colInfos,
+                                             conActions,
+                                             lockGranularity,
+                                             compressTable,
+                                             behavior,
+                                             sequential,
+                                             truncateTable,
+                                             purge,
+                                             defragment,
+                                             truncateEndOfTable,
+                                             updateStatistics,
+                                             updateStatisticsAll,
+                                             dropStatistics,
+                                             dropStatisticsAll,
+                                             indexNameForStatistics,
+                                             noTriggerRI);
 	}
 
 	/**

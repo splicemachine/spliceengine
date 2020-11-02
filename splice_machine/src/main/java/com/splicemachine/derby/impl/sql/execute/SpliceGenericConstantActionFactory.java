@@ -164,11 +164,12 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
                                                       boolean truncateTable,boolean purge,boolean defragment,
                                                       boolean truncateEndOfTable,boolean updateStatistics,
                                                       boolean updateStatisticsAll,boolean dropStatistics,
-                                                      boolean dropStatisticsAll,String indexNameForStatistics){
+                                                      boolean dropStatisticsAll,String indexNameForStatistics,
+                                                      boolean noTriggerRI){
         SpliceLogUtils.trace(LOG,"getAlterTableConstantAction for {%s.%s} with columnInfo {%s}",(sd==null?"none":sd.getSchemaName()),tableName,Arrays.toString(columnInfo));
         if(truncateTable){
             return new TruncateTableConstantOperation(sd,tableName,tableId,
-                    lockGranularity,behavior,indexNameForStatistics);
+                    lockGranularity,behavior,indexNameForStatistics, noTriggerRI);
         }else if(columnInfo!=null && columnInfo.length>0){
             return new ModifyColumnConstantOperation(sd,tableName,tableId,
                     columnInfo,constraintActions,

@@ -130,27 +130,28 @@ public abstract class GenericConstantActionFactory {
      *      updateStatistics/dropStatistics is set to true.
      *  .
      */
-    public abstract ConstantAction    getAlterTableConstantAction(
-        SchemaDescriptor            sd,
-        String                        tableName,
-        UUID                        tableId,
-        long                        tableConglomerateId,
-        int                            tableType,
-        ColumnInfo[]                columnInfo,
-        ConstantAction[]     constraintActions,
-        char                        lockGranularity,
-        boolean                        compressTable,
-        int                            behavior,
-        boolean                        sequential,
-        boolean                     truncateTable,
-        boolean                        purge,
-        boolean                        defragment,
-        boolean                        truncateEndOfTable,
-        boolean                        updateStatistics,
-        boolean                        updateStatisticsAll,
-        boolean                        dropStatistics,
-        boolean                        dropStatisticsAll,
-        String                        indexNameForStatistics
+    public abstract ConstantAction getAlterTableConstantAction(
+        SchemaDescriptor sd,
+        String           tableName,
+        UUID             tableId,
+        long             tableConglomerateId,
+        int              tableType,
+        ColumnInfo[]     columnInfo,
+        ConstantAction[] constraintActions,
+        char             lockGranularity,
+        boolean          compressTable,
+        int              behavior,
+        boolean          sequential,
+        boolean          truncateTable,
+        boolean          purge,
+        boolean          defragment,
+        boolean          truncateEndOfTable,
+        boolean          updateStatistics,
+        boolean          updateStatisticsAll,
+        boolean          dropStatistics,
+        boolean          dropStatisticsAll,
+        String           indexNameForStatistics,
+        boolean          noTriggerRI
     );
 
     /**

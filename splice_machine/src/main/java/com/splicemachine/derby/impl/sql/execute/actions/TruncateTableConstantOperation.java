@@ -62,6 +62,8 @@ import java.util.Properties;
  */
 public class TruncateTableConstantOperation extends AlterTableConstantOperation{
 
+
+    boolean noTriggerRI = false;
     /**
      * Make the AlterAction for an ALTER TABLE statement.
      *
@@ -77,8 +79,10 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                                           UUID tableId,
                                           char lockGranularity,
                                           int behavior,
-                                          String indexNameForStatistics) {
+                                          String indexNameForStatistics,
+                                          boolean noTriggerRI) {
         super(sd,tableName,tableId,null,null,behavior,indexNameForStatistics);
+        this.noTriggerRI = noTriggerRI;
     }
 
 
@@ -126,26 +130,8 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         long newHeapConglom;
         Properties properties = new Properties();
 
-        //truncate table is not allowed if there are any tables referencing it.
-        //except if it is self referencing.
-        ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
-        for(int index = 0; index < cdl.size(); index++) {
-            ConstraintDescriptor cd = cdl.elementAt(index);
-            if (cd instanceof ReferencedKeyConstraintDescriptor) {
-                ReferencedKeyConstraintDescriptor rfcd = (ReferencedKeyConstraintDescriptor) cd;
-                if(rfcd.hasNonSelfReferencingFK(ConstraintDescriptor.ENABLED)) {
-                    throw StandardException.newException(SQLState.LANG_NO_TRUNCATE_ON_FK_REFERENCE_TABLE,td.getName());
-                }
-            }
-        }
-
-        //truncate is not allowed when there are enabled DELETE triggers
-        GenericDescriptorList tdl = dd.getTriggerDescriptors(td);
-        for (Object aTdl : tdl) {
-            TriggerDescriptor trd = (TriggerDescriptor) aTdl;
-            if (trd.listensForEvent(TriggerEventDML.DELETE) && trd.isEnabled()) {
-                throw StandardException.newException(SQLState.LANG_NO_TRUNCATE_ON_ENABLED_DELETE_TRIGGERS, td.getName(), trd.getName());
-            }
+        if( !noTriggerRI ) {
+            checkCanTruncate(td, dd);
         }
 
         //gather information from the existing conglomerate to create new one.
@@ -225,6 +211,19 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
             }
         }
 
+        if( !noTriggerRI ) {
+            ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
+            for (int index = 0; index < cdl.size(); index++) {
+                ConstraintDescriptor conDesc = cdl.elementAt(index);
+                if (conDesc instanceof ReferencedKeyConstraintDescriptor && conDesc.hasBackingIndex()) {
+
+                    ReferencedKeyConstraintDescriptor referencedConstraint = ((ReferencedKeyConstraintDescriptor) conDesc);
+                    new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
+
+                }
+            }
+        }
+
         // truncate  all indexes
         long[] newIndexCongloms = new long[numIndexes];
         if(numIndexes > 0) {
@@ -241,6 +240,19 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                 ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) conDesc;
                 ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
                 new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY,lcc).submit();
+            }
+        }
+
+        if( !noTriggerRI ) {
+            ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
+            for (int index = 0; index < cdl.size(); index++) {
+                ConstraintDescriptor conDesc = cdl.elementAt(index);
+                if (conDesc instanceof ReferencedKeyConstraintDescriptor && conDesc.hasBackingIndex()) {
+
+                    ReferencedKeyConstraintDescriptor referencedConstraint = ((ReferencedKeyConstraintDescriptor) conDesc);
+                    new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.DROP_FOREIGN_KEY,lcc).submit();
+
+                }
             }
         }
 
@@ -261,6 +273,36 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         // we should invalidate all statements that use the old conglomerates
         dd.getDependencyManager().invalidateFor(td, DependencyManager.TRUNCATE_TABLE, lcc);
 
+    }
+
+    /**
+     * 1. check if referenced:
+     *    truncate table is not allowed if there are any tables referencing it.
+     *    except if it is self referencing.
+     * 2. check if there's DELETE triggers:
+     *    truncate is not allowed when there are enabled DELETE triggers
+     */
+    static private void checkCanTruncate(TableDescriptor td, DataDictionary dd) throws StandardException {
+        // check if referenced
+        ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
+        for (int index = 0; index < cdl.size(); index++) {
+            ConstraintDescriptor cd = cdl.elementAt(index);
+            if (cd instanceof ReferencedKeyConstraintDescriptor) {
+                ReferencedKeyConstraintDescriptor rfcd = (ReferencedKeyConstraintDescriptor) cd;
+                if (rfcd.hasNonSelfReferencingFK(ConstraintDescriptor.ENABLED)) {
+                    throw StandardException.newException(SQLState.LANG_NO_TRUNCATE_ON_FK_REFERENCE_TABLE, td.getName());
+                }
+            }
+        }
+
+        // check if there's DELETE triggers
+        GenericDescriptorList tdl = dd.getTriggerDescriptors(td);
+        for (Object aTdl : tdl) {
+            TriggerDescriptor trd = (TriggerDescriptor) aTdl;
+            if (trd.listensForEvent(TriggerEventDML.DELETE) && trd.isEnabled()) {
+                throw StandardException.newException(SQLState.LANG_NO_TRUNCATE_ON_ENABLED_DELETE_TRIGGERS, td.getName(), trd.getName());
+            }
+        }
     }
 
     private void enableReplicationIfNecessary(TableDescriptor td, long newHeapConglom, long[] newIndexCongloms) throws StandardException {

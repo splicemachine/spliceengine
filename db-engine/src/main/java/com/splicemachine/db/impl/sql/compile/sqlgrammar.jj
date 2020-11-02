@@ -2770,7 +2770,7 @@ SKIP :
     <SINGLE_LINE_SQLCOMMENT: (~["\n","\r"])* ("\n"|"\r"|"\r\n")?> : DEFAULT
 }
 
-//found -- DERBY-PROPERTIES. Treat rest of the characters on the line
+//found --SPLICE-PROPERTIES. Treat rest of the characters on the line
 //as one big token and then fetch keyname=value pairs from that token.
 <PROPERTIES_LIST> TOKEN :
 {
@@ -16550,6 +16550,7 @@ alterTableBody(TableName tableName) throws StandardException :
         changeType[0] = DDLStatementNode.UPDATE_STATISTICS;
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            null,
                             tableName,
                             changeType,
                             Boolean.FALSE,
@@ -16571,6 +16572,7 @@ alterTableBody(TableName tableName) throws StandardException :
         changeType[0] = DDLStatementNode.DROP_STATISTICS;
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            null,
                             tableName,
                             changeType,
                             Boolean.FALSE,
@@ -16593,6 +16595,7 @@ alterTableBody(TableName tableName) throws StandardException :
     {
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            null,
                             tableName,
                             changeType,
                             tableElementList,
@@ -16627,6 +16630,7 @@ dropStatistics(TableName tableName) throws StandardException :
         changeType[0] = DDLStatementNode.DROP_STATISTICS;
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            null,
                             tableName,
                             changeType,
                             Boolean.TRUE,
@@ -16661,6 +16665,7 @@ updateStatistics(TableName tableName) throws StandardException :
         changeType[0] = DDLStatementNode.UPDATE_STATISTICS;
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            null,
                             tableName,
                             changeType,
                             Boolean.TRUE,
@@ -16688,6 +16693,7 @@ inplaceCompress(TableName tableName) throws StandardException :
         checkInternalFeature("COMPRESS");
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            null,
                             tableName,
                             new Boolean(purge != null),
                             new Boolean(defragment != null),
@@ -16709,6 +16715,7 @@ sequentialCompress(TableName tableName) throws StandardException :
         checkInternalFeature("COMPRESS");
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            null,
                             tableName,
                             new Boolean(tok != null),
                             getContextManager());
@@ -16833,6 +16840,7 @@ dropColumnDefinition(TableName tableName, TableElementList tableElementList, int
         tableElementList.addTableElement(tableElement);
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            null,
                             tableName,
                             changeType,
                             tableElementList,
@@ -16985,6 +16993,7 @@ dropTableConstraintDefinitionCore(TableName tableName, TableElementList tableEle
         tableElementList.addTableElement(tableElement);
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            null,
                             tableName,
                             changeType,
                             tableElementList,
@@ -17241,12 +17250,15 @@ StatementNode
 truncateTableStatement() throws StandardException :
 {
     TableName tableName;
+    Properties tableProperties = null;
 }
 {
     <TRUNCATE> <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+    [tableProperties = propertyList(true) <CHECK_PROPERTIES>]
     {
         return (StatementNode) nodeFactory.getNode(
                             C_NodeTypes.ALTER_TABLE_NODE,
+                            tableProperties,
                             tableName,
                             getContextManager());
     }
