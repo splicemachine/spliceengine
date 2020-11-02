@@ -1551,6 +1551,36 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testIndexExpressionInListRightHandSide() throws Exception {
+        methodWatcher.executeUpdate("create table TEST_IN_LIST_RHS(a1 int, a2 int)");
+        methodWatcher.executeUpdate("insert into TEST_IN_LIST_RHS values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
+        methodWatcher.executeUpdate("create index TEST_IN_LIST_RHS_IDX on TEST_IN_LIST_RHS(a1 * 3, a2)");
+
+        methodWatcher.executeUpdate("create table TEST_IN_LIST_RHS_2(b1 int, b2 int)");
+        methodWatcher.executeUpdate("insert into TEST_IN_LIST_RHS_2 values(0,0),(3,30),(5,50)");
+
+        String query = "select b1, a2 from TEST_IN_LIST_RHS --splice-properties index=TEST_IN_LIST_RHS_IDX\n, " +
+                "TEST_IN_LIST_RHS_2 where b1 in (1, a1 * 3)";
+
+        String[] expectedOps = new String[]{
+                "ProjectRestrict",
+                "[(B1[2:1] IN (1,TEST_IN_LIST_RHS_IDX_col1[1:1]))]",
+                "TableScan[TEST_IN_LIST_RHS_2",
+                "IndexScan[TEST_IN_LIST_RHS_IDX"
+        };
+        rowContainsQuery(new int[]{5,5,6,7}, "explain " + query, methodWatcher, expectedOps);
+
+        String expected = "B1 |A2 |\n" +
+                "--------\n" +
+                " 0 | 0 |\n" +
+                " 3 |10 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
     public void testJoinOnTheSameIndexExpressionText() throws Exception {
         String tableName_1 = "TEST_SAME_EXPR_TEXT_EXPR_INDEX_1";
         methodWatcher.executeUpdate(format("create table %s (c char(4))", tableName_1));

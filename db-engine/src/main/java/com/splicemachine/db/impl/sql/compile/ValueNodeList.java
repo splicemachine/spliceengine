@@ -34,16 +34,14 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 /**
  * A ValueNodeList represents a list of ValueNodes within a specific predicate 
@@ -851,5 +849,21 @@ public class ValueNodeList extends QueryTreeNodeVector
 		constantNode.setValue(new SQLChar(StringUtil.padRight(stringConstant, SQLChar.PAD, maxSize)));
 	}
 
+	public ValueNodeList replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+		ValueNodeList newList = (ValueNodeList) getNodeFactory().getNode(
+				C_NodeTypes.VALUE_NODE_LIST,
+				getContextManager());
+		for (int i = 0; i < size(); i++) {
+			newList.addValueNode(((ValueNode) elementAt(i)).replaceIndexExpression(childRCL));
+		}
+		return newList;
+	}
 
+	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+		boolean result = true;
+		for (int i = 0; i <size(); i++) {
+			result = result && ((ValueNode) elementAt(i)).collectExpressions(exprMap);
+		}
+		return result;
+	}
 }

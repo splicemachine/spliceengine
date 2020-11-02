@@ -495,22 +495,25 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         outerJoinLevel = level;
     }
 
+    @Override
     public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
-        ValueNodeList newList = (ValueNodeList) getNodeFactory().getNode(
-                C_NodeTypes.VALUE_NODE_LIST,
-                getContextManager());
-        for (Object leftItem : leftOperandList) {
-            newList.addValueNode(((ValueNode) leftItem).replaceIndexExpression(childRCL));
+        if (leftOperandList != null) {
+            leftOperandList = leftOperandList.replaceIndexExpression(childRCL);
         }
-        leftOperandList = newList;
+        if (rightOperandList != null) {
+            rightOperandList = rightOperandList.replaceIndexExpression(childRCL);
+        }
         return this;
     }
 
     @Override
     public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         boolean result = true;
-        for (Object leftItem : leftOperandList) {
-            result = result && ((ValueNode) leftItem).collectExpressions(exprMap);
+        if (leftOperandList != null) {
+            result = leftOperandList.collectExpressions(exprMap);
+        }
+        if (rightOperandList != null) {
+            result = result && rightOperandList.collectExpressions(exprMap);
         }
         return result;
     }

@@ -2934,17 +2934,16 @@ public class SelectNode extends ResultSetNode{
 
     public Map<Integer, Set<ValueNode>> collectExpressions() {
         HashMap<Integer, Set<ValueNode>> result = new HashMap<>();
-        boolean proceed = true;
 
         if (groupByList != null) {
             for (int i = 0; i < groupByList.size(); i++) {
-                proceed = proceed && groupByList.getGroupByColumn(i).getColumnExpression().collectSingleExpression(result);
+                groupByList.getGroupByColumn(i).getColumnExpression().collectSingleExpression(result);
             }
         }
 
         if (orderByList != null) {
             for (int i = 0; i < orderByList.size(); i++) {
-                proceed = proceed && orderByList.getOrderByColumn(i).getColumnExpression().collectSingleExpression(result);
+                orderByList.getOrderByColumn(i).getColumnExpression().collectSingleExpression(result);
             }
         }
 
@@ -2987,12 +2986,9 @@ public class SelectNode extends ResultSetNode{
         }
 
         for (ResultColumn rc : resultColumns) {
-            proceed = proceed && rc.getExpression().collectSingleExpression(result);
+            rc.getExpression().collectSingleExpression(result);
         }
 
-        if (!proceed) {
-            result.clear();
-        }
         return result;
     }
 

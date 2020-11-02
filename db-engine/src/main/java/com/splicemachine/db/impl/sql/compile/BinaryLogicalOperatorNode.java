@@ -234,9 +234,6 @@ abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 		if (childRCL == null) {
 			return this;
 		}
-		if (receiver != null) {
-			receiver = receiver.replaceIndexExpression(childRCL);
-		}
 		if (leftOperand != null) {
 			leftOperand = leftOperand.replaceIndexExpression(childRCL);
 		}
@@ -249,11 +246,8 @@ abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 	@Override
 	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
 		boolean result = true;
-		if (receiver != null) {
-			result = receiver.collectExpressions(exprMap);
-		}
 		if (leftOperand != null) {
-			result = result && leftOperand.collectExpressions(exprMap);
+			result = leftOperand.collectExpressions(exprMap);
 		}
 		if (rightOperand != null) {
 			result = result && rightOperand.collectExpressions(exprMap);
