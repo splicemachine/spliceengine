@@ -41,6 +41,9 @@ import java.util.Properties;
 @RunWith(Parameterized.class)
 public class LoadReplaceModeIT {
 
+    private static final String LANG_NO_TRUNCATE_ON_FK_REFERENCE_TABLE
+            = SQLState.LANG_NO_TRUNCATE_ON_FK_REFERENCE_TABLE.split("\\.")[0];
+
     private static final String SCHEMA = LoadReplaceModeIT.class.getSimpleName();
 
     @ClassRule
@@ -110,7 +113,7 @@ public class LoadReplaceModeIT {
         methodWatcher.executeUpdate("INSERT INTO ri1 VALUES 11, 12, 13");
         methodWatcher.executeUpdate("INSERT INTO ri2 VALUES (100,11), (200, 12), (300, 13)");
 
-       assureFails( true, SQLState.LANG_FK_VIOLATION, "INSERT INTO ri2 VALUES (99,9)");
+        assureFails( true, SQLState.LANG_FK_VIOLATION, "INSERT INTO ri2 VALUES (99,9)");
 
         String  signalIdInsert = "B_I_R", signalIdInsertStatement = "B_I_S",
                 signalIdDelete = "B_D_R", signalIdDeleteStatement = "B_D_S",
@@ -198,8 +201,13 @@ public class LoadReplaceModeIT {
         methodWatcher.executeUpdate("INSERT INTO riB VALUES (100,11), (200, 12), (300, 13)");
         methodWatcher.executeUpdate("INSERT INTO riC VALUES (1,100), (2, 200), (3, 300)");
 
-        methodWatcher.executeUpdate("DELETE FROM riB " + DeleteNode.NO_TRIGGER_RI_PROPERTY);
-        methodWatcher.executeUpdate("DELETE FROM riA"); // shouldn't fail, no indices anymore
+        // fails in spark
+        //methodWatcher.executeUpdate("DELETE FROM riB " + DeleteNode.NO_TRIGGER_RI_PROPERTY);
+        methodWatcher.executeUpdate("TRUNCATE TABLE riB " + DeleteNode.NO_TRIGGER_RI_PROPERTY);
+
+        // next statement shouldn't fail, no indices anymore. however, we need be pay special attention
+        // to this because if the FK index from riB -> riA is not updated, this would fail
+        methodWatcher.executeUpdate("DELETE FROM riA");
 
         // make sure indices are correct:
         // we shouldn't be able to use reference 11, as it was deleted
@@ -227,6 +235,7 @@ public class LoadReplaceModeIT {
         methodWatcher.executeUpdate("INSERT INTO riB " + InsertNode.LOAD_REPLACE_PROPERTY +
                 "\nVALUES (100,11), (200, 12), (300, 13) ");
 
+        assureFails( true, LANG_NO_TRUNCATE_ON_FK_REFERENCE_TABLE, "TRUNCATE TABLE riB");
         assureFails( true, SQLState.LANG_FK_VIOLATION, "DELETE FROM riB");
 
         methodWatcher.execute("DROP TABLE riC");
@@ -246,6 +255,32 @@ public class LoadReplaceModeIT {
         assureFails( true, SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
                 "INSERT INTO riA " + InsertNode.LOAD_REPLACE_PROPERTY + " VALUES 9, 9");
         methodWatcher.execute("DELETE from riA");
+        methodWatcher.execute("DROP TABLE riA");
+    }
+
+    @Test
+    public void aaa() throws Exception {
+        methodWatcher.executeUpdate("CREATE TABLE riA (c1 INTEGER PRIMARY KEY)");
+
+        methodWatcher.executeUpdate("CREATE TABLE riB (\n" +
+                "   c1 INTEGER PRIMARY KEY,\n" +
+                "   c2 INTEGER REFERENCES riA(c1)"
+                + ")"
+        );
+        methodWatcher.executeUpdate("CREATE TABLE riC (\n" +
+                "   c1 INTEGER PRIMARY KEY,\n" +
+                "   c2 INTEGER REFERENCES riB(c1)"
+                + ")"
+        );
+        methodWatcher.executeUpdate("INSERT INTO riA VALUES 11, 12, 13");
+        methodWatcher.executeUpdate("INSERT INTO riB VALUES (100,11), (200, 12), (300, 13)");
+
+        // when we change to truncate
+        methodWatcher.executeUpdate("DELETE FROM riB --splice-properties noTriggerRI=1");
+        methodWatcher.executeUpdate("DELETE FROM riA");
+
+        methodWatcher.execute("DROP TABLE riC");
+        methodWatcher.execute("DROP TABLE riB");
         methodWatcher.execute("DROP TABLE riA");
     }
 }
