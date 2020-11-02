@@ -28,8 +28,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
 
@@ -42,7 +40,7 @@ import java.util.List;
  *
  */
 public class SetOpOperation extends SpliceBaseOperation {
-    private static Logger LOG = Logger.getLogger(AnyOperation.class);
+    private static Logger LOG = Logger.getLogger(SetOperation.class);
     protected static final String NAME = SetOpOperation.class.getSimpleName().replaceAll("Operation", "");
 
     @Override
@@ -102,22 +100,6 @@ public class SetOpOperation extends SpliceBaseOperation {
     @Override
     public SpliceOperation getRightOperation() {
         return rightSource;
-    }
-
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(leftSource);
-        out.writeObject(rightSource);
-        out.writeInt(opType);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        leftSource = (SpliceOperation) in.readObject();
-        rightSource = (SpliceOperation) in.readObject();
-        opType = in.readInt();
     }
 
     @Override
