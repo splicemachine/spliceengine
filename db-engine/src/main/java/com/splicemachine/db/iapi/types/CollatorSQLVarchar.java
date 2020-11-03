@@ -56,7 +56,7 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
 	/*
 	 * constructors
 	 */
-    CollatorSQLVarchar()
+    public CollatorSQLVarchar()
     {
 
     }

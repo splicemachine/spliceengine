@@ -45,7 +45,7 @@ class CollatorSQLVarcharDB2Compatible extends SQLVarcharDB2Compatible implements
 	 * constructors
 	 */
 
-    CollatorSQLVarcharDB2Compatible()
+    public CollatorSQLVarcharDB2Compatible()
     {
 
     }
