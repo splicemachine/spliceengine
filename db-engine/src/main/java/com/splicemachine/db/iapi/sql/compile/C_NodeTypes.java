@@ -106,7 +106,7 @@ public interface C_NodeTypes
     int DROP_INDEX_NODE = 63;
     // 64 available;
     int DROP_TRIGGER_NODE = 65;
-    // 66 available;
+    int DECFLOAT_CONSTANT_NODE = 66;
     int DECIMAL_CONSTANT_NODE = 67;
     int DOUBLE_CONSTANT_NODE = 68;
     int FLOAT_CONSTANT_NODE = 69;

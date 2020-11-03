@@ -26,6 +26,7 @@
 package com.splicemachine.db.client.am;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -374,6 +375,9 @@ public abstract class Cursor {
         }
     }
 
+    private BigDecimal get_DECFLOAT(int column) throws SqlException {
+        return new BigDecimal(getVARCHAR(column));
+    }
 
     // Build a Java double from a fixed point decimal byte representation.
     private double getDoubleFromDECIMAL(int column) throws SqlException {
@@ -756,6 +760,7 @@ public abstract class Cursor {
         case java.sql.Types.VARCHAR:
         case java.sql.Types.LONGVARCHAR:
             return agent_.crossConverters_.getBooleanFromString(getVARCHAR(column));
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
         default:
             throw coercionError( "boolean", column );
         }
@@ -785,6 +790,7 @@ public abstract class Cursor {
         case java.sql.Types.VARCHAR:
         case java.sql.Types.LONGVARCHAR:
             return agent_.crossConverters_.getByteFromString(getVARCHAR(column));
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
         default:
             throw coercionError( "byte", column );
         }
@@ -813,6 +819,7 @@ public abstract class Cursor {
         case java.sql.Types.VARCHAR:
         case java.sql.Types.LONGVARCHAR:
             return agent_.crossConverters_.getShortFromString(getVARCHAR(column));
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
         default:
             throw coercionError( "short", column );
         }
@@ -841,6 +848,7 @@ public abstract class Cursor {
         case java.sql.Types.VARCHAR:
         case java.sql.Types.LONGVARCHAR:
             return agent_.crossConverters_.getIntFromString(getVARCHAR(column));
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
         default:
             throw coercionError(  "int", column );
         }
@@ -868,6 +876,7 @@ public abstract class Cursor {
         case java.sql.Types.VARCHAR:
         case java.sql.Types.LONGVARCHAR:
             return agent_.crossConverters_.getLongFromString(getVARCHAR(column));
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
         default:
             throw coercionError( "long", column );
         }
@@ -895,6 +904,7 @@ public abstract class Cursor {
         case java.sql.Types.VARCHAR:
         case java.sql.Types.LONGVARCHAR:
             return agent_.crossConverters_.getFloatFromString(getVARCHAR(column));
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
         default:
             throw coercionError( "float", column );
         }
@@ -923,6 +933,7 @@ public abstract class Cursor {
         case java.sql.Types.VARCHAR:
         case java.sql.Types.LONGVARCHAR:
             return agent_.crossConverters_.getDoubleFromString(getVARCHAR(column));
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
         default:
             throw coercionError( "double", column );
         }
@@ -953,6 +964,8 @@ public abstract class Cursor {
         case java.sql.Types.VARCHAR:
         case java.sql.Types.LONGVARCHAR:
             return agent_.crossConverters_.getBigDecimalFromString(getVARCHAR(column));
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+            return get_DECFLOAT(column);
         default:
             throw coercionError( "java.math.BigDecimal", column );
         }
@@ -1042,6 +1055,8 @@ public abstract class Cursor {
                 // We could get better performance here if we didn't materialize the BigDecimal,
                 // but converted directly from decimal bytes to a string.
                 return String.valueOf(get_DECIMAL(column));
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+                return getVARCHAR(column);
             case java.sql.Types.DATE:
                 return getStringFromDATE(column);
             case java.sql.Types.TIME:
@@ -1345,6 +1360,8 @@ public abstract class Cursor {
             return getClobColumn_(column, agent_, true);
         case java.sql.Types.ROWID:
             return getRowIdColumn_(column, agent_, true);
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+            return get_DECFLOAT(column);
         default:
             throw coercionError( "Object", column );
         }

@@ -163,6 +163,8 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
         case Types.DECIMAL:
         case Types.NUMERIC:
             return typeDescriptor.getPrecision()/2 + 1;
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+            return 32;
         case Types.DOUBLE:
             return 8;
         case Types.FLOAT:

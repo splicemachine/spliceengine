@@ -25,10 +25,7 @@
 
 package com.splicemachine.db.client.net;
 
-import com.splicemachine.db.client.am.Cursor;
-import com.splicemachine.db.client.am.DisconnectException;
-import com.splicemachine.db.client.am.SignedBinary;
-import com.splicemachine.db.client.am.ClientMessageId;
+import com.splicemachine.db.client.am.*;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 //
@@ -683,6 +680,38 @@ public class Typdef implements java.lang.Cloneable {
         new FdocaSimpleDataArray(0xCE, FdocaConstants.FDOCA_TYPE_LOBCHAR, Cursor.MBCS_CLOB, CCSIDMBC, 1, 1, 8, LOBLENGTH),
         /* 0xCF null Large object char MBCS */
         new FdocaSimpleDataArray(0xCF, FdocaConstants.FDOCA_TYPE_NLOBCHAR, Cursor.MBCS_CLOB, CCSIDMBC, 1, 1, 8, LOBLENGTH),
+        /* 0xD0 Empties */
+        null,
+        /* 0xD1 Empties */
+        null,
+        /* 0xD2 Empties */
+        null,
+        /* 0xD3 Empties */
+        null,
+        /* 0xD4 Empties */
+        null,
+        /* 0xD5 Empties */
+        null,
+        /* 0xD6 Empties */
+        null,
+        /* 0xD7 Empties */
+        null,
+        /* 0xD8 Empties */
+        null,
+        /* 0xD9 Empties */
+        null,
+        /* 0xDA Empties */
+        null,
+        /* 0xDB Empties */
+        null,
+        /* 0xDC Empties */
+        null,
+        /* 0xDD Empties */
+        null,
+        /* 0xDE Decfloat */
+        new FdocaSimpleDataArray(0xDE, FdocaConstants.FDOCA_TYPE_VARCHAR, Cursor.VARIABLE_STRING, CCSIDSBC, 1, 0, 32767, TWOBYTELENGTH),
+        /* 0xDF null Decfloat */
+        new FdocaSimpleDataArray(0xDF, FdocaConstants.FDOCA_TYPE_NVARCHAR, Cursor.VARIABLE_STRING, CCSIDSBC, 1, 0, 32767, TWOBYTELENGTH),
     };
 
     private static final int[] protocolToJdbcTypes_ = {
@@ -706,8 +735,8 @@ public class Typdef implements java.lang.Cloneable {
         java.sql.Types.DECIMAL, // 0x11 null Zone Decimal
         java.sql.Types.DECIMAL, // 0x12 Numeirc
         java.sql.Types.DECIMAL, // 0x13 null Numeric
-        0x00, // 0x14 Empties
-        0x00, // 0x15 Empties
+        com.splicemachine.db.iapi.reference.Types.DECFLOAT, // 0x14 decfloat
+        com.splicemachine.db.iapi.reference.Types.DECFLOAT, // 0x15 null decfloat
         java.sql.Types.BIGINT, // 0x16 Big int
         java.sql.Types.BIGINT, // 0x17 null Big int
         0x00,
@@ -895,6 +924,22 @@ public class Typdef implements java.lang.Cloneable {
         0x00,
         java.sql.Types.CLOB, // 0xCE Large object char MBCS
         java.sql.Types.CLOB, // 0xCF null Large object char MBCS
+        0x00, // 0xD0 Empties
+        0x00, // 0xD1 Empties
+        0x00, // 0xD2 Empties
+        0x00, // 0xD3 Empties
+        0x00, // 0xD4 Empties
+        0x00, // 0xD5 Empties
+        0x00, // 0xD6 Empties
+        0x00, // 0xD7 Empties
+        0x00, // 0xD8 Empties
+        0x00, // 0xD9 Empties
+        0x00, // 0xDA Empties
+        0x00, // 0xDB Empties
+        0x00, // 0xDC Empties
+        0x00, // 0xDD Empties
+        com.splicemachine.db.iapi.reference.Types.DECFLOAT, // 0xDE Decfloat
+        com.splicemachine.db.iapi.reference.Types.DECFLOAT, // 0xDF Null Decfloat
     };
 
 
