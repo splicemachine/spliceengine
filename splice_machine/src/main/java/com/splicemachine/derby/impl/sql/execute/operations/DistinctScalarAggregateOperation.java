@@ -114,13 +114,13 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         dsp.decrementOpDepth();
         DataSet<ExecRow> dataSetWithNativeSparkAggregation = null;
 
-        if (nativeSparkForced())
+        if (nativeSparkForced(dsp))
             dataSet = dataSet.upgradeToSparkNativeDataSet(operationContext);
 
         // If the aggregation can be applied using native Spark UnsafeRow, then do so
         // and return immediately.  Otherwise, use traditional Splice lower-level
         // functional APIs.
-        if (nativeSparkEnabled())
+        if (nativeSparkEnabled(dsp))
             dataSetWithNativeSparkAggregation =
                 dataSet.applyNativeSparkAggregation(null, aggregates,
                                                     false, operationContext);

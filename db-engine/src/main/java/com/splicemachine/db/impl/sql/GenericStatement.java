@@ -629,6 +629,19 @@ public class GenericStatement implements Statement{
             }
             cc.setSSQFlatteningForUpdateDisabled(ssqFlatteningForUpdateDisabled);
 
+            String varcharDB2CompatibilityModeString =
+                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+            boolean varcharDB2CompatibilityMode = CompilerContext.DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
+            try {
+                if (varcharDB2CompatibilityModeString != null)
+                    varcharDB2CompatibilityMode =
+                            Boolean.parseBoolean(varcharDB2CompatibilityModeString);
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setVarcharDB2CompatibilityMode(varcharDB2CompatibilityMode);
+
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){
             if(foundInCache)
