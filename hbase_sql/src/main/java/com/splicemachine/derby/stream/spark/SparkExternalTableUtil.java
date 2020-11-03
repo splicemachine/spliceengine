@@ -1,3 +1,18 @@
+/*
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.access.api.DistributedFileSystem;
@@ -10,6 +25,7 @@ import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.spark.splicemachine.PartitionSpec;
 import com.splicemachine.spark.splicemachine.SplicePartitioningUtils;
+import com.splicemachine.system.CsvOptions;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.Dataset;
@@ -26,6 +42,41 @@ import java.util.function.Supplier;
 import static java.util.stream.Collectors.toList;
 
 public class SparkExternalTableUtil {
+    static String unescape(String type, String in) throws StandardException {
+        try{
+            return ImportUtils.unescape(in);
+        }
+        catch( IOException e)
+        {
+            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, e, type + ". " + e.getMessage());
+        }
+    }
+    /**
+     * @param csvOptions
+     * @return spark dataframereader options, see
+     *         https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html#csv-scala.collection.Seq-
+     * @throws IOException
+     */
+    public static HashMap<String, String> getCsvOptions(CsvOptions csvOptions) throws StandardException {
+        HashMap<String, String> options = new HashMap<String, String>();
+
+        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+        String timestampFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ";
+        options.put("timestampFormat", timestampFormat);
+
+        String delimited = unescape("TERMINATED BY", csvOptions.columnDelimiter);
+        String escaped = unescape( "ESCAPED BY", csvOptions.escapeCharacter);
+        String lines = unescape( "LINES SEPARATED BY", csvOptions.lineTerminator);
+
+        if (delimited != null) // default ,
+            options.put("sep", delimited);
+        if (escaped != null)
+            options.put("escape", escaped); // default \
+        if( lines != null ) // default \n
+            options.put("lineSep", lines);
+        return options;
+    }
+
     /**
      * example:
      * schema = col0, col1, col2, col3, col4, col5, col6

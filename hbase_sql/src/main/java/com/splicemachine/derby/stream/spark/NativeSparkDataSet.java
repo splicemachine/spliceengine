@@ -54,7 +54,7 @@ import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import static com.splicemachine.derby.stream.spark.SparkDataSet.generateTableSchema;
-import static com.splicemachine.derby.stream.spark.SparkDataSetProcessor.getCsvOptions;
+import static com.splicemachine.derby.stream.spark.SparkExternalTableUtil.getCsvOptions;
 import static org.apache.spark.sql.functions.*;
 
 
