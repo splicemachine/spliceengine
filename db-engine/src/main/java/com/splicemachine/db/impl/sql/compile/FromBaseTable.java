@@ -574,7 +574,7 @@ public class FromBaseTable extends FromTable {
 
     private boolean areAllReferencingExprsCoveredByIndex(IndexDescriptor id) throws StandardException {
         if (referencingExpressions == null || referencingExpressions.isEmpty()) {
-            return false;
+            return true;
         }
         return getRefExprIndexPositions(id).size() == referencingExpressions.size();
     }

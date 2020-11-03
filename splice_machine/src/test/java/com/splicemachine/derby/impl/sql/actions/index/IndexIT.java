@@ -1581,6 +1581,31 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testIndexOnExpressionCountAsterisk() throws Exception {
+        methodWatcher.executeUpdate("create table TEST_COUNT_STAR(a1 int, a2 int)");
+        methodWatcher.executeUpdate("insert into TEST_COUNT_STAR values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
+        methodWatcher.executeUpdate("create index TEST_COUNT_STAR_IDX on TEST_COUNT_STAR(mod(a1, 2))");
+
+        String query = "select count(*) from TEST_COUNT_STAR --splice-properties index=TEST_COUNT_STAR_IDX";
+
+        /* check plan */
+        try(ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_COUNT_STAR_IDX"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup"));
+        }
+
+        /* check result */
+        String expected = "1 |\n" +
+                "----\n" +
+                " 6 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
     public void testJoinOnTheSameIndexExpressionText() throws Exception {
         String tableName_1 = "TEST_SAME_EXPR_TEXT_EXPR_INDEX_1";
         methodWatcher.executeUpdate(format("create table %s (c char(4))", tableName_1));
@@ -1743,6 +1768,61 @@ public class IndexIT extends SpliceUnitTest{
         expected = "1  | 2 |\n" +
                 "---------\n" +
                 "3.3 | 2 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testCoveringIndexOnExpressionsWindowFunction() throws Exception {
+        String tableName = "TEST_COVERING_EXPR_INDEX_WINDOW";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 1, 1.0), ('def', 1, 2.0), ('jkl', 1, 3.0), ('ghi', 2, 3.3), ('xyz', 2, 4.3)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (i + 1, d)", tableName, tableName));
+
+        String query = format("select i + 1, rank() over (partition by i + 1 order by d) " +
+                "from %s --splice-properties index=%s_IDX", tableName, tableName);
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        String expected = "1 | 2 |\n" +
+                "--------\n" +
+                " 2 | 1 |\n" +
+                " 2 | 2 |\n" +
+                " 2 | 3 |\n" +
+                " 3 | 1 |\n" +
+                " 3 | 2 |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        query = format("select i + 1, sum(d) over (partition by i + 1), avg(d) over (partition by i + 1) " +
+                "from %s --splice-properties index=%s_IDX", tableName, tableName);
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        expected = "1 | 2  | 3  |\n" +
+                "--------------\n" +
+                " 2 |6.0 |2.0 |\n" +
+                " 2 |6.0 |2.0 |\n" +
+                " 2 |6.0 |2.0 |\n" +
+                " 3 |7.6 |3.5 |\n" +
+                " 3 |7.6 |3.5 |";
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));

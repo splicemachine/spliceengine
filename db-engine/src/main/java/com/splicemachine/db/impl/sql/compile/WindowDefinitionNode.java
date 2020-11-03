@@ -36,6 +36,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This class represents an OLAP window definition.
@@ -267,5 +269,32 @@ public final class WindowDefinitionNode extends WindowNode
     @Override
     public void setOverClause(OverClause overClause) {
         this.overClause = overClause;
+    }
+
+    @Override
+    public WindowNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        if (overClause != null) {
+            overClause = overClause.replaceIndexExpression(childRCL);
+        }
+        if (functionNodes != null) {
+            for (WindowFunctionNode wfn : functionNodes) {
+                wfn.replaceIndexExpression(childRCL);
+            }
+        }
+        return this;
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (overClause != null) {
+            result = overClause.collectExpressions(exprMap);
+        }
+        if (functionNodes != null) {
+            for (WindowFunctionNode wfn : functionNodes) {
+                result = result && wfn.collectExpressions(exprMap);
+            }
+        }
+        return result;
     }
 }

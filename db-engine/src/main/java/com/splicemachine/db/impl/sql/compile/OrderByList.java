@@ -42,6 +42,9 @@ import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * An OrderByList is an ordered list of columns in the ORDER BY clause.
  * That is, the order of columns in this list is significant - the
@@ -618,11 +621,23 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
     }
 
     public void replaceIndexExpressions(ResultSetNode child) throws StandardException {
-        ResultColumnList childRCL = child.getResultColumns();
+        replaceIndexExpressions(child.getResultColumns());
+        bindOrderByColumns(child);
+    }
+
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
         for (int i = 0; i < size(); i++) {
             OrderByColumn obc = (OrderByColumn) elementAt(i);
             obc.setColumnExpression(obc.getColumnExpression().replaceIndexExpression(childRCL));
         }
-        bindOrderByColumns(child);
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        for (int i = 0; i < size(); i++) {
+            OrderByColumn obc = (OrderByColumn) elementAt(i);
+            result = result && obc.getColumnExpression().collectSingleExpression(exprMap);
+        }
+        return result;
     }
 }

@@ -1319,6 +1319,9 @@ public class SelectNode extends ResultSetNode{
         if(hasWindows()){
             // Now we add a window result set wrapped in a PRN on top of what we currently have.
             for (WindowNode windowDefinition : windowDefinitionList) {
+                if (childResultColumns.isFromExprIndex()) {
+                    windowDefinition.replaceIndexExpression(childResultColumns);
+                }
                 WindowResultSetNode wrsn =
                         (WindowResultSetNode) getNodeFactory().getNode(
                                 C_NodeTypes.WINDOW_RESULTSET_NODE,
@@ -2936,15 +2939,11 @@ public class SelectNode extends ResultSetNode{
         HashMap<Integer, Set<ValueNode>> result = new HashMap<>();
 
         if (groupByList != null) {
-            for (int i = 0; i < groupByList.size(); i++) {
-                groupByList.getGroupByColumn(i).getColumnExpression().collectSingleExpression(result);
-            }
+            groupByList.collectExpressions(result);
         }
 
         if (orderByList != null) {
-            for (int i = 0; i < orderByList.size(); i++) {
-                orderByList.getOrderByColumn(i).getColumnExpression().collectSingleExpression(result);
-            }
+            orderByList.collectExpressions(result);
         }
 
         if (whereClause != null) {
@@ -2970,6 +2969,12 @@ public class SelectNode extends ResultSetNode{
             }
         }
         // no need to check whereAggregates, should be empty
+
+        if (windowDefinitionList != null) {
+            for (WindowNode wn : windowDefinitionList) {
+                wn.collectExpressions(result);
+            }
+        }
 
         for (QueryTreeNode fromItem : fromList) {
             if (fromItem instanceof JoinNode) {

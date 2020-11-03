@@ -34,6 +34,8 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Represents a reference to an explicitly defined window
@@ -100,5 +102,15 @@ public final class WindowReferenceNode extends WindowNode
 
     @Override
     public void setOverClause(OverClause overClause) {
+    }
+
+    @Override
+    public WindowNode replaceIndexExpression(ResultColumnList childRCL) {
+        return this;
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        return true;
     }
 }

@@ -38,6 +38,8 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A GroupByList represents the list of expressions in a GROUP BY clause in
@@ -343,5 +345,14 @@ public class GroupByList extends OrderedColumnList{
             GroupByColumn gbc = (GroupByColumn) elementAt(i);
             gbc.setColumnExpression(gbc.getColumnExpression().replaceIndexExpression(childRCL));
         }
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        for (int i = 0; i < size(); i++) {
+            GroupByColumn gbc = (GroupByColumn) elementAt(i);
+            result = result && gbc.getColumnExpression().collectSingleExpression(exprMap);
+        }
+        return result;
     }
 }
