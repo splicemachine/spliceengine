@@ -32,34 +32,13 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 
 import java.sql.Clob;
 import java.text.RuleBasedCollator;
 
-/**
- * SQLVarchar represents a VARCHAR value with UCS_BASIC collation.
- *
- * SQLVarchar is mostly the same as SQLChar, so it is implemented as a
- * subclass of SQLChar.  Only those methods with different behavior are
- * implemented here.
- */
-public class SQLVarchar
-	extends SQLChar
+public class SQLVarcharDB2Compatible extends SQLVarchar
 {
-
-	/*
-	 * DataValueDescriptor interface.
-	 *
-	 */
-
-	public String getTypeName()
-	{
-		return TypeId.VARCHAR_NAME;
-	}
-
 	/*
 	 * DataValueDescriptor interface
 	 */
@@ -69,7 +48,7 @@ public class SQLVarchar
 	{
 		try
 		{
-			SQLVarchar ret = new SQLVarchar(getString());
+			SQLVarcharDB2Compatible ret = new SQLVarcharDB2Compatible(getString());
 			ret.setSqlCharSize(super.getSqlCharSize());
 			return ret;
 		}
@@ -87,7 +66,7 @@ public class SQLVarchar
 	 */
 	public DataValueDescriptor getNewNull()
 	{
-		return new SQLVarchar();
+		return new SQLVarcharDB2Compatible();
 	}
 
 	/** @see StringDataValue#getValue(RuleBasedCollator) */
@@ -99,160 +78,35 @@ public class SQLVarchar
 		} else {
 			//non-null collatorForComparison means use collator sensitive
 			//implementation of SQLVarchar
-		     CollatorSQLVarchar s = new CollatorSQLVarchar(collatorForComparison);
+		     CollatorSQLVarcharDB2Compatible s = new CollatorSQLVarcharDB2Compatible(collatorForComparison);
 		     s.copyState(this);
 		     return s;
 		}
-	}
-
-
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
-
-	/**
-		Return my format identifier.
-
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId() {
-		return StoredFormatIds.SQL_VARCHAR_ID;
 	}
 
 	/*
 	 * constructors
 	 */
 
-	public SQLVarchar()
+	public SQLVarcharDB2Compatible()
 	{
 	}
 
-	public SQLVarchar(String val)
-	{
-		super(val);
-	}
-
-	public SQLVarchar(Clob val)
+	public SQLVarcharDB2Compatible(String val)
 	{
 		super(val);
 	}
 
-    /**
-     * <p>
-     * This is a special constructor used when we need to represent a password
-     * as a VARCHAR (see DERBY-866). If you need a general-purpose constructor
-     * for char[] values and you want to re-use this constructor, make sure to
-     * read the comment on the SQLChar( char[] ) constructor.
-     * </p>
-     */
-    public SQLVarchar( char[] val ) { super( val ); }
-
-	/**
-	 * Normalization method - this method may be called when putting
-	 * a value into a SQLVarchar, for example, when inserting into a SQLVarchar
-	 * column.  See NormalizeResultSet in execution.
-	 *
-	 * @param desiredType	The type to normalize the source column to
-	 * @param source		The value to normalize
-	 *
-	 *
-	 * @exception StandardException				Thrown for null into
-	 *											non-nullable column, and for
-	 *											truncation error
-	 */
-
-	public void normalize(
-				DataTypeDescriptor desiredType,
-				DataValueDescriptor source)
-					throws StandardException
+	public SQLVarcharDB2Compatible(Clob val)
 	{
-		normalize(desiredType, source.getString());
+		super(val);
 	}
 
-	protected void normalize(DataTypeDescriptor desiredType, String sourceValue)
-		throws StandardException
-	{
-
-		int			desiredWidth = desiredType.getMaximumWidth();
-
-		int sourceWidth = sourceValue.length();
-
-		/*
-		** If the input is already the right length, no normalization is
-		** necessary.
-		**
-		** It's OK for a Varchar value to be shorter than the desired width.
-		** This can happen, for example, if you insert a 3-character Varchar
-		** value into a 10-character Varchar column.  Just return the value
-		** in this case.
-		*/
-
-		if (sourceWidth > desiredWidth) {
-
-			hasNonBlankChars(sourceValue, desiredWidth, sourceWidth);
-
-			/*
-			** No non-blank characters will be truncated.  Truncate the blanks
-			** to the desired width.
-			*/
-			sourceValue = sourceValue.substring(0, desiredWidth);
-		}
-
-		setValue(sourceValue);
-	}
-
+    public SQLVarcharDB2Compatible( char[] val ) { super( val ); }
 
 	/*
 	 * DataValueDescriptor interface
 	 */
-
-	/* @see DataValueDescriptor#typePrecedence */
-	public int typePrecedence()
-	{
-		return TypeId.VARCHAR_PRECEDENCE;
-	}
-
-    /**
-     * returns the reasonable minimum amount by
-     * which the array can grow . See readExternal.
-     * when we know that the array needs to grow by at least
-     * one byte, it is not performant to grow by just one byte
-     * instead this amount is used to provide a resonable growby size.
-     * @return minimum reasonable growby size
-     */
-    protected final int growBy()
-    {
-        return RETURN_SPACE_THRESHOLD;  //seems reasonable for a varchar or clob
-    }
-
-    public Format getFormat() {
-    	return Format.VARCHAR;
-    }
-
-
-    /**
-     * Compare two Strings using standard SQL semantics.
-     *
-     * @param op1               The first String
-     * @param op2               The second String
-     *
-     * @return  -1 - op1 <  op2
-     *           0 - op1 == op2
-     *           1 - op1 > op2
-     */
-    protected static int stringCompare(String op1, String op2) {
-        /*
-        ** By convention, nulls sort High, and null == null
-        */
-        if (op1 == null || op2 == null) {
-            if (op1 != null)    // op2 == null
-                return -1;
-            if (op2 != null)    // op1 == null
-                return 1;
-            return 0;           // both null
-        }
-        return op1.compareTo(op2);
-    }
 
     /**
      * Compare two SQLChars.
@@ -261,27 +115,12 @@ public class SQLVarchar
      */
     protected int stringCompare(StringDataValue char1, StringDataValue char2)
             throws StandardException {
-        return stringCompare(char1.getString(), char2.getString());
+        return super.stringCompareDB2Compatible(char1, char2);
     }
 
-    protected int stringCompareDB2Compatible(StringDataValue char1, StringDataValue char2)
-            throws StandardException {
-        return super.stringCompare(char1.getString(), char2.getString());
-    }
-
-    /**
-     @exception StandardException thrown on error
-     */
-    public int compare(DataValueDescriptor other) throws StandardException {
-        /* Use compare method from dominant type, negating result
-         * to reflect flipping of sides.
-         */
-        if (typePrecedence() < other.typePrecedence()) {
-            return - (other.compare(this));
-        }
-        // stringCompare deals with null as comparable and smallest
-        return stringCompare(this, (StringDataValue)other);
-    }
+    protected int compareStrings(String op1, String op2) {
+		return SQLChar.stringCompare(op1, op2);
+	}
 
     /**
      * The = operator as called from the language module, as opposed to
@@ -294,11 +133,11 @@ public class SQLVarchar
      *
      * @exception StandardException     Thrown on error
      */
-
+    @Override
     public BooleanDataValue equals(DataValueDescriptor left,
                                    DataValueDescriptor right)
             throws StandardException {
-        boolean  comparison = stringCompare(left.getString(), right.getString()) == 0;
+        boolean  comparison = compareStrings(left.getString(), right.getString()) == 0;
         return SQLBoolean.truthValue(left,
                 right,
                 comparison);
@@ -316,11 +155,11 @@ public class SQLVarchar
      *
      * @exception StandardException     Thrown on error
      */
-
+    @Override
     public BooleanDataValue notEquals(DataValueDescriptor left,
                                       DataValueDescriptor right)
             throws StandardException {
-        boolean comparison = stringCompare(left.getString(), right.getString()) != 0;
+        boolean comparison = compareStrings(left.getString(), right.getString()) != 0;
         return SQLBoolean.truthValue(left,
                 right,
                 comparison);
@@ -338,11 +177,11 @@ public class SQLVarchar
      *
      * @exception StandardException     Thrown on error
      */
-
+    @Override
     public BooleanDataValue lessThan(DataValueDescriptor left,
                                      DataValueDescriptor right)
             throws StandardException {
-        boolean comparison = stringCompare(left.getString(), right.getString()) < 0;
+        boolean comparison = compareStrings(left.getString(), right.getString()) < 0;
         return SQLBoolean.truthValue(left,
                 right,
                 comparison);
@@ -360,12 +199,12 @@ public class SQLVarchar
      *
      * @exception StandardException     Thrown on error
      */
-
+    @Override
     public BooleanDataValue greaterThan(DataValueDescriptor left,
                                         DataValueDescriptor right)
             throws StandardException
     {
-        boolean comparison = stringCompare(left.getString(), right.getString()) > 0;
+        boolean comparison = compareStrings(left.getString(), right.getString()) > 0;
         return SQLBoolean.truthValue(left,
                 right,
                 comparison);
@@ -383,12 +222,12 @@ public class SQLVarchar
      *
      * @exception StandardException     Thrown on error
      */
-
+    @Override
     public BooleanDataValue lessOrEquals(DataValueDescriptor left,
                                          DataValueDescriptor right)
             throws StandardException
     {
-        boolean comparison = stringCompare(left.getString(), right.getString()) <= 0;
+        boolean comparison = compareStrings(left.getString(), right.getString()) <= 0;
         return SQLBoolean.truthValue(left,
                 right,
                 comparison);
@@ -406,22 +245,16 @@ public class SQLVarchar
      *
      * @exception StandardException     Thrown on error
      */
-
+    @Override
     public BooleanDataValue greaterOrEquals(DataValueDescriptor left,
                                             DataValueDescriptor right)
             throws StandardException
     {
-        boolean comparison = stringCompare(left.getString(), right.getString()) >= 0;
+        boolean comparison = compareStrings(left.getString(), right.getString()) >= 0;
         return SQLBoolean.truthValue(left,
                 right,
                 comparison);
     }
 
-    /* Compared to SQLChar, SQLVarchar honors the trailing space of a string */
-    @Override
-	public int hashCode()
-	{
-		return super.hashCode();
-	}
 
 }

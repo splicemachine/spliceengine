@@ -36,32 +36,20 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import java.text.RuleBasedCollator;
 
-/**
- * CollatorSQLVarchar class differs from SQLVarchar based on how the 2 classes  
- * use different collations to collate their data. SQLVarchar uses Derby's 
- * default collation which is UCS_BASIC. Whereas, this class uses the 
- * RuleBasedCollator object that was passed to it in it's constructor and that 
- * RuleBasedCollator object decides the collation.
- * 
- * In Derby 10.3, this class will be passed a RuleBasedCollator which is based 
- * on the database's territory. In future releases of Derby, this class can be 
- * used to do other kinds of collations like case-insensitive collation etc by  
- * just passing an appropriate RuleBasedCollator object for that kind of 
- * collation.
- */
-class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterface
+
+class CollatorSQLVarcharDB2Compatible extends SQLVarcharDB2Compatible implements CollationElementsInterface
 {
 	private WorkHorseForCollatorDatatypes holderForCollationSensitiveInfo = null;
 
 	/*
 	 * constructors
 	 */
-
+    
     /**
      * Create SQL VARCHAR value initially set to NULL that
      * performs collation according to collatorForCharacterDatatypes 
      */
-    CollatorSQLVarchar(RuleBasedCollator collatorForCharacterDatatypes)
+    CollatorSQLVarcharDB2Compatible(RuleBasedCollator collatorForCharacterDatatypes)
     {
         setCollator(collatorForCharacterDatatypes);
     }
@@ -70,12 +58,11 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
      * Create SQL VARCHAR value initially set to value that
      * performs collation according to collatorForCharacterDatatypes 
      */
-	CollatorSQLVarchar(String val, RuleBasedCollator collatorForCharacterDatatypes)
+	CollatorSQLVarcharDB2Compatible(String val, RuleBasedCollator collatorForCharacterDatatypes)
 	{
 		super(val);
         setCollator(collatorForCharacterDatatypes);
 	}
-
 
 	/*
 	 * DataValueDescriptor interface
@@ -88,7 +75,7 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
 	{
 		try
 		{
-			return new CollatorSQLVarchar(getString(), 
+			return new CollatorSQLVarcharDB2Compatible(getString(),
 					holderForCollationSensitiveInfo.getCollatorForCollation());
 		}
 		catch (StandardException se)
@@ -104,13 +91,13 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
 	 */
 	public DataValueDescriptor getNewNull()
 	{
-		return new CollatorSQLVarchar(
+		return new CollatorSQLVarcharDB2Compatible(
 				holderForCollationSensitiveInfo.getCollatorForCollation());
 	}
 
 	protected StringDataValue getNewVarchar() throws StandardException
 	{
-		return new CollatorSQLVarchar(
+		return new CollatorSQLVarcharDB2Compatible(
 				holderForCollationSensitiveInfo.getCollatorForCollation());
 	}
 
@@ -133,12 +120,13 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
 		} else {
 			//null collatorForComparison means use UCS_BASIC for collation.
 			//For that, we need to use the base class SQLVarchar
-			SQLVarchar s = new SQLVarchar();
+			SQLVarcharDB2Compatible s = new SQLVarcharDB2Compatible();
 			s.copyState(this);
 			return s;
 		}
 	}
 
+	/** @see SQLChar#stringCompare(SQLChar, SQLChar) */
 	 protected int stringCompare(SQLChar char1, SQLChar char2)
 	 throws StandardException
 	 {
@@ -154,6 +142,7 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
      public int hashCode() {
          return hashCodeForCollation();
      }
+
 
 	/**
 	 * Set the RuleBasedCollator for this instance of CollatorSQLVarchar. It will

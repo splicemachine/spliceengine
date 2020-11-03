@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
 import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class MergeSortJoinStrategy extends HashableJoinStrategy {
@@ -33,6 +34,8 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
                             Optimizer optimizer,
                             CostEstimate outerCost,boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
+        if (predList != null && ((PredicateList)predList).getCompilerContext().getVarcharDB2CompatibilityMode())
+            return false;
 		return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
 	}
 

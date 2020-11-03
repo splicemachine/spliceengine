@@ -426,4 +426,7 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
         throw new UnsupportedOperationException();
     }
+
+    @Override
+    public boolean isSparkDB2CompatibilityMode() { return false; }
 }

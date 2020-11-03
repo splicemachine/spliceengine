@@ -82,7 +82,7 @@ public interface CompilerContext extends Context
         ON,     // Process the operation using UnSafeRows if the source operation produces them.
         OFF,    // Process the operation using Derby rows.
         FORCED  // Convert the source operation's rows into UnSafeRows,
-            // then process the current operation using UnSafeRows, if possible.
+                // then process the current operation using UnSafeRows, if possible.
     }
 
     enum NewMergeJoinExecutionType {
@@ -187,6 +187,7 @@ public interface CompilerContext extends Context
     boolean DEFAULT_SSQ_FLATTENING_FOR_UPDATE_DISABLED = false;
     NewMergeJoinExecutionType DEFAULT_SPLICE_NEW_MERGE_JOIN = NewMergeJoinExecutionType.SYSTEM;
     boolean DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING = false;
+    boolean DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE = false;
 
     /////////////////////////////////////////////////////////////////////////////////////
     //
@@ -738,4 +739,8 @@ public interface CompilerContext extends Context
     void setDisablePerParallelTaskJoinCosting(boolean newValue);
 
     boolean getDisablePerParallelTaskJoinCosting();
+
+    void setVarcharDB2CompatibilityMode(boolean newValue);
+
+    boolean getVarcharDB2CompatibilityMode();
 }
