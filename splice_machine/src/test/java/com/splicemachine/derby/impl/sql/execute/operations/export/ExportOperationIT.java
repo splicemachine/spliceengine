@@ -57,14 +57,16 @@ public class ExportOperationIT {
     @ClassRule
     public static SpliceSchemaWatcher SCHEMA_WATCHER = new SpliceSchemaWatcher(CLASS_NAME);
     private final Boolean useNativeSyntax;
+    private final Boolean useKeywords;
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{true});
-        params.add(new Object[]{false});
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(3);
+        params.add(new Object[]{true, true});
+        params.add(new Object[]{true, false});
+        params.add(new Object[]{false, false});
         return params;
     }
 
@@ -79,8 +81,9 @@ public class ExportOperationIT {
         SpliceUnitTest.deleteTempDirectory(temporaryFolder);
     }
 
-    public ExportOperationIT(Boolean useNativeSyntax) {
-        this.useNativeSyntax= useNativeSyntax;
+    public ExportOperationIT(Boolean useNativeSyntax, Boolean useKeywords) {
+        this.useNativeSyntax = useNativeSyntax;
+        this.useKeywords = useKeywords;
     }
 
     @Test
@@ -100,8 +103,8 @@ public class ExportOperationIT {
                         "i char,\n" +
                         "j date,\n" +
                         "k time\n" +
-                        ")", useNativeSyntax))
-                .withInsert(String.format("insert into export_test_%s values(?,?,?,?,?,?,?,?,?,?,?)", useNativeSyntax))
+                        ")", getSuffix()))
+                .withInsert(String.format("insert into export_test_%s values(?,?,?,?,?,?,?,?,?,?,?)", getSuffix()))
                 .withRows(
                         rows(
                                 row(25, 1000000000, 2000000000000000L, 3.14159, 3.14159, 2.1, 2.3423423423, "varchar", "c", "2014-10-01", "14:30:20"),
@@ -115,7 +118,7 @@ public class ExportOperationIT {
                         )
                 ).create();
 
-        String exportSQL = buildExportSQL(String.format("select * from export_test_%s order by a", useNativeSyntax));
+        String exportSQL = buildExportSQL(String.format("select * from export_test_%s order by a", getSuffix()));
 
         exportAndAssertExportResults(exportSQL,8);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -142,11 +145,11 @@ public class ExportOperationIT {
     public void export_defaultDelimiter() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_local_%s(a smallint,b double, c time,d varchar(20))", useNativeSyntax))
-                .withInsert(String.format("insert into export_local_%s values(?,?,?,?)", useNativeSyntax))
+                .withCreate(String.format("create table export_local_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
+                .withInsert(String.format("insert into export_local_%s values(?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL(String.format("select * from export_local_%s order by a asc", useNativeSyntax), "None");
+        String exportSQL = buildExportSQL(String.format("select * from export_local_%s order by a asc", getSuffix()), "None");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -165,11 +168,11 @@ public class ExportOperationIT {
     public void export_withAlternateRecordDelimiter() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table pipe_%s(a smallint,b double, c time,d varchar(20))", useNativeSyntax))
-                .withInsert(String.format("insert into pipe_%s values(?,?,?,?)", useNativeSyntax))
+                .withCreate(String.format("create table pipe_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
+                .withInsert(String.format("insert into pipe_%s values(?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL(String.format("select * from pipe_%s order by a asc", useNativeSyntax), "NONE", "|");
+        String exportSQL = buildExportSQL(String.format("select * from pipe_%s order by a asc", getSuffix()), "NONE", "|");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -188,11 +191,11 @@ public class ExportOperationIT {
     public void export_withTabs() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table tabs_%s(a smallint,b double, c time,d varchar(20))", useNativeSyntax))
-                .withInsert(String.format("insert into tabs_%s values(?,?,?,?)", useNativeSyntax))
+                .withCreate(String.format("create table tabs_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
+                .withInsert(String.format("insert into tabs_%s values(?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL(String.format("select * from tabs_%s order by a asc", useNativeSyntax), " none ", "\\t");
+        String exportSQL = buildExportSQL(String.format("select * from tabs_%s order by a asc", getSuffix()), " none ", "\\t");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -209,8 +212,8 @@ public class ExportOperationIT {
 
     @Test
     public void exportEmptyTableDoesNotBlowup() throws Exception {
-        methodWatcher.executeUpdate(String.format("create table empty_%s (a int)", useNativeSyntax));
-        String exportSQL = buildExportSQL(String.format("select * from empty_%s", useNativeSyntax));
+        methodWatcher.executeUpdate(String.format("create table empty_%s (a int)", getSuffix()));
+        String exportSQL = buildExportSQL(String.format("select * from empty_%s", getSuffix()));
         exportAndAssertExportResults(exportSQL, 0);
     }
 
@@ -223,15 +226,15 @@ public class ExportOperationIT {
                         .withInsert("insert into %s values(?,?,?)")
                         .withRows(rows(row(1, 2, 3), row(4, 5, 6), row(7, 8, 9)));
 
-        tc.withTableName(String.format("a_%s", useNativeSyntax)).create();
-        tc.withTableName(String.format("b_%s", useNativeSyntax)).create();
-        tc.withTableName(String.format("c_%s", useNativeSyntax)).create();
-        tc.withTableName(String.format("d_%s", useNativeSyntax)).create();
-        tc.withTableName(String.format("e_%s", useNativeSyntax)).create();
+        tc.withTableName(String.format("a_%s", getSuffix())).create();
+        tc.withTableName(String.format("b_%s", getSuffix())).create();
+        tc.withTableName(String.format("c_%s", getSuffix())).create();
+        tc.withTableName(String.format("d_%s", getSuffix())).create();
+        tc.withTableName(String.format("e_%s", getSuffix())).create();
 
         String exportSQL = buildExportSQL(String.format(
                 "select * from a_%s cross join b_%<s cross join c_%<s cross join d_%<s cross join e_%<s",
-                useNativeSyntax));
+                getSuffix()));
 
         exportAndAssertExportResults(exportSQL, 243);
     }
@@ -245,14 +248,14 @@ public class ExportOperationIT {
                         .withInsert("insert into %s values(?,?,?)")
                         .withRows(rows(row(1, 1, 1), row(2, 2, 2), row(3, 3, 3), row(4, 4, 4), row(5, 5, 5)));
 
-        tc.withTableName(String.format("aa_%s", useNativeSyntax)).create();
-        tc.withTableName(String.format("bb_%s", useNativeSyntax)).create();
+        tc.withTableName(String.format("aa_%s", getSuffix())).create();
+        tc.withTableName(String.format("bb_%s", getSuffix())).create();
 
         String exportSQL = buildExportSQL(String.format("" +
                 "select aa_%s.c1,aa_%<s.c2*100,bb_%<s.c2*300,bb_%<s.c3 " +
                 "from aa_%<s " +
                 "join bb_%<s on aa_%<s.c1 =bb_%<s.c1 " +
-                "where bb_%<s.c3 > 2", useNativeSyntax));
+                "where bb_%<s.c3 > 2", getSuffix()));
 
         exportAndAssertExportResults(exportSQL, 3);
     }
@@ -261,11 +264,11 @@ public class ExportOperationIT {
     public void export_compressed_bz2() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_compressed_bz2_%s(a smallint,b double, c time,d varchar(20))", useNativeSyntax))
-                .withInsert(String.format("insert into export_compressed_bz2_%s values(?,?,?,?)", useNativeSyntax))
+                .withCreate(String.format("create table export_compressed_bz2_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
+                .withInsert(String.format("insert into export_compressed_bz2_%s values(?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL(String.format("select * from export_compressed_bz2_%s order by a asc", useNativeSyntax), "BZ2");
+        String exportSQL = buildExportSQL(String.format("select * from export_compressed_bz2_%s order by a asc", getSuffix()), "BZ2");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.bz2"));
@@ -284,11 +287,11 @@ public class ExportOperationIT {
     public void export_compressed_gz() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_compressed_gz_%s(a smallint,b double, c time,d varchar(20))", useNativeSyntax))
-                .withInsert(String.format("insert into export_compressed_gz_%s values(?,?,?,?)", useNativeSyntax))
+                .withCreate(String.format("create table export_compressed_gz_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
+                .withInsert(String.format("insert into export_compressed_gz_%s values(?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL(String.format("select * from export_compressed_gz_%s order by a asc", useNativeSyntax), "GZIP");
+        String exportSQL = buildExportSQL(String.format("select * from export_compressed_gz_%s order by a asc", getSuffix()), "GZIP");
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
@@ -307,11 +310,11 @@ public class ExportOperationIT {
     public void export_compressed_gz2() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_compressed_gz2_%s(a smallint,b double, c time,d varchar(20))", useNativeSyntax))
-                .withInsert(String.format("insert into export_compressed_gz2_%s values(?,?,?,?)", useNativeSyntax))
+                .withCreate(String.format("create table export_compressed_gz2_%s(a smallint,b double, c time,d varchar(20))", getSuffix()))
+                .withInsert(String.format("insert into export_compressed_gz2_%s values(?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
-        String exportSQL = buildExportSQL(String.format("select * from export_compressed_gz2_%s order by a asc", useNativeSyntax), true);
+        String exportSQL = buildExportSQL(String.format("select * from export_compressed_gz2_%s order by a asc", getSuffix()), true);
 
         exportAndAssertExportResults(exportSQL, 6);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv.gz"));
@@ -330,14 +333,14 @@ public class ExportOperationIT {
     public void export_decimalFormatting() throws Exception {
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_decimal_%s(a smallint, b decimal(31, 25), c decimal(31, 2))", useNativeSyntax))
-                .withInsert(String.format("insert into export_decimal_%s values(?,?,?)", useNativeSyntax))
+                .withCreate(String.format("create table export_decimal_%s(a smallint, b decimal(31, 25), c decimal(31, 2))", getSuffix()))
+                .withInsert(String.format("insert into export_decimal_%s values(?,?,?)", getSuffix()))
                 .withRows(rows(row(1, 2000.0, 3.00005), row(1, 2000.0, 3.00005))).create();
 
         //
         // default column order
         //
-        String exportSQL = buildExportSQL(String.format("select * from export_decimal_%s order by a asc", useNativeSyntax), null);
+        String exportSQL = buildExportSQL(String.format("select * from export_decimal_%s order by a asc", getSuffix()), null);
 
         exportAndAssertExportResults(exportSQL, 2);
         File[] files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -351,7 +354,7 @@ public class ExportOperationIT {
         // alternate column order
         //
         FileUtils.deleteDirectory(temporaryFolder);
-        exportSQL = buildExportSQL(String.format("select c,b,a from export_decimal_%s order by a asc", useNativeSyntax), "NONE");
+        exportSQL = buildExportSQL(String.format("select c,b,a from export_decimal_%s order by a asc", getSuffix()), "NONE");
 
         exportAndAssertExportResults(exportSQL, 2);
         files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -365,7 +368,7 @@ public class ExportOperationIT {
         // column subset
         //
         FileUtils.deleteDirectory(temporaryFolder);
-        exportSQL = buildExportSQL(String.format("select b from export_decimal_%s order by a asc", useNativeSyntax), "NONE");
+        exportSQL = buildExportSQL(String.format("select b from export_decimal_%s order by a asc", getSuffix()), "NONE");
 
         exportAndAssertExportResults(exportSQL, 2);
         files = temporaryFolder.listFiles(new PatternFilenameFilter(".*csv"));
@@ -544,9 +547,16 @@ public class ExportOperationIT {
         if (useNativeSyntax) {
             StringBuilder sql = new StringBuilder();
             sql.append("EXPORT TO '").append(exportPath).append("'");
-            sql.append(" AS csv ");
+            if (useKeywords)
+                sql.append(" AS CSV ");
+            else
+                sql.append(" AS 'csv' ");
             if (compression != null) {
-                sql.append(" COMPRESSION ").append(compression);
+                sql.append(" COMPRESSION ");
+                if (useKeywords)
+                    sql.append(compression);
+                else
+                    sql.append("'").append(compression).append("'");
             }
             if (replicationCount != null) {
                 sql.append(" REPLICATION_COUNT ").append(replicationCount);
@@ -561,7 +571,11 @@ public class ExportOperationIT {
                 sql.append(" QUOTE_CHARACTER '").append(quoteCharacter).append("'");
             }
             if (quoteMode != null) {
-                sql.append(" QUOTE_MODE ").append(quoteMode);
+                sql.append(" QUOTE_MODE ");
+                if (useKeywords)
+                    sql.append(quoteMode);
+                else
+                    sql.append("'").append(quoteMode).append("'");
             }
             sql.append(" ").append(selectQuery);
             return sql.toString();
@@ -625,12 +639,12 @@ public class ExportOperationIT {
     public void exportExceptionsS3() throws Exception {
         try {
             new TableCreator(methodWatcher.getOrCreateConnection())
-                    .withCreate(String.format("create table export_s3_test_%s (c1 int, c2 int, c3 int)", useNativeSyntax))
-                    .withInsert(String.format("insert into export_s3_test_%s values(?,?,?)", useNativeSyntax))
+                    .withCreate(String.format("create table export_s3_test_%s (c1 int, c2 int, c3 int)", getSuffix()))
+                    .withInsert(String.format("insert into export_s3_test_%s values(?,?,?)", getSuffix()))
                     .withRows(rows(row(1, 1, 1), row(2, 2, 2), row(3, 3, 3), row(4, 4, 4), row(5, 5, 5)))
                     .create();
 
-            Long expectedRowCount = methodWatcher.query(buildExportSQL(String.format("select * from export_s3_test_%s", useNativeSyntax),
+            Long expectedRowCount = methodWatcher.query(buildExportSQL(String.format("select * from export_s3_test_%s", getSuffix()),
                     "s3a://molitorisspechial/temp/", null, null, null, null, null));
             fail();
         } catch (SQLException sqle) {
@@ -647,12 +661,12 @@ public class ExportOperationIT {
             return;
 
         new TableCreator(methodWatcher.getOrCreateConnection())
-                .withCreate(String.format("create table export_quote_always_%s (a smallint,b double, c time,d varchar(20))", useNativeSyntax))
-                .withInsert(String.format("insert into export_quote_always_%s values(?,?,?,?)", useNativeSyntax))
+                .withCreate(String.format("create table export_quote_always_%s (a smallint,b double, c time,d varchar(20))", getSuffix()))
+                .withInsert(String.format("insert into export_quote_always_%s values(?,?,?,?)", getSuffix()))
                 .withRows(getTestRows()).create();
 
         String exportPath = temporaryFolder.getAbsolutePath();
-        String exportSQL = buildExportSQL(String.format("select * from export_quote_always_%s order by a asc", useNativeSyntax),
+        String exportSQL = buildExportSQL(String.format("select * from export_quote_always_%s order by a asc", getSuffix()),
                 exportPath, null, null, null, null, null, "always");
 
         exportAndAssertExportResults(exportSQL, 6);
@@ -666,6 +680,10 @@ public class ExportOperationIT {
                         "29,3.14159,14:31:20,\"varchar1 \"\" quote\"\n" +
                         "30,3.14159,14:31:20,\"varchar1\"\n",
                 Files.toString(files[0], Charsets.UTF_8));
+    }
+
+    private String getSuffix() {
+        return useNativeSyntax + "_" + useKeywords;
     }
 
 }
