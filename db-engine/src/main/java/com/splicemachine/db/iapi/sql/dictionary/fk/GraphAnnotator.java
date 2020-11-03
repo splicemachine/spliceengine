@@ -25,7 +25,7 @@ public class GraphAnnotator {
     private final Graph graph;
     private final String newConstraintName;
 
-    static class Path {
+    class Path {
         public Path(List<Integer> vertices, EdgeNode.Type action) {
             this.vertices = vertices;
             this.action = action;
@@ -43,10 +43,24 @@ public class GraphAnnotator {
         List<Integer> vertices;
         EdgeNode.Type action;
 
+        private List<Integer> removeSurrogates(List<Integer> in) {
+            return in.stream().map((vertex) -> {
+                if (graph.isSurrogate(vertex)) {
+                    return graph.getOriginal(vertex);
+                } else {
+                    return vertex;
+                }
+            }).collect(Collectors.toList());
+        }
+
         public boolean intersects(Path needle) {
-            return vertices.stream()
+            List<Integer> originalPathVertices = removeSurrogates(vertices);
+            List<Integer> originalNeedleVertices = removeSurrogates(needle.vertices);
+
+
+            return originalPathVertices.stream()
                     .distinct()
-                    .filter(needle.vertices::contains)
+                    .filter(originalNeedleVertices::contains)
                     .collect(Collectors.toSet()).size() > 0;
         }
     }
