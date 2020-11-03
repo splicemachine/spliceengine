@@ -124,6 +124,12 @@ public class CreateTableIT {
     }
 
     @Test
+    public void testCreateTableAt() throws Exception {
+        // AT is not a reserved keyword anymore
+        methodWatcher.executeUpdate("create table AT (a int)");
+    }
+
+    @Test
     public void testCreateTableWithDefault() throws Exception {
         watcher.executeUpdate("create table test_create_table_with_default (col int not null"
             + ",a boolean not null with default"
