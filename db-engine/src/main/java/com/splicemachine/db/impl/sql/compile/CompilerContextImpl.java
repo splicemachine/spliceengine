@@ -290,6 +290,12 @@ public class CompilerContextImpl extends ContextImpl
 
     public boolean getDisablePerParallelTaskJoinCosting() { return disablePerParallelTaskJoinCosting; }
 
+    public void setVarcharDB2CompatibilityMode(boolean newValue) {
+        varcharDB2CompatibilityMode = newValue;
+    }
+
+    public boolean getVarcharDB2CompatibilityMode() { return varcharDB2CompatibilityMode; }
+
     public void setCurrentTimestampPrecision(int newValue) {
         currentTimestampPrecision = newValue;
     }
@@ -1175,6 +1181,7 @@ public class CompilerContextImpl extends ContextImpl
     private boolean             ssqFlatteningForUpdateDisabled;
     private NewMergeJoinExecutionType newMergeJoin = DEFAULT_SPLICE_NEW_MERGE_JOIN;
     private boolean disablePerParallelTaskJoinCosting = DEFAULT_DISABLE_PARALLEL_TASKS_JOIN_COSTING;
+    private boolean varcharDB2CompatibilityMode = DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
     /**
      * Saved execution time default schema, if we need to change it
      * temporarily.
