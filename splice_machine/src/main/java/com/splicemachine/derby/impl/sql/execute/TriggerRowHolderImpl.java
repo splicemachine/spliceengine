@@ -417,7 +417,7 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
             try {
                 writeCoordinator = PipelineDriver.driver().writeCoordinator();
                 triggerTempPartition = SIDriver.driver().getTableFactory().getTable(Long.toString(CID));
-                WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+                WriteConfiguration writeConfiguration = writeCoordinator.newDefaultWriteConfiguration();
                 writeConfiguration = new UnsafeWriteConfiguration(writeConfiguration, false, true);
                 triggerTempTableWriteBuffer = writeCoordinator.writeBuffer(triggerTempPartition, txn, token, writeConfiguration);
                 triggerTempTableflushCallback = TriggerHandler.flushCallback(triggerTempTableWriteBuffer);

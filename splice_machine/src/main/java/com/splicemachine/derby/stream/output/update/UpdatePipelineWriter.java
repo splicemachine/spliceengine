@@ -120,7 +120,7 @@ public class UpdatePipelineWriter extends AbstractPipelineWriter<ExecRow>{
             finalPkColumns=new int[0];
         }
 
-        WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+        WriteConfiguration writeConfiguration = writeCoordinator.newDefaultWriteConfiguration();
         if(rollforward)
             writeConfiguration = new RollforwardWriteConfiguration(writeConfiguration);
 
