@@ -239,6 +239,8 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 			dm.invalidateFor(conDesc, DependencyManager.DROP_CONSTRAINT, lcc);
 			dm.clearDependencies(lcc, conDesc);
 		}
+
+		dd.getDataDictionaryCache().clearconstraintDescriptorListCache(); // not sure if this is the correct place to do this.
 	}
 
     /**
