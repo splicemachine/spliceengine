@@ -56,6 +56,10 @@ class CollatorSQLVarchar extends SQLVarchar implements CollationElementsInterfac
 	/*
 	 * constructors
 	 */
+    CollatorSQLVarchar()
+    {
+
+    }
 
     /**
      * Create SQL VARCHAR value initially set to NULL that

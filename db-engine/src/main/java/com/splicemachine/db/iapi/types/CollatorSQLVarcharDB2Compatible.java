@@ -44,7 +44,12 @@ class CollatorSQLVarcharDB2Compatible extends SQLVarcharDB2Compatible implements
 	/*
 	 * constructors
 	 */
-    
+
+    CollatorSQLVarcharDB2Compatible()
+    {
+
+    }
+
     /**
      * Create SQL VARCHAR value initially set to NULL that
      * performs collation according to collatorForCharacterDatatypes 

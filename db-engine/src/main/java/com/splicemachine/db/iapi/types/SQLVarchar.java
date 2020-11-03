@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Clob;
 import java.text.RuleBasedCollator;
@@ -272,6 +273,7 @@ public class SQLVarchar
     /**
      @exception StandardException thrown on error
      */
+    @SuppressFBWarnings(value = "RV_NEGATING_RESULT_OF_COMPARETO", justification = "Intentional negation of return value.")
     public int compare(DataValueDescriptor other) throws StandardException {
         /* Use compare method from dominant type, negating result
          * to reflect flipping of sides.
