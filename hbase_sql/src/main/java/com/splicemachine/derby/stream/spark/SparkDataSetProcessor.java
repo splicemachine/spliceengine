@@ -71,8 +71,7 @@ import java.io.*;
 import java.net.URI;
 import java.util.*;
 
-import static com.splicemachine.derby.stream.spark.SparkExternalTableUtil.getAvroCompression;
-import static com.splicemachine.derby.stream.spark.SparkExternalTableUtil.getParquetCompression;
+import static com.splicemachine.derby.stream.spark.SparkExternalTableUtil.*;
 
 /**
  * Spark-based DataSetProcessor.
@@ -85,7 +84,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     private String statusDirectory;
     private String importFileName;
     private static final Joiner CSV_JOINER = Joiner.on(",").skipNulls();
-    private final String TEMP_DIR_PREFIX = "_temp";
+    private static final String TEMP_DIR_PREFIX = "_temp";
 
     private static final Logger LOG = Logger.getLogger(SparkDataSetProcessor.class);
 
@@ -488,7 +487,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
      *         if we can't apply partitionColumns (e.g. have column2=HELLO, but we want column2 to be INT),
      *         we infere the schema without the given information, which is then used for suggest schema.
      */
-    private StructType getDirectoryPartitions(StructType givenPartitionColumns, String rootPath, String fileName) {
+    static private StructType getDirectoryPartitions(StructType givenPartitionColumns, String rootPath, String fileName) {
         StructType partition_schema;
         List<Path> files = Collections.singletonList(new Path(fileName));
         Set<Path> basePaths = Collections.singleton(new Path(rootPath));
@@ -513,7 +512,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
      * @return
      * @throws IOException
      */
-    private String getFile(FileSystem fs, String location) throws IOException {
+    static private String getFile(FileSystem fs, String location) throws IOException {
 
         Path path = new Path(location);
         String name = path.getName();
@@ -708,7 +707,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
                                       double sampleFraction) throws StandardException {
         try {
             Dataset<Row> table = null;
-            ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
+            SparkExternalTableUtil.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
             try {
                 table = SpliceSpark.getSession()
@@ -720,25 +719,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             }
 
             checkNumColumns(location, baseColumnMap, table);
-            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
+            SparkExternalTableUtil.sortColumns(table.schema().fields(), partitionColumnMap);
             return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
                     execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
-    }
-
-    private String intArrayToString(int[] ints) {
-        StringBuilder sb = new StringBuilder();
-        boolean first = true;
-        for (int i = 0 ; i < ints.length; i++) {
-            if (!first)
-                sb.append(",");
-            sb.append(ints[i]);
-            first = false;
-        }
-        return sb.toString();
     }
 
     @Override
@@ -771,42 +758,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
         }
-    }
-
-    static String unescape(String type, String in) throws StandardException {
-        try{
-            return ImportUtils.unescape(in);
-        }
-        catch( IOException e)
-        {
-            throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, e, type + ". " + e.getMessage());
-        }
-    }
-
-    /**
-     * @param csvOptions
-     * @return spark dataframereader options, see
-     *         https://spark.apache.org/docs/latest/api/java/org/apache/spark/sql/DataFrameReader.html#csv-scala.collection.Seq-
-     * @throws IOException
-     */
-    public static HashMap<String, String> getCsvOptions(CsvOptions csvOptions) throws StandardException {
-        HashMap<String, String> options = new HashMap<String, String>();
-
-        // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-        String timestampFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZ";
-        options.put("timestampFormat", timestampFormat);
-
-        String delimited = unescape("TERMINATED BY", csvOptions.columnDelimiter);
-        String escaped = unescape( "ESCAPED BY", csvOptions.escapeCharacter);
-        String lines = unescape( "LINES SEPARATED BY", csvOptions.lineTerminator);
-
-        if (delimited != null) // default ,
-            options.put("sep", delimited);
-        if (escaped != null)
-            options.put("escape", escaped); // default \
-        if( lines != null ) // default \n
-            options.put("lineSep", lines);
-        return options;
     }
 
     /// check that we don't access a column that's not there with baseColumnMap

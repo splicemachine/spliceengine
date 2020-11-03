@@ -752,7 +752,7 @@ public class ExternalTableIT extends SpliceUnitTest {
 
         String file = getResourceDirectory() + "parquet_sample_one";
         String suggested = " Suggested Schema is 'CREATE EXTERNAL TABLE T (column1 CHAR/VARCHAR(x), " +
-                "column2 CHAR/VARCHAR(x), partition1 CHAR/VARCHAR(x)) PARTITIONED BY(partition1 );'.";
+                "column2 CHAR/VARCHAR(x), partition1 CHAR/VARCHAR(x)) PARTITIONED BY(partition1);'.";
         try{
             methodWatcher.executeUpdate("create external table testParquetErrorSuggestSchemaGiven" +
                                          " (col1 INTEGER) STORED AS PARQUET LOCATION '" + file + "'");
@@ -2708,7 +2708,7 @@ public class ExternalTableIT extends SpliceUnitTest {
 
             String expectedError = "The field 'COLUMN_TWO':'%s' defined in the table is not compatible with the field " +
                     "'COLUMN_TWO':'INT' defined in the external file '%s'. " +
-                    "Suggested Schema is 'CREATE EXTERNAL TABLE T (COLUMN_ONE INT, COLUMN_TWO INT) PARTITIONED BY(COLUMN_TWO );'.";
+                    "Suggested Schema is 'CREATE EXTERNAL TABLE T (COLUMN_ONE INT, COLUMN_TWO INT) PARTITIONED BY(COLUMN_TWO);'.";
             assureFailsMsg(String.format(create, "DATE", path), SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "date",
                     String.format(expectedError, "DATE", path));
             assureFailsMsg(String.format(create, "BOOLEAN", path), SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, "boolean",
