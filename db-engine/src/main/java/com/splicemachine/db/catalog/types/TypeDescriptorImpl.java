@@ -285,6 +285,7 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 			// get the number of bytes.
 			case Types.NUMERIC:
 			case Types.DECIMAL:
+			case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
 				return 2 * (precision + 2);
 
 			// ODBC spec says to use length in chars

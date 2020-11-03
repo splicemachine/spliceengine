@@ -783,6 +783,7 @@ public class SQLParser
           case BIT:
           case NUMERIC:
           case DECIMAL:
+          case DECFLOAT:
           case DEC:
           case INTEGER:
           case INT:
@@ -2844,6 +2845,7 @@ TOKEN [IGNORE_CASE] :
 |    <DEALLOCATE: "deallocate">
 |    <DEC: "dec">
 |    <DECIMAL: "decimal">
+|    <DECFLOAT: "decfloat">
 |    <DECLARE: "declare">
 |    <_DEFAULT: "default">
 |    <DEFERRABLE: "deferrable">
@@ -5681,10 +5683,29 @@ exactNumericType() throws StandardException :
         return getDataTypeServices(type, precision, scale, maxWidth);
     }
     |
+        dtd = decfloatType()
+        {
+            return dtd;
+        }
+    |
         dtd = exactIntegerType()
         {
             return dtd;
         }
+}
+
+/*
+ * <A NAME="decfloatType">decfloatType</A>
+ */
+DataTypeDescriptor
+decfloatType() throws StandardException:
+{
+}
+{
+    <DECFLOAT>
+    {
+        return DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT);
+    }
 }
 
 /*
@@ -8735,6 +8756,7 @@ miscBuiltins() throws StandardException :
              ( (getToken(1).kind == GET_CURRENT_CONNECTION ||
                 getToken(1).kind == ABS ||
                 getToken(1).kind == ABSVAL ||
+                getToken(1).kind == DECFLOAT ||
                 getToken(1).kind == SQRT ||
                 getToken(1).kind == MOD ||
                 getToken(1).kind == COALESCE ||
@@ -9533,7 +9555,12 @@ numericFunctionType() throws StandardException :
     {
         return dts;
     }
-    |
+|
+    dts = decfloatType()
+    {
+        return dts;
+    }
+|
     dts = exactIntegerType()
     {
         return dts;
@@ -18440,6 +18467,7 @@ nonReservedKeyword()  :
     |    tok = <DYNAMIC>
     |    tok = <DATABASE>
     |    tok = <DB2SQL>
+    |    tok = <DECFLOAT>
     |    tok = <DENSERANK>
     |    tok = <DERBY>
     |    tok = <DIGITS>

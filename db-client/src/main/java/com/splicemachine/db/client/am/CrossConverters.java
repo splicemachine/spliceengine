@@ -126,6 +126,7 @@ final class CrossConverters {
             return new Double(numVal);
 
         case Types.DECIMAL:
+        case Types.DECFLOAT:
             return java.math.BigDecimal.valueOf(numVal);
 
         case Types.CHAR:
@@ -170,6 +171,7 @@ final class CrossConverters {
             return new Double(source);
 
         case Types.DECIMAL:
+        case Types.DECFLOAT:
             return java.math.BigDecimal.valueOf(source);
 
         case Types.CHAR:
@@ -213,6 +215,7 @@ final class CrossConverters {
             return new Double(source);
 
         case Types.DECIMAL:
+        case Types.DECFLOAT:
             return java.math.BigDecimal.valueOf(source);
 
         case Types.CHAR:
@@ -242,6 +245,7 @@ final class CrossConverters {
         case Types.DOUBLE:
             return getBooleanFromDouble(((Double) source).doubleValue());
         case Types.DECIMAL:
+        case Types.DECFLOAT:
             return getBooleanFromLong(((java.math.BigDecimal) source).longValue());
         case Types.CHAR:
         case Types.VARCHAR:
@@ -268,6 +272,7 @@ final class CrossConverters {
         case Types.DOUBLE:
             return getByteFromDouble(((Double) source).doubleValue());
         case Types.DECIMAL:
+        case Types.DECFLOAT:
             return getByteFromLong(((java.math.BigDecimal) source).longValue());
         case Types.CHAR:
         case Types.VARCHAR:
@@ -313,6 +318,7 @@ final class CrossConverters {
             return new Double(source);
 
         case Types.DECIMAL:
+        case Types.DECFLOAT:
             return java.math.BigDecimal.valueOf(source);
 
         case Types.CHAR:
@@ -395,6 +401,7 @@ final class CrossConverters {
             return new Double(String.valueOf(source));
 
         case Types.DECIMAL:
+        case Types.DECFLOAT:
             // Can't use the following commented out line because it changes precision of the result.
             //return new java.math.BigDecimal (source);
             return new java.math.BigDecimal(String.valueOf(source));  // This matches db semantics
@@ -470,6 +477,7 @@ final class CrossConverters {
             return new Double(source);
 
         case Types.DECIMAL:
+        case Types.DECFLOAT:
             return new java.math.BigDecimal(String.valueOf(source));  // This matches db semantics
         case Types.CHAR:
         case Types.VARCHAR:
@@ -533,6 +541,7 @@ final class CrossConverters {
             return new Double(source.doubleValue());
 
         case Types.DECIMAL:
+        case Types.DECFLOAT:
             return source;
 
         case Types.CHAR:
@@ -656,6 +665,7 @@ final class CrossConverters {
                 return Double.valueOf(source);
 
             case Types.DECIMAL:
+            case Types.DECFLOAT:
                 return new java.math.BigDecimal(source);
 
             case java.sql.Types.DATE:

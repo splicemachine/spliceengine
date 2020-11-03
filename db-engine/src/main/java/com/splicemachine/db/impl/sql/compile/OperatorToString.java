@@ -216,6 +216,7 @@ public class OperatorToString {
     // We don't support REAL (float), because the way spark
     // evaluates expressions involving float causes accuracy errors
     // that don't occur when splice does the evaluation.
+    // TODO(arnaud) add decfloat there
     private static boolean sparkSupportedType(int typeFormatId, ValueNode operand) {
 
         return (typeFormatId == BOOLEAN_TYPE_ID  ||
@@ -238,6 +239,7 @@ public class OperatorToString {
                 typeFormatId == INT_TYPE_ID      ||
                 typeFormatId == LONGINT_TYPE_ID  ||
                 typeFormatId == DECIMAL_TYPE_ID  ||
+                typeFormatId == DECFLOAT_TYPE_ID ||
                 typeFormatId == DOUBLE_TYPE_ID   ||
                 typeFormatId == REAL_TYPE_ID);
     }
@@ -245,6 +247,7 @@ public class OperatorToString {
     private static boolean isOverflowSensitive(ValueNode operand) throws StandardException {
         return (operand.getTypeId().getTypeFormatId() == LONGINT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DECIMAL_TYPE_ID ||
+                operand.getTypeId().getTypeFormatId() == DECFLOAT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DOUBLE_TYPE_ID);
     }
     private static void checkOverflowHidingCases(BinaryArithmeticOperatorNode bao,

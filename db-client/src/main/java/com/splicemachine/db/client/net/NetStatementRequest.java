@@ -24,6 +24,7 @@
  */
 package com.splicemachine.db.client.net;
 
+import java.math.BigDecimal;
 import java.sql.*;
 
 import com.splicemachine.db.client.am.*;
@@ -1321,37 +1322,12 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
                     break;
                 case java.sql.Types.NUMERIC:
                 case java.sql.Types.DECIMAL:
-                    // lid: PROTOCOL_TYPE_NDECIMAL
-                    // dataFormat: java.math.BigDecimal
-                    // if null - guess with precision 1, scale 0
-                    // if not null - get scale from data and calculate maximum precision.
-                    // DERBY-2073. Get scale and precision from data so we don't lose fractional digits.
-                    java.math.BigDecimal bigDecimal = (java.math.BigDecimal) inputRow[i];
-                    int scale;
-                    int precision;
-                    
-                    if (bigDecimal == null)
-                    {
-                        scale = 0;
-                        precision = 1;
-                    }
-                    else
-                    {
-                        // adjust scale if it is negative. Packed Decimal cannot handle 
-                        // negative scale. We don't want to change the original 
-                        // object so make a new one.
-                        if (bigDecimal.scale() < 0) 
-                        {
-                            bigDecimal =  bigDecimal.setScale(0);
-                            inputRow[i] = bigDecimal;
-                        }                        
-                        scale = bigDecimal.scale();
-                        precision = Utils.computeBigDecimalPrecision(bigDecimal);
-                    }                    
                     lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NDECIMAL;
-                    lidAndLengths[i][1] = (precision << 8) + // use precision above
-                        (scale << 0);
-                    
+                    lidAndLengths[i][1] = packPrecisionAndScale(inputRow, i);
+                    break;
+                case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+                    lidAndLengths[i][0] = DRDAConstants.DRDA_TYPE_NDECFLOAT;
+                    lidAndLengths[i][1] = packPrecisionAndScale(inputRow, i);
                     break;
                 case java.sql.Types.DATE:
                     // for input, output, and inout parameters
@@ -1611,6 +1587,35 @@ public class NetStatementRequest extends NetPackageRequest implements StatementR
         {
             throw new SqlException(se);
         }
+    }
+
+    private int packPrecisionAndScale(Object[] inputRow, int index) {
+        // lid: PROTOCOL_TYPE_NDECIMAL
+        // dataFormat: java.math.BigDecimal
+        // if null - guess with precision 1, scale 0
+        // if not null - get scale from data and calculate maximum precision.
+        // DERBY-2073. Get scale and precision from data so we don't lose fractional digits.
+        java.math.BigDecimal bigDecimal = (java.math.BigDecimal) inputRow[index];
+        int scale;
+        int precision;
+
+        if (bigDecimal == null) {
+            scale = 0;
+            precision = 1;
+        } else {
+            // adjust scale if it is negative. Packed Decimal cannot handle
+            // negative scale. We don't want to change the original
+            // object so make a new one.
+            if (bigDecimal.scale() < 0) {
+                bigDecimal = bigDecimal.setScale(0);
+                inputRow[index] = bigDecimal;
+            }
+            scale = bigDecimal.scale();
+            precision = Utils.computeBigDecimalPrecision(bigDecimal);
+        }
+        return (precision << 8) + // use precision above
+                scale;
+
     }
 
     private int buildPlaceholderLength(long totalLength) {

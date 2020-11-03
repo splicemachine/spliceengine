@@ -51,6 +51,8 @@ class FdocaConstants {
     static final int FDOCA_TYPE_NDECIMAL = 0xB0;
     static final int FDOCA_TYPE_NUMERIC_CHAR = 0x32;
     static final int FDOCA_TYPE_NNUMERIC_CHAR = 0xB2;
+    static final int FDOCA_TYPE_DECFLOAT = 0x34;
+    static final int FDOCA_TYPE_NDECFLOAT = 0xB4;
     static final int FDOCA_TYPE_FLOAT_X86 = 0x47;
     static final int FDOCA_TYPE_NFLOAT_X86 = 0xC7;
     static final int FDOCA_TYPE_FLOAT_IEEE = 0x48;

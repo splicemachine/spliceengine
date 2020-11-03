@@ -108,6 +108,10 @@ public class TypeId{
     public static final int DECIMAL_SCALE=Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
     public static final int DECIMAL_MAXWIDTH=Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
 
+    public static final int DECFLOAT_PRECISION = 34;
+    public static final int DECFLOAT_MAXWIDTH = 34;
+    public static final int DECFLOAT_SCALE = 0;
+
     public static final int BOOLEAN_MAXWIDTH=1;
 
     public static final int CHAR_MAXWIDTH=Limits.DB2_CHAR_MAXWIDTH;
@@ -161,6 +165,7 @@ public class TypeId{
     public static final String DOUBLE_NAME="DOUBLE";
     public static final String NUMERIC_NAME="NUMERIC";
     public static final String DECIMAL_NAME="DECIMAL";
+    public static final String DECFLOAT_NAME="DECFLOAT";
     public static final String CHAR_NAME="CHAR";
     public static final String VARCHAR_NAME="VARCHAR";
     public static final String LONGVARCHAR_NAME="LONG VARCHAR";
@@ -214,6 +219,7 @@ public class TypeId{
     public static final int DATE_PRECEDENCE=100;
     public static final int DOUBLE_PRECEDENCE=90;
     public static final int REAL_PRECEDENCE=80;
+    public static final int DECFLOAT_PRECEDENCE=75;
     public static final int DECIMAL_PRECEDENCE=70;
     public static final int NUMERIC_PRECEDENCE=69;
     public static final int LONGINT_PRECEDENCE=60;
@@ -255,6 +261,7 @@ public class TypeId{
     private static final TypeId REAL_ID=create(StoredFormatIds.REAL_TYPE_ID,StoredFormatIds.REAL_TYPE_ID_IMPL);
     private static final TypeId DECIMAL_ID=new TypeId(StoredFormatIds.DECIMAL_TYPE_ID,new DecimalTypeIdImpl(false));
     private static final TypeId NUMERIC_ID=new TypeId(StoredFormatIds.DECIMAL_TYPE_ID,new DecimalTypeIdImpl(true));
+    public static final TypeId DECFLOAT_ID=create(StoredFormatIds.DECFLOAT_TYPE_ID,StoredFormatIds.DECFLOAT_TYPE_ID_IMPL);
     private static final TypeId VARCHAR_ID=create(StoredFormatIds.VARCHAR_TYPE_ID,StoredFormatIds.VARCHAR_TYPE_ID_IMPL);
     private static final TypeId ARRAY_ID=create(StoredFormatIds.ARRAY_TYPE_ID,StoredFormatIds.ARRAY_TYPE_ID_IMPL);
     private static final TypeId DATE_ID=create(StoredFormatIds.DATE_TYPE_ID,StoredFormatIds.DATE_TYPE_ID_IMPL);
@@ -282,6 +289,7 @@ public class TypeId{
                     BIGINT_ID,
                     REAL_ID,
                     DOUBLE_ID,
+                    DECFLOAT_ID,
                     DECIMAL_ID,
                     NUMERIC_ID,
                     VARCHAR_ID,
@@ -354,6 +362,8 @@ public class TypeId{
                 return DOUBLE_ID;
             case Types.DECIMAL:
                 return DECIMAL_ID;
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+                return DECFLOAT_ID;
             case Types.NUMERIC:
                 return NUMERIC_ID;
             case Types.CHAR:
@@ -381,7 +391,7 @@ public class TypeId{
                 return BLOB_ID;
             case Types.CLOB:
                 return CLOB_ID;
-            case JDBC40Translation.SQLXML:
+            case Types.SQLXML:
                 return XML_ID;
             case Types.ARRAY:
                 return ARRAY_ID;
@@ -535,6 +545,9 @@ public class TypeId{
         }
         if(SQLTypeName.equals(DECIMAL_NAME)){
             return DECIMAL_ID;
+        }
+        if(SQLTypeName.equals(DECFLOAT_NAME)){
+            return DECFLOAT_ID;
         }
         if(SQLTypeName.equals(NUMERIC_NAME)){
             return NUMERIC_ID;
@@ -704,6 +717,15 @@ public class TypeId{
                 typePrecedence=DECIMAL_PRECEDENCE;
                 javaTypeName="java.math.BigDecimal";
                 maxMaxWidth=TypeId.DECIMAL_MAXWIDTH;
+                isDecimalTypeId=true;
+                isNumericTypeId=true;
+                break;
+
+            case StoredFormatIds.DECFLOAT_TYPE_ID:
+                maxPrecision = TypeId.DECFLOAT_PRECISION;
+                typePrecedence=DECFLOAT_PRECEDENCE;
+                javaTypeName="java.math.BigDecimal";
+                maxMaxWidth=TypeId.DECFLOAT_MAXWIDTH;
                 isDecimalTypeId=true;
                 isNumericTypeId=true;
                 break;
@@ -1407,9 +1429,11 @@ public class TypeId{
             case StoredFormatIds.CHAR_TYPE_ID:
                 return new SQLChar();
 
-            // Implementation of DECIMAL can change.
             case StoredFormatIds.DECIMAL_TYPE_ID:
                 return new SQLDecimal();
+
+            case StoredFormatIds.DECFLOAT_TYPE_ID:
+                return new SQLDecfloat();
 
             case StoredFormatIds.DOUBLE_TYPE_ID:
                 return new SQLDouble();
@@ -1492,6 +1516,9 @@ public class TypeId{
 
             case StoredFormatIds.DECIMAL_TYPE_ID:
                 return new SQLDecimal("0");
+
+            case StoredFormatIds.DECFLOAT_TYPE_ID:
+                return new SQLDecfloat("0");
 
             case StoredFormatIds.DOUBLE_TYPE_ID:
                 return new SQLDouble(0);
@@ -1590,6 +1617,9 @@ public class TypeId{
                 }else{
                     return 8+(int)(Math.ceil(((double)dts.getPrecision())/2d));
                 }
+
+            case StoredFormatIds.DECFLOAT_TYPE_ID:
+                return 16;
 
             case StoredFormatIds.LONGVARBIT_TYPE_ID:
             case StoredFormatIds.BLOB_TYPE_ID:
@@ -1761,6 +1791,9 @@ public class TypeId{
                 } else {
                     structField = DataTypes.createStructField(columnName, DataTypes.createDecimalType(precision, scale), true);
                 }
+                break;
+            case StoredFormatIds.DECFLOAT_TYPE_ID:
+                structField = DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
                 break;
             case StoredFormatIds.DOUBLE_TYPE_ID:
                 structField = DataTypes.createStructField(columnName, DataTypes.DoubleType, true);

@@ -67,6 +67,7 @@ public class PyStoredProcedureResultSetFactory{
                 switch (jdbcTypeId){
                     case Types.BIGINT:
                     case Types.DECIMAL:
+                    case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
                     case Types.DOUBLE:
                     case Types.FLOAT:
                     case Types.INTEGER:
