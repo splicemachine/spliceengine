@@ -64,7 +64,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     @Override
     public void open() throws StandardException{
         WriteCoordinator wc = PipelineDriver.driver().writeCoordinator();
-        WriteConfiguration writeConfiguration = new DirectWriteConfiguration(wc.defaultWriteConfiguration());
+        WriteConfiguration writeConfiguration = new DirectWriteConfiguration(wc.newDefaultWriteConfiguration());
         try{
             this.writeBuffer = wc.writeBuffer(
                     Bytes.toBytes(Long.toString(destConglomerate)),
