@@ -525,5 +525,208 @@ public class FunctionIT extends SpliceUnitTest {
             assertEquals("42ZD6", e.getSQLState());
         }
     }
+
+    private void testDateTimeToCharVarcharHelper(String funcName, String columnName, String format,
+                                                 boolean isDistinct, boolean compareFirstRowOnly, String expected) throws Exception {
+        String queryTemplate = "select %s %s(%s %s) from TEST_FN_DATETIME_CHAR";
+        String query = format(queryTemplate, (isDistinct ? "distinct" : ""), funcName, columnName, (format.isEmpty() ? "" : (", " + format)));
+
+        if (compareFirstRowOnly) {
+            firstRowContainsQuery(query, expected, methodWatcher);
+        } else {
+            try (ResultSet rs = methodWatcher.executeQuery(query)) {
+                Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+            }
+        }
+    }
+
+    @Test
+    public void testDateTimeToCharVarchar() throws Exception {
+        methodWatcher.executeUpdate("create table if not exists TEST_FN_DATETIME_CHAR (d date, t time, ts timestamp)");
+        methodWatcher.executeUpdate("delete from TEST_FN_DATETIME_CHAR");
+        methodWatcher.executeUpdate("insert into TEST_FN_DATETIME_CHAR values " +
+                "('1960-03-01', '23:03:20', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '00:00:00', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '00:01:00', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '12:00:00', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '12:01:00', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '24:00:00', '1960-01-01 23:03:20')");
+
+        // test date
+        testDateTimeToCharVarcharHelper("char", "d", "", true, true, "1960-03-01");
+        testDateTimeToCharVarcharHelper("char", "d", "iso", true, true, "1960-03-01");
+        testDateTimeToCharVarcharHelper("char", "d", "jis", true, true, "1960-03-01");
+        testDateTimeToCharVarcharHelper("char", "d", "eur", true, true, "01.03.1960");
+        testDateTimeToCharVarcharHelper("char", "d", "usa", true, true, "03/01/1960");
+        try {
+            testDateTimeToCharVarcharHelper("char", "d", "local", true, true, "01.03.1960");
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        testDateTimeToCharVarcharHelper("varchar", "d", "", true, true, "1960-03-01");
+        testDateTimeToCharVarcharHelper("varchar", "d", "iso", true, true, "1960-03-01");
+        testDateTimeToCharVarcharHelper("varchar", "d", "jis", true, true, "1960-03-01");
+        testDateTimeToCharVarcharHelper("varchar", "d", "eur", true, true, "01.03.1960");
+        testDateTimeToCharVarcharHelper("varchar", "d", "usa", true, true, "03/01/1960");
+        try {
+            testDateTimeToCharVarcharHelper("varchar", "d", "local", true, true, "01.03.1960");
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        // test time
+        String expectedJIS = "1    |\n" +
+                "----------\n" +
+                "00:00:00 |\n" +
+                "00:00:00 |\n" +
+                "00:01:00 |\n" +
+                "12:00:00 |\n" +
+                "12:01:00 |\n" +
+                "23:03:20 |";
+        testDateTimeToCharVarcharHelper("char", "t", "", false, false, expectedJIS);
+        testDateTimeToCharVarcharHelper("char", "t", "jis", false, false, expectedJIS);
+
+        testDateTimeToCharVarcharHelper("varchar", "t", "", false, false, expectedJIS);
+        testDateTimeToCharVarcharHelper("varchar", "t", "jis", false, false, expectedJIS);
+
+        String expectedEUR = "1    |\n" +
+                "----------\n" +
+                "00.00.00 |\n" +
+                "00.00.00 |\n" +
+                "00.01.00 |\n" +
+                "12.00.00 |\n" +
+                "12.01.00 |\n" +
+                "23.03.20 |";
+        testDateTimeToCharVarcharHelper("char", "t", "iso", false, false, expectedEUR);
+        testDateTimeToCharVarcharHelper("char", "t", "eur", false, false, expectedEUR);
+
+        testDateTimeToCharVarcharHelper("varchar", "t", "iso", false, false, expectedEUR);
+        testDateTimeToCharVarcharHelper("varchar", "t", "eur", false, false, expectedEUR);
+
+        String expectedUSA = "1    |\n" +
+                "----------\n" +
+                "11:03 PM |\n" +
+                "12:00 AM |\n" +
+                "12:00 AM |\n" +
+                "12:00 PM |\n" +
+                "12:01 AM |\n" +
+                "12:01 PM |";
+
+        testDateTimeToCharVarcharHelper("char", "t", "usa", false, false, expectedUSA);
+
+        testDateTimeToCharVarcharHelper("varchar", "t", "usa", false, false, expectedUSA);
+
+        try {
+            testDateTimeToCharVarcharHelper("char", "t", "local", false, false, expectedEUR);
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        try {
+            testDateTimeToCharVarcharHelper("varchar", "t", "local", false, false, expectedEUR);
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        // test timestamp, format should not be accepted
+        String expected = "1960-01-01 23:03:20.0";
+        testDateTimeToCharVarcharHelper("char", "ts", "", true, true, expected);
+        testDateTimeToCharVarcharHelper("varchar", "ts", "", true, true, expected);
+
+        try {
+            testDateTimeToCharVarcharHelper("char", "ts", "jis", true, true, expected);
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        try {
+            testDateTimeToCharVarcharHelper("varchar", "ts", "jis", true, true, expected);
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testDateTimeToCharVarcharConstants() throws Exception {
+        methodWatcher.executeUpdate("create table if not exists TEST_FN_DATETIME_CHAR (d date, t time, ts timestamp)");
+        methodWatcher.executeUpdate("delete from TEST_FN_DATETIME_CHAR");
+        methodWatcher.executeUpdate("insert into TEST_FN_DATETIME_CHAR values ('1960-03-01', '23:03:20', '1960-01-01 23:03:20')");
+
+        // we need to test constant values passed in CastNode because they are casted in binding time
+        String date = "date('2020-11-06')";
+        testDateTimeToCharVarcharHelper("char", date, "", false, true, "2020-11-06");
+        testDateTimeToCharVarcharHelper("char", date, "iso", false, true, "2020-11-06");
+        testDateTimeToCharVarcharHelper("char", date, "jis", false, true, "2020-11-06");
+        testDateTimeToCharVarcharHelper("char", date, "eur", false, true, "06.11.2020");
+        testDateTimeToCharVarcharHelper("char", date, "usa", false, true, "11/06/2020");
+        try {
+            testDateTimeToCharVarcharHelper("char", date, "local", false, true, "06.11.2020");
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        testDateTimeToCharVarcharHelper("varchar", date, "", false, true, "2020-11-06");
+        testDateTimeToCharVarcharHelper("varchar", date, "iso", false, true, "2020-11-06");
+        testDateTimeToCharVarcharHelper("varchar", date, "jis", false, true, "2020-11-06");
+        testDateTimeToCharVarcharHelper("varchar", date, "eur", false, true, "06.11.2020");
+        testDateTimeToCharVarcharHelper("varchar", date, "usa", false, true, "11/06/2020");
+        try {
+            testDateTimeToCharVarcharHelper("varchar", date, "local", false, true, "06.11.2020");
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        String time = "time('09:35:03')";
+        testDateTimeToCharVarcharHelper("char", time, "", false, true, "09:35:03");
+        testDateTimeToCharVarcharHelper("char", time, "iso", false, true, "09.35.03");
+        testDateTimeToCharVarcharHelper("char", time, "jis", false, true, "09:35:03");
+        testDateTimeToCharVarcharHelper("char", time, "eur", false, true, "09.35.03");
+        testDateTimeToCharVarcharHelper("char", time, "usa", false, true, "09:35 AM");
+        try {
+            testDateTimeToCharVarcharHelper("char", time, "local", false, true, "09.35.03");
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        testDateTimeToCharVarcharHelper("varchar", time, "", false, true, "09:35:03");
+        testDateTimeToCharVarcharHelper("varchar", time, "iso", false, true, "09.35.03");
+        testDateTimeToCharVarcharHelper("varchar", time, "jis", false, true, "09:35:03");
+        testDateTimeToCharVarcharHelper("varchar", time, "eur", false, true, "09.35.03");
+        testDateTimeToCharVarcharHelper("varchar", time, "usa", false, true, "09:35 AM");
+        try {
+            testDateTimeToCharVarcharHelper("varchar", time, "local", false, true, "09.35.03");
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        String timestamp = "timestamp('2020-11-06 09:35:03')";
+        testDateTimeToCharVarcharHelper("char", timestamp, "", false, true, "2020-11-06 09:35:03.0");
+        testDateTimeToCharVarcharHelper("varchar", timestamp, "", false, true, "2020-11-06 09:35:03.0");
+
+        try {
+            testDateTimeToCharVarcharHelper("char", timestamp, "jis", false, true, "2020-11-06 09:35:03.0");
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+
+        try {
+            testDateTimeToCharVarcharHelper("varchar", timestamp, "jis", false, true, "2020-11-06 09:35:03.0");
+            Assert.fail("expect failure because LOCAL is not supported");
+        } catch (SQLException e) {
+            Assert.assertEquals("22018", e.getSQLState());
+        }
+    }
 }
 
