@@ -15,13 +15,12 @@
 
 package com.splicemachine.spark2.splicemachine
 
-import java.io.Externalizable
 import java.util
 import java.util.{Properties, UUID}
 
-import com.splicemachine.derby.stream.spark.ExternalizableDeserializer
+import com.splicemachine.derby.impl.kryo.KryoSerialization
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord, KafkaConsumer}
-import org.apache.kafka.common.serialization.IntegerDeserializer
+import org.apache.kafka.common.serialization.{ByteArrayDeserializer, IntegerDeserializer}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.{Dataset, Row, SparkSession}
@@ -34,6 +33,8 @@ import scala.collection.JavaConverters._
 class KafkaToDF(kafkaServers: String, pollTimeout: Long, querySchema: StructType) {
   val timeout = java.time.Duration.ofMillis(pollTimeout)
   val shortTimeout = if( pollTimeout <= 1000L ) timeout else java.time.Duration.ofMillis(1000L)
+
+  val kryo = new KryoSerialization()
 
   def spark(): SparkSession = SparkSession.builder.getOrCreate
 
@@ -51,36 +52,40 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long, querySchema: StructType
     props.put(ConsumerConfig.GROUP_ID_CONFIG, groupId)
     props.put(ConsumerConfig.CLIENT_ID_CONFIG, groupId +"-"+ UUID.randomUUID())
     props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, classOf[IntegerDeserializer].getName)
-    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ExternalizableDeserializer].getName)
+    props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, classOf[ByteArrayDeserializer].getName)
     props.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest")
 
-    val consumer = new KafkaConsumer[Integer, Externalizable](props)
+    val consumer = new KafkaConsumer[Integer, Array[Byte]](props)
     consumer.subscribe(util.Arrays.asList(topicName))
 
-    var records = Iterable.empty[ConsumerRecord[Integer, Externalizable]]
-    var newRecords = consumer.poll(timeout).asScala // records: Iterable[ConsumerRecord[Integer, Externalizable]]
+    var records = Iterable.empty[ConsumerRecord[Integer, Array[Byte]]]
+    var newRecords = consumer.poll(timeout).asScala // records: Iterable[ConsumerRecord[Integer, Array[Byte]]]
     records = records ++ newRecords
 
     while( newRecords.nonEmpty ) {
-      newRecords = consumer.poll(shortTimeout).asScala // records: Iterable[ConsumerRecord[Integer, Externalizable]]
+      newRecords = consumer.poll(shortTimeout).asScala // records: Iterable[ConsumerRecord[Integer, Array[Byte]]]
       records = records ++ newRecords
     }
     consumer.close
 
     if (records.isEmpty) { throw new Exception(s"Kafka poll timed out after ${pollTimeout/1000.0} seconds.") }
     else if(records.size == 1) {
+      kryo.init
       val (row, schema) = rowFrom(records.head)
+      kryo.close
       ( spark.sparkContext.parallelize( if(row.size > 0) { Seq(row) } else { Seq[Row]() } ),
         schema
       )
     } else {
       val seqBuilder = Seq.newBuilder[Row]
       var schema = new StructType
+      kryo.init
       for (record <- records.iterator) {
         val rs = rowFrom(record)
         seqBuilder += rs._1
         schema = rs._2
       }
+      kryo.close
 
       val rows = seqBuilder.result
       val rdd = spark.sparkContext.parallelize(rows)
@@ -89,8 +94,8 @@ class KafkaToDF(kafkaServers: String, pollTimeout: Long, querySchema: StructType
   }
   
   // Needed for SSDS
-  def rowFrom(record: ConsumerRecord[Integer, Externalizable]): (Row, StructType) = {
-    val row = record.value.asInstanceOf[Row]
+  def rowFrom(record: ConsumerRecord[Integer, Array[Byte]]): (Row, StructType) = {
+    val row = kryo.deserialize(record.value).asInstanceOf[Row]
     val values = for (i <- 0 until row.length) yield { // convert each column of the row
       if( row.isNullAt(i) ) { null }
       else {

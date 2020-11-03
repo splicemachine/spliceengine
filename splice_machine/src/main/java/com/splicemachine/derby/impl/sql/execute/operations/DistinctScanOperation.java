@@ -117,7 +117,9 @@ public class DistinctScanOperation extends ScanOperation {
                                  String location,
                                  int partitionByRefItem,
                                  GeneratedMethod defaultRowFunc,
-                                 int defaultValueMapItem) throws StandardException {
+                                 int defaultValueMapItem,
+                                 GeneratedMethod pastTxFunctor,
+                                 Long minRetentionPeriod) throws StandardException {
         super(conglomId,
                 activation,
                 resultSetNumber,
@@ -138,7 +140,9 @@ public class DistinctScanOperation extends ScanOperation {
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost,
                 tableVersion,
-                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem);
+                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
+                pastTxFunctor,
+                minRetentionPeriod);
         this.hashKeyItem = hashKeyItem;
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;

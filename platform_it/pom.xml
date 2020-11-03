@@ -20,7 +20,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.1.0.1979-SNAPSHOT</version>
+        <version>3.2.0.1983-SNAPSHOT</version>
     </parent>
     <properties>
         <!--Skip server startup-->
@@ -1143,6 +1143,14 @@
 
         <profile>
             <id>hdp3.1.0</id>
+            <properties>
+                <extraDependency>splice_ranger_service</extraDependency>
+                <extraDependency2>splice_ranger_admin</extraDependency2>
+                <extraDependency3>splice_atlas</extraDependency3>
+            </properties>
+        </profile>
+        <profile>
+            <id>hdp3.1.5</id>
             <properties>
                 <extraDependency>splice_ranger_service</extraDependency>
                 <extraDependency2>splice_ranger_admin</extraDependency2>

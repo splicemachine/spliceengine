@@ -127,7 +127,7 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
 		@Override
 		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
 				initializeForReads();
-				input.setBuffer(Encoding.decodeBytesUnsortd(data,offset,length));
+				input.setBuffer(Encoding.decodeBytesUnsorted(data,offset,length));
                 Kryo kryo = kryoPool.get();
                 try {
                     Object o = kryo.readClassAndObject(input);

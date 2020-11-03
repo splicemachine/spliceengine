@@ -887,6 +887,7 @@ public class Trigger_Referencing_Clause_IT extends SpliceUnitTest {
 
     // Cause trigger rows to go over 1000000, causing a
     // rollback and switch to spark execution.
+    @Ignore
     @Test
     public void testNestedTriggersSwitchToSpark() throws Exception {
         try(Statement s = conn.createStatement()) {

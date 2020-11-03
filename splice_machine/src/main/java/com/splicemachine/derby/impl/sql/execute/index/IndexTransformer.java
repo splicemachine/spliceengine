@@ -133,14 +133,15 @@ public class IndexTransformer {
             List<Integer> formatIds = tentativeIndex.getIndex().getIndexColumnFormatIdsList();
             indexFormatIds = formatIds.stream().mapToInt(i->i).toArray();
             assert indexFormatIds.length == numIndexExprs;
+            lcc = getLcc(tentativeIndex);
         } else {
             List<Integer> allFormatIds = tentativeIndex.getTable().getFormatIdsList();
             indexFormatIds = new int[indexColsList.size()];
             for (int i = 0; i < indexColsList.size(); i++) {
                 indexFormatIds[i] = allFormatIds.get(indexColsList.get(i)-1);
             }
+            lcc = null;
         }
-        lcc = getLcc(tentativeIndex);
     }
 
     /**
@@ -296,16 +297,7 @@ public class IndexTransformer {
         EntryDecoder rowDecoder = getSrcValueDecoder();
         rowDecoder.set(mutation.getValue());
         BitIndex bitIndex = rowDecoder.getCurrentIndex();
-
-        int maxKeyBaseColumnPosition =
-                table.getColumnOrderingCount() > 0 ? Collections.max(table.getColumnOrderingList()) : 0;
-        int maxValueBaseColumnPosition = 0;
-        for (int i = bitIndex.nextSetBit(0); i >= 0; i = bitIndex.nextSetBit(i + 1)) {
-            if (i > maxValueBaseColumnPosition)
-                maxValueBaseColumnPosition = i;
-        }
-
-        ExecRow decodedRow = new ValueRow(Math.max(maxKeyBaseColumnPosition, maxValueBaseColumnPosition) + 1);
+        ExecRow decodedRow = new ValueRow(mainColToIndexPosMap.length + 1);
 
         if (baseRowSerializers == null)
             baseRowSerializers = new DescriptorSerializer[decodedRow.nColumns()];
@@ -683,7 +675,7 @@ public class IndexTransformer {
     {
         assert numIndexExprs == index.getBytecodeExprsCount() &&
                 numIndexExprs == index.getGeneratedClassNamesCount();
-        if (indexColumnPosition < 0 || indexColumnPosition >= numIndexExprs)
+        if (numIndexExprs <= 0 || indexColumnPosition < 0 || indexColumnPosition >= numIndexExprs)
             return null;
 
         assert numIndexExprs == executableExprs.length;
@@ -694,6 +686,7 @@ public class IndexTransformer {
         ByteArray bytecode = new ByteArray(bytes.toByteArray());
         String className = index.getGeneratedClassNames(indexColumnPosition);
 
+        assert lcc != null;
         ClassFactory classFactory = lcc.getLanguageConnectionFactory().getClassFactory();
         GeneratedClass gc = classFactory.loadGeneratedClass(className, bytecode);
         executableExprs[indexColumnPosition] = (BaseExecutableIndexExpression) gc.newInstance(lcc);

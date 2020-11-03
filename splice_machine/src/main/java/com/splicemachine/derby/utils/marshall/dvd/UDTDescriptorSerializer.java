@@ -124,7 +124,7 @@ public class UDTDescriptorSerializer implements DescriptorSerializer,Closeable {
     public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
         initializeForRead();
         try {
-            ByteArrayInputStream input = new ByteArrayInputStream(Encoding.decodeBytesUnsortd(data, offset, length));
+            ByteArrayInputStream input = new ByteArrayInputStream(Encoding.decodeBytesUnsorted(data, offset, length));
             UDTInputStream inputStream = new UDTInputStream(input, cf);
             Object o = inputStream.readObject();
             dvd.setValue(o);
