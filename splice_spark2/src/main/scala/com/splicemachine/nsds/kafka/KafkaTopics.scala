@@ -17,18 +17,35 @@ package com.splicemachine.nsds.kafka
 
 import com.splicemachine.primitives.Bytes
 import java.security.SecureRandom
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings
 
 @SerialVersionUID(20200518241L)
-class KafkaTopics(kafkaServers: String) extends Serializable {
+@SuppressFBWarnings(value = Array("NP_ALWAYS_NULL"), justification = "Field 'unused' initialization is not null")
+class KafkaTopics(kafkaServers: String, defaultNumPartitions: Int = 1, defaultRepFactor: Short = 1) extends Serializable {
+  val admin = new KafkaAdmin(kafkaServers)
   val unneeded = collection.mutable.HashSet[String]()
 
+  val unused = collection.mutable.Queue.fill(5)(createTopic())
+  
   def create(): String = {
+    unused.enqueue(createTopic())
+    unused.dequeue
+  }
+
+  def createTopic(numPartitions: Int = defaultNumPartitions, repFactor: Short = defaultRepFactor): String = {
     val name = new Array[Byte](32)
     new SecureRandom().nextBytes(name)
-    Bytes.toHex(name)+"-"+System.nanoTime()
+    val topicName = Bytes.toHex(name)+"-"+System.nanoTime()
+    
+    admin.createTopics(
+      collection.mutable.HashSet( topicName ),
+      numPartitions,
+      repFactor
+    )
+    topicName
   }
-  
+
   def delete(topicName: String): Unit = unneeded += topicName
-  
-  def cleanup(timeoutMs: Long = 0): Unit = new KafkaAdmin(kafkaServers).deleteTopics(unneeded, timeoutMs)
+
+  def cleanup(timeoutMs: Long = 0): Unit = admin.deleteTopics(unneeded, timeoutMs)
 }
