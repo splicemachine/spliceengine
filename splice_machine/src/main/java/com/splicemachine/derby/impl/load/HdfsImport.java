@@ -639,6 +639,7 @@ public class HdfsImport {
         }
 
         Connection conn = null;
+        Savepoint sp = null;
         try {
             if (schemaName == null) {
                 schemaName = EngineUtils.getCurrentSchema();
@@ -732,6 +733,7 @@ public class HdfsImport {
 
             if(isLoadReplaceMode)
             {
+                sp = conn.setSavepoint();
                 // delete table before inserting
                 try (PreparedStatement ips = conn.prepareStatement("DELETE FROM " + entityName + DeleteNode.NO_TRIGGER_RI_PROPERTY)) {
                     ips.executeUpdate();
@@ -828,9 +830,9 @@ public class HdfsImport {
                 rs.open();
                 results[0] = new EmbedResultSet40((EmbedConnection) conn, rs, false, null, true);
             } catch (SQLException | StandardException | IOException e) {
-                if( conn != null && isLoadReplaceMode ) {
+                if( sp != null ) {
                     // rolling back the DELETE we've done
-                    conn.rollback();
+                    conn.rollback(sp);
                 }
                 throw new SQLException(e);
             }
