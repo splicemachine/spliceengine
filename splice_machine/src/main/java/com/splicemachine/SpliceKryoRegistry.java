@@ -492,6 +492,17 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 object.setValue(input.readDouble());
             }
         }, 45);
+        instance.register(SQLDecfloat.class,new DataValueDescriptorSerializer<SQLDecfloat>(){
+            @Override
+            protected void writeValue(Kryo kryo,Output output,SQLDecfloat object) throws StandardException{
+                kryo.writeObjectOrNull(output,object.getObject(),BigDecimal.class);
+            }
+
+            @Override
+            protected void readValue(Kryo kryo,Input input,SQLDecfloat dvd) throws StandardException{
+                dvd.setBigDecimal(kryo.readObjectOrNull(input,BigDecimal.class));
+            }
+        },46);
         /*instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLRef object) throws StandardException {

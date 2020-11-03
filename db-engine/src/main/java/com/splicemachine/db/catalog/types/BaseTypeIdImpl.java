@@ -267,8 +267,8 @@ public class BaseTypeIdImpl implements Formatable
             else if ( TypeId.INTEGER_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.INT_TYPE_ID_IMPL; }
             else if ( TypeId.SMALLINT_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.SMALLINT_TYPE_ID_IMPL; }
             else if ( TypeId.TINYINT_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.TINYINT_TYPE_ID_IMPL; }
-            else if ( TypeId.LONGINT_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.LONGINT_TYPE_ID_IMPL; }
             else if ( TypeId.DECIMAL_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.DECIMAL_TYPE_ID_IMPL; }
+            else if ( TypeId.DECFLOAT_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.DECFLOAT_TYPE_ID_IMPL; }
             else if ( TypeId.NUMERIC_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.DECIMAL_TYPE_ID_IMPL; }
             else if ( TypeId.DOUBLE_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.DOUBLE_TYPE_ID_IMPL; }
             else if ( TypeId.REAL_NAME.equals( unqualifiedName ) ) { return StoredFormatIds.REAL_TYPE_ID_IMPL; }
@@ -398,6 +398,12 @@ public class BaseTypeIdImpl implements Formatable
               unqualifiedName = TypeId.DECIMAL_NAME;
               JDBCTypeId = Types.DECIMAL;
               break;
+
+            case StoredFormatIds.DECFLOAT_TYPE_ID_IMPL:
+                schemaName = null;
+                unqualifiedName = TypeId.DECFLOAT_NAME;
+                JDBCTypeId = com.splicemachine.db.iapi.reference.Types.DECFLOAT;
+                break;
 
           case StoredFormatIds.DOUBLE_TYPE_ID_IMPL:
               schemaName = null;

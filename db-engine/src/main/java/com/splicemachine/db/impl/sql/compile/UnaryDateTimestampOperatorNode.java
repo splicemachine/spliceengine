@@ -110,6 +110,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
             case Types.SMALLINT:
             case Types.TINYINT:
             case Types.DECIMAL:
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
             case Types.NUMERIC:
             case Types.DOUBLE:
             case Types.FLOAT:

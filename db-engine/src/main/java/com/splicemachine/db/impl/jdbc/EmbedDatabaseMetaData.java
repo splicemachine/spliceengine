@@ -1748,15 +1748,17 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 					int dataType = rsProcCols.getInt("DATA_TYPE");
 					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
 						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
-						rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
+							rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
 					} else {
 						rowBuilder.getDvd(9).setToNull();
 					}
 					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
 						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
 						dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
 						rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
 					} else {
 						rowBuilder.getDvd(10).setToNull();
@@ -1860,7 +1862,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 					int dataType = rsProcCols.getInt("DATA_TYPE");
 					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
 						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
 						rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
 					} else {
 						rowBuilder.getDvd(9).setToNull();
@@ -1868,7 +1871,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
 						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
 						dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
 						rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
 					} else {
 						rowBuilder.getDvd(10).setToNull();
@@ -1981,7 +1985,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 					int dataType = rsFuncCols.getInt("DATA_TYPE");
 					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
 						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
 						rowBuilder.getDvd(9).setValue(rsFuncCols.getShort("SCALE"));
 					} else {
 						rowBuilder.getDvd(9).setToNull();
@@ -1989,7 +1994,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 					if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
 						dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
 						dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
 						rowBuilder.getDvd(10).setValue(rsFuncCols.getShort("RADIX"));
 					} else {
 						rowBuilder.getDvd(10).setToNull();

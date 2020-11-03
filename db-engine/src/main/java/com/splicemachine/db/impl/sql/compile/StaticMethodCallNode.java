@@ -1299,6 +1299,7 @@ public class StaticMethodCallNode extends MethodCallNode {
                         break;
                     case(Types.DECIMAL):
                     case(Types.NUMERIC):
+                    case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
                         mb.cast("java.math.BigDecimal");
                         break;
                     default:

@@ -375,6 +375,7 @@ public class CastNode extends ValueNode
                             destJDBCTypeId == Types.NUMERIC)
                         break;
                     // fall through
+                case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
                 case Types.TINYINT:
                 case Types.SMALLINT:
                 case Types.INTEGER:
