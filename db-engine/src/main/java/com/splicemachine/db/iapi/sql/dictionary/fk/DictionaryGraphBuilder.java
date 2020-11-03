@@ -27,6 +27,7 @@ public class DictionaryGraphBuilder implements GraphBuilder {
     private final TableDescriptor referencingTableDescriptor;
     private final DataDictionary dd;
     private final ConsInfo newConstraintInfo;
+    private final String newConstraintName;
 
     static class Edge {
         final String from;
@@ -71,10 +72,12 @@ public class DictionaryGraphBuilder implements GraphBuilder {
 
     public DictionaryGraphBuilder(DataDictionary dd,
                                   TableDescriptor referencingTableDescriptor,
-                                  ConsInfo newConstraintInfo) {
+                                  ConsInfo newConstraintInfo,
+                                  String newConstraintName) {
         this.dd = dd;
         this.referencingTableDescriptor = referencingTableDescriptor;
         this.newConstraintInfo = newConstraintInfo;
+        this.newConstraintName = newConstraintName;
     }
 
     List<Pair<TableDescriptor, EdgeNode.Type>> getParents(TableDescriptor tableDescriptor) throws StandardException {
@@ -104,19 +107,21 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         ConstraintDescriptorList constraintDescriptorList = dd.getConstraintDescriptors(tableDescriptor);
         for (ConstraintDescriptor cd : constraintDescriptorList) {
             if ((cd instanceof ReferencedKeyConstraintDescriptor)) {
+
                 ConstraintDescriptorList fkcdl = dd.getActiveConstraintDescriptors
                         (((ReferencedKeyConstraintDescriptor) cd).getForeignKeyConstraints(ConstraintDescriptor.ALL));
+
                 int size = fkcdl.size();
                 if (size == 0) {
                     continue;
                 }
                 for (int inner = 0; inner < size; inner++) {
                     ForeignKeyConstraintDescriptor fkcd = (ForeignKeyConstraintDescriptor) fkcdl.elementAt(inner);
-                    TableDescriptor fktd = fkcd.getTableDescriptor();
                     // take care of cases where the FK is self-referencing, for now ignore.
                     if (fkcd.isSelfReferencingFK()) {
                         continue;
                     }
+                    TableDescriptor fktd = fkcd.getTableDescriptor();
                     result.add(new Pair<>(fktd, toEdgeNodeType(fkcd.getRaDeleteRule())));
                 }
             }
@@ -160,15 +165,17 @@ public class DictionaryGraphBuilder implements GraphBuilder {
             }
         }
 
-        // finally add the newly added FK
+        // finally add the newly added FK (if it is not self-referencing)
         String from = referencingTableDescriptor.getSchemaName() + "." + referencingTableDescriptor.getName();
         String to = referencedTableDescriptor.getSchemaName() + "." + referencedTableDescriptor.getName();
-        int newFKDeletionActionRule = newConstraintInfo.getReferentialActionDeleteRule();
-        edges.add(new Edge(to, toEdgeNodeType(newFKDeletionActionRule), from));
+        if(!referencedTableDescriptor.getUUID().equals(referencingTableDescriptor.getUUID())) {
+            int newFKDeletionActionRule = newConstraintInfo.getReferentialActionDeleteRule();
+            edges.add(new Edge(to, toEdgeNodeType(newFKDeletionActionRule), from));
+        }
         tableNames.add(from);
         tableNames.add(to);
 
-        Graph result = new Graph(tableNames);
+        Graph result = new Graph(tableNames, newConstraintName);
         for(Edge edge : edges) {
             result.addEdge(edge.to, edge.from, edge.type);
         }

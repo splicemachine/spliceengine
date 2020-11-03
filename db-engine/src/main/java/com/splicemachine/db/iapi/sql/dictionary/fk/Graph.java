@@ -13,6 +13,9 @@
 
 package com.splicemachine.db.iapi.sql.dictionary.fk;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+
 import java.util.*;
 
 public class Graph {
@@ -20,7 +23,11 @@ public class Graph {
     Map<String, Integer> vertexIndex;
     int[][] parents;
 
-    public Graph(Set<String> vertices) {
+    Map<Integer, Integer> surrogates;
+    int surrogateCounter;
+    String newConstraintName;
+
+    public Graph(Set<String> vertices, String newConstraintName) {
         edgeNodes = new ArrayList<>(vertices.size());
         vertexIndex = new HashMap<>(vertices.size());
         int i = 0;
@@ -29,12 +36,66 @@ public class Graph {
             vertexIndex.put(vertex, i++);
         }
         parents = new int[vertices.size()][];
+        surrogateCounter = 0;
+        this.newConstraintName = newConstraintName;
+        this.surrogates = new HashMap<>();
     }
 
-    void addEdge(String from, String to, EdgeNode.Type type) {
-        EdgeNode edgeNode = new EdgeNode(vertexIndex.get(to), type);
-        edgeNode.next = edgeNodes.get(vertexIndex.get(from));
-        edgeNodes.set(vertexIndex.get(from), edgeNode);
+    void addEdge(String from, String to, EdgeNode.Type type) throws StandardException {
+        addEdgeInternal(vertexIndex.get(from), vertexIndex.get(to), type);
+    }
+
+    private void addSurrogate(int fromIdx, int toIdx, EdgeNode.Type type) {
+        int surrogateIdx = vertexIndex.size();
+        String name = getName(toIdx) + "__SURROGATE__" + surrogateCounter++;
+        surrogates.put(surrogateIdx, toIdx);
+        vertexIndex.put(name, surrogateIdx);
+        EdgeNode edgeNode = new EdgeNode(surrogateIdx, type);
+        edgeNode.next = edgeNodes.get(fromIdx);
+        edgeNodes.set(fromIdx, edgeNode);
+        edgeNodes.add(null); // for the surrogate
+    }
+
+    void addEdgeInternal(int fromIdx, int toIdx, EdgeNode.Type type) throws StandardException {
+        Dfs dfs = new Dfs(this, newConstraintName);
+        dfs.run(toIdx);
+        List<Integer> p = dfs.getPath(toIdx, fromIdx);
+        if(p.size() >= 2 && p.get(0) == toIdx && p.get(p.size() - 1) == fromIdx) {
+            breakCycle(p, type, fromIdx, toIdx);
+        } else {
+            EdgeNode edgeNode = new EdgeNode(toIdx, type);
+            edgeNode.next = edgeNodes.get(fromIdx);
+            edgeNodes.set(fromIdx, edgeNode);
+        }
+    }
+
+    private void breakCycle(List<Integer> p, EdgeNode.Type type, int fromIdx, int toIdx) throws StandardException {
+        if(type != EdgeNode.Type.C) {
+            addSurrogate(fromIdx, toIdx, type);
+            return;
+        } else {
+            for(int i = 1; i < p.size(); i++) { // find first none-C in the cycle and break it up
+                EdgeNode.Type edgeType = getEdgeType(p.get(i-1), p.get(i));
+                if(edgeType != EdgeNode.Type.C) {
+                    addSurrogate(p.get(i-1), p.get(i), edgeType);
+                    // remove this edge
+                    removeEdge(p.get(i-1), p.get(i));
+                    // add the new edge again, but check again for cycles!
+                    addEdgeInternal(fromIdx, toIdx, type);
+                    return;
+                }
+            }
+        }
+        // cycle is unbreakable, bail out
+        StringBuilder sb = new StringBuilder();
+        sb.append("adding the constraint between ").append(
+                getName(p.get(0))).append(" and ").append(getName(p.get(p.size()-1))).append(" would cause the following illegal delete action cascade cycle");
+        for(int v : p) {
+            sb.append(" ").append(getName(v));
+        }
+        throw StandardException.newException(SQLState.LANG_DELETE_RULE_VIOLATION,
+                                             newConstraintName,
+                                             sb.toString());
     }
 
     public String getName(int index) {
@@ -70,5 +131,51 @@ public class Graph {
     public int getVertexCount() {
         return vertexIndex.size();
 
+    }
+
+    public EdgeNode.Type getEdgeType(int from, int to) {
+        EdgeNode edgeNode = getEdge(from);
+        while(true) {
+            if(edgeNode == null) {
+                throw new IllegalArgumentException("no edge between " + getName(from) + " and " + getName(to));
+            }
+            if(edgeNode.y == to) {
+                return edgeNode.type;
+            }
+            edgeNode = edgeNode.next;
+        }
+    }
+
+    public void removeEdge(int from, int to) {
+        EdgeNode edgeNode = getEdge(from);
+        if(edgeNode == null) {
+            throw new IllegalArgumentException("no edge between " + getName(from) + " and " + getName(to));
+        }
+        if(edgeNode.y == to) {
+            edgeNodes.set(from, null);
+        } else {
+            EdgeNode previous = edgeNode;
+            edgeNode = edgeNode.next;
+            while(true) {
+                if(edgeNode == null) {
+                    throw new IllegalArgumentException("no edge between " + getName(from) + " and " + getName(to));
+                }
+                if(edgeNode.y == to) {
+                    previous.next = edgeNode.next;
+                    edgeNode.next = null; // bye, GC.
+                    return;
+                }
+                edgeNode = edgeNode.next;
+            }
+        }
+    }
+
+    public boolean isSurrogate(int i) {
+        return surrogates.containsKey(i);
+    }
+
+    public int getOriginal(int surrogate) {
+        assert isSurrogate(surrogate);
+        return surrogates.get(surrogate);
     }
 }

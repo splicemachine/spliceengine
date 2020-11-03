@@ -244,7 +244,7 @@ public	class	DDUtils
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_NO_FOREIGN_KEYS);
         }
 
-        DictionaryGraphBuilder builder = new DictionaryGraphBuilder(dd, td, otherConstraintInfo);
+        DictionaryGraphBuilder builder = new DictionaryGraphBuilder(dd, td, otherConstraintInfo, myConstraintName);
         Graph g = builder.generateGraph();
         GraphAnnotator annotator = new GraphAnnotator(myConstraintName, g);
         annotator.annotate();

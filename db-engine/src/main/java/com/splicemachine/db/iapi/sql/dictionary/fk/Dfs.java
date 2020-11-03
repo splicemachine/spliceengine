@@ -37,6 +37,7 @@ public class Dfs {
     int[] exitTime;
     int time;
     ArrayList[] parents;
+    boolean finished;
 
 
     public Dfs(Graph g, String newConstraintName) {
@@ -51,6 +52,7 @@ public class Dfs {
         stack = new Stack<Integer>();
         parents = new ArrayList[g.getVertexCount()];
         this.newConstraintName = newConstraintName;
+        finished = false;
     }
 
     void init() {
@@ -74,6 +76,7 @@ public class Dfs {
         discovered[v] = true;
         time += 1;
         entryTime[v] = time;
+        if(finished) return;
         processVertexEarly(v);
         EdgeNode edge = graph.getEdge(v);
         int y;
@@ -92,6 +95,7 @@ public class Dfs {
             } else {
                 processEdge(v, y);
             }
+            if(finished) return;
             edge = edge.next;
         }
         processVertexLate(v);
@@ -101,12 +105,7 @@ public class Dfs {
 
     private void processEdge(int x, int y) throws StandardException {
         if(edgeClassification(x, y) == EdgeClassification.BACK) {
-            StringBuilder sb = new StringBuilder();
-            printPath(y, x, sb);
-            throw StandardException.newException(SQLState.LANG_DELETE_RULE_VIOLATION,
-                                                 newConstraintName,
-                                                 String.format("adding this foreign key leads to a cycle from '%s' to '%s' following this path '%s'",
-                                                               graph.getName(x), graph.getName(y), sb.toString()));
+            finished = true;
         }
     }
 
@@ -116,24 +115,35 @@ public class Dfs {
 
     private void processVertexEarly(int v) {}
 
-    private void printPath(int s, int e, StringBuilder sb) {
-        if(s == e || e == -1) {
-            sb.append(graph.getName(s));
-        } else {
-            printPath(s, dfsParent[e], sb);
-            sb.append(" ").append(graph.getName(e));
-        }
-    }
-
     public List<Integer> topologicalSort() throws StandardException {
         trackParents = true;
         for(int i=0; i < discovered.length; ++i) {
             if(!discovered[i]) {
                 run(i);
+                finished = false;
             }
         }
 
         return stack;
+    }
+
+    public List<Integer> getPath(int s, int e) {
+        path = new ArrayList<>();
+        getPathInternal(s, e);
+        return path;
+    }
+
+    List<Integer> path = new ArrayList<>();
+
+    private void getPathInternal(int s, int e) {
+        if (e == -1) {
+            return;
+        } else if (s == e) {
+            path.add(s);
+        } else {
+            getPathInternal(s, dfsParent[e]);
+            path.add(e);
+        }
     }
 
     public ArrayList[] getParents() {
