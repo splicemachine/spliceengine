@@ -174,9 +174,12 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,ExecRow execRow,
-                                      boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
-        return delegate.readORCFile(baseColumnMap, partitionColumnMap, location, context,qualifiers,probeValue,execRow, useSample, sampleFraction, statsjob);
+    public <V> DataSet<V> readORCFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap,
+                                      String location, OperationContext context, Qualifier[][] qualifiers,
+                                      DataValueDescriptor probeValue, ExecRow execRow, boolean useSample,
+                                      double sampleFraction) throws StandardException {
+        return delegate.readORCFile(schema, baseColumnMap, partitionColumnMap,location, context, qualifiers,
+                probeValue,execRow, useSample, sampleFraction);
     }
 
     @Override

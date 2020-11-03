@@ -1486,7 +1486,16 @@ public class ColumnReference extends ValueNode {
     }
 
     public boolean useRealColumnStatistics() throws StandardException {
-        return getStoreCostController().useRealColumnStatistics(columnNumber);
+        StoreCostController scc = getStoreCostController();
+        if (scc != null) {
+            return getStoreCostController().useRealColumnStatistics(columnNumber);
+        }
+        // There are cases in which scc is null because of no columnDescriptor. An
+        // example can be this column comes from a dynamic view defined in with clause.
+        // Do not report such cases because they should not be used in any cost
+        // estimation (otherwise other calls like rowCountEstimate() above will also
+        // fail) and their original source columns should be reported correctly anyway.
+        return true;
     }
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {

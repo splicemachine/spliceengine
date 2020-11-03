@@ -337,11 +337,12 @@ public class ControlDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location, OperationContext context,
-                                      Qualifier[][] qualifiers,DataValueDescriptor probeValue, ExecRow execRow,
-                                      boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
+    public <V> DataSet<V> readORCFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap, String location,
+                                      OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,
+                                      ExecRow execRow, boolean useSample, double sampleFraction) throws StandardException {
         DistributedDataSetProcessor proc = EngineDriver.driver().processorFactory().distributedProcessor();
-        return new ControlDataSet(proc.readORCFile(baseColumnMap,partitionColumnMap,location,context,qualifiers,probeValue,execRow, useSample, sampleFraction, statsjob).toLocalIterator());
+        return new ControlDataSet(proc.readORCFile(schema, baseColumnMap,partitionColumnMap, location,
+                context, qualifiers, probeValue,execRow, useSample, sampleFraction).toLocalIterator());
     }
 
     @Override

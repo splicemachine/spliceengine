@@ -112,23 +112,16 @@ public class VacuumIT extends SpliceUnitTest{
             .around(spliceTableIWatcher)
             .around(spliceTableJWatcher);
 
-    // todo: investigate/fix this https://splicemachine.atlassian.net/browse/DB-10490
-    @Before
-    public void waitForStaleTransactions() throws Exception
-    {
-        // wait at max 60s for other transactions to finish
-        // we have defined SerialTest.class, so no other test should run in parallel
-        for(int i=0; i<60; i++) {
-            try (ResultSet rs = methodWatcher.executeQuery(
-                    "call SYSCS_UTIL.SYSCS_GET_ACTIVE_TRANSACTION_IDS()")) {
-                String actual = TestUtils.FormattedResult.ResultFactory.toString(rs);
-                if( actual.equals("") ) return;
-                Thread.sleep(1000);
-                LOG.info("VacuumIT: Waiting for active transactions:\n" + actual);
-            }
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+        try(SpliceWatcher methodWatcher = new SpliceWatcher(null)) {
+            LOG.info("check other tests didn't leave transactions open, which is bad for Vacuum tests.");
+            String name = "A test before VacuumIT"; // ... failed to close transactions
+            SpliceUnitTest.waitForStaleTransactions(methodWatcher, name, 10, true);
+            LOG.info("done. vacuum leftovers from other tests..");
+            methodWatcher.execute("call SYSCS_UTIL.VACUUM()");
+            LOG.info("done.");
         }
-        Assert.fail("VacuumIT can't run with active transactions still happening. This is a bug in other " +
-                "tests failing to close their transactions.");
     }
 
     @Test
@@ -203,8 +196,18 @@ public class VacuumIT extends SpliceUnitTest{
         }
     }
 
+    void assertCleaned(Admin admin, long[] conglomerates) throws Exception {
+        for (long congId : conglomerates) {
+            // make sure the table has been dropped by VACUUM
+            assertFalse("Dropped table splice:" + congId + " not in use hasn't been vaccumed",
+                admin.tableExists(TableName.valueOf("splice:" + congId)));
+        }
+    }
+
     @Test
     public void testVacuumDoesNotDeleteTablePossiblyInUse() throws Exception {
+        int oldest = SpliceUnitTest.getOldestActiveTransaction(methodWatcher);
+        LOG.info("VacuumIT: oldest: " + oldest + "\n");
         Connection connection = spliceClassWatcher.getOrCreateConnection();
 
         boolean autoCommit = connection.getAutoCommit();
@@ -232,11 +235,9 @@ public class VacuumIT extends SpliceUnitTest{
                     try (CallableStatement callableStatement = connection2.prepareCall("call SYSCS_UTIL.VACUUM()")) {
                         callableStatement.execute();
                     }
-                    
-                    for (long congId : conglomerates) {
-                        // make sure the table has been dropped by VACUUM
-                        assertFalse("Dropped table not in use hasn't been vaccumed", admin.tableExists(TableName.valueOf("splice:" + congId)));
-                    }
+
+                    assertCleaned(admin, conglomerates);
+
                 }
             }
 
@@ -287,10 +288,7 @@ public class VacuumIT extends SpliceUnitTest{
                         callableStatement.execute();
                     }
 
-                    for (long congId : conglomerates) {
-                        // make sure the table has been dropped by VACUUM
-                        assertFalse("Dropped table not in use hasn't been vaccumed", admin.tableExists(TableName.valueOf("splice:" + congId)));
-                    }
+                    assertCleaned(admin, conglomerates);
                 }
             }
 
@@ -320,10 +318,7 @@ public class VacuumIT extends SpliceUnitTest{
                         callableStatement.execute();
                     }
 
-                    for (long congId : conglomerates) {
-                        // make sure the table has been dropped by VACUUM
-                        assertFalse("Dropped table not in use hasn't been vaccumed", admin.tableExists(TableName.valueOf("splice:" + congId)));
-                    }
+                    assertCleaned(admin, conglomerates);
                 }
             }
 
@@ -343,10 +338,7 @@ public class VacuumIT extends SpliceUnitTest{
                         callableStatement.execute();
                     }
 
-                    for (long congId : conglomerates) {
-                        // make sure the table has been dropped by VACUUM
-                        assertFalse("Dropped table not in use hasn't been vaccumed", admin.tableExists(TableName.valueOf("splice:" + congId)));
-                    }
+                    assertCleaned(admin, conglomerates);
                 }
             }
         } finally {
