@@ -61,7 +61,7 @@ public class DeletePipelineWriter extends AbstractPipelineWriter<ExecRow>{
     public void open(TriggerHandler triggerHandler, SpliceOperation operation, boolean loadReplaceMode) throws StandardException {
         super.open(triggerHandler, operation, loadReplaceMode);
         try{
-            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
+            WriteConfiguration writeConfiguration = writeCoordinator.newDefaultWriteConfiguration();
             if(rollforward)
                 writeConfiguration = new RollforwardWriteConfiguration(writeConfiguration);
             writeConfiguration.setLoadReplaceMode(loadReplaceMode);

@@ -75,7 +75,7 @@ public class SharedCallBufferFactory{
                                                       boolean useAsyncWriteBuffers,
                                                       TxnView txn, byte[] token) throws IOException{
         SharedPreFlushHook hook = new SharedPreFlushHook();
-        WriteConfiguration writeConfiguration=writerPool.defaultWriteConfiguration();
+        WriteConfiguration writeConfiguration=writerPool.newDefaultWriteConfiguration();
         WriteConfiguration wc = new SharedWriteConfiguration(writeConfiguration.getMaximumRetries(),
                 writeConfiguration.getPause(),
                 writeConfiguration.getExceptionFactory(),

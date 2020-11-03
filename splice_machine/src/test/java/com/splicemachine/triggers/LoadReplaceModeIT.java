@@ -85,6 +85,7 @@ public class LoadReplaceModeIT {
         SpliceUnitTest.sqlExpectException(methodWatcher, query, exceptionType, update);
     }
 
+    // check that INSERT with LOAD_REPLACE mode still adheres to CONSTRAINT
     @Test
     public void testConstraintsStillWork() throws Exception {
         methodWatcher.executeUpdate("CREATE TABLE constraintTable (\n" +
@@ -98,7 +99,7 @@ public class LoadReplaceModeIT {
     }
 
     @Test
-    public void test1() throws Exception {
+    public void testLoadReplace() throws Exception {
         methodWatcher.executeUpdate("CREATE TABLE ri1 (c1 INTEGER PRIMARY KEY)");
 
         methodWatcher.executeUpdate("CREATE TABLE ri2 (\n" +
@@ -235,6 +236,7 @@ public class LoadReplaceModeIT {
     }
 
 
+    // check that INSERT with LOAD_REPLACE mode still adheres to PK constraints
     @Test
     public void testPK() throws Exception {
         methodWatcher.executeUpdate("CREATE TABLE riA (c1 INTEGER PRIMARY KEY)");
@@ -246,6 +248,31 @@ public class LoadReplaceModeIT {
         assureFails( true, SQLState.LANG_DUPLICATE_KEY_CONSTRAINT,
                 "INSERT INTO riA " + InsertNode.LOAD_REPLACE_PROPERTY + " VALUES 9, 9");
         methodWatcher.execute("DELETE from riA");
+        methodWatcher.execute("DROP TABLE riA");
+    }
+
+    // since LOAD_REPLACE consists of the 2 steps DELETE+INSERT,
+    // make sure if the INSERT part fails that the DELETE is rolled back
+    @Test
+    public void testLoadReplaceRollback() throws Exception {
+        methodWatcher.executeUpdate("CREATE TABLE riA (c1 INTEGER PRIMARY KEY)");
+        methodWatcher.executeUpdate("INSERT INTO riA VALUES 1, 3, 7, 8");
+
+        String load_replace1 = SpliceUnitTest.getResourceDirectory()+"load_replace1.csv";
+        String sql = "call SYSCS_UTIL.%s ('" + SCHEMA + "', 'riA', null, 'not/existing/file', " +
+                "'|', null, null, null, null, 0, '/tmp', true, null)";
+
+        String exception = com.splicemachine.db.shared.common.reference.SQLState.LANG_FILE_DOES_NOT_EXIST.split("\\.")[0];
+        assureFails( false, exception, String.format(sql, "LOAD_REPLACE") );
+
+        SpliceUnitTest.sqlExpectToString( methodWatcher, "select * from riA order by c1",
+                "C1 |\n" +
+                        "----\n" +
+                        " 1 |\n" +
+                        " 3 |\n" +
+                        " 7 |\n" +
+                        " 8 |", false);
+
         methodWatcher.execute("DROP TABLE riA");
     }
 
