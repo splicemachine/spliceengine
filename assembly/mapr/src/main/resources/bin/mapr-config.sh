@@ -38,46 +38,34 @@ HBASE_OPTS="$HBASE_OPTS -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/opt/co
 
 # First set 
 # JARs in ${BASE_MAPR}/lib
-MAPR_JARS="zookeeper-3.4*.jar"
-for jar in ${MAPR_JARS}; do
-  JARS=`echo $(ls ${BASE_MAPR}/lib/${jar} 2> /dev/null) | sed 's/\s\+/:/g'`
-  if [ "${JARS}" != "" ]; then
-    HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
-  fi
-done
-# Remove any additional ':' from the tail
-HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
-
-# Load all of MapR jars prepended into classpath
-HBASE_JARS="*.jar"
-for jar in ${HBASE_JARS}; do
-  JARS=`echo $(ls /opt/mapr/hbase/hbase-1.1.13/lib/${jar} 2> /dev/null | grep -v 'netty' | grep -v 'jackson') | sed 's/\s\+/:/g'`
-  if [ "${JARS}" != "" ]; then
-    HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
-  fi
-done
-# Remove any additional ':' from the tail
-HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
- 
-# JARs in ${spark}/lib
-SPARK_JARS="*.jar"
-for jar in ${SPARK_JARS}; do
-  JARS=`echo $(ls /opt/mapr/spark/spark-2.4.4/jars/${jar} 2> /dev/null | grep -v 'jackson') | sed 's/\s\+/:/g'`
-  if [ "${JARS}" != "" ]; then
-    HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
-  fi
-done
+JARS=`echo $(ls ${BASE_MAPR}/lib/zookeeper-3.4*.jar 2> /dev/null) | sed 's/\s\+/:/g'`
+if [ "${JARS}" != "" ]; then
+  HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
+fi
 # Remove any additional ':' from the tail
 HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
 
 # JARs in splice lib
-SPLICE_JAR="*.jar"
-for jar in ${SPLICE_JAR}; do
-  JARS=`echo $(ls /opt/mapr/hbase/hbase1.1.13-splice/lib/${jar} 2> /dev/null) | sed 's/\s\+/:/g'`
-  if [ "${JARS}" != "" ]; then
-    HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
-  fi
-done
+JARS=`echo $(ls /opt/mapr/hbase/hbase1.1.13-splice/lib/*.jar 2> /dev/null) | sed 's/\s\+/:/g'`
+if [ "${JARS}" != "" ]; then
+  HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
+fi
+# Remove any additional ':' from the tail
+HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
+ 
+# JARs in ${spark}/lib
+JARS=`echo $(ls /opt/mapr/spark/spark-2.4.4/jars/*.jar 2> /dev/null | grep -v 'jackson') | sed 's/\s\+/:/g'`
+if [ "${JARS}" != "" ]; then
+  HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
+fi
+# Remove any additional ':' from the tail
+HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
+
+# Load all of MapR jars prepended into classpath
+JARS=`echo $(ls /opt/mapr/hbase/hbase-1.1.13/lib/*.jar" 2> /dev/null | grep -v 'netty' | grep -v 'jackson') | sed 's/\s\+/:/g'`
+if [ "${JARS}" != "" ]; then
+  HBASE_MAPR_OVERRIDE_JARS=${HBASE_MAPR_OVERRIDE_JARS}:${JARS}
+fi
 # Remove any additional ':' from the tail
 HBASE_MAPR_OVERRIDE_JARS="${HBASE_MAPR_OVERRIDE_JARS#:}"
 
