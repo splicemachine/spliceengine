@@ -1081,9 +1081,9 @@ public class SpliceUnitTest {
             Assert.fail("Exception not thrown for " + sqlText);
 
         } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception for " + sqlText, expectedState, e.getSQLState());
+            Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getSQLState());
         } catch (Exception e) {
-            Assert.assertEquals("Wrong Exception for " + sqlText, expectedState, e.getClass().getName());
+            Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getClass().getName());
         }
     }
 

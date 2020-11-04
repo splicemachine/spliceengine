@@ -100,7 +100,7 @@ public class PartitionWritePipeline{
         WriteContext context;
         try{
             context=ctxFactory.create(writeBufferFactory,txn,token,txnRegion,toWrite.getSize(),
-                    toWrite.skipIndexWrite(),toWrite.skipConflictDetection(),toWrite.skipWAL(),toWrite.isRollforward(),rce);
+                    toWrite,rce);
         }catch(InterruptedException e){
             return INTERRUPTED;
         }catch(IndexNotSetUpException e){
