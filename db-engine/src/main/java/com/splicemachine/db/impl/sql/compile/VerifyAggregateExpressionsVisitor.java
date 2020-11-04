@@ -124,20 +124,6 @@ public class VerifyAggregateExpressionsVisitor implements Visitor {
                     throw StandardException.newException(SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST);
                 }
             }
-
-            if (!subquery.hasCorrelatedCRs()) {
-                /*
-                 ** TEMPORARY RESTRICTION: we cannot handle an aggregate
-                 ** in the subquery
-                 */
-                HasNodeVisitor visitor = new HasNodeVisitor(AggregateNode.class);
-                subquery.accept(visitor);
-                if (visitor.hasNode()) {
-                    throw StandardException.newException((groupByList == null) ?
-                            SQLState.LANG_INVALID_NON_GROUPED_SELECT_LIST :
-                            SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
-                }
-            }
         } else if (node instanceof GroupingFunctionNode) {
             if (groupByList == null || !groupByList.isRollup()) {
                 throw StandardException.newException(com.splicemachine.db.shared.common.reference.SQLState.LANG_FUNCTION_NOT_ALLOWED,
