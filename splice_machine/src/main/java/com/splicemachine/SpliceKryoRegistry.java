@@ -492,6 +492,17 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 object.setValue(input.readDouble());
             }
         }, 45);
+        instance.register(SQLVarcharDB2Compatible.class,new DataValueDescriptorSerializer<SQLVarcharDB2Compatible>(){
+            @Override
+            protected void writeValue(Kryo kryo,Output output,SQLVarcharDB2Compatible object) throws StandardException{
+                output.writeString(object.getString());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo,Input input,SQLVarcharDB2Compatible dvd){
+                dvd.setValue(input.readString());
+            }
+        },46);
         /*instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLRef object) throws StandardException {

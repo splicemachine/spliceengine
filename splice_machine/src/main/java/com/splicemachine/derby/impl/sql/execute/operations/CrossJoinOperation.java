@@ -104,7 +104,8 @@ public class CrossJoinOperation extends JoinOperation{
 
         OperationContext operationContext = dsp.createOperationContext(this);
         dsp.incrementOpDepth();
-        boolean usesNativeSparkDataSet = 
+        boolean usesNativeSparkDataSet =
+           !dsp.isSparkDB2CompatibilityMode() &&
            dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
                 (this.leftHashKeys.length == 0 || !containsUnsafeSQLRealComparison());
         if (usesNativeSparkDataSet)

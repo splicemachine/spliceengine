@@ -239,4 +239,7 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
         return delegate.readKafkaTopic(topicName, context);
     }
+
+    @Override
+    public boolean isSparkDB2CompatibilityMode() { return delegate.isSparkDB2CompatibilityMode(); }
 }
