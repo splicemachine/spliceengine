@@ -39,9 +39,6 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
 
     public boolean[] nullable_;
 
-    // Although this is describe information, it is tagged transient for now becuase it is not currently used.
-    transient public int[] singleMixedByteOrDouble_; // 1 means single, 2 means double, 3 means mixed-byte, 0 not applicable
-
     // All of the following state data comes from the SQLDA reply.
 
     //Data from SQLDHGRP
@@ -88,8 +85,6 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
 
     // For performance only, not part of logical model.
     public transient int[][] protocolTypesCache_ = null;
-    public transient java.util.Hashtable protocolTypeToOverrideLidMapping_ = null;
-    public transient java.util.ArrayList mddOverrideArray_ = null;
 
     public transient int[] types_;
     public transient int[] clientParamtertype_;
@@ -153,7 +148,6 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
         nullable_ = new boolean[upperBound];
         types_ = new int[upperBound];
         clientParamtertype_ = new int[upperBound];
-        singleMixedByteOrDouble_ = new int[upperBound]; // 1 means single, 2 means double, 3 means mixed-byte, 0 not applicable
 
         sqlPrecision_ = new int[upperBound];
         sqlScale_ = new int[upperBound];
@@ -764,7 +758,7 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
         if (column < 1 || column > columns_) {
             throw new SqlException(logWriter_, 
                     new ClientMessageId (SQLState.LANG_INVALID_COLUMN_POSITION),
-                    new Integer (column), new Integer(columns_));
+                    column, columns_);
         }
     }
 
@@ -782,7 +776,6 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
         columns_ = 0;
         nullable_ = null;
         types_ = null;
-        singleMixedByteOrDouble_ = null;
         sqldRdbnam_ = null;
         sqldSchema_ = null;
         sqlPrecision_ = null;
@@ -840,7 +833,7 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
                     this.sqlName_[col] != null &&
                     this.sqlName_[col].equalsIgnoreCase(columnName)) {
                 // Found it, add it to the cache
-                columnNameToIndexCache_.put(columnName, new Integer(col + 1));
+                columnNameToIndexCache_.put(columnName, col + 1);
                 return col + 1;
             }
         }
@@ -853,8 +846,8 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
         if (columnNameToIndexCache_ == null) {
             columnNameToIndexCache_ = new java.util.Hashtable();
         }
-        String columnName = (new Integer(column)).toString();
-        columnNameToIndexCache_.put(columnName, new Integer(column));
+        String columnName = String.valueOf(column);
+        columnNameToIndexCache_.put(columnName, column);
         sqlName_[column - 1] = columnName;
     }
 
