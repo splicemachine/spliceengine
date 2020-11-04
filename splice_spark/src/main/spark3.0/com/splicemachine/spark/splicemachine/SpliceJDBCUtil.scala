@@ -1,9 +1,9 @@
 package com.splicemachine.spark.splicemachine
 
-import java.sql.{Connection,SQLException,ResultSet,Timestamp,Date}
+import java.sql.{Connection,ResultSet,Timestamp,Date}
 
 import org.apache.commons.lang3.StringUtils
-import org.apache.spark.sql.execution.datasources.jdbc.{JdbcUtils, JDBCOptions, JdbcOptionsInWrite, JDBCRDD}
+import org.apache.spark.sql.execution.datasources.jdbc.{JdbcUtils, JdbcOptionsInWrite, JDBCRDD}
 import org.apache.spark.sql.jdbc.{JdbcType, JdbcDialect, JdbcDialects}
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
@@ -80,7 +80,8 @@ object SpliceJDBCUtil {
       rs => Seq(
         rs.getString("COLUMN_NAME"),
         rs.getString("TYPE_NAME"),
-        rs.getString("COLUMN_SIZE")
+        rs.getString("COLUMN_SIZE"),
+        rs.getString("DECIMAL_DIGITS")
       )
     )
 
