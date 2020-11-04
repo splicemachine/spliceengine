@@ -32,7 +32,6 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaRDDLike;
 import org.apache.spark.api.java.function.Function;
-import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Column;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -42,10 +41,7 @@ import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConversions;
 
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.apache.spark.sql.functions.*;
@@ -224,19 +220,37 @@ public class SparkUtils {
         SpliceBaseOperation operation = (SpliceBaseOperation) serverSideResultSet;
         DataSetProcessor dsp = EngineDriver.driver().processorFactory().distributedProcessor();
         DataSet<ExecRow> spliceDataSet = operation.getResultDataSet(dsp);
+        
+        final ResultColumnDescriptor[] columns = serverSideResultSet.getResultDescription().getColumnInfo();
+        // Generate the schema based on the ResultColumnDescriptors
+        List<StructField> fields = new ArrayList<>();
+        for (ResultColumnDescriptor column : columns) {
+            fields.add(column.getStructField());
+        }
+        if( fields.stream().map( f -> f.name() ).distinct().count() != fields.size() ) {  // has duplicate names
+            fields = new ArrayList<>();
+            Set<String> used = new HashSet<>();
+            for (ResultColumnDescriptor column : columns) {
+                int i = 0;
+                String fullname = column.getSourceSchemaName()+"."+column.getSourceTableName()+"."+column.getName();
+                String name = fullname;
+                while( used.contains(name) ) {
+                    i += 1;
+                    name = fullname+"_"+i;
+                }
+                used.add(name);
+                StructField sf = column.getStructField();
+                fields.add(new StructField(name, sf.dataType(), sf.nullable(), sf.metadata()));
+            }
+        }
+        
+        StructType schema = DataTypes.createStructType(fields);
+        
         if(spliceDataSet instanceof SparkDataSet) {
             JavaRDD<ExecRow> rdd = ((SparkDataSet)spliceDataSet).rdd;
-            final ResultColumnDescriptor[] columns = serverSideResultSet.getResultDescription().getColumnInfo();
-
-            // Generate the schema based on the ResultColumnDescriptors
-            List<StructField> fields = new ArrayList<>();
-            for (ResultColumnDescriptor column : columns) {
-                fields.add(column.getStructField());
-            }
-            StructType schema = DataTypes.createStructType(fields);
             return SpliceSpark.getSession().createDataFrame(rdd.map(new LocatedRowToRowFunction()), schema);
         } else {
-            return ((NativeSparkDataSet) spliceDataSet).dataset;
+            return ((NativeSparkDataSet) spliceDataSet).dataset.toDF( schema.fieldNames() );
         }
     }
 
