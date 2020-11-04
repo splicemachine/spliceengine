@@ -38,7 +38,6 @@ import java.io.ObjectOutput;
  *
  * Created by jleach on 5/5/15.
  */
-@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
 public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateDataSetWriterBuilder{
     protected long heapConglom;
     protected long tempConglomID;
@@ -238,18 +237,5 @@ public abstract class UpdateTableWriterBuilder implements Externalizable,UpdateD
     @Override
     public byte[] getToken() {
         return token;
-    }
-
-
-    @Override
-    public DataSetWriterBuilder loadReplaceMode(boolean loadReplaceMode) {
-        if( loadReplaceMode )
-            throw new RuntimeException("Update can't be used with loadReplaceMode");
-        return this;
-    }
-
-    @Override
-    public boolean getLoadReplaceMode() {
-        return false;
     }
 }

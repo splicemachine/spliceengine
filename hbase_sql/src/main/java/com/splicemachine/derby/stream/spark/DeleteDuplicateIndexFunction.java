@@ -49,7 +49,7 @@ public class DeleteDuplicateIndexFunction<Op extends SpliceOperation> extends Sp
     public Iterator<Tuple2<String, Tuple2<byte[], ExecRow>>> call(Iterator<Tuple2<String, Tuple2<List<Tuple2<byte[], ExecRow>>, ExecRow>>> iterator) throws Exception {
         if (fix) {
             WriteCoordinator writeCoordinator = PipelineDriver.driver().writeCoordinator();
-            WriteConfiguration writeConfiguration = writeCoordinator.newDefaultWriteConfiguration();
+            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
             Partition indexPartition = SIDriver.driver().getTableFactory().getTable(Long.toString(conglomerate));
             writeBuffer = writeCoordinator.writeBuffer(indexPartition, txn, null, writeConfiguration);
         }
