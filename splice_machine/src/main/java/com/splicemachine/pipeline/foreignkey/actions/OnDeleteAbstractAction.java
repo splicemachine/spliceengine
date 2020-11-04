@@ -212,6 +212,7 @@ public abstract class OnDeleteAbstractAction extends Action {
                     indexRow = isVisible(next, filters.getSecond());
                 }
                 if (indexRow != null) {
+                    // this is referenced in an index, so throw error
                     writeResult = handleExistingRow(indexRow, mutation);
                 }
             }

@@ -4554,15 +4554,9 @@ deleteBody() throws StandardException :
           * bind time, in keeping with the design decision that the parser's
            * output should look like the language.
          */
-        boolean isBulkDelete = false;
-        if (tableProperties != null) {
-            String dir = (String)tableProperties.remove(DeleteNode.BULK_DELETE_DIRECTORY);
-            if (dir != null) {
-                deleteProperties = new FormatableProperties();
-                deleteProperties.setProperty(DeleteNode.BULK_DELETE_DIRECTORY, dir);
-                isBulkDelete = true;
-            }
-        }
+        deleteProperties = DeleteNode.getDeleteProperties(tableProperties);
+        boolean isBulkDelete = DeleteNode.isBulkDelete(deleteProperties);
+
         if (fromTable == null)
             fromTable = (FromTable) nodeFactory.getNode(
                                         C_NodeTypes.FROM_BASE_TABLE,
