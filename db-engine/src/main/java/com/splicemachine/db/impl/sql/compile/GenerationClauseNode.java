@@ -129,6 +129,7 @@ public class GenerationClauseNode extends ValueNode
         throw StandardException.newException( SQLState.HEAP_UNIMPLEMENTED_FEATURE );
     }
 
+    @Override
     protected boolean isEquivalent(ValueNode other)
         throws StandardException
     {
@@ -137,6 +138,17 @@ public class GenerationClauseNode extends ValueNode
         GenerationClauseNode    that = (GenerationClauseNode) other;
 
         return this._generationExpression.isEquivalent( that._generationExpression );
+    }
+
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode other)
+            throws StandardException
+    {
+        if ( !( other instanceof GenerationClauseNode) ) { return false; }
+
+        GenerationClauseNode    that = (GenerationClauseNode) other;
+
+        return this._generationExpression.isSemanticallyEquivalent( that._generationExpression );
     }
     
     /**

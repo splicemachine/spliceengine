@@ -34,6 +34,24 @@ public class ValueTupleNode extends ValueNode {
     }
 
     @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        ValueTupleNode other = (ValueTupleNode) o;
+        if (other.tuple.size() != tuple.size()) {
+            return false;
+        }
+
+        for (int i = 0; i < tuple.size(); i++) {
+            if (!other.tuple.get(i).isSemanticallyEquivalent(tuple.get(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
     public List<? extends QueryTreeNode> getChildren() {
         return tuple;
     }

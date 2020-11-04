@@ -46,7 +46,6 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -731,6 +730,19 @@ public class ConditionalNode extends ValueNode
             ConditionalNode other = (ConditionalNode)o;
             return testCondition.isEquivalent(other.testCondition) &&
                     thenElseList.isEquivalent(other.thenElseList);
+        }
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (isSameNodeType(o)) {
+            ConditionalNode other = (ConditionalNode)o;
+            return testCondition.isSemanticallyEquivalent(other.testCondition) &&
+                    thenElseList.isSemanticallyEquivalent(other.thenElseList);
         }
         return false;
     }

@@ -1952,6 +1952,17 @@ public class ResultColumn extends ValueNode
         return false;
     }
 
+    public boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (o.getNodeType() == getNodeType()) {
+            ResultColumn other = (ResultColumn)o;
+            if (expression != null) {
+                return expression.isSemanticallyEquivalent(other.expression);
+            }
+        }
+        return false;
+    }
+
     public boolean equals(Object o){
         return this == o;
     }
