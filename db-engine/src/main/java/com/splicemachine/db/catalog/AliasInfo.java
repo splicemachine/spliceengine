@@ -92,4 +92,11 @@ public interface AliasInfo
 	 */
 	boolean isTableFunction();
 
+	default String getSynonymTable() {
+		return null;
+	};
+
+	default String getSynonymSchema() {
+		return null;
+	};
 }

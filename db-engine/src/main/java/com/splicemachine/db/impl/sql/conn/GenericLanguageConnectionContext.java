@@ -61,6 +61,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
+import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
@@ -386,6 +387,16 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         this.rdbIntTkn=rdbIntTkn;
         this.commentStripper = lcf.newCommentStripper();
         this.defaultSchema = defaultSchema;
+
+        if (defaultSchema != null) {
+            if (defaultSchema.charAt(0) == '"') {
+                // quoted schema name
+                this.defaultSchema = IdUtil.parseSQLIdentifier(defaultSchema);
+            } else {
+                // regular schema name, need to be converted to upper case
+                this.defaultSchema = StringUtil.SQLToUpperCase(this.defaultSchema);
+            }
+        }
 
         /* Find out whether or not to log info on executing statements to error log
          */

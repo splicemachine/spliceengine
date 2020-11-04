@@ -52,6 +52,8 @@ import org.apache.spark.sql.types.StructField;
 import java.util.Collections;
 import java.util.List;
 
+import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getDB2CompatibilityMode;
+
 /**
  * A ResultColumn represents a result column in a SELECT, INSERT, or UPDATE
  * statement.  In a SELECT statement, the result column just represents an
@@ -1822,7 +1824,8 @@ public class ResultColumn extends ValueNode
                 String sourceValue = constantValue.getString();
                 int sourceWidth = sourceValue.length();
                 int posn;
-
+                boolean DB2CompatibilityMode =
+                        getCompilerContext().getVarcharDB2CompatibilityMode();
                 /*
                 ** If the input is already the right length, no normalization is
                 ** necessary - just return the source.
@@ -1831,8 +1834,12 @@ public class ResultColumn extends ValueNode
 
                 if (sourceWidth <= maxWidth)
                 {
-                    if(formatId == StoredFormatIds.VARCHAR_TYPE_ID)
-                        return dvf.getVarcharDataValue(sourceValue);
+                    if(formatId == StoredFormatIds.VARCHAR_TYPE_ID) {
+                        if (DB2CompatibilityMode)
+                            return dvf.getVarcharDB2CompatibleDataValue(sourceValue);
+                        else
+                            return dvf.getVarcharDataValue(sourceValue);
+                    }
                 }
 
                 /*
@@ -1852,8 +1859,12 @@ public class ResultColumn extends ValueNode
                     }
                 }
 
-                if (formatId == StoredFormatIds.VARCHAR_TYPE_ID)
-                    return dvf.getVarcharDataValue(sourceValue.substring(0, maxWidth));
+                if (formatId == StoredFormatIds.VARCHAR_TYPE_ID) {
+                    if (DB2CompatibilityMode)
+                        return dvf.getVarcharDB2CompatibleDataValue(sourceValue.substring(0, maxWidth));
+                    else
+                        return dvf.getVarcharDataValue(sourceValue.substring(0, maxWidth));
+                }
 
             case StoredFormatIds.LONGVARCHAR_TYPE_ID:
                 //No need to check widths here (unlike varchar), since no max width

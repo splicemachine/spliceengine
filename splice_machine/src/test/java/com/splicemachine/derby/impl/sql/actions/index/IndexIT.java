@@ -1524,7 +1524,7 @@ public class IndexIT extends SpliceUnitTest{
         // top node of an index expression is a method call
         String query = format("select c from %s --splice-properties index=%s_IDX\n where ln(i) > 3.2", tableName, tableName);
 
-        String[] expectedOps = new String[]{
+        String[] expectedOps = new String[] {
                 "IndexLookup",
                 "IndexScan",
                 " > 3.2"            // should be on the same line as IndexScan

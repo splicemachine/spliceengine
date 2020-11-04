@@ -27,9 +27,6 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 
 /**
  * Created by msirek on Nov. 23, 2019.
@@ -100,32 +97,6 @@ public class SetOperation extends NoRowsOperation {
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
-    }
-
-    /**
-      @see java.io.Externalizable#readExternal
-      @exception IOException thrown on error
-      @exception ClassNotFoundException	thrown on error
-     */
-    public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
-            // Read in the serialized class version, but don't use it (for now).
-            in.readInt();
-            super.readExternal(in);
-            getColumnDVDsMethodNames = readNullableString(in);
-            getNewDVDsMethodName = readNullableString(in);
-            setupGetColumnDVDsMethodNames();
-    }
-
-    /**
-
-      @exception IOException thrown on error
-     */
-    public void writeExternal( ObjectOutput out ) throws IOException {
-            out.writeInt(classVersion);
-            super.writeExternal(out);
-            writeNullableString(getColumnDVDsMethodNames, out);
-            writeNullableString(getNewDVDsMethodName, out);
-
     }
 
     @Override

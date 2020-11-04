@@ -310,18 +310,28 @@ public class VirtualColumnNode extends ValueNode
     }
 
     @Override
+<<<<<<< HEAD
     protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o)) {
             VirtualColumnNode other = (VirtualColumnNode) o;
+=======
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (isSameNodeType(o)) {
+            VirtualColumnNode other = (VirtualColumnNode)o;
+>>>>>>> master
             return sourceColumn.isSemanticallyEquivalent(other.sourceColumn);
         }
         return false;
     }
 
+<<<<<<< HEAD
     public int hashCode() {
         return 31 * getBaseHashCode() + sourceColumn.hashCode();
     }
 
+=======
+>>>>>>> master
 
     public List<? extends QueryTreeNode> getChildren() {
         return Collections.singletonList(sourceColumn);
