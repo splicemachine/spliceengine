@@ -91,7 +91,7 @@ public class ExternalTablePartitionIT extends SpliceUnitTest {
 
 
         methodWatcher.executeUpdate(String.format("insert into %1$s_number_files " +
-                "select * from %1$s_number_files_orig --splice-properties useSpark=true \n" +
+                "select * from %1$s_number_files_orig --splice-properties useSpark=true %n" +
                 "union all select * from %1$s_number_files_orig " +
                 "union all select * from %1$s_number_files_orig " +
                 "union all select * from %1$s_number_files_orig " +
