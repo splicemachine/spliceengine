@@ -179,23 +179,22 @@ public interface ResultSetFactory {
         throws StandardException;
 
     /**
-     * A delete result set simply reports that it completed, and
-     * the number of rows deleted.  It does not return rows.
-     * The delete has been completed once the
-     * delete result set is available.
-     *
-     * @param source the result set from which to take rows to
-     *               be deleted from the target table. This result set must
-     *               contain one column which provides RowLocations that are
-     *               valid in the target table.
-     * @param noTriggerRI if set to 1, DELETE will not fire triggers or check foreign key constraints
-     * @return the delete operation as a result set.
-     * @throws StandardException thrown when unable to perform the delete
+        A delete result set simply reports that it completed, and
+        the number of rows deleted.  It does not return rows.
+        The delete has been completed once the
+        delete result set is available.
+
+        @param source the result set from which to take rows to
+            be deleted from the target table. This result set must
+            contain one column which provides RowLocations that are
+            valid in the target table.
+        @return the delete operation as a result set.
+        @exception StandardException thrown when unable to perform the delete
      */
     ResultSet getDeleteResultSet(NoPutResultSet source,double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan, String bulkDeleteDirectory, boolean noTriggerRI, int colMapRefItem)
-            throws StandardException;
+                                 String explainPlan, String bulkDeleteDirectory, int colMapRefItem)
+                            throws StandardException;
 
     /**
         A delete Cascade result set simply reports that it completed, and

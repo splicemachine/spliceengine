@@ -172,7 +172,7 @@ public class ControlTableChecker implements TableChecker {
     private void fixDuplicateIndexes(ArrayListMultimap<String, Tuple2<byte[], ExecRow>> result) throws StandardException {
         try {
             WriteCoordinator writeCoordinator = PipelineDriver.driver().writeCoordinator();
-            WriteConfiguration writeConfiguration = writeCoordinator.newDefaultWriteConfiguration();
+            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
             Partition indexPartition = SIDriver.driver().getTableFactory().getTable(Long.toString(conglomerate));
             RecordingCallBuffer<KVPair> writeBuffer = writeCoordinator.writeBuffer(indexPartition, txn, null, writeConfiguration);
 
@@ -290,7 +290,7 @@ public class ControlTableChecker implements TableChecker {
     private void fixInvalidIndexes(ArrayListMultimap<String, Tuple2<byte[], ExecRow>> result) throws StandardException {
         try {
             WriteCoordinator writeCoordinator = PipelineDriver.driver().writeCoordinator();
-            WriteConfiguration writeConfiguration = writeCoordinator.newDefaultWriteConfiguration();
+            WriteConfiguration writeConfiguration = writeCoordinator.defaultWriteConfiguration();
             Partition indexPartition = SIDriver.driver().getTableFactory().getTable(Long.toString(conglomerate));
             RecordingCallBuffer<KVPair> writeBuffer = writeCoordinator.writeBuffer(indexPartition, txn, null, writeConfiguration);
 

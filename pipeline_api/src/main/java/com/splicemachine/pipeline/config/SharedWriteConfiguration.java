@@ -44,11 +44,10 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
     private final int maxRetries;
     private final long pause;
 
-    public SharedWriteConfiguration(int maxRetries,long pause,PipelineExceptionFactory pef, boolean loadReplaceMode){
+    public SharedWriteConfiguration(int maxRetries,long pause,PipelineExceptionFactory pef){
         super(pef);
         this.maxRetries=maxRetries;
         this.pause=pause;
-        this.loadReplaceMode = loadReplaceMode;
     }
 
     @Override
@@ -135,5 +134,6 @@ public class SharedWriteConfiguration extends BaseWriteConfiguration {
     public String toString() {
         return "SharedWriteConfiguration{}";
     }
+
 }
 

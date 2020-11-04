@@ -428,8 +428,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                 writerBuilder = set.insertData(operationContext);
             }
 
-            boolean loadReplaceMode = insertMode.equals(InsertNode.InsertMode.LOAD_REPLACE);
-
             DataSetWriter writer = writerBuilder
                     .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
                     .execRowTypeFormatIds(execRowTypeFormatIds)
@@ -445,7 +443,6 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement{
                     .txn(txn)
                     .token(SpliceClient.token)
                     .execRowDefinition(getExecRowDefinition())
-                    .loadReplaceMode(loadReplaceMode)
                     .build();
             return writer.write();
 

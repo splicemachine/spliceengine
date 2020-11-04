@@ -386,18 +386,18 @@ public class OrderByIT extends SpliceUnitTest {
     public void testAliasInOrderComplex() throws Exception {
         String sqlText = "select sum(a1) as ALIAS from t2 order by -ALIAS";
         String expected = "ALIAS |\n" +
-                         "--------\n" +
-                         "  15   |" ;
+                "--------\n" +
+                "  15   |" ;
         sqlExpectToString( methodWatcher, sqlText, expected, false );
 
         sqlText = "select sqrt(a1*a1)*2 as ALIAS from t2 order by -2*ALIAS+a1";
         expected = "ALIAS |\n" +
-                  "--------\n" +
-                  " 10.0  |\n" +
-                  "  8.0  |\n" +
-                  "  6.0  |\n" +
-                  "  4.0  |\n" +
-                  "  2.0  |";
+                "--------\n" +
+                " 10.0  |\n" +
+                "  8.0  |\n" +
+                "  6.0  |\n" +
+                "  4.0  |\n" +
+                "  2.0  |";
         sqlExpectToString( methodWatcher, sqlText, expected, false );
     }
 

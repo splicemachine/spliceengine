@@ -34,7 +34,6 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
 
     protected final PipelineExceptionFactory exceptionFactory;
     protected RecordingContext recordingContext;
-    protected boolean loadReplaceMode = false;
 
     public BaseWriteConfiguration(PipelineExceptionFactory exceptionFactory){
         this.exceptionFactory=exceptionFactory;
@@ -215,15 +214,5 @@ public abstract class BaseWriteConfiguration implements WriteConfiguration {
     @Override
     public boolean rollForward() {
         return false;
-    }
-
-    @Override
-    public boolean loadReplaceMode() {
-        return loadReplaceMode;
-    }
-
-    @Override
-    public void setLoadReplaceMode(boolean loadReplaceMode) {
-        this.loadReplaceMode = loadReplaceMode;
     }
 }

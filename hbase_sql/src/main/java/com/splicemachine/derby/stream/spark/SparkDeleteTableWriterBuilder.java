@@ -51,7 +51,7 @@ public class SparkDeleteTableWriterBuilder<K,V> extends DeleteTableWriterBuilder
             conf.set("mapreduce.output.fileoutputformat.outputdir","/tmp");
             TableWriterUtils.serializeDeleteTableWriterBuilder(conf,this);
             conf.setClass(JobContext.OUTPUT_FORMAT_CLASS_ATTR,SMOutputFormat.class,SMOutputFormat.class);
-            return new DeleteDataSetWriter<>(rdd,operationContext,conf,updateCounts, loadReplaceMode);
+            return new DeleteDataSetWriter<>(rdd,operationContext,conf,updateCounts);
         }catch(Exception e){
             throw new RuntimeException(e);
         }
