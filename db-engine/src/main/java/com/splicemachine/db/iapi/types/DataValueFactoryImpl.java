@@ -431,12 +431,25 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 return new SQLVarchar(value);
         }
 
-        public StringDataValue getVarcharDataValue(String value,
-                                                                                                StringDataValue previous)
-                                                                                                        throws StandardException
+        public StringDataValue getVarcharDB2CompatibleDataValue(String value)
+        {
+                return new SQLVarcharDB2Compatible(value);
+        }
+
+        public StringDataValue getVarcharDataValue(String value, StringDataValue previous)
+                               throws StandardException
         {
                 if (previous == null)
                         return new SQLVarchar(value);
+                previous.setValue(value);
+                return previous;
+        }
+
+        public StringDataValue getVarcharDB2CompatibleDataValue(String value, StringDataValue previous)
+                               throws StandardException
+        {
+                if (previous == null)
+                        return new SQLVarcharDB2Compatible(value);
                 previous.setValue(value);
                 return previous;
         }
@@ -454,6 +467,21 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 
             if (previous == null)
                 return new CollatorSQLVarchar(value,
+                        getCharacterCollator(collationType));
+
+            previous.setValue(value);
+            return previous;
+        }
+
+        public StringDataValue getVarcharDB2CompatibleDataValue(String value,
+                StringDataValue previous, int collationType)
+            throws StandardException
+        {
+            if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
+                return getVarcharDB2CompatibleDataValue(value, previous);
+
+            if (previous == null)
+                return new CollatorSQLVarcharDB2Compatible(value,
                         getCharacterCollator(collationType));
 
             previous.setValue(value);
@@ -892,6 +920,53 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             return ret;
         }
 
+        public StringDataValue getNullVarcharDB2Compatible(StringDataValue dataValue)
+        {
+                if (dataValue == null)
+                {
+                        return getVarcharDB2CompatibleDataValue((String) null);
+                }
+                else
+                {
+                        dataValue.setToNull();
+                        return dataValue;
+                }
+        }
+
+        public StringDataValue getNullVarcharDB2Compatible(StringDataValue previous,
+                int collationType)
+        throws StandardException
+        {
+            if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
+                return getNullChar(previous);
+
+            if (previous == null)
+                return new CollatorSQLVarcharDB2Compatible(getCharacterCollator(collationType));
+
+            previous.setToNull();
+            return previous;
+        }
+
+        public StringDataValue getNullVarcharDB2Compatible(StringDataValue previous, int collationType, int maxSize)
+        throws StandardException
+        {
+            if (previous != null) {
+                previous.setToNull();
+                return previous;
+            }
+
+            SQLVarcharDB2Compatible ret = null;
+
+            if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC) {
+                    ret = (SQLVarcharDB2Compatible) getVarcharDB2CompatibleDataValue((String) null);
+            } else {
+                    ret = new CollatorSQLVarcharDB2Compatible(getCharacterCollator(collationType));
+            }
+            ret.setSqlCharSize(maxSize);
+
+            return ret;
+        }
+
         public StringDataValue          getNullLongvarchar(StringDataValue dataValue)
         {
                 if (dataValue == null)
@@ -1237,6 +1312,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             case StoredFormatIds.SQL_TIMESTAMP_ID: return new SQLTimestamp();
             case StoredFormatIds.SQL_TINYINT_ID: return new SQLTinyint();
             case StoredFormatIds.SQL_VARCHAR_ID: return new SQLVarchar();
+            case StoredFormatIds.SQL_VARCHAR_DB2_COMPATIBLE_ID: return new SQLVarcharDB2Compatible();
             case StoredFormatIds.SQL_LONGVARCHAR_ID: return new SQLLongvarchar();
             case StoredFormatIds.SQL_VARBIT_ID: return new SQLVarbit();
             case StoredFormatIds.SQL_LONGVARBIT_ID: return new SQLLongVarbit();

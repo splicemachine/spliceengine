@@ -151,7 +151,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         dsp.decrementOpDepth();
         DataSet dataSetWithNativeSparkAggregation = null;
 
-        if (nativeSparkForced() && (isRollup || aggregates.length > 0))
+        if (nativeSparkForced(dsp) && (isRollup || aggregates.length > 0))
             set = set.upgradeToSparkNativeDataSet(operationContext);
 
         operationContext.pushScope();
@@ -166,7 +166,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         // If the aggregation can be applied using native Spark UnsafeRow, then do so
         // and return immediately.  Otherwise, use traditional Splice lower-level
         // functional APIs.
-        if (nativeSparkEnabled())
+        if (nativeSparkEnabled(dsp))
             dataSetWithNativeSparkAggregation =
                 set.applyNativeSparkAggregation(extendedGroupBy, aggregates,
                                                 isRollup, operationContext);

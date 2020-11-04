@@ -1036,4 +1036,11 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
         return rdd.flatMap(new KafkaReadFunction(context, topicName, bootstrapServers));
     }
+
+    @Override
+    public boolean isSparkDB2CompatibilityMode() {
+        if (broadcastedActivation == null)
+            return false;
+        return broadcastedActivation.isDB2VarcharCompatibilityMode();
+    }
 }

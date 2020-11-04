@@ -1464,6 +1464,7 @@ public interface Property {
      * Default schema for this connection
      */
     String CONNECTION_SCHEMA = "schema";
+    String CONNECTION_CURRENT_SCHEMA = "currentSchema";
 
     /**
      * True force Spark execution for this session; false forces Control execution for this connection
@@ -1513,6 +1514,8 @@ public interface Property {
     String SPLICE_DB2_ERROR_COMPATIBLE = "splice.db2.error.compatible";
 
     String SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE = "splice.db2.import.empty_string_compatible";
+
+    String SPLICE_DB2_VARCHAR_COMPATIBLE = "splice.db2.varchar.compatible";
 
     String SPLICE_NEW_MERGE_JOIN =
             "splice.execution.newMergeJoin";

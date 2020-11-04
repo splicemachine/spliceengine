@@ -31,23 +31,19 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
-
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
-
 import com.splicemachine.db.iapi.store.access.ScanController;
-
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
-
 import com.splicemachine.db.iapi.types.Orderable;
+import com.splicemachine.db.iapi.types.TypeId;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 
@@ -56,7 +52,7 @@ import java.sql.Types;
  * IS NULL or IS NOT NULL comparison operator
  *
  */
-
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public final class IsNullNode extends UnaryComparisonOperatorNode  {
 
 	private DataValueDescriptor nullValue;
@@ -133,13 +129,13 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
 	/* RelationalOperator interface */
 
 	@Override
-	public boolean usefulStartKey(Optimizable optTable) {
+	public boolean usefulStartKey(Optimizable optTable, IndexDescriptor cd) {
 		// IS NULL is start/stop key, IS NOT NULL is not
 		return (isNullNode());
 	}
 
 	@Override
-	public boolean usefulStopKey(Optimizable optTable) {
+	public boolean usefulStopKey(Optimizable optTable, IndexDescriptor cd) {
 		// IS NULL is start/stop key, IS NOT NULL is not
 		return (isNullNode());
 	}
@@ -162,7 +158,7 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
 	}
 
 	@Override
-	public void generateNegate(MethodBuilder mb, Optimizable optTable) {
+	public void generateNegate(MethodBuilder mb, Optimizable optTable, boolean forIndexExpression) {
 		mb.push(isNotNullNode());
 	}
 
