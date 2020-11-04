@@ -332,7 +332,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     int bufferSize = config.getOlapCompactionResolutionBufferSize();
                     boolean blocking = config.getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                            driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
+                            driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
+                            blocking ? driver.getExecutorService() : driver.getRejectingExecutorService(),
+                            driver.getIgnoreTxnSupplier());
 
                     SICompactionScanner siScanner = new SICompactionScanner(
                             state, scanner, buildPurgeConfig(request, transactionLowWatermark), resolutionShare, bufferSize, context);
