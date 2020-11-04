@@ -24,6 +24,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.output.DataSetWriter;
 import com.splicemachine.si.api.txn.TxnView;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import scala.util.Either;
@@ -36,18 +37,22 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 1/25/16
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class DeleteDataSetWriter<K,V> implements DataSetWriter{
     private final JavaPairRDD<K,Either<Exception, V>> rdd;
     private final OperationContext operationContext;
     private final Configuration conf;
     private final int[] updateCounts;
     private TxnView txnView;
+    private boolean loadReplaceMode;
 
-    public DeleteDataSetWriter(JavaPairRDD<K, Either<Exception, V>> rdd, OperationContext operationContext, Configuration conf, int[] updateCounts){
+    public DeleteDataSetWriter(JavaPairRDD<K, Either<Exception, V>> rdd, OperationContext operationContext,
+                               Configuration conf, int[] updateCounts, boolean loadReplaceMode){
         this.rdd=rdd;
         this.operationContext=operationContext;
         this.conf=conf;
         this.updateCounts=updateCounts;
+        this.loadReplaceMode = loadReplaceMode;
     }
 
     @Override
@@ -57,7 +62,8 @@ public class DeleteDataSetWriter<K,V> implements DataSetWriter{
             DMLWriteOperation writeOp = (DMLWriteOperation)operationContext.getOperation();
             if (writeOp != null)
                 writeOp.finalizeNestedTransaction();
-            operationContext.getOperation().fireAfterStatementTriggers();
+            if( !loadReplaceMode )
+                operationContext.getOperation().fireAfterStatementTriggers();
         }
         if (updateCounts != null) {
             int total = 0;
