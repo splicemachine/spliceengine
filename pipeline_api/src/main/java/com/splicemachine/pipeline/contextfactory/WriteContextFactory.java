@@ -16,6 +16,7 @@ package com.splicemachine.pipeline.contextfactory;
 
 import com.splicemachine.access.api.ServerControl;
 import com.splicemachine.ddl.DDLMessage;
+import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.SharedCallBufferFactory;
 import com.splicemachine.si.api.txn.TxnView;
@@ -28,18 +29,10 @@ import java.io.IOException;
 public interface WriteContextFactory<T> {
 
     WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
-                        TxnView txn,
-                        T key,
-                        ServerControl env) throws IOException, InterruptedException;
-
-    WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
                         TxnView txn, byte[] token,
                         T key,
                         int expectedWrites,
-                        boolean skipIndexWrites,
-                        boolean skipConflictDetection,
-                        boolean skipWAL,
-                        boolean rollforward,
+                        BulkWrite bulkWrite,
                         ServerControl env) throws IOException, InterruptedException;
 
     /**

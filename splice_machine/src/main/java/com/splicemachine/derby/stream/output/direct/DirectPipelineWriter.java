@@ -40,6 +40,7 @@ import java.util.Iterator;
  * @author Scott Fines
  *         Date: 1/13/16
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"})
 public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     private final long destConglomerate;
     private final byte[] token;
@@ -62,7 +63,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     @Override
     public void open() throws StandardException{
         WriteCoordinator wc = PipelineDriver.driver().writeCoordinator();
-        WriteConfiguration writeConfiguration = new DirectWriteConfiguration(wc.defaultWriteConfiguration());
+        WriteConfiguration writeConfiguration = new DirectWriteConfiguration(wc.newDefaultWriteConfiguration());
         try{
             this.writeBuffer = wc.writeBuffer(
                     Bytes.toBytes(Long.toString(destConglomerate)),
@@ -76,7 +77,7 @@ public class DirectPipelineWriter implements TableWriter<KVPair>,AutoCloseable{
     }
 
     @Override
-    public void open(TriggerHandler triggerHandler,SpliceOperation dmlWriteOperation) throws StandardException{
+    public void open(TriggerHandler triggerHandler, SpliceOperation dmlWriteOperation, boolean loadReplaceMode) throws StandardException{
         open();
     }
 
