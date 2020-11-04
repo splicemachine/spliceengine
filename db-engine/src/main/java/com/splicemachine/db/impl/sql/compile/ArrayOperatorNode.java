@@ -188,18 +188,6 @@ public class ArrayOperatorNode extends ValueNode {
     }
 
     /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
-        if (!isSameNodeType(o)) {
-            return false;
-        }
-        ArrayOperatorNode other = (ArrayOperatorNode) o;
-        return operand.isSemanticallyEquivalent(other.operand);
-    }
-
-    /**
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
