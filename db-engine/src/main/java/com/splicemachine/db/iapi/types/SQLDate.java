@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -309,6 +310,7 @@ public final class SQLDate extends DataType
 	 *
 	 * @exception StandardException thrown on failure
 	 */
+	@SuppressFBWarnings(value="RV_NEGATING_RESULT_OF_COMPARETO", justification="intended")
 	public int compare(DataValueDescriptor other)
 		throws StandardException
 	{
@@ -1014,6 +1016,8 @@ public final class SQLDate extends DataType
             // leap years are every 4 years except for century years not divisble by 400.
             maxDay = ((y % 4) == 0 && ((y % 100) != 0 || (y % 400) == 0)) ? 29 : 28;
             break;
+        default:
+        	break;
         }
         if( y < 1 || y > 9999
             || m < 1 || m > 12
