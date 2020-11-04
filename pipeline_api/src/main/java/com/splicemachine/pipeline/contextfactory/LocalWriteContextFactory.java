@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.constraint.NoOpConstraintChecker;
 import com.splicemachine.si.impl.driver.SIDriver;
 import org.spark_project.guava.base.Function;
@@ -109,31 +110,18 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
 
     @Override
     public WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
-                               TxnView txn, TransactionalRegion rce,
-                               ServerControl env) throws IOException, InterruptedException {
-        CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
-            @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
-        };
-        PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,pf, txn, null, rce, false, false, false, false, env,pipelineExceptionFactory);
-        BatchConstraintChecker checker = buildConstraintChecker(txn, rce);
-        context.addLast(new PartitionWriteHandler(rce, tableWriteLatch, checker));
-        addWriteHandlerFactories(1000, context);
-        return context;
-    }
-
-    @Override
-    public WriteContext create(SharedCallBufferFactory indexSharedCallBuffer,
                                TxnView txn, byte[] token, TransactionalRegion region, int expectedWrites,
-                               boolean skipIndexWrites, boolean skipConflictDetection, boolean skipWAL, boolean rollforward,
-                               ServerControl env) throws IOException, InterruptedException {
+                               BulkWrite bulkWrite, ServerControl env) throws IOException, InterruptedException {
         CachedPartitionFactory<TableInfo> pf = new CachedPartitionFactory<TableInfo>(basePartitionFactory){
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer,
-                pf,txn, token, region, skipIndexWrites,skipConflictDetection, skipWAL, rollforward, env,pipelineExceptionFactory);
+                pf,txn, token, region, bulkWrite.skipIndexWrite(), bulkWrite.skipConflictDetection(),
+                bulkWrite.skipWAL(), bulkWrite.isRollforward(), env,pipelineExceptionFactory);
         BatchConstraintChecker checker = buildConstraintChecker(txn, region);
         context.addLast(new PartitionWriteHandler(region, tableWriteLatch, checker));
-        addWriteHandlerFactories(expectedWrites, context);
+        boolean skipForeignKeyChecks = !bulkWrite.isLoadReplaceMode();
+        addWriteHandlerFactories(expectedWrites, context, skipForeignKeyChecks);
         return context;
     }
 
@@ -167,7 +155,7 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
             @Override protected String infoAsString(TableInfo tableName){ return tableInfoParseFunction.apply(tableName); }
         };
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, pf,txn, null, region, false, false, false, false, env,pipelineExceptionFactory);
-        addWriteHandlerFactories(expectedWrites, context);
+        addWriteHandlerFactories(expectedWrites, context, true);
         return context;
     }
 
@@ -216,11 +204,19 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
         }
     }
 
-    private void addWriteHandlerFactories(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
+    /**
+     * addWriteHandlerFactories
+     * @param foreignKeyChecks if set to false, we don't check referential integrity (foreign key checks)
+     *                         this is used e.g. with INSERT ... insertMode=LOAD_REPLACE or DELETE ... noTriggerRI=1
+     */
+    private void addWriteHandlerFactories(int expectedWrites, PipelineWriteContext context,
+                                          boolean foreignKeyChecks) throws IOException, InterruptedException {
         isInitialized(context.getTxn());
         //only add constraints and indices when we are in a RUNNING state
         if (state.get() == State.RUNNING) {
             //add Constraint checks before anything else
+
+            // ?
             for (ConstraintFactory constraintFactory : constraintFactories) {
                 context.addLast(constraintFactory.create(expectedWrites));
             }
@@ -230,8 +226,10 @@ class LocalWriteContextFactory<TableInfo> implements WriteContextFactory<Transac
 
             ddlFactories.addFactories(context,true,expectedWrites);
 
-            // FK - child intercept (of inserts/updates)
-            fkGroup.addFactories(context,false,expectedWrites);
+            if( foreignKeyChecks ) {
+                // FK - child intercept (of inserts/updates)
+                fkGroup.addFactories(context,false,expectedWrites);
+            }
         }
     }
 

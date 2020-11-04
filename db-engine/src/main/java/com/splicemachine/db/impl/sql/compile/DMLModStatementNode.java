@@ -60,7 +60,6 @@ import java.util.Vector;
  * UPDATE or DELETE.
  *
  */
-
 @SuppressFBWarnings({"UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"})
 abstract class DMLModStatementNode extends DMLStatementNode
 {
@@ -854,7 +853,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	private void generateTriggerInfo 
+	private void generateTriggerInfo
 	(
 		GenericDescriptorList		triggerList,
 		TableDescriptor				td,
