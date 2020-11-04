@@ -336,6 +336,8 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     void reset();
 
+    void reOpen();
+
     /**
      *
      * Register a resource to be closed when the activation is closed.
@@ -375,6 +377,24 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
      * @throws StandardException
      */
     ExecIndexRow getStartPosition() throws StandardException;
+
+    /**
+     *
+     * Retrieve the stop position for this operation.
+     *
+     * @return
+     * @throws StandardException
+     */
+    ExecIndexRow getStopPosition() throws StandardException;
+
+    /**
+     *
+     * Retrieve whether the start position and stop position for this operation are the same.
+     *
+     * @return
+     * @throws StandardException
+     */
+    boolean getSameStartStopPosition();
 
     /**
      * Forcefully close operation and mark it as killed

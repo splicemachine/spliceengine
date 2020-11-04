@@ -32,8 +32,6 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
     /**
@@ -150,45 +148,6 @@ public class RowOperation extends SpliceBaseOperation{
                     skipClone = true;
             }
         }
-    }
-
-    /**
-     *
-     * Serde.
-     *
-     * @param in
-     * @throws IOException
-     * @throws ClassNotFoundException
-     */
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
-        SpliceLogUtils.trace(LOG,"readExternal");
-        super.readExternal(in);
-        canCacheRow=in.readBoolean();
-        next=in.readBoolean();
-        if(in.readBoolean())
-            rowMethodName=in.readUTF();
-        skipClone = in.readBoolean();
-    }
-
-    /**
-     *
-     * Serde.
-     *
-     * @param out
-     * @throws IOException
-     */
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        SpliceLogUtils.trace(LOG,"writeExternal");
-        super.writeExternal(out);
-        out.writeBoolean(canCacheRow);
-        out.writeBoolean(next);
-        out.writeBoolean(rowMethodName!=null);
-        if(rowMethodName!=null){
-            out.writeUTF(rowMethodName);
-        }
-        out.writeBoolean(skipClone);
     }
 
     /**

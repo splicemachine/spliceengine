@@ -19,7 +19,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1982-SNAPSHOT</version>
+        <version>3.2.0.1983-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -39,7 +39,6 @@
             <version>${hbase.version}</version>
             <scope>provided</scope>
         </dependency>
-
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>

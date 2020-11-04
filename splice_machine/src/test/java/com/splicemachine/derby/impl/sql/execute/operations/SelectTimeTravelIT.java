@@ -3,15 +3,23 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.utils.SpliceDateTimeFormatter;
+import com.splicemachine.test.HBaseTest;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 
 import static org.junit.Assert.fail;
 
+// there are some MRP tests in this suite that reach a code path which calls TxnStore.getTxnAt, this method
+// is not implemented in mem profile, that's why we limit this test suite to run only in HBase-providing profiles
+// for these tests to run properly.
+@Category(HBaseTest.class)
 public class SelectTimeTravelIT {
 
     private static final String SCHEMA = SelectTimeTravelIT.class.getSimpleName().toUpperCase();
@@ -421,6 +429,105 @@ public class SelectTimeTravelIT {
         }
         try(ResultSet rs =  watcher.executeQuery(String.format("SELECT MAX(a1) FROM %s AS OF %d", someTable, txIdA))) {
             Assert.assertTrue(rs.next()); Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    private void shouldExceedMrp(String query) {
+        try {
+            watcher.executeQuery(query);
+            Assert.fail("expected exception with the following message: time travel query is outside the minimum retention period of 2 second(s)");
+        } catch(Exception e) {
+            Assert.assertTrue(e instanceof SQLException);
+            SQLException sqlException = (SQLException)e;
+            Assert.assertEquals("42ZD7", sqlException.getSQLState());
+            Assert.assertTrue(e.getMessage().contains("time travel query is outside the minimum retention period of 2 second(s)"));
+        }
+    }
+
+    private static String MicrosecondTimestampFormat = "yyyy-MM-dd HH:mm:ss.SSSSSS";
+
+    private String serverTimestamp() throws SQLException {
+        try(ResultSet rs = watcher.executeQuery("values current_timestamp")) {
+            Assert.assertTrue(rs.next());
+            return rs.getTimestamp(1).toString();
+        }
+    }
+
+    @Test
+    public void testTimeTravelOutsideMinRetentionPeriodWorks() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        int mrp = 2; // seconds
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
+        Thread.sleep(mrp * 1000 + 300);
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable,
+                new SimpleDateFormat(MicrosecondTimestampFormat).format(new Timestamp(System.currentTimeMillis() - (mrp + 2) * 1000))));
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', null)", SCHEMA, someTable));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable,
+                new SimpleDateFormat(MicrosecondTimestampFormat).format(new Timestamp(System.currentTimeMillis() - (mrp + 200) * 1000))))) {
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testTimeTravelWithinMinRetentionPeriodWorks() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        int mrp = 2000; // seconds, large value so we don't run into sporadic test failures due to slow down in query execution .
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 1", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 2", someTable));
+        String timestamp = serverTimestamp();
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 200", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 400", someTable));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s') ORDER BY a1 ASC", someTable, timestamp))) {
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(1, rs.getInt(1));
+            Assert.assertTrue(rs.next());
+            Assert.assertEquals(2, rs.getInt(1));
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testTimeTravelWithQueryHintWorksCorrectly() throws Exception {
+        String someTable = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable));
+        int mrp = 2; // seconds
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable, mrp));
+        String initialTime = serverTimestamp();
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 3", someTable));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 4", someTable));
+        Thread.sleep(mrp * 1000 * 2); // we are already beyond MRP for upcoming SELECTs
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s')", someTable, initialTime));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true", someTable, initialTime))) {
+            Assert.assertFalse(rs.next());
+        }
+    }
+
+    @Test
+    public void testTimeTravelWithQueryHintsOnDifferentTablesWorks() throws Exception {
+        String someTable1 = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable1));
+        String someTable2 = generateTableName();
+        watcher.executeUpdate(String.format("CREATE TABLE %s(a1 INT)", someTable2));
+        int mrp = 2; // seconds
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable1, mrp));
+        watcher.execute(String.format("CALL SYSCS_UTIL.SET_MIN_RETENTION_PERIOD('%s', '%s', %d)", SCHEMA, someTable2, mrp));
+        String initialTime = serverTimestamp();
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 3", someTable1));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 4", someTable1));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 3", someTable2));
+        watcher.executeUpdate(String.format("INSERT INTO %s VALUES 4", someTable2));
+        Thread.sleep(mrp * 1000 * 2); // we are already beyond MRP for upcoming SELECT
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s'), %s AS OF TIMESTAMP('%s')", someTable1, initialTime, someTable2, initialTime));
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s'), %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true", someTable1, initialTime, someTable2, initialTime));
+        shouldExceedMrp(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true\n, %s AS OF TIMESTAMP('%s')", someTable1, initialTime, someTable2, initialTime));
+        try(ResultSet rs = watcher.executeQuery(String.format("SELECT * FROM %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true\n, %s AS OF TIMESTAMP('%s') --SPLICE-PROPERTIES unboundedTimeTravel=true",
+                someTable1, initialTime, someTable2, initialTime))) {
             Assert.assertFalse(rs.next());
         }
     }

@@ -14,6 +14,7 @@
 
 package com.splicemachine.si.impl.region;
 
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.coprocessor.TxnMessage;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.*;
@@ -40,7 +41,7 @@ public interface TxnDecoder {
 
     TxnMessage.Txn decode(RegionTxnStore txnStore,List<Cell> keyValues) throws IOException;
 
-	Put encodeForPut(TxnMessage.TxnInfo txn,byte[] rowKey) throws IOException;
+	Put encodeForPut(TxnMessage.TxnInfo txn, byte[] rowKey, Clock clock) throws IOException;
 
     TxnMessage.Txn decodeV1(RegionTxnStore txnStore,long txnId, Result result) throws IOException;
 
