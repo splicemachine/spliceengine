@@ -36,6 +36,8 @@ import scala.collection.JavaConverters;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.function.Supplier;
 
@@ -173,9 +175,11 @@ public class SparkExternalTableUtil {
         Option<StructType> scala_userSpecifiedDataTypes = Option.apply(userDefTypeStruct);
 
         if (timeZone == null) timeZone = TimeZone.getDefault();
+        DateFormat dateFormat = new SimpleDateFormat();
+        dateFormat.setTimeZone(timeZone);
         boolean caseSensitive = true;
         return SplicePartitioningUtils.parsePartitions(scala_directories, typeInference,
-                scala_basePaths, scala_userSpecifiedDataTypes, caseSensitive, timeZone);
+                scala_basePaths, scala_userSpecifiedDataTypes, caseSensitive, dateFormat, dateFormat);
     }
 
     public static Dataset<Row> castDateTypeInAvroDataSet(Dataset<Row> dataset, StructType tableSchema) {
