@@ -240,6 +240,30 @@ public final class ListValueNode extends ValueNode {
         }
         return false;
     }
+
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            ListValueNode other = (ListValueNode) o;
+
+            if (valuesList == other.valuesList)
+                return true;
+
+            if (valuesList == null || other.valuesList == null)
+                return false;
+
+            if (valuesList.size() != other.valuesList.size())
+                return false;
+
+            for (int i = 0; i < valuesList.size(); i++) {
+                if (!((ValueNode) valuesList.elementAt(i)).
+                        isSemanticallyEquivalent((ValueNode) other.valuesList.elementAt(i)))
+                    return false;
+            }
+            return true;
+        }
+        return false;
+    }
     
     /**
      * Prints the sub-nodes of this object.  See QueryTreeNode.java for

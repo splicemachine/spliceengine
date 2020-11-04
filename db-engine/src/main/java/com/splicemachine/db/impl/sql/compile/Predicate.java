@@ -83,6 +83,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     // getPredScopedForResultSet() method of this class for more.
     private boolean scoped;
 
+    private boolean matchIndexExpression;
+
     // The original list of IN list probe predicates that were combined
     // to make the current combined multicolumn IN list probe predicate.
     private PredicateList originalInListPredList;
@@ -107,6 +109,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         pushable=false;
         this.referencedSet=(JBitSet)referencedSet;
         scoped=false;
+        matchIndexExpression=false;
     }
 
 	/*
@@ -216,7 +219,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             if(cr==null)
                 continue;
 
-            if(relop.selfComparison(cr))
+            if(relop.selfComparison(cr, false))
                 continue;
 
             // If I made it thus far in the loop, we've found
@@ -618,6 +621,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         isQualifier=false;
         // indexPosition of -1 is used by rowId, so use -2 to indicate that it has been set
         indexPosition = -2;
+        matchIndexExpression = false;
     }
 
     void generateExpressionOperand(Optimizable optTable,
@@ -626,7 +630,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                                    MethodBuilder mb) throws StandardException{
         RelationalOperator relop=getRelop();
         assert relop!=null;
-        relop.generateExpressionOperand(optTable,columnPosition,acb,mb);
+        relop.generateExpressionOperand(optTable,columnPosition,matchIndexExpression,acb,mb);
     }
 
     /**
@@ -735,6 +739,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         this.stopKey=otherPred.isStopKey();
         this.isQualifier=otherPred.isQualifier();
         this.searchClauseHT=otherPred.getSearchClauseHT();
+        this.matchIndexExpression=otherPred.matchIndexExpression();
 
     }
 
@@ -1467,6 +1472,14 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     public void setOuterJoinLevel(int level) {
         outerJoinLevel = level;
+    }
+
+    public boolean matchIndexExpression() {
+        return matchIndexExpression;
+    }
+
+    public void setMatchIndexExpression(boolean matchIndexExpression) {
+        this.matchIndexExpression = matchIndexExpression;
     }
 
     public PredicateList getOriginalInListPredList() { return originalInListPredList; }

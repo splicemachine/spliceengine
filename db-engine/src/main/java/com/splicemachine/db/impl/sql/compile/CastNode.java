@@ -1101,6 +1101,19 @@ public class CastNode extends ValueNode
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            CastNode other = (CastNode)o;
+            return getTypeServices().equals(other.getTypeServices())
+                    && castOperand.isSemanticallyEquivalent(other.castOperand);
+        }
+        return false;
+    }
+
     public List<? extends QueryTreeNode> getChildren() {
         return Collections.singletonList(castOperand);
     }
