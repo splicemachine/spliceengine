@@ -854,6 +854,10 @@ public class IndexIT extends SpliceUnitTest{
 
     }
 
+    // ===============================================================================
+    // Index expression tests - create, insert, and update
+    // ===============================================================================
+
     @Test
     public void testCreateIndexAndInsertWithExpressionsOfNumericFunctions() throws Exception {
         String tableName = "TEST_IDX_NUMERIC_FN";
@@ -867,10 +871,8 @@ public class IndexIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate(format("insert into %s values (1.41421, 3.43215, 3)", tableName));
         methodWatcher.executeUpdate(format("update %s set d1 = 1.61803 where d2 = 4.54321", tableName));
-        /* currently no valid plan, enable later
         rowContainsQuery(new int[]{1,2,3},format("select d1 from %s --splice-properties index=%s_IDX\n order by d1", tableName, tableName),methodWatcher,
                 "1.41421","1.61803","2.71828");
-         */
     }
 
     @Test
@@ -888,10 +890,8 @@ public class IndexIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate(format("insert into %s values ('abc', 'xyz')", tableName));
         methodWatcher.executeUpdate(format("update %s set c1 = 'this' where c2 = 'world'", tableName));
-        /* currently no valid plan, enable later
         rowContainsQuery(new int[]{1,2,3},format("select c1 from %s --splice-properties index=%s_IDX\n order by c1", tableName, tableName),methodWatcher,
                 "abc","foo","this");
-         */
     }
 
     @Test
@@ -907,10 +907,8 @@ public class IndexIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate(format("insert into %s values (90, 0.8)", tableName));
         methodWatcher.executeUpdate(format("update %s set d1 = 70 where d2 = 0.6", tableName));
-        /* currently no valid plan, enable later
         rowContainsQuery(new int[]{1,2,3},format("select d1 from %s --splice-properties index=%s_IDX\n order by d1", tableName, tableName),methodWatcher,
                 "30","70","90");
-         */
     }
 
     @Test
@@ -932,10 +930,8 @@ public class IndexIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate(format("insert into %s values ('2017-09-10', '08:55:06', '2017-09-12 08:45:06')", tableName));
         methodWatcher.executeUpdate(format("update %s set d = '2016-05-05' where t = '12:04:30'", tableName));
-        /* currently no valid plan, enable later
         rowContainsQuery(new int[]{1,2,3},format("select d from %s --splice-properties index=%s_IDX\n order by d", tableName, tableName),methodWatcher,
                 "2014-01-28","2016-05-05","2017-09-10");
-         */
     }
 
     @Test
@@ -951,10 +947,8 @@ public class IndexIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate(format("insert into %s values ('120', 30)", tableName));
         methodWatcher.executeUpdate(format("update %s set vc = '80' where i = 10", tableName));
-        /* currently no valid plan, enable later
         rowContainsQuery(new int[]{1,2,3},format("select vc from %s --splice-properties index=%s_IDX\n order by vc", tableName, tableName),methodWatcher,
-                "80","100","120");
-         */
+                "100","120","80");
     }
 
     @Test
@@ -969,10 +963,8 @@ public class IndexIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate(format("insert into %s values ('ghi', 30)", tableName));
         methodWatcher.executeUpdate(format("update %s set vc = 'xyz' where i = 10", tableName));
-        /* currently no valid plan, enable later
         rowContainsQuery(new int[]{1,2,3},format("select vc from %s --splice-properties index=%s_IDX\n order by vc", tableName, tableName),methodWatcher,
                 "def","ghi","xyz");
-         */
     }
 
     @Test
@@ -985,10 +977,8 @@ public class IndexIT extends SpliceUnitTest{
 
         methodWatcher.executeUpdate(format("insert into %s values (35)", tableName));
         methodWatcher.executeUpdate(format("update %s set i = 18 where i = 10", tableName));
-        /* currently no valid plan, enable later
         rowContainsQuery(new int[]{1,2,3},format("select i from %s --splice-properties index=%s_IDX\n order by i", tableName, tableName),methodWatcher,
                 "11","18","35");
-         */
     }
 
     @Test
@@ -997,14 +987,21 @@ public class IndexIT extends SpliceUnitTest{
         methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
         methodWatcher.executeUpdate(format("insert into %s values (NULL, 10), ('abc', NULL)", tableName));
 
-        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (upper(c), nullif(i, 0)) EXCLUDE NULL KEYS", tableName, tableName));
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (upper(c), nullif(i, 0))", tableName, tableName));
 
         methodWatcher.executeUpdate(format("insert into %s values (NULL, NULL)", tableName));
         methodWatcher.executeUpdate(format("update %s set c = 'def' where i = 10", tableName));
-        /* currently no valid plan, enable later
-        rowContainsQuery(new int[]{1,2,3},format("select i from %s --splice-properties index=%s_IDX\n order by i nulls last", tableName, tableName),methodWatcher,
-                "10","NULL","NULL");
-         */
+
+        String query = format("select i from %s --splice-properties index=%s_IDX\n order by i nulls last", tableName, tableName);
+        String expected = "I  |\n" +
+                "------\n" +
+                " 10  |\n" +
+                "NULL |\n" +
+                "NULL |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     // DB-10431
@@ -1305,6 +1302,264 @@ public class IndexIT extends SpliceUnitTest{
         } catch (SQLException e) {
             Assert.assertEquals("429BX", e.getSQLState());
             Assert.assertTrue(e.getMessage().contains("2 + 4"));
+        }
+    }
+
+    // ===============================================================================
+    // Index expression tests - qualify and query
+    // ===============================================================================
+
+    @Test
+    public void testFullScanViaExpressionBasedIndex() throws Exception {
+        String tableName = "TEST_FULL_SCAN_VIA_EXPR_INDEX";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('foo', 0), ('bar', 1)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C))", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 2)", tableName));
+
+        String query = format("select c from %s --splice-properties index=%s_IDX\n order by c", tableName, tableName);
+        String expected = "C  |\n" +
+                "-----\n" +
+                "abc |\n" +
+                "bar |\n" +
+                "foo |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScansStarStopKeyFromIndexExpressionPredicate() throws Exception {
+        String tableName = "TEST_START_STOP_KEY_EXPR_INDEX";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('foo', 0), ('bar', 1)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C))", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 2)", tableName));
+
+        // same start and stop keys
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) = 'BAR'", tableName, tableName);
+        String expected = "C  |\n" +
+                "-----\n" +
+                "bar |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // start key
+        query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) > 'BAR'", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "foo |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // stop key
+        query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) < 'BAR'", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "abc |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // different start and stop keys
+        query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) > 'ABA' and upper(c) < 'BAT'", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "abc |\n" +
+                "bar |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // ISNULL, start key == stop key == NULL
+        methodWatcher.executeUpdate(format("insert into %s values (NULL, 100)", tableName));
+        query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) is null", tableName, tableName);
+        expected = "C  |\n" +
+                "------\n" +
+                "NULL |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // In-list probe
+        query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) in ('ABA', 'BAR')", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "bar |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testScansQualifierFromIndexExpressionPredicate() throws Exception {
+        String tableName = "TEST_START_STOP_KEY_EXPR_INDEX";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('foo', 10, 0.1), ('bar', 20, 0.3)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), MOD(i, 3), d)", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 30, 0.5)", tableName));
+
+        // NOT EQUAL
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) != 'BAR'", tableName, tableName);
+        String expected = "C  |\n" +
+                "-----\n" +
+                "abc |\n" +
+                "foo |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // IS NOT NULL
+        methodWatcher.executeUpdate(format("insert into %s values (NULL, 100, 0.9)", tableName));
+        query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) is not null", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "abc |\n" +
+                "bar |\n" +
+                "foo |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // In-list no probe
+        query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) not in ('ABC', 'BAR')", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "foo |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // gap from the first index column
+        query = format("select c from %s --splice-properties index=%s_IDX\n where mod(i,3) = 0", tableName, tableName);
+        expected = "C  |\n" +
+                "-----\n" +
+                "abc |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testIndexExpressionPredicateNotQualifier() throws Exception {
+        String tableName = "TEST_NOT_QUALIFIER_EXPR_INDEX";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('foo', 0), ('bar', 1)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C))", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 2)", tableName));
+
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) between 'AAA' and 'BAT' order by c", tableName, tableName);
+        String expected = "C  |\n" +
+                "-----\n" +
+                "abc |\n" +
+                "bar |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testIndexExpressionOnMultipleColumns() throws Exception {
+        String tableName = "TEST_INDEX_EXPR_MULTIPLE_COLUMNS";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2), ('ghi', 30, 3.3)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (D + I)", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('xyz', 40, 3.3)", tableName));
+
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where d + i > 30", tableName, tableName);
+        String expected = "C  |\n" +
+                "-----\n" +
+                "ghi |\n" +
+                "xyz |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testIndexExpressionOnDeterministicFunction() throws Exception {
+        String tableName = "TEST_INDEX_EXPR_DETERMINISTIC_FN";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2), ('ghi', 30, 3.3)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (ln(i), log10(i) + sqrt(d))", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('xyz', 40, 3.3)", tableName));
+
+        // top node of an index expression is a method call
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where ln(i) > 3.2", tableName, tableName);
+
+        String[] expectedOps = new String[] {
+                "IndexLookup",
+                "IndexScan",
+                " > 3.2"            // should be on the same line as IndexScan
+        };
+        rowContainsQuery(new int[]{4,5,5}, "explain " + query, methodWatcher, expectedOps);
+
+        String expected = "C  |\n" +
+                "-----\n" +
+                "ghi |\n" +
+                "xyz |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // an index expression containing method calls (also, note operands' order of plus)
+        query = format("select c from %s --splice-properties index=%s_IDX\n where sqrt(d) + log10(i) > 3.2", tableName, tableName);
+
+        rowContainsQuery(new int[]{4,5,5}, "explain " + query, methodWatcher, expectedOps);
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
+    public void testJoinOnTheSameIndexExpressionText() throws Exception {
+        String tableName_1 = "TEST_SAME_EXPR_TEXT_EXPR_INDEX_1";
+        methodWatcher.executeUpdate(format("create table %s (c char(4))", tableName_1));
+        methodWatcher.executeUpdate(format("insert into %s values ('foo'), ('bar'), ('abb')", tableName_1));
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C))", tableName_1, tableName_1));
+
+        String tableName_2 = "TEST_SAME_EXPR_TEXT_EXPR_INDEX_2";
+        methodWatcher.executeUpdate(format("create table %s (c char(4))", tableName_2));
+        methodWatcher.executeUpdate(format("insert into %s values ('foo'), ('not'), ('abb')", tableName_2));
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C))", tableName_2, tableName_2));
+
+        // For both indexes, index expression is "upper(c)" and their AST would be the same. By setting their
+        // table number correctly, we should not have a problem in matching index expressions in predicate.
+        String query = format("select * from %s tbl1 --splice-properties index=%s_IDX\n " +
+                " inner join %s tbl2 --splice-properties index=%s_IDX\n " +
+                " on upper(tbl1.c) = upper(tbl2.c)",
+                tableName_1, tableName_1, tableName_2, tableName_2);
+
+        String expected = "C  | C  |\n" +
+                "----------\n" +
+                "abb |abb |\n" +
+                "foo |foo |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
 }
