@@ -263,7 +263,7 @@ public class Typdef implements java.lang.Cloneable {
 	// constructor calls should be the corresponding constant from
 	// DRDAConstants.
 	//
-    protected static final FdocaSimpleDataArray[] environmentTables_ = {
+    private static final FdocaSimpleDataArray[] environmentTables_ = {
         /* 0x00 Empties */
         null,
         /* 0x01 Empties */
@@ -960,7 +960,6 @@ public class Typdef implements java.lang.Cloneable {
     private String ccsidMbcEncoding_;
 
 
-    protected int environment_;
     private boolean mddOverride_ = false;
     private FdocaSimpleDataArray overrideTable_[] = new FdocaSimpleDataArray[OVERRIDE_TABLE_SIZE];
 
@@ -1130,7 +1129,7 @@ public class Typdef implements java.lang.Cloneable {
         // 2. Set Null indicator based on PROTOCOL Type.
         //    Nullable SQL and PROTOCOL types are all odd numbers and the nullable
         //    type is one number higher than the related non-nullable type.
-        netCursor.nullable_[columnIndex] = ((sda.protocolType_ % 2) == 1);
+        netCursor.nullable_[columnIndex] = ((sda.protocolType_ % 2) != 0);
 
         // 3. Update CCSID
         //    The typdef object should store the java encoding,

@@ -209,6 +209,8 @@ public class BaseTypeIdImpl implements Formatable
               retval += "(" + impl.getTypeName() + ")";
 //              retval += "(" +  impl!=null && impl.getChildren() != null?impl.getChildren()[0].getTypeName():""+ ")";
               break;
+            default:
+                break;
         }
 
         return retval;
