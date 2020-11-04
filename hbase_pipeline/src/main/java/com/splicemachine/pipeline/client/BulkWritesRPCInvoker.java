@@ -50,7 +50,7 @@ public class BulkWritesRPCInvoker implements BulkWriter{
     }
 
     @Override
-    public BulkWritesResult write(final BulkWrites writes, boolean refreshCache) throws IOException {
+    public BulkWritesResult write(final BulkWrites writes, boolean refreshCache, boolean loadReplaceMode) throws IOException {
         assert writes.numEntries() != 0;
         if(!forceRemote) {
 
@@ -60,7 +60,7 @@ public class BulkWritesRPCInvoker implements BulkWriter{
             String encodedRegionName = firstBulkWrite.getEncodedStringName();
             PartitionWritePipeline pipeline=pipelineFactory.getPipeline(encodedRegionName);
             if(pipeline!=null){
-                return pipelineWriter.bulkWrite(writes, -1);
+                return pipelineWriter.bulkWrite(writes, -1, loadReplaceMode);
             }
         }
 
