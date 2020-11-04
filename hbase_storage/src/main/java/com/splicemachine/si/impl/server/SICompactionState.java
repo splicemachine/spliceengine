@@ -15,6 +15,8 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.hbase.TransactionsWatcher;
+import com.splicemachine.si.impl.driver.SIDriver;
+import com.splicemachine.si.impl.store.IgnoreTxnSupplier;
 import splice.com.google.common.util.concurrent.Futures;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
@@ -49,13 +51,16 @@ public class SICompactionState {
     private final TxnSupplier transactionStore;
     private final CompactionContext context;
     private final ExecutorService executorService;
+    private final IgnoreTxnSupplier ignoreTxnSupplier;
     private ConcurrentHashMap<Long, Future<TxnView>> futuresCache;
 
-    public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context, ExecutorService executorService) {
+    public SICompactionState(TxnSupplier transactionStore, int activeTransactionCacheSize, CompactionContext context,
+                             ExecutorService executorService, IgnoreTxnSupplier ignoreTxnSupplier) {
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,activeTransactionCacheSize,activeTransactionCacheSize,true);
         this.context = context;
         this.futuresCache = new ConcurrentHashMap<>(1<<19, 0.75f, 64);
         this.executorService = executorService;
+        this.ignoreTxnSupplier = ignoreTxnSupplier;
     }
 
     /**
@@ -70,7 +75,7 @@ public class SICompactionState {
         return impl.mutate(rawList, txns, results);
     }
 
-    private void ensureTransactionCached(long timestamp,Cell element) {
+    private void ensureTransactionCached(long timestamp,Cell element) throws IOException {
         if(!transactionStore.transactionCached(timestamp)){
             if(isFailedCommitTimestamp(element)){
                 if (LOG.isDebugEnabled())
@@ -78,6 +83,13 @@ public class SICompactionState {
                 transactionStore.cache(new RolledBackTxn(timestamp));
             }else if (element.getValueLength()>0){ //shouldn't happen, but you never know
                 long commitTs = Bytes.toLong(element.getValueArray(),element.getValueOffset(),element.getValueLength());
+
+                if (ignoreTxnSupplier != null && ignoreTxnSupplier.shouldIgnore(commitTs)) {
+                    if (LOG.isDebugEnabled())
+                        LOG.debug("Caching ignored txn " + timestamp);
+                    transactionStore.cache(new RolledBackTxn(timestamp));
+                    return;
+                }
 
                 if (LOG.isDebugEnabled())
                     LOG.debug("Caching " + timestamp + " with commitTs " + commitTs);

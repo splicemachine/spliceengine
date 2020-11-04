@@ -338,7 +338,9 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
                     int bufferSize = config.getOlapCompactionResolutionBufferSize();
                     boolean blocking = config.getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                            driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
+                            driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
+                            blocking ? driver.getExecutorService() : driver.getRejectingExecutorService(),
+                            driver.getIgnoreTxnSupplier());
 
                     SICompactionScanner siScanner = new SICompactionScanner(
                             state, scanner, buildPurgeConfig(request, transactionLowWatermark), resolutionShare, bufferSize, context);
@@ -489,27 +491,25 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
     }
 
     private boolean shouldPurge() throws IOException {
-
-        boolean prepared = false;
-        SpliceTransactionResourceImpl transactionResource = null;
         Txn txn = null;
         try {
             txn = SIDriver.driver().lifecycleManager()
                     .beginTransaction();
-            transactionResource = new SpliceTransactionResourceImpl();
-            prepared=transactionResource.marshallTransaction(txn);
-            LanguageConnectionContext lcc = transactionResource.getLcc();
-            DataDictionary dd = lcc.getDataDictionary();
-            String fullTableName = store.getTableName().getNameAsString();
-            String[] tableNames = fullTableName.split(":");
-            if (tableNames.length == 2 && tableNames[0].compareTo("splice") == 0) {
-                long conglomerateId = Long.parseLong(tableNames[1]);
-                ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
-                if (cd != null) {
-                    UUID tableID = cd.getTableID();
-                    TableDescriptor td = dd.getTableDescriptor(tableID);
-                    if (td != null)
-                        return td.purgeDeletedRows();
+            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
+                transactionResource.marshallTransaction(txn);
+                LanguageConnectionContext lcc = transactionResource.getLcc();
+                DataDictionary dd = lcc.getDataDictionary();
+                String fullTableName = store.getTableName().getNameAsString();
+                String[] tableNames = fullTableName.split(":");
+                if (tableNames.length == 2 && tableNames[0].compareTo("splice") == 0) {
+                    long conglomerateId = Long.parseLong(tableNames[1]);
+                    ConglomerateDescriptor cd = dd.getConglomerateDescriptor(conglomerateId);
+                    if (cd != null) {
+                        UUID tableID = cd.getTableID();
+                        TableDescriptor td = dd.getTableDescriptor(tableID);
+                        if (td != null)
+                            return td.purgeDeletedRows();
+                    }
                 }
             }
         }
@@ -520,8 +520,6 @@ public class SpliceDefaultCompactor extends DefaultCompactor {
             throw new IOException(e);
         }
         finally{
-            if(prepared)
-                transactionResource.close();
             if (txn != null)
                 txn.commit();
         }
