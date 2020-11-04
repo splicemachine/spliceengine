@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -173,7 +172,9 @@ public final class TransactionResourceImpl
         drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
         rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);
         ipAddress = info.getProperty(Property.IP_ADDRESS, null);
-        defaultSchema = info.getProperty(Property.CONNECTION_SCHEMA, null);
+        defaultSchema = info.getProperty(Property.CONNECTION_CURRENT_SCHEMA, null);
+        if (defaultSchema == null)
+            defaultSchema = info.getProperty(Property.CONNECTION_SCHEMA, null);
         useSpark = getDataSetProcessorType(info);
 
         String skipStatsString = info.getProperty(Property.CONNECTION_SKIP_STATS, null);

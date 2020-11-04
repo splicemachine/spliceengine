@@ -38,6 +38,10 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Properties;
 
+/**
+ * Used to create a marshall transaction given a connection string and a transaction view.
+ * This class it NOT thread safe
+ */
 public final class SpliceTransactionResourceImpl implements AutoCloseable{
     private static final Logger LOG=Logger.getLogger(SpliceTransactionResourceImpl.class);
     public static final String CONNECTION_STRING = "jdbc:splice:"+ SQLConfiguration.SPLICE_DB+";create=true";
@@ -50,6 +54,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
     protected SpliceDatabase database;
     protected LanguageConnectionContext lcc;
     protected String ipAddress;
+    private boolean updated = false;
 
     public SpliceTransactionResourceImpl() throws SQLException{
         this(CONNECTION_STRING, new Properties());
@@ -79,17 +84,19 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
         }
     }
 
-    public boolean marshallTransaction(TxnView txn) throws StandardException, SQLException {
-        return this.marshallTransaction(txn, null);
+    public void marshallTransaction(TxnView txn) throws StandardException, SQLException {
+        this.marshallTransaction(txn, null);
     }
 
-    public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache) throws StandardException, SQLException {
-        return this.marshallTransaction(txn, propertyCache, null, null, null);
+    public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache) throws StandardException, SQLException {
+        this.marshallTransaction(txn, propertyCache, null, null, null);
     }
 
-    public boolean marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
+    public void marshallTransaction(TxnView txn, ManagedCache<String, Optional<String>> propertyCache,
                                        TransactionController reuseTC, String localUserName, Integer sessionNumber) throws StandardException, SQLException{
-        boolean updated = false;
+        if (updated) {
+            throw new IllegalStateException("Cannot create a new marshall Transaction as the last one wasn't closed");
+        }
         try {
             if (LOG.isDebugEnabled()) {
                 SpliceLogUtils.debug(LOG, "marshallTransaction with transactionID %s", txn);
@@ -111,7 +118,6 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
                                                            false, -1, ipAddress,
                                                             reuseTC);
 
-            return true;
         } catch (Throwable t) {
             LOG.error("Exception during marshallTransaction", t);
             if (updated)
@@ -122,8 +128,11 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 
 
     public void close(){
-        csf.resetCurrentContextManager(cm);
-        csf.removeContextManager(cm);
+        if (updated) {
+            csf.resetCurrentContextManager(cm);
+            csf.removeContextManager(cm);
+            updated = false;
+        }
     }
 
     public LanguageConnectionContext getLcc(){

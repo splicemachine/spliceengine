@@ -1043,9 +1043,9 @@ public class SpliceUnitTest {
             Assert.fail("Exception not thrown for " + sqlText);
 
         } catch (SQLException e) {
-            Assert.assertEquals("Wrong Exception for " + sqlText, expectedState, e.getSQLState());
+            Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getSQLState());
         } catch (Exception e) {
-            Assert.assertEquals("Wrong Exception for " + sqlText, expectedState, e.getClass().getName());
+            Assert.assertEquals("Wrong Exception for " + sqlText + ". " + e, expectedState, e.getClass().getName());
         }
     }
 
@@ -1123,5 +1123,20 @@ public class SpliceUnitTest {
         boolean failOnError = false;
         waitForStaleTransactions(methodWatcher, "Test", 5, failOnError);
         methodWatcher.closeAll();
+    }
+
+    public static String getSqlItJarFile()
+    {
+        String[] paths = {
+                System.getProperty("user.dir")+"/target/sql-it/sql-it.jar",
+                System.getProperty("user.dir")+"/../platform_it/target/sql-it/sql-it.jar"
+        };
+        for(String path : paths ) {
+            if( new File(path).exists())
+                return path;
+        }
+        String err = "Couldn't find procedures jar file in either of " + Arrays.toString(paths);
+        Assert.fail(err);
+        throw new RuntimeException(err);
     }
 }

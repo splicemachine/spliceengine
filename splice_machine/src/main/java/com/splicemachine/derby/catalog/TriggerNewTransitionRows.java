@@ -89,8 +89,7 @@ import static com.splicemachine.derby.impl.sql.execute.operations.ScanOperation.
  *
  */
 public class TriggerNewTransitionRows
-                   implements DatasetProvider, VTICosting, AutoCloseable, Externalizable
-{
+                   implements DatasetProvider, VTICosting, AutoCloseable {
 
         private static final double DUMMY_ROWCOUNT_ESTIMATE = 1000;
         private static final double DUMMY_COST_ESTIMATE = 1000;
@@ -124,36 +123,6 @@ public class TriggerNewTransitionRows
 	    TemporaryRowHolderResultSet tRS = ((TemporaryRowHolderResultSet)(((EmbedResultSet40) resultSet).getUnderlyingResultSet()));
             TriggerRowHolderImpl triggerRowsHolder = (tRS == null) ? null : (TriggerRowHolderImpl)tRS.getHolder();
             return triggerRowsHolder;
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            // Version number
-            in.readInt();
-            boolean hasRowHolder = in.readBoolean();
-
-            if (hasRowHolder)
-                rowHolder = (TriggerRowHolderImpl)in.readObject();
-
-            boolean hasTEC = in.readBoolean();
-            if (hasTEC)
-                tec = (TriggerExecutionContext)in.readObject();
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            // Version number
-            out.writeInt(1);
-
-            TriggerRowHolderImpl rowHolder = getTriggerRowHolder();
-            boolean hasRowHolder = rowHolder != null;
-            out.writeBoolean(hasRowHolder);
-            if (hasRowHolder)
-                out.writeObject(rowHolder);
-            boolean hasTEC = tec != null;
-            out.writeBoolean(hasTEC);
-            if (hasTEC)
-                out.writeObject(tec);
         }
 
         @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -304,8 +273,9 @@ public class TriggerNewTransitionRows
 	        catch (SQLException e) {
 
                 }
-                if (rowHolder != null) {
 
+                if (resultSet == null) {
+                    rowHolder = (TriggerRowHolderImpl) tec.getTemporaryRowHolder();
                     ConnectionContext cc =
                     (ConnectionContext) lcc.getContextManager().
                     getContext(ConnectionContext.CONTEXT_ID);
@@ -316,8 +286,6 @@ public class TriggerNewTransitionRows
                     rowHolder.setActivation(activation);
                     tec.setTriggeringResultSet(rowHolder.getResultSet());
                     try {
-                        if (resultSet != null)
-                            resultSet.close();
                         resultSet = tec.getNewRowSet();
                     } catch (SQLException e) {
                         throw Exceptions.parseException(e);
