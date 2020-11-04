@@ -254,7 +254,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         try{
             BulkWriter writer=writerFactory.newWriter(tableName);
             writeTimer.startTiming();
-            BulkWritesResult bulkWritesResult=writer.write(nextWrite,ctx.refreshCache, writeConfiguration.loadReplaceMode());
+            BulkWritesResult bulkWritesResult=writer.write(nextWrite,ctx.refreshCache);
             writeTimer.stopTiming();
             Iterator<BulkWrite> bws=nextWrite.getBulkWrites().iterator();
             Collection<BulkWriteResult> results=bulkWritesResult.getBulkWriteResults();
@@ -482,6 +482,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
     private class WriteAttemptContext{
         boolean refreshCache = false;
         boolean sleep = false;
+        boolean rejected= false;
         /*
          * Either directRetrySet !=null or nextWriteSet !=null. Otherwise, it's an error (since nextWriteSet is
          * necessarily a subset of the rows contained in directWriteSet).
@@ -504,6 +505,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
             sleep = false;
             nextWriteSet = null;
             directRetry = false;
+            rejected=false;
         }
 
         void addBulkWrites(Collection<KVPair> writes){
@@ -519,6 +521,7 @@ public class BulkWriteAction implements Callable<WriteStats>{
         }
 
         void rejected(){
+            rejected=true;
             rejectedCount++;
             rejectedCounter.increment();
             statusReporter.rejectedCount.incrementAndGet();

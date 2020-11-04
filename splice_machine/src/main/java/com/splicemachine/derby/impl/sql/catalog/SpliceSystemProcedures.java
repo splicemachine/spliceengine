@@ -431,25 +431,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(importWithBadRecords);
 
-
-                    Procedure loadReplaceProc = Procedure.newBuilder().name("LOAD_REPLACE")
-                            .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
-                            .catalog("schemaName")
-                            .catalog("tableName")
-                            .varchar("insertColumnList",32672)
-                            .varchar("fileName",32672)
-                            .varchar("columnDelimiter",5)
-                            .varchar("characterDelimiter", 5)
-                            .varchar("timestampFormat",32672)
-                            .varchar("dateFormat",32672)
-                            .varchar("timeFormat",32672)
-                            .bigint("maxBadRecords")
-                            .varchar("badRecordDirectory",32672)
-                            .varchar("oneLineRecords",5)
-                            .varchar("charset",32672)
-                            .build();
-                    procedures.add(loadReplaceProc);
-
                     Procedure importUnsafe = Procedure.newBuilder().name("IMPORT_DATA_UNSAFE")
                             .numOutputParams(0).numResultSets(1).ownerClass(HdfsImport.class.getCanonicalName())
                             .catalog("schemaName")

@@ -53,7 +53,4 @@ public interface DataSetWriterBuilder{
     byte[] getDestinationTable();
 
     TableWriter buildTableWriter() throws StandardException;
-
-    DataSetWriterBuilder loadReplaceMode( boolean loadReplaceMode );
-    boolean getLoadReplaceMode();
 }

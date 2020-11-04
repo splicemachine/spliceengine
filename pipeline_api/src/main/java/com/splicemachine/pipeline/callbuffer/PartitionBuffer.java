@@ -16,7 +16,6 @@ package com.splicemachine.pipeline.callbuffer;
 
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.client.BulkWrite;
-import com.splicemachine.pipeline.config.WriteConfiguration;
 import com.splicemachine.storage.Partition;
 
 import java.util.ArrayList;
@@ -35,15 +34,18 @@ public class PartitionBuffer{
     private Partition partition;
     private PreFlushHook preFlushHook;
     private boolean skipIndexWrites;
-    private WriteConfiguration writeConfiguration;
+    private boolean skipConflictDetection;
+    private boolean skipWAL;
+    private boolean rollforward;
 
-    public PartitionBuffer(Partition partition, PreFlushHook preFlushHook, boolean skipIndexWrites,
-                           WriteConfiguration writeConfiguration) {
+    public PartitionBuffer(Partition partition, PreFlushHook preFlushHook, boolean skipIndexWrites, boolean skipConflictDetection, boolean skipWAL, boolean rollforward) {
         this.partition=partition;
         this.buffer = new ArrayList<>();
         this.preFlushHook = preFlushHook;
         this.skipIndexWrites = skipIndexWrites;
-        this.writeConfiguration = writeConfiguration;
+        this.skipConflictDetection = skipConflictDetection;
+        this.skipWAL = skipWAL;
+        this.rollforward = rollforward;
     }
 
     public void add(KVPair element) throws Exception {
@@ -76,7 +78,7 @@ public class PartitionBuffer{
     }
 
     public BulkWrite getBulkWrite() throws Exception {
-        return new BulkWrite(heapSize, preFlushHook.transform(buffer), partition.getName(), skipIndexWrites, writeConfiguration);
+        return new BulkWrite(heapSize, preFlushHook.transform(buffer), partition.getName(), skipIndexWrites, skipConflictDetection, skipWAL, rollforward);
     }
 
     /**
@@ -105,7 +107,9 @@ public class PartitionBuffer{
                 ", partition=" + partition +
                 ", preFlushHook=" + preFlushHook +
                 ", skipIndexWrites=" + skipIndexWrites +
-                ", " + writeConfiguration.configToString() +
-                "}";
+                ", skipConflictDetection=" + skipConflictDetection +
+                ", skipWAL=" + skipWAL +
+                ", rollforward=" + rollforward +
+                '}';
     }
 }

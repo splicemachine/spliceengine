@@ -33,7 +33,6 @@ import com.splicemachine.pipeline.PartitionWritePipeline;
 import com.splicemachine.pipeline.PipelineDriver;
 import com.splicemachine.pipeline.PipelineEnvironment;
 import com.splicemachine.pipeline.PipelineWriter;
-import com.splicemachine.pipeline.client.BulkWrite;
 import com.splicemachine.pipeline.client.BulkWrites;
 import com.splicemachine.pipeline.client.BulkWritesResult;
 import com.splicemachine.pipeline.contextfactory.ContextFactoryDriver;
@@ -46,13 +45,12 @@ import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
 
 import javax.annotation.Nullable;
 import java.io.IOException;
-import java.util.Iterator;
 
 /**
  * Endpoint to allow special batch operations that the HBase API doesn't explicitly enable
@@ -184,25 +182,15 @@ public class SpliceIndexEndpoint extends SpliceMessage.SpliceIndexService implem
         return true;
     }
 
-    // todo: improve this
-    private boolean isLoadReplaceMode(BulkWrites bulkWrites) {
-        boolean loadReplaceMode = false;
-        Iterator<BulkWrite> iterator = bulkWrites.getBulkWrites().iterator();
-        if (iterator.hasNext()) {
-            BulkWrite bw = iterator.next();
-            loadReplaceMode = bw.isLoadReplaceMode();
-        }
-        return loadReplaceMode;
-    }
-
+//    @Override
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException{
-        boolean loadReplaceMode = isLoadReplaceMode(bulkWrites);
         if (useToken(bulkWrites)) {
             try (RpcUtils.RootEnv env = RpcUtils.getRootEnv()){
-                return pipelineWriter.bulkWrite(bulkWrites, conglomId, loadReplaceMode);
+                return pipelineWriter.bulkWrite(bulkWrites, conglomId);
             }
         }
-        return pipelineWriter.bulkWrite(bulkWrites, -1, loadReplaceMode);
+
+        return pipelineWriter.bulkWrite(bulkWrites, -1);
     }
 
     //    @Override

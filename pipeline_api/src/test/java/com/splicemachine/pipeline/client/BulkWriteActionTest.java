@@ -37,6 +37,7 @@ import com.splicemachine.storage.PartitionServer;
 import com.splicemachine.utils.kryo.KryoPool;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
@@ -448,7 +449,7 @@ public class BulkWriteActionTest{
 
     private static class FailWriter implements BulkWriter{
         @Override
-        public BulkWritesResult write(BulkWrites write, boolean refreshCache, boolean loadReplaceMode) throws IOException{
+        public BulkWritesResult write(BulkWrites write,boolean refreshCache) throws IOException{
             Assert.fail("Should not be called!");
             return null;
         }
@@ -459,7 +460,7 @@ public class BulkWriteActionTest{
 		List<KVPair> data=new ArrayList<>(20);
 
 		@Override
-		public BulkWritesResult write(BulkWrites write, boolean refreshCache, boolean loadReplaceMode) throws IOException{
+		public BulkWritesResult write(BulkWrites write,boolean refreshCache) throws IOException{
 			Collection<BulkWrite> bulkWrites=write.getBulkWrites();
 			Collection<BulkWriteResult> results=new ArrayList<>(bulkWrites.size());
 			if(callCount==0){
@@ -496,7 +497,7 @@ public class BulkWriteActionTest{
         Set<KVPair> data=new HashSet<>();
 
         @Override
-        public BulkWritesResult write(BulkWrites write, boolean refreshCache, boolean loadReplaceMode) throws IOException{
+        public BulkWritesResult write(BulkWrites write,boolean refreshCache) throws IOException{
             Collection<BulkWrite> bulkWrites=write.getBulkWrites();
             Collection<BulkWriteResult> results=new ArrayList<>(bulkWrites.size());
             if(callCount==0){
@@ -543,6 +544,7 @@ public class BulkWriteActionTest{
         public int filter;
         public int writes;
         public int retries;
+        public int tooBusy;
 
         @Override
         public void recordRead() {

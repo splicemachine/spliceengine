@@ -715,11 +715,9 @@ public class ControlDataSet<V> implements DataSet<V> {
             @Override
             public DataSetWriter build() throws StandardException{
                 assert txn!=null:"Txn is null";
-                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom, tempConglomID,
-                        tableVersion, execRowDefinition, operationContext, loadReplaceMode);
+                DeletePipelineWriter dpw = new DeletePipelineWriter(txn,token,heapConglom, tempConglomID, tableVersion, execRowDefinition, operationContext);
                 dpw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext,
-                        updateCounts, loadReplaceMode);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,dpw,operationContext, updateCounts);
             }
         };
     }
@@ -741,10 +739,9 @@ public class ControlDataSet<V> implements DataSet<V> {
                         tempConglomID,
                         txn,
                         token, operationContext,
-                        isUpsert, loadReplaceMode);
+                        isUpsert);
                 ipw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext,
-                        updateCounts, loadReplaceMode);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,ipw,operationContext,updateCounts);
             }
         }.operationContext(operationContext);
     }
@@ -762,8 +759,7 @@ public class ControlDataSet<V> implements DataSet<V> {
                         txn,token,execRowDefinition,heapList,operationContext);
 
                 upw.setRollforward(true);
-                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext,
-                        updateCounts, false);
+                return new ControlDataSetWriter<>((ControlDataSet<ExecRow>)ControlDataSet.this,upw,operationContext, updateCounts);
             }
         };
     }

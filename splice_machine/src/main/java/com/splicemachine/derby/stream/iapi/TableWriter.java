@@ -27,7 +27,7 @@ public interface TableWriter <T> {
     enum Type {INSERT,UPDATE,DELETE,INDEX}
 
     void open() throws StandardException;
-    void open(TriggerHandler triggerHandler, SpliceOperation dmlWriteOperation, boolean loadReplaceMode) throws StandardException;
+    void open(TriggerHandler triggerHandler,SpliceOperation dmlWriteOperation) throws StandardException;
     void close() throws StandardException;
     void write(T row) throws StandardException;
     void write(Iterator<T> rows) throws StandardException;
