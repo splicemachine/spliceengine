@@ -85,8 +85,11 @@ public class DataDictionaryUtils {
     public static int[] getColumnOrdering(TxnView txn, UUID tableId) throws StandardException {
 
         int[] columnOrdering = null;
-        try (SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl()) {
-            impl.marshallTransaction(txn);
+        boolean prepared = false;
+        SpliceTransactionResourceImpl impl = null;
+        try {
+            impl = new SpliceTransactionResourceImpl();
+            prepared = impl.marshallTransaction(txn);
 
             LanguageConnectionContext lcc = impl.getLcc();
             DataDictionary dd = lcc.getDataDictionary();
@@ -103,6 +106,9 @@ public class DataDictionaryUtils {
             }
         } catch (SQLException e) {
             throw Exceptions.parseException(e);
+        } finally {
+            if (prepared)
+                impl.close();
         }
 
         if (columnOrdering == null)
@@ -155,8 +161,11 @@ public class DataDictionaryUtils {
     @SuppressFBWarnings(value = {"NP_ALWAYS_NULL_EXCEPTION","NP_NULL_ON_SOME_PATH"}, justification = "DB-9844")
     public static int[] getFormatIds(TxnView txn, UUID tableId) throws SQLException, StandardException {
 
-        try (SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl()) {
-            impl.marshallTransaction(txn);
+        boolean prepared = false;
+        SpliceTransactionResourceImpl impl = null;
+        try {
+            impl = new SpliceTransactionResourceImpl();
+            prepared = impl.marshallTransaction(txn);
             LanguageConnectionContext lcc = impl.getLcc();
             DataDictionary dd = lcc.getDataDictionary();
             TableDescriptor td = dd.getTableDescriptor(tableId);
@@ -165,6 +174,9 @@ public class DataDictionaryUtils {
             } else {
                 return new int[0];
             }
+        } finally {
+            if (prepared)
+                impl.close();
         }
     }
 
