@@ -3132,8 +3132,13 @@ TOKEN [IGNORE_CASE] :
 |    <PARTITIONED: "partitioned">
 |    <COMPRESSED: "compressed">
 |    <COMPRESSION: "compression">
+|    <CSV: "csv">
 |    <SNAPPY: "snappy">
 |    <ZLIB: "zlib">
+|    <GZ: "gz">
+|    <GZIP: "gzip">
+|    <BZ2: "bz2">
+|    <BZIP2: "bzip2">
 |    <STORED: "stored">
 |    <LOCATION: "location">
 |    <PIN: "pin">
@@ -4200,6 +4205,132 @@ pinStatement() throws StandardException :
     }
 }
 
+String exportCompressionToken() throws StandardException :
+{
+}
+{
+    <TRUE>
+    {
+        return "true";
+    }
+|
+    <FALSE>
+    {
+        return "false";
+    }
+|
+    <SNAPPY>
+    {
+        return "snappy";
+    }
+|
+    <NONE>
+    {
+        return "none";
+    }
+|
+    ( <GZ> | <GZIP>)
+    {
+        return "gz";
+    }
+|
+    ( <BZ2> | <BZIP2>)
+    {
+        return "bz2";
+    }
+}
+
+ValueNode exportCompression() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = exportCompressionToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
+String exportFormatToken() throws StandardException :
+{
+}
+{
+    <CSV>
+    {
+        return "csv";
+    }
+|
+    <PARQUET>
+    {
+        return "parquet";
+    }
+}
+
+ValueNode exportFormat() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = exportFormatToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
+String exportQuoteModeToken() throws StandardException :
+{
+}
+{
+    <ALWAYS>
+    {
+        return "always";
+    }
+|
+    <_DEFAULT>
+    {
+        return "default";
+    }
+}
+
+ValueNode exportQuoteMode() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = exportQuoteModeToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
+
 StatementNode
 exportStatement() throws StandardException :
 {
@@ -4218,9 +4349,9 @@ exportStatement() throws StandardException :
     <EXPORT>
     (
         <TO> exportPath = orExpression(null)
-        <AS> fileType = orExpression(null)
+        <AS> fileType = exportFormat()
         [
-            <COMPRESSION> compression = orExpression(null)
+            <COMPRESSION> compression = exportCompression()
         ]
         [
             <REPLICATION_COUNT> replicationCount = orExpression(null)
@@ -4235,7 +4366,7 @@ exportStatement() throws StandardException :
             <QUOTE_CHARACTER> quoteCharacter = orExpression(null)
         ]
         [
-            <QUOTE_MODE> quoteMode = orExpression(null)
+            <QUOTE_MODE> quoteMode = exportQuoteMode()
         ]
         statementNode = preparableSQLDataStatement()
         {
@@ -18032,7 +18163,6 @@ reservedKeyword() :
 |    tok = <AS>
 |    tok = <ASC>
 |    tok = <ASSERTION>
-|    tok = <AT>
 |    tok = <AUTHORIZATION>
 |    tok = <AVG>
 |    tok = <BEGIN>
@@ -18288,28 +18418,31 @@ nonReservedKeyword()  :
         rule, for the same reason.
      */
     (
-        tok = <ABS>
+         tok = <ABS>
     |    tok = <ABSVAL>
     |    tok = <ACCESS>
     |    tok = <ACTION>
     |    tok = <AFTER>
     |    tok = <AGGREGATE>
     |    tok = <ALWAYS>
+    |    tok = <AT> // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <ATOMIC>
-    |   tok = <AUTO>
-    |   tok = <B>
+    |    tok = <AUTO>
+    |    tok = <B>
     |    tok = <BEFORE>
     |    tok = <BINARY>
     |    tok = <BLOB>
+    |    tok = <BZ2>
+    |    tok = <BZIP2>
     |    tok = <C>
     |    tok = <CALLED>
     |    tok = <CLASS>
     |    tok = <CLOB>
     |    tok = <COALESCE>
     |    tok = <NVL>
-    |   tok = <CHARACTERDELIMITER>
+    |    tok = <CHARACTERDELIMITER>
     |    tok = <COBOL>
-    |   tok = <COLUMNDELIMITER>
+    |    tok = <COLUMNDELIMITER>
     |    tok = <COMMITTED>
     |    tok = <COMPRESS>
     |    tok = <COMPRESSION>
@@ -18317,14 +18450,15 @@ nonReservedKeyword()  :
     |    tok = <CONTAINS>
     |    tok = <CONTENT>
     |    tok = <COUNT>
-    |   tok = <CS>
+    |    tok = <CS>
+    |    tok = <CSV>
     |    tok = <CURDATE>
     |    tok = <CURTIME>
     |    tok = <CYCLE>
     |    tok = <D>
     |    tok = <DATA>
     |    tok = <DATE>
-    |   tok = <DATEFORMAT>
+    |    tok = <DATEFORMAT>
     |    tok = <DAY>
     |    tok = <DAYS>
     |    tok = <DAYOFYEAR>
@@ -18355,6 +18489,8 @@ nonReservedKeyword()  :
     |    tok = <GET_NEAREST_TRANSACTION>
     |    tok = <GREATEST>
     |    tok = <GROUPING>
+    |    tok = <GZ>
+    |    tok = <GZIP>
     |    tok = <HFILE>
     |    tok = <HOURS>
     |    tok = <IDENTITY_VAL_LOCAL>
@@ -18363,8 +18499,7 @@ nonReservedKeyword()  :
     |    tok = <INDEX>
     |    tok = <INITIAL>
     |    tok = <INPLACE>
-// SQL92 says it is reserved, but we want it to be non-reserved.
-    |    tok = <INTERVAL>
+    |    tok = <INTERVAL> // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <ISO>
     |    tok = <JAVA>
     |    tok = <JIS>
@@ -18379,22 +18514,22 @@ nonReservedKeyword()  :
     |    tok = <LEAST>
     |    tok = <LENGTH>
     |    tok = <LEVEL>
-    |   tok = <LIMIT>
-    |   tok = <FORMAT>
-    |   tok = <DELIMITED>
-    |   tok = <FIELDS>
-    |   tok = <TERMINATED>
-    |   tok = <ESCAPED>
-    |   tok = <LINES>
-    |   tok = <PARTITIONED>
-    |   tok = <STORED>
-    |   tok = <LOCATION>
-    |   tok = <TEXTFILE>
-    |   tok = <PIN>
-    |   tok = <PARQUET>
-    |   tok = <AVRO>
-    |   tok = <ORC>
-    |   tok = <LOCATE>
+    |    tok = <LIMIT>
+    |    tok = <FORMAT>
+    |    tok = <DELIMITED>
+    |    tok = <FIELDS>
+    |    tok = <TERMINATED>
+    |    tok = <ESCAPED>
+    |    tok = <LINES>
+    |    tok = <PARTITIONED>
+    |    tok = <STORED>
+    |    tok = <LOCATION>
+    |    tok = <TEXTFILE>
+    |    tok = <PIN>
+    |    tok = <PARQUET>
+    |    tok = <AVRO>
+    |    tok = <ORC>
+    |    tok = <LOCATE>
     |    tok = <LOCK>
     |    tok = <LOCKS>
     |    tok = <LOCKSIZE>
@@ -18410,8 +18545,7 @@ nonReservedKeyword()  :
     |    tok = <MODE>
     |    tok = <MODIFIES>
     |    tok = <MODIFY>
-// SQL92 says it is reserved, but we want it to be non-reserved.
-    |    tok = <MODULE>
+    |    tok = <MODULE> // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <MONTH>
     |    tok = <MONTHS>
     |    tok = <MONTHNAME>
@@ -18420,7 +18554,7 @@ nonReservedKeyword()  :
     |    tok = <NAME>
     |    tok = <NCLOB>
     |    tok = <NEW>
-    |   tok = <NEW_TABLE>
+    |    tok = <NEW_TABLE>
     |    tok = <NULLABLE>
     |    tok = <NULLS>
     |    tok = <NUMBER>
@@ -18485,6 +18619,7 @@ nonReservedKeyword()  :
     |    tok = <SETS>
     |    tok = <SHARE>
     |    tok = <SIGNAL>
+    |    tok = <SNAPPY>
     |   tok = <SPECIFIC>
     |   tok = <SPLITKEYS>
     |    tok = <SPLIT_PART>

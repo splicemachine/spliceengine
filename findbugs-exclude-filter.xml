@@ -95,5 +95,38 @@
         <Class name="com.splicemachine.constants.SpliceConstants"/>
         <Bug pattern="MS_MUTABLE_ARRAY"/>
     </Match>
+    <!-- The following 8 are here because scala doesn't allow annotations on package objects -->
+    <Match>
+        <Class name="com.splicemachine.spark.splicemachine.package"/>
+        <Bug pattern="NM_CLASS_NAMING_CONVENTION"/>
+    </Match>
+    <Match>
+        <Class name="com.splicemachine.spark.splicemachine.package"/>
+        <Bug pattern="NM_METHOD_NAMING_CONVENTION"/>
+    </Match>
+    <Match>
+        <Class name="com.splicemachine.spark.splicemachine.package$"/>
+        <Bug pattern="NM_CLASS_NAMING_CONVENTION"/>
+    </Match>
+    <Match>
+        <Class name="com.splicemachine.spark.splicemachine.package$"/>
+        <Bug pattern="NM_METHOD_NAMING_CONVENTION"/>
+    </Match>
+    <Match>
+        <Class name="com.splicemachine.spark2.splicemachine.package"/>
+        <Bug pattern="NM_CLASS_NAMING_CONVENTION"/>
+    </Match>
+    <Match>
+        <Class name="com.splicemachine.spark2.splicemachine.package"/>
+        <Bug pattern="NM_METHOD_NAMING_CONVENTION"/>
+    </Match>
+    <Match>
+        <Class name="com.splicemachine.spark2.splicemachine.package$"/>
+        <Bug pattern="NM_CLASS_NAMING_CONVENTION"/>
+    </Match>
+    <Match>
+        <Class name="com.splicemachine.spark2.splicemachine.package$"/>
+        <Bug pattern="NM_METHOD_NAMING_CONVENTION"/>
+    </Match>
 
 </FindBugsFilter>
