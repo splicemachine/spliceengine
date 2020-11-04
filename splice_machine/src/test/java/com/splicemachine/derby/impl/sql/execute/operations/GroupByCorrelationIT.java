@@ -30,7 +30,6 @@ import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
-
 public class GroupByCorrelationIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(GroupByOrderByIT.class.getSimpleName());
@@ -71,11 +70,11 @@ public class GroupByCorrelationIT {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        //  load OUTER_TABLE
+                        // load OUTER_TABLE
                         for (String rowVal : otValues) {
                             spliceClassWatcher.getStatement().executeUpdate("insert into " + otWatcher.toString() + " values " + rowVal);
                         }
-                        //  load INNER_TABLE
+                        // load INNER_TABLE
                         for (String rowVal : itValues) {
                             spliceClassWatcher.getStatement().executeUpdate("insert into " + itWatcher.toString() + " values " + rowVal);
                         }
@@ -92,7 +91,8 @@ public class GroupByCorrelationIT {
 
     @Test
     public void ssqWithCorrelationOnGroupByColumnWorksCorrectly() throws Exception {
-        try(ResultSet resultSet = methodWatcher.executeQuery("SELECT oc1, (SELECT MAX(ic1) FROM INNER_TABLE WHERE ic2 = outer_table.oc1) FROM OUTER_TABLE GROUP BY oc1 ORDER BY oc1 asc")) {
+        try(ResultSet resultSet = methodWatcher.executeQuery(String.format("SELECT oc1, (SELECT MAX(ic1) FROM %s WHERE ic2 = %s.oc1) FROM %s GROUP BY oc1 ORDER BY oc1 asc",
+                                                                           itWatcher.toString(), otWatcher.toString(), otWatcher.toString()))) {
             Assert.assertTrue(resultSet.next());
             Assert.assertEquals("E1", resultSet.getString(1));Assert.assertEquals(2, resultSet.getInt(2));
             Assert.assertTrue(resultSet.next());
@@ -103,7 +103,8 @@ public class GroupByCorrelationIT {
             Assert.assertEquals("E4", resultSet.getString(1));resultSet.getInt(2); Assert.assertTrue(resultSet.wasNull());
             Assert.assertFalse(resultSet.next());
         }
-        try(ResultSet resultSet = methodWatcher.executeQuery("SELECT oc1, oc2, (SELECT MAX(ic1) FROM INNER_TABLE WHERE ic2 = outer_table.oc1) FROM OUTER_TABLE GROUP BY oc1, oc2 order by oc1 asc, oc2 asc")) {
+        try(ResultSet resultSet = methodWatcher.executeQuery(String.format("SELECT oc1, oc2, (SELECT MAX(ic1) FROM %s WHERE ic2 = %s.oc1) FROM %s GROUP BY oc1, oc2 order by oc1 asc, oc2 asc",
+                                                                           itWatcher.toString(), otWatcher.toString(), otWatcher.toString()))) {
             Assert.assertTrue(resultSet.next());
             Assert.assertEquals("E1", resultSet.getString(1));Assert.assertEquals("P1", resultSet.getString(2));Assert.assertEquals(2, resultSet.getInt(3));
             Assert.assertTrue(resultSet.next());
@@ -134,14 +135,31 @@ public class GroupByCorrelationIT {
 
     @Test
     public void ssqWithoutCorrelationOnGroupByColumnThrows() throws Exception {
-        try(ResultSet resultSet = methodWatcher.executeQuery("SELECT oc1, (SELECT MAX(ic1) FROM INNER_TABLE WHERE ic2 = outer_table.oc2) FROM OUTER_TABLE GROUP BY oc1 order by oc1 asc")) {
-            Assert.fail("expected exception containing message: The SELECT list of a non-grouped query contains at least one invalid expression. When the SELECT list contains at least one " +
-                    "aggregate then all entries must be valid aggregate expressions");
+        try(ResultSet resultSet = methodWatcher.executeQuery(String.format("SELECT oc1, (SELECT MAX(ic1) FROM %s WHERE ic2 = %s.oc2) FROM %s GROUP BY oc1 order by oc1 asc",
+                                                             itWatcher.toString(), otWatcher.toString(), otWatcher.toString()))) {
+            Assert.fail("expected exception containing message: The SELECT list of a grouped query contains at least one invalid expression. " +
+                                "If a SELECT list has a GROUP BY, the list may only contain valid grouping expressions and valid aggregate expressions.");
         } catch(Exception se) {
             Assert.assertTrue(se instanceof SQLException);
-            Assert.assertEquals("42Y29", ((SQLException)se).getSQLState());
-            Assert.assertTrue(se.getMessage().contains("The SELECT list of a non-grouped query contains at least one invalid expression. When the SELECT list contains at least one aggregate " +
-                    "then all entries must be valid aggregate expressions"));
+            Assert.assertEquals("42Y30", ((SQLException)se).getSQLState());
+            Assert.assertTrue(se.getMessage().contains("The SELECT list of a grouped query contains at least one invalid expression. If a SELECT list has a GROUP BY, " +
+                                                               "the list may only contain valid grouping expressions and valid aggregate expressions."));
+        }
+    }
+
+    @Test
+    public void subqueryWithCorrelationOnGroupByColumnThrows() throws Exception {
+        try(ResultSet resultSet = methodWatcher.executeQuery(String.format("SELECT oc1, (SELECT c2 FROM %s WHERE ic2 = %s.oc1) FROM %s GROUP BY oc1 order by oc1 asc",
+                                                                           itWatcher.toString(), otWatcher.toString(), otWatcher.toString()))) {
+            Assert.fail("expected exception containing message: Column 'C2' is either not in any table in the FROM list or appears within a join specification and " +
+                                "is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or " +
+                                "ALTER TABLE  statement then 'C2' is not a column in the target table.");
+        } catch(Exception se) {
+            Assert.assertTrue(se instanceof SQLException);
+            Assert.assertEquals("42X04", ((SQLException) se).getSQLState());
+            Assert.assertTrue(se.getMessage().contains("Column 'C2' is either not in any table in the FROM list or appears within a join specification and is outside " +
+                                                               "the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this " +
+                                                               "is a CREATE or ALTER TABLE  statement then 'C2' is not a column in the target table."));
         }
     }
 }
