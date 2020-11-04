@@ -30,7 +30,6 @@ import java.util.Set;
  * @author Scott Fines
  *         Created on: 8/8/13
  */
-@SuppressFBWarnings({"EI_EXPOSE_REP", "EI_EXPOSE_REP2"})
 public class BulkWrites{
     private Collection<BulkWrite> bulkWrites;
     private TxnView txn;
