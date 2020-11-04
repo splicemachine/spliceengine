@@ -27,6 +27,7 @@ import com.splicemachine.derby.stream.function.LocatedRowToRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.si.impl.driver.SIDriver;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -204,6 +205,7 @@ public class SparkUtils {
         public Keyer() {
         }
 
+        @SuppressFBWarnings("EI_EXPOSE_REP2")
         public Keyer(int[] keyColumns) {
             this.keyColumns = keyColumns;
         }

@@ -1,5 +1,13 @@
 package com.splicemachine.spark.splicemachine
 
+// note: this is marked as private in package org.apache.spark.sql.execution.datasources,
+// so we had to copy this out.
+// see
+// https://github.com/apache/spark/blob/master/sql/core/src/main/scala/org/apache/spark/sql/execution/datasources/PartitioningUtils.scala
+// this file is marked as excluded from spotbugs, see splice_protocol/findbugs-exclude.xml
+// to be able to detect wrong types for directory partitioning, we modified some part of the code, marked with
+// modified splicemachine { ... }
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -281,7 +289,7 @@ object SplicePartitioningUtils {
         val columnValue = inferPartitionColumnValue(rawColumnValue, false, timeZone)
         val userType = userSpecifiedDataTypes(columnName);
 
-        // modified martinrupp {
+        // modified splicemachine {
         val castedValue =
           Cast(columnValue, userType, Option(timeZone.getID)).eval()
 
@@ -291,7 +299,7 @@ object SplicePartitioningUtils {
         else {
           Literal.create(castedValue, userSpecifiedDataTypes(columnName))
         }
-        // modified martinrupp }
+        // modified splicemachine }
       } else {
         inferPartitionColumnValue(rawColumnValue, typeInference, timeZone)
       }
