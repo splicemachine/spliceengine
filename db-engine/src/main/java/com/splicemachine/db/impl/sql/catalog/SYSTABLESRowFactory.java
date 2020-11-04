@@ -652,6 +652,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
         colList.add(new Object[]{"KEYCOLUMNS", Types.SMALLINT, true, null});
         colList.add(new Object[]{"KEYUNIQUE", Types.SMALLINT, false, null});
         colList.add(new Object[]{"CODEPAGE", Types.SMALLINT, false, null});
+        colList.add(new Object[]{"BASE_NAME", Types.VARCHAR, true, 128});
+        colList.add(new Object[]{"BASE_SCHEMA", Types.VARCHAR, true, 128});
 
         Collection<ColumnDescriptor> columnDescriptors = Lists.newArrayListWithCapacity(66);
         int colPos = 0;
@@ -678,7 +680,7 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             "SELECT T.*, S.SCHEMANAME FROM SYS.SYSTABLES T, SYSVW.SYSSCHEMASVIEW S \n" +
             "WHERE T.SCHEMAID = S.SCHEMAID";
 
-    public static final String SYSTABLE_VIEW_NAME_IN_SYSIBM = "systables";
+    public static final String SYSTABLE_VIEW_NAME_IN_SYSIBM = "SYSTABLES";
     public static final String SYSTABLES_VIEW_IN_SYSIBM = "create view " + SYSTABLE_VIEW_NAME_IN_SYSIBM + " as \n" +
             "select\n" +
             "T.tablename as NAME,\n" +
@@ -687,9 +689,11 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             "case when C.COLCOUNT is null then 0 else C.COLCOUNT end as COLCOUNT,\n" +
             "case when PKCOLS.CC is null then 0 else PKCOLS.CC end as KEYCOLUMNS,\n" +
             "case when KEYS.CC is null then 0 else KEYS.CC end as KEYUNIQUE,\n" +
-            "case when T.tabletype='A' then 0 else 1208 end as CODEPAGE\n" +
+            "case when T.tabletype='A' then 0 else 1208 end as CODEPAGE,\n" +
+            "A.aliasinfo.getSynonymTable() as BASE_NAME,\n" +
+            "A.aliasinfo.getSynonymSchema() as BASE_SCHEMA\n" +
             "from (\n" +
-            "      select T.tablename, T.tableid, T.tabletype, S.schemaname\n" +
+            "      select T.tablename, T.tableid, T.tabletype, S.schemaname, T.schemaid\n" +
             "      from\n" +
             "      sys.systables T, sys.sysschemas S\n" +
             "      where T.schemaid=S.schemaid) T\n" +
@@ -713,5 +717,8 @@ public class SYSTABLESRowFactory extends CatalogRowFactory {
             "(select C.tableid, count(*) as CC\n" +
             " from sys.sysconstraints C, sys.syskeys as K\n" +
             " where C.constraintid = K.constraintid and C.type <>'P'\n" +
-            " group by 1) KEYS on T.tableid = KEYS.tableid";
+            " group by 1) KEYS on T.tableid = KEYS.tableid\n" +
+            "left join -- compute the base table and schema the an alias points to \n" +
+            "sys.sysaliases A on A.ALIASTYPE = 'S' and T.tabletype='A' and T.schemaid=A.schemaid and T.tablename=A.alias";
+
 }
