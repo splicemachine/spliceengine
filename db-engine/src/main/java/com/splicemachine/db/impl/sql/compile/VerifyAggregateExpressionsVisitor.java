@@ -99,21 +99,14 @@ public class VerifyAggregateExpressionsVisitor implements Visitor {
 
             if ((subquery.getSubqueryType() != SubqueryNode.EXPRESSION_SUBQUERY) ||
                     subquery.hasCorrelatedCRs()) {
-                if (groupByList != null) {
+                if (groupByList != null && subquery.getSubqueryType() == SubqueryNode.EXPRESSION_SUBQUERY) {
                     /*
                      ** Check if the SSQ's correlated columns are referencing the grouping columns, if so, allow it.
                      */
                     List<ValueNode> correlationCRs = subquery.getCorrelationCRs();
                     for (ValueNode correlationCR : correlationCRs) {
                         if (correlationCR instanceof ColumnReference) {
-                            boolean included = false;
-                            for (OrderedColumn column : groupByList.getNodes()) {
-                                if (column.getValueNode().equals(correlationCR)) {
-                                    included = true;
-                                    break;
-                                }
-                            }
-                            if (!included) {
+                            if(groupByList.findGroupingColumn(correlationCR) == null) {
                                 throw StandardException.newException(SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
                             }
                         } else {
