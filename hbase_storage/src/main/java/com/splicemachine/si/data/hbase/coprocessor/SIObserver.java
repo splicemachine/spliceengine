@@ -192,7 +192,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 && defaultFlusherIsSetProperly(tracker, store)) {
             SimpleCompactionContext context = new SimpleCompactionContext();
             SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                    driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
+                    driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
+                    driver.getRejectingExecutorService(), driver.getIgnoreTxnSupplier());
             SConfiguration conf = driver.getConfiguration();
             // We use getOlapCompactionResolutionBufferSize() here instead of getLocalCompactionResolutionBufferSize() because we are dealing with data
             // coming from the MemStore, it's already in memory and the rows shouldn't be very big or have many KVs
@@ -218,7 +219,8 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 SIDriver driver=SIDriver.driver();
                 SimpleCompactionContext context = new SimpleCompactionContext();
                 SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, driver.getRejectingExecutorService());
+                        driver.getConfiguration().getActiveTransactionMaxCacheSize(), context,
+                        driver.getRejectingExecutorService(), driver.getIgnoreTxnSupplier());
                 SConfiguration conf = driver.getConfiguration();
                 SICompactionScanner siScanner = new SICompactionScanner(
                         state, scanner, ((SpliceCompactionRequest) request).getPurgeConfig(),
