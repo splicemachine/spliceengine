@@ -61,7 +61,6 @@ public class WriteCoordinator {
     private final WriteConfiguration defaultWriteConfiguration;
     private final PartitionFactory partitionFactory;
     private final MonitoredThreadPool writerPool;
-    private final PipelineExceptionFactory pipelineExceptionFactory;
 
     public static WriteCoordinator create(SConfiguration config,
                                           BulkWriterFactory writerFactory,
@@ -93,9 +92,8 @@ public class WriteCoordinator {
                             MonitoredThreadPool writerPool) {
         this.asynchronousWriter = asynchronousWriter;
         this.synchronousWriter = synchronousWriter;
-        this.pipelineExceptionFactory = pipelineExceptionFactory;
         this.monitor = monitor;
-        this.defaultWriteConfiguration = newDefaultWriteConfiguration();
+        this.defaultWriteConfiguration = new DefaultWriteConfiguration(monitor,pipelineExceptionFactory);
         this.partitionFactory = partitionFactory;
         this.writerPool = writerPool;
     }
@@ -124,8 +122,8 @@ public class WriteCoordinator {
         return writerPool.getMaxThreadCount();
     }
 
-    public WriteConfiguration newDefaultWriteConfiguration() {
-        return new DefaultWriteConfiguration(monitor,pipelineExceptionFactory);
+    public WriteConfiguration defaultWriteConfiguration() {
+        return defaultWriteConfiguration;
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(Partition partition, TxnView txn, byte[] token) {

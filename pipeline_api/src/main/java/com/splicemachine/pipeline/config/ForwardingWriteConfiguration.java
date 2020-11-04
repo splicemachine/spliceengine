@@ -63,16 +63,6 @@ public class ForwardingWriteConfiguration implements WriteConfiguration {
     }
 
     @Override
-    public boolean loadReplaceMode() {
-        return delegate.loadReplaceMode();
-    }
-
-    @Override
-    public void setLoadReplaceMode(boolean loadReplaceMode) {
-        delegate.setLoadReplaceMode(loadReplaceMode);
-    }
-
-    @Override
     public int getMaximumRetries() {
         return delegate.getMaximumRetries();
     }
