@@ -227,7 +227,7 @@ public class SparkUtils {
         for (ResultColumnDescriptor column : columns) {
             fields.add(column.getStructField());
         }
-        if( fields.stream().map( f -> f.name().toUpperCase() ).distinct().count() != fields.size() ) {  // has duplicate names
+        if( fields.stream().map( f -> f.name() ).distinct().count() != fields.size() ) {  // has duplicate names
             fields = new ArrayList<>();
             Set<String> used = new HashSet<>();
             for (ResultColumnDescriptor column : columns) {
