@@ -3,10 +3,12 @@ package com.splicemachine.spark.splicemachine
 // note: this is marked as private in package org.apache.spark.sql.execution.datasources,
 // so we had to copy this out.
 // see
-// https://github.com/apache/spark/blob/master/sql/core/src/main/scala/org/apache/spark/sql/execution/datasources/PartitioningUtils.scala
+// spark/sql/core/src/main/scala/org/apache/spark/sql/execution/datasources/PartitioningUtils.scala
+
 // this file is marked as excluded from spotbugs, see splice_protocol/findbugs-exclude.xml
 // to be able to detect wrong types for directory partitioning, we modified some part of the code, marked with
 // modified splicemachine { ... }
+// other changes: changed input of timezone/date format to get passed in from outside as DateFormat (date and time)
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
@@ -28,13 +30,12 @@ package com.splicemachine.spark.splicemachine
 
 import java.lang.{Double => JDouble, Long => JLong}
 import java.math.{BigDecimal => JBigDecimal}
+import java.text.DateFormat
 import java.util.{Locale, TimeZone}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Try
-
 import org.apache.hadoop.fs.Path
-
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.{Resolver, TypeCoercion}
 import org.apache.spark.sql.catalyst.expressions.{Attribute, Cast, Literal}
@@ -102,18 +103,8 @@ object SplicePartitioningUtils {
                                             basePaths: Set[Path],
                                             userSpecifiedSchema: Option[StructType],
                                             caseSensitive: Boolean,
-                                            timeZoneId: String): PartitionSpec = {
-    parsePartitions(paths, typeInference, basePaths, userSpecifiedSchema,
-      caseSensitive, DateTimeUtils.getTimeZone(timeZoneId))
-  }
-
-  def parsePartitions(
-                                            paths: Seq[Path],
-                                            typeInference: Boolean,
-                                            basePaths: Set[Path],
-                                            userSpecifiedSchema: Option[StructType],
-                                            caseSensitive: Boolean,
-                                            timeZone: TimeZone): PartitionSpec = {
+                                            dateFormat: DateFormat,
+                                            timeFormat: DateFormat): PartitionSpec = {
     val userSpecifiedDataTypes = if (userSpecifiedSchema.isDefined) {
       val nameToDataType = userSpecifiedSchema.get.fields.map(f => f.name -> f.dataType).toMap
       if (!caseSensitive) {
@@ -134,7 +125,7 @@ object SplicePartitioningUtils {
 
     // First, we need to parse every partition's path and see if we can find partition values.
     val (partitionValues, optDiscoveredBasePaths) = paths.map { path =>
-      parsePartition(path, typeInference, basePaths, userSpecifiedDataTypes, timeZone)
+      parsePartition(path, typeInference, basePaths, userSpecifiedDataTypes, dateFormat, timeFormat)
     }.unzip
 
     // We create pairs of (path -> path's partition value) here
@@ -168,7 +159,7 @@ object SplicePartitioningUtils {
           "root directory of the table. If there are multiple root directories, " +
           "please load them separately and then union them.")
 
-      val resolvedPartitionValues = resolvePartitions(pathsWithPartitionValues, timeZone)
+      val resolvedPartitionValues = resolvePartitions(pathsWithPartitionValues, timeFormat)
 
       // Creates the StructType which represents the partition columns.
       val fields = {
@@ -217,7 +208,8 @@ object SplicePartitioningUtils {
                                            typeInference: Boolean,
                                            basePaths: Set[Path],
                                            userSpecifiedDataTypes: Map[String, DataType],
-                                           timeZone: TimeZone): (Option[PartitionValues], Option[Path]) = {
+                                           dateFormat: DateFormat,
+                                           timeFormat: DateFormat): (Option[PartitionValues], Option[Path]) = {
     val columns = ArrayBuffer.empty[(String, Literal)]
     // Old Hadoop versions don't have `Path.isRoot`
     var finished = path.getParent == null
@@ -238,7 +230,7 @@ object SplicePartitioningUtils {
         // Let's say currentPath is a path of "/table/a=1/", currentPath.getName will give us a=1.
         // Once we get the string, we try to parse it and find the partition column and value.
         val maybeColumn =
-        parsePartitionColumn(currentPath.getName, typeInference, userSpecifiedDataTypes, timeZone)
+        parsePartitionColumn(currentPath.getName, typeInference, userSpecifiedDataTypes, dateFormat, timeFormat)
         maybeColumn.foreach(columns += _)
 
         // Now, we determine if we should stop.
@@ -272,7 +264,8 @@ object SplicePartitioningUtils {
                                     columnSpec: String,
                                     typeInference: Boolean,
                                     userSpecifiedDataTypes: Map[String, DataType],
-                                    timeZone: TimeZone): Option[(String, Literal)] = {
+                                    dateFormat: DateFormat,
+                                    timeFormat: DateFormat) = {
     val equalSignIndex = columnSpec.indexOf('=')
     if (equalSignIndex == -1) {
       None
@@ -286,12 +279,12 @@ object SplicePartitioningUtils {
       val literal = if (userSpecifiedDataTypes.contains(columnName)) {
         // SPARK-26188: if user provides corresponding column schema, get the column value without
         //              inference, and then cast it as user specified data type.
-        val columnValue = inferPartitionColumnValue(rawColumnValue, false, timeZone)
+        val columnValue = inferPartitionColumnValue(rawColumnValue, false, dateFormat, timeFormat)
         val userType = userSpecifiedDataTypes(columnName);
 
         // modified splicemachine {
         val castedValue =
-          Cast(columnValue, userType, Option(timeZone.getID)).eval()
+          Cast(columnValue, userType, Option(timeFormat.getTimeZone.getID)).eval()
 
         if(castedValue == null && rawColumnValue != "__HIVE_DEFAULT_PARTITION__") {
           throw new IllegalArgumentException("Column " + columnName + " is " + userType.simpleString + ", can't parse " + rawColumnValue)
@@ -301,7 +294,7 @@ object SplicePartitioningUtils {
         }
         // modified splicemachine }
       } else {
-        inferPartitionColumnValue(rawColumnValue, typeInference, timeZone)
+        inferPartitionColumnValue(rawColumnValue, typeInference, dateFormat, timeFormat)
       }
       Some(columnName -> literal)
     }
@@ -313,7 +306,7 @@ object SplicePartitioningUtils {
    */
   def resolvePartitions(
                          pathsWithPartitionValues: Seq[(Path, PartitionValues)],
-                         timeZone: TimeZone): Seq[PartitionValues] = {
+                         timeFormat: DateFormat): Seq[PartitionValues] = {
     if (pathsWithPartitionValues.isEmpty) {
       Seq.empty
     } else {
@@ -328,7 +321,7 @@ object SplicePartitioningUtils {
       val values = pathsWithPartitionValues.map(_._2)
       val columnCount = values.head.columnNames.size
       val resolvedValues = (0 until columnCount).map { i =>
-        resolveTypeConflicts(values.map(_.literals(i)), timeZone)
+        resolveTypeConflicts(values.map(_.literals(i)), timeFormat.getTimeZone)
       }
 
       // Fills resolved literals back to each partition
@@ -394,7 +387,8 @@ object SplicePartitioningUtils {
   def inferPartitionColumnValue(
                                                       raw: String,
                                                       typeInference: Boolean,
-                                                      timeZone: TimeZone): Literal = {
+                                                      dateFormat: DateFormat,
+                                                      timeFormat: DateFormat): Literal = {
     val decimalTry = Try {
       // `BigDecimal` conversion can fail when the `field` is not a form of number.
       val bigDecimal = new JBigDecimal(raw)
@@ -409,7 +403,10 @@ object SplicePartitioningUtils {
     val dateTry = Try {
       // try and parse the date, if no exception occurs this is a candidate to be resolved as
       // DateType
-      DateTimeUtils.getThreadLocalDateFormat(DateTimeUtils.defaultTimeZone()).parse(raw)
+      // modified spliceengine for 2.8 {
+      dateFormat.parse(raw)
+      //DateTimeUtils.getThreadLocalDateFormat().parse(raw)
+      // modified spliceengine for 2.8 }
       // SPARK-23436: Casting the string to date may still return null if a bad Date is provided.
       // This can happen since DateFormat.parse  may not use the entire text of the given string:
       // so if there are extra-characters after the date, it returns correctly.
@@ -426,9 +423,9 @@ object SplicePartitioningUtils {
       val unescapedRaw = unescapePathName(raw)
       // try and parse the date, if no exception occurs this is a candidate to be resolved as
       // TimestampType
-      DateTimeUtils.getThreadLocalTimestampFormat(timeZone).parse(unescapedRaw)
+      timeFormat.parse(unescapedRaw)
       // SPARK-23436: see comment for date
-      val timestampValue = Cast(Literal(unescapedRaw), TimestampType, Some(timeZone.getID)).eval()
+      val timestampValue = Cast(Literal(unescapedRaw), TimestampType, Some(timeFormat.getTimeZone.getID)).eval()
       // Disallow TimestampType if the cast returned null
       require(timestampValue != null)
       Literal.create(timestampValue, TimestampType)
@@ -490,6 +487,8 @@ object SplicePartitioningUtils {
   private val findWiderTypeForPartitionColumn: (DataType, DataType) => DataType = {
     case (DoubleType, _: DecimalType) | (_: DecimalType, DoubleType) => StringType
     case (DoubleType, LongType) | (LongType, DoubleType) => StringType
-    case (t1, t2) => TypeCoercion.findWiderTypeForTwo(t1, t2).getOrElse(StringType)
+    // modified spliceengine for 2.8 {
+    case (t1, t2) => TypeCoercion.findWiderTypeWithoutStringPromotion( List(t1, t2)).getOrElse(StringType)
+    // modified spliceengine for 2.8 }
   }
 }
