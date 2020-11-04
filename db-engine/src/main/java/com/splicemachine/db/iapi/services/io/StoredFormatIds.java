@@ -1370,6 +1370,11 @@ public interface StoredFormatIds {
     int SQL_VARCHAR_ID =
             (MIN_ID_2 + 85);
 
+    // A special internal format id, only to be
+    // used for spark ValueRow serialization.
+    int SQL_VARCHAR_DB2_COMPATIBLE_ID =
+            (MIN_ID_2 + 86);
+
     int LIST_ID =
         (MIN_ID_2 + 478);
     

@@ -284,4 +284,6 @@ public interface DataSetProcessor {
     // <- End operations related to spark explain.
 
     <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext op) throws StandardException;
+
+    boolean isSparkDB2CompatibilityMode();
 }
