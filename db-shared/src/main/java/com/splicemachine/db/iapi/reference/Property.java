@@ -1464,6 +1464,7 @@ public interface Property {
      * Default schema for this connection
      */
     String CONNECTION_SCHEMA = "schema";
+    String CONNECTION_CURRENT_SCHEMA = "currentSchema";
 
     /**
      * True force Spark execution for this session; false forces Control execution for this connection
