@@ -102,8 +102,7 @@ public class SICompactionStateTest {
     }
 
     private List<Cell> resolveData(SICompactionState state, List<Cell> data) throws IOException {
-        PurgeConfig purgeDuringFlush = new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true)
-                .transactionLowWatermark(0x800L).build();
+        PurgeConfig purgeDuringFlush = new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).build();
 
         List<Future<TxnView>> futures = state.resolve(data);
         List<Cell> results = new ArrayList<>();
