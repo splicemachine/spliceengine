@@ -17,7 +17,6 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.test.LongerThanTwoMinutes;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -28,11 +27,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
 
-import java.math.BigDecimal;
 import java.sql.Connection;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -137,6 +133,8 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
         sqlText = format(sqlTemplate, "MERGE");
         testQuery(sqlText, expected, methodWatcher);
+        sqlText = format(sqlTemplate, "SORTMERGE");
+        testQuery(sqlText, expected, methodWatcher);
         sqlText = format(sqlTemplate2, "NESTEDLOOP", "NESTEDLOOP");
         testQuery(sqlText, expected, methodWatcher);
     }
@@ -216,6 +214,8 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
         sqlText = format(sqlTemplate, "MERGE");
+        testQuery(sqlText, expected, methodWatcher);
+        sqlText = format(sqlTemplate, "SORTMERGE");
         testQuery(sqlText, expected, methodWatcher);
         sqlText = format(sqlTemplate2, "NESTEDLOOP", "NESTEDLOOP");
         testQuery(sqlText, expected, methodWatcher);

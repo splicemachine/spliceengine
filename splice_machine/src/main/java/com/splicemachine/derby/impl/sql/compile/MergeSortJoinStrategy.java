@@ -34,8 +34,6 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
                             Optimizer optimizer,
                             CostEstimate outerCost,boolean wasHinted,
                             boolean skipKeyCheck) throws StandardException {
-        if (predList != null && ((PredicateList)predList).getCompilerContext().getVarcharDB2CompatibilityMode())
-            return false;
 		return super.feasible(innerTable, predList, optimizer,outerCost,wasHinted,skipKeyCheck);
 	}
 

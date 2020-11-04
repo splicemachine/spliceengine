@@ -1290,6 +1290,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             case StoredFormatIds.SQL_TIMESTAMP_ID: return new SQLTimestamp();
             case StoredFormatIds.SQL_TINYINT_ID: return new SQLTinyint();
             case StoredFormatIds.SQL_VARCHAR_ID: return new SQLVarchar();
+            case StoredFormatIds.SQL_VARCHAR_DB2_COMPATIBLE_ID: return new SQLVarcharDB2Compatible();
             case StoredFormatIds.SQL_LONGVARCHAR_ID: return new SQLLongvarchar();
             case StoredFormatIds.SQL_VARBIT_ID: return new SQLVarbit();
             case StoredFormatIds.SQL_LONGVARBIT_ID: return new SQLLongVarbit();
