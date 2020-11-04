@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 
-public class GroupByCorreltionIT {
+public class GroupByCorrelationIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(GroupByOrderByIT.class.getSimpleName());
     protected static SpliceTableWatcher otWatcher = new SpliceTableWatcher("OUTER_TABLE", schemaWatcher.schemaName, "(oc1 VARCHAR(3), oc2 VARCHAR(3), oc3 INT)");

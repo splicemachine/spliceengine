@@ -92,7 +92,6 @@ public class GroupByOrderByIT {
     public void testSelectAllColumns() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 String.format("select EMPNUM,PNUM,HOURS from %1$s", t1Watcher.toString()));
-        System.out.println("testSelectAllColumns");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
     }
 
@@ -100,13 +99,11 @@ public class GroupByOrderByIT {
     public void testSelectAllColumnsGroupBy() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 String.format("SELECT EMPNUM,PNUM, HOURS FROM %1$s GROUP BY PNUM,EMPNUM,HOURS", t1Watcher.toString()));
-        System.out.println("testSelectAllColumnsGroupBy");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
 
         /* test group by position number */
         rs = methodWatcher.executeQuery(
                 String.format("SELECT EMPNUM,PNUM, HOURS FROM %1$s GROUP BY 2,1,3", t1Watcher.toString()));
-        System.out.println("testSelectAllColumnsGroupBy");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
 
         // group by position must be 1-based
@@ -130,13 +127,11 @@ public class GroupByOrderByIT {
     public void testSelectAllColumnsGroupBySum() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 String.format("SELECT EMPNUM,PNUM, sum(HOURS) AS SUM_HOURS FROM %1$s GROUP BY PNUM,EMPNUM", t1Watcher.toString()));
-        System.out.println("testSelectAllColumnsGroupBySum");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "SUM_HOURS"), Arrays.asList("SUM_HOURS"), true));
 
         /* test group by position number */
         rs = methodWatcher.executeQuery(
                 String.format("SELECT EMPNUM,PNUM, sum(HOURS) AS SUM_HOURS FROM %1$s GROUP BY 2,1", t1Watcher.toString()));
-        System.out.println("testSelectAllColumnsGroupBySum");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "SUM_HOURS"), Arrays.asList("SUM_HOURS"), true));
 
     }
@@ -145,7 +140,6 @@ public class GroupByOrderByIT {
     public void testSelectAllColumnsOrderBy() throws Exception {
         ResultSet rs = methodWatcher.executeQuery(
                 String.format("SELECT EMPNUM,PNUM,HOURS FROM %1$s ORDER BY PNUM,EMPNUM,HOURS", t1Watcher.toString()));
-        System.out.println("testSelectAllColumnsOrderBy");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
     }
 
@@ -155,14 +149,12 @@ public class GroupByOrderByIT {
         ResultSet rs = methodWatcher.executeQuery(
                 String.format("SELECT EMPNUM,PNUM,HOURS FROM %1$s GROUP BY PNUM,EMPNUM,HOURS ORDER BY " +
                         "PNUM, EMPNUM, HOURS", t1Watcher.toString()));
-        System.out.println("testSelectAllColumnsGroupByOrderBy");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
 
         /* test group by position number */
         rs = methodWatcher.executeQuery(
                 String.format("SELECT EMPNUM,PNUM,HOURS FROM %1$s GROUP BY 2,1,3 ORDER BY " +
                         "PNUM, EMPNUM, HOURS", t1Watcher.toString()));
-        System.out.println("testSelectAllColumnsGroupByOrderBy");
         Assert.assertEquals(12, verifyColumns(rs, Arrays.asList("EMPNUM", "PNUM", "HOURS"), Arrays.asList("HOURS"), true));
     }
 
@@ -289,7 +281,6 @@ public class GroupByOrderByIT {
         Assert.assertFalse(printResults(errors, actualColNames, rows), errors.size() > 0);
         if (print) {
             String results = printResults(Collections.EMPTY_LIST, actualColNames, rows);
-            System.out.println(results);
         }
 
         return rows.size();
