@@ -49,6 +49,7 @@ public class FunctionIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher("B",FunctionIT.class.getSimpleName(),"(col decimal(14,4))");
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("TMM",FunctionIT.class.getSimpleName(),"(i int, db double, dc decimal(3,1), c char(4), vc varchar(4), ts timestamp, bl blob(1K), cl clob(1K))");  // XML column not implemented
     protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher("COA",FunctionIT.class.getSimpleName(),"(d date, i int)");
+    protected static SpliceTableWatcher spliceTableWatcher4 = new SpliceTableWatcher("TEST_FN_DATETIME_CHAR",FunctionIT.class.getSimpleName(),"(d date, t time, ts timestamp)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -58,6 +59,7 @@ public class FunctionIT extends SpliceUnitTest {
         .around(spliceTableWatcher1)
         .around(spliceTableWatcher2)
         .around(spliceTableWatcher3)
+        .around(spliceTableWatcher4)
         .around(spliceFunctionWatcher)
         .around(new SpliceDataWatcher(){
             @Override
@@ -87,11 +89,20 @@ public class FunctionIT extends SpliceUnitTest {
 
     @BeforeClass
     public static void addData() throws Exception {
-        String insertPrefix = "insert into "+ FunctionIT.class.getSimpleName() + ".TMM values ";
-        spliceClassWatcher.executeUpdate("delete from " + FunctionIT.class.getSimpleName() + ".TMM");
+        String schemaName = FunctionIT.class.getSimpleName();
+        String insertPrefix = "insert into "+ schemaName + ".TMM values ";
+        spliceClassWatcher.executeUpdate("delete from " + schemaName + ".TMM");
         spliceClassWatcher.executeUpdate(insertPrefix + "(1,1.0,1.2,'aa','aa','1960-01-01 23:03:20',null,null)");
         spliceClassWatcher.executeUpdate(insertPrefix + "(2,2.0,2.2,'bb','bb','1960-01-02 23:03:20',null,null)");
         spliceClassWatcher.executeUpdate(insertPrefix + "(3,3.0,3.2,'cc','cc','1960-01-04 23:03:20',null,null)");
+        spliceClassWatcher.executeUpdate("delete from " + schemaName + ".TEST_FN_DATETIME_CHAR");
+        spliceClassWatcher.executeUpdate("insert into " + schemaName + ".TEST_FN_DATETIME_CHAR values " +
+                "('1960-03-01', '23:03:20', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '00:00:00', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '00:01:00', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '12:00:00', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '12:01:00', '1960-01-01 23:03:20'), " +
+                "('1960-03-01', '24:00:00', '1960-01-01 23:03:20')");
         spliceClassWatcher.commit();
     }
 
@@ -528,7 +539,7 @@ public class FunctionIT extends SpliceUnitTest {
 
     private void testDateTimeToCharVarcharHelper(String funcName, String columnName, String format,
                                                  boolean isDistinct, boolean compareFirstRowOnly, String expected) throws Exception {
-        String queryTemplate = "select %s %s(%s %s) from TEST_FN_DATETIME_CHAR";
+        String queryTemplate = "select %s %s(%s %s) from " + spliceTableWatcher4;
         String query = format(queryTemplate, (isDistinct ? "distinct" : ""), funcName, columnName, (format.isEmpty() ? "" : (", " + format)));
 
         if (compareFirstRowOnly) {
@@ -542,16 +553,6 @@ public class FunctionIT extends SpliceUnitTest {
 
     @Test
     public void testDateTimeToCharVarchar() throws Exception {
-        methodWatcher.executeUpdate("create table if not exists TEST_FN_DATETIME_CHAR (d date, t time, ts timestamp)");
-        methodWatcher.executeUpdate("delete from TEST_FN_DATETIME_CHAR");
-        methodWatcher.executeUpdate("insert into TEST_FN_DATETIME_CHAR values " +
-                "('1960-03-01', '23:03:20', '1960-01-01 23:03:20'), " +
-                "('1960-03-01', '00:00:00', '1960-01-01 23:03:20'), " +
-                "('1960-03-01', '00:01:00', '1960-01-01 23:03:20'), " +
-                "('1960-03-01', '12:00:00', '1960-01-01 23:03:20'), " +
-                "('1960-03-01', '12:01:00', '1960-01-01 23:03:20'), " +
-                "('1960-03-01', '24:00:00', '1960-01-01 23:03:20')");
-
         // test date
         testDateTimeToCharVarcharHelper("char", "d", "", true, true, "1960-03-01");
         testDateTimeToCharVarcharHelper("char", "d", "iso", true, true, "1960-03-01");
@@ -655,10 +656,6 @@ public class FunctionIT extends SpliceUnitTest {
 
     @Test
     public void testDateTimeToCharVarcharConstants() throws Exception {
-        methodWatcher.executeUpdate("create table if not exists TEST_FN_DATETIME_CHAR (d date, t time, ts timestamp)");
-        methodWatcher.executeUpdate("delete from TEST_FN_DATETIME_CHAR");
-        methodWatcher.executeUpdate("insert into TEST_FN_DATETIME_CHAR values ('1960-03-01', '23:03:20', '1960-01-01 23:03:20')");
-
         // we need to test constant values passed in CastNode because they are casted in binding time
         String date = "date('2020-11-06')";
         testDateTimeToCharVarcharHelper("char", date, "", false, true, "2020-11-06");
