@@ -15,7 +15,6 @@
 package com.splicemachine.pipeline.client;
 
 import com.splicemachine.kvpair.KVPair;
-import com.splicemachine.pipeline.config.WriteConfiguration;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -32,8 +31,7 @@ public class BulkWrite {
         SKIP_INDEX_WRITE((byte)0x01),
         SKIP_CONFLICT_DETECTION((byte)0x02),
         SKIP_WAL((byte)0x04),
-        ROLL_FORWARD((byte)0x08),
-        LOAD_REPLACE_MODE((byte)16);
+        ROLL_FORWARD((byte)0x08);
 
         final byte mask;
         Flags(byte mask) {
@@ -51,7 +49,6 @@ public class BulkWrite {
     private boolean skipConflictDetection;
     private boolean skipWAL;
     private boolean rollforward;
-    private boolean loadReplaceMode = false;
 
     /*non serialized field*/
     private transient long bufferHeapSize = -1;
@@ -66,7 +63,6 @@ public class BulkWrite {
         this.skipConflictDetection = Flags.SKIP_CONFLICT_DETECTION.isSetIn(flags);
         this.skipWAL = Flags.SKIP_WAL.isSetIn(flags);
         this.rollforward = Flags.ROLL_FORWARD.isSetIn(flags);
-        this.loadReplaceMode = Flags.LOAD_REPLACE_MODE.isSetIn(flags);
     }
 
     public BulkWrite(int heapSizeEstimate,Collection<KVPair> mutations,String encodedStringName) {
@@ -78,13 +74,12 @@ public class BulkWrite {
     }
 
     public BulkWrite(int heapSizeEstimate,Collection<KVPair> mutations,String encodedStringName,
-                     boolean skipIndexWrite, WriteConfiguration writeConfiguration) {
+                     boolean skipIndexWrite, boolean skipConflictDetection, boolean skipWAL, boolean rollforward) {
         this(heapSizeEstimate, mutations, encodedStringName);
         this.skipIndexWrite = skipIndexWrite;
-        this.skipConflictDetection = writeConfiguration.skipConflictDetection();
-        this.skipWAL = writeConfiguration.skipWAL();
-        this.rollforward = writeConfiguration.rollForward();
-        this.loadReplaceMode = writeConfiguration.loadReplaceMode();
+        this.skipConflictDetection = skipConflictDetection;
+        this.skipWAL = skipWAL;
+        this.rollforward = rollforward;
     }
 
     public Collection<KVPair> getMutations() {
@@ -135,8 +130,6 @@ public class BulkWrite {
             result |= Flags.SKIP_WAL.mask;
         if (rollforward)
             result |= Flags.ROLL_FORWARD.mask;
-        if (loadReplaceMode)
-            result |= Flags.LOAD_REPLACE_MODE.mask;
         return result;
     }
 
@@ -148,10 +141,6 @@ public class BulkWrite {
 
     public boolean isRollforward() {
         return rollforward;
-    }
-
-    public boolean isLoadReplaceMode() {
-        return loadReplaceMode;
     }
 
     public void addTypes(Set<KVPair.Type> types) {

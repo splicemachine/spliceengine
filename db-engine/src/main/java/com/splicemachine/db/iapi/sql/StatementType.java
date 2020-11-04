@@ -67,7 +67,6 @@ public interface StatementType
 
 	int CREATE_IF_NOT_EXISTS = 7;
 	int CREATE_DEFAULT = 8;
-	int LOAD_REPLACE = 9;
 }
 
 
