@@ -409,7 +409,10 @@ object SplicePartitioningUtils {
     val dateTry = Try {
       // try and parse the date, if no exception occurs this is a candidate to be resolved as
       // DateType
-      DateTimeUtils.getThreadLocalDateFormat(DateTimeUtils.defaultTimeZone()).parse(raw)
+      // modified spliceengine for 2.8 {
+      //DateTimeUtils.getThreadLocalDateFormat(DateTimeUtils.defaultTimeZone()).parse(raw)
+      DateTimeUtils.getThreadLocalDateFormat().parse(raw)
+      // modified spliceengine for 2.8 }
       // SPARK-23436: Casting the string to date may still return null if a bad Date is provided.
       // This can happen since DateFormat.parse  may not use the entire text of the given string:
       // so if there are extra-characters after the date, it returns correctly.
@@ -490,6 +493,8 @@ object SplicePartitioningUtils {
   private val findWiderTypeForPartitionColumn: (DataType, DataType) => DataType = {
     case (DoubleType, _: DecimalType) | (_: DecimalType, DoubleType) => StringType
     case (DoubleType, LongType) | (LongType, DoubleType) => StringType
-    case (t1, t2) => TypeCoercion.findWiderTypeForTwo(t1, t2).getOrElse(StringType)
+    // modified spliceengine for 2.8 {
+    case (t1, t2) => TypeCoercion.findWiderTypeWithoutStringPromotion( List(t1, t2)).getOrElse(StringType)
+    // modified spliceengine for 2.8 }
   }
 }

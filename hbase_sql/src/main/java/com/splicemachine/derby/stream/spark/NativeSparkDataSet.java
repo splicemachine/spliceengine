@@ -42,6 +42,7 @@ import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataType;
@@ -974,8 +975,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location,
                                              String compression, OperationContext context) throws StandardException {
         compression = SparkExternalTableUtil.getParquetCompression( compression );
-        {
-            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy)
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
                     .option(SPARK_COMPRESSION_OPTION, compression)
                     .parquet(location);
         }
@@ -1004,8 +1005,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                           String compression,
                                           OperationContext context) throws StandardException {
         compression = SparkExternalTableUtil.getAvroCompression(compression);
-        {
-            getDataFrameWriter(dataset, tableSchema, partitionBy)
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(dataset, tableSchema, partitionBy, context)
                     .option(SPARK_COMPRESSION_OPTION, compression)
                     .format("com.databricks.spark.avro").save(location);
         }
@@ -1015,8 +1016,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
                                           OperationContext context) throws StandardException {
-        {
-            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy)
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
                     .options(getCsvOptions(csvOptions))
                     .csv(location);
         }
@@ -1025,15 +1026,21 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                     OperationContext context) throws StandardException {
-        {
-            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy)
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
                     .option(SPARK_COMPRESSION_OPTION, compression)
                     .orc(location);
         }
         return getRowsWritten(context);
     }
 
-    class MapCountingFunction implements MapFunction<Row, Row>
+    class CountingListener implements AutoCloseable {
+        // this is an empty class to align with 3.x code
+        public CountingListener(OperationContext context) {}
+        public void close() { }
+    }
+
+    static class MapCountingFunction implements MapFunction<Row, Row>
     {
         OperationContext<?> operationContext;
         MapCountingFunction(OperationContext<?> operationContext)
@@ -1048,7 +1055,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     static private DataFrameWriter getDataFrameWriter(Dataset<Row> dataset, StructType tableSchema,
-                                                      int[] partitionBy) throws StandardException {
+                                                      int[] partitionBy, OperationContext context) throws StandardException {
+        // OperationContext context is used in 2.8
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 dataset.rdd(),
                 tableSchema);
