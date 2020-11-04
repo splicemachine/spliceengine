@@ -51,7 +51,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * A ValueNode is an abstract class for all nodes that can represent data
@@ -1462,6 +1461,37 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
         }
 
+        return result;
+    }
+
+    /**
+     * Enhanced version of <code>isEquivalent</code> (to be extended):
+     * <ul>
+     *   <li> Calls to the same deterministic method with the same arguments
+     *        are equivalent.
+     *   <li> Commutative operators on the same set of operands are equivalent,
+     *        e.g., a + b == b + a, a OR b == b OR a.
+     * </ul>
+     * @param other the node to compare this ValueNode against.
+     * @return <code>true</code> if the two nodes are semantically equivalent,
+     *         <code>false</code> otherwise.
+     * @throws StandardException
+     */
+    protected boolean isSemanticallyEquivalent(ValueNode other) throws StandardException {
+        return this.isEquivalent(other);
+    }
+
+    public boolean semanticallyEquals(Object o) {
+        boolean result;
+        if(o instanceof ValueNode){
+            try{
+                result = isSemanticallyEquivalent((ValueNode) o);
+            }catch (StandardException e){
+                throw new RuntimeException(e);
+            }
+        }else{
+            result = super.equals(o);
+        }
         return result;
     }
 
