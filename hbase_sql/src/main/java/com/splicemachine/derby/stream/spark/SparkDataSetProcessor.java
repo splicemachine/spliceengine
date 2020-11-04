@@ -565,27 +565,25 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             for (int i = 0; i < partitionBy.length; i++) {
                 partitionByCols.add(fields[partitionBy[i]].name());
             }
-            if (storedAs!=null) {
-                String[] partitions = partitionByCols.toArray(new String[partitionByCols.size()]);
-                if (storedAs.toLowerCase().equals("p")) {
-                    compression = getParquetCompression(compression);
-                    empty.write().option("compression",compression).partitionBy(partitions)
-                            .mode(SaveMode.Append).parquet(location);
-                }
-                else if (storedAs.toLowerCase().equals("a")) {
-                    compression = getAvroCompression(compression);
-                    empty.write().option("compression",compression).partitionBy(partitions)
-                            .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
-                }
-                else if (storedAs.toLowerCase().equals("o")) {
-                    empty.write().option("compression",compression).partitionBy(partitions)
-                            .mode(SaveMode.Append).orc(location);
-                }
-                else if (storedAs.toLowerCase().equals("t")) {
-                    // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
-                    empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
-                            .partitionBy(partitions).mode(SaveMode.Append).csv(location);
-                }
+            String[] partitions = partitionByCols.toArray(new String[partitionByCols.size()]);
+            if (storedAs.toLowerCase().equals("p")) {
+                compression = getParquetCompression(compression);
+                empty.write().option("compression",compression).partitionBy(partitions)
+                        .mode(SaveMode.Append).parquet(location);
+            }
+            else if (storedAs.toLowerCase().equals("a")) {
+                compression = getAvroCompression(compression);
+                empty.write().option("compression",compression).partitionBy(partitions)
+                        .mode(SaveMode.Append).format("com.databricks.spark.avro").save(location);
+            }
+            else if (storedAs.toLowerCase().equals("o")) {
+                empty.write().option("compression",compression).partitionBy(partitions)
+                        .mode(SaveMode.Append).orc(location);
+            }
+            else if (storedAs.toLowerCase().equals("t")) {
+                // spark-2.2.0: commons-lang3-3.3.2 does not support 'XXX' timezone, specify 'ZZ' instead
+                empty.write().option("compression",compression).option("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSZZ")
+                        .partitionBy(partitions).mode(SaveMode.Append).csv(location);
             }
         }
 
