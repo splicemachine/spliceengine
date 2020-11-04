@@ -70,10 +70,16 @@ public class CheckTableJob implements Callable<Void> {
         SpliceTransactionManager tc = (SpliceTransactionManager)lcc.getTransactionExecute();
         DataDictionary dd =lcc.getDataDictionary();
 
-        try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()) {
-            transactionResource.marshallTransaction(request.txn);
+        SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
+        boolean prepared = false;
+        try {
+            prepared=transactionResource.marshallTransaction(request.txn);
             SchemaDescriptor sd = dd.getSchemaDescriptor(request.schemaName, tc, true);
             td = dd.getTableDescriptor(request.tableName, sd, tc);
+        }
+        finally {
+            if (prepared)
+                transactionResource.close();
         }
     }
 }
