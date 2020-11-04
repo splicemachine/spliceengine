@@ -43,12 +43,10 @@ public class SharedCallBufferFactory{
     private ObjectObjectHashMap<byte[], CallBuffer<KVPair>> sharedCallBufferMap = new ObjectObjectHashMap<>();
     private final WriteCoordinator writerPool;
     private final PartitionFactory partitionFactory;
-    private boolean loadReplaceMode;
 
-    public SharedCallBufferFactory(WriteCoordinator writerPool, boolean loadReplaceMode){
+    public SharedCallBufferFactory(WriteCoordinator writerPool){
         this.writerPool=writerPool;
         this.partitionFactory = writerPool.getPartitionFactory();
-        this.loadReplaceMode = loadReplaceMode;
     }
 
     public CallBuffer<KVPair> getWriteBuffer(byte[] conglomBytes,
@@ -75,11 +73,10 @@ public class SharedCallBufferFactory{
                                                       boolean useAsyncWriteBuffers,
                                                       TxnView txn, byte[] token) throws IOException{
         SharedPreFlushHook hook = new SharedPreFlushHook();
-        WriteConfiguration writeConfiguration=writerPool.newDefaultWriteConfiguration();
+        WriteConfiguration writeConfiguration=writerPool.defaultWriteConfiguration();
         WriteConfiguration wc = new SharedWriteConfiguration(writeConfiguration.getMaximumRetries(),
                 writeConfiguration.getPause(),
-                writeConfiguration.getExceptionFactory(),
-                loadReplaceMode);
+                writeConfiguration.getExceptionFactory());
         if (context.skipConflictDetection() || context.skipWAL()) {
             wc = new UnsafeWriteConfiguration(wc, context.skipConflictDetection(), context.skipWAL());
         }
