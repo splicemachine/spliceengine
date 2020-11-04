@@ -1515,6 +1515,8 @@ public interface Property {
 
     String SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE = "splice.db2.import.empty_string_compatible";
 
+    String SPLICE_DB2_VARCHAR_COMPATIBLE = "splice.db2.varchar.compatible";
+
     String SPLICE_NEW_MERGE_JOIN =
             "splice.execution.newMergeJoin";
 

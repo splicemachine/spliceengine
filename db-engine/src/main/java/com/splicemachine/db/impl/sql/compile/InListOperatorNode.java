@@ -42,10 +42,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.ListDataType;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
@@ -172,6 +169,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		else if (allLeftOperandsContainColumnReferences() &&
 			     rightOperandList.containsOnlyConstantAndParamNodes())
 		{
+			boolean DB2CompatibilityMode = getCompilerContext().getVarcharDB2CompatibilityMode();
+
 			/* At this point we have an IN-list made up of constant and/or
 			 * parameter values.  Ex.:
 			 *
@@ -295,11 +294,22 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 
                 if (singleLeftOperand) {
                     judgeODV = ((DataTypeDescriptor) targetTypes.get(0)).getNull();
+                    if ((judgeODV instanceof SQLVarchar) && DB2CompatibilityMode) {
+                    	SQLVarcharDB2Compatible newDVD = new SQLVarcharDB2Compatible();
+                    	newDVD.setSqlCharSize(((SQLVarchar)judgeODV).getSqlCharSize());
+						judgeODV = newDVD;
+					}
                 }
                 else {
                     ListDataType ldt = new ListDataType(leftOperandList.size());
                     for (int j = 0; j < leftOperandList.size(); j++) {
-                        ldt.setFrom(((DataTypeDescriptor) targetTypes.get(j)).getNull(), j);
+                    	judgeODV = ((DataTypeDescriptor) targetTypes.get(j)).getNull();
+						if ((judgeODV instanceof SQLVarchar) && DB2CompatibilityMode) {
+							SQLVarcharDB2Compatible newDVD = new SQLVarcharDB2Compatible();
+							newDVD.setSqlCharSize(((SQLVarchar)judgeODV).getSqlCharSize());
+							judgeODV = newDVD;
+						}
+                        ldt.setFrom(judgeODV, j);
                     }
                     judgeODV = ldt;
                 }
