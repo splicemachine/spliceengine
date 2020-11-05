@@ -1,15 +1,3 @@
-package com.splicemachine.spark.splicemachine
-
-// note: this is marked as private in package org.apache.spark.sql.execution.datasources,
-// so we had to copy this out.
-// see
-// spark/sql/core/src/main/scala/org/apache/spark/sql/execution/datasources/PartitioningUtils.scala
-
-// this file is marked as excluded from spotbugs, see splice_protocol/findbugs-exclude.xml
-// to be able to detect wrong types for directory partitioning, we modified some part of the code, marked with
-// modified splicemachine { ... }
-// other changes: changed input of timezone/date format to get passed in from outside as DateFormat (date and time)
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements.  See the NOTICE file distributed with
@@ -26,6 +14,18 @@ package com.splicemachine.spark.splicemachine
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+package com.splicemachine.spark.splicemachine
+
+// note: this is marked as private in package org.apache.spark.sql.execution.datasources,
+// so we had to copy this out.
+// see
+// spark/sql/core/src/main/scala/org/apache/spark/sql/execution/datasources/PartitioningUtils.scala
+
+// this file is marked as excluded from spotbugs, see splice_protocol/findbugs-exclude.xml
+// to be able to detect wrong types for directory partitioning, we modified some part of the code, marked with
+// modified splicemachine { ... }
+// other changes: changed input of timezone/date format to get passed in from outside as DateFormat (date and time)
 
 
 import java.lang.{Double => JDouble, Long => JLong}
