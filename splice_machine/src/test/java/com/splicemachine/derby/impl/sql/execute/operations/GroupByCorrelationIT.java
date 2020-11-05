@@ -32,7 +32,7 @@ import java.util.List;
 
 public class GroupByCorrelationIT {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(GroupByOrderByIT.class.getSimpleName());
+    protected static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(GroupByCorrelationIT.class.getSimpleName());
     protected static SpliceTableWatcher otWatcher = new SpliceTableWatcher("OUTER_TABLE", schemaWatcher.schemaName, "(oc1 VARCHAR(3), oc2 VARCHAR(3), oc3 INT)");
     protected static SpliceTableWatcher itWatcher = new SpliceTableWatcher("INNER_TABLE", schemaWatcher.schemaName, "(ic1 INTEGER, ic2 VARCHAR(3))");
     private static List<String> otValues = Arrays.asList(
@@ -149,17 +149,13 @@ public class GroupByCorrelationIT {
 
     @Test
     public void subqueryWithCorrelationOnGroupByColumnThrows() throws Exception {
-        try(ResultSet resultSet = methodWatcher.executeQuery(String.format("SELECT oc1, (SELECT c2 FROM %s WHERE ic2 = %s.oc1) FROM %s GROUP BY oc1 order by oc1 asc",
+        try(ResultSet resultSet = methodWatcher.executeQuery(String.format("SELECT oc1, (SELECT ic2 FROM %s WHERE ic2 = %s.oc1) FROM %s GROUP BY oc1 order by oc1 asc",
                                                                            itWatcher.toString(), otWatcher.toString(), otWatcher.toString()))) {
-            Assert.fail("expected exception containing message: Column 'C2' is either not in any table in the FROM list or appears within a join specification and " +
-                                "is outside the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this is a CREATE or " +
-                                "ALTER TABLE  statement then 'C2' is not a column in the target table.");
+            Assert.fail("expected exception containing message: Scalar subquery is only allowed to return a single row.");
         } catch(Exception se) {
             Assert.assertTrue(se instanceof SQLException);
-            Assert.assertEquals("42X04", ((SQLException) se).getSQLState());
-            Assert.assertTrue(se.getMessage().contains("Column 'C2' is either not in any table in the FROM list or appears within a join specification and is outside " +
-                                                               "the scope of the join specification or appears in a HAVING clause and is not in the GROUP BY list. If this " +
-                                                               "is a CREATE or ALTER TABLE  statement then 'C2' is not a column in the target table."));
+            Assert.assertEquals("21000", ((SQLException) se).getSQLState());
+            Assert.assertTrue(se.getMessage().contains("Scalar subquery is only allowed to return a single row."));
         }
     }
 }
