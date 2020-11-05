@@ -403,7 +403,7 @@ public class ConstraintConstantOperationIT {
         TestConnection conn = spliceClassWatcher.createConnection();
         // step 1: create user defined function and load library
         // install jar file and set classpath
-        String STORED_PROCS_JAR_FILE = System.getProperty("user.dir") + "/target/sql-it/sql-it.jar";
+        String STORED_PROCS_JAR_FILE = SpliceUnitTest.getSqlItJarFile();
         String JAR_FILE_SQL_NAME = SCHEMA + "." + "SQLJ_IT_PROCS_JAR";
         conn.execute(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
         conn.execute(String.format("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')", JAR_FILE_SQL_NAME));
