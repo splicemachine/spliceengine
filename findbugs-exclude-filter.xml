@@ -116,5 +116,7 @@
     <Match>
         <Class name="~com\.splicemachine\.spark\.splicemachine\.SplicePartitioningUtils.*"/>
     </Match>
-
+    <Match>
+        <Class name="com.splicemachine.spark.splicemachine.PartitionPath"/>
+    </Match>
 </FindBugsFilter>
