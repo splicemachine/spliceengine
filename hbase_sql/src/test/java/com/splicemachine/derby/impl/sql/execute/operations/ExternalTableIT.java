@@ -2685,12 +2685,12 @@ public class ExternalTableIT extends SpliceUnitTest {
         String create = "create external table sipartitioning (COLUMN_ONE INT, COLUMN_TWO %s) " +
                 "PARTITIONED BY (COLUMN_TWO) STORED AS PARQUET LOCATION '%s'";
         methodWatcher.executeUpdate( String.format(create, "VARCHAR(20)", path) );
-        methodWatcher.executeUpdate("INSERT INTO sipartitioning VALUES (1, '1'), (2, '2')");
+        methodWatcher.executeUpdate("INSERT INTO sipartitioning VALUES (11, '11'), (22, '22')");
 
         String[] files = new File(path).list();
         if( files != null ) {
             Arrays.sort(files);
-            Assert.assertEquals("[._SUCCESS.crc, COLUMN_TWO=1, COLUMN_TWO=2, _SUCCESS]", Arrays.toString(files));
+            Assert.assertEquals("[._SUCCESS.crc, COLUMN_TWO=11, COLUMN_TWO=22, _SUCCESS]", Arrays.toString(files));
             String drop = "drop table sipartitioning";
             methodWatcher.executeUpdate(drop);
 
