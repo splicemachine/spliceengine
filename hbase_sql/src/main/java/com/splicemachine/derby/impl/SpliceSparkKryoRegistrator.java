@@ -190,6 +190,16 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
                 dvd.setBigDecimal(kryo.readObjectOrNull(input, BigDecimal.class));
             }
         });
+        instance.register(SQLDecfloat.class,new DataValueDescriptorSerializer<SQLDecfloat>(){
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLDecfloat object) throws StandardException {
+                kryo.writeObjectOrNull(output, object.getObject(), BigDecimal.class);
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLDecfloat dvd) throws StandardException {
+                dvd.setBigDecimal(kryo.readObjectOrNull(input, BigDecimal.class));
+            }
+        });
         instance.register(SQLDouble.class,new DataValueDescriptorSerializer<SQLDouble>(){
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLDouble object) throws StandardException {

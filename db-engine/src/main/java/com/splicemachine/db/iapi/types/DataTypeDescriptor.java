@@ -54,6 +54,7 @@ import java.sql.Types;
 import java.text.RuleBasedCollator;
 
 import static com.splicemachine.db.iapi.types.TypeId.CHAR_ID;
+import static com.splicemachine.db.iapi.types.TypeId.DECFLOAT_PRECISION;
 
 /**
  * DataTypeDescriptor describes a runtime SQL type.
@@ -1398,6 +1399,9 @@ public class DataTypeDescriptor implements Formatable{
                 */
                 return (getPrecision()*0.415)+1.5;
 
+            case StoredFormatIds.DECFLOAT_TYPE_ID:
+                return 32;
+
             case StoredFormatIds.DOUBLE_TYPE_ID:
                 return 8.0;
 
@@ -1511,6 +1515,7 @@ public class DataTypeDescriptor implements Formatable{
             case Types.FLOAT:
             case Types.DOUBLE:
             case Types.DECIMAL:
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
             case Types.NUMERIC:
                 return true;
             default:
