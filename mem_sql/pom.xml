@@ -259,10 +259,12 @@
                             <key>com.splicemachine.enableLegacyAsserts</key>
                             <value>true</value>
                         </systemProperty>
+                        <!-- Uncomment the following to dump activation class files for mem platform to the mem_sql directory.
                            <systemProperty>
                                <key>splice.debug.dumpClassFile</key>
                                <value>true</value>
                            </systemProperty>
+                         -->
                     </systemProperties>
                 </configuration>
             </plugin>
