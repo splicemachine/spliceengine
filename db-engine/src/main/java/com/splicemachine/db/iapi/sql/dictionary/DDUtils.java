@@ -196,34 +196,26 @@ public	class	DDUtils
 		return true;
 	}
 
-
-	/*
-	**checks whether the foreign key relation ships referential action
-	**is violating the restrictions we have in the current system.
-	**/
-	public static void validateReferentialActions
-    (
-		DataDictionary	dd,
-		TableDescriptor	td,
-		String			myConstraintName,	// for error messages
-		ConsInfo		otherConstraintInfo,
-		String[]        columnNames,
-		Graph fkGraph
-	)
-		throws StandardException
-	{
-
-
-		int refAction = otherConstraintInfo.getReferentialActionDeleteRule();
+    /*
+     **checks whether the foreign key relation ships referential action
+     **is violating the restrictions we have in the current system.
+     **/
+    public static void validateReferentialActions(DataDictionary dd,
+                                                  TableDescriptor referencingTableDescriptor,
+                                                  String newForeignKeyConstraintName,    // for error messages
+                                                  ConsInfo otherConstraintInfo,
+                                                  String[] columnNames,
+                                                  Graph fkGraph) throws StandardException {
+        int newFKDeletionActionRule = otherConstraintInfo.getReferentialActionDeleteRule();
 
 		//Do not allow ON DELETE SET NULL as a referential action
 		//if none of the foreign key columns are  nullable.
-		if(refAction == StatementType.RA_SETNULL)
+		if(newFKDeletionActionRule == StatementType.RA_SETNULL)
 		{
 			boolean foundNullableColumn = false;
 			//check if we have a nullable foreign key column
             for (String columnName : columnNames) {
-                ColumnDescriptor cd = td.getColumnDescriptor(columnName);
+                ColumnDescriptor cd = referencingTableDescriptor.getColumnDescriptor(columnName);
                 if ((cd.getType().isNullable())) {
                     foundNullableColumn = true;
                     break;
@@ -233,7 +225,7 @@ public	class	DDUtils
 			if(!foundNullableColumn)
 			{
 				throw StandardException.newException(SQLState.LANG_INVALID_FK_COL_FOR_SETNULL,
-													 myConstraintName);
+													 newForeignKeyConstraintName);
 			}
 		}
 
@@ -245,32 +237,9 @@ public	class	DDUtils
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_NO_FOREIGN_KEYS);
         }
 
-        GraphAnnotator annotator = new GraphAnnotator(myConstraintName, fkGraph);
+        GraphAnnotator annotator = new GraphAnnotator(newForeignKeyConstraintName, fkGraph);
         annotator.annotate();
         annotator.analyzeAnnotations();
-
-
-        /**Hashtable deleteConnectionsMap = new Hashtable();
-        //find whether the foreign key is self referencing.
-        boolean isSelfReferencingFk = (referencedTableDescriptor.getUUID().equals(referencingTableDescriptor.getUUID()));
-        String referencedTableName = referencedTableDescriptor.getSchemaName() + "." + referencedTableDescriptor.getName();
-        //look for the other foreign key constraints on this table first
-        int currentSelfRefValue = collectForeignKeyDeletionActions(dd, referencingTableDescriptor, -1, deleteConnectionsMap, false, true, false);
-        validateDeleteConnection(dd, referencingTableDescriptor, referencedTableDescriptor,
-                                 newFKDeletionActionRule,
-                                 deleteConnectionsMap, (Hashtable) deleteConnectionsMap.clone(),
-                                 true, newForeignKeyConstraintName, false,
-                                 new StringBuffer(0), referencedTableName,
-                                 isSelfReferencingFk,
-                                 currentSelfRefValue);
-
-        //if it not a self-referencing key check for violation of exiting connections.
-        if (!isSelfReferencingFk) {
-            checkForAnyExistingDeleteConnectionViolations(dd, referencingTableDescriptor,
-                                                          newFKDeletionActionRule,
-                                                          deleteConnectionsMap,
-                                                          newForeignKeyConstraintName);
-        } */
     }
 
 	/*

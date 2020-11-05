@@ -240,7 +240,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 			dm.clearDependencies(lcc, conDesc);
 		}
 
-		dd.getDataDictionaryCache().clearconstraintDescriptorListCache(); // not sure if this is the correct place to do this.
+		dd.getDataDictionaryCache().clearConstraintDescriptorListCache(); // not sure if this is the correct place to do this.
 	}
 
     /**

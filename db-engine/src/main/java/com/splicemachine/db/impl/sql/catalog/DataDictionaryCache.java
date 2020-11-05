@@ -735,14 +735,16 @@ public class DataDictionaryCache {
     }
 
     public void constraintDescriptorListCacheAdd(UUID id, ConstraintDescriptorList item) throws StandardException {
+        if (!dd.canWriteCache(null))
+            return;
         if (LOG.isDebugEnabled())
             LOG.debug("constraintDescriptorListCacheAdd " + id);
         constraintDescriptorListCache.put(id,item);
     }
 
     public ConstraintDescriptorList constraintDescriptorListCacheFind(UUID id) throws StandardException {
-        //if (!dd.canReadCache(null))
-        //    return null;
+        if (!dd.canReadCache(null))
+            return null;
         if (LOG.isDebugEnabled())
             LOG.debug("constraintDescriptorListCacheFind " + id);
         return constraintDescriptorListCache.getIfPresent(id);
@@ -754,9 +756,9 @@ public class DataDictionaryCache {
         constraintDescriptorListCache.invalidate(id);
     }
 
-    public void clearconstraintDescriptorListCache() {
+    public void clearConstraintDescriptorListCache() {
         if (LOG.isDebugEnabled())
-            LOG.debug("clearconstraintDescriptorListCache ");
+            LOG.debug("clearConstraintDescriptorListCache ");
         constraintDescriptorListCache.invalidateAll();
     }
 
