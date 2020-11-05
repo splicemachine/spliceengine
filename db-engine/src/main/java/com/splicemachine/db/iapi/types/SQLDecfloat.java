@@ -290,7 +290,7 @@ public final class SQLDecfloat extends NumberDataType
     }
 
     public Object getSparkObject() {
-        return getObject();
+        return getString();
     }
 
     @Override
@@ -970,13 +970,13 @@ public final class SQLDecfloat extends NumberDataType
             setToNull();
         else {
             isNull = false;
-            value = row.getDecimal(ordinal).round(MathContext.DECIMAL128);
+            value = new BigDecimal(row.getString(ordinal), MathContext.DECIMAL128);
         }
     }
 
     @Override
     public StructField getStructField(String columnName) {
-        return DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+        return DataTypes.createStructField(columnName, DataTypes.StringType, true);
     }
 
     public void updateThetaSketch(UpdateSketch updateSketch) {
@@ -988,7 +988,7 @@ public final class SQLDecfloat extends NumberDataType
         if (sparkObject == null)
             setToNull();
         else {
-            value = ((BigDecimal) sparkObject).round(MathContext.DECIMAL128);
+            value = new BigDecimal(sparkObject.toString(), MathContext.DECIMAL128);
             setIsNull(false);
         }
     }
