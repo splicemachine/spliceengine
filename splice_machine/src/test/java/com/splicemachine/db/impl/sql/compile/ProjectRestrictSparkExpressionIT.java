@@ -592,7 +592,19 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             " 1 |",
             "1  |\n" +
             "-----\n" +
-            "1.0 |"
+            "1.0 |",
+            "1     |\n" +
+            "------------\n" +
+            "11/06/2020 |",
+            "1    |\n" +
+            "----------\n" +
+            "12:01 AM |",
+            "1     |\n" +
+            "------------\n" +
+            "11/06/2020 |",
+            "1    |\n" +
+            "----------\n" +
+            "12:01 AM |"
         };
 
         String query[] = {
@@ -700,7 +712,11 @@ public class ProjectRestrictSparkExpressionIT  extends SpliceUnitTest {
             "select X.a - DATE('2017-01-01') from t6 as X --splice-properties useSpark=%s\n, t6 as Y where X.a=Y.a",
             "select X.a - (X.b-3) from t6 as X --splice-properties useSpark=%s\n, t6 as Y where X.a=Y.a",
             "select round(avg(1)) from t1 --splice-properties useSpark=%s\n",
-            "select round(avg(1),1) from t1 --splice-properties useSpark=%s\n"
+            "select round(avg(1),1) from t1 --splice-properties useSpark=%s\n",
+            "select distinct char(date('2020-11-06'), usa) from t1 --splice-properties useSpark=%s\n",
+            "select distinct char(time('00:01:00'), usa) from t1 --splice-properties useSpark=%s\n",
+            "select distinct varchar(date('2020-11-06'), usa) from t1 --splice-properties useSpark=%s\n",
+            "select distinct varchar(time('00:01:00'), usa) from t1 --splice-properties useSpark=%s\n",
         };
 
         for (int i = 0; i < query.length; i++) {

@@ -363,6 +363,22 @@ public class Trigger_Statement_IT {
 
     }
 
+@Test
+    public void sparkHint() throws Exception {
+        methodWatcher.executeUpdate("create trigger trig22\n" +
+                                    "after insert on t1\n" +
+                                    "referencing new_table as NT\n" +
+                                    "for each statement\n" +
+                                    "insert into t3 --splice-properties useSpark=true\n" +
+                                    "select * from NT\n");
+
+        // The following should not throw a ClassCastException.
+        methodWatcher.executeUpdate("insert into t1 values (1, 'abcdefg', 'dummy')");
+        Assert.assertEquals(1, (int)methodWatcher.query("select a3 from t3"));
+        methodWatcher.executeUpdate("drop trigger trig22");
+        methodWatcher.executeUpdate("delete from t3");
+    }
+
     private void assertQueryFails(String query, String expectedError) {
         try {
             methodWatcher.executeUpdate(query);

@@ -62,9 +62,10 @@ import java.util.List;
 @SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class CastNode extends ValueNode
 {
-    ValueNode            castOperand;
-    private int                    targetCharType;
-    TypeId    sourceCTI = null;
+    ValueNode   castOperand;
+    private int targetCharType;
+    TypeId      sourceCTI = null;
+    private int stringFormat = -1;
     private boolean forDataTypeFunction = false;
 
     /** This variable gets set by the parser to indiciate that this CAST node
@@ -172,6 +173,29 @@ public class CastNode extends ValueNode
         this.castOperand = (ValueNode) castOperand;
         int charLen = (Integer) charLength;
         targetCharType = (Integer) charType;
+        stringFormat = -1;
+        if (charLen < 0)    // unknown, figure out later
+            return;
+        setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLen));
+    }
+
+    /**
+     * Initializer for a CastNode
+     *
+     * @param castOperand    The operand of the node
+     * @param charType        CHAR or VARCHAR JDBC type as target
+     * @param charLength    target type length
+     *
+     * @exception StandardException        Thrown on error
+     */
+
+    public void init(Object castOperand, Object charType, Object charLength, Object stringFormat)
+            throws StandardException
+    {
+        this.castOperand = (ValueNode) castOperand;
+        int charLen = (Integer) charLength;
+        targetCharType = (Integer) charType;
+        this.stringFormat = (Integer) stringFormat;
         if (charLen < 0)    // unknown, figure out later
             return;
         setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLen));
@@ -356,10 +380,14 @@ public class CastNode extends ValueNode
                 case Types.TIMESTAMP:
                     if (destJDBCTypeId == Types.CHAR)
                     {
-                        String castValue =
-                                ((UserTypeConstantNode) castOperand).
-                                        getObjectValue().
-                                        toString();
+                        DataValueDescriptor dvd = ((ConstantNode) castOperand).getValue();
+                        String castValue;
+                        if (dvd instanceof DateTimeDataValue && stringFormat >= 0) {
+                            ((DateTimeDataValue) dvd).setStringFormat(stringFormat);
+                            castValue = dvd.getString();
+                        } else {
+                            castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
+                        }
                         retNode = (ValueNode) getNodeFactory().getNode(
                                 C_NodeTypes.CHAR_CONSTANT_NODE,
                                 castValue,
@@ -973,6 +1001,12 @@ public class CastNode extends ValueNode
             mb.setField(field); // targetDVD reference for the setValue method call
             mb.swap();
             mb.upCast(ClassName.DataValueDescriptor);
+            if (sourceCTI.isDateTimeTimeStampTypeId() && stringFormat >= 0) {
+                mb.dup();
+                mb.push(stringFormat);
+                mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DateTimeDataValue,
+                        "setStringFormat", "void", 1);
+            }
             mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DataValueDescriptor,
                     "setValue", "void", 1);
         }

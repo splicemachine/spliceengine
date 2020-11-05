@@ -181,8 +181,9 @@ public class TriggerNewTransitionRows
             else {
                 DataSet<ExecRow> cachedRowsSet = null;
                 boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
-                if (!isSpark)
-                    cachedRowsSet = new ControlDataSet<>(triggerRowsHolder.getCachedRowsIterator());
+                if (triggerRowsHolder != null)
+                    cachedRowsSet = dsp.createDataSet(triggerRowsHolder.getCachedRowsIterator());
+
                 if (conglomID != 0) {
                     String tableName = Long.toString(conglomID);
                     TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
