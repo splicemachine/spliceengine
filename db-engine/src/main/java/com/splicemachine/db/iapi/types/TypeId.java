@@ -1793,7 +1793,7 @@ public class TypeId{
                 }
                 break;
             case StoredFormatIds.DECFLOAT_TYPE_ID:
-                structField = DataTypes.createStructField(columnName, DataTypes.BinaryType, true);
+                structField = DataTypes.createStructField(columnName, DataTypes.StringType, true);
                 break;
             case StoredFormatIds.DOUBLE_TYPE_ID:
                 structField = DataTypes.createStructField(columnName, DataTypes.DoubleType, true);

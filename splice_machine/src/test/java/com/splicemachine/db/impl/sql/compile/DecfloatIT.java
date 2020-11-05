@@ -124,4 +124,21 @@ public class DecfloatIT extends SpliceUnitTest {
             Assert.assertEquals(new BigDecimal("5.4"), rs.getBigDecimal(5));
         }
     }
+
+    @Test
+    public void testJoin() throws Exception {
+        methodWatcher.executeUpdate("drop table testJoin_A if exists");
+        methodWatcher.executeUpdate("drop table testJoin_B if exists");
+        methodWatcher.executeUpdate("create table testJoin_A(a1 decfloat, a2 int)");
+        methodWatcher.executeUpdate("create table testJoin_B(b1 decfloat, b2 int)");
+        methodWatcher.executeUpdate("insert into testJoin_A values ('3',3), ('3.0000000000000000000000000000001', 4)");
+        methodWatcher.executeUpdate("insert into testJoin_B values ('3',3), ('3.0000000000000000000000000000001', 4)");
+        String sql = format("select * from testJoin_A, testJoin_B --splice-properties useSpark=%s, joinStrategy=broadcast\n" +
+                "where a1 = b1", useSpark);
+        String expected = "A1                 |A2 |               B1                 |B2 |\n" +
+                "------------------------------------------------------------------------------\n" +
+                "                3                 | 3 |                3                 | 3 |\n" +
+                "3.0000000000000000000000000000001 | 4 |3.0000000000000000000000000000001 | 4 |";
+        testQuery(sql, expected, methodWatcher);
+    }
 }
