@@ -227,6 +227,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private String metadataRestrictionEnabled;
     private CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
     private CompilerContext.NewMergeJoinExecutionType newMergeJoin;
+    private final String foreignKeyChecker;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -872,6 +873,10 @@ public final class SConfigurationImpl implements SConfiguration {
         return nestedLoopJoinBatchSize;
     }
     @Override
+    public String getForeignKeyChecker() {
+        return foreignKeyChecker;
+    }
+    @Override
     public int getRecursiveQueryIterationLimit() {
         return recursiveQueryIterationLimit;
     }
@@ -1146,6 +1151,7 @@ public final class SConfigurationImpl implements SConfiguration {
         metadataRestrictionEnabled = builder.metadataRestrictionEnabled;
         nativeSparkAggregationMode = builder.nativeSparkAggregationMode;
         newMergeJoin = builder.newMergeJoin;
+        foreignKeyChecker = builder.foreignKeyChecker;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");
