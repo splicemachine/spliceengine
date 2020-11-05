@@ -191,7 +191,8 @@ public class SpliceDefaultCompactor extends SpliceDefaultCompactorBase {
                     int bufferSize = HConfiguration.getConfiguration().getOlapCompactionResolutionBufferSize();
                     boolean blocking = HConfiguration.getConfiguration().getOlapCompactionBlocking();
                     SICompactionState state = new SICompactionState(driver.getTxnSupplier(),
-                            driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService());
+                            driver.getConfiguration().getActiveTransactionMaxCacheSize(), context, blocking ? driver.getExecutorService() : driver.getRejectingExecutorService(),
+                            driver.getIgnoreTxnSupplier());
                     PurgeConfigBuilder purgeConfig = new PurgeConfigBuilder();
                     if (SpliceCompactionUtils.forcePurgeDeletes(store) && request.isMajor()) {
                         purgeConfig.forcePurgeDeletes();
