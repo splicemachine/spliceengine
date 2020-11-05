@@ -181,7 +181,8 @@ public class TriggerNewTransitionRows
             else {
                 DataSet<ExecRow> cachedRowsSet = null;
                 boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
-                cachedRowsSet = dsp.createDataSet(triggerRowsHolder.getCachedRowsIterator());
+                if (triggerRowsHolder != null)
+                    cachedRowsSet = dsp.createDataSet(triggerRowsHolder.getCachedRowsIterator());
 
                 if (conglomID != 0) {
                     String tableName = Long.toString(conglomID);
