@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -89,6 +90,8 @@ public final class SQLDate extends DataType
 
 	private int	encodedDate;	//year << 16 + month << 8 + day
 
+	private int stringFormat = ISO;
+
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLDate.class);
 
 	private static boolean skipDBContext = false;
@@ -119,21 +122,22 @@ public final class SQLDate extends DataType
 		       DATE_ENCODING_OFFSET;
 	}
 
+	@Override
+	public void setStringFormat(int format) {
+		stringFormat = format;
+	}
 
 	/*
 	** DataValueDescriptor interface
 	** (mostly implemented in DataType)
 	*/
 
-	public String getString()
+	public String getString() throws StandardException
 	{
-		//format is [yyy]y-mm-dd e.g. 1-01-01, 9999-99-99
-		if (!isNull())
-		{
-			return encodedDateToString(encodedDate);
-		}
-		else
-		{
+		// default format is [yyy]y-mm-dd e.g. 1-01-01, 9999-99-99
+		if (!isNull()) {
+			return encodedDateToString(encodedDate, stringFormat);
+		} else {
 			return null;
 		}
 	}
@@ -306,6 +310,7 @@ public final class SQLDate extends DataType
 	 *
 	 * @exception StandardException thrown on failure
 	 */
+	@SuppressFBWarnings(value="RV_NEGATING_RESULT_OF_COMPARETO", justification="intended")
 	public int compare(DataValueDescriptor other)
 		throws StandardException
 	{
@@ -1011,6 +1016,8 @@ public final class SQLDate extends DataType
             // leap years are every 4 years except for century years not divisble by 400.
             maxDay = ((y % 4) == 0 && ((y % 100) != 0 || (y % 400) == 0)) ? 29 : 28;
             break;
+        default:
+        	break;
         }
         if( y < 1 || y > 9999
             || m < 1 || m > 12
@@ -1020,6 +1027,22 @@ public final class SQLDate extends DataType
         return (y << 16) + (m << 8) + d;
     }
 
+    private static void yearToString(int year, StringBuffer sb) {
+		String yearStr = Integer.toString(year);
+		for(int i = yearStr.length(); i < 4; i++) {
+			sb.append('0');
+		}
+		sb.append(yearStr);
+	}
+
+	private static void monthOrDayToString(int monthOrDay, StringBuffer sb) {
+		String valStr = Integer.toString(monthOrDay);
+		if (valStr.length() == 1) {
+			sb.append('0');
+		}
+		sb.append(valStr);
+	}
+
     /**
      * Convert a date to the JDBC representation and append it to a string buffer.
      *
@@ -1028,23 +1051,38 @@ public final class SQLDate extends DataType
      * @param day
      * @param sb The string representation is appended to this StringBuffer
      */
-    static void dateToString( int year, int month, int day, StringBuffer sb)
+    static void dateToString(int year, int month, int day, int format, StringBuffer sb) throws StandardException
     {
-        String yearStr = Integer.toString( year);
-        for( int i = yearStr.length(); i < 4; i++)
-            sb.append( '0');
-		sb.append(yearStr);
-		sb.append(ISO_SEPARATOR);
-
-		String monthStr = Integer.toString( month);
-		String dayStr = Integer.toString( day);
-		if (monthStr.length() == 1)
-			sb.append('0');
-		sb.append(monthStr);
-		sb.append(ISO_SEPARATOR);
-		if (dayStr.length() == 1)
-			sb.append('0');
-		sb.append(dayStr);
+    	switch (format) {
+			case ISO:
+			case JIS:
+				// yyyy-mm-dd
+				yearToString(year, sb);
+				sb.append(ISO_SEPARATOR);
+				monthOrDayToString(month, sb);
+				sb.append(ISO_SEPARATOR);
+				monthOrDayToString(day, sb);
+				break;
+			case USA:
+				// mm/dd/yyyy
+				monthOrDayToString(month, sb);
+				sb.append(IBM_USA_SEPARATOR);
+				monthOrDayToString(day, sb);
+				sb.append(IBM_USA_SEPARATOR);
+				yearToString(year, sb);
+				break;
+			case EUR:
+				// dd.mm.yyyy
+				monthOrDayToString(day, sb);
+				sb.append(IBM_EUR_SEPARATOR);
+				monthOrDayToString(month, sb);
+				sb.append(IBM_EUR_SEPARATOR);
+				yearToString(year, sb);
+				break;
+			case LOCAL:
+			default:
+				throw StandardException.newException( SQLState.LANG_FORMAT_EXCEPTION, "date");
+		}
     } // end of dateToString
     
 	/**
@@ -1052,10 +1090,10 @@ public final class SQLDate extends DataType
 	 *
 	 * @return	 string value.
 	 */
-	static String encodedDateToString(int encodedDate)
+	static String encodedDateToString(int encodedDate, int format) throws StandardException
 	{
 		StringBuffer vstr = new StringBuffer();
-        dateToString( getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate), vstr);
+        dateToString(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate), format, vstr);
 		return vstr.toString();
 	}
 

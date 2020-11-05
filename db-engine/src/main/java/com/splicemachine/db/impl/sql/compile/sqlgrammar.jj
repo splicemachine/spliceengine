@@ -3276,12 +3276,15 @@ TOKEN [IGNORE_CASE] :
 |    <EACH: "each">
 |    <EMPTY: "empty">
 |   <ESTIMATE: "estimate">
+|    <EUR: "eur">
 |    <EXCLUSIVE: "exclusive">
 |    <FN: "fn">
 |   <FRACTION: "fraction">
 |    <INDEX: "index">
 |    <INPLACE: "inplace">
+|    <ISO: "iso">
 |    <JAVA: "java">
+|    <JIS: "jis">
 |   <LCASE: "lcase">
 |   <LOCATE: "locate">
 |    <LOCK: "lock">
@@ -3329,6 +3332,7 @@ TOKEN [IGNORE_CASE] :
 |    <TRUNCATE_END: "truncate_end">
 |   <UCASE: "ucase">
 |   <UR: "ur">
+|   <USA: "usa">
 |   <WHITESPACE: "whitespace">
 }
 
@@ -8997,6 +9001,7 @@ ValueNode
     ValueNode operand;
     int charType;
     int length = -1;
+    int format = -1;
 }
 {
     //Note: When you add a new data type function, in addition to adding it
@@ -9018,7 +9023,7 @@ ValueNode
 
             return value;
       }
-     | charType = charOrVarchar() <LEFT_PAREN> operand = additiveExpression(null,0) [ <COMMA> length = length() ] <RIGHT_PAREN>
+     | charType = charOrVarchar() <LEFT_PAREN> operand = additiveExpression(null,0) [<COMMA> format = datetimeStringFormat()] [ <COMMA> length = length() ] <RIGHT_PAREN>
     {
         // Always check db2 limits for this function. It's new
         checkTypeLimits(charType,length);
@@ -9027,11 +9032,46 @@ ValueNode
                                                 operand,
                                                 new Integer(charType),
                                                 new Integer(length),
+                                                new Integer(format),
                                                 getContextManager());
 
         ((CastNode) value).setForDataTypeFunction(true);
         ((CastNode) value).setForExternallyGeneratedCASTnode();
         return value;
+    }
+}
+
+/*
+ * <A NAME="datetimeStringFormat">datetimeStringFormat</A>
+ */
+int
+datetimeStringFormat() throws StandardException :
+{
+}
+{
+    <ISO>
+    {
+        return DateTimeDataValue.ISO;
+    }
+|
+    <USA>
+    {
+        return DateTimeDataValue.USA;
+    }
+|
+    <EUR>
+    {
+        return DateTimeDataValue.EUR;
+    }
+|
+    <JIS>
+    {
+        return DateTimeDataValue.JIS;
+    }
+|
+    <LOCAL>
+    {
+        return DateTimeDataValue.LOCAL;
     }
 }
 
@@ -18478,6 +18518,7 @@ nonReservedKeyword()  :
     |    tok = <ENCODING>
     |    tok = <EXCLUDE>
     |    tok = <ESTIMATE>
+    |    tok = <EUR>
     |    tok = <EXCLUSIVE>
     |    tok = <EXTRACT>
     |    tok = <FIELD_SEPARATOR>
@@ -18500,7 +18541,9 @@ nonReservedKeyword()  :
     |    tok = <INITIAL>
     |    tok = <INPLACE>
     |    tok = <INTERVAL> // SQL92 says it is reserved, but we want it to be non-reserved.
+    |    tok = <ISO>
     |    tok = <JAVA>
+    |    tok = <JIS>
     |    tok = <KEYS>
     |    tok = <L>
     |    tok = <LAG>
@@ -18659,6 +18702,7 @@ nonReservedKeyword()  :
     |   tok = <UCASE>
     |    tok = <UNCOMMITTED>
     |   tok = <UR>
+    |    tok = <USA>
     |    tok = <USAGE>
 // SQL92 says VALUE is reserved, but we want it to be nonreserved.
     |    tok = <VALUE>
