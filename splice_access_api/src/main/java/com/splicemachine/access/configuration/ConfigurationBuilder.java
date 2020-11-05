@@ -184,6 +184,7 @@ public class ConfigurationBuilder {
     public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
     public CompilerContext.NewMergeJoinExecutionType newMergeJoin;
     public int splitsPerRegionMin;
+    public String foreignKeyChecker;
 
     // PipelineConfiguration
     public int coreWriterThreads;

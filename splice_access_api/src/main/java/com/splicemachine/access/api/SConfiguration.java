@@ -319,6 +319,8 @@ public interface SConfiguration {
 
     int getNestedLoopJoinBatchSize();
 
+    String getForeignKeyChecker();
+
     // StatsConfiguration
     double getFallbackNullFraction();
 
