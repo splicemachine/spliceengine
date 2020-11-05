@@ -42,9 +42,9 @@ public class PyStoredProcedureResultSetFactory{
             InternalDriver id = InternalDriver.activeDriver();
             if (id != null) {
                 conn = (EmbedConnection) id.connect("jdbc:default:connection", null);
-                if (conn  == null){
-                    throw Util.noCurrentConnection();
-                }
+            }
+            if (conn  == null){
+                throw Util.noCurrentConnection();
             }
 
             Activation lastActivation = conn.getLanguageConnection().getLastActivation();
@@ -63,10 +63,11 @@ public class PyStoredProcedureResultSetFactory{
                 String colName = (String) pyDescriptor.get(0);
                 Integer jdbcTypeId = (Integer) pyDescriptor.get(1);
                 TypeId typeId = TypeId.getBuiltInTypeId((int) pyDescriptor.get(1));// convert jdbcId to TypeId
-                boolean isNullable = ((int) pyDescriptor.get(6))>0?true:false;
+                boolean isNullable = ((int) pyDescriptor.get(6)) > 0;
                 switch (jdbcTypeId){
                     case Types.BIGINT:
                     case Types.DECIMAL:
+                    case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
                     case Types.DOUBLE:
                     case Types.FLOAT:
                     case Types.INTEGER:
@@ -75,8 +76,10 @@ public class PyStoredProcedureResultSetFactory{
                     case Types.SMALLINT:
                         Integer precision = (Integer) pyDescriptor.get(4);
                         Integer scale = (Integer) pyDescriptor.get(5);
-                        precision = (precision == null)?typeId.getMaximumPrecision():precision;
-                        scale = (scale==null)?typeId.getMaximumScale():scale;
+                        if (precision == null)
+                            precision = typeId.getMaximumPrecision();
+                        if (scale == null)
+                            scale = typeId.getMaximumScale();
                         descriptor = new DataTypeDescriptor(typeId, precision, scale, isNullable, typeId.getMaximumMaximumWidth());
                         break;
                     default:

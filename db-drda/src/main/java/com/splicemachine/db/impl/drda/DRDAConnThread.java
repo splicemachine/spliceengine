@@ -7503,6 +7503,9 @@ class DRDAConnThread extends Thread {
                                           precision, scale, rs.wasNull(),
                                           stmt, false);
                             break;
+                        //case DRDAConstants.DRDA_TYPE_NDECFLOAT:
+                        //    writeFdocaVal(i, rs.getObject(i), drdaType, precision, scale, rs.wasNull(), stmt, false);
+                        //    break;
                         default:
                             val = getObjectForWriteFdoca(rs, i, drdaType);
                             writeFdocaVal(i, val, drdaType,
@@ -7634,6 +7637,8 @@ class DRDAConnThread extends Thread {
                 return rs.getTimestamp(index, getGMTCalendar());
             case DRDAConstants.DRDA_TYPE_NARRAY:
                 return rs.getArray(index);
+            case DRDAConstants.DRDA_TYPE_NDECFLOAT:
+                return rs.getBigDecimal(index);
             default:
                 return rs.getObject(index);
         }
@@ -8292,6 +8297,7 @@ class DRDAConnThread extends Thread {
                 case DRDAConstants.DRDA_TYPE_NVARMIX:
                 case DRDAConstants.DRDA_TYPE_NLONG:
                 case DRDAConstants.DRDA_TYPE_NLONGMIX:
+                case DRDAConstants.DB2_SQLTYPE_NDECFLOAT:
                     //WriteLDString and generate warning if truncated
                     // which will be picked up by checkWarning()
                     writer.writeLDString(val.toString(), index, stmt, isParam);

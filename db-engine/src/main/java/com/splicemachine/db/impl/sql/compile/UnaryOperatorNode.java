@@ -502,6 +502,7 @@ public class UnaryOperatorNode extends OperatorNode
             case Types.BIGINT:
                 resultLength = 19;
                 break;
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
             case Types.DECIMAL:
             case Types.DOUBLE:
             case Types.REAL:

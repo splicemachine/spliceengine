@@ -50,175 +50,177 @@ import com.splicemachine.db.iapi.reference.Limits;
 
 public interface TypeCompiler
 {
-	/**
-	 * Various fixed numbers related to datatypes.
-	 */
-	// Need to leave space for '-'
-	int LONGINT_MAXWIDTH_AS_CHAR	= 20;
+    /**
+     * Various fixed numbers related to datatypes.
+     */
+    // Need to leave space for '-'
+    int LONGINT_MAXWIDTH_AS_CHAR    = 20;
 
-	// Need to leave space for '-'
-	int INT_MAXWIDTH_AS_CHAR	= 11;
+    // Need to leave space for '-'
+    int INT_MAXWIDTH_AS_CHAR    = 11;
 
-	// Need to leave space for '-'
-	int SMALLINT_MAXWIDTH_AS_CHAR	= 6;
+    // Need to leave space for '-'
+    int SMALLINT_MAXWIDTH_AS_CHAR    = 6;
 
-	// Need to leave space for '-'
-	int TINYINT_MAXWIDTH_AS_CHAR	= 4;
+    // Need to leave space for '-'
+    int TINYINT_MAXWIDTH_AS_CHAR    = 4;
 
-	// Need to leave space for '-' and decimal point
-	int DOUBLE_MAXWIDTH_AS_CHAR		= 54;
+    // Need to leave space for '-' and decimal point
+    int DOUBLE_MAXWIDTH_AS_CHAR        = 54;
 
-	// Need to leave space for '-' and decimal point
-	int REAL_MAXWIDTH_AS_CHAR	= 25;
+    // Need to leave space for '-' and decimal point
+    int REAL_MAXWIDTH_AS_CHAR    = 25;
 
-	int DEFAULT_DECIMAL_PRECISION	= Limits.DB2_DEFAULT_DECIMAL_PRECISION;
-	int DEFAULT_DECIMAL_SCALE 		= Limits.DB2_DEFAULT_DECIMAL_SCALE;
-	int MAX_DECIMAL_PRECISION_SCALE = Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
+    int DEFAULT_DECIMAL_PRECISION    = Limits.DB2_DEFAULT_DECIMAL_PRECISION;
+    int DEFAULT_DECIMAL_SCALE         = Limits.DB2_DEFAULT_DECIMAL_SCALE;
+    int MAX_DECIMAL_PRECISION_SCALE = Limits.DB2_MAX_DECIMAL_PRECISION_SCALE;
 
-	int BOOLEAN_MAXWIDTH_AS_CHAR	= 5;
+    int DECFLOAT_DECIMAL_PRECISION = 34;
 
-	String PLUS_OP 		= "+";
-	String DIVIDE_OP	= "/";
-	String MINUS_OP 	= "-";
-	String TIMES_OP 	= "*";
-	String SUM_OP 		= "sum";
-	String AVG_OP 		= "avg";
-	String MOD_OP		= "mod";
+    int BOOLEAN_MAXWIDTH_AS_CHAR    = 5;
 
-	/**
-	 * Type resolution methods on binary operators
-	 *
-	 * @param leftType	The type of the left parameter
-	 * @param rightType	The type of the right parameter
-	 * @param operator	The name of the operator (e.g. "+").
-	 *
-	 * @return	The type of the result
-	 *
-	 * @exception StandardException	Thrown on error
-	 */
+    String PLUS_OP         = "+";
+    String DIVIDE_OP    = "/";
+    String MINUS_OP     = "-";
+    String TIMES_OP     = "*";
+    String SUM_OP         = "sum";
+    String AVG_OP         = "avg";
+    String MOD_OP        = "mod";
 
-	DataTypeDescriptor	resolveArithmeticOperation(
-							DataTypeDescriptor leftType,
-							DataTypeDescriptor rightType,
-							String operator
-								)
-							throws StandardException;
+    /**
+     * Type resolution methods on binary operators
+     *
+     * @param leftType    The type of the left parameter
+     * @param rightType    The type of the right parameter
+     * @param operator    The name of the operator (e.g. "+").
+     *
+     * @return    The type of the result
+     *
+     * @exception StandardException    Thrown on error
+     */
 
-	/**
-	 * Determine if this type can be CONVERTed to some other type
-	 *
-	 * @param otherType	The CompilationType of the other type to compare
-	 *					this type to
-	 *
-	 * @param forDataTypeFunction  true if this is a type function that
-	 *   requires more liberal behavior (e.g DOUBLE can convert a char but 
-	 *   you cannot cast a CHAR to double.
-	 *   
-	 * @return	true if the types can be converted, false if conversion
-	 *			is not allowed
-	 */
-	 boolean             convertible(TypeId otherType, 
-									 boolean forDataTypeFunction);
+    DataTypeDescriptor    resolveArithmeticOperation(
+                            DataTypeDescriptor leftType,
+                            DataTypeDescriptor rightType,
+                            String operator
+                                )
+                            throws StandardException;
 
-	/**
-	 * Determine if this type is compatible to some other type
-	 * (e.g. COALESCE(thistype, othertype)).
-	 *
-	 * @param otherType	The CompilationType of the other type to compare
-	 *					this type to
-	 *
-	 * @return	true if the types are compatible, false if not compatible
-	 */
-	boolean compatible(TypeId otherType);
+    /**
+     * Determine if this type can be CONVERTed to some other type
+     *
+     * @param otherType    The CompilationType of the other type to compare
+     *                    this type to
+     *
+     * @param forDataTypeFunction  true if this is a type function that
+     *   requires more liberal behavior (e.g DOUBLE can convert a char but
+     *   you cannot cast a CHAR to double.
+     *
+     * @return    true if the types can be converted, false if conversion
+     *            is not allowed
+     */
+     boolean             convertible(TypeId otherType,
+                                     boolean forDataTypeFunction);
 
-	/**
-	 * Determine if this type can have a value of another type stored into it.
-	 * Note that direction is relevant here: the test is that the otherType
-	 * is storable into this type.
-	 *
-	 * @param otherType	The TypeId of the other type to compare this type to
-	 * @param cf		A ClassFactory
-	 *
-	 * @return	true if the other type can be stored in a column of this type.
-	 */
+    /**
+     * Determine if this type is compatible to some other type
+     * (e.g. COALESCE(thistype, othertype)).
+     *
+     * @param otherType    The CompilationType of the other type to compare
+     *                    this type to
+     *
+     * @return    true if the types are compatible, false if not compatible
+     */
+    boolean compatible(TypeId otherType);
 
-	boolean				storable(TypeId otherType, ClassFactory cf);
+    /**
+     * Determine if this type can have a value of another type stored into it.
+     * Note that direction is relevant here: the test is that the otherType
+     * is storable into this type.
+     *
+     * @param otherType    The TypeId of the other type to compare this type to
+     * @param cf        A ClassFactory
+     *
+     * @return    true if the other type can be stored in a column of this type.
+     */
 
-	/**
-	 * Get the name of the interface for this type.  For example, the interface
-	 * for a SQLInteger is NumberDataValue.  The full path name of the type
-	 * is returned.
-	 *
-	 * @return	The name of the interface for this type.
-	 */
-	String interfaceName();
+    boolean                storable(TypeId otherType, ClassFactory cf);
 
-	/**
-	 * Get the name of the corresponding Java type.  For numerics and booleans
-	 * we will get the corresponding Java primitive type.
-	 e
-	 * Each SQL type has a corresponding Java type.  When a SQL value is
-	 * passed to a Java method, it is translated to its corresponding Java
-	 * type.  For example, a SQL Integer will be mapped to a Java int, but
-	 * a SQL date will be mapped to a java.sql.Date.
-	 *
-	 * @return	The name of the corresponding Java primitive type.
-	 */
-	String	getCorrespondingPrimitiveTypeName();
+    /**
+     * Get the name of the interface for this type.  For example, the interface
+     * for a SQLInteger is NumberDataValue.  The full path name of the type
+     * is returned.
+     *
+     * @return    The name of the interface for this type.
+     */
+    String interfaceName();
 
-	/**
-	 * Get the method name for getting out the corresponding primitive
-	 * Java type from a DataValueDescriptor.
-	 *
-	 * @return String		The method call name for getting the
-	 *						corresponding primitive Java type.
-	 */
-	String getPrimitiveMethodName();
+    /**
+     * Get the name of the corresponding Java type.  For numerics and booleans
+     * we will get the corresponding Java primitive type.
+     e
+     * Each SQL type has a corresponding Java type.  When a SQL value is
+     * passed to a Java method, it is translated to its corresponding Java
+     * type.  For example, a SQL Integer will be mapped to a Java int, but
+     * a SQL date will be mapped to a java.sql.Date.
+     *
+     * @return    The name of the corresponding Java primitive type.
+     */
+    String    getCorrespondingPrimitiveTypeName();
 
-	/**
-	 * Generate the code necessary to produce a SQL null of the appropriate
-	 * type. The stack must contain a DataValueFactory and a null or a value
-	 * of the correct type (interfaceName()).
-	 *
-	 * @param mb	The method to put the expression in
-	 * @param collationType For character DVDs, this will be used to determine
-	 *   what Collator should be associated with the DVD which in turn will 
-	 *   decide whether to generate CollatorSQLcharDVDs or SQLcharDVDs.
-	 */
+    /**
+     * Get the method name for getting out the corresponding primitive
+     * Java type from a DataValueDescriptor.
+     *
+     * @return String        The method call name for getting the
+     *                        corresponding primitive Java type.
+     */
+    String getPrimitiveMethodName();
 
-	void generateNull(MethodBuilder mb, DataTypeDescriptor dtd, LocalField[] localFields);
+    /**
+     * Generate the code necessary to produce a SQL null of the appropriate
+     * type. The stack must contain a DataValueFactory and a null or a value
+     * of the correct type (interfaceName()).
+     *
+     * @param mb    The method to put the expression in
+     * @param collationType For character DVDs, this will be used to determine
+     *   what Collator should be associated with the DVD which in turn will
+     *   decide whether to generate CollatorSQLcharDVDs or SQLcharDVDs.
+     */
+
+    void generateNull(MethodBuilder mb, DataTypeDescriptor dtd, LocalField[] localFields);
 
 
-	/**
-	 * Generate the code necessary to produce a SQL value based on
-	 * a value.  The value's type is assumed to match
-	 * the type of this TypeId.  For example, a TypeId
-	 * for the SQL int type should be given an value that evaluates
-	 * to a Java int or Integer.
-	 *
-	 * If the type of the value is incorrect, the generated code will
-	 * not work.
-	 * 
-	 * The stack must contain data value factory value.
-	 * 
-	 * @param mb	The method to put the expression in
-	 * @param collationType For character DVDs, this will be used to determine
-	 *   what Collator should be associated with the DVD which in turn will 
-	 *   decide whether to generate CollatorSQLcharDVDs or SQLcharDVDs. For 
-	 *   other types of DVDs, this parameter will be ignored.
-	 * @param field LocalField
-	 */
-	void generateDataValue(
-			MethodBuilder mb, int collationType, 
-			LocalField field);
+    /**
+     * Generate the code necessary to produce a SQL value based on
+     * a value.  The value's type is assumed to match
+     * the type of this TypeId.  For example, a TypeId
+     * for the SQL int type should be given an value that evaluates
+     * to a Java int or Integer.
+     *
+     * If the type of the value is incorrect, the generated code will
+     * not work.
+     *
+     * The stack must contain data value factory value.
+     *
+     * @param mb    The method to put the expression in
+     * @param collationType For character DVDs, this will be used to determine
+     *   what Collator should be associated with the DVD which in turn will
+     *   decide whether to generate CollatorSQLcharDVDs or SQLcharDVDs. For
+     *   other types of DVDs, this parameter will be ignored.
+     * @param field LocalField
+     */
+    void generateDataValue(
+            MethodBuilder mb, int collationType,
+            LocalField field);
 
-	/**
-	 * Return the maximum width for this data type when cast to a char type.
-	 *
-	 * @param dts		The associated DataTypeDescriptor for this TypeId.
-	 *
-	 * @return int			The maximum width for this data type when cast to a char type.
-	 */
-	int getCastToCharWidth(DataTypeDescriptor dts);
+    /**
+     * Return the maximum width for this data type when cast to a char type.
+     *
+     * @param dts        The associated DataTypeDescriptor for this TypeId.
+     *
+     * @return int            The maximum width for this data type when cast to a char type.
+     */
+    int getCastToCharWidth(DataTypeDescriptor dts);
 
 }
