@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.shared.common.reference.JDBC30Translation;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -43,6 +44,7 @@ import java.io.ObjectOutput;
 import java.sql.Types;
 import java.util.Objects;
 
+@SuppressFBWarnings(value="HE_EQUALS_USE_HASHCODE", justification="DB-10665")
 public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
     /********************************************************
     **
@@ -464,11 +466,6 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
     public BaseTypeIdImpl getTypeId()
     {
         return typeId;
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(typeId, precision, scale, isNullable, maximumWidth, collationType);
     }
 
     /**
