@@ -111,6 +111,7 @@
     <Match>
         <Class name="com.splicemachine.spark.splicemachine.package$"/>
         <Bug pattern="NM_METHOD_NAMING_CONVENTION"/>
+    </Match>
     <!-- SplicePartitioningUtils is external code <Class name="~SplicePartitioningUtils"/> -->
     <Match>
         <Class name="~com\.splicemachine\.spark\.splicemachine\.SplicePartitioningUtils.*"/>
