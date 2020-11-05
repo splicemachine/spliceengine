@@ -21,33 +21,58 @@ import java.math.BigDecimal;
 
 public class LazyDataValueFactory extends J2SEDataValueFactory{
 
-        public NumberDataValue getDecimalDataValue(Long value, NumberDataValue previous) throws StandardException {
-                if(previous != null && previous instanceof SQLDecimal){
-                        previous.setValue(value);
-                    }else{
-                        previous = new SQLDecimal(BigDecimal.valueOf(value.longValue()));
-                    }
-        
-                        return previous;
-            }
-    
-                public NumberDataValue getDecimalDataValue(String value) throws StandardException {
-                return new SQLDecimal(value);
-            }
-    
-                public NumberDataValue getNullDecimal(NumberDataValue dataValue) {
-                if(dataValue == null){
-                        dataValue = new SQLDecimal();
-                    }else{
-                        dataValue.setToNull();
-                    }
-        
-                        return dataValue;
-            }
-    
+    public NumberDataValue getDecimalDataValue(Long value, NumberDataValue previous) throws StandardException {
+        if(previous != null && previous instanceof SQLDecimal){
+            previous.setValue(value);
+        }else{
+            previous = new SQLDecimal(BigDecimal.valueOf(value.longValue()));
+        }
+
+        return previous;
+    }
+
+    public NumberDataValue getDecimalDataValue(String value) throws StandardException {
+        return new SQLDecimal(value);
+    }
+
+    public NumberDataValue getNullDecimal(NumberDataValue dataValue) {
+        if(dataValue == null){
+            dataValue = new SQLDecimal();
+        }else{
+            dataValue.setToNull();
+        }
+
+        return dataValue;
+    }
+
+    public NumberDataValue getDecfloatDataValue(Long value, NumberDataValue previous) throws StandardException {
+        if(previous != null && previous instanceof SQLDecfloat){
+            previous.setValue(value);
+        }else{
+            previous = new SQLDecfloat(BigDecimal.valueOf(value));
+        }
+
+        return previous;
+    }
+
+    public NumberDataValue getDecfloatDataValue(String value) throws StandardException {
+        return new SQLDecfloat(value);
+    }
+
+
+    public NumberDataValue getNullDecfloat(NumberDataValue dataValue) {
+        if(dataValue == null){
+            dataValue = new SQLDecfloat();
+        }else{
+            dataValue.setToNull();
+        }
+
+        return dataValue;
+    }
+
     public static DataValueDescriptor getLazyNull(int formatId) throws StandardException {
         switch (formatId) {
-        /* Wrappers */
+            /* Wrappers */
             case StoredFormatIds.SQL_BIT_ID: return new SQLBit();
             case StoredFormatIds.SQL_BOOLEAN_ID: return new SQLBoolean();
             case StoredFormatIds.SQL_CHAR_ID: return new SQLChar();
@@ -70,6 +95,7 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             case StoredFormatIds.SQL_BLOB_ID: return new SQLBlob();
             case StoredFormatIds.SQL_CLOB_ID: return new SQLClob();
             case StoredFormatIds.XML_ID: return new XML();
+            case StoredFormatIds.SQL_DECFLOAT_ID: return new SQLDecfloat();
             case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID: return new HBaseRowLocation();
             default:
                 throw new RuntimeException("No Data Descriptor for type=" + formatId);
