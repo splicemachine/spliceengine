@@ -192,19 +192,24 @@ public class ReplicationUtils {
     }
 
     public static void setReplicationRole(String role) throws IOException {
+        Txn txn = null;
+        boolean prepared = false;
+        SpliceTransactionResourceImpl transactionResource = null;
         try {
-            Txn txn = SIDriver.driver().lifecycleManager().beginTransaction();
-            try (SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl()){
-                transactionResource.marshallTransaction(txn);
-                TransactionController tc = transactionResource.getLcc().getTransactionExecute();
-                DDLMessage.DDLChange change = ProtoUtil.createSetReplicationRole(txn.getTxnId(), role);
-                String changeId = DDLUtils.notifyMetadataChange(change);
-                tc.prepareDataDictionaryChange(changeId);
-                tc.commitDataDictionaryChange();
-                SpliceLogUtils.info(LOG, "Change replication role to %s", role);
-            }
+            txn = SIDriver.driver().lifecycleManager().beginTransaction();
+            transactionResource = new SpliceTransactionResourceImpl();
+            prepared = transactionResource.marshallTransaction(txn);
+            TransactionController tc = transactionResource.getLcc().getTransactionExecute();
+            DDLMessage.DDLChange change = ProtoUtil.createSetReplicationRole(txn.getTxnId(), role);
+            String changeId = DDLUtils.notifyMetadataChange(change);
+            tc.prepareDataDictionaryChange(changeId);
+            tc.commitDataDictionaryChange();
+            SpliceLogUtils.info(LOG, "Change replication role to %s", role);
         } catch (Exception e) {
             throw new IOException(e);
+        } finally {
+            if (prepared)
+                transactionResource.close();
         }
     }
 
