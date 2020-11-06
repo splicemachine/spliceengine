@@ -108,15 +108,21 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         return result;
     }
 
+    private ConstraintDescriptorList retrieveFromCache(UUID constraintId) throws StandardException {
+        ConstraintDescriptorList result = dd.getDataDictionaryCache().constraintDescriptorListCacheFind(constraintId);
+        if(result == null) {
+            result = dd.getForeignKeys(constraintId);
+            dd.getDataDictionaryCache().constraintDescriptorListCacheAdd(constraintId, result);
+        }
+        return result;
+    }
+
     List<Pair<TableDescriptor, EdgeNode.Type>> getChildren(TableDescriptor tableDescriptor) throws StandardException {
         List<Pair<TableDescriptor, EdgeNode.Type>> result = new ArrayList<>();
         ConstraintDescriptorList constraintDescriptorList = dd.getConstraintDescriptors(tableDescriptor);
         for (ConstraintDescriptor cd : constraintDescriptorList) {
             if ((cd instanceof ReferencedKeyConstraintDescriptor)) {
-
-                ConstraintDescriptorList fkcdl = dd.getActiveConstraintDescriptors
-                        (((ReferencedKeyConstraintDescriptor) cd).getForeignKeyConstraints(ConstraintDescriptor.ALL));
-
+                ConstraintDescriptorList fkcdl = retrieveFromCache(cd.getUUID());
                 int size = fkcdl.size();
                 if (size == 0) {
                     continue;
@@ -146,7 +152,15 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         }
 
         TableDescriptor referencedTableDescriptor = newConstraintInfo.getReferencedTableDescriptor(dd);
+
+        if(referencedTableDescriptor == null) { // self-referencing table in DDL
+            assert referencingTableDescriptor == null;
+            return new Graph(tableNames, newConstraintName); // empty graph.
+        }
+
         descriptors.add(referencedTableDescriptor);
+
+
 
         Set<UUID> visited = new HashSet<>();
 

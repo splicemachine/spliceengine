@@ -36,10 +36,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.catalog.UUID;
-
-import java.util.HashMap;
-import java.util.Map;
-
 /**
  * A ReferencedConstraintDeescriptor is a primary key or a unique
  * key that is referenced by a foreign key.
@@ -240,7 +236,10 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 			{
 				return fkEnabledConstraintList;
 			}
-			initList(constraintId);
+			else if (fkConstraintList == null)
+			{
+				fkConstraintList = getDataDictionary().getForeignKeys(constraintId);
+			}
 			fkEnabledConstraintList = fkConstraintList.getConstraintDescriptorList(true);
 			return fkEnabledConstraintList;
 		}
@@ -248,24 +247,19 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 		// not optimized for this case
 		else if (type == DISABLED)
 		{
-			initList(constraintId);
+			if (fkConstraintList == null)
+			{
+				fkConstraintList = getDataDictionary().getForeignKeys(constraintId);
+			}
 			return fkConstraintList.getConstraintDescriptorList(false);
 		}
 		else
 		{
-			initList(constraintId);
+			if (fkConstraintList == null)
+			{
+				fkConstraintList = getDataDictionary().getForeignKeys(constraintId);
+			}
 			return fkConstraintList;
-		}
-	}
-
-	private void initList(UUID constraintId) throws StandardException {
-		if(fkConstraintList != null) {
-			return;
-		}
-		fkConstraintList = getDataDictionary().getDataDictionaryCache().constraintDescriptorListCacheFind(constraintId);
-		if(fkConstraintList == null) {
-			fkConstraintList = getDataDictionary().getForeignKeys(constraintId);
-			getDataDictionary().getDataDictionaryCache().constraintDescriptorListCacheAdd(constraintId, fkConstraintList);
 		}
 	}
 		
