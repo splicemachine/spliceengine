@@ -325,13 +325,13 @@ public class CastNode extends ValueNode
         bindCastNodeOnly();
 
         if (getTypeId().isCharOrVarChar()) {
-            if (requestedStringLength != -1 && !sourceCTI.isCharOrVarChar()) {
+            if (requestedStringLength != -1 && sourceCTI != null && !sourceCTI.isCharOrVarChar()) {
                 throw StandardException.newException(
                         SQLState.LANG_INVALID_CAST_TO_CHAR_WITH_LENGTH_NOT_FROM_CHAR,
                         sourceCTI.getSQLTypeName(),
                         getTypeId().getSQLTypeName());
             }
-            if (dateToStringFormat != -1 && !sourceCTI.isDateTimeTimeStampTypeID()) {
+            if (dateToStringFormat != -1 && sourceCTI != null && !sourceCTI.isDateTimeTimeStampTypeID()) {
                 throw StandardException.newException(
                         SQLState.LANG_INVALID_CAST_TO_CHAR_WITH_FORMAT_NOT_FROM_DATE
                 );
