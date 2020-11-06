@@ -66,6 +66,10 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 	/** @see TypeDescriptor#getCollationType() */
 	private int	collationType = StringDataValue.COLLATION_TYPE_UCS_BASIC;
 
+	// DO NOT CHANGE OR REMOVE THIS WITHOUT PROVIDING AN UPDATE SCRIPT
+	// it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
+	public static final long serialVersionUID = -366780836777876368l;
+
 	/**
 	 * Public niladic constructor. Needed for Formatable interface to work.
 	 *

@@ -496,11 +496,7 @@ public class BaseTypeIdImpl implements Formatable
               break;
 
           default:
-                if (SanityManager.DEBUG)
-                {
-                    SanityManager.THROWASSERT("Unexpected formatId " + getTypeFormatId());
-                }
-                break;
+              throw new RuntimeException("Unexpected formatId " + getTypeFormatId());
         }
     }
 
