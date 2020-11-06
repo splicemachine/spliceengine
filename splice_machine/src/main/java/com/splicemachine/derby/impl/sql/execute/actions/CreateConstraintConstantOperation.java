@@ -20,6 +20,8 @@ import com.splicemachine.db.iapi.sql.dictionary.fk.Graph;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.EngineDriver;
+import com.splicemachine.access.configuration.SQLConfiguration;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -40,6 +42,7 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.ConstraintInfo;
 import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -143,6 +146,19 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
             }
         }
         return result;
+    }
+
+    private static DDUtils.Checker readCheckerConfig() throws StandardException {
+        switch(EngineDriver.driver().getConfiguration().getForeignKeyChecker()) {
+            case SQLConfiguration.FOREIGN_KEY_CHECKER_SPLICEMACHINE:
+                return DDUtils.Checker.SpliceMachine;
+            case SQLConfiguration.FOREIGN_KEY_CHECKER_DERBY:
+                return DDUtils.Checker.Derby;
+            case SQLConfiguration.FOREIGN_KEY_CHECKER_NONE:
+                return DDUtils.Checker.None;
+        }
+        throw StandardException.newException(String.format("unexpected foreign key checker type: %s",
+                                                           EngineDriver.driver().getConfiguration().getForeignKeyChecker()));
     }
 
     /**
@@ -257,12 +273,12 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 					(activation, conDesc, null, providerInfo);
 				break;
 
-			case DataDictionary.FOREIGNKEY_CONSTRAINT:
-				if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
-					throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_REFERENCE_CONSTRAINTS,td.getName());
-				ReferencedKeyConstraintDescriptor referencedConstraint = DDUtils.locateReferencedConstraint
-					( dd, td, constraintName, columnNames, otherConstraintInfo );
-				DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames, fkGraph);
+            case DataDictionary.FOREIGNKEY_CONSTRAINT:
+                if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
+                    throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_REFERENCE_CONSTRAINTS,td.getName());
+                ReferencedKeyConstraintDescriptor referencedConstraint = DDUtils.locateReferencedConstraint
+                    ( dd, td, constraintName, columnNames, otherConstraintInfo );
+                DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames, fkGraph, readCheckerConfig());
 
 				conDesc = ddg.newForeignKeyConstraintDescriptor(
 								td, constraintName,
@@ -501,9 +517,13 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
      */
     @Override
     public void prePrepareDataDictionaryActions(Activation activation) throws StandardException {
-        DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
-        TableDescriptor td = getTableDescriptor(activation, false);
-        DictionaryGraphBuilder builder = new DictionaryGraphBuilder(dd, td, constraintName, otherConstraintInfo, schemaName, schemaId, tableName);
-        fkGraph = builder.generateGraph();
+        if (getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT && readCheckerConfig() == DDUtils.Checker.SpliceMachine) {
+
+            DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
+            TableDescriptor td = getTableDescriptor(activation, false);
+
+            DictionaryGraphBuilder builder = new DictionaryGraphBuilder(dd, td, constraintName, otherConstraintInfo, schemaName, schemaId, tableName);
+            fkGraph = builder.generateGraph();
+        }
     }
 }
