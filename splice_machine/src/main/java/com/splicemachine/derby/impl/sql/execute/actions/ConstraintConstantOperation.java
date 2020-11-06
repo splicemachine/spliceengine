@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.db.iapi.sql.Activation;
 import splice.com.google.common.base.Function;
 import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Iterables;
