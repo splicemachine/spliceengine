@@ -142,7 +142,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             int maxMemoryPerTable,
             boolean genInListVals,
             String tableVersion,
-            boolean pin,
             int splits,
             String delimited,
             String escaped,
@@ -150,7 +149,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             String storedAs,
             String location,
             int partitionReferenceItem
-            ) throws StandardException{
+    ) throws StandardException{
         ExpressionClassBuilder acb=(ExpressionClassBuilder)acbi;
         int numArgs;
 
@@ -172,9 +171,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          * 4) array of types of the in-list columns
          */
         if(genInListVals){
-            numArgs=39;
+            numArgs=38;
         }else{
-            numArgs=35;
+            numArgs=34;
         }
 
 
@@ -214,7 +213,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                 tableLocked,
                 isolationLevel,
                 tableVersion,
-                pin,
                 splits,
                 delimited,
                 escaped,

@@ -346,10 +346,6 @@ public interface C_NodeNames
 
     String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
 
-    String CREATE_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreatePinNode";
-
-    String DROP_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropPinNode";
-
     String SET_SESSION_PROPERTY_NAME = "com.splicemachine.db.impl.sql.compile.SetSessionPropertyNode";
 
     String GROUPING_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.GroupingFunctionNode";

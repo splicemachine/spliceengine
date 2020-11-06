@@ -196,23 +196,6 @@ public interface DataSetProcessor {
      * @param location
      */
     void refreshTable(String location);
-    /**
-     *
-     * Reads in-memory version given the scan variables.  The qualifiers are applied to the in-memory version.
-     *
-     * @param conglomerateId
-     * @param baseColumnMap
-     * @param location
-     * @param context
-     * @param qualifiers
-     * @param probeValue
-     * @param execRow
-     * @param <V>
-     * @return
-     * @throws StandardException
-     */
-    <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location,
-                                   OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
 
     /**
      *
@@ -245,15 +228,6 @@ public interface DataSetProcessor {
                                       String location, OperationContext context, Qualifier[][] qualifiers,
                                       DataValueDescriptor probeValue, ExecRow execRow,
                                       boolean useSample, double sampleFraction) throws StandardException;
-
-    /**
-     *
-     * Drops the in-memory version of the table.
-     *
-     * @param conglomerateId
-     * @throws StandardException
-     */
-    void dropPinnedTable(long conglomerateId) throws StandardException;
 
 
     /**

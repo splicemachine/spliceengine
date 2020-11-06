@@ -3803,8 +3803,6 @@ StatementPart(Token[] tokenHolder) throws StandardException :
         statementNode = exportStatement() |
         statementNode = binaryExportStatement() |
         statementNode = kafkaExportStatement() |
-        statementNode = pinStatement() |
-        statementNode = dropPinStatement() |
         statementNode = signalStatement()
     )
     {
@@ -4184,26 +4182,6 @@ explainStatement() throws StandardException :
                                    SparkExplainKind.OPTIMIZED,
                                    false,
                                    getContextManager());
-    }
-}
-
-StatementNode
-pinStatement() throws StandardException :
-{
-    StatementNode   statementNode;
-    String authName = null;
-    TableName tableName = null;
-    Vector parameterList = new Vector();
-}
-{
-    <PIN>
-    [ <AUTHORIZATION> authName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) ]
-    <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-    {
-        return (CreatePinNode) nodeFactory.getNode(C_NodeTypes.CREATE_PIN_NODE,
-                                   tableName,
-                                   getContextManager());
-
     }
 }
 
@@ -17304,34 +17282,6 @@ dropTableStatement() throws StandardException :
         return deleteNode;
     }
 }
-
-/*
- * <A NAME="dropPinStatement">dropPinStatement</A>
- */
-StatementNode
-dropPinStatement() throws StandardException :
-{
-    Token ifTok = null;
-    Token existsTok = null;
-    TableName tableName;
-}
-{
-    <UNPIN> <TABLE> [ ifTok = <IF> existsTok = <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-    {
-        // must have both "if" and "exists"
-        boolean ifExists = ifTok != null && existsTok != null;
-        // DB2 does not support a drop behaviour
-        StatementNode deleteNode = (StatementNode) nodeFactory.getNode(
-                                            C_NodeTypes.DROP_PIN_NODE,
-                                            tableName,
-                                            (ifExists ?
-                                              new Integer(StatementType.DROP_IF_EXISTS) :
-                                              new Integer(StatementType.DROP_DEFAULT)),
-                                            getContextManager());
-        return deleteNode;
-    }
-}
-
 
 /*
  * <A NAME="dropIndexStatement">dropIndexStatement</A>

@@ -15,33 +15,22 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
-import com.splicemachine.db.iapi.store.raw.Transaction;
-import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
 import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
-import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -49,7 +38,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.List;
 
@@ -126,9 +114,8 @@ public class TableScanOperation extends ScanOperation{
      * @param delimited
      * @param escaped
      * @param lines
-     * @param location
-     * @param pin
      * @param storedAs
+     * @param location
      * @param defaultRowFunc
      * @param defaultValueMapItem
      * @param pastTxFunctor a functor that returns the id of a committed transaction for time-travel queries, -1 for not set.
@@ -164,7 +151,6 @@ public class TableScanOperation extends ScanOperation{
                               double optimizerEstimatedRowCount,
                               double optimizerEstimatedCost,
                               String tableVersion,
-                              boolean pin,
                               int splits,
                               String delimited,
                               String escaped,
@@ -179,7 +165,7 @@ public class TableScanOperation extends ScanOperation{
         super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,
                 sameStartStopPosition,rowIdKey,qualifiersField,resultRowAllocator,lockMode,tableLocked,isolationLevel,
                 colRefItem,indexColItem,oneRowScan,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
-                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
+                splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
                 pastTxFunctor, minRetentionPeriod);
         SpliceLogUtils.trace(LOG,"instantiated for tablename %s or indexName %s with conglomerateID %d",
                 tableName,indexName,conglomId);
@@ -207,7 +193,6 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
         super.readExternal(in);
-        pin = in.readBoolean();
         tableName=in.readUTF();
         tableDisplayName=in.readUTF();
         tableNameBytes=Bytes.toBytes(tableName);
@@ -225,7 +210,6 @@ public class TableScanOperation extends ScanOperation{
     @Override
     public void writeExternal(ObjectOutput out) throws IOException{
         super.writeExternal(out);
-        out.writeBoolean(pin);
         out.writeUTF(tableName);
         out.writeUTF(tableDisplayName);
         out.writeInt(indexColItem);
@@ -376,7 +360,6 @@ public class TableScanOperation extends ScanOperation{
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(getRowDecodingMap())
                 .baseColumnMap(baseColumnMap)
-                .pin(pin)
                 .delimited(delimited)
                 .escaped(escaped)
                 .lines(lines)

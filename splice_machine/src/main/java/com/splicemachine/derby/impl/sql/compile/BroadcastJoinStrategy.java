@@ -35,20 +35,9 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
     }
 
     /**
-     * @see JoinStrategy#resultSetMethodName
-     */
-	@Override
-    public String resultSetMethodName(boolean multiprobe) {
-        if (multiprobe)
-            return "getMultiProbeTableScanResultSet";
-        else
-            return "getTableScanResultSet";
-    }
-
-    /**
      * @see JoinStrategy#joinResultSetMethodName
      */
-	@Override
+    @Override
     public String joinResultSetMethodName() {
         return "getBroadcastJoinResultSet";
     }
@@ -56,7 +45,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
     /**
      * @see JoinStrategy#halfOuterJoinResultSetMethodName
      */
-	@Override
+    @Override
     public String halfOuterJoinResultSetMethodName() {
         return "getBroadcastLeftOuterJoinResultSet";
     }
@@ -65,11 +54,11 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
     public String fullOuterJoinResultSetMethodName() {
         return "getBroadcastFullOuterJoinResultSet";
     }
-	
-	/** @see JoinStrategy#multiplyBaseCostByOuterRows */
-	public boolean multiplyBaseCostByOuterRows() {
-		return true;
-	}
+
+    /** @see JoinStrategy#multiplyBaseCostByOuterRows */
+    public boolean multiplyBaseCostByOuterRows() {
+        return true;
+    }
     
     /**
      * 
@@ -78,8 +67,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
      * using the HBaseRegionLoads.memstoreAndStorefileSize method on each region load.
      * 
      */
-	@Override
-	public boolean feasible(Optimizable innerTable,
+    @Override
+    public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
                             CostEstimate outerCost,
@@ -93,7 +82,7 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 
         return hashFeasible;
 
-	}
+    }
 
     @Override
     public void estimateCost(Optimizable innerTable,

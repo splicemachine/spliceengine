@@ -333,7 +333,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             boolean tableLocked,
             int isolationLevel,
             int maxMemoryPerTable,
-            boolean genInListVals, String tableVersion, boolean pin,
+            boolean genInListVals, String tableVersion,
             int splits,
             String delimited,
             String escaped,
@@ -341,7 +341,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             String storedAs,
             String location,
             int partitionRefItem
-            ) throws StandardException {
+    ) throws StandardException {
         ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
         int numArgs;
 		/* If we're going to generate a list of IN-values for index probing
@@ -352,10 +352,10 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 * 4) array of types of the in-list columns.
 		 */
         if (genInListVals) {
-            numArgs = 39;
+            numArgs = 38;
         }
         else {
-            numArgs = 35 ;
+            numArgs = 34 ;
         }
         // Splice: our Hashable joins (MSJ, Broadcast) don't have a notion of store vs. non-store
         // filters, so include any nonStoreRestrictions in the storeRestrictionList
@@ -384,8 +384,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             }
         }
 
-        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,pin,
-            splits, delimited, escaped, lines, storedAs, location, partitionRefItem);
+        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,
+                splits, delimited, escaped, lines, storedAs, location, partitionRefItem);
         return numArgs;
     }
 
