@@ -98,8 +98,7 @@ public class ForeignKeyGraphIT {
             } catch (Exception e) {
                 Assert.assertTrue(e instanceof SQLException);
                 SQLException sqlException = (SQLException) e;
-                Assert.assertTrue(sqlException.getMessage().contains("The relationship would cause"));
-                Assert.assertTrue(sqlException.getMessage().contains("table to be delete-connected to the same table through multiple"));
+                Assert.assertTrue(sqlException.getMessage().contains("adding this foreign key leads to the conflicting delete actions on the table"));
             }
             return this;
         }
@@ -117,7 +116,7 @@ public class ForeignKeyGraphIT {
         ddlGenerator
                 .link(1, 0, Action.CASCADE)
                 .link(2, 0, Action.CASCADE)
-                .link(1, 3, Action.SET_NULL)
+                .link(3, 1, Action.SET_NULL)
                 .materialize()
                 .shouldFail(3, 2, Action.CASCADE);
     }
