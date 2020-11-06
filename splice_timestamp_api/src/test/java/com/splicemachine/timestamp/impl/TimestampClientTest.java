@@ -216,6 +216,42 @@ public class TimestampClientTest {
         }
     }
 
+    @Test
+    public void testReConnection() throws TimestampIOException, InterruptedException {
+        TimestampServer ts = new TimestampServer(0, new TimestampServerHandler(
+                TimestampOracle.getInstance(Mockito.mock(TimestampBlockManager.class, Mockito.RETURNS_DEEP_STUBS), 10)));
+        ts.startServer();
+
+        TimestampHostProvider hostProvider = Mockito.mock(TimestampHostProvider.class, Mockito.RETURNS_DEEP_STUBS);
+        TimestampClient tc = factory.create(1000, hostProvider);
+
+        when(hostProvider.getHost()).thenReturn("localhost");
+        when(hostProvider.getPort()).thenReturn(ts.getBoundPort());
+
+        // Connect
+        tc.connectIfNeeded();
+
+        // We make sure the connection is active
+        tc.getNextTimestamp();
+
+        ts.stopServer();
+
+        // This one should fail
+        try {
+            tc.getNextTimestamp();
+            fail("Should have failed, server stopped");
+        } catch (TimestampIOException ex) {
+        }
+
+        ts.startServer();
+        when(hostProvider.getPort()).thenReturn(ts.getBoundPort());
+
+        // Re-Connect
+        tc.connectIfNeeded();
+
+        // We make sure the connection is active
+        tc.getNextTimestamp();
+    }
 }
 
 interface TCFactory {
