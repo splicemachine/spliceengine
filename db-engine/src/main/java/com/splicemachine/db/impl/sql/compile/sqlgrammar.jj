@@ -9022,7 +9022,17 @@ ValueNode
 
             return value;
       }
-     | charType = charOrVarchar() <LEFT_PAREN> operand = additiveExpression(null,0) [<COMMA> format = datetimeStringFormat()] [ <COMMA> length = length() ] <RIGHT_PAREN>
+     |
+     charType = charOrVarchar()
+     <LEFT_PAREN>
+     operand = additiveExpression(null,0)
+     [
+        <COMMA> (
+            format = datetimeStringFormat()
+        |
+            length = length()
+        )
+     ] <RIGHT_PAREN>
     {
         // Always check db2 limits for this function. It's new
         checkTypeLimits(charType,length);

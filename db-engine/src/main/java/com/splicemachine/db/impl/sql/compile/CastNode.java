@@ -65,7 +65,8 @@ public class CastNode extends ValueNode
     ValueNode   castOperand;
     private int targetCharType;
     TypeId      sourceCTI = null;
-    private int stringFormat = -1;
+    private int dateToStringFormat = -1;
+    private int requestedStringLength = -1;
     private boolean forDataTypeFunction = false;
 
     /** This variable gets set by the parser to indiciate that this CAST node
@@ -134,6 +135,7 @@ public class CastNode extends ValueNode
         targetCharType = charType;
         if (charLength < 0)    // unknown, figure out later
             return;
+        requestedStringLength = charLength;
         setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLength));
     }
 
@@ -173,9 +175,10 @@ public class CastNode extends ValueNode
         this.castOperand = (ValueNode) castOperand;
         int charLen = (Integer) charLength;
         targetCharType = (Integer) charType;
-        stringFormat = -1;
+        dateToStringFormat = -1;
         if (charLen < 0)    // unknown, figure out later
             return;
+        requestedStringLength = charLen;
         setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLen));
     }
 
@@ -195,9 +198,10 @@ public class CastNode extends ValueNode
         this.castOperand = (ValueNode) castOperand;
         int charLen = (Integer) charLength;
         targetCharType = (Integer) charType;
-        this.stringFormat = (Integer) stringFormat;
+        this.dateToStringFormat = (Integer) stringFormat;
         if (charLen < 0)    // unknown, figure out later
             return;
+        requestedStringLength = charLen;
         setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(targetCharType, charLen));
     }
 
@@ -320,6 +324,20 @@ public class CastNode extends ValueNode
 
         bindCastNodeOnly();
 
+        if (getTypeId().isCharOrVarChar()) {
+            if (requestedStringLength != -1 && !sourceCTI.isCharOrVarChar()) {
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_CAST_TO_CHAR_WITH_LENGTH_NOT_FROM_CHAR,
+                        sourceCTI.getSQLTypeName(),
+                        getTypeId().getSQLTypeName());
+            }
+            if (dateToStringFormat != -1 && !sourceCTI.isDateTimeTimeStampTypeID()) {
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_CAST_TO_CHAR_WITH_FORMAT_NOT_FROM_DATE
+                );
+            }
+        }
+
         /* We can't chop out cast above an untyped null because
          * the store can't handle it.
          */
@@ -382,8 +400,8 @@ public class CastNode extends ValueNode
                     {
                         DataValueDescriptor dvd = ((ConstantNode) castOperand).getValue();
                         String castValue;
-                        if (dvd instanceof DateTimeDataValue && stringFormat >= 0) {
-                            ((DateTimeDataValue) dvd).setStringFormat(stringFormat);
+                        if (dvd instanceof DateTimeDataValue && dateToStringFormat >= 0) {
+                            ((DateTimeDataValue) dvd).setStringFormat(dateToStringFormat);
                             castValue = dvd.getString();
                         } else {
                             castValue = ((UserTypeConstantNode) castOperand).getObjectValue().toString();
@@ -1001,9 +1019,9 @@ public class CastNode extends ValueNode
             mb.setField(field); // targetDVD reference for the setValue method call
             mb.swap();
             mb.upCast(ClassName.DataValueDescriptor);
-            if (sourceCTI.isDateTimeTimeStampTypeId() && stringFormat >= 0) {
+            if (sourceCTI.isDateTimeTimeStampTypeId() && dateToStringFormat >= 0) {
                 mb.dup();
-                mb.push(stringFormat);
+                mb.push(dateToStringFormat);
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DateTimeDataValue,
                         "setStringFormat", "void", 1);
             }
