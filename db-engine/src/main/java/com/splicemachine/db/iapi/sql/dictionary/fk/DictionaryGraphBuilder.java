@@ -28,6 +28,9 @@ public class DictionaryGraphBuilder implements GraphBuilder {
     private final DataDictionary dd;
     private final ConsInfo newConstraintInfo;
     private final String newConstraintName;
+    private final UUID schemaId;
+    private final String tableName;
+    private final String schemaName;
 
     static class Edge {
         final String from;
@@ -72,12 +75,15 @@ public class DictionaryGraphBuilder implements GraphBuilder {
 
     public DictionaryGraphBuilder(DataDictionary dd,
                                   TableDescriptor referencingTableDescriptor,
-                                  ConsInfo newConstraintInfo,
-                                  String newConstraintName) {
+                                  String newConstraintName,
+                                  ConsInfo newConstraintInfo, String schemaName, UUID schemaId, String tableName) {
         this.dd = dd;
         this.referencingTableDescriptor = referencingTableDescriptor;
         this.newConstraintInfo = newConstraintInfo;
         this.newConstraintName = newConstraintName;
+        this.schemaName = schemaName;
+        this.schemaId = schemaId;
+        this.tableName = tableName;
     }
 
     List<Pair<TableDescriptor, EdgeNode.Type>> getParents(TableDescriptor tableDescriptor) throws StandardException {
@@ -135,7 +141,9 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         Set<String> tableNames = new HashSet<>();
 
         Queue<TableDescriptor> descriptors = new LinkedList();
-        descriptors.add(referencingTableDescriptor);
+        if(referencingTableDescriptor != null) { // in CREATE TABLE ... REFERENCES, the referencing table is NULL since it not persisted yet.
+            descriptors.add(referencingTableDescriptor);
+        }
 
         TableDescriptor referencedTableDescriptor = newConstraintInfo.getReferencedTableDescriptor(dd);
         descriptors.add(referencedTableDescriptor);
@@ -166,9 +174,9 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         }
 
         // finally add the newly added FK (if it is not self-referencing)
-        String from = referencingTableDescriptor.getSchemaName() + "." + referencingTableDescriptor.getName();
+        String from = schemaName + "." + tableName;
         String to = referencedTableDescriptor.getSchemaName() + "." + referencedTableDescriptor.getName();
-        if(!referencedTableDescriptor.getUUID().equals(referencingTableDescriptor.getUUID())) {
+        if(!isSelfReferencing()) {
             int newFKDeletionActionRule = newConstraintInfo.getReferentialActionDeleteRule();
             edges.add(new Edge(to, toEdgeNodeType(newFKDeletionActionRule), from));
         }
@@ -180,5 +188,14 @@ public class DictionaryGraphBuilder implements GraphBuilder {
             result.addEdge(edge.to, edge.from, edge.type);
         }
         return result;
+    }
+
+    private boolean isSelfReferencing() throws StandardException {
+        TableDescriptor referencedTableDescriptor = newConstraintInfo.getReferencedTableDescriptor(dd);
+        if(referencingTableDescriptor != null) {
+            return referencedTableDescriptor.getUUID().equals(referencingTableDescriptor.getUUID());
+        } else {
+            return referencedTableDescriptor.getSchemaDescriptor().getUUID().equals(schemaId) && referencedTableDescriptor.getName().equals(tableName);
+        }
     }
 }

@@ -207,7 +207,8 @@ public	class	DDUtils
 		TableDescriptor	td,
 		String			myConstraintName,	// for error messages
 		ConsInfo		otherConstraintInfo,
-		String[]        columnNames
+		String[]        columnNames,
+		Graph fkGraph
 	)
 		throws StandardException
 	{
@@ -244,11 +245,32 @@ public	class	DDUtils
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_NO_FOREIGN_KEYS);
         }
 
-        DictionaryGraphBuilder builder = new DictionaryGraphBuilder(dd, td, otherConstraintInfo, myConstraintName);
-        Graph g = builder.generateGraph();
-        GraphAnnotator annotator = new GraphAnnotator(myConstraintName, g);
+        GraphAnnotator annotator = new GraphAnnotator(myConstraintName, fkGraph);
         annotator.annotate();
         annotator.analyzeAnnotations();
+
+
+        /**Hashtable deleteConnectionsMap = new Hashtable();
+        //find whether the foreign key is self referencing.
+        boolean isSelfReferencingFk = (referencedTableDescriptor.getUUID().equals(referencingTableDescriptor.getUUID()));
+        String referencedTableName = referencedTableDescriptor.getSchemaName() + "." + referencedTableDescriptor.getName();
+        //look for the other foreign key constraints on this table first
+        int currentSelfRefValue = collectForeignKeyDeletionActions(dd, referencingTableDescriptor, -1, deleteConnectionsMap, false, true, false);
+        validateDeleteConnection(dd, referencingTableDescriptor, referencedTableDescriptor,
+                                 newFKDeletionActionRule,
+                                 deleteConnectionsMap, (Hashtable) deleteConnectionsMap.clone(),
+                                 true, newForeignKeyConstraintName, false,
+                                 new StringBuffer(0), referencedTableName,
+                                 isSelfReferencingFk,
+                                 currentSelfRefValue);
+
+        //if it not a self-referencing key check for violation of exiting connections.
+        if (!isSelfReferencingFk) {
+            checkForAnyExistingDeleteConnectionViolations(dd, referencingTableDescriptor,
+                                                          newFKDeletionActionRule,
+                                                          deleteConnectionsMap,
+                                                          newForeignKeyConstraintName);
+        } */
     }
 
 	/*
