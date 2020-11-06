@@ -139,15 +139,6 @@ public interface ScanSetBuilder<V>{
 
     /**
      *
-     * Whether the scan should go against an in-memory version (pin)
-     *
-     * @param pin
-     * @return
-     */
-    ScanSetBuilder<V> pin(boolean pin);
-
-    /**
-     *
      * Column delimitter
      *
      * @param delimited
@@ -198,14 +189,6 @@ public interface ScanSetBuilder<V>{
      * @return
      */
     ScanSetBuilder<V> location(String location);
-
-    /**
-     *
-     * Retrieve whether you should go against the in-memory (pin) version of the data.
-     *
-     * @return
-     */
-    boolean getPin();
 
     /**
      *

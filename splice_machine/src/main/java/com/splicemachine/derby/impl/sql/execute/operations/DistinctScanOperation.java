@@ -108,7 +108,6 @@ public class DistinctScanOperation extends ScanOperation {
                                  double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost,
                                  String tableVersion,
-                                 boolean pin,
                                  int splits,
                                  String delimited,
                                  String escaped,
@@ -140,7 +139,7 @@ public class DistinctScanOperation extends ScanOperation {
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost,
                 tableVersion,
-                pin,splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
+                splits,delimited,escaped,lines,storedAs,location,partitionByRefItem,defaultRowFunc,defaultValueMapItem,
                 pastTxFunctor,
                 minRetentionPeriod);
         this.hashKeyItem = hashKeyItem;
@@ -248,7 +247,6 @@ public class DistinctScanOperation extends ScanOperation {
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(colMap)
-                .pin(pin)
                 .delimited(delimited)
                 .escaped(escaped)
                 .lines(lines)
