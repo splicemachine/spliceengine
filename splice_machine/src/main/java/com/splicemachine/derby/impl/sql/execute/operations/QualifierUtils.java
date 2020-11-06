@@ -19,16 +19,13 @@ import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ScanQualifier;
 import com.splicemachine.db.iapi.store.access.Qualifier;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.SQLChar;
-import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.GenericScanQualifier;
 import java.math.BigDecimal;
 import java.util.GregorianCalendar;
 
-import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getDB2CompatibilityMode;
+import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getDB2CompatibilityModeStatic;
 
 /**
  * @author Scott Fines
@@ -96,7 +93,8 @@ public class QualifierUtils {
 
                 return convertChar((SQLChar) sourceDvd, sourceLength, targetLength);
             } else {
-                boolean DB2CompatibilityMode = getDB2CompatibilityMode();
+                boolean DB2CompatibilityMode = targetDvd instanceof SQLVarcharDB2Compatible ||
+                                               getDB2CompatibilityModeStatic();
                 if (DB2CompatibilityMode && isVarChar(targetType)) {
                     int targetLength =
                       forStartKey ? 0 : ((SQLVarchar) targetDvd).getSqlCharSize();
@@ -115,7 +113,8 @@ public class QualifierUtils {
             return convertDate(sourceDvd, targetType, dataValueFactory);
         } else if (isTime(targetType)) {
             return convertTime(sourceDvd, targetType, dataValueFactory);
-        } else if (isVarChar(targetType) && isFixedChar(sourceType) && getDB2CompatibilityMode()) {
+        } else if (isVarChar(targetType) && isFixedChar(sourceType) &&
+                   (targetDvd instanceof SQLVarcharDB2Compatible || getDB2CompatibilityModeStatic())) {
             int targetLength =
               forStartKey ? 0 : ((SQLVarchar) targetDvd).getSqlCharSize();
             return convertChar((SQLChar)sourceDvd, sourceDvd.getLength(), targetLength);

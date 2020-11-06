@@ -818,6 +818,12 @@ public interface StoredFormatIds {
             (MIN_ID_2 + 197);
 
     /**
+     class com.splicemachine.db.iapi.types.DecfloatTypeId
+     */
+    int DECFLOAT_TYPE_ID =
+            (MIN_ID_2 + 484);
+
+    /**
         class com.splicemachine.db.iapi.types.DateTypeId
      */
     int DATE_TYPE_ID =
@@ -840,6 +846,12 @@ public interface StoredFormatIds {
      */
     int DECIMAL_TYPE_ID_IMPL =
             (MIN_ID_2 + 198);
+
+    /**
+     class com.splicemachine.db.catalog.types.DecfloatTypeIdImpl
+     */
+    int DECFLOAT_TYPE_ID_IMPL =
+            (MIN_ID_2 + 485);
 
     /**
         class com.splicemachine.db.catalog.types.LongvarcharTypeIdImpl
@@ -1421,6 +1433,9 @@ public interface StoredFormatIds {
     int SQL_DECIMAL_ID =
             (MIN_ID_2 + 200);
 
+    int SQL_DECFLOAT_ID =
+            (MIN_ID_2 + 201);
+
     int SQL_LONGVARCHAR_ID =
             (MIN_ID_2 + 235);
 
@@ -1778,7 +1793,7 @@ public interface StoredFormatIds {
      * Make sure this is updated when a new module is added
      */
    int MAX_ID_2 =
-    		(MIN_ID_2 + 483);
+    		(MIN_ID_2 + 485);
 
     // DO NOT USE 4 BYTE IDS ANYMORE
     int MAX_ID_4 =

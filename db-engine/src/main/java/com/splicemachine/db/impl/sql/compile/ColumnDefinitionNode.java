@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 
 import java.sql.Types;
@@ -820,6 +821,10 @@ public class ColumnDefinitionNode extends TableElementNode
 // no other types allowed.
                     return (defType == StoredFormatIds.LONGINT_TYPE_ID) ||
                             (defType == StoredFormatIds.INT_TYPE_ID);
+            case StoredFormatIds.DECFLOAT_TYPE_ID:
+                return defType == StoredFormatIds.DECIMAL_TYPE_ID ||
+                        defType == StoredFormatIds.LONGINT_TYPE_ID ||
+                        defType == StoredFormatIds.INT_TYPE_ID;
 
             case StoredFormatIds.CHAR_TYPE_ID:
             case StoredFormatIds.VARCHAR_TYPE_ID:
