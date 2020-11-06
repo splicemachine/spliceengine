@@ -71,7 +71,7 @@ public class SICompactionState {
      * @return the size of all cells in the `row` parameter.
      */
     public long mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, PurgeConfig purgeConfig) throws IOException {
-        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig);
+        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig, context);
         return impl.mutate(rawList, txns, results);
     }
 
@@ -91,8 +91,8 @@ public class SICompactionState {
                     return;
                 }
 
-                if (LOG.isDebugEnabled())
-                    LOG.debug("Caching " + timestamp + " with commitTs " + commitTs);
+                if (LOG.isTraceEnabled())
+                    LOG.trace("Caching " + timestamp + " with commitTs " + commitTs);
                 transactionStore.cache(new CommittedTxn(timestamp,commitTs));
             }
         }
@@ -131,8 +131,8 @@ public class SICompactionState {
                         context.readData();
                     TxnView tentative = transactionStore.getTransactionFromCache(timestamp);
                     if (tentative != null) {
-                        if (LOG.isDebugEnabled())
-                            LOG.debug("Cached " + tentative);
+                        if (LOG.isTraceEnabled())
+                            LOG.trace("Cached " + tentative);
                         result.add(Futures.immediateFuture(tentative));
                         if (context != null)
                             context.recordResolutionCached();
@@ -143,8 +143,8 @@ public class SICompactionState {
                                 if (context != null)
                                     context.recordRPC();
                                 return executorService.submit(() -> {
-                                    if (LOG.isDebugEnabled())
-                                        LOG.debug("Resolving " + txnId);
+                                    if (LOG.isTraceEnabled())
+                                        LOG.trace("Resolving " + txnId);
                                     TxnView txn;
                                     try {
                                         txn = transactionStore.getTransaction(txnId);
@@ -164,8 +164,11 @@ public class SICompactionState {
                                         LOG.warn("We couldn't resolve transaction " + timestamp +". This is only acceptable during a Restore operation");
                                         return null;
                                     }
-                                    if (LOG.isDebugEnabled())
-                                        LOG.debug("Returning, parent " + txn.getParentTxnView());
+                                    if (LOG.isDebugEnabled() && txn.getState() == Txn.State.ROLLEDBACK) {
+                                        LOG.debug("Transaction " + txnId + " is rolled back: " + txn);
+                                    }
+                                    if (LOG.isTraceEnabled())
+                                        LOG.trace("Returning, parent " + txn.getParentTxnView());
                                     return txn;
                                 });
                             });

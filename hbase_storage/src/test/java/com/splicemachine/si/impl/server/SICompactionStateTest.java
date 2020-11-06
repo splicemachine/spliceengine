@@ -50,7 +50,7 @@ public class SICompactionStateTest {
         IgnoreTxnSupplier ignoreTxnSupplier = txn -> txn > 0x400L && txn < 0x600L;
         CompletedTxnCacheSupplier txnCacheSupplier = new CompletedTxnCacheSupplier(delegate, 100, 10, ignoreTxnSupplier);
         SICompactionState state = new SICompactionState(txnCacheSupplier, 100,
-                null, SameThreadExecutorService.instance(), ignoreTxnSupplier);
+                new SimpleCompactionContext(), SameThreadExecutorService.instance(), ignoreTxnSupplier);
 
         List<Cell> data = Arrays.asList(
                 SITestUtils.getMockValueCell(0x400L, new boolean[]{true, false, false}),
@@ -79,7 +79,7 @@ public class SICompactionStateTest {
         IgnoreTxnSupplier ignoreTxnSupplier = txn -> txn > 0x400L && txn < 0x600L;
         CompletedTxnCacheSupplier txnCacheSupplier = new CompletedTxnCacheSupplier(delegate, 100, 10, ignoreTxnSupplier);
         SICompactionState state = new SICompactionState(txnCacheSupplier, 100,
-                null, SameThreadExecutorService.instance(), ignoreTxnSupplier);
+                new SimpleCompactionContext(), SameThreadExecutorService.instance(), ignoreTxnSupplier);
 
         List<Cell> data = Arrays.asList(
                 SITestUtils.getMockCommitCell(0x400L, 0x500L),
