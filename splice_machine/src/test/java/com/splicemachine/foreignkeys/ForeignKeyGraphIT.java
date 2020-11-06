@@ -143,7 +143,7 @@ public class ForeignKeyGraphIT {
                 .shouldSucceed(2, 3, Action.CASCADE);
     }
 
-    @Ignore // the FK analysis algorithm rules this case out incorrectly, it seems to require a substantial rewrite to make it work properly.
+    @Test // the FK analysis algorithm rules this case out incorrectly, it seems to require a substantial rewrite to make it work properly.
     public void validCase2() throws Exception {
         DDLGenerator ddlGenerator = new DDLGenerator(4);
         ddlGenerator
