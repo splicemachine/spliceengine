@@ -55,6 +55,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
@@ -1481,5 +1482,10 @@ public interface LanguageConnectionContext extends Context {
 	String getReplicationRole();
 
     boolean isNLJPredicatePushDownDisabled();
+
+    void setDB2VarcharCompatibilityModeNeedsReset(boolean newValue,
+                                                  CharTypeCompiler charTypeCompiler);
+
+    void resetDB2VarcharCompatibilityMode();
 
 }
