@@ -348,11 +348,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
         return this;
     }
 
-    public ScanSetBuilder<V> pin(boolean pin){
-        this.pin=pin;
-        return this;
-    }
-
     public ScanSetBuilder<V> delimited(String delimited){
         this.delimited=delimited;
         return this;
@@ -475,7 +470,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             out.writeBoolean(optionalProbeValue !=null);
             if (optionalProbeValue!=null)
                 out.writeObject(optionalProbeValue);
-            out.writeBoolean(pin);
             writeNullableString(delimited,out);
             writeNullableString(escaped,out);
             writeNullableString(lines,out);
@@ -553,7 +547,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
             demarcationPoint=in.readLong();
             if (in.readBoolean())
                 optionalProbeValue = (DataValueDescriptor) in.readObject();
-            pin = in.readBoolean();
             if (in.readBoolean())
                 delimited = in.readUTF();
             if (in.readBoolean())
@@ -657,12 +650,6 @@ public abstract class TableScannerBuilder<V> implements Externalizable, ScanSetB
     @Override
     public ExecRow getTemplate() {
         return template;
-    }
-
-
-    @Override
-    public boolean getPin() {
-        return pin;
     }
 
     @Override

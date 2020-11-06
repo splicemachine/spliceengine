@@ -877,16 +877,6 @@ public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
 	}
 
     @Override
-    public Visitable visit(CreatePinNode node) throws StandardException {
-        return defaultVisit(node);
-    }
-
-    @Override
-    public Visitable visit(DropPinNode node) throws StandardException {
-        return defaultVisit(node);
-    }
-
-    @Override
     public Visitable visit(SetSessionPropertyNode node) throws StandardException {
         return defaultVisit(node);
     }
