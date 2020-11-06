@@ -44,7 +44,7 @@ import java.io.ObjectOutput;
 import java.sql.Types;
 import java.util.Objects;
 
-@SuppressFBWarnings(value="HE_EQUALS_USE_HASHCODE", justification="DB-10665")
+@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
 public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
     /********************************************************
     **
