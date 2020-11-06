@@ -57,7 +57,7 @@ public class ForeignKeyActionIT {
         conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
         new TableDAO(conn).drop(SCHEMA, "SNGC2", "SNGC1", "SNC", "SNP", "RP", "RC",
-                                "T3", "T2", "T4", "T1", "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
+                                "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
                 "FC", "FP", "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
     }
 
@@ -77,18 +77,6 @@ public class ForeignKeyActionIT {
     @AfterClass
     public static void afterClass() throws Exception {
         SpliceUnitTest.deleteTempDirectory(BADDIR);
-    }
-
-    /* DB-10545 */
-    @Test
-    public void validConstraintGraphWorksCorrectly() throws Exception {
-        try(Statement s = conn.createStatement()) {
-            s.executeUpdate("create table t1(col1 int primary key)");
-            s.executeUpdate("create table t2(col1 int primary key, col2 int references t1(col1) on delete set null)");
-            s.executeUpdate("create table t3(col1 int, col2 int references t2(col1) on delete restrict, col3 int references t1(col1) on delete cascade)");
-            s.executeUpdate("create table t4(col1 int primary key)");
-            s.executeUpdate("alter table t2 add constraint \"bla42\" foreign key (col2) references t4(col1) on delete cascade");
-        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
