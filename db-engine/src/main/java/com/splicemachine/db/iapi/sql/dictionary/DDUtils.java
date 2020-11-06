@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.dictionary.fk.Dfs;
 import com.splicemachine.db.iapi.sql.dictionary.fk.DictionaryGraphBuilder;
 import com.splicemachine.db.iapi.sql.dictionary.fk.Graph;
 import com.splicemachine.db.iapi.sql.dictionary.fk.GraphAnnotator;
+import org.apache.log4j.Logger;
 
 import java.util.Enumeration;
 
@@ -55,28 +56,24 @@ import java.util.Enumeration;
 public	class	DDUtils
 {
 
-	/*
-	** For a foreign key, this is used to locate the referenced
-	** key using the ConstraintInfo.  If it doesn't find the
-	** correct constraint it will throw an error.
-	*/
-	public	static ReferencedKeyConstraintDescriptor locateReferencedConstraint
-	(
-		DataDictionary	dd,
-		TableDescriptor	td,
-		String			myConstraintName,	// for error messages
-		String[]		myColumnNames,
-		ConsInfo		otherConstraintInfo
-	)
-		throws StandardException
-	{
-		TableDescriptor refTd = otherConstraintInfo.getReferencedTableDescriptor(dd);
-		if (refTd == null)
-		{
-				throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_REF_TAB,
-												myConstraintName,
-												otherConstraintInfo.getReferencedTableName());
-		}
+    public enum Checker{Derby, None, SpliceMachine};
+
+    /**
+     ** For a foreign key, this is used to locate the referenced
+     ** key using the ConstraintInfo.  If it doesn't find the
+     ** correct constraint it will throw an error.
+     */
+    public static ReferencedKeyConstraintDescriptor locateReferencedConstraint ( DataDictionary dd,
+                                                                                 TableDescriptor td,
+                                                                                 String myConstraintName,    // for error messages
+                                                                                 String[] myColumnNames,
+                                                                                 ConsInfo otherConstraintInfo ) throws StandardException {
+        TableDescriptor refTd = otherConstraintInfo.getReferencedTableDescriptor(dd);
+        if (refTd == null) {
+            throw StandardException.newException(SQLState.LANG_INVALID_FK_NO_REF_TAB,
+                                                 myConstraintName,
+                                                 otherConstraintInfo.getReferencedTableName());
+        }
 
 
 		ReferencedKeyConstraintDescriptor refCd = null;
@@ -205,7 +202,8 @@ public	class	DDUtils
                                                   String newForeignKeyConstraintName,    // for error messages
                                                   ConsInfo otherConstraintInfo,
                                                   String[] columnNames,
-                                                  Graph fkGraph) throws StandardException {
+                                                  Graph fkGraph,
+                                                  Checker checker) throws StandardException {
         int newFKDeletionActionRule = otherConstraintInfo.getReferentialActionDeleteRule();
 
 		//Do not allow ON DELETE SET NULL as a referential action
@@ -231,15 +229,39 @@ public	class	DDUtils
 
 		//check whether the foreign key relation ships referential action
 		//is not violating the restrictions we have in the current system.
-		TableDescriptor refTd = otherConstraintInfo.getReferencedTableDescriptor(dd);
-        if (! refTd.isPersistent()) {
+		TableDescriptor referencedTableDescriptor = otherConstraintInfo.getReferencedTableDescriptor(dd);
+        if (! referencedTableDescriptor.isPersistent()) {
             // temp table cols cannot be the source of a foreign key
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_NO_FOREIGN_KEYS);
         }
 
-        GraphAnnotator annotator = new GraphAnnotator(newForeignKeyConstraintName, fkGraph);
-        annotator.annotate();
-        annotator.analyzeAnnotations();
+        if(checker == Checker.SpliceMachine) {
+            GraphAnnotator annotator = new GraphAnnotator(newForeignKeyConstraintName, fkGraph);
+            annotator.annotate();
+            annotator.analyzeAnnotations();
+        } else {
+            Hashtable deleteConnectionsMap = new Hashtable();
+            //find whether the foreign key is self referencing.
+            boolean isSelfReferencingFk = (referencedTableDescriptor.getUUID().equals(referencingTableDescriptor.getUUID()));
+            String referencedTableName = referencedTableDescriptor.getSchemaName() + "." + referencedTableDescriptor.getName();
+            //look for the other foreign key constraints on this table first
+            int currentSelfRefValue = collectForeignKeyDeletionActions(dd, referencingTableDescriptor, -1, deleteConnectionsMap, false, true);
+            validateDeleteConnection(dd, referencingTableDescriptor, referencedTableDescriptor,
+                                     newFKDeletionActionRule,
+                                     deleteConnectionsMap, (Hashtable) deleteConnectionsMap.clone(),
+                                     true, newForeignKeyConstraintName, false,
+                                     new StringBuffer(0), referencedTableName,
+                                     isSelfReferencingFk,
+                                     currentSelfRefValue);
+
+            //if it not a self-referencing key check for violation of exiting connections.
+            if (!isSelfReferencingFk) {
+                checkForAnyExistingDeleteConnectionViolations(dd, referencingTableDescriptor,
+                                                              newFKDeletionActionRule,
+                                                              deleteConnectionsMap,
+                                                              newForeignKeyConstraintName);
+            }
+        }
     }
 
 	/*
@@ -250,7 +272,7 @@ public	class	DDUtils
 	** the table this table connected to[CASACDE, SETNULL , RESTRICT ...etc).)
 	**/
 
-	private	static int  getCurrentDeleteConnections
+	private	static int  collectForeignKeyDeletionActions
 	(
 	 DataDictionary	dd,
 	 TableDescriptor	td,
@@ -328,7 +350,7 @@ public	class	DDUtils
 					//find the next delete conectiions on this path for non
 					//self referencig delete connections.
 					if(!fkcd.isSelfReferencingFK())
-						getCurrentDeleteConnections(dd , refTd, childRefAction,
+                        collectForeignKeyDeletionActions(dd , refTd, childRefAction,
 													dch, true, false);
 					prevNotCascade = passedInPrevNotCascade;
 				}
@@ -796,7 +818,7 @@ public	class	DDUtils
 						//gather the delete connections of the table that is
 						//referring to the table we are adding foreign key relation ship
 
-						getCurrentDeleteConnections(dd, fktd, -1, dConnHashtable, false, true);
+						collectForeignKeyDeletionActions(dd, fktd, -1, dConnHashtable, false, true);
 
 						/*
 						**Find out if we introduced more than one delete connection
