@@ -23,6 +23,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -58,6 +59,7 @@ import java.util.concurrent.atomic.AtomicReference;
 /**
  * Manages a connection to the Timestamp Server
  */
+@ChannelHandler.Sharable
 public class TimestampConnection extends TimestampBaseHandler<TimestampMessage.TimestampResponse> implements TimestampClientStatistics {
 
 
