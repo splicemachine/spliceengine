@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.yahoo.sketches.theta.UpdateSketch;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
@@ -100,6 +101,8 @@ public final class SQLTimestamp extends DataType
     private int	encodedDate;
 	private int	encodedTime;
 	private int	nanos;
+
+	private int stringFormat = -1;
 	/*
 	** DataValueDescriptor interface
 	** (mostly implemented in DataType)
@@ -107,6 +110,10 @@ public final class SQLTimestamp extends DataType
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLTimestamp.class);
 
+	@Override
+	public void setStringFormat(int format) {
+		stringFormat = format;
+	}
 
     // Check for a version 2.0 timestamp out of bounds.
     public static long checkV2Bounds(Timestamp timestamp) throws StandardException{
@@ -148,8 +155,11 @@ public final class SQLTimestamp extends DataType
 		return BASE_MEMORY_USAGE;
     } // end of estimateMemoryUsage
 
-	public String getString()
+	public String getString() throws StandardException
 	{
+		if (stringFormat >= 0) {
+			throw StandardException.newException(SQLState.LANG_FORMAT_EXCEPTION, "timestamp");
+		}
 		if (!isNull())
 		{
             String valueString = getTimestamp((Calendar) null).toString();
@@ -345,6 +355,7 @@ public final class SQLTimestamp extends DataType
 			setValue(resultSet.getTimestamp(colNumber), (Calendar) null);
 	}
 
+	@SuppressFBWarnings(value="RV_NEGATING_RESULT_OF_COMPARETO", justification="intended")
 	public int compare(DataValueDescriptor other)
 		throws StandardException
 	{

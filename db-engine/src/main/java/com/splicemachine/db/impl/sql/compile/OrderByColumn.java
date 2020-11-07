@@ -33,6 +33,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
@@ -47,11 +48,11 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
  */
 public class OrderByColumn extends OrderedColumn {
 
-	private ResultColumn	resultCol;
-	private boolean			ascending = true;
-	private boolean			nullsOrderedLow = false;
-	private ValueNode expression;
-	private OrderByList     list;
+    private ResultColumn    resultCol;
+    private boolean            ascending = true;
+    private boolean            nullsOrderedLow = false;
+    private ValueNode expression;
+    private OrderByList     list;
     /**
      * If this sort key is added to the result column list then it is at result column position
      * 1 + resultColumnList.size() - resultColumnList.getOrderBySelect() + addedColumnOffset
@@ -60,33 +61,33 @@ public class OrderByColumn extends OrderedColumn {
     private int addedColumnOffset = -1;
 
 
-   	/**
-	 * Initializer.
-	 *
-	 * @param expression            Expression of this column
-	 */
-	public void init(Object expression)
-	{
-		this.expression = (ValueNode)expression;
-	}
-	
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
-	public String toString() {
-		if (SanityManager.DEBUG) {
-			return
-				"nullsOrderedLow: " + nullsOrderedLow + "\n" +
-				"ascending; " + ascending + "\n" +
-				"addedColumnOffset: " + addedColumnOffset + "\n" +
-				super.toString();
-		} else {
-			return "";
-		}
-	}
+       /**
+     * Initializer.
+     *
+     * @param expression            Expression of this column
+     */
+    public void init(Object expression)
+    {
+        this.expression = (ValueNode)expression;
+    }
+
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return    This object as a String
+     */
+    public String toString() {
+        if (SanityManager.DEBUG) {
+            return
+                "nullsOrderedLow: " + nullsOrderedLow + "\n" +
+                "ascending; " + ascending + "\n" +
+                "addedColumnOffset: " + addedColumnOffset + "\n" +
+                super.toString();
+        } else {
+            return "";
+        }
+    }
 
     @Override
     public ValueNode getColumnExpression() {
@@ -101,247 +102,251 @@ public class OrderByColumn extends OrderedColumn {
     }
 
     /**
-	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-	 * how tree printing is supposed to work.
-	 *
-	 * @param depth		The depth of this node in the tree
-	 */
-	public void printSubNodes(int depth)
-	{
-		if (SanityManager.DEBUG)
-		{
-			super.printSubNodes(depth);
+     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
+     * how tree printing is supposed to work.
+     *
+     * @param depth        The depth of this node in the tree
+     */
+    public void printSubNodes(int depth)
+    {
+        if (SanityManager.DEBUG)
+        {
+            super.printSubNodes(depth);
 
-			if (expression != null) {
-				printLabel(depth, "expression: ");
-				expression.treePrint(depth + 1);
-			}
+            if (expression != null) {
+                printLabel(depth, "expression: ");
+                expression.treePrint(depth + 1);
+            }
 
-			if (resultCol != null) {
-				printLabel(depth, "resultCol: ");
-				resultCol.treePrint(depth + 1);
-			}
-		}
-	}
+            if (resultCol != null) {
+                printLabel(depth, "resultCol: ");
+                resultCol.treePrint(depth + 1);
+            }
+        }
+    }
 
-	/**
-	 * Mark the column as descending order
-	 */
-	public void setDescending() {
-		ascending = false;
-	}
+    /**
+     * Mark the column as descending order
+     */
+    public void setDescending() {
+        ascending = false;
+    }
 
-	/**
-	 * Get the column order.  Overrides 
-	 * OrderedColumn.isAscending.
-	 *
-	 * @return true if ascending, false if descending
-	 */
-	public boolean isAscending() {
-		return ascending;
-	}
+    /**
+     * Get the column order.  Overrides
+     * OrderedColumn.isAscending.
+     *
+     * @return true if ascending, false if descending
+     */
+    public boolean isAscending() {
+        return ascending;
+    }
 
-	/**
-	 * Mark the column as ordered NULL values lower than non-NULL values.
-	 */
-	public void setNullsOrderedLow() {
-		nullsOrderedLow = true;
-	}
+    /**
+     * Mark the column as ordered NULL values lower than non-NULL values.
+     */
+    public void setNullsOrderedLow() {
+        nullsOrderedLow = true;
+    }
 
-	/**
-	 * Get the column NULL ordering. Overrides
-	 * OrderedColumn.getIsNullsOrderedLow.
-	 *
-	 * @return true if NULLs ordered low, false if NULLs ordered high
-	 */
-	public boolean isNullsOrderedLow() {
-		return nullsOrderedLow;
-	}
+    /**
+     * Get the column NULL ordering. Overrides
+     * OrderedColumn.getIsNullsOrderedLow.
+     *
+     * @return true if NULLs ordered low, false if NULLs ordered high
+     */
+    public boolean isNullsOrderedLow() {
+        return nullsOrderedLow;
+    }
 
-	/**
-	 * Get the underlying ResultColumn.
-	 *
-	 * @return The underlying ResultColumn.
-	 */
-	ResultColumn getResultColumn()
-	{
-		return resultCol;
-	}
+    /**
+     * Get the underlying ResultColumn.
+     *
+     * @return The underlying ResultColumn.
+     */
+    ResultColumn getResultColumn()
+    {
+        return resultCol;
+    }
 
-	/**
-	 * Get the underlying expression, skipping over ResultColumns that
-	 * are marked redundant.
-	 */
-	ValueNode getNonRedundantExpression()
-	{
-		ResultColumn	rc;
-		ValueNode		value;
-		ColumnReference	colref = null;
+    /**
+     * Get the underlying expression, skipping over ResultColumns that
+     * are marked redundant.
+     */
+    ValueNode getNonRedundantExpression()
+    {
+        ResultColumn    rc;
+        ValueNode        value;
+        ColumnReference    colref = null;
 
-		for (rc = resultCol; rc.isRedundant(); rc = colref.getSource())
-		{
-			value = rc.getExpression();
+        for (rc = resultCol; rc.isRedundant(); rc = colref.getSource())
+        {
+            value = rc.getExpression();
 
-			if (value instanceof ColumnReference)
-			{
-				colref = (ColumnReference) value;
-			}
-			else
-			{
-				if (SanityManager.DEBUG)
-				{
-					SanityManager.THROWASSERT(
-						"value should be a ColumnReference, but is a " +
-						value.getClass().getName());
-				}
-			}
-		}
+            if (value instanceof ColumnReference)
+            {
+                colref = (ColumnReference) value;
+            }
+            else
+            {
+                if (SanityManager.DEBUG)
+                {
+                    SanityManager.THROWASSERT(
+                        "value should be a ColumnReference, but is a " +
+                        value.getClass().getName());
+                }
+            }
+        }
 
-		return rc.getExpression();
-	}
+        return rc.getExpression();
+    }
 
-	/**
-	 * Bind this column.
-	 *
-	 * During binding, we may discover that this order by column was pulled
-	 * up into the result column list, but is now a duplicate, because the
-	 * actual result column was expanded into the result column list when "*"
-	 * expressions were replaced with the list of the table's columns. In such
-	 * a situation, we will end up calling back to the OrderByList to
-	 * adjust the addedColumnOffset values of the columns; the "oblist"
-	 * parameter exists to allow that callback to be performed.
-	 *
-	 * @param target	The result set being selected from
-	 * @param oblist    OrderByList which contains this column
-	 *
-	 * @exception StandardException		Thrown on error
-	 * @exception StandardException		Thrown when column not found
-	 */
-	public void bindOrderByColumn(ResultSetNode target, OrderByList oblist)
-				throws StandardException 
-	{
-		this.list = oblist;
+    /**
+     * Bind this column.
+     *
+     * During binding, we may discover that this order by column was pulled
+     * up into the result column list, but is now a duplicate, because the
+     * actual result column was expanded into the result column list when "*"
+     * expressions were replaced with the list of the table's columns. In such
+     * a situation, we will end up calling back to the OrderByList to
+     * adjust the addedColumnOffset values of the columns; the "oblist"
+     * parameter exists to allow that callback to be performed.
+     *
+     * @param target    The result set being selected from
+     * @param oblist    OrderByList which contains this column
+     *
+     * @exception StandardException        Thrown on error
+     * @exception StandardException        Thrown when column not found
+     */
+    public void bindOrderByColumn(ResultSetNode target, OrderByList oblist)
+                throws StandardException {
+        this.list = oblist;
 
-		if(expression instanceof ColumnReference){
-		
-			ColumnReference cr = (ColumnReference) expression;
-			
-			resultCol = resolveColumnReference(target,
-							   cr);
-			
-			columnPosition = resultCol.getColumnPosition();
+        if (expression instanceof ColumnReference) {
 
-			if (addedColumnOffset >= 0 &&
-					target instanceof SelectNode &&
-					( (SelectNode)target ).hasDistinct())
-				throw StandardException.newException(SQLState.LANG_DISTINCT_ORDER_BY, cr.columnName);
-		}else if(isReferedColByNum(expression)){
-			
-			ResultColumnList targetCols = target.getResultColumns();
-			columnPosition = (Integer) expression.getConstantValueAsObject();
-			resultCol = targetCols.getOrderByColumn(columnPosition);
+            ColumnReference cr = (ColumnReference) expression;
 
-			/* Column is out of range if either a) resultCol is null, OR
-			 * b) resultCol points to a column that is not visible to the
-			 * user (i.e. it was generated internally).
-			 */
-			if ((resultCol == null) ||
-				(resultCol.getColumnPosition() > targetCols.visibleSize()))
-			{
-				throw StandardException.newException(SQLState.LANG_COLUMN_OUT_OF_RANGE, 
-								     String.valueOf(columnPosition));
-			}
+            resultCol = resolveColumnReference(target,
+                    cr);
 
-		}else{
-			if (list.isTableValueCtorOrdering()) {
-				// For VALUES, we only allow ordering by column number,
-				// SQL-92 style. This is a more general expression, so throw.
-				throw StandardException.newException(
-					SQLState.LANG_TABLE_VALUE_CTOR_RESTRICTION);
-			}
-			/*checks for the conditions when using distinct*/
-			if (addedColumnOffset >= 0 &&
-					target instanceof SelectNode &&
-					((SelectNode)target).hasDistinct() &&
-					!expressionMatch(target))
-			{
-				String col=null;
-				boolean match=false;
+            columnPosition = resultCol.getColumnPosition();
 
-				CollectNodesVisitor collectNodesVisitor =
-					new CollectNodesVisitor(ColumnReference.class);
-				expression.accept(collectNodesVisitor);
+            if (addedColumnOffset >= 0 &&
+                    target instanceof SelectNode &&
+                    ((SelectNode) target).hasDistinct())
+                throw StandardException.newException(SQLState.LANG_DISTINCT_ORDER_BY, cr.columnName);
+        } else if (isReferedColByNum(expression)) {
+
+            ResultColumnList targetCols = target.getResultColumns();
+            columnPosition = (Integer) expression.getConstantValueAsObject();
+            resultCol = targetCols.getOrderByColumn(columnPosition);
+
+            /* Column is out of range if either a) resultCol is null, OR
+             * b) resultCol points to a column that is not visible to the
+             * user (i.e. it was generated internally).
+             */
+            if ((resultCol == null) ||
+                    (resultCol.getColumnPosition() > targetCols.visibleSize())) {
+                throw StandardException.newException(SQLState.LANG_COLUMN_OUT_OF_RANGE,
+                        String.valueOf(columnPosition));
+            }
+
+        } else {
+            if (list.isTableValueCtorOrdering()) {
+                // For VALUES, we only allow ordering by column number,
+                // SQL-92 style. This is a more general expression, so throw.
+                throw StandardException.newException(
+                        SQLState.LANG_TABLE_VALUE_CTOR_RESTRICTION);
+            }
+            /*checks for the conditions when using distinct*/
+            if (addedColumnOffset >= 0 &&
+                    target instanceof SelectNode &&
+                    ((SelectNode) target).hasDistinct() &&
+                    !expressionMatch(target)) {
+                String col = null;
+                boolean match = false;
+
+                CollectNodesVisitor collectNodesVisitor =
+                        new CollectNodesVisitor(ColumnReference.class);
+                expression.accept(collectNodesVisitor);
 
                 for (Object o : collectNodesVisitor.getList()) {//visits through the columns in this OrderByColumn
                     ColumnReference cr1 = (ColumnReference) o;
                     col = cr1.getColumnName();
                     match = columnMatchFound(target, cr1);
                     /* breaks if a match not found, this is needed
-					 * because all column references in this
-					 * OrderByColumn should be there in the select
-					 * clause.*/
+                     * because all column references in this
+                     * OrderByColumn should be there in the select
+                     * clause.*/
                     if (!match)
                         throw StandardException.newException(
                                 SQLState.LANG_DISTINCT_ORDER_BY,
                                 col);
                 }
-			}
+            }
 
-			if( SanityManager.DEBUG)
-				SanityManager.ASSERT( addedColumnOffset >= 0,
-				"Order by expression was not pulled into the result column list");
-			resolveAddedColumn(target);
-			if (resultCol == null)
-				throw StandardException.newException(SQLState.LANG_UNION_ORDER_BY);
-		}
+            if (SanityManager.DEBUG)
+                SanityManager.ASSERT(addedColumnOffset >= 0,
+                        "Order by expression was not pulled into the result column list");
+            resolveAddedColumn(target);
+            if (resultCol == null)
+                throw StandardException.newException(SQLState.LANG_UNION_ORDER_BY);
+        }
 
-		// Verify that the column is orderable
-		resultCol.verifyOrderable();
-	}
+        // Verify that the column is orderable
+        resultCol.verifyOrderable();
+        if (resultCol.getTypeId().getTypeFormatId() == StoredFormatIds.DECFLOAT_TYPE_ID) {
+            {
+                throw StandardException.newException(SQLState.LANG_COLUMN_NOT_ORDERABLE_DURING_EXECUTION,
+                        resultCol.getTypeId().getSQLTypeName());
+            }
 
-	/**
-	 * Checks whether the whole expression (OrderByColumn) itself
-	 * found in the select clause.
-	 * @param target Result set
-	 * @return boolean: whether any expression match found
-	 * @throws StandardException
-	 */
-	private boolean expressionMatch(ResultSetNode target)
-										throws StandardException{
-		ResultColumnList rcl=target.getResultColumns();
-		for (int i=1; i<=rcl.visibleSize();i++){
-			//since RCs are 1 based
-			if((rcl.getResultColumn(i)).isEquivalent(
-					resultCol))
-				return true;
-		}
-		return false;
-	}
+        }
+    }
 
-	/**
-	 * This method checks a ColumnReference of this OrderByColumn
-	 * against the ColumnReferences of the select clause of the query.
-	 * @param target result set
-	 * @param crOfExpression the CR to be checked
-	 * @return whether a match found or not
-	 * @throws StandardException
-	 */
-	private boolean columnMatchFound(ResultSetNode target,
-			ColumnReference crOfExpression) throws StandardException{
-		ResultColumnList rcl=target.getResultColumns();
-		for (int i=1; i<=rcl.visibleSize();
-		i++){//grab the RCs related to select clause
-			ValueNode exp=rcl.getResultColumn(i).getExpression();
-			if(exp instanceof ColumnReference)
-			{//visits through the columns in the select clause
-				ColumnReference cr2 =
-					(ColumnReference) (exp);
-				if(crOfExpression.isEquivalent(cr2))
-					return true;
-			}
-		}
-		return false;
-	}
+        /**
+         * Checks whether the whole expression (OrderByColumn) itself
+     * found in the select clause.
+     * @param target Result set
+     * @return boolean: whether any expression match found
+     * @throws StandardException
+     */
+    private boolean expressionMatch(ResultSetNode target)
+                                        throws StandardException{
+        ResultColumnList rcl=target.getResultColumns();
+        for (int i=1; i<=rcl.visibleSize();i++){
+            //since RCs are 1 based
+            if((rcl.getResultColumn(i)).isEquivalent(
+                    resultCol))
+                return true;
+        }
+        return false;
+    }
+
+    /**
+     * This method checks a ColumnReference of this OrderByColumn
+     * against the ColumnReferences of the select clause of the query.
+     * @param target result set
+     * @param crOfExpression the CR to be checked
+     * @return whether a match found or not
+     * @throws StandardException
+     */
+    private boolean columnMatchFound(ResultSetNode target,
+            ColumnReference crOfExpression) throws StandardException{
+        ResultColumnList rcl=target.getResultColumns();
+        for (int i=1; i<=rcl.visibleSize();
+        i++){//grab the RCs related to select clause
+            ValueNode exp=rcl.getResultColumn(i).getExpression();
+            if(exp instanceof ColumnReference)
+            {//visits through the columns in the select clause
+                ColumnReference cr2 =
+                    (ColumnReference) (exp);
+                if(crOfExpression.isEquivalent(cr2))
+                    return true;
+            }
+        }
+        return false;
+    }
 
     /**
      * Assuming this OrderByColumn was "pulled" into the received target's
@@ -391,154 +396,154 @@ public class OrderByColumn extends OrderedColumn {
         resultCol = targetCols.getResultColumn( columnPosition);
     }
 
-	/**
-	 * Pull up this orderby column if it doesn't appear in the resultset
-	 *
-	 * @param target	The result set being selected from
-	 *
-	 */
-	public void pullUpOrderByColumn(ResultSetNode target)
-				throws StandardException 
-	{
+    /**
+     * Pull up this orderby column if it doesn't appear in the resultset
+     *
+     * @param target    The result set being selected from
+     *
+     */
+    public void pullUpOrderByColumn(ResultSetNode target)
+                throws StandardException
+    {
         ResultColumnList targetCols = target.getResultColumns();
 
         if(expression instanceof ColumnReference){
 
-			ColumnReference cr = (ColumnReference) expression;
+            ColumnReference cr = (ColumnReference) expression;
 
-			resultCol = targetCols.findResultColumnForOrderBy(
+            resultCol = targetCols.findResultColumnForOrderBy(
                     cr.getColumnName(), cr.getTableNameNode());
 
-			if(resultCol == null){
-				resultCol = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-										    cr.getColumnName(),
-										    cr,
-										    getContextManager());
-				resultCol.markAsPulledupOrderingColumn();
-				targetCols.addResultColumn(resultCol);
+            if(resultCol == null){
+                resultCol = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
+                                            cr.getColumnName(),
+                                            cr,
+                                            getContextManager());
+                resultCol.markAsPulledupOrderingColumn();
+                targetCols.addResultColumn(resultCol);
                 addedColumnOffset = targetCols.getOrderBySelect();
-				targetCols.incOrderBySelect();
-			}
-			
-		}else if(!isReferedColByNum(expression)){
-			resultCol = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
-									    null,
-									    expression,
-									    getContextManager());
-			targetCols.addResultColumn(resultCol);
+                targetCols.incOrderBySelect();
+            }
+
+        }else if(!isReferedColByNum(expression)){
+            resultCol = (ResultColumn) getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN,
+                                        null,
+                                        expression,
+                                        getContextManager());
+            targetCols.addResultColumn(resultCol);
             addedColumnOffset = targetCols.getOrderBySelect();
-			targetCols.incOrderBySelect();
-		}
-	}
+            targetCols.incOrderBySelect();
+        }
+    }
 
-	/**
-	 * Order by columns now point to the PRN above the node of interest.
-	 * We need them to point to the RCL under that one.  This is useful
-	 * when combining sorts where we need to reorder the sorting
-	 * columns.
-	 */
-	void resetToSourceRC()
-	{
-		if (SanityManager.DEBUG)
-		{
-			if (! (resultCol.getExpression() instanceof VirtualColumnNode))
-			{
-				SanityManager.THROWASSERT(
-					"resultCol.getExpression() expected to be instanceof VirtualColumnNode " +
-					", not " + resultCol.getExpression().getClass().getName());
-			}
-		}
+    /**
+     * Order by columns now point to the PRN above the node of interest.
+     * We need them to point to the RCL under that one.  This is useful
+     * when combining sorts where we need to reorder the sorting
+     * columns.
+     */
+    void resetToSourceRC()
+    {
+        if (SanityManager.DEBUG)
+        {
+            if (! (resultCol.getExpression() instanceof VirtualColumnNode))
+            {
+                SanityManager.THROWASSERT(
+                    "resultCol.getExpression() expected to be instanceof VirtualColumnNode " +
+                    ", not " + resultCol.getExpression().getClass().getName());
+            }
+        }
 
-		resultCol = resultCol.getExpression().getSourceResultColumn();
-	}
+        resultCol = resultCol.getExpression().getSourceResultColumn();
+    }
 
-	/**
-	 * Is this OrderByColumn constant, according to the given predicate list?
-	 * A constant column is one where all the column references it uses are
-	 * compared equal to constants.
-	 */
-	boolean constantColumn(PredicateList whereClause)
-	{
-		ValueNode sourceExpr = resultCol.getExpression();
+    /**
+     * Is this OrderByColumn constant, according to the given predicate list?
+     * A constant column is one where all the column references it uses are
+     * compared equal to constants.
+     */
+    boolean constantColumn(PredicateList whereClause)
+    {
+        ValueNode sourceExpr = resultCol.getExpression();
 
-		return sourceExpr.constantExpression(whereClause);
-	}
+        return sourceExpr.constantExpression(whereClause);
+    }
 
-	/**
-	 * Remap all the column references under this OrderByColumn to their
-	 * expressions.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	void remapColumnReferencesToExpressions() throws StandardException
-	{
-		resultCol.setExpression(
-			resultCol.getExpression().remapColumnReferencesToExpressions());
-	}
+    /**
+     * Remap all the column references under this OrderByColumn to their
+     * expressions.
+     *
+     * @exception StandardException        Thrown on error
+     */
+    void remapColumnReferencesToExpressions() throws StandardException
+    {
+        resultCol.setExpression(
+            resultCol.getExpression().remapColumnReferencesToExpressions());
+    }
 
-	public static boolean isReferedColByNum(ValueNode expression)
-	throws StandardException {
+    public static boolean isReferedColByNum(ValueNode expression)
+    throws StandardException {
 
         return expression.isConstantExpression() && expression instanceof NumericConstantNode && expression.getConstantValueAsObject() instanceof Integer;
 
     }
 
-	
-	private ResultColumn resolveColumnReference(ResultSetNode target,
-							   ColumnReference cr)
-	throws StandardException{
-		
-		ResultColumn resultCol = null;
-		
-		int					sourceTableNumber = -1;
-		
-		//bug 5716 - for db2 compatibility - no qualified names allowed in order by clause when union/union all operator is used 
 
-		if (target instanceof SetOperatorNode && cr.getTableName() != null){
-			String fullName = cr.getSQLColumnName();
-			throw StandardException.newException(SQLState.LANG_QUALIFIED_COLUMN_NAME_NOT_ALLOWED, fullName);
-		}
+    private ResultColumn resolveColumnReference(ResultSetNode target,
+                               ColumnReference cr)
+    throws StandardException{
 
-		if(cr.getTableNameNode() != null){
-			TableName tableNameNode = cr.getTableNameNode();
+        ResultColumn resultCol = null;
 
-			FromTable fromTable = target.getFromTableByName(tableNameNode.getTableName(),
-									(tableNameNode.hasSchema() ?
-									 tableNameNode.getSchemaName():null),
-									true);
-			if(fromTable == null){
-				fromTable = target.getFromTableByName(tableNameNode.getTableName(),
-								      (tableNameNode.hasSchema() ?
-								       tableNameNode.getSchemaName():null),
-								      false);
-				if(fromTable == null){
-					String fullName = cr.getTableNameNode().toString();
-					throw StandardException.newException(SQLState.LANG_EXPOSED_NAME_NOT_FOUND, fullName);
-				}
-			}
+        int                    sourceTableNumber = -1;
 
-			/* HACK - if the target is a UnionNode, then we have to
-			 * have special code to get the sourceTableNumber.  This is
-			 * because of the gyrations we go to with building the RCLs
-			 * for a UnionNode.
-			 */
-			if (target instanceof SetOperatorNode)
-			{
-				sourceTableNumber = ((FromTable) target).getTableNumber();
-			}
-			else
-			{
-				sourceTableNumber = fromTable.getTableNumber();
-			}
-			
-		}
+        //bug 5716 - for db2 compatibility - no qualified names allowed in order by clause when union/union all operator is used
 
-		ResultColumnList	targetCols = target.getResultColumns();
+        if (target instanceof SetOperatorNode && cr.getTableName() != null){
+            String fullName = cr.getSQLColumnName();
+            throw StandardException.newException(SQLState.LANG_QUALIFIED_COLUMN_NAME_NOT_ALLOWED, fullName);
+        }
 
-		resultCol = targetCols.getOrderByColumnToBind(cr.getColumnName(),
-							cr.getTableNameNode(),
-							sourceTableNumber,
-							this);
+        if(cr.getTableNameNode() != null){
+            TableName tableNameNode = cr.getTableNameNode();
+
+            FromTable fromTable = target.getFromTableByName(tableNameNode.getTableName(),
+                                    (tableNameNode.hasSchema() ?
+                                     tableNameNode.getSchemaName():null),
+                                    true);
+            if(fromTable == null){
+                fromTable = target.getFromTableByName(tableNameNode.getTableName(),
+                                      (tableNameNode.hasSchema() ?
+                                       tableNameNode.getSchemaName():null),
+                                      false);
+                if(fromTable == null){
+                    String fullName = cr.getTableNameNode().toString();
+                    throw StandardException.newException(SQLState.LANG_EXPOSED_NAME_NOT_FOUND, fullName);
+                }
+            }
+
+            /* HACK - if the target is a UnionNode, then we have to
+             * have special code to get the sourceTableNumber.  This is
+             * because of the gyrations we go to with building the RCLs
+             * for a UnionNode.
+             */
+            if (target instanceof SetOperatorNode)
+            {
+                sourceTableNumber = ((FromTable) target).getTableNumber();
+            }
+            else
+            {
+                sourceTableNumber = fromTable.getTableNumber();
+            }
+
+        }
+
+        ResultColumnList    targetCols = target.getResultColumns();
+
+        resultCol = targetCols.getOrderByColumnToBind(cr.getColumnName(),
+                            cr.getTableNameNode(),
+                            sourceTableNumber,
+                            this);
         /* Search targetCols before using addedColumnOffset because select list wildcards, '*',
          * are expanded after pullUpOrderByColumn is called. A simple column reference in the
          * order by clause may be found in the user specified select list now even though it was
@@ -546,61 +551,61 @@ public class OrderByColumn extends OrderedColumn {
          */
         if( resultCol == null && addedColumnOffset >= 0)
             resolveAddedColumn(target);
-							
-		if (resultCol == null || resultCol.isNameGenerated()){
-			String errString = cr.columnName;
-			throw StandardException.newException(SQLState.LANG_ORDER_BY_COLUMN_NOT_FOUND, errString);
-		}
 
-		return resultCol;
+        if (resultCol == null || resultCol.isNameGenerated()){
+            String errString = cr.columnName;
+            throw StandardException.newException(SQLState.LANG_ORDER_BY_COLUMN_NOT_FOUND, errString);
+        }
 
-	}
+        return resultCol;
 
-	/**
-	 * Reset addedColumnOffset to indicate that column is no longer added
-	 *
-	 * An added column is one which was artificially added to the result
-	 * column list due to its presence in the ORDER BY clause, as opposed to
-	 * having been explicitly selected by the user. Since * is not expanded
-	 * until after the ORDER BY columns have been pulled up, we may add a
-	 * column, then later decide it is a duplicate of an explicitly selected
-	 * column. In that case, this method is called, and it does the following:
-	 * - resets addedColumnOffset to -1 to indicate this is not an added col
-	 * - calls back to the OrderByList to adjust any other added cols
-	 */
-	void clearAddedColumnOffset()
-	{
-		list.closeGap(addedColumnOffset);
-		addedColumnOffset = -1;
-	}
-	/**
-	 * Adjust addedColumnOffset to reflect that a column has been removed
-	 *
-	 * This routine is called when a previously-added result column has been
-	 * removed due to being detected as a duplicate. If that added column had
-	 * a lower offset than our column, we decrement our offset to reflect that
-	 * we have just been moved down one slot in the result column list.
-	 *
-	 * @param gap   offset of the column which has just been removed from list
-	 */
-	void collapseAddedColumnGap(int gap)
-	{
-		if (addedColumnOffset > gap)
-			addedColumnOffset--;
-	}
+    }
+
+    /**
+     * Reset addedColumnOffset to indicate that column is no longer added
+     *
+     * An added column is one which was artificially added to the result
+     * column list due to its presence in the ORDER BY clause, as opposed to
+     * having been explicitly selected by the user. Since * is not expanded
+     * until after the ORDER BY columns have been pulled up, we may add a
+     * column, then later decide it is a duplicate of an explicitly selected
+     * column. In that case, this method is called, and it does the following:
+     * - resets addedColumnOffset to -1 to indicate this is not an added col
+     * - calls back to the OrderByList to adjust any other added cols
+     */
+    void clearAddedColumnOffset()
+    {
+        list.closeGap(addedColumnOffset);
+        addedColumnOffset = -1;
+    }
+    /**
+     * Adjust addedColumnOffset to reflect that a column has been removed
+     *
+     * This routine is called when a previously-added result column has been
+     * removed due to being detected as a duplicate. If that added column had
+     * a lower offset than our column, we decrement our offset to reflect that
+     * we have just been moved down one slot in the result column list.
+     *
+     * @param gap   offset of the column which has just been removed from list
+     */
+    void collapseAddedColumnGap(int gap)
+    {
+        if (addedColumnOffset > gap)
+            addedColumnOffset--;
+    }
 
 
-	/**
-	 * Accept the visitor for all visitable children of this node.
-	 *
+    /**
+     * Accept the visitor for all visitable children of this node.
+     *
      * @param v the visitor
      */
-	@Override
+    @Override
     public void acceptChildren(Visitor v) throws StandardException {
-		super.acceptChildren(v);
-		if (expression != null) {
-			expression = (ValueNode)expression.accept(v, this);
-		}
-	}
+        super.acceptChildren(v);
+        if (expression != null) {
+            expression = (ValueNode)expression.accept(v, this);
+        }
+    }
 
 }

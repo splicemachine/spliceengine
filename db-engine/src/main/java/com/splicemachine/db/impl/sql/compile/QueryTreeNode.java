@@ -658,6 +658,9 @@ public abstract class QueryTreeNode implements Node, Visitable{
             case Types.DECIMAL:
                 constantNodeType=C_NodeTypes.DECIMAL_CONSTANT_NODE;
                 break;
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+                constantNodeType=C_NodeTypes.DECFLOAT_CONSTANT_NODE;
+                break;
             case Types.DATE:
             case Types.TIME:
             case Types.TIMESTAMP:

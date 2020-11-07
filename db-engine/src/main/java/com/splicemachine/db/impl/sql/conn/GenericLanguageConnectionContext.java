@@ -64,6 +64,7 @@ import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
@@ -78,6 +79,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
+import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getCurrentCharTypeCompiler;
 
 /**
  * LanguageConnectionContext keeps the pool of prepared statements,
@@ -347,6 +349,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean nljPredicatePushDownDisabled = false;
 
     private String replicationRole = "NONE";
+    private boolean db2VarcharCompatibilityModeNeedsReset = false;
+    private CharTypeCompiler charTypeCompiler = null;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -4004,5 +4008,21 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         }
 
         return nljPredicatePushDownDisabled;
+    }
+
+    @Override
+    public void setDB2VarcharCompatibilityModeNeedsReset(boolean newValue,
+                                                         CharTypeCompiler charTypeCompiler) {
+        db2VarcharCompatibilityModeNeedsReset = newValue;
+        this.charTypeCompiler = charTypeCompiler;
+    }
+
+    @Override
+    public void resetDB2VarcharCompatibilityMode() {
+        db2VarcharCompatibilityModeNeedsReset = false;
+        if (charTypeCompiler != null) {
+            charTypeCompiler.setDB2VarcharCompatibilityMode(false);
+            charTypeCompiler = null;
+        }
     }
 }
