@@ -1320,6 +1320,28 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
+    public static void SYSCS_INVALIDATE_STORED_STATEMENTS() throws SQLException{
+        SystemProcedures.SYSCS_INVALIDATE_PERSISTED_STORED_STATEMENTS();
+        SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE();
+    }
+
+    public static void SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE() throws SQLException{
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()")) {
+                    ps.execute();
+                }
+            }
+        }
+    }
+
     private static Collection<PartitionServer> getLoad() throws SQLException{
         try(PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin()){
             return admin.allServers();

@@ -1059,6 +1059,20 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
                             .build());
 
+                    procedures.add(Procedure.newBuilder().name("SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
+                            .build());
+
+                    procedures.add(Procedure.newBuilder().name("SYSCS_INVALIDATE_STORED_STATEMENTS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.NO_SQL).returnType(null).isDeterministic(false)
+                            .build());
+
                     procedures.add(Procedure.newBuilder().name("GET_ACTIVATION")
                             .numOutputParams(0)
                             .numResultSets(1)
