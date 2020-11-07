@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.1.1984</version>
+        <version>3.0.1.1985-SNAPSHOT</version>
     </parent>
     <artifactId>splice_ck</artifactId>
     <name>splice_ck</name>
