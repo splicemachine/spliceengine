@@ -52,8 +52,6 @@ import org.apache.spark.sql.types.StructField;
 import java.util.Collections;
 import java.util.List;
 
-import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getDB2CompatibilityMode;
-
 /**
  * A ResultColumn represents a result column in a SELECT, INSERT, or UPDATE
  * statement.  In a SELECT statement, the result column just represents an
@@ -2126,6 +2124,43 @@ public class ResultColumn extends ValueNode
         return -1L;
     }
 
+    public ResultColumn getChildResultColumn() {
+        ValueNode expression = getExpression();
+        while (expression != null) {
+            if (expression instanceof VirtualColumnNode) {
+                return ((VirtualColumnNode) expression).getSourceColumn();
+            } else if (expression instanceof ColumnReference) {
+                return ((ColumnReference) expression).getSource();
+            } else if (expression instanceof CastNode) {
+                expression = ((CastNode) expression).getCastOperand();
+            } else {
+                expression = null;
+            }
+        }
+        return null;
+    }
+
+    public ResultColumn getNestedQueryBlockResultColumn() {
+        ValueNode expression = getExpression();
+        while (expression != null) {
+            if (expression instanceof VirtualColumnNode) {
+                VirtualColumnNode vcn = (VirtualColumnNode) expression;
+                if (vcn.getSourceResultSet() instanceof SelectNode) {
+                    return vcn.getSourceColumn();
+                } else {
+                    expression = vcn.getSourceColumn() == null ? null : vcn.getSourceColumn().getExpression();
+                }
+            } else if (expression instanceof ColumnReference) {
+                ResultColumn childRC = ((ColumnReference) expression).getSource();
+                expression = childRC == null ? null : childRC.getExpression();
+            } else if (expression instanceof CastNode) {
+                expression = ((CastNode) expression).getCastOperand();
+            } else {
+                expression = null;
+            }
+        }
+        return null;
+    }
 
     public void setFromLeftChild(boolean fromLeftChild) {
         this.fromLeftChild = fromLeftChild;
@@ -2171,6 +2206,22 @@ public class ResultColumn extends ValueNode
         cr.setSourceLevel(origCR.getSourceLevel());
 
         return cr;
+    }
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        // For ResultColumn, never construct a new instance. Only replace expression
+        // and set indexExpression properly.
+        if (childRCL != null) {
+            for (ResultColumn childRC : childRCL) {
+                if (expression.semanticallyEquals(childRC.getIndexExpression())) {
+                    expression = childRC.getColumnReference(expression);
+                    indexExpression = childRC.getIndexExpression();
+                    break;
+                }
+            }
+        }
+        return this;
     }
 }
 

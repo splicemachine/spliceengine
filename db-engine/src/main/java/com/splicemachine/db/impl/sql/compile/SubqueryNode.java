@@ -2727,8 +2727,7 @@ public class SubqueryNode extends ValueNode{
 
     @Override
     public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
-        assert resultSet instanceof Optimizable;
-        ((Optimizable) resultSet).replaceIndexExpressions(childRCL);
+        resultSet.replaceIndexExpressions(childRCL);
         return this;
     }
 }

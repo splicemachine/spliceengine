@@ -1761,4 +1761,11 @@ public abstract class ResultSetNode extends QueryTreeNode{
     public boolean getContainsSelfReference() {
         return containsSelfReference;
     }
+
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        return true;
+    }
 }

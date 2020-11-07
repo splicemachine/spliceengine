@@ -377,6 +377,11 @@ public class JoinNode extends TableOperatorNode{
 
         super.modifyAccessPath(outerTables);
 
+        // replace join predicates pushed down to right
+        if (leftResultSet.getResultColumns().isFromExprIndex()) {
+            rightResultSet.replaceIndexExpressions(leftResultSet.getResultColumns());
+        }
+
         /* By the time we're done here, both the left and right
          * predicate lists should be empty because we pushed everything
          * down.
@@ -2310,4 +2315,22 @@ public class JoinNode extends TableOperatorNode{
     }
 
     public ValueNode getJoinClause() { return joinClause; }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (joinClause != null) {
+            result = joinClause.collectExpressions(exprMap);
+        }
+        if (joinPredicates != null) {
+            result = result && joinPredicates.collectExpressions(exprMap);
+        }
+        if (leftPredicateList != null) {
+            result = result && leftPredicateList.collectExpressions(exprMap);
+        }
+        if (rightPredicateList != null) {
+            result = result && rightPredicateList.collectExpressions(exprMap);
+        }
+        return result && super.collectExpressions(exprMap);
+    }
 }

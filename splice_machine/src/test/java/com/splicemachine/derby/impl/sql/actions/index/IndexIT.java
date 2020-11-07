@@ -1954,6 +1954,65 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testCoveringIndexOnExpressionsOuterJoin() throws Exception {
+        methodWatcher.executeUpdate("create table TEST_INDEX_EXPR_FOJ_1 (a1 int, b1 int, c1 int, d1 int)");
+        methodWatcher.executeUpdate("create index TEST_INDEX_EXPR_FOJ_1_IDX on TEST_INDEX_EXPR_FOJ_1(a1+1, b1+1)");
+        methodWatcher.executeUpdate("create table TEST_INDEX_EXPR_FOJ_2 (a2 int, b2 int, c2 int)");
+
+        methodWatcher.executeUpdate("insert into TEST_INDEX_EXPR_FOJ_1 values (1,2,2,2), (2,3,3,3), (3,4,4,4)");
+        methodWatcher.executeUpdate("insert into TEST_INDEX_EXPR_FOJ_2 values (1,1,1), (2,2,2), (3,3,3), (4,4,4), (5,5,5)");
+
+        // full outer join, two tables
+        String query = "select a1+1 as X, b2 from TEST_INDEX_EXPR_FOJ_1 --splice-properties index=TEST_INDEX_EXPR_FOJ_1_IDX\n " +
+                "full join TEST_INDEX_EXPR_FOJ_2 on b1+1=b2";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_INDEX_EXPR_FOJ_1_IDX"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        String expected = "X  |B2 |\n" +
+                "----------\n" +
+                "  2  | 3 |\n" +
+                "  3  | 4 |\n" +
+                "  4  | 5 |\n" +
+                "NULL | 1 |\n" +
+                "NULL | 2 |";
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // full outer join, three tables
+        query = "select t11.b1+1 as X, t12.a1+1 as Y, b2 from " +
+                "TEST_INDEX_EXPR_FOJ_1 t11 --splice-properties index=TEST_INDEX_EXPR_FOJ_1_IDX\n " +
+                "full join TEST_INDEX_EXPR_FOJ_2 on t11.b1+1=b2 " +
+                "full join TEST_INDEX_EXPR_FOJ_1 t12 --splice-properties index=TEST_INDEX_EXPR_FOJ_1_IDX\n " +
+                " on t12.a1+1=b2";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_INDEX_EXPR_FOJ_1_IDX"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        expected = "X  |  Y  |B2 |\n" +
+                "----------------\n" +
+                "  3  |  3  | 3 |\n" +
+                "  4  |  4  | 4 |\n" +
+                "  5  |NULL | 5 |\n" +
+                "NULL |  2  | 2 |\n" +
+                "NULL |NULL | 1 |";
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
     public void testCoveringIndexOnExpressionsDerivedTable() throws Exception {
         methodWatcher.executeUpdate("create table TEST_DERIVED_TABLE(a1 int, a2 int)");
         methodWatcher.executeUpdate("insert into TEST_DERIVED_TABLE values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
@@ -1985,6 +2044,8 @@ public class IndexIT extends SpliceUnitTest{
 
         // index is covering for derived table, outer level references aliases, y + 1 can use
         // a1 * 3 column from index directly, so still no IndexLookup
+        // Note that this derived table cannot be flattened because not all select items are
+        // cloneable (an expression other than plain column reference is mostly not cloneable).
         query = "select y + 1 from " +
                 "(select a2 as x, a1 * 3 as y from TEST_DERIVED_TABLE --splice-properties index=TEST_DERIVED_TABLE_IDX\n) dt" +
                 " where x < 25";
@@ -2005,6 +2066,7 @@ public class IndexIT extends SpliceUnitTest{
         testJoinStrategy(query, "", expected);  // optimizer's choice
 
         // join inside derived table, then join
+        // derived table is not flattenable because fromList.size() > 1
         query = "select x, t2.b2 from (select 3*a1 as x, b2 from TEST_DERIVED_TABLE --splice-properties index=TEST_DERIVED_TABLE_IDX\n" +
                 ", TEST_DERIVED_TABLE_2 where a1*3 = b1) dt, TEST_DERIVED_TABLE_2 t2\n" +
                 "where X=3";
@@ -2023,6 +2085,52 @@ public class IndexIT extends SpliceUnitTest{
                 " 3 |10 |\n" +
                 " 3 |30 |\n" +
                 " 3 |50 |";
+        testJoinStrategy(query, "", expected);  // optimizer's choice
+
+        // outer join inside derived table, then outer join
+        // derived table is not flattenable because fromList.size() > 1
+        query = "select dt.x, dt.b2, t1.a2 from " +
+                "  (select 3*a1 as x, b2 from TEST_DERIVED_TABLE --splice-properties index=TEST_DERIVED_TABLE_IDX\n " +
+                "                             right join TEST_DERIVED_TABLE_2 on a1*3 = b1) as dt " +
+                "  full join TEST_DERIVED_TABLE t1 --splice-properties index=TEST_DERIVED_TABLE_IDX\n on dt.b2 = t1.a2 " +
+                "where dt.x is null";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_DERIVED_TABLE_IDX"));
+            Assert.assertTrue(explainPlanText.contains("TableScan[TEST_DERIVED_TABLE_2"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        expected = "X  | B2  |A2 |\n" +
+                "----------------\n" +
+                "NULL | 10  |10 |\n" +
+                "NULL | 50  |50 |\n" +
+                "NULL |NULL | 0 |\n" +
+                "NULL |NULL |20 |\n" +
+                "NULL |NULL |40 |";
+        testJoinStrategy(query, "", expected);  // optimizer's choice
+
+        // corner case: no inner base table column is referenced, not flattenable because of aggregation
+        query = "select x, t2.b1 from (select count(*) as x from TEST_DERIVED_TABLE --splice-properties index=TEST_DERIVED_TABLE_IDX\n) t1, " +
+                "TEST_DERIVED_TABLE_2 t2";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_DERIVED_TABLE_IDX"));
+            Assert.assertTrue(explainPlanText.contains("TableScan[TEST_DERIVED_TABLE_2"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        expected = "X |B1 |\n" +
+                "--------\n" +
+                " 6 | 1 |\n" +
+                " 6 | 3 |\n" +
+                " 6 | 5 |";
         testJoinStrategy(query, "", expected);  // optimizer's choice
     }
 

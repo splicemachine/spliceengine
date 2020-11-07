@@ -620,11 +620,6 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         return false;
     }
 
-    public void replaceIndexExpressions(ResultSetNode child) throws StandardException {
-        replaceIndexExpressions(child.getResultColumns());
-        bindOrderByColumns(child);
-    }
-
     public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
         for (int i = 0; i < size(); i++) {
             OrderByColumn obc = (OrderByColumn) elementAt(i);

@@ -1225,8 +1225,9 @@ public class SelectNode extends ResultSetNode{
         ResultColumnList childResultColumns = ((ResultSetNode)fromList.elementAt(0)).getResultColumns();
         if (childResultColumns.isFromExprIndex()) {
             for (ResultColumn rc : resultColumns) {
-                rc.setExpression(rc.getExpression().replaceIndexExpression(childResultColumns));
+                rc.replaceIndexExpression(childResultColumns);
             }
+            resultColumns.updateColumnMappingToChild(childResultColumns);
             resultColumns.setFromExprIndex(true);
 
             if (wherePredicates != null) {
@@ -1408,7 +1409,7 @@ public class SelectNode extends ResultSetNode{
 
         if(orderByList!=null){
             if (childResultColumns.isFromExprIndex()) {
-                orderByList.replaceIndexExpressions((ResultSetNode) fromList.elementAt(0));
+                orderByList.replaceIndexExpressions(childResultColumns);
             }
             // Need to remove sort reduction if you are aggregating (hash)
             if(orderByList.isSortNeeded()
@@ -1946,8 +1947,8 @@ public class SelectNode extends ResultSetNode{
              * Index expressions refer to the inner table are already replaced during modifying inner
              * table's access path.
              */
-            if (leftRCList.isFromExprIndex() && rightResultSet instanceof Optimizable) {
-                ((Optimizable)rightResultSet).replaceIndexExpressions(leftResultSet.getResultColumns());
+            if (leftRCList.isFromExprIndex()) {
+                rightResultSet.replaceIndexExpressions(leftResultSet.getResultColumns());
             }
 
 //            if(leftBaseTable != null && rightBaseTable != null){
@@ -2977,16 +2978,8 @@ public class SelectNode extends ResultSetNode{
         }
 
         for (QueryTreeNode fromItem : fromList) {
-            if (fromItem instanceof JoinNode) {
-                ValueNode joinClause = ((JoinNode) fromItem).getJoinClause();
-                if (joinClause != null) {
-                    joinClause.collectExpressions(result);
-                }
-            } else if (fromItem instanceof ProjectRestrictNode) {
-                PredicateList restrictionList = ((ProjectRestrictNode) fromItem).getRestrictionList();
-                if (restrictionList != null) {
-                    restrictionList.collectExpressions(result);
-                }
+            if (fromItem instanceof ResultSetNode) {  // this is probably always true?
+                ((ResultSetNode) fromItem).collectExpressions(result);
             }
         }
 
