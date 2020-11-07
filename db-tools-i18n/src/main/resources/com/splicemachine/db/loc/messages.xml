@@ -1550,6 +1550,18 @@ Guide.
             </msg>
 
             <msg>
+                <name>42846.A</name>
+                <text>Cannot set a length for a cast from '{0}' to '{1}'.</text>
+                <arg>type</arg>
+                <arg>type</arg>
+            </msg>
+
+            <msg>
+                <name>42846.B</name>
+                <text>Date format is only applicable in casts from date/datetime.</text>
+            </msg>
+
+            <msg>
                 <name>42877</name>
                 <text>A qualified column name '{0}' is not allowed in the ORDER BY clause.</text>
                 <arg>columnName</arg>

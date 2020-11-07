@@ -990,6 +990,8 @@ public interface SQLState {
     String LANG_NO_METHOD_MATCHING_ALIAS                               = "42Y16";
     // String LANG_DROP_SYSTEM_TABLE_ATTEMPTED                         = "42Y17"; -- replaced by 42X62
     String LANG_INVALID_CAST                                           = "42846";
+    String LANG_INVALID_CAST_TO_CHAR_WITH_LENGTH_NOT_FROM_CHAR         = "42846.A";
+    String LANG_INVALID_CAST_TO_CHAR_WITH_FORMAT_NOT_FROM_DATE         = "42846.B";
     //    String LANG_AMBIGUOUS_GROUPING_COLUMN                              = "42Y19"; -- unused post 883.
     //    String LANG_UNMATCHED_GROUPING_COLUMN                              =    //    "42Y20"; -- not used
     String LANG_USER_AGGREGATE_BAD_TYPE                                = "42Y22";
