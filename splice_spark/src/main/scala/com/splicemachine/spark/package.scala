@@ -24,14 +24,20 @@ package object splicemachine {
   val dialect = new SplicemachineDialect
   val dialectNoTime = new SplicemachineDialectNoTime
   
-  var quoteIdentifier: String => String = identity
+  var quoteIdentifier: String => String = _
+  var norm: String => String = _
   
   columnNamesCaseSensitive(false)
 
   def columnNamesCaseSensitive(caseSensitive: Boolean): Unit = {
     SparkSession.builder.getOrCreate.sqlContext.setConf("spark.sql.caseSensitive", caseSensitive.toString)
-    if( caseSensitive )   { quoteIdentifier = dialect.quoteIdentifier }
-    else                  { quoteIdentifier = identity }
+    if( caseSensitive ) {
+      quoteIdentifier = dialect.quoteIdentifier
+      norm = identity
+    } else {
+      quoteIdentifier = identity
+      norm = s => s.toUpperCase
+    }
   }
 
   /**
@@ -89,7 +95,10 @@ package object splicemachine {
       info.mkString(", ")
     } else {
       schema.map( field => {
-        info.find( col => col.startsWith( quoteIdentifier(field.name)+" " ) ).getOrElse("")
+        info.find( col => norm(col).startsWith( norm(quoteIdentifier(field.name))+" " ) )
+          .getOrElse(
+            throw new Exception( s"No column named ${field.name} found in the table. Verify column name and case sensitivity." )
+          )
       }).mkString(", ")
     }
   }
