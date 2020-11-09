@@ -53,7 +53,7 @@ import java.util.Objects;
  * This table has FOR BIT DATA TYPES broken out into separate columns for clarity
  *
  * Note that are few differences between Derby and DB2
- * 1)there are few differences between what datatypes are consdiered compatible
+ * 1)there are few differences between what datatypes are considered compatible
  * In DB2, CHAR FOR BIT DATA datatypes are compatible with CHAR datatypes
  * ie in addition to following table, CHAR is compatible with CHAR FOR BIT DATA, VARCHAR FOR BIT DATA and LONG VARCHAR FOR BIT DATA
  * ie in addition to following table, VARCHAR is compatible with CHAR FOR BIT DATA, VARCHAR FOR BIT DATA and LONG VARCHAR FOR BIT DATA
@@ -61,7 +61,7 @@ import java.util.Objects;
  * ie in addition to following table, CHAR FOR BIT DATA is compatible with DATE, TIME, TIMESTAMP
  * ie in addition to following table, VARCHAR FOR BIT DATA is compatible with DATE, TIME, TIMESTAMP
  *
- * 2)few datatypes donot have matching precision in Derby and DB2
+ * 2)few datatypes do not have matching precision in Derby and DB2
  * In DB2, precision of TIME is 8. In Derby, precision of TIME is 0.
  * In DB2, precision,scale of TIMESTAMP is 26,6. In Derby, precision of TIMESTAMP is 0,0.
  * In DB2, precision of DOUBLE is 15. In Derby, precision of DOUBLE is 52.
@@ -69,36 +69,35 @@ import java.util.Objects;
  * In DB2, precision calculation equation is incorrect when we have int and decimal arguments.
  * The equation should be p=x+max(w-x,10) since precision of integer is 10 in both DB2 and Derby. Instead, DB2 has p=x+max(w-x,11) 
  *
- * Types.             S  I  B  D  R  D  C  V  L  C  V  L  C  D  T  T  B
- *                    M  N  I  E  E  O  H  A  O  H  A  O  L  A  I  I  L
- *                    A  T  G  C  A  U  A  R  N  A  R  N  O  T  M  M  O
- *                    L  E  I  I  L  B  R  C  G  R  C  G  B  E  E  E  B
- *                    L  G  N  M     L     H  V  .  H  V           S
- *                    I  E  T  A     E     A  A  B  A  A           T
- *                    N  R     L           R  R  I  R  R           A
- *                    T                       C  T  .  .           M
- *                                            H     B  B           P
- *                                            A     I  I
- *                                            R     T   T
- * SMALLINT         { "SMALLINT", "INTEGER", "BIGINT", "DECIMAL", "DOUBLE", "DOUBLE", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR" },
- * INTEGER          { "INTEGER", "INTEGER", "BIGINT", "DECIMAL", "DOUBLE", "DOUBLE", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR" },
- * BIGINT           { "BIGINT", "BIGINT", "BIGINT", "DECIMAL", "DOUBLE", "DOUBLE", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR" },
- * DECIMAL          { "DECIMAL", "DECIMAL", "DECIMAL", "DECIMAL", "DOUBLE", "DOUBLE", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR" },
- * REAL             { "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "REAL", "DOUBLE", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR" },
- * DOUBLE           { "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "DOUBLE", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR" },
- * CHAR             { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "CHAR", "VARCHAR", "LONG VARCHAR", "ERROR", "ERROR", "ERROR", "CLOB", "DATE", "TIME", "TIMESTAMP", "ERROR" },
- * VARCHAR          { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "VARCHAR", "VARCHAR","LONG VARCHAR", "ERROR", "ERROR", "ERROR", "CLOB", "DATE", "TIME", "TIMESTAMP", "ERROR" },
- * LONGVARCHAR      { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "LONG VARCHAR", "LONG VARCHAR", "LONG VARCHAR", "ERROR", "ERROR", "ERROR", "CLOB", "ERROR", "ERROR", "ERROR", "ERROR" },
- * CHAR FOR BIT     { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "BIT", "BIT VARYING", "LONG BIT VARYING", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR" },
- * VARCH. BIT       { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "BIT VARYING", "BIT VARYING", "LONG BIT VARYING", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR" },
- * LONGVAR. BIT     { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "LONG BIT VARYING", "LONG BIT VARYING", "LONG BIT VARYING", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR" },
- * CLOB             { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "CLOB", "CLOB", "CLOB", "ERROR", "ERROR", "ERROR", "CLOB", "ERROR", "ERROR", "ERROR", "ERROR" },
- * DATE             { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "DATE", "DATE", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "DATE", "ERROR", "ERROR", "ERROR" },
- * TIME             { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "TIME", "TIME", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "TIME", "ERROR", "ERROR" },
- * TIMESTAMP        { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "TIMESTAMP", "TIMESTAMP", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "TIMESTAMP", "ERROR" },
- * BLOB             { "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "ERROR", "BLOB" }
+ * Types.         S           I          B          D          R         D         C               V               L                C                   V                   L                   C        D        T        T            B
+ *                M           N          I          E          E         O         H               A               O                H                   A                   O                   L        A        I        I            L
+ *                A           T          G          C          A         U         A               R               N                A                   R                   N                   O        T        M        M            O
+ *                L           E          I          I          L         B         R               C               G                R                   C                   G                   B        E        E        E            B
+ *                L           G          N          M          |         L         |               H               V                .                   H                   V                   |        |        |        S            |
+ *                I           E          T          A          |         E         |               A               A                B                   A                   A                   |        |        |        T            |
+ *                N           R          |          L          |         |         |               R               R                I                   R                   R                   |        |        |        A            |
+ *                T           |          |          |          |         |         |               |               |                T                   B                   B                   |        |        |        M            |
+ *                |           |          |          |          |         |         |               |               |                |                   I                   I                   |        |        |        P            |
+ *                |           |          |          |          |         |         |               |               |                |                   T                   T                   |        |        |        |            |
+ *                |           |          |          |          |         |         |               |               |                |                   |                   |                   |        |        |        |            |
+ * SMALLINT     { "SMALLINT", "INTEGER", "BIGINT" , "DECIMAL", "DOUBLE", "DOUBLE", "ERROR"       , "ERROR"       , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * INTEGER      { "INTEGER" , "INTEGER", "BIGINT" , "DECIMAL", "DOUBLE", "DOUBLE", "ERROR"       , "ERROR"       , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * BIGINT       { "BIGINT"  , "BIGINT" , "BIGINT" , "DECIMAL", "DOUBLE", "DOUBLE", "ERROR"       , "ERROR"       , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * DECIMAL      { "DECIMAL" , "DECIMAL", "DECIMAL", "DECIMAL", "DOUBLE", "DOUBLE", "ERROR"       , "ERROR"       , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * REAL         { "DOUBLE"  , "DOUBLE" , "DOUBLE" , "DOUBLE" , "REAL"  , "DOUBLE", "ERROR"       , "ERROR"       , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * DOUBLE       { "DOUBLE"  , "DOUBLE" , "DOUBLE" , "DOUBLE" , "DOUBLE", "DOUBLE", "ERROR"       , "ERROR"       , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * CHAR         { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "CHAR"        , "VARCHAR"     , "LONG VARCHAR" , "ERROR"           , "ERROR"           , "ERROR"           , "CLOB" , "DATE" , "TIME" , "TIMESTAMP", "ERROR" },
+ * VARCHAR      { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "VARCHAR"     , "VARCHAR"     , "LONG VARCHAR" , "ERROR"           , "ERROR"           , "ERROR"           , "CLOB" , "DATE" , "TIME" , "TIMESTAMP", "ERROR" },
+ * LONGVARCHAR  { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "LONG VARCHAR", "LONG VARCHAR", "LONG VARCHAR" , "ERROR"           , "ERROR"           , "ERROR"           , "CLOB" , "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * CHAR FOR BIT { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "ERROR"       , "ERROR"       , "ERROR"        , "BIT"             , "BIT VARYING"     , "LONG BIT VARYING", "ERROR", "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * VARCH. BIT   { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "ERROR"       , "ERROR"       , "ERROR"        , "BIT VARYING"     , "BIT VARYING"     , "LONG BIT VARYING", "ERROR", "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * LONGVAR. BIT { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "ERROR"       , "ERROR"       , "ERROR"        , "LONG BIT VARYING", "LONG BIT VARYING", "LONG BIT VARYING", "ERROR", "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * CLOB         { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "CLOB"        , "CLOB"        , "CLOB"         , "ERROR"           , "ERROR"           , "ERROR"           , "CLOB" , "ERROR", "ERROR", "ERROR"    , "ERROR" },
+ * DATE         { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "DATE"        , "DATE"        , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "DATE" , "ERROR", "ERROR"    , "ERROR" },
+ * TIME         { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "TIME"        , "TIME"        , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "ERROR", "TIME" , "ERROR"    , "ERROR" },
+ * TIMESTAMP    { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "TIMESTAMP"   , "TIMESTAMP"   , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "ERROR", "ERROR", "TIMESTAMP", "ERROR" },
+ * BLOB         { "ERROR"   , "ERROR"  , "ERROR"  , "ERROR"  , "ERROR" , "ERROR" , "ERROR"       , "ERROR"       , "ERROR"        , "ERROR"           , "ERROR"           , "ERROR"           , "ERROR", "ERROR", "ERROR", "ERROR"    , "BLOB"  }
  */
-
 public abstract class MultiaryFunctionNode extends ValueNode
 {
     protected String        functionName;
