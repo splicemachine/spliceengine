@@ -121,13 +121,13 @@ public class ForeignKeyAlterDropTableIT {
             // given -- we can't delete from P because of the FK constraint
             assertQueryFail("delete from P where a =1","Operation on table 'P' caused a violation of foreign key constraint 'FK1' for key (A).  The statement has been rolled back.");
 
-//            // when -- we drop the FK constraint
-//            s.executeUpdate("alter table C drop constraint FK1");
-//
-//            // then -- we should be able to delete from P
-//            assertEquals(1,s.executeUpdate("delete from P where a =1"));
-//            // then -- we should be able to insert non matching values into C
-//            assertEquals(1,s.executeUpdate("insert into C values(999)"));
+            // when -- we drop the FK constraint
+            s.executeUpdate("alter table C drop constraint FK1");
+
+            // then -- we should be able to delete from P
+            assertEquals(1,s.executeUpdate("delete from P where a =1"));
+            // then -- we should be able to insert non matching values into C
+            assertEquals(1,s.executeUpdate("insert into C values(999)"));
         }
     }
 

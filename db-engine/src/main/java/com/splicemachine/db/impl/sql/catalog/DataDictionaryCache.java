@@ -145,8 +145,8 @@ public class DataDictionaryCache {
                 Property.LANG_PROPERTY_CACHE_SIZE_DEFAULT);
         int catalogVersionCacheSize = getCacheSize(startParams, Property.LANG_PROPERTY_CACHE_SIZE,
                 Property.LANG_PROPERTY_CACHE_SIZE_DEFAULT);
-        int constraintDescriptorListCacheSize = 10000;//getCacheSize(startParams, Property.LANG_PROPERTY_CACHE_SIZE,
-                //Property.LANG_PROPERTY_CACHE_SIZE_DEFAULT);
+        int constraintDescriptorListCacheSize = getCacheSize(startParams, Property.LANG_CONSTRAINT_CACHE_SIZE,
+                Property.LANG_CONSTRAINT_CACHE_SIZE_DEFAULT);
 
         RemovalListener<Object,Dependent> dependentInvalidator = new RemovalListener<Object, Dependent>() {
             @Override

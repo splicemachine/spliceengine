@@ -278,7 +278,11 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
                     throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_REFERENCE_CONSTRAINTS,td.getName());
                 ReferencedKeyConstraintDescriptor referencedConstraint = DDUtils.locateReferencedConstraint
                     ( dd, td, constraintName, columnNames, otherConstraintInfo );
-                DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames, fkGraph, readCheckerConfig());
+                DDUtils.Checker foreignKeyChecker = readCheckerConfig();
+                if(foreignKeyChecker == DDUtils.Checker.None) {
+                    LOG.warn("no foreign key checker is set, bypassing foreign key dependency check"); // should be in DDUtils.
+                }
+                DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames, fkGraph, foreignKeyChecker);
 
 				conDesc = ddg.newForeignKeyConstraintDescriptor(
 								td, constraintName,

@@ -15,7 +15,6 @@ package com.splicemachine.db.iapi.sql.dictionary.fk;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.utils.Pair;
