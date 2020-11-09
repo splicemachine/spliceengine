@@ -3977,11 +3977,4 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         this.fromExprIndex = fromExprIndex;
     }
 
-    public void updateColumnMappingToChild(ResultColumnList childRCL) throws StandardException {
-        UpdateColumnReferenceVisitor ucrv = new UpdateColumnReferenceVisitor(childRCL);
-        for (int i = 0; i < size(); i++) {
-            elementAt(i).setExpression((ValueNode)elementAt(i).getExpression().accept(ucrv));
-        }
-    }
-
 }

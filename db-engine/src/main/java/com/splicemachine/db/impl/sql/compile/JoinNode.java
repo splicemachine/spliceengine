@@ -369,6 +369,31 @@ public class JoinNode extends TableOperatorNode{
         return true;
     }
 
+    private static void getNewResultColumns(ResultColumnList oldRCL, ResultColumnList newRCL, ResultSetNode child)
+            throws StandardException
+    {
+        ResultColumnList childRCL = child.getResultColumns();
+        if (childRCL.isFromExprIndex()) {
+            ResultColumnList childCopy = childRCL.copyListAndObjects();
+            childCopy.genVirtualColumnNodes(child, childRCL);
+            for (ResultColumn childRC : childCopy) {
+                newRCL.addResultColumn(childRC);
+            }
+            newRCL.setFromExprIndex(true);
+        } else {
+            Set<ResultColumn> childRCSet = new HashSet<>();
+            for (ResultColumn childRC : childRCL) {
+                childRCSet.add(childRC);
+            }
+            for (ResultColumn oldRC : oldRCL) {
+                ResultColumn source = oldRC.getChildResultColumn();
+                if (childRCSet.contains(source)) {
+                    newRCL.addResultColumn(oldRC);
+                }
+            }
+        }
+    }
+
     @Override
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException{
         // modify access path for On clause subqueries
@@ -376,6 +401,28 @@ public class JoinNode extends TableOperatorNode{
             subqueryList.modifyAccessPaths();
 
         super.modifyAccessPath(outerTables);
+
+        /* If any of the two children has chosen an index on expression, result
+         * columns have to be rebuilt because the number may change. Column
+         * mapping between parent node and this node is broken after reassigning
+         * resultColumns. For this reason, resultColumns of (grand-)parent nodes
+         * must be rebuilt until the top select node in the current query block.
+         *
+         * This logic handles nested JoinNode. If parent node is a PRN, its
+         * result columns are rebuilt in its modifyAccessPath() method. If
+         * parent is SelectNode, there is no need to rebuild its result columns
+         * but only replace their expressions.
+         */
+        if (leftResultSet.getResultColumns().isFromExprIndex() || rightResultSet.getResultColumns().isFromExprIndex()) {
+            ResultColumnList newResultColumns = (ResultColumnList) getNodeFactory()
+                    .getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
+            newResultColumns.copyOrderBySelect(resultColumns);
+
+            getNewResultColumns(resultColumns, newResultColumns, leftResultSet);
+            getNewResultColumns(resultColumns, newResultColumns, rightResultSet);
+            resultColumns = newResultColumns;
+            assert resultColumns.size() == leftResultSet.getResultColumns().size() + rightResultSet.getResultColumns().size();
+        }
 
         // replace join predicates pushed down to right
         if (leftResultSet.getResultColumns().isFromExprIndex()) {

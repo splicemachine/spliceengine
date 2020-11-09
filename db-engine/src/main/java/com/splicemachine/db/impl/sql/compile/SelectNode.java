@@ -1227,8 +1227,10 @@ public class SelectNode extends ResultSetNode{
             for (ResultColumn rc : resultColumns) {
                 rc.replaceIndexExpression(childResultColumns);
             }
-            resultColumns.updateColumnMappingToChild(childResultColumns);
-            resultColumns.setFromExprIndex(true);
+            // Do not set fromIndexExpr for select node's result columns since they are used as
+            // anchors for outer level column references. An outer column references refers to an
+            // inner level index expression points to these anchors. If the flag is propagated to
+            // outer level, it doesn't help replacing index expressions but break column mapping.
 
             if (wherePredicates != null) {
                 wherePredicates.replaceIndexExpression(childResultColumns);

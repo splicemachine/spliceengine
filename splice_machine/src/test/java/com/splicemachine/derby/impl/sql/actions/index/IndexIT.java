@@ -2135,6 +2135,36 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
+    public void testCoveringIndexOnExpressionsUnionAll() throws Exception {
+        methodWatcher.executeUpdate("create table TEST_INDEX_EXPR_UNION_1 (a1 int, b1 int, c1 int, d1 int)");
+        methodWatcher.executeUpdate("create index TEST_INDEX_EXPR_UNION_1_IDX on TEST_INDEX_EXPR_UNION_1(a1+1, b1+1)");
+        methodWatcher.executeUpdate("create table TEST_INDEX_EXPR_UNION_2 (a2 int, b2 int, c2 int)");
+
+        methodWatcher.executeUpdate("insert into TEST_INDEX_EXPR_UNION_1 values (1,2,2,2), (2,3,3,3), (3,4,4,4)");
+        methodWatcher.executeUpdate("insert into TEST_INDEX_EXPR_UNION_2 values (1,1,1), (2,2,2), (3,3,3), (4,4,4), (5,5,5)");
+
+        String query = "select b1+1 from TEST_INDEX_EXPR_UNION_1 --splice-properties index=TEST_INDEX_EXPR_UNION_1_IDX\n where a1 + 1 = 2 " +
+                "union all " +
+                "select a2 from TEST_INDEX_EXPR_UNION_2 where b2 = 4";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_INDEX_EXPR_UNION_1_IDX"));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        String expected = "1 |\n" +
+                "----\n" +
+                " 3 |\n" +
+                " 4 |";
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+    @Test
     public void testCoveringExpressionBasedIndexSubquery() throws Exception {
         methodWatcher.executeUpdate("create table TEST_SUBQ_A(a1 int, a2 int)");
         methodWatcher.executeUpdate("create table TEST_SUBQ_B(b1 int, b2 int)");

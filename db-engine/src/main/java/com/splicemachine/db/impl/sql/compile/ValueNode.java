@@ -1561,8 +1561,6 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
                     return childRC.getColumnReference(this);
                 }
             }
-            UpdateColumnReferenceVisitor ucrv = new UpdateColumnReferenceVisitor(childRCL);
-            return (ValueNode)this.accept(ucrv);
         }
         return this;
     }

@@ -2131,28 +2131,6 @@ public class ResultColumn extends ValueNode
         return null;
     }
 
-    public ResultColumn getNestedQueryBlockResultColumn() {
-        ValueNode expression = getExpression();
-        while (expression != null) {
-            if (expression instanceof VirtualColumnNode) {
-                VirtualColumnNode vcn = (VirtualColumnNode) expression;
-                if (vcn.getSourceResultSet() instanceof SelectNode) {
-                    return vcn.getSourceColumn();
-                } else {
-                    expression = vcn.getSourceColumn() == null ? null : vcn.getSourceColumn().getExpression();
-                }
-            } else if (expression instanceof ColumnReference) {
-                ResultColumn childRC = ((ColumnReference) expression).getSource();
-                expression = childRC == null ? null : childRC.getExpression();
-            } else if (expression instanceof CastNode) {
-                expression = ((CastNode) expression).getCastOperand();
-            } else {
-                expression = null;
-            }
-        }
-        return null;
-    }
-
     public void setFromLeftChild(boolean fromLeftChild) {
         this.fromLeftChild = fromLeftChild;
     }

@@ -147,32 +147,6 @@ public abstract class TableOperatorNode extends FromTable{
             return (Optimizable)modifyAccessPaths();
         }
 
-        /* If any of the two children has chosen an index on expression, result
-         * columns have to be rebuilt because the number may change. Column
-         * mapping between parent node and this node is broken after reassigning
-         * resultColumns. For this reason, resultColumns of (grand-)parent nodes
-         * must be rebuilt until the top select node in the current query block.
-         *
-         * This logic handles nested TableOperatorNode, including set operators
-         * and joins. If parent node is a PRN, its result columns are rebuilt
-         * in its modifyAccessPath() method. If parent is SelectNode, there is
-         * no need to rebuild its result columns but only replace their
-         * expressions.
-         */
-        if (leftResultSet.getResultColumns().isFromExprIndex() || rightResultSet.getResultColumns().isFromExprIndex()) {
-            ResultColumnList leftRCL = leftResultSet.getResultColumns();
-            ResultColumnList rightRCL = rightResultSet.getResultColumns();
-            ResultColumnList leftCopy = leftRCL.copyListAndObjects();
-            ResultColumnList rightCopy = rightRCL.copyListAndObjects();
-            leftCopy.genVirtualColumnNodes(leftResultSet, leftRCL);
-            rightCopy.genVirtualColumnNodes(rightResultSet, rightRCL);
-            resultColumns = leftCopy;
-            for (ResultColumn rightRC : rightCopy) {
-                resultColumns.addResultColumn(rightRC);
-            }
-            resultColumns.setFromExprIndex(true);
-        }
-
         return this;
     }
 
