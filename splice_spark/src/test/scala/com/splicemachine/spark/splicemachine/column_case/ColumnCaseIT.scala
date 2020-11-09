@@ -22,6 +22,8 @@ import org.scalatest.{FunSuite, Matchers}
 
 @RunWith(classOf[JUnitRunner])
 class ColumnCaseIT extends FunSuite with TestContext with Matchers {
+  
+  val schemaNames = "A,a"
 
   test("Test Get Schema") {
     dropInternalTable
@@ -29,8 +31,8 @@ class ColumnCaseIT extends FunSuite with TestContext with Matchers {
     val schema = splicemachineContext.getSchema(internalTN)
     org.junit.Assert.assertEquals(
       "Schema Changed!",
-      "A,a",
-      schema.map(sf => sf.name).mkString(",")
+      schemaNames,
+      schema.names.mkString(",")
     )
   }
 
@@ -119,7 +121,7 @@ class ColumnCaseIT extends FunSuite with TestContext with Matchers {
   val carTableName = getClass.getSimpleName + "_TestCreateTable"
   val carSchemaTableName = schema+"."+carTableName
 
-  private def createCarTable(): Unit = {
+  def createCarTable(): Unit = {
     import org.apache.spark.sql.types._
     splicemachineContext.createTable(
       carSchemaTableName,
