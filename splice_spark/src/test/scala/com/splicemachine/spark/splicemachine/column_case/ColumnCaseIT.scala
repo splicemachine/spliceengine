@@ -32,7 +32,7 @@ class ColumnCaseIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertEquals(
       "Schema Changed!",
       schemaNames,
-      schema.names.mkString(",")
+      schema.map(sf => sf.name).mkString(",")
     )
   }
 
