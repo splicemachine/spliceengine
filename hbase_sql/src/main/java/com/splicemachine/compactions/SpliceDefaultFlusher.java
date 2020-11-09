@@ -43,6 +43,7 @@ public class SpliceDefaultFlusher extends DefaultStoreFlusher {
         super(conf, store);
     }
 
+    @Override
     public List<Path> flushSnapshot(MemStoreSnapshot snapshot, long cacheFlushId,
                                     MonitoredTask status, ThroughputController throughputController,
                                     FlushLifeCycleTracker tracker) throws IOException {
