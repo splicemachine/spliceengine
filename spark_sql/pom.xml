@@ -17,7 +17,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1984-SNAPSHOT</version>
+        <version>3.2.0.1985-SNAPSHOT</version>
     </parent>
     <artifactId>spark_sql</artifactId>
     <name>Spark SQL API Access</name>
