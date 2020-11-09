@@ -15,7 +15,7 @@ package com.splicemachine.db.iapi.sql.dictionary.fk;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import javafx.util.Pair;
+import com.splicemachine.utils.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,18 +98,18 @@ public class GraphAnnotator {
                 if(childPaths.isEmpty()) {
                     ArrayList<Integer> vertices = new ArrayList<>();
                     vertices.add(v);
-                    annotations[p.getKey()].paths.add(new Path(vertices, p.getValue()));
+                    annotations[p.getFirst()].paths.add(new Path(vertices, p.getSecond()));
                 } else {
                     for(Path childPath : childPaths) {
                         if(childPath.action != EdgeNode.Type.C) {
                             ArrayList<Integer> vertices = new ArrayList<>();
                             vertices.add(v);
-                            annotations[p.getKey()].paths.add(new Path(vertices, p.getValue()));
+                            annotations[p.getFirst()].paths.add(new Path(vertices, p.getSecond()));
                         } else {
                             List<Integer> vertices = new ArrayList<>(childPath.vertices);
                             vertices.add(v);
-                            Path parentPath = new Path(vertices, p.getValue());
-                            annotations[p.getKey()].paths.add(parentPath);
+                            Path parentPath = new Path(vertices, p.getSecond());
+                            annotations[p.getFirst()].paths.add(parentPath);
                         }
                     }
                 }

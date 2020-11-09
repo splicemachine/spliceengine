@@ -239,7 +239,7 @@ public	class	DDUtils
             GraphAnnotator annotator = new GraphAnnotator(newForeignKeyConstraintName, fkGraph);
             annotator.annotate();
             annotator.analyzeAnnotations();
-        } else {
+        } else if(checker == Checker.Derby){
             Hashtable deleteConnectionsMap = new Hashtable();
             //find whether the foreign key is self referencing.
             boolean isSelfReferencingFk = (referencedTableDescriptor.getUUID().equals(referencingTableDescriptor.getUUID()));
@@ -261,7 +261,7 @@ public	class	DDUtils
                                                               deleteConnectionsMap,
                                                               newForeignKeyConstraintName);
             }
-        }
+        } // would be nice to have a logger so we can log that we are not going to perform foreign key checks.
     }
 
 	/*

@@ -14,8 +14,7 @@
 package com.splicemachine.db.iapi.sql.dictionary.fk;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
-import javafx.util.Pair;
+import com.splicemachine.utils.Pair;
 
 import java.util.ArrayList;
 import java.util.Arrays;
