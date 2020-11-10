@@ -31,8 +31,11 @@
 
 package com.splicemachine.db.iapi.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 
 import java.sql.Types;
 import java.sql.ResultSetMetaData;
@@ -232,6 +235,44 @@ public abstract class DataTypeUtilities  {
     // 2. scale=precision, 3 should be added to precision for sign, decimal and an additional char '0'.
     // 3. precision > scale > 0, 2 should be added to precision for sign and decimal.
     return (scale ==0) ? (precision +1) : ((scale == precision) ? (precision + 3) : (precision + 2));
+    }
+
+    public static void isValidDecimalPrecision(int precision) throws StandardException {
+        if ((precision <= 0) || (precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
+        {
+            throw StandardException.newException(SQLState.LANG_INVALID_PRECISION,
+                                                 "DECIMAL", String.valueOf(precision));
+        }
+    }
+
+    public static void isValidDecimalScale(int precision, int scale) throws StandardException {
+        if ((scale < 0) ||
+                (scale > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
+        {
+            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_SCALE,
+                                                 "DECIMAL", String.valueOf(scale));
+        }
+        else if (scale > precision)
+        {
+            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_PRECISION_SCALE,
+                                                 String.valueOf(scale),
+                                                 String.valueOf(precision));
+        }
+    }
+
+    public static void isValidDecimalPrecisionAndScale(int precision, int scale) throws StandardException {
+        isValidDecimalPrecision(precision);
+        isValidDecimalScale(precision, scale);
+    }
+
+    public static void isValidDecimalCharacter(String character) throws StandardException {
+        if(character.length() != 1) {
+            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_CHARACTER, character); // DB2 SQLSTATE 42815
+        }
+        char c = character.charAt(0);
+        if(c == ' ' || c == '+' || c == '-' || Character.isDigit(c)) {
+            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_CHARACTER, character); // DB2 SQLSTATE 42815
+        }
     }
 }
 
