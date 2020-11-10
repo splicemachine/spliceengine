@@ -47,7 +47,7 @@ import java.util.Objects;
 
 /**
  * SQL Reference Guide for DB2 has section titled "Rules for result data types" at the following url
- * http://publib.boulder.ibm.com/infocenter/db2help/index.jsp?topic=/com.ibm.db2.udb.doc/admin/r0008480.htm
+ * https://www.ibm.com/support/knowledgecenter/SSEPGG_10.1.0/com.ibm.db2.luw.sql.ref.doc/doc/r0008480.html
 
  * I have constructed following table based on various tables and information under "Rules for result data types"
  * This table has FOR BIT DATA TYPES broken out into separate columns for clarity
