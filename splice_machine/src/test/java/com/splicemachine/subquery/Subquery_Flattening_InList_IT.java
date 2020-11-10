@@ -15,16 +15,15 @@
 package com.splicemachine.subquery;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
-import static com.splicemachine.subquery.SubqueryITUtil.ZERO_SUBQUERY_NODES;
-import static com.splicemachine.subquery.SubqueryITUtil.assertUnorderedResult;
+import java.sql.SQLException;
 
-public class Subquery_Flattening_InList_IT {
+import static com.splicemachine.subquery.SubqueryITUtil.*;
+
+public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
 
     private static final String SCHEMA = Subquery_Flattening_InList_IT.class.getSimpleName();
 
@@ -118,5 +117,59 @@ public class Subquery_Flattening_InList_IT {
         );
     }
 
+    @Test
+    public void testMultiColumnSimpleFlatten() throws Exception {
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from A where (a1, a2) in (select * from B where b2 > 20)", ZERO_SUBQUERY_NODES, "" +
+                        "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 3 |30 |\n" +
+                        " 4 |40 |\n" +
+                        " 5 |50 |"
+        );
+    }
 
+    @Test
+    public void testMultiColumnLikeFlattenAndNode() throws Exception {
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from C where surname like 'S%' and (surname, name) in (select surname, name from C where name = 'Jon')", ZERO_SUBQUERY_NODES, "" +
+                        "NAME | SURNAME |\n" +
+                        "----------------\n" +
+                        " Jon |  Snow   |"
+        );
+    }
+
+    @Test
+    public void testMultiColumnLikeNotFlattenOrNode() throws Exception {
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from C where surname like 'A%' or (name, surname) in (select * from C where name = 'Robb')", ONE_SUBQUERY_NODE, "" +
+                        "NAME | SURNAME |\n" +
+                        "----------------\n" +
+                        " Jon |  Arryn  |\n" +
+                        "Robb |  Stark  |"
+        );
+    }
+
+    @Test
+    public void testMultiColumnLikeNotFlattenOrNodeCorrelated() throws Exception {
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from C as O where 1+1=1 or (name, surname) in (select * from C as I where length(I.surname) = length(O.surname))", ONE_SUBQUERY_NODE, "" +
+                        "NAME  | SURNAME |\n" +
+                        "------------------\n" +
+                        "Eddard |  Stark  |\n" +
+                        "  Jon  |  Arryn  |\n" +
+                        "  Jon  |  Snow   |\n" +
+                        " Robb  |  Stark  |"
+        );
+    }
+
+    @Test
+    public void testMultiColumnNotIn() throws Exception {
+        try {
+            methodWatcher.execute("select * from A where (a1, a2) not in (select * from B where b2 > 20)");
+            Assert.fail("expect failure because table subquery is allowed only for (not)exists and in");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X39", e.getSQLState());
+        }
+    }
 }

@@ -1066,6 +1066,7 @@
                                 <argument>-Dderby.language.updateSystemProcs=false</argument>
                                 <!-- Setting the logStatementText option to true enables logging of all statements. -->
                                 <argument>-Dderby.infolog.append=true</argument>
+                                <argument>-Dderby.debug.true=DumpClassFile</argument>
                                 <argument>com.splicemachine.test.SpliceTestPlatform</argument>
                                 <argument>file://${project.build.directory}/</argument>
                                 <argument>60000</argument>
@@ -1564,6 +1565,7 @@
                                 <!-- Setting the logStatementText option to true enables logging of all statements. -->
                                 <argument>-Dderby.language.logStatementText=false</argument>
                                 <argument>-Dderby.infolog.append=true</argument>
+                                <argument>-Dderby.debug.true=DumpClassFile</argument>
                                 <argument>-Dderby.drda.sslMode=${SERVER_SSLMODE}</argument>
                                 <argument>-Djavax.net.ssl.keyStore=${SERVER_SSL_KEYSTORE}</argument>
                                 <argument>-Djavax.net.ssl.keyStorePassword=${SERVER_SSL_KEYSTOREPASSWD}</argument>

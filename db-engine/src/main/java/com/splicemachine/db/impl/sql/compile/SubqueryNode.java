@@ -430,7 +430,7 @@ public class SubqueryNode extends ValueNode{
          * case of EXISTS; NOT EXISTS does not appear prior to preprocessing)
          * can only return a single column, so we must check here.
          */
-        if(subqueryType!=EXISTS_SUBQUERY && resultColumns.visibleSize()!=1){
+        if(subqueryType!=EXISTS_SUBQUERY && subqueryType!=IN_SUBQUERY && resultColumns.visibleSize()!=1){
             throw StandardException.newException(SQLState.LANG_NON_SINGLE_COLUMN_SUBQUERY);
         }
 
@@ -488,6 +488,12 @@ public class SubqueryNode extends ValueNode{
         /* bind the left operand, if there is one */
         if(leftOperand!=null){
             leftOperand=leftOperand.bindExpression(fromList,subqueryList,aggregateVector);
+            if (leftOperand instanceof ValueTupleNode) {
+                ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
+                if (leftItems.size() == 1) {
+                    leftOperand = leftItems.get(0);
+                }
+            }
         }
 
         if(orderByList!=null){
@@ -582,15 +588,36 @@ public class SubqueryNode extends ValueNode{
         }
         preprocessed=true;
 
-
-
-
         boolean flattenable;
         ValueNode topNode=this;
 
         resultSet=resultSet.preprocess(numTables,null,null);
+
+        if (!isEXISTS() && !isNOT_EXISTS() && !isIN() && resultSet.getResultColumns().visibleSize() != 1) {
+            throw StandardException.newException(SQLState.LANG_NON_SINGLE_COLUMN_SUBQUERY);
+        }
+
         if(leftOperand!=null){
             leftOperand=leftOperand.preprocess(numTables,outerFromList,outerSubqueryList,outerPredicateList);
+
+            // the following check has to be here because in binding, right operands might not be expanded yet
+            ValueNode rightOperand = getRightOperand();
+            if (rightOperand != null) {
+                if (leftOperand instanceof ValueTupleNode) {
+                    if (!(rightOperand instanceof ValueTupleNode)) {
+                        throw StandardException.newException(SQLState.LANG_UNION_UNMATCHED_COLUMNS, "tuple comparison");
+                    }
+                    ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
+                    ValueTupleNode rightItems = (ValueTupleNode) rightOperand;
+                    if (leftItems.size() != rightItems.size()) {
+                        throw StandardException.newException(SQLState.LANG_UNION_UNMATCHED_COLUMNS, "tuple comparison");
+                    }
+                } else {
+                    if (rightOperand instanceof ValueTupleNode) {
+                        throw StandardException.newException(SQLState.LANG_UNION_UNMATCHED_COLUMNS, "tuple comparison");
+                    }
+                }
+            }
         }
 
         // Eliminate any unnecessary DISTINCTs
@@ -1872,8 +1899,22 @@ public class SubqueryNode extends ValueNode{
     private boolean canAllBeFlattened() throws StandardException{
         boolean result=false;
         if(isNOT_IN() || isALL()){
-            result=(!leftOperand.getTypeServices().isNullable() &&
-                    !getRightOperand().getTypeServices().isNullable());
+            ValueNode rightOperand = getRightOperand();
+            if (leftOperand instanceof ValueTupleNode && rightOperand instanceof ValueTupleNode) {
+                ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
+                ValueTupleNode rightItems = (ValueTupleNode) rightOperand;
+                assert leftItems.size() == rightItems.size();
+                for (int i = 0; i < leftItems.size(); i++) {
+                    result = !leftItems.get(i).getTypeServices().isNullable() &&
+                            !rightItems.get(i).getTypeServices().isNullable();
+                    if (!result) {
+                        break;
+                    }
+                }
+            } else {
+                result = (!leftOperand.getTypeServices().isNullable() &&
+                        !rightOperand.getTypeServices().isNullable());
+            }
         }
         return result;
     }
@@ -1968,12 +2009,12 @@ public class SubqueryNode extends ValueNode{
              */
             if(rightOperand instanceof ColumnReference){
                 ColumnReference cr=(ColumnReference)rightOperand;
-                int tableNumber=cr.getTableNumber();
-                for(int tn : tableNumbers){
-                    if(tableNumber==tn){
-                        cr.setSourceLevel(
-                                cr.getSourceLevel()-1);
-                        break;
+                cr.decreaseSourceLevel(tableNumbers);
+            } else if (rightOperand instanceof ValueTupleNode) {
+                ValueTupleNode items = (ValueTupleNode) rightOperand;
+                for (int i = 0; i < items.size(); i++) {
+                    if (items.get(i) instanceof ColumnReference) {
+                        ((ColumnReference) items.get(i)).decreaseSourceLevel(tableNumbers);
                     }
                 }
             }
@@ -2010,15 +2051,30 @@ public class SubqueryNode extends ValueNode{
         if(leftOperand instanceof ColumnReference) {
             ColumnReference cr = (ColumnReference) leftOperand;
             matchRowId = cr.isRowIdColumn();
+        } else if (leftOperand instanceof ValueTupleNode) {
+            ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
+            for (int i = 0; i < leftItems.size(); i++) {
+                if (leftItems.get(i) instanceof ColumnReference) {
+                    matchRowId = ((ColumnReference) leftItems.get(i)).isRowIdColumn();
+                    if (matchRowId) {
+                        break;
+                    }
+                }
+            }
         }
 
         // get the list of outer tables that the exists subquery is correlated to
         JBitSet correlatedTables = new JBitSet(select.getReferencedTableMap().size());
-        for(Predicate pred : ((SelectNode) resultSet).getWherePredicates()){
+        for(Predicate pred : select.getWherePredicates()){
             correlatedTables.or(pred.getReferencedSet());
         }
-        if (leftOperand != null && leftOperand.getTableNumber() >= 0)
-            correlatedTables.set(leftOperand.getTableNumber());
+        if (leftOperand != null) {
+            if (leftOperand.getTableNumber() >= 0) {
+                correlatedTables.set(leftOperand.getTableNumber());
+            } else if (leftOperand instanceof ValueTupleNode) {
+                correlatedTables.or(leftOperand.getTablesReferenced());
+            }
+        }
 
         correlatedTables.andNot(select.getReferencedTableMap());
 
@@ -2026,7 +2082,7 @@ public class SubqueryNode extends ValueNode{
         select.getFromList().genExistsBaseTables(resultSet.getReferencedTableMap(),
                 outerFromList,flattenableNotExists, matchRowId, correlatedTables);
 
-        for(Predicate pred : ((SelectNode) resultSet).getWherePredicates()){
+        for(Predicate pred : select.getWherePredicates()){
             pred.pushable = false;
         }
 
@@ -2055,9 +2111,23 @@ public class SubqueryNode extends ValueNode{
      *
      * @return the right operand
      */
-    private ValueNode getRightOperand(){
-        ResultColumn firstRC= resultSet.getResultColumns().elementAt(0);
-        return firstRC.getExpression();
+    private ValueNode getRightOperand() throws StandardException {
+        if (resultSet.getResultColumns().size() == 1) {
+            ResultColumn firstRC = resultSet.getResultColumns().elementAt(0);
+            return firstRC.getExpression();
+        } else {
+            ValueTupleNode items = (ValueTupleNode) getNodeFactory()
+                    .getNode(C_NodeTypes.VALUE_TUPLE_NODE, getContextManager());
+            for (ResultColumn rc : resultSet.getResultColumns()) {
+                if (!rc.isGenerated() && !rc.pulledupOrderingColumn()) {
+                    items.addValueNode(rc.getExpression());
+                }
+            }
+            if (items.size() == 1) {
+                return items.get(0);
+            }
+            return items;
+        }
     }
 
     /**
@@ -2098,7 +2168,7 @@ public class SubqueryNode extends ValueNode{
      */
     private UnaryComparisonOperatorNode pushNewPredicate(int numTables) throws StandardException{
         AndNode andNode;
-        BinaryComparisonOperatorNode bcoNode;
+        ValueNode joinCondition;
         JBitSet tableMap;
         Predicate predicate;
         ResultColumn firstRC;
@@ -2136,11 +2206,11 @@ public class SubqueryNode extends ValueNode{
         resultColumns=newRCL;
 
         firstRC=resultColumns.elementAt(0);
-        rightOperand=firstRC.getExpression();
+        rightOperand=getRightOperand();
 
-        bcoNode=getNewJoinCondition(leftOperand,rightOperand);
+        joinCondition=getNewJoinCondition(leftOperand,rightOperand);
 
-        ValueNode andLeft=bcoNode;
+        ValueNode andLeft=joinCondition;
 
         /* For NOT IN or ALL, and if either side of the comparison is nullable, and the
          * subquery can not be flattened (because of that), we need to add IS NULL node
@@ -2163,7 +2233,7 @@ public class SubqueryNode extends ValueNode{
                         getContextManager());
                 OrNode newOr=(OrNode)getNodeFactory().getNode(
                         C_NodeTypes.OR_NODE,
-                        bcoNode,
+                        joinCondition,
                         falseNode,
                         getContextManager());
                 newOr.postBindFixup();
@@ -2228,6 +2298,11 @@ public class SubqueryNode extends ValueNode{
         leftOperand=null;
         firstRC.setType(getTypeServices());
         firstRC.setExpression(getTrueNode());
+        if (resultColumns.size() > 1) {
+            for (int i = resultColumns.size() - 1; i > 0; i--) {
+                resultColumns.removeElementAt(i);
+            }
+        }
 
         /* Add the IS [NOT] NULL above the SubqueryNode */
         switch(subqueryType){
@@ -2274,10 +2349,8 @@ public class SubqueryNode extends ValueNode{
      * @param rightOperand The right operand for the new condition.
      * @throws StandardException Thrown on error
      */
-    private BinaryComparisonOperatorNode getNewJoinCondition(ValueNode leftOperand,
-                                                             ValueNode rightOperand) throws StandardException{
-        BinaryComparisonOperatorNode bcoNode;
-
+    private ValueNode getNewJoinCondition(ValueNode leftOperand,
+                                          ValueNode rightOperand) throws StandardException{
         /* NOTE: If we are an expression subquery that's getting
          * flattened then our subqueryType is EXPRESSION_SUBQUERY.
          * However, we can get the comparison type from the
@@ -2355,13 +2428,38 @@ public class SubqueryNode extends ValueNode{
                             "subqueryType ("+subqueryType+") is an unexpected type");
         }
 
-        bcoNode=(BinaryComparisonOperatorNode)
+        if (leftOperand instanceof ValueTupleNode && rightOperand instanceof ValueTupleNode) {
+            ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
+            ValueTupleNode rightItems = (ValueTupleNode) rightOperand;
+
+            BinaryComparisonOperatorNode bcoNode =
+                    getSingleComparisonJoinCondition(nodeType, leftItems.get(0), rightItems.get(0));
+
+            ValueNode tree = bcoNode;
+            for (int i = 1; i < leftItems.size(); i++) {
+                bcoNode = getSingleComparisonJoinCondition(nodeType, leftItems.get(i), rightItems.get(i));
+                tree = (AndNode) getNodeFactory().getNode(
+                        C_NodeTypes.AND_NODE,
+                        tree,
+                        bcoNode,
+                        getContextManager());
+                ((AndNode) tree).postBindFixup();
+            }
+            return tree;
+        } else {
+            return getSingleComparisonJoinCondition(nodeType, leftOperand, rightOperand);
+        }
+    }
+
+    private BinaryComparisonOperatorNode getSingleComparisonJoinCondition(int nodeType, ValueNode left, ValueNode right)
+            throws StandardException
+    {
+        BinaryComparisonOperatorNode bcoNode = (BinaryComparisonOperatorNode)
                 getNodeFactory().getNode(
                         nodeType,
-                        leftOperand,
-                        rightOperand,
+                        left,
+                        right,
                         getContextManager());
-
         bcoNode.bindComparisonOperator();
         return bcoNode;
     }
