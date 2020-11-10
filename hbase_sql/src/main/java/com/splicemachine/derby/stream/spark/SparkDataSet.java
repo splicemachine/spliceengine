@@ -817,12 +817,12 @@ public class SparkDataSet<V> implements DataSet<V> {
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
-                                                OperationContext context) throws StandardException {
+                                          String compression, OperationContext context) throws StandardException {
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 rdd.map(new LocatedRowToRowFunction()),
                 context.getOperation().schema());
 
-        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(partitionBy, location, csvOptions, context);
+        return new NativeSparkDataSet<>(insertDF, context).writeTextFile(partitionBy, location, csvOptions, compression, context);
     }
 
     @Override @SuppressWarnings({ "unchecked", "rawtypes" })

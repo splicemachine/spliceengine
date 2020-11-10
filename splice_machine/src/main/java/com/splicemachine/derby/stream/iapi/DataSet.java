@@ -338,7 +338,7 @@ public interface DataSet<V> extends //Iterable<V>,
      *
      */
     DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
-                                   OperationContext context) throws StandardException;
+                                   String compression, OperationContext context) throws StandardException;
 
     /**
      *

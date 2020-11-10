@@ -38,23 +38,18 @@ import com.splicemachine.sparksql.ParserUtils;
 import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.scheduler.*;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
-import scala.collection.JavaConverters;
 
 import javax.annotation.Nullable;
 import java.util.*;
 import java.util.concurrent.Future;
-import java.util.stream.Collectors;
 
 import static com.splicemachine.derby.stream.spark.SparkDataSet.generateTableSchema;
-import static com.splicemachine.derby.stream.spark.SparkExternalTableUtil.getCsvOptions;
 import static org.apache.spark.sql.functions.*;
 
 
@@ -979,17 +974,28 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                 .parallelize(Collections.singletonList(valueRow), 1));
     }
 
-    @Override
-    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location,
-                                             String compression, OperationContext context) throws StandardException {
-        compression = SparkExternalTableUtil.getParquetCompression( compression );
-        try( CountingListener counter = new CountingListener(context) ) {
-            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
-                    .option(SPARK_COMPRESSION_OPTION, compression)
-                    .parquet(location);
+    public DataSet<ExecRow> writeExternalFile(String storedAs, int[] partitionBy, String location, String compression,
+                                              OperationContext context, StructType tableSchema) throws StandardException {
+        compression = SparkExternalTableUtil.getCompression( storedAs, compression );
+        try( SparkCountingListener counter = new SparkCountingListener(context) ) {
+            DataFrameWriter df = getDataFrameWriter(dataset, tableSchema, partitionBy, context);
+            if( !compression.equals("none") )
+                df = df.option(SPARK_COMPRESSION_OPTION, compression);
+            if(storedAs.equals("p"))
+                df.parquet(location);
+            else if( storedAs.equals("o"))
+                df.orc(location);
+            else if( storedAs.equals("a"))
+                df.format("com.databricks.spark.avro").save(location);
         }
 
         return getRowsWritten(context);
+    }
+
+    @Override
+    public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location,
+                                             String compression, OperationContext context) throws StandardException {
+        return writeExternalFile("p", partitionBy, location, compression, context, generateTableSchema(context));
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -1012,73 +1018,28 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
                                           String location,
                                           String compression,
                                           OperationContext context) throws StandardException {
-        compression = SparkExternalTableUtil.getAvroCompression(compression);
-        try( CountingListener counter = new CountingListener(context) ) {
-            getDataFrameWriter(dataset, tableSchema, partitionBy, context)
-                    .option(SPARK_COMPRESSION_OPTION, compression)
-                    .format("com.databricks.spark.avro").save(location);
-        }
-        return getRowsWritten(context);
+        return writeExternalFile("a", partitionBy, location, compression, context, tableSchema);
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
-                                          OperationContext context) throws StandardException {
-        try( CountingListener counter = new CountingListener(context) ) {
-            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
-                    .options(getCsvOptions(csvOptions))
-                    .csv(location);
-        }
-        return getRowsWritten(context);
+                                          String compression, OperationContext context) throws StandardException {
+        return writeExternalFile("t", partitionBy, location, compression, context, generateTableSchema(context));
     }
+
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                     OperationContext context) throws StandardException {
-        try( CountingListener counter = new CountingListener(context) ) {
-            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
-                    .option(SPARK_COMPRESSION_OPTION, compression)
-                    .orc(location);
-        }
-        return getRowsWritten(context);
-    }
+        return writeExternalFile("o", partitionBy, location, compression, context, generateTableSchema(context));
 
-    class CountingListener extends SparkListener implements AutoCloseable
-    {
-        OperationContext context;
-        SparkContext sc;
-        String uuid;
-        Set<Integer> stageIdsToWatch;
 
-        public CountingListener(OperationContext context) {
-            this( context, UUID.randomUUID().toString() );
-        }
-        public CountingListener(OperationContext context, String uuid) {
-            sc = SpliceSpark.getSession().sparkContext();
-            sc.getLocalProperties().setProperty("operation-uuid", uuid);
-            sc.addSparkListener(this);
-            this.context = context;
-            this.uuid = uuid;
-        }
 
-        public void onJobStart(SparkListenerJobStart jobStart) {
-            if ( !jobStart.properties().getProperty("operation-uuid", "").equals(uuid) ) {
-                return;
-            }
-
-            List<StageInfo> stageInfos = JavaConverters.seqAsJavaListConverter(jobStart.stageInfos()).asJava();
-            stageIdsToWatch = stageInfos.stream().map(s -> s.stageId()).collect(Collectors.toSet());
-        }
-
-        @Override
-        public void onTaskEnd(SparkListenerTaskEnd taskEnd) {
-            if( stageIdsToWatch != null && stageIdsToWatch.contains( taskEnd.stageId() ))
-                context.recordPipelineWrites( taskEnd.taskMetrics().outputMetrics().recordsWritten() );
-        }
-
-        @Override
-        public void close() {
-            sc.removeSparkListener(this);
-        }
+//        try( SparkCountingListener counter = new SparkCountingListener(context) ) {
+//            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
+//                    .option(SPARK_COMPRESSION_OPTION, compression)
+//                    .orc(location);
+//        }
+//        return getRowsWritten(context);
     }
 
     static private DataFrameWriter getDataFrameWriter(Dataset<Row> dataset, StructType tableSchema,

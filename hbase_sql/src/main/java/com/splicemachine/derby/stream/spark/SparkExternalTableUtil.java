@@ -221,6 +221,17 @@ public class SparkExternalTableUtil {
         }
     }
 
+    static String getCompression(String storedAs, String compression )
+    {
+        if( storedAs.equals("p")) {
+            return getParquetCompression(compression);
+        }
+        else if( storedAs.equals("a")) {
+            return getAvroCompression(compression);
+        }
+        return compression;
+    }
+
     static String getParquetCompression(String compression )
     {
         // parquet in spark supports: lz4, gzip, lzo, snappy, none, zstd.
