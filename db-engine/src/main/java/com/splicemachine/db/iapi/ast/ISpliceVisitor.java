@@ -168,6 +168,7 @@ public interface ISpliceVisitor {
     Visitable visit(RowNumberFunctionNode node) throws StandardException;
     Visitable visit(SavepointNode node) throws StandardException;
     Visitable visit(ScalarMinMaxFunctionNode node) throws StandardException;
+    Visitable visit(DecimalFunctionNode node) throws StandardException;
     Visitable visit(SetRoleNode node) throws StandardException;
     Visitable visit(SetSchemaNode node) throws StandardException;
     Visitable visit(SetTransactionIsolationNode node) throws StandardException;
