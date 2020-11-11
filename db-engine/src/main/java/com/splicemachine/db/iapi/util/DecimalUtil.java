@@ -24,7 +24,9 @@ import com.splicemachine.primitives.Bytes;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.Timestamp;
+import java.text.DecimalFormatSymbols;
 import java.util.Calendar;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,7 +54,7 @@ public interface DecimalUtil {
                 if (String.valueOf(Math.abs(dvd.getLong())).length() > (precision - scale)) {
                     throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_CONVERSION, dvd.toString(), precision, scale); // DB2 SQLSTATE 22003
                 }
-                bigDecimal = new BigDecimal(new BigInteger(Bytes.toBytes(dvd.getLong())), 0);
+                bigDecimal = new BigDecimal(BigInteger.valueOf(dvd.getLong()));
             }
             break;
             case DECIMAL: {
@@ -69,9 +71,14 @@ public interface DecimalUtil {
             case VARCHAR: {
                 String input = dvd.getString();
                 if (input == null) return null;
-                input = input.trim().replace(decimalCharacter, "");
+                input = input.trim();
                 if (input.isEmpty()) {
                     throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_STRING, dvd.toString(), precision, scale); // DB2 SQLSTATE 22018
+                }
+                if(decimalCharacter.length() > 1) {
+                    throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_CHARACTER, decimalCharacter, precision, scale); // DB2 SQLSTATE 42815
+                } else if(decimalCharacter.length() == 0) {
+                    decimalCharacter = String.valueOf(new DecimalFormatSymbols().getDecimalSeparator());
                 }
                 boolean isNegative = false;
                 if (input.charAt(0) == '-') {
@@ -85,6 +92,9 @@ public interface DecimalUtil {
                 int commaIndex = -1;
                 if (m.find()) {
                     commaIndex = m.start();
+                    if(commaIndex != -1 && (decimalCharacter.isEmpty() || input.charAt(commaIndex) != decimalCharacter.charAt(0))) {
+                        throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_STRING, dvd.toString(), precision, scale); // DB2 SQLSTATE 22018
+                    }
                     if (m.find()) { // another non-numeric character, bail out
                         throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_STRING, dvd.toString(), precision, scale); // DB2 SQLSTATE 22018
                     }
