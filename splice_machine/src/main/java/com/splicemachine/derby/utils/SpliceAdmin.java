@@ -801,8 +801,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw PublicAPI.wrapStandardException(e);
         }
     }
-
-    public static void VACUUM() throws SQLException{
+    public static long getOldestActiveTransaction() throws SQLException {
         long oldestActiveTransaction = Long.MAX_VALUE;
         try {
             PartitionAdmin pa = SIDriver.driver().getTableFactory().getAdmin();
@@ -829,7 +828,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     "com.splicemachine.si.data.hbase.coprocessor.SpliceRSRpcServices",
                     "hbase.coprocessor.regionserver.classes"));
         }
+        return oldestActiveTransaction;
+    }
 
+    public static void VACUUM() throws SQLException{
+        long oldestActiveTransaction = getOldestActiveTransaction();
         Vacuum vacuum = new Vacuum(getDefaultConn());
         try{
             vacuum.vacuumDatabase(oldestActiveTransaction);
@@ -931,12 +934,12 @@ public class SpliceAdmin extends BaseAdminProcedures{
             // Describe the format of the input rows (ExecRow).
             //
             // Columns of "virtual" row:
-            //   STMTNAME				VARCHAR
-            //   TYPE					CHAR
-            //   VALID					BOOLEAN
-            //   LASTCOMPILED			TIMESTAMP
-            //   INITIALLY_COMPILABLE	BOOLEAN
-            //   CONSTANTSTATE			BLOB --> VARCHAR showing existence of plan
+            //   STMTNAME               VARCHAR
+            //   TYPE                   CHAR
+            //   VALID                  BOOLEAN
+            //   LASTCOMPILED           TIMESTAMP
+            //   INITIALLY_COMPILABLE   BOOLEAN
+            //   CONSTANTSTATE          BLOB --> VARCHAR showing existence of plan
             DataValueDescriptor[] dvds= {
                     new SQLVarchar(),
                     new SQLChar(),
@@ -1008,9 +1011,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
             // Describe the format of the input rows (ExecRow).
             //
             // Columns of "virtual" row:
-            //   KEY			VARCHAR
-            //   VALUE			VARCHAR
-            //   TYPE			VARCHAR (JVM, SERVICE, DATABASE, APP)
+            //   KEY            VARCHAR
+            //   VALUE          VARCHAR
+            //   TYPE           VARCHAR (JVM, SERVICE, DATABASE, APP)
             DataValueDescriptor[] dvds= {
                     new SQLVarchar(),
                     new SQLVarchar(),
@@ -1195,9 +1198,9 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
                 /*
                  * An index conglomerate id can be returned by the query before the main table one is,
-				 * but it should ALWAYS have a higher conglomerate id, so if we sort the congloms,
-				 * we should return the main table before any of its indices.
-				 */
+                 * but it should ALWAYS have a higher conglomerate id, so if we sort the congloms,
+                 * we should return the main table before any of its indices.
+                 */
         Arrays.sort(congloms);
         return congloms;
     }
@@ -1471,16 +1474,16 @@ public class SpliceAdmin extends BaseAdminProcedures{
      *
      * @param schemaName Name of the schema.
      * @param tableName Name of the table, if NULL, then `retentionPeriod` will be set for all tables in `schema`.
-     * @param retentionPeriod Retention period (in seconds).
+     * @param retentionPeriod Retention period (in seconds), can be null.
      * @throws StandardException If table or schema does not exist.
      * @throws SQLException is table name or schema name is not valid.
      */
-    public static void SET_MIN_RETENTION_PERIOD(String schemaName, String tableName, long retentionPeriod) throws StandardException, SQLException {
+    public static void SET_MIN_RETENTION_PERIOD(String schemaName, String tableName, Long retentionPeriod) throws StandardException, SQLException {
         // if schemaName was null => get the current schema.
         schemaName = EngineUtils.validateSchema(schemaName);
         // if tableName is null => set min. retention period for all tables in schemaName.
         tableName = tableName == null ? null : EngineUtils.validateTable(tableName);
-        if(retentionPeriod < 0) {
+        if(retentionPeriod != null && retentionPeriod < 0) {
             throw StandardException.newException(SQLState.LANG_INVALID_VALUE_RANGE, retentionPeriod, "non-negative number");
         }
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
@@ -1791,14 +1794,14 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     public static void SYSCS_GET_OLDEST_ACTIVE_TRANSACTION(ResultSet[] resultSet) throws SQLException{
-        Long id = SIDriver.driver().getTxnStore().oldestActiveTransaction();
+        long id = getOldestActiveTransaction();
 
         EmbedConnection conn = (EmbedConnection)getDefaultConn();
         Activation lastActivation = conn.getLanguageConnection().getLastActivation();
 
         List<ExecRow> rows = new ArrayList<>(1);
         ExecRow row = new ValueRow(1);
-        row.setColumn(1, id == null ? null : new SQLLongint(id));
+        row.setColumn(1, new SQLLongint(id));
         GenericColumnDescriptor[] descriptor = new GenericColumnDescriptor[]{
                 new GenericColumnDescriptor("transactionId", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
         };

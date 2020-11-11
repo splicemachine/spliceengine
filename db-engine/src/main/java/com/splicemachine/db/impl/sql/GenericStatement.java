@@ -46,9 +46,11 @@ import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
+import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
@@ -62,12 +64,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.sql.Types;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_COMPILE_VERSION;
 import static com.splicemachine.db.iapi.reference.Property.SPLICE_SPARK_VERSION;
 import static com.splicemachine.db.iapi.sql.compile.CompilerContext.MAX_MULTICOLUMN_PROBE_VALUES_MAX_VALUE;
+import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getCurrentCharTypeCompiler;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 @SuppressFBWarnings(value = {"IS2_INCONSISTENT_SYNC", "ML_SYNC_ON_FIELD_TO_GUARD_CHANGING_THAT_FIELD"}, justification = "FIXME: DB-10223")
@@ -629,6 +633,27 @@ public class GenericStatement implements Statement{
             }
             cc.setSSQFlatteningForUpdateDisabled(ssqFlatteningForUpdateDisabled);
 
+            String varcharDB2CompatibilityModeString =
+                    PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
+            boolean varcharDB2CompatibilityMode = CompilerContext.DEFAULT_SPLICE_DB2_VARCHAR_COMPATIBLE;
+            try {
+                if (varcharDB2CompatibilityModeString != null)
+                    varcharDB2CompatibilityMode =
+                            Boolean.parseBoolean(varcharDB2CompatibilityModeString);
+                if (varcharDB2CompatibilityMode) {
+                    CharTypeCompiler charTC = getCurrentCharTypeCompiler(lcc);
+                    if (charTC != null) {
+                        charTC.setDB2VarcharCompatibilityMode(varcharDB2CompatibilityMode);
+                        lcc.setDB2VarcharCompatibilityModeNeedsReset(true, charTC);
+                    }
+                }
+
+            } catch (Exception e) {
+                // If the property value failed to convert to a boolean, don't throw an error,
+                // just use the default setting.
+            }
+            cc.setVarcharDB2CompatibilityMode(varcharDB2CompatibilityMode);
+
             fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){
             if(foundInCache)
@@ -699,6 +724,7 @@ public class GenericStatement implements Statement{
             lcc.logErrorCompiling(getSource(), e, System.nanoTime() - startTime);
             throw e;
         }  finally{ // for block introduced by pushCompilerContext()
+            lcc.resetDB2VarcharCompatibilityMode();
             lcc.popCompilerContext(cc);
         }
     }

@@ -159,6 +159,9 @@ public	interface	DRDAConstants
 	int DRDA_TYPE_BOOLEAN = 0xBE;
 	int DRDA_TYPE_NBOOLEAN = 0xBF;
 
+	int DRDA_TYPE_DECFLOAT = 0xDE;
+	int DRDA_TYPE_NDECFLOAT = 0xDF;
+
     // This is the maximum size which a udt can serialize to in order to
     // be transported across DRDA
 	int MAX_DRDA_UDT_SIZE = DATA_STREAM_STRUCTURE_MAX_LENGTH;
@@ -209,6 +212,8 @@ public	interface	DRDAConstants
 	int DB2_SQLTYPE_NDECIMAL = 485;
 	int DB2_SQLTYPE_ZONED = 488;       // Zoned Decimal -> DECIMAL(m,n)
 	int DB2_SQLTYPE_NZONED = 489;
+	int DB2_SQLTYPE_DECFLOAT = 490;     // DECFLOAT
+	int DB2_SQLTYPE_NDECFLOAT = 491;
 
 	int DB2_SQLTYPE_BIGINT = 492;      // BIGINT - 8-byte signed integer
 	int DB2_SQLTYPE_NBIGINT = 493;

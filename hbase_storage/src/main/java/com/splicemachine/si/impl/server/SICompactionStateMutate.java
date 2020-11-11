@@ -49,9 +49,11 @@ class SICompactionStateMutate {
     private Map<Integer, Long> columnUpdateLatestTimestamp = new HashMap<>();
     private Set<Long> updatesToPurgeTimestamps = new HashSet<>();
     private boolean firstUpdateCell = true;
+    private final CompactionContext context;
 
-    SICompactionStateMutate(PurgeConfig purgeConfig) {
+    SICompactionStateMutate(PurgeConfig purgeConfig, CompactionContext context) {
         this.purgeConfig = purgeConfig;
+        this.context = context;
     }
 
     private boolean isSorted(List<Cell> list) {
@@ -117,11 +119,11 @@ class SICompactionStateMutate {
             }
             Stream<Cell> stream = dataToReturn.stream();
             if (shouldPurgeDeletes())
-                stream = stream.filter(not(this::purgeableDeletedRow));
+                stream = stream.filter(not(this::loggedPurgeableDeletedRow));
             if (shouldPurgeUpdates())
                 stream = stream.filter(not(this::purgeableOldUpdate));
             stream.forEachOrdered(results::add);
-            final boolean debugSortCheck = !LOG.isDebugEnabled() || isSorted(results);
+            final boolean debugSortCheck = !LOG.isTraceEnabled() || isSorted(results);
             if (!debugSortCheck)
                 setBypassPurgeWithWarning("CompactionStateMutate: results not sorted.");
             assert debugSortCheck : "CompactionStateMutate: results not sorted";
@@ -140,6 +142,9 @@ class SICompactionStateMutate {
     private void mutate(Cell element, TxnView txn) throws IOException {
         final CellType cellType = CellUtils.getKeyValueType(element);
         if (element.getType() != Cell.Type.Put) {
+            if (LOG.isDebugEnabled())
+                LOG.debug("Removing cell " + element + " because it's a delete");
+            context.recordRollback();
             // Rolled back data, remove it
             return;
         }
@@ -163,6 +168,10 @@ class SICompactionStateMutate {
         Txn.State txnState = txn.getEffectiveState();
 
         if (txnState == Txn.State.ROLLEDBACK) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("Removing cell " + element + " because txn is rolledback: " + txn);
+            }
+            context.recordRollback();
             // rolled back data, remove it from the compacted data
             return;
         }
@@ -297,6 +306,16 @@ class SICompactionStateMutate {
         return predicate.negate();
     }
 
+    private boolean loggedPurgeableDeletedRow(Cell element) {
+        boolean purgeable = purgeableDeletedRow(element);
+        if (purgeable) {
+            if(LOG.isDebugEnabled())
+                LOG.debug("Purging deleted cell: " + element);
+            context.recordPurgedDelete();
+        }
+        return purgeable;
+    }
+
     private boolean purgeableDeletedRow(Cell element) {
         if (maxTombstone == null) {
             return false;
@@ -309,7 +328,14 @@ class SICompactionStateMutate {
     }
 
     private boolean purgeableOldUpdate(Cell element) {
-        return updatesToPurgeTimestamps.contains(element.getTimestamp());
+        if (updatesToPurgeTimestamps.contains(element.getTimestamp())){
+            context.recordPurgedUpdate();
+            if(LOG.isDebugEnabled())
+                LOG.debug("Purging updated cell: " + element);
+            return true;
+        } else {
+            return false;
+        }
     }
 
     private static Cell newTransactionTimeStampKeyValue(Cell element, byte[] value) {

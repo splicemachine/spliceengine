@@ -783,6 +783,7 @@ public class SQLParser
           case BIT:
           case NUMERIC:
           case DECIMAL:
+          case DECFLOAT:
           case DEC:
           case INTEGER:
           case INT:
@@ -2844,6 +2845,7 @@ TOKEN [IGNORE_CASE] :
 |    <DEALLOCATE: "deallocate">
 |    <DEC: "dec">
 |    <DECIMAL: "decimal">
+|    <DECFLOAT: "decfloat">
 |    <DECLARE: "declare">
 |    <_DEFAULT: "default">
 |    <DEFERRABLE: "deferrable">
@@ -3058,14 +3060,17 @@ TOKEN [IGNORE_CASE] :
 |    <DETERMINISTIC: "deterministic">
 |    <DIGITS: "digits">
 |   <DYNAMIC: "dynamic">
+|    <ENCODING: "encoding">
 |   <EXCLUDE: "exclude">
 |   <EXTRACT: "extract">
+|    <FIELD_SEPARATOR: "field_separator">
 |    <FORTRAN: "fortran">
 |   <GENERATED: "generated">
 |    <GET_NEAREST_TRANSACTION: "get_nearest_transaction">
 |   <GROUPING: "grouping">
 |   <GROUP_USER: "group_user">
 |   <HFILE: "hfile">
+|   <HOURS: "hours">
 |    <IDENTITY_VAL_LOCAL: "identity_val_local">
 |    <IGNORE: "ignore">
 |    <INCREMENT: "increment">
@@ -3086,6 +3091,7 @@ TOKEN [IGNORE_CASE] :
 |    <LOGICAL: "logical">
 |    <MAXVALUE: "maxvalue">
 |    <MESSAGE_TEXT: "message_text">
+|    <MINUTES: "minutes">
 |    <MINVALUE: "minvalue">
 |    <MOD: "mod">
 |    <MODIFIES: "modifies">
@@ -3109,8 +3115,11 @@ TOKEN [IGNORE_CASE] :
 |   <RECURSIVE: "recursive">
 |    <RELEASE: "release">
 |    <QUARTER: "quarter">
+|    <QUOTE_CHARACTER: "quote_character">
+|    <QUOTE_MODE: "quote_mode">
 |   <REPEAT: "repeat">
 |    <REPEATABLE: "repeatable">
+|    <REPLICATION_COUNT: "replication_count">
 |    <RESPECT: "respect">
 |    <RESTART: "restart">
 |    <RETURNS: "returns">
@@ -3125,8 +3134,14 @@ TOKEN [IGNORE_CASE] :
 |    <LINES: "lines">
 |    <PARTITIONED: "partitioned">
 |    <COMPRESSED: "compressed">
+|    <COMPRESSION: "compression">
+|    <CSV: "csv">
 |    <SNAPPY: "snappy">
 |    <ZLIB: "zlib">
+|    <GZ: "gz">
+|    <GZIP: "gzip">
+|    <BZ2: "bz2">
+|    <BZIP2: "bzip2">
 |    <STORED: "stored">
 |    <LOCATION: "location">
 |    <PIN: "pin">
@@ -3140,6 +3155,7 @@ TOKEN [IGNORE_CASE] :
 |   <OPTIMIZE: "optimize">
 |    <SAVEPOINT: "savepoint">
 |    <SCALE: "scale">
+|    <SECONDS: "seconds">
 |    <SECURITY: "security">
 |    <SERIALIZABLE: "serializable">
 |   <SPLITKEYS: "splitKeys">
@@ -3260,12 +3276,15 @@ TOKEN [IGNORE_CASE] :
 |    <EACH: "each">
 |    <EMPTY: "empty">
 |   <ESTIMATE: "estimate">
+|    <EUR: "eur">
 |    <EXCLUSIVE: "exclusive">
 |    <FN: "fn">
 |   <FRACTION: "fraction">
 |    <INDEX: "index">
 |    <INPLACE: "inplace">
+|    <ISO: "iso">
 |    <JAVA: "java">
+|    <JIS: "jis">
 |   <LCASE: "lcase">
 |   <LOCATE: "locate">
 |    <LOCK: "lock">
@@ -3313,6 +3332,7 @@ TOKEN [IGNORE_CASE] :
 |    <TRUNCATE_END: "truncate_end">
 |   <UCASE: "ucase">
 |   <UR: "ur">
+|   <USA: "usa">
 |   <WHITESPACE: "whitespace">
 }
 
@@ -4122,16 +4142,16 @@ StatementNode
 explainStatement() throws StandardException :
 {
     StatementNode   statementNode;
-    StatementNode    explainStatement;
-    Token           getToken = null;
+    StatementNode   explainStatement;
+    Token           excludeToken = null;
 }
 {
-    <EXPLAIN> [getToken = <GET> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
+    <EXPLAIN> [excludeToken = <EXCLUDE> <NO> <STATISTICS>] statementNode = preparableSQLDataStatement()
     {
         return (ExplainNode) nodeFactory.getNode(C_NodeTypes.EXPLAIN_NODE,
                                    statementNode,
                                    SparkExplainKind.NONE,
-                                   (getToken != null),
+                                   (excludeToken == null),
                                    getContextManager());
     }
     | <SPARKEXPLAIN> statementNode = preparableSQLDataStatement()
@@ -4188,21 +4208,199 @@ pinStatement() throws StandardException :
     }
 }
 
+String exportCompressionToken() throws StandardException :
+{
+}
+{
+    <TRUE>
+    {
+        return "true";
+    }
+|
+    <FALSE>
+    {
+        return "false";
+    }
+|
+    <SNAPPY>
+    {
+        return "snappy";
+    }
+|
+    <NONE>
+    {
+        return "none";
+    }
+|
+    ( <GZ> | <GZIP>)
+    {
+        return "gz";
+    }
+|
+    ( <BZ2> | <BZIP2>)
+    {
+        return "bz2";
+    }
+}
+
+ValueNode exportCompression() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = exportCompressionToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
+String exportFormatToken() throws StandardException :
+{
+}
+{
+    <CSV>
+    {
+        return "csv";
+    }
+|
+    <PARQUET>
+    {
+        return "parquet";
+    }
+}
+
+ValueNode exportFormat() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = exportFormatToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
+String exportQuoteModeToken() throws StandardException :
+{
+}
+{
+    <ALWAYS>
+    {
+        return "always";
+    }
+|
+    <_DEFAULT>
+    {
+        return "default";
+    }
+}
+
+ValueNode exportQuoteMode() throws StandardException :
+{
+    String token;
+    ValueNode expr;
+}
+{
+    token = exportQuoteModeToken()
+    {
+        return (ValueNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            token,
+            getContextManager());
+    }
+|
+    expr = orExpression(null)
+    {
+        return expr;
+    }
+}
+
 
 StatementNode
 exportStatement() throws StandardException :
 {
     StatementNode   statementNode;
     Vector parameterList = new Vector();
+    ValueNode exportPath;
+    ValueNode compression = null;
+    ValueNode replicationCount = null;
+    ValueNode encoding = null;
+    ValueNode fieldSeparator = null;
+    ValueNode quoteCharacter = null;
+    ValueNode quoteMode = null;
+    ValueNode fileType = null;
 }
 {
-    <EXPORT> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
-    {
-        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
-                                   statementNode,
-                                   parameterList,
-                                   getContextManager());
-    }
+    <EXPORT>
+    (
+        <TO> exportPath = orExpression(null)
+        <AS> fileType = exportFormat()
+        [
+            <COMPRESSION> compression = exportCompression()
+        ]
+        [
+            <REPLICATION_COUNT> replicationCount = orExpression(null)
+        ]
+        [
+            <ENCODING> encoding = orExpression(null)
+        ]
+        [
+            <FIELD_SEPARATOR> fieldSeparator = orExpression(null)
+        ]
+        [
+            <QUOTE_CHARACTER> quoteCharacter = orExpression(null)
+        ]
+        [
+            <QUOTE_MODE> quoteMode = exportQuoteMode()
+        ]
+        statementNode = preparableSQLDataStatement()
+        {
+            parameterList.addElement(exportPath);
+            parameterList.addElement(compression);
+            parameterList.addElement(replicationCount);
+            parameterList.addElement(encoding);
+            parameterList.addElement(fieldSeparator);
+            parameterList.addElement(quoteCharacter);
+            parameterList.addElement(quoteMode);
+            parameterList.addElement(fileType);
+            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                       statementNode,
+                                       parameterList,
+                                       getContextManager());
+        }
+    |
+        // Legacy export
+        methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
+        {
+            parameterList.addElement(null); // null for legacy
+            parameterList.addElement((CharConstantNode) nodeFactory.getNode(
+                                     C_NodeTypes.CHAR_CONSTANT_NODE,
+                                     "csv",
+                                     getContextManager()));
+            return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
+                                       statementNode,
+                                       parameterList,
+                                       getContextManager());
+        }
+    )
 }
 
 StatementNode
@@ -4228,11 +4426,24 @@ binaryExportStatement() throws StandardException :
     Vector parameterList = new Vector();
 }
 {
+    // Legacy export
     <EXPORT_BINARY> methodCallParameterList(parameterList) statementNode = preparableSQLDataStatement()
     {
-        return (BinaryExportNode) nodeFactory.getNode(C_NodeTypes.BINARY_EXPORT_NODE,
+        if (parameterList.size() != 3) {
+            throw StandardException.newException(SQLState.LANG_DB2_NUMBER_OF_ARGS_INVALID, "BINARY_EXPORT");
+        }
+        Vector actualParameterList = new Vector();
+        actualParameterList.addElement(parameterList.elementAt(0));
+        actualParameterList.addElement(parameterList.elementAt(1));
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(null);
+        actualParameterList.addElement(parameterList.elementAt(2));
+        return (ExportNode) nodeFactory.getNode(C_NodeTypes.EXPORT_NODE,
                                    statementNode,
-                                   parameterList,
+                                   actualParameterList,
                                    getContextManager());
     }
 }
@@ -5476,10 +5687,29 @@ exactNumericType() throws StandardException :
         return getDataTypeServices(type, precision, scale, maxWidth);
     }
     |
+        dtd = decfloatType()
+        {
+            return dtd;
+        }
+    |
         dtd = exactIntegerType()
         {
             return dtd;
         }
+}
+
+/*
+ * <A NAME="decfloatType">decfloatType</A>
+ */
+DataTypeDescriptor
+decfloatType() throws StandardException:
+{
+}
+{
+    <DECFLOAT>
+    {
+        return DataTypeDescriptor.getBuiltInDataTypeDescriptor(com.splicemachine.db.iapi.reference.Types.DECFLOAT);
+    }
 }
 
 /*
@@ -6986,34 +7216,69 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
         if (farLeftOperand == null)
             return leftOperand;
 
-        switch (additiveOperator)
-        {
-          case BinaryOperatorNode.PLUS:
-            if (leftOperand instanceof TimeSpanNode) {
-                return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, false);
-            }
-            return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
-                                    farLeftOperand,
-                                    leftOperand,
-                                    getContextManager()
-                                    );
-          case BinaryOperatorNode.MINUS:
-            if (leftOperand instanceof TimeSpanNode) {
-                return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, true);
-            }
-            return (ValueNode) nodeFactory.getNode(
-                                    C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
-                                    farLeftOperand,
-                                    leftOperand,
-                                    getContextManager()
-                                    );
+        // manipulation for current timestamp operation
+        if ((farLeftOperand instanceof CurrentDatetimeOperatorNode) &&
+            ((CurrentDatetimeOperatorNode)farLeftOperand).isCurrentTimestamp()) {
+            switch (additiveOperator)
+            {
 
-          default:
-            if (SanityManager.DEBUG)
-            SanityManager.THROWASSERT(
-                    "Unexpected operator value of " + additiveOperator);
-            return null;
+              case BinaryOperatorNode.PLUS:
+                if (leftOperand instanceof TimeSpanNode) {
+                    return convertToTimestampAdd(farLeftOperand, (TimeSpanNode) leftOperand, false);
+                }
+                return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
+                                        farLeftOperand,
+                                        leftOperand,
+                                        getContextManager()
+                                        );
+              case BinaryOperatorNode.MINUS:
+                if (leftOperand instanceof TimeSpanNode) {
+                    return convertToTimestampAdd(farLeftOperand, (TimeSpanNode) leftOperand, true);
+                }
+                return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
+                                        farLeftOperand,
+                                        leftOperand,
+                                        getContextManager()
+                                        );
+
+              default:
+                if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT(
+                        "Unexpected operator value of " + additiveOperator);
+                return null;
+            }
+        } else {
+            switch (additiveOperator)
+            {
+              case BinaryOperatorNode.PLUS:
+                if (leftOperand instanceof TimeSpanNode) {
+                    return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, false);
+                }
+                return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
+                                        farLeftOperand,
+                                        leftOperand,
+                                        getContextManager()
+                                        );
+              case BinaryOperatorNode.MINUS:
+                if (leftOperand instanceof TimeSpanNode) {
+                    return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, true);
+                }
+                return (ValueNode) nodeFactory.getNode(
+                                        C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
+                                        farLeftOperand,
+                                        leftOperand,
+                                        getContextManager()
+                                        );
+
+              default:
+                if (SanityManager.DEBUG)
+                SanityManager.THROWASSERT(
+                        "Unexpected operator value of " + additiveOperator);
+                return null;
+            }
         }
     }
 }
@@ -7040,7 +7305,8 @@ convertAddTimeIntervalToFunction(ValueNode base, TimeSpanNode timeSpanNode, bool
                 function = "ADD_YEARS";
                 break;
             default:
-                assert false: "Illegal time span unit";
+                throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION,
+                                                                                timeSpanNode.getUnit());
         }
         MethodCallNode methodNode = (MethodCallNode) nodeFactory.getNode(
                                 C_NodeTypes.STATIC_METHOD_CALL_NODE,
@@ -7068,6 +7334,59 @@ convertAddTimeIntervalToFunction(ValueNode base, TimeSpanNode timeSpanNode, bool
                                 methodNode,
                                 getContextManager());
     }
+}
+
+/*
+ * <A NAME="convertToTimestampAdd">convertToTimestampAdd</A>
+ */
+ValueNode
+convertToTimestampAdd(ValueNode base, TimeSpanNode timeSpanNode, boolean negate) throws StandardException :
+{
+    ValueNode value = null;
+    ValueNode intervalType = null;
+}
+{
+    {
+        switch (timeSpanNode.getUnit()) {
+            case DateTimeDataValue.DAY_INTERVAL:
+                intervalType = getJdbcIntervalNode(DateTimeDataValue.DAY_INTERVAL);
+                break;
+            case DateTimeDataValue.MONTH_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.MONTH_INTERVAL);
+                break;
+            case DateTimeDataValue.YEAR_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.YEAR_INTERVAL);
+                break;
+            case DateTimeDataValue.HOUR_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.HOUR_INTERVAL);
+                break;
+            case DateTimeDataValue.MINUTE_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.MINUTE_INTERVAL);
+                break;
+            case DateTimeDataValue.SECOND_INTERVAL:
+                intervalType = getJdbcIntervalNode( DateTimeDataValue.SECOND_INTERVAL);
+                break;
+            default:
+                throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION,
+                                                                timeSpanNode.getUnit());
+        }
+        value = timeSpanNode.getValue();
+        if (negate) {
+            value = (ValueNode) nodeFactory.getNode(
+                                C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
+                                value,
+                                getContextManager());
+        }
+        return (ValueNode) nodeFactory.getNode( C_NodeTypes.TIMESTAMP_ADD_FN_NODE,
+                                                base,
+                                                intervalType,
+                                                value,
+                                                ReuseFactory.getInteger( TernaryOperatorNode.TIMESTAMPADD),
+                                                null,
+                                                getContextManager());
+
+    }
+
 }
 
 /*
@@ -7385,7 +7704,11 @@ getTimeSpan(ValueNode value) throws StandardException :
 {
     LOOKAHEAD ( { getToken(1).kind == YEAR || getToken(1).kind == YEARS ||
                   getToken(1).kind == MONTH || getToken(1).kind == MONTHS ||
-                  getToken(1).kind == DAY || getToken(1).kind == DAYS } )
+                  getToken(1).kind == DAY || getToken(1).kind == DAYS ||
+                  getToken(1).kind == HOUR || getToken(1).kind == HOURS ||
+                  getToken(1).kind == MINUTE || getToken(1).kind == MINUTES ||
+                  getToken(1).kind == SECOND || getToken(1).kind == SECONDS
+                  } )
     timeUnit = dateTimeIntervalUnit()
     {
         return (ValueNode) nodeFactory.getNode(
@@ -7942,6 +8265,21 @@ int dateTimeIntervalUnit() :
     {
         return DateTimeDataValue.DAY_INTERVAL;
     }
+|
+    (<HOUR>|<HOURS>)
+    {
+        return DateTimeDataValue.HOUR_INTERVAL;
+    }
+|
+    (<MINUTE>|<MINUTES>)
+    {
+        return DateTimeDataValue.MINUTE_INTERVAL;
+    }
+|
+    (<SECOND>|<SECONDS>)
+    {
+        return DateTimeDataValue.SECOND_INTERVAL;
+    }
 }
 
 
@@ -8422,6 +8760,7 @@ miscBuiltins() throws StandardException :
              ( (getToken(1).kind == GET_CURRENT_CONNECTION ||
                 getToken(1).kind == ABS ||
                 getToken(1).kind == ABSVAL ||
+                getToken(1).kind == DECFLOAT ||
                 getToken(1).kind == SQRT ||
                 getToken(1).kind == MOD ||
                 getToken(1).kind == COALESCE ||
@@ -8662,6 +9001,7 @@ ValueNode
     ValueNode operand;
     int charType;
     int length = -1;
+    int format = -1;
 }
 {
     //Note: When you add a new data type function, in addition to adding it
@@ -8683,7 +9023,17 @@ ValueNode
 
             return value;
       }
-     | charType = charOrVarchar() <LEFT_PAREN> operand = additiveExpression(null,0) [ <COMMA> length = length() ] <RIGHT_PAREN>
+     |
+     charType = charOrVarchar()
+     <LEFT_PAREN>
+     operand = additiveExpression(null,0)
+     [
+        <COMMA> (
+            format = datetimeStringFormat()
+        |
+            length = length()
+        )
+     ] <RIGHT_PAREN>
     {
         // Always check db2 limits for this function. It's new
         checkTypeLimits(charType,length);
@@ -8692,11 +9042,46 @@ ValueNode
                                                 operand,
                                                 new Integer(charType),
                                                 new Integer(length),
+                                                new Integer(format),
                                                 getContextManager());
 
         ((CastNode) value).setForDataTypeFunction(true);
         ((CastNode) value).setForExternallyGeneratedCASTnode();
         return value;
+    }
+}
+
+/*
+ * <A NAME="datetimeStringFormat">datetimeStringFormat</A>
+ */
+int
+datetimeStringFormat() throws StandardException :
+{
+}
+{
+    <ISO>
+    {
+        return DateTimeDataValue.ISO;
+    }
+|
+    <USA>
+    {
+        return DateTimeDataValue.USA;
+    }
+|
+    <EUR>
+    {
+        return DateTimeDataValue.EUR;
+    }
+|
+    <JIS>
+    {
+        return DateTimeDataValue.JIS;
+    }
+|
+    <LOCAL>
+    {
+        return DateTimeDataValue.LOCAL;
     }
 }
 
@@ -9220,7 +9605,12 @@ numericFunctionType() throws StandardException :
     {
         return dts;
     }
-    |
+|
+    dts = decfloatType()
+    {
+        return dts;
+    }
+|
     dts = exactIntegerType()
     {
         return dts;
@@ -17823,7 +18213,6 @@ reservedKeyword() :
 |    tok = <AS>
 |    tok = <ASC>
 |    tok = <ASSERTION>
-|    tok = <AT>
 |    tok = <AUTHORIZATION>
 |    tok = <AVG>
 |    tok = <BEGIN>
@@ -18079,42 +18468,47 @@ nonReservedKeyword()  :
         rule, for the same reason.
      */
     (
-        tok = <ABS>
+         tok = <ABS>
     |    tok = <ABSVAL>
     |    tok = <ACCESS>
     |    tok = <ACTION>
     |    tok = <AFTER>
     |    tok = <AGGREGATE>
     |    tok = <ALWAYS>
+    |    tok = <AT> // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <ATOMIC>
-    |   tok = <AUTO>
-    |   tok = <B>
+    |    tok = <AUTO>
+    |    tok = <B>
     |    tok = <BEFORE>
     |    tok = <BINARY>
     |    tok = <BLOB>
+    |    tok = <BZ2>
+    |    tok = <BZIP2>
     |    tok = <C>
     |    tok = <CALLED>
     |    tok = <CLASS>
     |    tok = <CLOB>
     |    tok = <COALESCE>
     |    tok = <NVL>
-    |   tok = <CHARACTERDELIMITER>
+    |    tok = <CHARACTERDELIMITER>
     |    tok = <COBOL>
-    |   tok = <COLUMNDELIMITER>
+    |    tok = <COLUMNDELIMITER>
     |    tok = <COMMITTED>
     |    tok = <COMPRESS>
+    |    tok = <COMPRESSION>
     |    tok = <CONCAT>
     |    tok = <CONTAINS>
     |    tok = <CONTENT>
     |    tok = <COUNT>
-    |   tok = <CS>
+    |    tok = <CS>
+    |    tok = <CSV>
     |    tok = <CURDATE>
     |    tok = <CURTIME>
     |    tok = <CYCLE>
     |    tok = <D>
     |    tok = <DATA>
     |    tok = <DATE>
-    |   tok = <DATEFORMAT>
+    |    tok = <DATEFORMAT>
     |    tok = <DAY>
     |    tok = <DAYS>
     |    tok = <DAYOFYEAR>
@@ -18123,6 +18517,7 @@ nonReservedKeyword()  :
     |    tok = <DYNAMIC>
     |    tok = <DATABASE>
     |    tok = <DB2SQL>
+    |    tok = <DECFLOAT>
     |    tok = <DENSERANK>
     |    tok = <DERBY>
     |    tok = <DIGITS>
@@ -18130,10 +18525,13 @@ nonReservedKeyword()  :
     |    tok = <DOCUMENT>
     |    tok = <EACH>
     |    tok = <EMPTY>
+    |    tok = <ENCODING>
     |    tok = <EXCLUDE>
     |    tok = <ESTIMATE>
+    |    tok = <EUR>
     |    tok = <EXCLUSIVE>
     |    tok = <EXTRACT>
+    |    tok = <FIELD_SEPARATOR>
     |    tok = <FIRSTVALUE>
     |    tok = <FN>
     |    tok = <FORTRAN>
@@ -18142,16 +18540,20 @@ nonReservedKeyword()  :
     |    tok = <GET_NEAREST_TRANSACTION>
     |    tok = <GREATEST>
     |    tok = <GROUPING>
+    |    tok = <GZ>
+    |    tok = <GZIP>
     |    tok = <HFILE>
+    |    tok = <HOURS>
     |    tok = <IDENTITY_VAL_LOCAL>
     |    tok = <IGNORE>
     |    tok = <INCREMENT>
     |    tok = <INDEX>
     |    tok = <INITIAL>
     |    tok = <INPLACE>
-// SQL92 says it is reserved, but we want it to be non-reserved.
-    |    tok = <INTERVAL>
+    |    tok = <INTERVAL> // SQL92 says it is reserved, but we want it to be non-reserved.
+    |    tok = <ISO>
     |    tok = <JAVA>
+    |    tok = <JIS>
     |    tok = <KEYS>
     |    tok = <L>
     |    tok = <LAG>
@@ -18163,22 +18565,22 @@ nonReservedKeyword()  :
     |    tok = <LEAST>
     |    tok = <LENGTH>
     |    tok = <LEVEL>
-    |   tok = <LIMIT>
-    |   tok = <FORMAT>
-    |   tok = <DELIMITED>
-    |   tok = <FIELDS>
-    |   tok = <TERMINATED>
-    |   tok = <ESCAPED>
-    |   tok = <LINES>
-    |   tok = <PARTITIONED>
-    |   tok = <STORED>
-    |   tok = <LOCATION>
-    |   tok = <TEXTFILE>
-    |   tok = <PIN>
-    |   tok = <PARQUET>
-    |   tok = <AVRO>
-    |   tok = <ORC>
-    |   tok = <LOCATE>
+    |    tok = <LIMIT>
+    |    tok = <FORMAT>
+    |    tok = <DELIMITED>
+    |    tok = <FIELDS>
+    |    tok = <TERMINATED>
+    |    tok = <ESCAPED>
+    |    tok = <LINES>
+    |    tok = <PARTITIONED>
+    |    tok = <STORED>
+    |    tok = <LOCATION>
+    |    tok = <TEXTFILE>
+    |    tok = <PIN>
+    |    tok = <PARQUET>
+    |    tok = <AVRO>
+    |    tok = <ORC>
+    |    tok = <LOCATE>
     |    tok = <LOCK>
     |    tok = <LOCKS>
     |    tok = <LOCKSIZE>
@@ -18186,6 +18588,7 @@ nonReservedKeyword()  :
     |    tok = <LONG>
     |    tok = <MAXVALUE>
     |    tok = <MESSAGE_TEXT>
+    |    tok = <MINUTES>
     |    tok = <MINVALUE>
     |    tok = <MESSAGE_LOCALE>
     |    tok = <METHOD>
@@ -18193,8 +18596,7 @@ nonReservedKeyword()  :
     |    tok = <MODE>
     |    tok = <MODIFIES>
     |    tok = <MODIFY>
-// SQL92 says it is reserved, but we want it to be non-reserved.
-    |    tok = <MODULE>
+    |    tok = <MODULE> // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <MONTH>
     |    tok = <MONTHS>
     |    tok = <MONTHNAME>
@@ -18203,7 +18605,7 @@ nonReservedKeyword()  :
     |    tok = <NAME>
     |    tok = <NCLOB>
     |    tok = <NEW>
-    |   tok = <NEW_TABLE>
+    |    tok = <NEW_TABLE>
     |    tok = <NULLABLE>
     |    tok = <NULLS>
     |    tok = <NUMBER>
@@ -18259,6 +18661,7 @@ nonReservedKeyword()  :
     |   tok = <SAMPLE>
     |    tok = <SCALE>
     |    tok = <SAVEPOINT>
+    |    tok = <SECONDS>
     |    tok = <SECURITY>
     |    tok = <SEQUENCE>
     |    tok = <SEQUENTIAL>
@@ -18267,6 +18670,7 @@ nonReservedKeyword()  :
     |    tok = <SETS>
     |    tok = <SHARE>
     |    tok = <SIGNAL>
+    |    tok = <SNAPPY>
     |   tok = <SPECIFIC>
     |   tok = <SPLITKEYS>
     |    tok = <SPLIT_PART>
@@ -18288,6 +18692,9 @@ nonReservedKeyword()  :
     |    tok = <STRING_AGG>
     |    tok = <SYNONYM>
     |    tok = <STYLE>
+    |    tok = <QUOTE_CHARACTER>
+    |    tok = <QUOTE_MODE>
+    |    tok = <REPLICATION_COUNT>
     |    tok = <T>
     |    tok = <TEXT>
     |    tok = <THEN>
@@ -18305,6 +18712,7 @@ nonReservedKeyword()  :
     |   tok = <UCASE>
     |    tok = <UNCOMMITTED>
     |   tok = <UR>
+    |    tok = <USA>
     |    tok = <USAGE>
 // SQL92 says VALUE is reserved, but we want it to be nonreserved.
     |    tok = <VALUE>

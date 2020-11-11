@@ -123,6 +123,8 @@ public class HBaseRollForward implements RollForward {
                         resolutions.add(event.getKeys().size());
                         if (state == Txn.State.ROLLEDBACK) {
                             for (ByteSlice bs : event.getKeys()) {
+                                if (LOG.isDebugEnabled())
+                                    LOG.debug("Deleting rolled back row: " + bs + " because transaction is rolledback: " + txn);
                                 SynchronousReadResolver.INSTANCE.resolveRolledback(
                                         event.getPartition(), bs, event.getTxnId(), false);
                             }

@@ -321,6 +321,8 @@ public final class Utils {
             return "DATE";
         case java.sql.Types.DECIMAL:
             return "DECIMAL";
+        case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+            return "DECFLOAT";
         case java.sql.Types.DOUBLE:
             return "DOUBLE";
         case java.sql.Types.REAL:

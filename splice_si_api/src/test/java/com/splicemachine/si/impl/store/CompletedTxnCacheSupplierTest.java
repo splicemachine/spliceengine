@@ -55,7 +55,7 @@ public class CompletedTxnCacheSupplierTest{
         final boolean[] called=new boolean[]{false};
         TxnStore backStore=new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),null,Long.MAX_VALUE){
             @Override
-            public Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException{
+            public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
                 Assert.assertFalse("Item should have been fed from cache!",called[0]);
                 called[0]=true;
                 return super.getTransaction(txnId,getDestinationTables);
@@ -92,7 +92,7 @@ public class CompletedTxnCacheSupplierTest{
         final boolean[] called=new boolean[]{false};
         TxnStore backStore=new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),null,Long.MAX_VALUE){
             @Override
-            public Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException{
+            public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
                 Assert.assertFalse("Item should have been fed from cache!",called[0]);
                 called[0]=true;
                 return super.getTransaction(txnId,getDestinationTables);
@@ -132,7 +132,7 @@ public class CompletedTxnCacheSupplierTest{
         final boolean[] called=new boolean[]{false};
         TxnStore backStore=new TestingTxnStore(new IncrementingClock(),new TestingTimestampSource(),null,Long.MAX_VALUE){
             @Override
-            public Txn getTransaction(long txnId,boolean getDestinationTables) throws IOException{
+            public TxnView getTransaction(long txnId,boolean getDestinationTables) throws IOException{
                 Assert.assertFalse("Item should have been fed from cache!",called[0]);
                 called[0]=true;
                 return super.getTransaction(txnId,getDestinationTables);

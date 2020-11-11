@@ -61,6 +61,20 @@ public interface DateTimeDataValue extends DataValueDescriptor
     int QUARTER_INTERVAL = 7;
     int YEAR_INTERVAL = 8;
 
+    // DB2 formats for string representations of dates, times, and timestamps
+	int ISO   = 0;
+	int USA   = 1;
+	int EUR   = 2;
+	int JIS   = 3;
+	int LOCAL = 4;
+
+	/**
+	 * Set a format of string representation of the value.
+	 *
+	 * @param format The format of the string representation of the value.
+	 */
+	void setStringFormat(int format);
+
 	/**
 	 * Get the year number out of a date.
 	 *

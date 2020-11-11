@@ -72,6 +72,7 @@ public  class SumAggregator
 								return new DoubleBufferedSumAggregator(64);
 						case StoredFormatIds.DECIMAL_TYPE_ID:
 						    return new DecimalBufferedSumAggregator(64);
+						// TODO(arnaud) implemented DecfloatBufferedSumAggregator
 						default: //default to Derby's typical behavior, which has crappy performance, but will work in all cases
 								return null;
 				}

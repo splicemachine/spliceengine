@@ -17,6 +17,7 @@ package com.splicemachine.jdbc;
 
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -26,6 +27,7 @@ import org.junit.runner.Description;
 import java.sql.*;
 import java.util.concurrent.TimeUnit;
 
+import static java.lang.String.format;
 import static org.junit.Assert.assertEquals;
 
 public class JdbcApiIT {
@@ -35,6 +37,9 @@ public class JdbcApiIT {
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     protected static final SpliceTableWatcher A_TABLE = new SpliceTableWatcher("A",schemaWatcher.schemaName,
             "(a1 int)");
+
+    private static final String SCHEMA_A = CLASS_NAME + "_tom";
+    private static final String SCHEMA_B = "\"" + CLASS_NAME + "_jerry\"";
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -118,6 +123,40 @@ public class JdbcApiIT {
          }
     }
 
+    @Test
+    public void testUrlWithCurrentSchemaPropertyWithRegularSchemaName() throws Exception {
+        spliceClassWatcher.execute(format("create schema %s", SCHEMA_A));
+        try (Connection connection = SpliceNetConnection.newBuilder().currentSchema(SCHEMA_A).build()) {
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet rs = statement.executeQuery("values current schema")) {
+                    String expected = "1       |\n" +
+                            "---------------\n" +
+                            "JDBCAPIIT_TOM |";
+                    assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
+        }
+
+        spliceClassWatcher.execute(format("drop schema %s restrict", SCHEMA_A));
+    }
+
+    @Test
+    public void testUrlWithCurrentSchemaPropertyWithQuotedSchemaName() throws Exception {
+        spliceClassWatcher.execute(format("create schema %s", SCHEMA_B));
+
+        try (Connection connection = SpliceNetConnection.newBuilder().currentSchema(SCHEMA_B).build()) {
+            try (Statement statement = connection.createStatement()) {
+                try (ResultSet rs = statement.executeQuery("values current schema")) {
+                    String expected = "1        |\n" +
+                            "-----------------\n" +
+                            "JDBCAPIIT_jerry |";
+                    assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+                }
+            }
+        }
+
+        spliceClassWatcher.execute(format("drop schema %s restrict", SCHEMA_B));
+    }
 
     @Test
     public void testCancelSpark() throws Exception {

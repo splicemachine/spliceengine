@@ -53,6 +53,7 @@ public class TypeCompilerFactoryImpl implements TypeCompilerFactory
         static TypeCompiler booleanTypeCompiler;
         static TypeCompiler charTypeCompiler;
         static TypeCompiler decimalTypeCompiler ;
+        static TypeCompiler decfloatTypeCompiler ;
         static TypeCompiler doubleTypeCompiler ;
         static TypeCompiler intTypeCompiler ;
         static TypeCompiler longintTypeCompiler ;
@@ -118,7 +119,13 @@ public class TypeCompilerFactoryImpl implements TypeCompilerFactory
                                                                 decimalTypeCompiler,
                                                                 typeId);
 
-                  case Types.DOUBLE:
+                  case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
+                      return decfloatTypeCompiler =
+                              getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
+                                                                decfloatTypeCompiler,
+                                                                typeId);
+
+                    case Types.DOUBLE:
                         return doubleTypeCompiler =
                                 getAnInstance(PACKAGE_NAME + "NumericTypeCompiler",
                                                                 doubleTypeCompiler,
