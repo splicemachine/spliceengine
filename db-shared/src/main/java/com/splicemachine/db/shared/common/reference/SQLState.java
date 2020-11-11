@@ -762,6 +762,7 @@ public interface SQLState {
     String LANG_DUPLICATE_KEY_CONSTRAINT                               = "23505";
     String LANG_FK_VIOLATION                                           = "23503";
     String LANG_CHECK_CONSTRAINT_VIOLATED                              = "23513";
+    String LANG_FK_SET_NULL_TO_NON_NULL                                = "23514";
 
     // From SQL/XML[2006] spec; there are others, but
     // these are the ones we actually use with our
