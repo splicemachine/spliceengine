@@ -44,7 +44,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
-import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.catalog.types2.ReferencedColumnsDescriptorImpl;
 
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;

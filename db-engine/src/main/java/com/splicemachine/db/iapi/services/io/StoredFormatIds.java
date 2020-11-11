@@ -279,7 +279,7 @@ public interface StoredFormatIds {
             (MIN_ID_2 + 252);
     
     /**
-    class com.splicemachine.db.catalog.types.TypeDescriptorImpl
+    class com.splicemachine.db.catalog.types2.TypeDescriptorImpl
     */
     int DATA_TYPE_IMPL_DESCRIPTOR_V01_ID =
             (MIN_ID_2 + 14);
@@ -402,7 +402,7 @@ public interface StoredFormatIds {
             (MIN_ID_2 + 174);
     
     /**
-    class com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl
+    class com.splicemachine.db.catalog.types2.ReferencedColumnsDescriptorImpl
      */
     int REFERENCED_COLUMNS_DESCRIPTOR_IMPL_V01_ID =
             (MIN_ID_2 + 205);
@@ -703,35 +703,35 @@ public interface StoredFormatIds {
             (MIN_ID_2 + 23);
         
     /**
-        class com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl
+        class com.splicemachine.db.catalog.types2.UserDefinedTypeIdImpl
      */
     //static public final int USERDEFINED_TYPE_ID_IMPL =
     //      (MIN_ID_2 + 24);
 
     /**
-        class com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl
+        class com.splicemachine.db.catalog.types2.UserDefinedTypeIdImpl
      */
     //static public final int USERDEFINED_TYPE_ID_IMPL_V2 =
     //      (MIN_ID_2 + 264);
 
     /**
-        class com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl
+        class com.splicemachine.db.catalog.types2.UserDefinedTypeIdImpl
      */
     int USERDEFINED_TYPE_ID_IMPL_V3 =
             (MIN_ID_2 + 264);
     /**
-        class com.splicemachine.db.catalog.types.TypesImplInstanceGetter
+        class com.splicemachine.db.catalog.types2.TypesImplInstanceGetter
      */
     int DATE_TYPE_ID_IMPL =
             (MIN_ID_2 + 32);
 
     /**
-        class com.splicemachine.db.catalog.types.TypesImplInstanceGetter
+        class com.splicemachine.db.catalog.types2.TypesImplInstanceGetter
      */
     int TIME_TYPE_ID_IMPL =
             (MIN_ID_2 + 33);
     /**
-        class com.splicemachine.db.catalog.types.TypesImplInstanceGetter
+        class com.splicemachine.db.catalog.types2.TypesImplInstanceGetter
      */
     int TIMESTAMP_TYPE_ID_IMPL =
             (MIN_ID_2 + 34);
@@ -793,7 +793,7 @@ public interface StoredFormatIds {
 
 
     /**
-            class com.splicemachine.db.catalog.types.IndexDescriptorImpl
+            class com.splicemachine.db.catalog.types2.IndexDescriptorImpl
      */
     int INDEX_DESCRIPTOR_IMPL_V02_ID =
             (MIN_ID_2 + 387);
@@ -842,7 +842,7 @@ public interface StoredFormatIds {
                 (MIN_ID_2 + 36);
         
     /**
-        class com.splicemachine.db.catalog.types.DecimalTypeIdImpl
+        class com.splicemachine.db.catalog.types2.DecimalTypeIdImpl
      */
     int DECIMAL_TYPE_ID_IMPL =
             (MIN_ID_2 + 198);
@@ -1283,7 +1283,7 @@ public interface StoredFormatIds {
             (MIN_ID_2 + 310);
 
     /**
-    class com.splicemachine.db.catalog.types.MethodAliasInfo
+    class com.splicemachine.db.catalog.types2.MethodAliasInfo
      */
     int METHOD_ALIAS_INFO_V01_ID        =
             (MIN_ID_2 + 312);
@@ -1322,7 +1322,7 @@ public interface StoredFormatIds {
     ******************************************************************/
             
     /**
-    class com.splicemachine.db.catalog.types.DefaultInfoImpl
+    class com.splicemachine.db.catalog.types2.DefaultInfoImpl
      */
     int DEFAULT_INFO_IMPL_V01_ID =
             (MIN_ID_2 + 326);

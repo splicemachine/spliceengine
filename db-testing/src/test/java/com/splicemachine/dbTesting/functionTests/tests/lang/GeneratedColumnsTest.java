@@ -45,7 +45,7 @@ import com.splicemachine.dbTesting.junit.TestConfiguration;
 import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 import com.splicemachine.dbTesting.junit.SupportFilesSetup;
 
-import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.catalog.types2.RoutineAliasInfo;
 
 /**
  * <p>

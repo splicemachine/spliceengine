@@ -73,27 +73,27 @@ String[] TwoByte = {
         /* 11 */        null,
         /* 12 */        null,
         /* 13 */        null,
-        /* 14 */        "com.splicemachine.db.catalog.types.TypeDescriptorImpl",
+        /* 14 */        "com.splicemachine.db.catalog.types2.TypeDescriptorImpl",
         /* 15 */        "com.splicemachine.db.impl.store.access.PC_XenaVersion",
-        /* 16 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
-        /* 17 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
-        /* 18 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
-        /* 19 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
-        /* 20 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
-        /* 21 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
-        /* 22 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
-        /* 23 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 16 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
+        /* 17 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
+        /* 18 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
+        /* 19 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
+        /* 20 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
+        /* 21 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
+        /* 22 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
+        /* 23 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 24 */        null,
-        /* 25 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 25 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 26 */        null,
         /* 27 */        null,
-        /* 28 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 28 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 29 */        null,
-        /* 30 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 30 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 31 */        "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter
-        /* 32 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
-        /* 33 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
-        /* 34 */        "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 32 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
+        /* 33 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
+        /* 34 */        "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 35 */        null,
         /* 36 */        null,
         /* 37 */        "com.splicemachine.db.impl.sql.execute.DeleteConstantAction",
@@ -255,16 +255,16 @@ String[] TwoByte = {
         /* 193 */       null,
         /* 194 */       null,
         /* 195 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter
-        /* 196 */       "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 196 */       "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 197 */       null,
-        /* 198 */       "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 198 */       "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 199 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter,
         /* 200 */       null, // DECIMAL - register dynamically by DataValueFactory implementation
         /* 201 */       null,
         /* 202 */       "com.splicemachine.db.iapi.types.UserType",
         /* 203 */       "com.splicemachine.db.impl.sql.execute.rts.RealHashScanStatistics",
         /* 204 */       null,
-        /* 205 */       "com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl",
+        /* 205 */       "com.splicemachine.db.catalog.types2.ReferencedColumnsDescriptorImpl",
         /* 206 */       null,
         /* 207 */       null,
         /* 208 */       "com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo",             // InstanceGetter
@@ -290,9 +290,9 @@ String[] TwoByte = {
         /* 228 */       "com.splicemachine.db.impl.sql.GenericResultDescription",
         /* 229 */       null,
         /* 230 */       null,
-        /* 231 */       "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 231 */       "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 232 */       null,
-        /* 233 */       "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 233 */       "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 234 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter,
         /* 235 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter,
         /* 236 */       null,
@@ -318,12 +318,12 @@ String[] TwoByte = {
         /* 256 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter
         /* 257 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter
         /* 258 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter
-        /* 259 */       "com.splicemachine.db.catalog.types.TypesImplInstanceGetter", // old catalog type format
+        /* 259 */       "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter", // old catalog type format
         /* 260 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter
         /* 261 */       "com.splicemachine.db.impl.store.raw.xact.TransactionTableEntry",
         /* 262 */       "com.splicemachine.db.impl.store.raw.xact.TransactionTable",
         /* 263 */       "com.splicemachine.db.impl.store.raw.log.CheckpointOperation",
-        /* 264 */       "com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl",
+        /* 264 */       "com.splicemachine.db.catalog.types2.UserDefinedTypeIdImpl",
         /* 265 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter
         /* 266 */       "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter
         /* 267 */       null,
@@ -371,7 +371,7 @@ String[] TwoByte = {
         /* 309 */       null,
         /* 310 */       null,
         /* 311 */       null,
-        /* 312 */       "com.splicemachine.db.catalog.types.MethodAliasInfo",
+        /* 312 */       "com.splicemachine.db.catalog.types2.MethodAliasInfo",
         /* 313 */       "com.splicemachine.db.iapi.services.io.FormatableHashtable",
         /* 314 */       null,
         /* 315 */       null,
@@ -385,7 +385,7 @@ String[] TwoByte = {
         /* 323 */       "com.splicemachine.db.impl.sql.execute.UserDefinedAggregator",
         /* 324 */       null,
         /* 325 */       "com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo",             // InstanceGetter
-        /* 326 */       "com.splicemachine.db.catalog.types.DefaultInfoImpl",
+        /* 326 */       "com.splicemachine.db.catalog.types2.DefaultInfoImpl",
         /* 327 */       "com.splicemachine.db.impl.sql.execute.rts.RealLastIndexKeyScanStatistics",
         /* 328 */       "com.splicemachine.db.impl.store.raw.xact.GlobalXactId",
         /* 329 */       "com.splicemachine.db.iapi.services.io.FormatableLongHolder",
@@ -446,7 +446,7 @@ String[] TwoByte = {
         /* 384 */   null, // Unused,
         /* 385 */   null,
         /* 386 */   null,
-        /* 387 */       "com.splicemachine.db.catalog.types.IndexDescriptorImpl",
+        /* 387 */       "com.splicemachine.db.catalog.types2.IndexDescriptorImpl",
         /* 388 */       "com.splicemachine.db.impl.store.access.btree.index.B2I_v10_2",
         /* 389 */   null,
         /* 390 */   null,
@@ -456,7 +456,7 @@ String[] TwoByte = {
         /* 394 */   null,
         /* 395 */   null,
         /* 396 */       null, // Unused
-        /* 397 */   "com.splicemachine.db.catalog.types.StatisticsImpl",
+        /* 397 */   "com.splicemachine.db.catalog.types2.StatisticsImpl",
         /* 398 */       null,
         /* 399 */       null,
         /* 400 */   null,
@@ -503,13 +503,13 @@ String[] TwoByte = {
     /// --- BLOB is copying LONGVARBIT in implementation
         /* 440 */   null,
         /* 441 */   "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter, BLOB_COMPILATION_TYPE_ID
-        /* 442 */   "com.splicemachine.db.catalog.types.TypesImplInstanceGetter", // BLOB_TYPE_ID_IMPL
+        /* 442 */   "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter", // BLOB_TYPE_ID_IMPL
         /* 443 */   "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter, SQL_BLOB_ID
 
     /// --- CLOB is copying LONGVARCHAR in implementation
         /* 444 */   null,
         /* 445 */   "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter
-        /* 446 */   "com.splicemachine.db.catalog.types.TypesImplInstanceGetter",
+        /* 446 */   "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter",
         /* 447 */   "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter,
            
 
@@ -519,13 +519,13 @@ String[] TwoByte = {
         /* 449 */   null,
         /* 450 */   null,
 
-        /* 451 */   "com.splicemachine.db.catalog.types.RoutineAliasInfo",
+        /* 451 */   "com.splicemachine.db.catalog.types2.RoutineAliasInfo",
 		/* 452 */   null,
 		/* 453 */   "com.splicemachine.db.impl.store.raw.log.ChecksumOperation",
 		/* 454 */   "com.splicemachine.db.impl.store.raw.data.CompressSpacePageOperation10_2",
-		/* 455 */   "com.splicemachine.db.catalog.types.SynonymAliasInfo",
+		/* 455 */   "com.splicemachine.db.catalog.types2.SynonymAliasInfo",
         /* 456 */   null,
-        /* 457 */   "com.splicemachine.db.catalog.types.TypesImplInstanceGetter", // XML_TYPE_ID_IMPL
+        /* 457 */   "com.splicemachine.db.catalog.types2.TypesImplInstanceGetter", // XML_TYPE_ID_IMPL
         /* 458 */   "com.splicemachine.db.iapi.types.DTSClassInfo", //InstanceGetter, XML_ID
         /* 459 */   "com.splicemachine.db.impl.store.raw.data.EncryptContainerOperation",
         /* 460 */   "com.splicemachine.db.impl.store.raw.data.EncryptContainerUndoOperation",
@@ -537,12 +537,12 @@ String[] TwoByte = {
         /* 466 */   "com.splicemachine.db.impl.store.access.btree.index.B2I_10_3",
         /* 467 */   "com.splicemachine.db.impl.store.access.heap.Heap",
         /* 468 */   "com.splicemachine.db.iapi.types.DTSClassInfo",
-        /* 469 */   "com.splicemachine.db.catalog.types.RowMultiSetImpl",
+        /* 469 */   "com.splicemachine.db.catalog.types2.RowMultiSetImpl",
         /* 470 */   "com.splicemachine.db.impl.store.access.btree.index.B2I",
         /* 471 */   "com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo",
         /* 472 */       "com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo",
         /* 473 */       "com.splicemachine.db.impl.sql.catalog.CoreDDFinderClassInfo",
-        /* 474 */       "com.splicemachine.db.catalog.types.UDTAliasInfo",
-        /* 475 */       "com.splicemachine.db.catalog.types.AggregateAliasInfo",
+        /* 474 */       "com.splicemachine.db.catalog.types2.UDTAliasInfo",
+        /* 475 */       "com.splicemachine.db.catalog.types2.AggregateAliasInfo",
 };
 }

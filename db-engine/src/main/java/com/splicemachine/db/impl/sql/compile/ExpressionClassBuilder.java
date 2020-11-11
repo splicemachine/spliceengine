@@ -33,10 +33,10 @@ package com.splicemachine.db.impl.sql.compile;
 
 
 import com.splicemachine.db.catalog.TypeDescriptor;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.catalog.types2.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.ClassBuilder;
 import com.splicemachine.db.iapi.services.compiler.JavaFactory;
 import com.splicemachine.db.iapi.services.compiler.LocalField;

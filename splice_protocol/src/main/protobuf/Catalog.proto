@@ -24,3 +24,5 @@ message IndexConglomerate {
   optional int32 rowLocationColumn=8;
   repeated bool ascDescInfo=9;
 }
+
+

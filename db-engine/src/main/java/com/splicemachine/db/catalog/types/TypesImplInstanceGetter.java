@@ -31,9 +31,10 @@
 
 package com.splicemachine.db.catalog.types;
 
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.FormatableInstanceGetter;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
+@Deprecated
 public class TypesImplInstanceGetter extends FormatableInstanceGetter {
 
         public Object getNewInstance() {

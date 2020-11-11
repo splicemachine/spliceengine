@@ -32,9 +32,9 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
-import com.splicemachine.db.catalog.types.RoutineAliasInfo;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
-import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
+import com.splicemachine.db.catalog.types2.RoutineAliasInfo;
+import com.splicemachine.db.catalog.types2.TypeDescriptorImpl;
+import com.splicemachine.db.catalog.types2.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
 import com.splicemachine.db.iapi.reference.SQLState;

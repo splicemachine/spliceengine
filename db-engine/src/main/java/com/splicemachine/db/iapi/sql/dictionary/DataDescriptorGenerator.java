@@ -33,7 +33,7 @@ package com.splicemachine.db.iapi.sql.dictionary;
 
 import com.splicemachine.db.catalog.ReferencedColumns;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.catalog.types2.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.monitor.Monitor;

@@ -33,13 +33,14 @@ package com.splicemachine.db.catalog.types;
 
 import com.splicemachine.db.catalog.Statistics;
 import com.splicemachine.db.iapi.services.io.Formatable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
+@Deprecated
 public class StatisticsImpl	implements Statistics, Formatable {
 	/* total count of rows for which this statistic was created-- this
 	   is not the same as the total number of rows in the conglomerate
@@ -133,7 +134,7 @@ public class StatisticsImpl	implements Statistics, Formatable {
 	}
 
 	
-	/** @see java.lang.Object#toString */
+	/** @see Object#toString */
 	public String toString()
 	{
 		return "numunique= " + numUnique + " numrows= " + numRows;

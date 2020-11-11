@@ -68,6 +68,7 @@ import java.util.List;
  * @see com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator
  *
  */
+@Deprecated
 public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     private static final String IS_UNIQUE_KEY          = "isUnique";
     private static final String KEY_LENGTH_KEY         = "keyLength";

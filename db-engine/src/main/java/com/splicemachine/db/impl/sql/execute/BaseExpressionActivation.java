@@ -31,7 +31,7 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
+import com.splicemachine.db.catalog.types2.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;

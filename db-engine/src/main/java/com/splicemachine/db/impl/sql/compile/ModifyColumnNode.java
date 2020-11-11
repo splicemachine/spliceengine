@@ -52,7 +52,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.DefaultInfoImpl;
+import com.splicemachine.db.catalog.types2.DefaultInfoImpl;
 
 /**
  * A ModifyColumnNode represents a modify column in an ALTER TABLE statement.

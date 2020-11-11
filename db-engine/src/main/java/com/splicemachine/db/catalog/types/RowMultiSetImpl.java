@@ -30,11 +30,13 @@
  */
 
 package com.splicemachine.db.catalog.types;
+
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
+
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.sql.Types;
 import java.util.Arrays;
 
@@ -44,6 +46,7 @@ import java.util.Arrays;
  * in part 2, section 4.8.
  * </p>
  */
+@Deprecated
 public class RowMultiSetImpl extends BaseTypeIdImpl
 {
     /********************************************************

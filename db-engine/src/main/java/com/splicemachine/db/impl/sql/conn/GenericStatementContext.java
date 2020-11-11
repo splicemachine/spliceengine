@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.conn;
 
+import com.splicemachine.db.catalog.types2.RoutineAliasInfo;
 import com.splicemachine.db.iapi.reference.ContextId;
 import com.splicemachine.db.iapi.services.context.Context;
 
@@ -752,7 +753,7 @@ final class GenericStatementContext
 	}
 	public short getSQLAllowed() {
 		if (!inUse)
-			return com.splicemachine.db.catalog.types.RoutineAliasInfo.NO_SQL;
+			return RoutineAliasInfo.NO_SQL;
 
 		return sqlAllowed;
 	}

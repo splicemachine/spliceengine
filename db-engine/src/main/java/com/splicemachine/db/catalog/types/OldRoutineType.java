@@ -30,15 +30,15 @@
  */
 package com.splicemachine.db.catalog.types;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.services.io.FormatIdUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Class to simply read the old format written by
@@ -50,6 +50,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
  * types were written as TypeDescriptor (which is what
  * always had occurred for the types in SYSCOLUMNS).
  */
+@Deprecated
 final class OldRoutineType implements Formatable {
     
     private TypeDescriptor catalogType;

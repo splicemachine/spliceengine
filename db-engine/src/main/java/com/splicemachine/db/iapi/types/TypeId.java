@@ -32,13 +32,12 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
-import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
-import com.splicemachine.db.catalog.types.DecimalTypeIdImpl;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
-import com.splicemachine.db.catalog.types.UserDefinedTypeIdImpl;
+import com.splicemachine.db.catalog.types2.BaseTypeIdImpl;
+import com.splicemachine.db.catalog.types2.DecimalTypeIdImpl;
+import com.splicemachine.db.catalog.types2.TypeDescriptorImpl;
+import com.splicemachine.db.catalog.types2.UserDefinedTypeIdImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.DRDAConstants;
-import com.splicemachine.db.iapi.reference.JDBC40Translation;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;

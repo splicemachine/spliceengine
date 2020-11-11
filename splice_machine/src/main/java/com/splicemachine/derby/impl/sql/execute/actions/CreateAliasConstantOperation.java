@@ -16,8 +16,8 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.RoutineAliasInfo;
-import com.splicemachine.db.catalog.types.SynonymAliasInfo;
+import com.splicemachine.db.catalog.types2.RoutineAliasInfo;
+import com.splicemachine.db.catalog.types2.SynonymAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;

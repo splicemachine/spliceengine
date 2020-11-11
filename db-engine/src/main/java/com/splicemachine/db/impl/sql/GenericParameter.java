@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql;
 
+import com.splicemachine.db.catalog.types2.RoutineAliasInfo;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
@@ -280,7 +281,7 @@ public final class GenericParameter implements Externalizable {
                 if (registerOutType == Types.NULL) {
                     throw StandardException.newException(SQLState.NEED_TO_REGISTER_PARAM,
                             getJDBCParameterNumberStr(),
-                            com.splicemachine.db.catalog.types.RoutineAliasInfo.parameterMode(parameterMode));
+                            RoutineAliasInfo.parameterMode(parameterMode));
                 }
                 break;
         }

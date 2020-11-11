@@ -31,22 +31,24 @@
 
 package com.splicemachine.db.catalog.types;
 
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.db.iapi.reference.JDBC30Translation;
 import com.splicemachine.db.catalog.TypeDescriptor;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import com.splicemachine.db.iapi.reference.JDBC30Translation;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Describe a routine (procedure or function) alias.
  *
  * @see com.splicemachine.db.catalog.AliasInfo
  */
+@Deprecated
 public class RoutineAliasInfo extends MethodAliasInfo
 {
 

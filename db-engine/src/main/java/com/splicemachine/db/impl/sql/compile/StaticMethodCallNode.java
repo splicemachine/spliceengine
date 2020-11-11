@@ -31,8 +31,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
+import com.splicemachine.db.catalog.types2.BaseTypeIdImpl;
+import com.splicemachine.db.catalog.types2.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 
@@ -63,7 +63,7 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
-import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.catalog.types2.RoutineAliasInfo;
 
 import java.sql.Types;
 import java.util.List;

@@ -17,28 +17,19 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.access.HConfiguration;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
+import com.splicemachine.db.catalog.types2.TypeDescriptorImpl;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.HBaseTestUtils;
-import com.splicemachine.test.SerialTest;
-import com.splicemachine.test.SlowTest;
-import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;

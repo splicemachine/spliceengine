@@ -20,7 +20,7 @@ import com.splicemachine.ck.encoder.RPutConfig;
 import com.splicemachine.ck.hwrap.ConnectionWrapper;
 import com.splicemachine.ck.visitor.TableRowPrinter;
 import com.splicemachine.ck.visitor.TxnTableRowPrinter;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
+import com.splicemachine.db.catalog.types2.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.catalog.SYSCOLUMNSRowFactory;
 import com.splicemachine.db.impl.sql.catalog.SYSSCHEMASRowFactory;

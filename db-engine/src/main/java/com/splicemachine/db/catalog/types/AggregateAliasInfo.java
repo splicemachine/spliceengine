@@ -31,15 +31,15 @@
 
 package com.splicemachine.db.catalog.types;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
+import com.splicemachine.db.catalog.AliasInfo;
+import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.catalog.AliasInfo;
-import com.splicemachine.db.catalog.TypeDescriptor;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Describe a G (Aggregate) alias. The AggregateAliasInfo maintains a version stamp so that it
@@ -47,6 +47,7 @@ import com.splicemachine.db.catalog.TypeDescriptor;
  *
  * @see AliasInfo
  */
+@Deprecated
 public class AggregateAliasInfo implements AliasInfo, Formatable
 {
     ///////////////////////////////////////////////////////////////////////////////////

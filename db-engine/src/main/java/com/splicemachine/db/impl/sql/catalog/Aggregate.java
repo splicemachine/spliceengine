@@ -34,7 +34,7 @@ package com.splicemachine.db.impl.sql.catalog;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.AggregateAliasInfo;
+import com.splicemachine.db.catalog.types2.AggregateAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;

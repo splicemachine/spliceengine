@@ -16,7 +16,7 @@ package com.splicemachine.derby.impl.sql.catalog;
 
 import com.splicemachine.backup.BackupSystemProcedures;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.catalog.types2.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.services.metadata.MetadataFactoryService;

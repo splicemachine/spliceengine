@@ -31,9 +31,10 @@
 
 package com.splicemachine.db.catalog.types;
 
+import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.catalog.AliasInfo;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -46,6 +47,7 @@ import java.io.ObjectOutput;
  *
  * @see AliasInfo
  */
+@Deprecated
 public class UDTAliasInfo implements AliasInfo, Formatable
 {
     ///////////////////////////////////////////////////////////////////////////////////

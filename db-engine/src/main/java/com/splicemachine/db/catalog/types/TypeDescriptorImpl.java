@@ -60,7 +60,7 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
     **
     ********************************************************/
 
-    private BaseTypeIdImpl        typeId;
+    private BaseTypeIdImpl typeId;
     private int                        precision;
     private int                        scale;
     private boolean                    isNullable;

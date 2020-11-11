@@ -31,13 +31,13 @@
 
 package com.splicemachine.db.catalog.types;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.util.IdUtil;
-import com.splicemachine.db.iapi.error.StandardException;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * <p>
@@ -58,6 +58,7 @@ import java.io.IOException;
  * statement basically binds a schema-qualified name to the name of a Java class.</li>
  * </ul>
  */
+@Deprecated
 public class UserDefinedTypeIdImpl extends BaseTypeIdImpl
 {
 	/********************************************************

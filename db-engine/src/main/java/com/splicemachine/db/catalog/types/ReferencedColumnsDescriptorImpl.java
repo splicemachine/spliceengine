@@ -32,13 +32,13 @@
 package com.splicemachine.db.catalog.types;
 
 
+import com.splicemachine.db.catalog.ReferencedColumns;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.catalog.ReferencedColumns;
 
+import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.IOException;
 
 /**
  * For triggers, ReferencedColumnsDescriptorImpl object has 3 possibilites
@@ -62,6 +62,7 @@ import java.io.IOException;
  *   eg create trigger tr1 after update of c1 on t1 referencing old as oldt 
  *      for each row values(oldt.id); 
  */
+@Deprecated
 public class ReferencedColumnsDescriptorImpl
 	implements ReferencedColumns, Formatable
 {
@@ -320,7 +321,7 @@ public class ReferencedColumnsDescriptorImpl
 	}
 
 	/**
-	  @see java.lang.Object#toString
+	  @see Object#toString
 	  */
 	public String	toString()
 	{

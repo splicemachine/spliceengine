@@ -32,7 +32,7 @@
 package com.splicemachine.db.iapi.sql.dictionary;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
-import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
+import com.splicemachine.db.catalog.types2.IndexDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;

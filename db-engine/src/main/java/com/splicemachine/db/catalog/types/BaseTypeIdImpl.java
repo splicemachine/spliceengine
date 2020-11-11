@@ -32,29 +32,25 @@
 package com.splicemachine.db.catalog.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.io.Formatable;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-
-import com.splicemachine.db.iapi.types.TypeId;
-
-import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.reference.JDBC40Translation;
 import com.splicemachine.db.iapi.reference.SQLState;
-
+import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.services.io.Formatable;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
 
-import java.sql.Types;
-
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.Types;
 
 /**
  * This class is the base class for all type ids that are written to the
  * system tables.
  */
+@Deprecated
 public class BaseTypeIdImpl implements Formatable
 {
 

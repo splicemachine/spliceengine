@@ -32,9 +32,9 @@
 package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.catalog.TypeDescriptor;
-import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
-import com.splicemachine.db.catalog.types.RowMultiSetImpl;
-import com.splicemachine.db.catalog.types.TypeDescriptorImpl;
+import com.splicemachine.db.catalog.types2.BaseTypeIdImpl;
+import com.splicemachine.db.catalog.types2.RowMultiSetImpl;
+import com.splicemachine.db.catalog.types2.TypeDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.Property;
@@ -55,7 +55,6 @@ import java.sql.Types;
 import java.text.RuleBasedCollator;
 
 import static com.splicemachine.db.iapi.types.TypeId.CHAR_ID;
-import static com.splicemachine.db.iapi.types.TypeId.DECFLOAT_PRECISION;
 
 /**
  * DataTypeDescriptor describes a runtime SQL type.

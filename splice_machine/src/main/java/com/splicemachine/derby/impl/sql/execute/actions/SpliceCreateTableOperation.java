@@ -15,7 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
-import com.splicemachine.db.catalog.types.IndexDescriptorImpl;
+import com.splicemachine.db.catalog.types2.IndexDescriptorImpl;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;

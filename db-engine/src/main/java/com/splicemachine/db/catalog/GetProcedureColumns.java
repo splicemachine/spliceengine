@@ -40,7 +40,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeUtilities;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.impl.jdbc.EmbedResultSetMetaData;
-import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.catalog.types2.RoutineAliasInfo;
 import com.splicemachine.db.shared.common.reference.JDBC40Translation;
 /**
     <P>Use of VirtualTableInterface to provide support for

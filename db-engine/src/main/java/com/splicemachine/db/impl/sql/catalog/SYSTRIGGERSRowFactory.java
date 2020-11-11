@@ -33,7 +33,7 @@ package com.splicemachine.db.impl.sql.catalog;
 
 import com.splicemachine.db.catalog.ReferencedColumns;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
+import com.splicemachine.db.catalog.types2.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;

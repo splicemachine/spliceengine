@@ -33,6 +33,7 @@
 package com.splicemachine.db.impl.jdbc;
 
 // This is the recommended super-class for all contexts.
+import com.splicemachine.db.catalog.types2.RoutineAliasInfo;
 import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
@@ -118,7 +119,7 @@ public class EmbedConnectionContext extends ContextImpl
 
 		if (!internal) {
 			StatementContext sc = conn.getLanguageConnection().getStatementContext();
-			if ((sc == null) || (sc.getSQLAllowed() < com.splicemachine.db.catalog.types.RoutineAliasInfo.MODIFIES_SQL_DATA))
+			if ((sc == null) || (sc.getSQLAllowed() < RoutineAliasInfo.MODIFIES_SQL_DATA))
 				throw Util.noCurrentConnection();
 		}
 
