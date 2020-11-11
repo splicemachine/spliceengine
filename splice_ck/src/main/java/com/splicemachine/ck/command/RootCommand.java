@@ -14,19 +14,48 @@
 
 package com.splicemachine.ck.command;
 
+import com.splicemachine.ck.ConnectionCache;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
-@Command(mixinStandardHelpOptions = true, name = "spliceck", description = "SpliceMachine check command suite", descriptionHeading = "Description:%n",
+import java.util.Arrays;
+import java.util.Scanner;
+
+@Command(mixinStandardHelpOptions = true, name = "spliceck", description = "SpliceMachine check command suite",
+        descriptionHeading = "Description:%n",
         optionListHeading = "Options:%n", subcommands = {TListCommand.class,
         TColsCommand.class, RegionOfCommand.class, TableOfCommand.class, RGetCommand.class, RPutCommand.class,
         TxListCommand.class, SListCommand.class})
 class RootCommand {
     public static void main(String... args) {
         Logger.getRootLogger().setLevel(Level.OFF);
-        int exitCode = new CommandLine(new RootCommand()).setExecutionStrategy(new CommandLine.RunLast()).execute(args);
+        ConnectionCache c = new ConnectionCache();
+
+        int exitCode = 0;
+        if(!args[0].equals("interactive")) {
+            exitCode = new CommandLine(new RootCommand()).setExecutionStrategy(new CommandLine.RunLast()).execute(args);
+        }
+        else {
+            Scanner command = new Scanner(System.in);
+            CommandLine cl = new CommandLine(new RootCommand()).setExecutionStrategy(new CommandLine.RunLast());
+            while (true) {
+                System.out.print("spliceck> ");
+                String s = command.nextLine();
+                if (s.equals("exit")) break;
+                String[] args2 = s.split(" ");
+                exitCode = cl.execute(args2);
+                System.out.println("returned " + exitCode);
+            }
+            command.close();
+        }
+
+        try {
+            c.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         System.exit(exitCode);
     }
 }

@@ -62,12 +62,13 @@ public class RGetCommand extends CommonOptions implements Callable<Integer>
                     region = tableNameGroup.region;
                 }
             }
+            String rowKey = id.equals("all") ? null : id;
             if(rowParsingGroup.auto != null) {
                 Utils.Tabular cols = hbaseInspector.columnsOf(region);
                 Utils.SQLType[] sqlTypes = Utils.toSQLTypeArray(cols.getCol(2));
-                System.out.println(hbaseInspector.scanRow(region, id, sqlTypes));
+                System.out.println(hbaseInspector.scanRow(region, rowKey, sqlTypes));
             } else {
-                System.out.println(hbaseInspector.scanRow(region, id, rowParsingGroup.colsSchema /* ok if null */));
+                System.out.println(hbaseInspector.scanRow(region, rowKey, rowParsingGroup.colsSchema /* ok if null */));
             }
             return 0;
         } catch (Exception e) {
