@@ -22,6 +22,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.primitives.Bytes;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.math.BigDecimal;
@@ -34,6 +35,7 @@ import java.util.List;
  * This node represents the DECIMAL function which is basically a function that produces a decimal either from a numeric
  * expression or from a string expression.
  */
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class DecimalFunctionNode extends UnaryOperatorNode {
 
     String functionName;
