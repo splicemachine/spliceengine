@@ -442,7 +442,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 int partitionByRefItem,
                                                 GeneratedMethod defaultRowFunc,
                                                 int defaultValueMapItem,
-                                                GeneratedMethod pastTxFunctor )
+                                                GeneratedMethod pastTxFunctor,
+                                                long minRetentionPeriod )
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -486,7 +487,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor );
+                    pastTxFunctor,
+                    minRetentionPeriod );
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -762,7 +764,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             partitionByRefItem,
             defaultRowFunc,
             defaultValueMapItem,
-            null );
+            null,
+            -1 );
     }
 
     @Override
@@ -795,7 +798,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor ) throws StandardException {
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod ) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             ScanOperation op = new DistinctScanOperation(
@@ -826,7 +830,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor);
+                    pastTxFunctor,
+                    minRetentionPeriod);
             op.setExplainPlan(explainPlan);
             return op;
         }catch(Exception e){
@@ -1020,7 +1025,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int partitionByRefItem,
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
-            GeneratedMethod pastTxFunctor )
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod )
 
             throws StandardException {
         try{
@@ -1068,7 +1074,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     partitionByRefItem,
                     defaultRowFunc,
                     defaultValueMapItem,
-                    pastTxFunctor
+                    pastTxFunctor,
+                    minRetentionPeriod
                     );
             op.setExplainPlan(explainPlan);
             return op;
@@ -2076,6 +2083,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
         return op;
     }
 
+    @Override
     public NoPutResultSet getLastIndexKeyResultSet
             (
                     Activation activation,
@@ -2093,7 +2101,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     double optimizerEstimatedCost,
                     String tableVersion,
                     String explainPlan,
-                    GeneratedMethod pastTxFunctor
+                    GeneratedMethod pastTxFunctor,
+                    long minRetentionPeriod
             ) throws StandardException {
         SpliceLogUtils.trace(LOG, "getLastIndexKeyResultSet");
         ScanOperation op = new LastIndexKeyOperation(
@@ -2109,7 +2118,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 tableLocked,
                 isolationLevel,
                 optimizerEstimatedRowCount,
-                optimizerEstimatedCost, tableVersion, pastTxFunctor);
+                optimizerEstimatedCost, tableVersion, pastTxFunctor, minRetentionPeriod);
         op.setExplainPlan(explainPlan);
         return op;
     }
@@ -2166,40 +2175,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
 
 
     @Override
-    public NoPutResultSet getBinaryExportResultSet(NoPutResultSet source,
-                                                   Activation activation,
-                                                   int resultSetNumber,
-                                                   String exportPath,
-                                                   String compression,
-                                                   String format,
-                                                   int srcResultDescriptionSavedObjectNum) throws StandardException {
-        // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
-        // export operation returns (exported row count, and export time) not the columns of the source operation.
-        // Not what we need to format the rows during export.  So ExportNode now saves the source
-        // ResultColumnDescriptors and we retrieve them here.
-        Object resultDescription = activation.getPreparedStatement().getSavedObject(srcResultDescriptionSavedObjectNum);
-        ResultColumnDescriptor[] columnDescriptors = ((GenericResultDescription) resultDescription).getColumnInfo();
-
-        ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
-        SpliceBaseOperation op = new ExportOperation(
-                convertedResultSet.getOperation(),
-                columnDescriptors,
-                activation,
-                resultSetNumber,
-                exportPath,
-                compression,
-                format,
-                1,
-                "",
-                "",
-                ""
-        );
-        op.markAsTopResultSet();
-        return op;
-
-    }
-
-    @Override
     public NoPutResultSet getKafkaExportResultSet(NoPutResultSet source,
                                                    Activation activation,
                                                    int resultSetNumber,
@@ -2235,6 +2210,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String encoding,
                                              String fieldSeparator,
                                              String quoteChar,
+                                             String quoteMode,
+                                             String format,
                                              int srcResultDescriptionSavedObjectNum) throws StandardException {
 
         // If we ask the activation prepared statement for ResultColumnDescriptors we get the two columns that
@@ -2252,11 +2229,12 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 resultSetNumber,
                 exportPath,
                 compression,
-                "csv",
+                format,
                 replicationCount,
                 encoding,
                 fieldSeparator,
-                quoteChar
+                quoteChar,
+                quoteMode
         );
         op.markAsTopResultSet();
         return op;

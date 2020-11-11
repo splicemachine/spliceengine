@@ -31,10 +31,13 @@
 
 package com.splicemachine.db.iapi.reference;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class is a refactoring wrapper around the shared
  * JDBC40Translation class.
  */
+@SuppressFBWarnings(value = "NM_SAME_SIMPLE_NAME_AS_INTERFACE", justification = "intentional")
 public interface JDBC40Translation extends
     com.splicemachine.db.shared.common.reference.JDBC40Translation {
 }

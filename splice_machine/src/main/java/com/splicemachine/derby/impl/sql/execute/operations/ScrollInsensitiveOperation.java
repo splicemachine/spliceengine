@@ -14,21 +14,16 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.Collections;
-import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.RowChanger;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.CursorActivation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.ScrollInsensitiveFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -36,7 +31,12 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Collections;
+import java.util.List;
 
 /**
  *
@@ -84,14 +84,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	protected SpliceOperation source;
 	protected boolean scrollable;
     protected boolean keepAfterCommit;
-    private int maxRows;
-    private int positionInSource;
     private int currentPosition;
-    private int lastPosition;
-    private	boolean seenLast;
-    private	boolean beforeFirst = true;
-    private	boolean afterLast;
-
 
     /* Reference to the target result set. Target is used for updatable result
     * sets in order to keep the target result set on the same row as the
@@ -118,8 +111,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 			  double optimizerEstimatedCost) throws StandardException {
 		super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.keepAfterCommit = activation.getResultSetHoldability();
-        this.maxRows = activation.getMaxRows();
-		this.sourceRowWidth = sourceRowWidth;
+        this.sourceRowWidth = sourceRowWidth;
 		this.source = source;
 		this.scrollable = scrollable;
         if (isForUpdate()) {
@@ -134,30 +126,6 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
         super.init(context);
         source.init(context);
     }
-
-    @Override
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("readExternal");
-		super.readExternal(in);
-		sourceRowWidth = in.readInt();
-		scrollable = in.readBoolean();
-        keepAfterCommit = in.readBoolean();
-        maxRows = in.readInt();
-        source = (SpliceOperation)in.readObject();
-	}
-
-	@Override
-	public void writeExternal(ObjectOutput out) throws IOException {
-		if (LOG.isTraceEnabled())
-			LOG.trace("writeExternal");
-		super.writeExternal(out);
-		out.writeInt(sourceRowWidth);
-		out.writeBoolean(scrollable);
-        out.writeBoolean(keepAfterCommit);
-        out.writeInt(maxRows);
-        out.writeObject(source);
-	}
 
 	@Override
 	public List<SpliceOperation> getSubOperations() {
@@ -217,8 +185,6 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 
     public ExecRow	setBeforeFirstRow() {
         currentPosition = 0;
-        beforeFirst = true;
-        afterLast = false;
         currentRow = null;
         return null;
     }

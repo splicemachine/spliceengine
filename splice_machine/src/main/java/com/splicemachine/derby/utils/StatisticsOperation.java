@@ -40,6 +40,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DerbyOperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -49,6 +50,7 @@ import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.system.CsvOptions;
 import com.splicemachine.utils.SpliceLogUtils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import org.apache.spark.sql.types.StructType;
 
@@ -62,6 +64,7 @@ import java.util.Arrays;
 /**
  * Created by jleach on 2/27/17.
  */
+@SuppressFBWarnings("EI_EXPOSE_REP2")
 public class StatisticsOperation extends SpliceBaseOperation {
     private static Logger LOG=Logger.getLogger(StatisticsOperation.class);
 
@@ -124,7 +127,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
                 else if (storedAs.equals("A"))
                     statsDataSet = dsp.readAvroFile(schema, zeroBased, builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else if (storedAs.equals("O"))
-                    statsDataSet = dsp.readORCFile(zeroBased, builder.getPartitionByColumnMap(), builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction, true);
+                    statsDataSet = dsp.readORCFile(schema, zeroBased, builder.getPartitionByColumnMap() , builder.getLocation(), operationContext, null, null, builder.getTemplate(), useSample, sampleFraction);
                 else {
                     throw new UnsupportedOperationException("storedAs Type not supported -> " + storedAs);
                 }
@@ -212,6 +215,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         }
     }
 
+    @SuppressFBWarnings("DMI_NONSERIALIZABLE_OBJECT_WRITTEN") // DB-10600
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
@@ -221,6 +225,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         out.writeDouble(sampleFraction);
         out.writeBoolean(mergeStats);
         out.writeObject(dtds);
+        out.writeObject(operationInformation);
     }
 
     @Override
@@ -237,6 +242,7 @@ public class StatisticsOperation extends SpliceBaseOperation {
         } catch (StandardException se) {
             throw new IOException(se.getMessage(),se);
         }
+        operationInformation = (OperationInformation)in.readObject();
     }
 
     public double getSampleFraction() {

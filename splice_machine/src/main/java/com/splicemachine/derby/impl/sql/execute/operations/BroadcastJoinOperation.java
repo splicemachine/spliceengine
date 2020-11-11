@@ -14,9 +14,6 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.EngineDriver;
-import com.splicemachine.access.api.SConfiguration;
-import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -36,8 +33,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  *
@@ -150,32 +145,12 @@ public class BroadcastJoinOperation extends JoinOperation{
         init();
     }
 
-    @Override
-    public void readExternal(ObjectInput in) throws IOException,
-            ClassNotFoundException{
-        super.readExternal(in);
-        leftHashKeyItem=in.readInt();
-        rightHashKeyItem=in.readInt();
-        rightSequenceId = in.readLong();
-        leftSequenceId = in.readLong();
-        noCacheBroadcastJoinRight = in.readBoolean();
-    }
-
     public long getRightSequenceId() {
         return rightSequenceId;
     }
 
     public long getLeftSequenceId() {
         return leftSequenceId;
-    }
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException{
-        super.writeExternal(out);
-        out.writeInt(leftHashKeyItem);
-        out.writeInt(rightHashKeyItem);
-        out.writeLong(rightSequenceId);
-        out.writeLong(leftSequenceId);
-        out.writeBoolean(noCacheBroadcastJoinRight);
     }
 
     @Override
@@ -208,6 +183,7 @@ public class BroadcastJoinOperation extends JoinOperation{
 
         DataSet<ExecRow> result;
         boolean usesNativeSparkDataSet =
+           !dsp.isSparkDB2CompatibilityMode() &&
            (useDataset && dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
              ((restriction == null || hasSparkJoinPredicate()) || (!isOuterJoin() && !isAntiJoin() && !isOneRowRightSide())) &&
               !containsUnsafeSQLRealComparison());

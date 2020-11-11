@@ -15,7 +15,7 @@
 package com.splicemachine.mrio.api.core;
 
 import breeze.util.partition;
-import com.google.common.collect.Lists;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.hbase.HBaseConnectionFactory;
 import com.splicemachine.access.hbase.HBaseTableInfoFactory;
@@ -341,7 +341,9 @@ public abstract class AbstractSMInputFormat<K,V> extends InputFormat<K, V> imple
             }
             SMSplit firstSplit = (SMSplit) inputSplits.get(0);
             SMSplit lastSplit = (SMSplit) inputSplits.get(inputSplits.size() - 1);
-            if (compareRows(firstSplit.split.getStartRow(), scanStartRow) > 0 || (lastSplit.split.getEndRow().length != 0 && compareRows(lastSplit.split.getEndRow(), scanStopRow) < 0)) {
+            if (compareRows(firstSplit.split.getStartRow(), scanStartRow) > 0 ||
+                    (lastSplit.split.getEndRow().length != 0 && scanStopRow.length != 0 && compareRows(lastSplit.split.getEndRow(), scanStopRow) < 0) ||
+                    scanStopRow.length == 0 && lastSplit.split.getEndRow().length != 0) {
                 return true;
             }
         }

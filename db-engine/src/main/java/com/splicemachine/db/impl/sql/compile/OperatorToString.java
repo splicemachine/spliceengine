@@ -216,6 +216,7 @@ public class OperatorToString {
     // We don't support REAL (float), because the way spark
     // evaluates expressions involving float causes accuracy errors
     // that don't occur when splice does the evaluation.
+    // TODO(arnaud) add decfloat there
     private static boolean sparkSupportedType(int typeFormatId, ValueNode operand) {
 
         return (typeFormatId == BOOLEAN_TYPE_ID  ||
@@ -238,6 +239,7 @@ public class OperatorToString {
                 typeFormatId == INT_TYPE_ID      ||
                 typeFormatId == LONGINT_TYPE_ID  ||
                 typeFormatId == DECIMAL_TYPE_ID  ||
+                typeFormatId == DECFLOAT_TYPE_ID ||
                 typeFormatId == DOUBLE_TYPE_ID   ||
                 typeFormatId == REAL_TYPE_ID);
     }
@@ -245,6 +247,7 @@ public class OperatorToString {
     private static boolean isOverflowSensitive(ValueNode operand) throws StandardException {
         return (operand.getTypeId().getTypeFormatId() == LONGINT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DECIMAL_TYPE_ID ||
+                operand.getTypeId().getTypeFormatId() == DECFLOAT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DOUBLE_TYPE_ID);
     }
     private static void checkOverflowHidingCases(BinaryArithmeticOperatorNode bao,
@@ -526,7 +529,7 @@ public class OperatorToString {
                         rightOperand.getTypeId().getTypeFormatId() !=
                         bao.getTypeId().getTypeFormatId()) {
                         // if date difference or date subtraction operation, the input parameter and result types are meant to be different */
-                        if (!(bao.getOperatorString() == "-" &&
+                        if (!(bao.getOperatorString().equals("-") &&
                                 leftOperand.getTypeId().getTypeFormatId() == DATE_TYPE_ID)) {
                             doCast = true;
                             targetType = bao.getTypeServices().toSparkString();
@@ -945,7 +948,13 @@ public class OperatorToString {
                 ValueNode vn = (ValueNode)ob;
                 if (i > 0)
                     sb.append(", ");
-                sb.append(format("%s", opToString2(vn, vars)));
+                if (operand.getTypeServices().equals(vn.getTypeServices())) {
+                    sb.append(opToString2(vn, vars));
+                } else {
+                    sb.append(format("cast(%s as %s)",
+                            opToString2(vn, vars),
+                            operand.getTypeServices().toSparkString()));
+                }
                 i++;
             }
             sb.append(") ");
