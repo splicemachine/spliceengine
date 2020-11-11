@@ -30,6 +30,7 @@ import java.math.BigInteger;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.text.DecimalFormatSymbols;
 import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -217,34 +218,39 @@ public class DecimalFunctionIT extends SpliceUnitTest {
         shouldFail("(cast ('1234.56789' as float), 6, 5)", ErrorCode.CONVERSION);
     }
 
+    // localize the decimal separator (if any) in the string according to the JVM's default locale settings
+    private static String l(String in) {
+        return in.replaceAll("\\.", String.valueOf(new DecimalFormatSymbols().getDecimalSeparator()));
+    }
+
     @Test
     public void createFromVarchar() throws Exception {
-        check("(cast ('1234.56789' as varchar(15)))", "1234");
-        check("(cast ('1234.56789' as varchar(15)), 5)", "1234");
-        check("(cast ('1234.56789' as varchar(15)), 8, 4)", "1234.5678");
-        check("(cast ('1234.56789' as varchar(15)), 8, 2)", "1234.56");
-        check("(cast ('1,000,000.23' as varchar(20)), 10, 2, ',')", "1000000.23");
-        shouldFail("(cast ('1234.56789' as varchar(15)), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("(cast ('1234.56789' as varchar(15)), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("(cast ('1,000,000.23' as varchar(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("(cast ('1,000,0ABC00.23' as varchar(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("(cast ('' as varchar(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("(cast ('1,000,000.23' as varchar(20)), 10, 2, 'HELLO')", ErrorCode.DECIMAL_CHARACTER);
+        check(l("(cast ('1234.56789' as varchar(15)))"), "1234");
+        check(l("(cast ('1234.56789' as varchar(15)), 5)"), "1234");
+        check(l("(cast ('1234.56789' as varchar(15)), 8, 4)"), "1234.5678");
+        check(l("(cast ('1234.56789' as varchar(15)), 8, 2)"), "1234.56");
+        check(l("(cast ('1000000.23' as varchar(20)), 10, 2, '.')"), "1000000.23");
+        shouldFail(l("(cast ('1234.56789' as varchar(15)), 6, 5)"), ErrorCode.CONVERSION);
+        shouldFail(l("(cast ('1234.56789' as varchar(15)), 6, 5)"), ErrorCode.CONVERSION);
+        shouldFail(l("(cast ('10.00000.23' as varchar(20)), 10, 2)"), ErrorCode.INVALID_STRING);
+        shouldFail(l("(cast ('10000ABC00.23' as varchar(20)), 10, 2)"), ErrorCode.INVALID_STRING);
+        shouldFail(l("(cast ('' as varchar(20)), 10, 2)"), ErrorCode.INVALID_STRING);
+        shouldFail(l("(cast ('1000000.23' as varchar(20)), 10, 2, 'HELLO')"), ErrorCode.DECIMAL_CHARACTER);
     }
 
     @Test
     public void createFromChar() throws Exception {
-        check("(cast ('1234.56789' as char(15)))", "1234");
-        check("(cast ('1234.56789' as char(15)), 5)", "1234");
-        check("(cast ('1234.56789' as char(15)), 8, 4)", "1234.5678");
-        check("(cast ('1234.56789' as char(15)), 8, 2)", "1234.56");
-        check("(cast ('1,000,000.23' as char(20)), 10, 2, ',')", "1000000.23");
-        shouldFail("(cast ('1234.56789' as char(15)), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("(cast ('1234.56789' as char(15)), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("(cast ('1,000,000.23' as char(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("(cast ('1,000,0ABC00.23' as char(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("(cast ('' as char(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("(cast ('1,000,000.23' as char(20)), 10, 2, 'HELLO')", ErrorCode.DECIMAL_CHARACTER);
+        check(l("(cast ('1234.56789' as char(15)))"), "1234");
+        check(l("(cast ('1234.56789' as char(15)), 5)"), "1234");
+        check(l("(cast ('1234.56789' as char(15)), 8, 4)"), "1234.5678");
+        check(l("(cast ('1234.56789' as char(15)), 8, 2)"), "1234.56");
+        check(l("(cast ('1000000.23' as char(20)), 10, 2, '.')"), "1000000.23");
+        shouldFail(l("(cast ('1234.56789' as char(15)), 6, 5)"), ErrorCode.CONVERSION);
+        shouldFail(l("(cast ('1234.56789' as char(15)), 6, 5)"), ErrorCode.CONVERSION);
+        shouldFail(l("(cast ('10.00000.23' as char(20)), 10, 2)"), ErrorCode.INVALID_STRING);
+        shouldFail(l("(cast ('10000ABC00.23' as char(20)), 10, 2)"), ErrorCode.INVALID_STRING);
+        shouldFail(l("(cast ('' as char(20)), 10, 2)"), ErrorCode.INVALID_STRING);
+        shouldFail(l("(cast ('1000000.23' as char(20)), 10, 2, 'HELLO')"), ErrorCode.DECIMAL_CHARACTER);
     }
 
     @Test
