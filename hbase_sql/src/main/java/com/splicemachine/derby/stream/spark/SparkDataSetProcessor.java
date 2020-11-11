@@ -14,8 +14,8 @@
 
 package com.splicemachine.derby.stream.spark;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.Lists;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.FileInfo;
@@ -44,8 +44,6 @@ import com.splicemachine.derby.stream.utils.ExternalTableUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.mrio.api.core.SMTextInputFormat;
-import com.splicemachine.orc.input.SpliceOrcNewInputFormat;
-import com.splicemachine.orc.predicate.SpliceORCPredicate;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.system.CsvOptions;
 import com.splicemachine.si.impl.driver.SIDriver;
@@ -72,13 +70,13 @@ import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import scala.Tuple2;
 
-import java.io.Externalizable;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.net.URI;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Spark-based DataSetProcessor.
@@ -177,6 +175,13 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @Override
     public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
+        OperationContext<Op> oldOperationContext =  spliceOperation.getOperationContext();
+        // Support native spark joins with MERGE_DATA_FROM_FILE.
+        // Bad records will not be counted unless the original
+        // OperationContext is used.
+        if (oldOperationContext instanceof SparkLeanOperationContext)
+            return oldOperationContext;
+
         setupBroadcastedActivation(spliceOperation.getActivation(), spliceOperation);
         OperationContext<Op> operationContext =
                 accumulators
@@ -718,44 +723,27 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
-    public <V> DataSet<V> readORCFile(int[] baseColumnMap,int[] partitionColumnMap, String location,
-                                          OperationContext context, Qualifier[][] qualifiers,
-                                      DataValueDescriptor probeValue, ExecRow execRow,
-                                      boolean useSample, double sampleFraction, boolean statsjob) throws StandardException {
-        assert baseColumnMap != null:"baseColumnMap Null";
-        assert partitionColumnMap != null:"partitionColumnMap Null";
+    public <V> DataSet<V> readORCFile(StructType tableSchema, int[] baseColumnMap, int[] partitionColumnMap,
+                                      String location, OperationContext context, Qualifier[][] qualifiers,
+                                      DataValueDescriptor probeValue,  ExecRow execRow, boolean useSample,
+                                      double sampleFraction) throws StandardException {
         try {
-            DataSet<V> empty_ds = checkExistingOrEmpty( location, context );
-            if( empty_ds != null ) return empty_ds;
+            Dataset<Row> table = null;
+            ExternalTableUtils.preSortColumns(tableSchema.fields(), partitionColumnMap);
 
-            SpliceORCPredicate predicate = new SpliceORCPredicate(qualifiers,baseColumnMap,execRow.createStructType(baseColumnMap));
-            Configuration configuration = new Configuration(HConfiguration.unwrapDelegate());
-            configuration.set(SpliceOrcNewInputFormat.SPLICE_PREDICATE,predicate.serialize());
-            configuration.set(SpliceOrcNewInputFormat.SPARK_STRUCT,execRow.createStructType(baseColumnMap).json());
-            configuration.set(SpliceOrcNewInputFormat.SPLICE_COLUMNS,intArrayToString(baseColumnMap));
-            configuration.set(SpliceOrcNewInputFormat.SPLICE_PARTITIONS,intArrayToString(partitionColumnMap));
-            if (statsjob)
-                configuration.set(SpliceOrcNewInputFormat.SPLICE_COLLECTSTATS, "true");
-
-            JavaRDD<Row> rows;
             try {
-                rows = SpliceSpark.getContext().newAPIHadoopFile(
-                        location,
-                        SpliceOrcNewInputFormat.class,
-                        NullWritable.class,
-                        Row.class,
-                        configuration)
-                        .values();
-            }
-            catch (Exception e) {
+                table = SpliceSpark.getSession()
+                        .read()
+                        .schema(tableSchema)
+                        .orc(location);
+            } catch (Exception e) {
                 return handleExceptionSparkRead(e, location, false);
             }
 
-            if (useSample) {
-                return new SparkDataSet(rows.sample(false,sampleFraction).map(new RowToLocatedRowFunction(context, execRow)));
-            } else {
-                return new SparkDataSet(rows.map(new RowToLocatedRowFunction(context, execRow)));
-            }
+            checkNumColumns(location, baseColumnMap, table);
+            ExternalTableUtils.sortColumns(table.schema().fields(), partitionColumnMap);
+            return externalTablesPostProcess(baseColumnMap, context, qualifiers, probeValue,
+                    execRow, useSample, sampleFraction, table);
         } catch (Exception e) {
             throw StandardException.newException(
                     SQLState.EXTERNAL_TABLES_READ_FAILURE, e, e.getMessage());
@@ -1012,7 +1000,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
     @Override
     public void resetOpDepth() { explain.resetOpDepth(); }
 
-    public <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext context) throws StandardException {
+    public <V> DataSet<ExecRow> readKafkaTopic(String topicInfo, OperationContext context) throws StandardException {
         Properties props = new Properties();
         String consumerGroupId = "spark-consumer-dss-sdsp";
         String bootstrapServers = SIDriver.driver().getConfiguration().getKafkaBootstrapServers();
@@ -1022,15 +1010,38 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, IntegerDeserializer.class.getName());
         props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, ExternalizableDeserializer.class.getName());
 
-        KafkaConsumer<Integer, Externalizable> consumer = new KafkaConsumer<Integer, Externalizable>(props);
-        List ps = consumer.partitionsFor(topicName);
-        List<Integer> partitions = new ArrayList<>(ps.size());
-        for (int i = 0; i < ps.size(); ++i) {
-            partitions.add(i);
+        List<Integer> partitions;
+        String topicName;
+        if( topicInfo.contains("::") ) {
+            String[] sp = topicInfo.split("::");
+            topicName = sp[0];
+            if( sp.length > 1 ) {
+                partitions = Arrays.stream( sp[1].split(",") )
+                        .map(s -> Integer.valueOf(s))
+                        .collect(Collectors.toList());
+            } else {
+                partitions = new ArrayList<>(1);
+                partitions.add(0);
+            }
+        } else {
+            topicName = topicInfo;
+            KafkaConsumer<Integer, byte[]> consumer = new KafkaConsumer<Integer, byte[]>(props);
+            List ps = consumer.partitionsFor(topicName);
+            partitions = new ArrayList<>(ps.size());
+            for (int i = 0; i < ps.size(); ++i) {
+                partitions.add(i);
+            }
+            consumer.close();
         }
-        consumer.close();
 
         SparkDataSet rdd = new SparkDataSet(SpliceSpark.getContext().parallelize(partitions, partitions.size()));
         return rdd.flatMap(new KafkaReadFunction(context, topicName, bootstrapServers));
+    }
+
+    @Override
+    public boolean isSparkDB2CompatibilityMode() {
+        if (broadcastedActivation == null)
+            return false;
+        return broadcastedActivation.isDB2VarcharCompatibilityMode();
     }
 }

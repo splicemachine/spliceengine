@@ -782,6 +782,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 		int numNodes = dtdList.size();
 		int [] maxSize = new int[numNodes];
 		String [] typeid = new String[numNodes];
+		boolean DB2CompatibilityMode = getCompilerContext().getVarcharDB2CompatibilityMode();
 
 		
 		for (int i = 0; i < numNodes; i++) {
@@ -797,7 +798,7 @@ public class ValueNodeList extends QueryTreeNodeVector
 
 					CharConstantNode charConstantNode = (CharConstantNode)valueNode;
 
-					if (!(charConstantNode.getValue() instanceof SQLVarchar)) {
+					if (!DB2CompatibilityMode && !(charConstantNode.getValue() instanceof SQLVarchar)) {
 						charConstantNode.setValue(new SQLVarchar(charConstantNode.getString()));
 					}
 				}

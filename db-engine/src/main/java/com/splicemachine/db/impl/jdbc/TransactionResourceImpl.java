@@ -173,7 +173,9 @@ public final class TransactionResourceImpl
         drdaID = info.getProperty(Attribute.DRDAID_ATTR, null);
         rdbIntTkn = info.getProperty(Attribute.RDBINTTKN_ATTR, null);
         ipAddress = info.getProperty(Property.IP_ADDRESS, null);
-        defaultSchema = info.getProperty(Property.CONNECTION_SCHEMA, null);
+        defaultSchema = info.getProperty(Property.CONNECTION_CURRENT_SCHEMA, null);
+        if (defaultSchema == null)
+            defaultSchema = info.getProperty(Property.CONNECTION_SCHEMA, null);
         useSpark = getDataSetProcessorType(info);
 
         String skipStatsString = info.getProperty(Property.CONNECTION_SKIP_STATS, null);

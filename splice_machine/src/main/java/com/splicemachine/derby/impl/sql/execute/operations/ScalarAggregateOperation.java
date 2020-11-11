@@ -29,8 +29,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 
 /**
  * Operation for performing Scalar Aggregations (sum, avg, max/min, etc.). 
@@ -69,21 +67,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		this.isInSortedOrder = isInSortedOrder;
 		this.singleInputRow = singleInputRow;
     }
-    
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-		super.readExternal(in);
-		isInSortedOrder = in.readBoolean();
-		singleInputRow = in.readBoolean();
-    }
-    
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-		super.writeExternal(out);
-		out.writeBoolean(isInSortedOrder);
-		out.writeBoolean(singleInputRow);
-    }
-    
+
     @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
 		super.init(context);
@@ -129,13 +113,13 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         dsp.decrementOpDepth();
         DataSet<ExecRow> dataSetWithNativeSparkAggregation = null;
 
-        if (nativeSparkForced())
+        if (nativeSparkForced(dsp))
             dsSource = dsSource.upgradeToSparkNativeDataSet(operationContext);
 
         // If the aggregation can be applied using native Spark UnsafeRow, then do so
         // and return immediately.  Otherwise, use traditional Splice lower-level
         // functional APIs.
-        if (nativeSparkEnabled())
+        if (nativeSparkEnabled(dsp))
             dataSetWithNativeSparkAggregation =
                 dsSource.applyNativeSparkAggregation(null, aggregates,
                                                      false, operationContext);

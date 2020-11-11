@@ -213,6 +213,7 @@ public final class GenericResultDescription
 	 */
 	public void writeExternal(ObjectOutput out) throws IOException
 	{
+		// DANGER: do NOT change this serialization unless you have an upgrade script, see DB-10566
 		int len = (columns == null) ? 0 : columns.length;
 
 		out.writeObject(statementType);

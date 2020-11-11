@@ -16,7 +16,7 @@ package com.splicemachine.test;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static com.google.common.collect.Lists.transform;
+import static splice.com.google.common.collect.Lists.transform;
 
 import java.util.List;
 
@@ -34,9 +34,9 @@ import com.splicemachine.derby.hbase.SpliceIndexObserver;
 import org.apache.commons.collections.ListUtils;
 import org.apache.hadoop.hbase.security.access.AccessController;
 import org.apache.hadoop.hbase.security.token.TokenProvider;
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
+import splice.com.google.common.base.Function;
+import splice.com.google.common.base.Joiner;
+import splice.com.google.common.collect.ImmutableList;
 import com.splicemachine.hbase.*;
 import com.splicemachine.si.data.hbase.coprocessor.*;
 import com.splicemachine.utils.BlockingProbeEndpoint;

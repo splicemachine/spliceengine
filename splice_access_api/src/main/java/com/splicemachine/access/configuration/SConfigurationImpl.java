@@ -226,6 +226,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final int recursiveQueryIterationLimit;
     private String metadataRestrictionEnabled;
     private CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
+    private CompilerContext.NewMergeJoinExecutionType newMergeJoin;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -1144,6 +1145,7 @@ public final class SConfigurationImpl implements SConfiguration {
         rollForwardSecondThreads = builder.rollForwardSecondThreads;
         metadataRestrictionEnabled = builder.metadataRestrictionEnabled;
         nativeSparkAggregationMode = builder.nativeSparkAggregationMode;
+        newMergeJoin = builder.newMergeJoin;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");
@@ -1265,5 +1267,15 @@ public final class SConfigurationImpl implements SConfiguration {
     @Override
     public CompilerContext.NativeSparkModeType getNativeSparkAggregationMode() {
         return nativeSparkAggregationMode;
+    }
+
+    @Override
+    public void setNewMergeJoin(CompilerContext.NewMergeJoinExecutionType newValue) {
+        newMergeJoin = newValue;
+    }
+
+    @Override
+    public CompilerContext.NewMergeJoinExecutionType getNewMergeJoin() {
+        return newMergeJoin;
     }
 }

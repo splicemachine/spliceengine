@@ -940,7 +940,7 @@ public class OptimizerImpl implements Optimizer{
                     } else {
                         //reset the sort cost
                         sortCost.setLocalCost(Double.MAX_VALUE);
-                        sortCost.setLocalCostPerPartition(Double.MAX_VALUE);
+                        sortCost.setLocalCostPerParallelTask(Double.MAX_VALUE);
                     }
                     /* requiredRowOrdering records if the bestCost so far is
                      * sort-needed or not, as done in rememberBestCost.  If
@@ -1560,12 +1560,13 @@ public class OptimizerImpl implements Optimizer{
     private void addCost(CostEstimate addend,CostEstimate destCost){
         destCost.setRemoteCost(addend.remoteCost());
         destCost.setLocalCost(destCost.localCost()+addend.localCost());
-        destCost.setRemoteCostPerPartition(addend.getRemoteCostPerPartition());
-        destCost.setLocalCostPerPartition(destCost.getLocalCostPerPartition()+addend.getLocalCostPerPartition());
+        destCost.setRemoteCostPerParallelTask(addend.getRemoteCostPerParallelTask());
+        destCost.setLocalCostPerParallelTask(destCost.getLocalCostPerParallelTask()+addend.getLocalCostPerParallelTask());
         destCost.setRowCount(addend.rowCount());
         destCost.setSingleScanRowCount(addend.singleScanRowCount());
         destCost.setEstimatedHeapSize(addend.getEstimatedHeapSize());
         destCost.setNumPartitions(addend.partitionCount());
+        destCost.setParallelism(addend.getParallelism());
         destCost.setOpenCost(addend.getOpenCost());
         destCost.setCloseCost(addend.getCloseCost());
     }
@@ -1591,14 +1592,14 @@ public class OptimizerImpl implements Optimizer{
         }
         currentCost.setCost(0.0d,0.0d,0.0d);
         currentCost.setRemoteCost(0.0d);
-        currentCost.setRemoteCostPerPartition(0.0d);
+        currentCost.setRemoteCostPerParallelTask(0.0d);
         currentCost.setBase(null);
         currentCost.setRowOrdering(null);
 
 
         currentSortAvoidanceCost.setCost(0.0d,0.0d,0.0d);
         currentSortAvoidanceCost.setRemoteCost(0.0d);
-        currentSortAvoidanceCost.setRemoteCostPerPartition(0.0d);
+        currentSortAvoidanceCost.setRemoteCostPerParallelTask(0.0d);
         currentSortAvoidanceCost.setBase(null);
         currentSortAvoidanceCost.setRowOrdering(null);
         assignedTableMap.clearAll();
@@ -1984,9 +1985,9 @@ public class OptimizerImpl implements Optimizer{
             CostEstimate currentAccumulatedCost = pullMe.getAccumulatedCost();
             if (currentAccumulatedCost != null) {
                 currentAccumulatedCost.setLocalCost(Double.MAX_VALUE);
-                currentAccumulatedCost.setLocalCostPerPartition(Double.MAX_VALUE);
+                currentAccumulatedCost.setLocalCostPerParallelTask(Double.MAX_VALUE);
                 currentAccumulatedCost.setRemoteCost(Double.MAX_VALUE);
-                currentAccumulatedCost.setRemoteCostPerPartition(Double.MAX_VALUE);
+                currentAccumulatedCost.setRemoteCostPerParallelTask(Double.MAX_VALUE);
             }
         }
 
@@ -2019,9 +2020,9 @@ public class OptimizerImpl implements Optimizer{
                     CostEstimate currentAccumulatedSACost = pullMe.getAccumulatedCostforSortAvoidancePlan();
                     if (currentAccumulatedSACost != null) {
                         currentAccumulatedSACost.setLocalCost(Double.MAX_VALUE);
-                        currentAccumulatedSACost.setLocalCostPerPartition(Double.MAX_VALUE);
+                        currentAccumulatedSACost.setLocalCostPerParallelTask(Double.MAX_VALUE);
                         currentAccumulatedSACost.setRemoteCost(Double.MAX_VALUE);
-                        currentAccumulatedSACost.setRemoteCostPerPartition(Double.MAX_VALUE);
+                        currentAccumulatedSACost.setRemoteCostPerParallelTask(Double.MAX_VALUE);
                     }
                 }
                 currentSortAvoidanceCost.setBase(null);

@@ -406,6 +406,10 @@ public interface SConfiguration {
 
     CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
 
+    void setNewMergeJoin(CompilerContext.NewMergeJoinExecutionType newValue);
+
+    CompilerContext.NewMergeJoinExecutionType getNewMergeJoin();
+
     String getMetadataRestrictionEnabled();
 
     String getRangerUserSyncCaseConversion();

@@ -20,12 +20,12 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.0.1.1982-SNAPSHOT</version>
+        <version>3.0.1.1985-SNAPSHOT</version>
     </parent>
     <properties>
         <argLine>-Xmx4g ${jacocoAgent}</argLine>
     </properties>
-
+    
     <dependencies>
         <dependency>
             <groupId>com.jcraft</groupId>
@@ -144,12 +144,6 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${fasterxml.jackson.version}</version>
@@ -159,7 +153,6 @@
             <artifactId>jackson-annotations</artifactId>
             <version>${fasterxml.jackson.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
@@ -353,6 +346,10 @@
             <version>${hive.version}</version>
             <scope>test</scope>
             <exclusions>
+                <exclusion>
+                    <groupId>org.apache.hive</groupId>
+                    <artifactId>hive-shims</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.apache.parquet</groupId>
                     <artifactId>parquet-hadoop-bundle</artifactId>
@@ -593,6 +590,18 @@
         </profile>
         <profile>
             <id>hdp3.1.0</id>
+            <dependencies>
+                <dependency>
+                    <!-- com.databricks.spark.avro -->
+                    <groupId>com.databricks</groupId>
+                    <artifactId>spark-avro_${scala.binary.version}</artifactId>
+                    <version>4.0.0</version>
+                    <scope>runtime</scope>
+                </dependency>
+            </dependencies>
+        </profile>
+        <profile>
+            <id>hdp3.1.5</id>
             <dependencies>
                 <dependency>
                     <!-- com.databricks.spark.avro -->

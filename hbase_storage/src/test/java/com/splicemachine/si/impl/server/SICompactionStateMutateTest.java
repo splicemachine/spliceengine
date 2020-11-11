@@ -1,12 +1,12 @@
 package com.splicemachine.si.impl.server;
 
 import com.splicemachine.hbase.CellUtils;
-import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.si.impl.TxnTestUtils;
 import com.splicemachine.storage.CellType;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
@@ -19,21 +19,27 @@ import static org.junit.Assert.*;
 
 public class SICompactionStateMutateTest {
     private long watermark = 1000;
+    private SimpleCompactionContext context = new SimpleCompactionContext();
     private SICompactionStateMutate cutNoPurge = new SICompactionStateMutate(
-            new PurgeConfigBuilder().noPurge().transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().noPurge().transactionLowWatermark(watermark).build(), context);
     private SICompactionStateMutate cutForcePurge = new SICompactionStateMutate(
-            new PurgeConfigBuilder().forcePurgeDeletes().purgeUpdates(true).transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().forcePurgeDeletes().purgeUpdates(true).transactionLowWatermark(watermark).build(), context);
     private SICompactionStateMutate cutPurgeDuringFlush = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().purgeDeletesDuringFlush().purgeUpdates(true).transactionLowWatermark(watermark).build(), context);
     private SICompactionStateMutate cutPurgeDuringMajorCompaction = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringMajorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().purgeDeletesDuringMajorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build(), context);
     private SICompactionStateMutate cutPurgeDuringMinorCompaction = new SICompactionStateMutate(
-            new PurgeConfigBuilder().purgeDeletesDuringMinorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build());
+            new PurgeConfigBuilder().purgeDeletesDuringMinorCompaction().purgeUpdates(true).transactionLowWatermark(watermark).build(), context);
     private List<Cell> inputCells = new ArrayList<>();
     private List<TxnView> transactions = new ArrayList<>();
     private List<Cell> outputCells = new ArrayList<>();
 
     public SICompactionStateMutateTest() throws IOException {
+    }
+
+    @Before
+    public void resetContext() {
+        context.reset();
     }
 
     private List<Cell> getNewlyAddedCells(List<Cell> inputCells, List<Cell> outputCells) {
@@ -95,6 +101,7 @@ public class SICompactionStateMutateTest {
         ));
         cutNoPurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
+        assertThat(context.cellsRolledback.get(), is(3L));
     }
 
     @Test
@@ -117,6 +124,7 @@ public class SICompactionStateMutateTest {
         assertThat(removedCells, hasSize(1));
         assertThat(removedCells.get(0).getTimestamp(), equalTo(100L));
         assertThat(newCells.get(0).getTimestamp(), equalTo(300L));
+        assertThat(context.cellsRolledback.get(), is(1L));
     }
 
     @Test
@@ -163,6 +171,7 @@ public class SICompactionStateMutateTest {
         ));
         cutForcePurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, is(empty()));
+        assertThat(context.purgedDeletedCells.get(), is(4L));
     }
 
     @Test
@@ -179,6 +188,7 @@ public class SICompactionStateMutateTest {
         ));
         cutForcePurge.mutate(inputCells, transactions, outputCells);
         assertThat(outputCells, equalTo(inputCells));
+        assertThat(context.purgedDeletedCells.get(), is(0L));
     }
 
     @Test
@@ -198,6 +208,7 @@ public class SICompactionStateMutateTest {
         assertThat(outputCells, contains(
                 SITestUtils.getMockCommitCell(100, 110),
                 SITestUtils.getMockValueCell(100)));
+        assertThat(context.cellsRolledback.get(), is(1L));
     }
 
     @Test
@@ -230,6 +241,7 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockCommitCell(300, 310),
                 SITestUtils.getMockAntiTombstoneCell(300),
                 SITestUtils.getMockValueCell(300)));
+        assertThat(context.purgedDeletedCells.get(), is(4L));
     }
 
     @Test
@@ -695,6 +707,7 @@ public class SICompactionStateMutateTest {
                 SITestUtils.getMockValueCell(100, new boolean[]{true, true}),
                 SITestUtils.getMockCommitCell(100, 110)
         ));
+        assertThat(context.purgedUpdatedCells.get(), is(2L));
     }
 
     @Test

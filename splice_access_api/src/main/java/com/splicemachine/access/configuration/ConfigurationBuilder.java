@@ -183,6 +183,7 @@ public class ConfigurationBuilder {
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
     public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
+    public CompilerContext.NewMergeJoinExecutionType newMergeJoin;
     public int splitsPerRegionMin;
 
     // PipelineConfiguration

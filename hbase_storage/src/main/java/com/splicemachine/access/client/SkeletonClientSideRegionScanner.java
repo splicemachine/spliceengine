@@ -14,12 +14,8 @@
 
 package com.splicemachine.access.client;
 
-import com.google.common.collect.Sets;
-import com.splicemachine.coprocessor.SpliceMessage;
+import org.apache.hadoop.hbase.regionserver.*;
 import com.splicemachine.si.constants.SIConstants;
-import com.splicemachine.si.impl.driver.SIDriver;
-import com.splicemachine.storage.Partition;
-import com.splicemachine.storage.SkeletonHBaseClientPartition;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
@@ -33,16 +29,10 @@ import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.TableDescriptor;
-import org.apache.hadoop.hbase.ipc.CoprocessorRpcUtils;
-import org.apache.hadoop.hbase.ipc.ServerRpcController;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.HRegionUtil;
-import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.filter.MultiRowRangeFilter;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
-import splice.com.google.common.base.Throwables;
 
 import java.io.IOException;
 import java.util.*;
@@ -272,51 +262,17 @@ public abstract class SkeletonClientSideRegionScanner implements RegionScanner{
         return res;
     }
 
-    @SuppressWarnings("unchecked")
-    private Set<String> getCompactedFilesPathsFromHBaseRegionServer() {
-        try {
-            String regionName = hri.getRegionNameAsString();
-            try (Partition partition = SIDriver.driver().getTableFactory().getTable(htd.getTableName())) {
-                Map<byte[], List<String>> results = ((SkeletonHBaseClientPartition) partition).coprocessorExec(
-                        SpliceMessage.SpliceDerbyCoprocessorService.class,
-                        hri.getStartKey(),
-                        hri.getStartKey(),
-                        instance -> {
-                            ServerRpcController controller = new ServerRpcController();
-                            SpliceMessage.GetCompactedHFilesRequest message = SpliceMessage.GetCompactedHFilesRequest
-                                    .newBuilder()
-                                    .setRegionEncodedName(regionName)
-                                    .build();
-
-                            CoprocessorRpcUtils.BlockingRpcCallback<SpliceMessage.GetCompactedHFilesResponse> rpcCallback = new CoprocessorRpcUtils.BlockingRpcCallback<>();
-                            instance.getCompactedHFiles(controller, message, rpcCallback);
-                            if (controller.failed()) {
-                                Throwable t = Throwables.getRootCause(controller.getFailedOn());
-                                if (t instanceof IOException) throw (IOException) t;
-                                else throw new IOException(t);
-                            }
-                            SpliceMessage.GetCompactedHFilesResponse response = rpcCallback.get();
-                            return response.getFilePathList();
-                        });
-                //assert results.size() == 1: results;
-                return Sets.newHashSet(results.get(hri.getRegionName()));
-            }
-        } catch (Throwable e) {
-            SpliceLogUtils.error(LOG, "Unable to set Compacted Files from HBase region server", e);
-            throw new RuntimeException(e);
-        }
-    }
-
     private HRegion openHRegion() throws IOException {
         Path tableDir = FSUtils.getTableDir(rootDir, hri.getTable());
-        Set<String> compactedFilesPaths = getCompactedFilesPathsFromHBaseRegionServer();
+        Set<String> compactedFilesPaths = HBasePlatformUtils.getCompactedFilesPathsFromHBaseRegionServer(hri);
         return new SpliceHRegion(
                 tableDir, null, fs, conf, hri, htd, null, compactedFilesPaths);
     }
 
     private KeyValueScanner getMemStoreScanner() throws IOException {
         Scan memScan = new Scan(scan);
-        memScan.setFilter(null);   // Remove SamplingFilter if the scan has it
+        if (!(scan.getFilter() instanceof MultiRowRangeFilter))   
+            memScan.setFilter(null);   // Remove SamplingFilter if the scan has it
         memScan.setAsyncPrefetch(false); // async would keep buffering rows indefinitely
         memScan.setReadType(Scan.ReadType.PREAD);
         memScan.setAttribute(ClientRegionConstants.SPLICE_SCAN_MEMSTORE_ONLY,SIConstants.TRUE_BYTES);
