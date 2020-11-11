@@ -21,17 +21,22 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import splice.com.google.common.collect.Lists;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.*;
 
+@RunWith(Parameterized.class)
 public class DecimalFunctionIT extends SpliceUnitTest {
     public static final    String        CLASS_NAME         = DecimalFunctionIT.class.getSimpleName().toUpperCase();
     protected final static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -52,7 +57,7 @@ public class DecimalFunctionIT extends SpliceUnitTest {
                     try {
                         ps = spliceClassWatcher.prepareStatement(
                                 String.format("insert into %s (i) values (?)", spliceTableWatcher1));
-                        for (int i = 0; i < 100; i++) {
+                        for (int i = 1; i <= 100; i++) {
                             ps.setInt(1, i);
                             ps.execute();
                         }
@@ -61,6 +66,7 @@ public class DecimalFunctionIT extends SpliceUnitTest {
                     }
                 }
             });
+    private final String functionName;
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -91,8 +97,24 @@ public class DecimalFunctionIT extends SpliceUnitTest {
         return new BigDecimal(new BigInteger(input), stringScale);
     }
 
+    @Parameterized.Parameters(name = "with function {0}")
+    public static Collection<Object[]> data() {
+        Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
+        params.add(new Object[]{"decimal"});
+        params.add(new Object[]{"dec"});
+        return params;
+    }
+
+    public DecimalFunctionIT(String functionName) {
+        this.functionName = functionName;
+    }
+
     public void check(String what, String expectedNumber) throws SQLException {
-        try(ResultSet rs = methodWatcher.executeQuery("values " + what)) {
+        checkQuery(String.format("values %s %s", functionName, what), expectedNumber);
+    }
+
+    public void checkQuery(String what, String expectedNumber) throws SQLException {
+        try(ResultSet rs = methodWatcher.executeQuery(what)) {
             Assert.assertTrue(rs.next());
             Assert.assertEquals(toBigDecimal(expectedNumber), rs.getBigDecimal(1));
             Assert.assertFalse(rs.next());
@@ -103,7 +125,7 @@ public class DecimalFunctionIT extends SpliceUnitTest {
 
     public void shouldFail(String what, ErrorCode errorCode) {
         try {
-            methodWatcher.executeQuery("values " + what);
+            methodWatcher.executeQuery(String.format("values %s %s", functionName, what));
             Assert.fail("should have failed with error");
         } catch (Exception e) {
             Assert.assertTrue(e instanceof SQLException);
@@ -129,133 +151,139 @@ public class DecimalFunctionIT extends SpliceUnitTest {
     }
 
     @Test
-    public void decimalFunctionWorksWithInteger() throws Exception {
-        check("decimal(10)", "10");
-        check("decimal(10, 6)", "10");
-        check("decimal(1000, 6, 2)", "1000.00");
-        check("decimal(1000, 7, 3)", "1000.000");
-        check("decimal(1000, 8, 4)", "1000.0000");
-        check("decimal(1000, 9, 4)", "1000.0000");
-        check("decimal(1000+1, 9, 4)", "1001.0000");
-        check("decimal(32767 + 5, 9, 4)", "32772.0000");
-        check("decimal(cast('2147483648' as bigint) + 5)", "2147483653");
-        check("decimal(cast('2147483648' as bigint) + 5, 12)", "2147483653");
-        check("decimal(cast('2147483648' as bigint) + 5, 14, 4)", "2147483653.0000");
-        check("decimal(-1000, 6, 2)", "-1000.00");
-        check("decimal(-1000, 7, 3)", "-1000.000");
-        check("decimal(-1000, 8, 4)", "-1000.0000");
-        check("decimal(-1000, 9, 4)", "-1000.0000");
-        check("decimal(-1000-1, 9, 4)", "-1001.0000");
-        check("decimal(-32767-5, 9, 4)", "-32772.0000");
-        check("decimal(cast('2147483648' as bigint) * -1 - 5, 14, 4)", "-2147483653.0000");
-        check("decimal(cast('2147483648' as bigint) * -1 - 5)", "-2147483653");
-        check("decimal(cast('2147483648' as bigint) * -1 - 5, 12)", "-2147483653");
-        shouldFail("decimal(100000, 1,1)", ErrorCode.CONVERSION);
+    public void createFromInteger() throws Exception {
+        check("(10)", "10");
+        check("(10, 6)", "10");
+        check("(1000, 6, 2)", "1000.00");
+        check("(1000, 7, 3)", "1000.000");
+        check("(1000, 8, 4)", "1000.0000");
+        check("(1000, 9, 4)", "1000.0000");
+        check("(1000+1, 9, 4)", "1001.0000");
+        check("(32767 + 5, 9, 4)", "32772.0000");
+        check("(cast('2147483648' as bigint) + 5)", "2147483653");
+        check("(cast('2147483648' as bigint) + 5, 12)", "2147483653");
+        check("(cast('2147483648' as bigint) + 5, 14, 4)", "2147483653.0000");
+        check("(-1000, 6, 2)", "-1000.00");
+        check("(-1000, 7, 3)", "-1000.000");
+        check("(-1000, 8, 4)", "-1000.0000");
+        check("(-1000, 9, 4)", "-1000.0000");
+        check("(-1000-1, 9, 4)", "-1001.0000");
+        check("(-32767-5, 9, 4)", "-32772.0000");
+        check("(cast('2147483648' as bigint) * -1 - 5, 14, 4)", "-2147483653.0000");
+        check("(cast('2147483648' as bigint) * -1 - 5)", "-2147483653");
+        check("(cast('2147483648' as bigint) * -1 - 5, 12)", "-2147483653");
+        shouldFail("(100000, 1,1)", ErrorCode.CONVERSION);
     }
 
     @Test
-    public void decimalFunctionWorksWithDecimal() throws Exception {
-        check("decimal(cast ('1234.5678' as decimal(8,4)))", "1234");
-        check("decimal(cast ('1234.5678' as decimal(8,4)), 5)", "1234");
-        check("decimal(cast ('1234.5678' as decimal(8,4)), 8, 4)", "1234.5678");
-        check("decimal(cast ('1234.5678' as decimal(8,4)), 8, 2)", "1234.56");
-        check("decimal(cast ('1234.5678' as decimal(8,4)), 9, 5)", "1234.56780");
-        shouldFail("decimal(cast ('1234.5678' as decimal(8,4)), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('1234.5678' as decimal(8,4)), 6, 5)", ErrorCode.CONVERSION);
+    public void createFromDecimal() throws Exception {
+        check("(cast ('1234.5678' as decimal(8,4)))", "1234");
+        check("(cast ('1234.5678' as decimal(8,4)), 5)", "1234");
+        check("(cast ('1234.5678' as decimal(8,4)), 8, 4)", "1234.5678");
+        check("(cast ('1234.5678' as decimal(8,4)), 8, 2)", "1234.56");
+        check("(cast ('1234.5678' as decimal(8,4)), 9, 5)", "1234.56780");
+        shouldFail("(cast ('1234.5678' as decimal(8,4)), 6, 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('1234.5678' as decimal(8,4)), 6, 5)", ErrorCode.CONVERSION);
     }
 
     @Test
-    public void decimalFunctionWorksWithDecfloat() throws Exception {
-        check("decimal(cast ('1234.5678' as decfloat))", "1234");
-        check("decimal(cast ('1234.5678' as decfloat), 5)", "1234");
-        check("decimal(cast ('1234.5678' as decfloat), 8, 4)", "1234.5678");
-        check("decimal(cast ('1234.5678' as decfloat), 8, 2)", "1234.56");
-        check("decimal(cast ('1234.5678' as decfloat), 9, 5)", "1234.56780");
-        shouldFail("decimal(cast ('1234.5678' as decfloat), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('1234.5678' as decfloat), 6, 5)", ErrorCode.CONVERSION);
+    public void createFromDecfloat() throws Exception {
+        check("(cast ('1234.5678' as decfloat))", "1234");
+        check("(cast ('1234.5678' as decfloat), 5)", "1234");
+        check("(cast ('1234.5678' as decfloat), 8, 4)", "1234.5678");
+        check("(cast ('1234.5678' as decfloat), 8, 2)", "1234.56");
+        check("(cast ('1234.5678' as decfloat), 9, 5)", "1234.56780");
+        shouldFail("(cast ('1234.5678' as decfloat), 6, 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('1234.5678' as decfloat), 6, 5)", ErrorCode.CONVERSION);
     }
 
     @Test
-    public void decimalFunctionWorksWithDouble() throws Exception {
-        check("decimal(cast ('1234.56789' as double))", "1234");
-        check("decimal(cast ('1234.56789' as double), 5)", "1234");
-        check("decimal(cast ('1234.56789' as double), 8, 4)", "1234.5678");
-        check("decimal(cast ('1234.56789' as double), 8, 2)", "1234.56");
-        shouldFail("decimal(cast ('1234.56789' as double), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('1234.56789' as double), 6, 5)", ErrorCode.CONVERSION);
+    public void createFromDouble() throws Exception {
+        check("(cast ('1234.56789' as double))", "1234");
+        check("(cast ('1234.56789' as double), 5)", "1234");
+        check("(cast ('1234.56789' as double), 8, 4)", "1234.5678");
+        check("(cast ('1234.56789' as double), 8, 2)", "1234.56");
+        shouldFail("(cast ('1234.56789' as double), 6, 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('1234.56789' as double), 6, 5)", ErrorCode.CONVERSION);
     }
 
     @Test
-    public void decimalFunctionWorksWithFloat() throws Exception {
-        check("decimal(cast ('1234.56789' as float))", "1234");
-        check("decimal(cast ('1234.56789' as float), 5)", "1234");
-        check("decimal(cast ('1234.56789' as float), 8, 4)", "1234.5678");
-        check("decimal(cast ('1234.56789' as float), 8, 2)", "1234.56");
-        shouldFail("decimal(cast ('1234.56789' as float), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('1234.56789' as float), 6, 5)", ErrorCode.CONVERSION);
+    public void createFromFloat() throws Exception {
+        check("(cast ('1234.56789' as float))", "1234");
+        check("(cast ('1234.56789' as float), 5)", "1234");
+        check("(cast ('1234.56789' as float), 8, 4)", "1234.5678");
+        check("(cast ('1234.56789' as float), 8, 2)", "1234.56");
+        shouldFail("(cast ('1234.56789' as float), 6, 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('1234.56789' as float), 6, 5)", ErrorCode.CONVERSION);
     }
 
     @Test
-    public void decimalFunctionWorksWithVarchar() throws Exception {
-        check("decimal(cast ('1234.56789' as varchar(15)))", "1234");
-        check("decimal(cast ('1234.56789' as varchar(15)), 5)", "1234");
-        check("decimal(cast ('1234.56789' as varchar(15)), 8, 4)", "1234.5678");
-        check("decimal(cast ('1234.56789' as varchar(15)), 8, 2)", "1234.56");
-        check("decimal(cast ('1,000,000.23' as varchar(20)), 10, 2, ',')", "1000000.23");
-        shouldFail("decimal(cast ('1234.56789' as varchar(15)), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('1234.56789' as varchar(15)), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('1,000,000.23' as varchar(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("decimal(cast ('1,000,0ABC00.23' as varchar(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("decimal(cast ('' as varchar(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("decimal(cast ('1,000,000.23' as varchar(20)), 10, 2, 'HELLO')", ErrorCode.DECIMAL_CHARACTER);
+    public void createFromVarchar() throws Exception {
+        check("(cast ('1234.56789' as varchar(15)))", "1234");
+        check("(cast ('1234.56789' as varchar(15)), 5)", "1234");
+        check("(cast ('1234.56789' as varchar(15)), 8, 4)", "1234.5678");
+        check("(cast ('1234.56789' as varchar(15)), 8, 2)", "1234.56");
+        check("(cast ('1,000,000.23' as varchar(20)), 10, 2, ',')", "1000000.23");
+        shouldFail("(cast ('1234.56789' as varchar(15)), 6, 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('1234.56789' as varchar(15)), 6, 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('1,000,000.23' as varchar(20)), 10, 2)", ErrorCode.INVALID_STRING);
+        shouldFail("(cast ('1,000,0ABC00.23' as varchar(20)), 10, 2)", ErrorCode.INVALID_STRING);
+        shouldFail("(cast ('' as varchar(20)), 10, 2)", ErrorCode.INVALID_STRING);
+        shouldFail("(cast ('1,000,000.23' as varchar(20)), 10, 2, 'HELLO')", ErrorCode.DECIMAL_CHARACTER);
     }
 
     @Test
-    public void decimalFunctionWorksWithChar() throws Exception {
-        check("decimal(cast ('1234.56789' as char(15)))", "1234");
-        check("decimal(cast ('1234.56789' as char(15)), 5)", "1234");
-        check("decimal(cast ('1234.56789' as char(15)), 8, 4)", "1234.5678");
-        check("decimal(cast ('1234.56789' as char(15)), 8, 2)", "1234.56");
-        check("decimal(cast ('1,000,000.23' as char(20)), 10, 2, ',')", "1000000.23");
-        shouldFail("decimal(cast ('1234.56789' as char(15)), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('1234.56789' as char(15)), 6, 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('1,000,000.23' as char(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("decimal(cast ('1,000,0ABC00.23' as char(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("decimal(cast ('' as char(20)), 10, 2)", ErrorCode.INVALID_STRING);
-        shouldFail("decimal(cast ('1,000,000.23' as char(20)), 10, 2, 'HELLO')", ErrorCode.DECIMAL_CHARACTER);
+    public void createFromChar() throws Exception {
+        check("(cast ('1234.56789' as char(15)))", "1234");
+        check("(cast ('1234.56789' as char(15)), 5)", "1234");
+        check("(cast ('1234.56789' as char(15)), 8, 4)", "1234.5678");
+        check("(cast ('1234.56789' as char(15)), 8, 2)", "1234.56");
+        check("(cast ('1,000,000.23' as char(20)), 10, 2, ',')", "1000000.23");
+        shouldFail("(cast ('1234.56789' as char(15)), 6, 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('1234.56789' as char(15)), 6, 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('1,000,000.23' as char(20)), 10, 2)", ErrorCode.INVALID_STRING);
+        shouldFail("(cast ('1,000,0ABC00.23' as char(20)), 10, 2)", ErrorCode.INVALID_STRING);
+        shouldFail("(cast ('' as char(20)), 10, 2)", ErrorCode.INVALID_STRING);
+        shouldFail("(cast ('1,000,000.23' as char(20)), 10, 2, 'HELLO')", ErrorCode.DECIMAL_CHARACTER);
     }
 
     @Test
-    public void decimalFunctionWorksWithDate() throws Exception {
-        check("decimal(cast ('2020-11-11' as date))", "20201111");
-        check("decimal(cast ('2020-11-11' as date), 10)", "20201111");
-        check("decimal(cast ('2020-11-11' as date), 14, 4)", "20201111.0000");
-        shouldFail("decimal(cast ('2020-11-11' as date), 6)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('2020-11-11' as date), 6, 5)", ErrorCode.CONVERSION);
+    public void createFromDate() throws Exception {
+        check("(cast ('2020-11-11' as date))", "20201111");
+        check("(cast ('2020-11-11' as date), 10)", "20201111");
+        check("(cast ('2020-11-11' as date), 14, 4)", "20201111.0000");
+        shouldFail("(cast ('2020-11-11' as date), 6)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('2020-11-11' as date), 6, 5)", ErrorCode.CONVERSION);
     }
 
     @Test
-    public void decimalFunctionWorksWithTime() throws Exception {
-        check("decimal(cast ('11:11:11' as time))", "111111");
-        check("decimal(cast ('11:11:11' as time), 10)", "111111");
-        check("decimal(cast ('11:11:11' as time), 14, 4)", "111111.0000");
-        shouldFail("decimal(cast ('11:11:11' as time), 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('11:11:11' as time), 5, 2)", ErrorCode.CONVERSION);
+    public void createFromTime() throws Exception {
+        check("(cast ('11:11:11' as time))", "111111");
+        check("(cast ('11:11:11' as time), 10)", "111111");
+        check("(cast ('11:11:11' as time), 14, 4)", "111111.0000");
+        shouldFail("(cast ('11:11:11' as time), 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('11:11:11' as time), 5, 2)", ErrorCode.CONVERSION);
     }
 
     @Test
-    public void decimalFunctionWorksWithTimestamp() throws Exception {
-        check("decimal(cast ('2020-11-11 11:11:11.1234' as timestamp))", "20201111111111.123400000");
-        check("decimal(cast ('2020-11-11 11:11:11.123456' as timestamp), 14)", "20201111111111");
-        check("decimal(cast ('2020-11-11 11:11:11.123456' as timestamp), 18, 4)", "20201111111111.1234");
-        check("decimal(cast ('2020-11-11 11:11:11.19999' as timestamp), 15, 1)", "20201111111111.1");
-        shouldFail("decimal(cast ('2020-11-11 11:11:11.123456' as timestamp), 5)", ErrorCode.CONVERSION);
-        shouldFail("decimal(cast ('2020-11-11 11:11:11.123456' as timestamp), 5, 2)", ErrorCode.CONVERSION);
+    public void createFromTimestamp() throws Exception {
+        check("(cast ('2020-11-11 11:11:11.1234' as timestamp))", "20201111111111.123400000");
+        check("(cast ('2020-11-11 11:11:11.123456' as timestamp), 14)", "20201111111111");
+        check("(cast ('2020-11-11 11:11:11.123456' as timestamp), 18, 4)", "20201111111111.1234");
+        check("(cast ('2020-11-11 11:11:11.19999' as timestamp), 15, 1)", "20201111111111.1");
+        shouldFail("(cast ('2020-11-11 11:11:11.123456' as timestamp), 5)", ErrorCode.CONVERSION);
+        shouldFail("(cast ('2020-11-11 11:11:11.123456' as timestamp), 5, 2)", ErrorCode.CONVERSION);
     }
 
     @Test
-    public void decimalFunctionDoesNotWorkWithUnsupportedTypes() throws Exception {
-        shouldFail("decimal(cast ('HELLO' AS CLOB(10)), 10, 2)", ErrorCode.INVALID_TYPE);
-        shouldFail("decimal(cast ('HELLO' AS BLOB(10)), 10, 2)", ErrorCode.INVALID_TYPE);
+    public void invalidTypes() throws Exception {
+        shouldFail("(cast ('HELLO' AS CLOB(10)), 10, 2)", ErrorCode.INVALID_TYPE);
+        shouldFail("(cast ('HELLO' AS BLOB(10)), 10, 2)", ErrorCode.INVALID_TYPE);
+    }
+
+    @Test
+    public void decimalFunctionWorksWithAggregates() throws Exception {
+        checkQuery(String.format("select %s(max(I)) from %s", functionName, spliceTableWatcher1), "100");
+        checkQuery(String.format("select %s(sum(I), 10, 2) from %s", functionName, spliceTableWatcher1), "5050.00");
     }
 }
