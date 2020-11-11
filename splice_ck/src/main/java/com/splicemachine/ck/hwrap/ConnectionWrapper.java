@@ -63,6 +63,14 @@ public class ConnectionWrapper implements AutoCloseable {
         return table.getScanner(scan);
     }
 
+    public ResultScanner scanAllVersions() throws IOException {
+        assert table != null;
+        Scan scan = new Scan();
+        scan.readAllVersions();
+        return table.getScanner(scan);
+    }
+
+
     public ResultScanner scanColumn(byte[] col) throws IOException {
         assert table != null;
         tell("hbase scan table", table.getName().toString(), "with projection");

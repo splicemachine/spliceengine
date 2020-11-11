@@ -22,6 +22,7 @@ import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.storage.CellType;
 import com.splicemachine.utils.Pair;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.hbase.Cell;
 
 import java.util.*;
@@ -94,6 +95,7 @@ class TableCellPrinter {
     }
 
     public void visitCommitTimestamp(Cell cell) {
+
         stringBuilder.append(Utils.Colored.green("commit timestamp "));
         stringBuilder.append(Utils.Colored.green(Long.toString(CellUtils.getCommitTimestamp(cell))));
     }
@@ -127,7 +129,7 @@ class TableCellPrinter {
     }
 
     public void visitDeleteRightAfterFirstWrite() {
-        stringBuilder.append(Utils.Colored.purple("delete right after first right set"));
+        stringBuilder.append(Utils.Colored.purple("delete right after first write set"));
     }
 
     public void visitForeignKeyCounter() {
