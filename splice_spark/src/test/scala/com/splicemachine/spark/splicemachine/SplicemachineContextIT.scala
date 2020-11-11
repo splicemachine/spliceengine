@@ -144,6 +144,13 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertFalse( splicemachineContext.tableExists(carSchemaTableName) )
     createCarTable
     org.junit.Assert.assertTrue( splicemachineContext.tableExists(carSchemaTableName) )
+    
+    org.junit.Assert.assertEquals(
+      s"Unexpected schema of $carSchemaTableName",
+      "List(NUMBER, INTEGER, 10, 0), List(MAKE, VARCHAR, 5000, null), List(MODEL, VARCHAR, 5000, null)",
+      splicemachineContext.columnInfo(carSchemaTableName).mkString(", ")
+    )
+    
     dropCarTable
   }
 
