@@ -475,11 +475,13 @@ public class TriggerRowHolderImpl implements TemporaryRowHolder, Externalizable
             tc.dropConglomerate(CID);
         }
         catch (StandardException e) {
+            LOG.warn(format("Unable to drop temporary trigger conglomerate %d.  Cleanup may have been called twice.", CID), e);
         }
         try {
             dropTable(CID);
         }
         catch (StandardException e) {
+            LOG.warn(format("Unable to drop HBase table for temporary trigger conglomerate %d.  Cleanup may have been called twice.", CID), e);
         }
 
         conglomCreated = false;
