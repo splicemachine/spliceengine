@@ -81,4 +81,14 @@ public class ValueTupleNode extends ValueNode {
         }
         return tableNumbers;
     }
+
+    @Override
+    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly) throws StandardException {
+        for (ValueNode vn : tuple) {
+            if (!vn.categorize(referencedTabs, simplePredsOnly)) {
+                return false;
+            }
+        }
+        return true;
+    }
 }
