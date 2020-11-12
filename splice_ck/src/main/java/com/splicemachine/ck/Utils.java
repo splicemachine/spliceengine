@@ -31,6 +31,7 @@ import org.apache.hadoop.hbase.TableNotFoundException;
 
 import java.io.UncheckedIOException;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import static com.splicemachine.ck.Constants.NULL;
@@ -101,9 +102,15 @@ public class Utils {
             rows = new TreeSet<>();
         }
 
-        public void addRow(String... cols) {
+        public void addRow(Predicate<Row> filter, String... cols) {
             assert cols.length == headers.size();
-            rows.add(new Row(sortHint, cols));
+            Row r = new Row(sortHint, cols);
+            if( filter == null || filter.test(r) )
+                rows.add(r);
+        }
+
+        public void addRow(String... cols) {
+            addRow(null, cols);
         }
 
         public List<String> getCol(int index) {
