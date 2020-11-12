@@ -212,6 +212,7 @@ message TentativeFK {
         /* Referenced table's encoding version ('1.0', '2.0', etc) */
         optional string referencedTableVersion = 8;
         optional int64 backingIndexConglomerateId = 9;
+        optional UUID constraintUuid = 10;
 }
 
 message TentativeAddColumn {
