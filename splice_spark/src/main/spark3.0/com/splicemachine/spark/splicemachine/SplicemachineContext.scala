@@ -32,6 +32,7 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import java.util.Properties
 
 import com.splicemachine.access.HConfiguration
+import com.splicemachine.spark.splicemachine
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.hadoop.fs.permission.FsPermission
 import org.apache.hadoop.hbase.security.token.AuthenticationTokenIdentifier
@@ -73,6 +74,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
   @transient var credentials = UserGroupInformation.getCurrentUser().getCredentials()
   JdbcDialects.registerDialect(new SplicemachineDialect)
+
+  def columnNamesCaseSensitive(caseSensitive: Boolean): Unit =
+    splicemachine.columnNamesCaseSensitive(caseSensitive)
 
   private[this] def initConnection() = {
     Holder.log.info(f"Creating internal connection")
@@ -204,7 +208,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
       val primaryKeyString = if( keys.isEmpty ) {""}
       else {
-        ", PRIMARY KEY(" + keys.map(dialect.quoteIdentifier(_)).mkString(", ") + ")"
+        ", PRIMARY KEY(" + keys.map(quoteIdentifier(_)).mkString(", ") + ")"
       }
 
       val sql = s"CREATE TABLE $schemaTableName ($actSchemaString$primaryKeyString)"
@@ -583,9 +587,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     val sqlText = "delete from " + schemaTableName + " where exists (select 1 from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
       "as SDVTI (" + tableSchemaStr + ") where "
-    val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
-      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+    val whereClause = keys.map(x => schemaTableName + "." + quoteIdentifier(x) +
+      " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
     executeUpd(combinedText)
   }
@@ -625,9 +628,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       "select " + columnList + " from " +
       "new com.splicemachine.derby.vti.SpliceRDDVTI() " +
       "as SDVTI (" + tableSchemaStr + ") where "
-    val dialect = JdbcDialects.get(url)
-    val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
-      " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+    val whereClause = keys.map(x => schemaTableName + "." + quoteIdentifier(x) +
+      " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
     val combinedText = sqlText + whereClause + ")"
     executeUpd(combinedText)
   }
@@ -708,8 +710,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     JDBCRDD.resolveTable(new JDBCOptions(newSpliceOptions))
   }
 
-  private[this]val dialect = new SplicemachineDialect
-  private[this]val dialectNoTime = new SplicemachineDialectNoTime
   private[this]def resolveQuery(connection: Connection, sql: String, noTime: Boolean): StructType = {
     val st = connection.prepareStatement(s"select * from ($sql) a where 1=0 ")
     try {

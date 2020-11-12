@@ -135,6 +135,8 @@ public class DirectPipelineExceptionFactory extends MExceptionFactory implements
                     return new MNotServingPartition();
                 case WRONG_REGION:
                     return new MWrongPartition();
+                case NOT_NULL:
+                    return notNullViolation(result.getConstraintContext());
                 case REGION_TOO_BUSY:
                     return new MTooBusy();
                 case NOT_RUN:

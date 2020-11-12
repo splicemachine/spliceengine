@@ -947,6 +947,13 @@ Guide.
                 <arg>tableName</arg>
             </msg>
 
+            <msg>
+                <name>23514</name>
+                <text>foreign key {0} caused an attempt to set some not-nullable columns in table {1} to null. The statement has been rolled back.</text>
+                <arg>constraintName</arg>
+                <arg>tableName</arg>
+            </msg>
+
         </family>
 
 

@@ -14,6 +14,7 @@
 
 package com.splicemachine.protobuf;
 
+import com.google.common.primitives.Booleans;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
@@ -263,6 +264,7 @@ public class ProtoUtil {
                 .setChildTable(createTable(td.getHeapConglomerateId(),td,lcc))
                 .addAllColumnIndices(Ints.asList(fKConstraintDescriptor.getReferencedColumns()))
                 .setParentTableConglomerate(fKConstraintDescriptor.getReferencedConstraint().getTableDescriptor().getHeapConglomerateId())
+                .addAllNullFlags(Booleans.asList(columnDescriptors.getNullabilityFlags()))
                 .build();
         } catch (StandardException se) {
             throw new RuntimeException(se);
@@ -613,6 +615,14 @@ public class ProtoUtil {
                 .setDdlChangeType(DDLChangeType.UPDATE_SYSTEM_PROCEDURES)
                 .setTxnId(txnId)
                 .setUpdateSystemProcedures(UpdateSystemProcedures.newBuilder())
+                .build();
+    }
+
+    public static DDLChange createRollingUpgrade(long txnId, RollingUpgrade.OperationType op) {
+        return DDLChange.newBuilder().setTxnId(txnId).setRollingUpgrade(RollingUpgrade.newBuilder()
+                .setType(op)
+                .build())
+                .setDdlChangeType(DDLChangeType.ROLLING_UPGRADE)
                 .build();
     }
 }

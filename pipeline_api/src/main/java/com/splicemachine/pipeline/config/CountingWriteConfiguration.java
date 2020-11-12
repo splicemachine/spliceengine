@@ -68,6 +68,7 @@ public class CountingWriteConfiguration extends ForwardingWriteConfiguration{
             case FAILED:
             case FOREIGN_KEY_VIOLATION:
             case PRIMARY_KEY_VIOLATION:
+            case NOT_NULL:
                 statusReporter.failedBufferFlushes.incrementAndGet();
                 break;
             case NOT_SERVING_REGION:
