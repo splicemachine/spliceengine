@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Types;
 
 import static org.junit.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.containsString;
 
 /**
  * @author Scott Fines
@@ -723,6 +724,62 @@ public class FunctionIT extends SpliceUnitTest {
             Assert.fail("expect failure because LOCAL is not supported");
         } catch (SQLException e) {
             Assert.assertEquals("22018", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCastToCharWithLength() throws Exception {
+        try (ResultSet ignored = methodWatcher.executeQuery("select char(current date, 20)")) {
+            Assert.fail("expect failure since we cannot specify a length with something which is not a char/varchar");
+        } catch (SQLException e) {
+            assertEquals("42846", e.getSQLState());
+            Assert.assertThat(e.getMessage(), containsString("Cannot set a length"));
+        }
+        try (ResultSet ignored = methodWatcher.executeQuery("select char(42, 20)")) {
+            Assert.fail("expect failure since we cannot specify a length with something which is not a char/varchar");
+        } catch (SQLException e) {
+            assertEquals("42846", e.getSQLState());
+            Assert.assertThat(e.getMessage(), containsString("Cannot set a length"));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery("select char('abcd', 2)")) {
+            rs.next();
+            Assert.assertEquals("ab", rs.getString(1));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery("select char('abcd', 6)")) {
+            rs.next();
+            Assert.assertEquals("abcd  ", rs.getString(1));
+        }
+    }
+
+    @Test
+    public void testCastNotDateToCharWithDateFormatFail() throws Exception {
+        try (ResultSet ignored = methodWatcher.executeQuery("select char(1, ISO)")) {
+            Assert.fail("expect failure since we cannot specify a date format if the first param isn't a datelike");
+        } catch (SQLException e) {
+            assertEquals("42846", e.getSQLState());
+            Assert.assertThat(e.getMessage(), containsString("Date format is only applicable"));
+        }
+        try (ResultSet ignored = methodWatcher.executeQuery("select char('bonjour', EUR)")) {
+            Assert.fail("expect failure since we cannot specify a date format if the first param isn't a datelike");
+        } catch (SQLException e) {
+            assertEquals("42846", e.getSQLState());
+            Assert.assertThat(e.getMessage(), containsString("Date format is only applicable"));
+        }
+
+    }
+
+    @Test
+    public void testLengthOfCastToVarchar() throws Exception {
+        // See DB-10618
+        methodWatcher.executeUpdate("create table testLengthOfCastToVarchar (v varchar(10))");
+        String sql = "select length(coalesce(max(substr(v,1,1)),char('',2))) from testLengthOfCastToVarchar --splice-properties useSpark=%s\n";
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, true))) {
+            rs.next();
+            assertEquals(2, rs.getInt(1));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, false))) {
+            rs.next();
+            assertEquals(2, rs.getInt(1));
         }
     }
 }
