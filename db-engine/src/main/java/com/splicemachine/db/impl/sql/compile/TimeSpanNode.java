@@ -84,6 +84,15 @@ public class TimeSpanNode extends ValueNode
     }
 
     @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            TimeSpanNode other = (TimeSpanNode) o;
+            return this.unit == other.unit && value.isSemanticallyEquivalent(other.value);
+        }
+        return false;
+    }
+
+    @Override
     public List<? extends QueryTreeNode> getChildren() {
         return Collections.singletonList(value);
     }

@@ -31,21 +31,21 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -53,10 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 /**
  * A TernaryOperatorNode represents a built-in ternary operators.
@@ -1387,11 +1384,10 @@ public class TernaryOperatorNode extends OperatorNode
         return new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARBINARY), true);
     }
 
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
-        if (isSameNodeType(o))
-    {
-        TernaryOperatorNode other = (TernaryOperatorNode)o;
+    @Override
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            TernaryOperatorNode other = (TernaryOperatorNode) o;
 
             /*
              * SUBSTR function can either have 2 or 3 arguments.  In the
@@ -1399,11 +1395,31 @@ public class TernaryOperatorNode extends OperatorNode
              * additional handling in the equivalence check.
              */
             return (other.methodName.equals(methodName)
-                && other.receiver.isEquivalent(receiver)
+                    && other.receiver.isEquivalent(receiver)
                     && other.leftOperand.isEquivalent(leftOperand)
-                    && ( (rightOperand == null && other.rightOperand == null) ||
-                         (other.rightOperand != null &&
-                            other.rightOperand.isEquivalent(rightOperand)) ) );
+                    && ((rightOperand == null && other.rightOperand == null) ||
+                    (other.rightOperand != null &&
+                            other.rightOperand.isEquivalent(rightOperand))));
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            TernaryOperatorNode other = (TernaryOperatorNode) o;
+
+            /*
+             * SUBSTR function can either have 2 or 3 arguments.  In the
+             * 2-args case, rightOperand will be null and thus needs
+             * additional handling in the equivalence check.
+             */
+            return (other.methodName.equals(methodName)
+                    && other.receiver.isSemanticallyEquivalent(receiver)
+                    && other.leftOperand.isSemanticallyEquivalent(leftOperand)
+                    && ((rightOperand == null && other.rightOperand == null) ||
+                    (other.rightOperand != null &&
+                            other.rightOperand.isSemanticallyEquivalent(rightOperand))));
         }
         return false;
     }
