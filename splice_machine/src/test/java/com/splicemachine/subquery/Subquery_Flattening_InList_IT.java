@@ -207,6 +207,62 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
     }
 
     @Test
+    public void testMultiColumnNotInWithNulls() throws Exception {
+        methodWatcher.executeUpdate("create table if not exists AWN (a1 int not null, a2 int)");
+        methodWatcher.executeUpdate("create table if not exists BWN (b1 int, b2 int not null)");
+        methodWatcher.executeUpdate("delete from AWN");
+        methodWatcher.executeUpdate("delete from BWN");
+        methodWatcher.executeUpdate("insert into AWN values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50),(5,NULL)");
+        methodWatcher.executeUpdate("insert into BWN values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50),(NULL,50)");
+
+        String expected = "A1 |A2 |\n" +
+                "--------\n" +
+                " 3 |30 |\n" +
+                " 4 |40 |\n" +
+                " 5 |50 |";
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from AWN where (a1, a2) not in (select b1, b2 from BWN where b2 <= 20)", ONE_SUBQUERY_NODE, expected);
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from AWN where (a2, a1) not in (select b2, b1 from BWN where b2 <= 20)", ONE_SUBQUERY_NODE, expected);
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from AWN where (a1, a2) not in (select b1, b2 from BWN where b2 <= 20 or b1 is null)", ONE_SUBQUERY_NODE, "");
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from AWN where (a2, a1) not in (select b2, b1 from BWN where b2 <= 20 or b1 is null)", ONE_SUBQUERY_NODE, "");
+    }
+
+    @Test
+    public void testMultiColumnTupleSemantic() throws Exception {
+        methodWatcher.executeUpdate("create table if not exists ATS (a1 int, a2 int)");
+        methodWatcher.executeUpdate("create table if not exists BTS (b1 int, b2 int)");
+        methodWatcher.executeUpdate("delete from ATS");
+        methodWatcher.executeUpdate("delete from BTS");
+        methodWatcher.executeUpdate("insert into ATS values(0,0),(0,10),(1,10),(1,20),(2,20),(2,30),(3,30),(3,40),(4,40),(4,50),(5,50)");
+        methodWatcher.executeUpdate("insert into BTS values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from ATS where (a1, a2) in (select * from BTS where b2 <= 20)", ZERO_SUBQUERY_NODES, "" +
+                        "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 0 | 0 |\n" +
+                        " 1 |10 |\n" +
+                        " 2 |20 |"
+        );
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from ATS where (a1, a2) not in (select * from BTS)", ONE_SUBQUERY_NODE, "" +
+                        "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 0 |10 |\n" +
+                        " 1 |20 |\n" +
+                        " 2 |30 |\n" +
+                        " 3 |40 |\n" +
+                        " 4 |50 |"
+        );
+    }
+
+    @Test
     public void degeneratedLeftTuple() throws Exception {
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
                 "select * from A where (a1) in (select b1 from B where b2 > 20)", ZERO_SUBQUERY_NODES, "" +
