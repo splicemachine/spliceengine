@@ -27,7 +27,7 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ByteArraySerializer, IntegerSerializer}
-import com.splicemachine.db.iapi.types.{SQLBlob, SQLBoolean, SQLClob, SQLDate, SQLDecimal, SQLDouble, SQLInteger, SQLLongint, SQLReal, SQLSmallint, SQLTime, SQLTimestamp, SQLTinyint}
+import com.splicemachine.db.iapi.types.{SQLBlob, SQLBoolean, SQLClob, SQLDate, SQLDecimal, SQLDouble, SQLInteger, SQLLongint, SQLReal, SQLSmallint, SQLTime, SQLTimestamp, SQLTinyint, SQLVarchar}
 import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.impl.kryo.KryoSerialization
 import com.splicemachine.derby.stream.spark.KafkaReadFunction
@@ -819,10 +819,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       case ByteType => Option( if (isNull) new SQLTinyint else new SQLTinyint(row.getByte(i)) )
       case BooleanType => Option( if (isNull) new SQLBoolean else new SQLBoolean(row.getBoolean(i)) )
       case StringType => {
-        val clob = new SQLClob
-        clob setStreamHeaderFormat false
-        if (isNull) clob.setToNull else clob.setValue( row.getString(i) )
-        Option(clob)
+        val varchar = new SQLVarchar
+        if (isNull) varchar.setToNull else varchar.setValue( row.getString(i) )
+        Option(varchar)
+        // Keep CLOB code for reference in case it's needed in the future
+        // val clob = new SQLClob
+        // clob setStreamHeaderFormat false
+        // if (isNull) clob.setToNull else clob.setValue( row.getString(i) )
+        // Option(clob)
       }
       case BinaryType => {
         val blob = new SQLBlob

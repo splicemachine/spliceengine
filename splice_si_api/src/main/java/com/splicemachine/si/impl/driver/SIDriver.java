@@ -108,6 +108,7 @@ public class SIDriver {
     private final ManagedThreadPool rejectingThreadPool;
     private final NonRejectingExecutor threadPool;
     private boolean engineStarted = false;
+    private volatile boolean rollingUpgrade = false;
 
     public SIDriver(SIEnvironment env){
         this.tableFactory = env.tableFactory();
@@ -305,5 +306,13 @@ public class SIDriver {
 
     public void engineStarted() {
         engineStarted = true;
+    }
+
+    public boolean isRollingUpgrade(){
+        return  rollingUpgrade;
+    }
+
+    public void setRollingUpgrade(boolean state) {
+        rollingUpgrade = state;
     }
 }
