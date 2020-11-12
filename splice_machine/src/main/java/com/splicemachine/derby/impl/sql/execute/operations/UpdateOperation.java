@@ -220,8 +220,9 @@ public class UpdateOperation extends DMLWriteOperation{
             // transaction to writable.
             if (triggerHandler != null) {
                 finalTableErrorCheck2(triggerHandler);
-                triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
+                triggerHandler.initTriggerRowHolders(isOlapServer() || SpliceClient.isClient(), txn, SpliceClient.token, 0);
             }
+
             DataSetWriter writer=set.updateData(operationContext)
                     .execRowTypeFormatIds(execRowTypeFormatIds)
                     .pkCols(pkCols==null?new int[0]:pkCols)

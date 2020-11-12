@@ -350,6 +350,20 @@ public class ColumnReference extends ValueNode {
     }
 
     /**
+     * Decrease source level by one if table number matches any of the
+     * input table numbers.
+     * @param tableNumbers   The input table numbers to match.
+     */
+    public void decreaseSourceLevel(int[] tableNumbers) {
+        for(int tn : tableNumbers){
+            if(tableNumber == tn){
+                setSourceLevel(getSourceLevel()-1);
+                break;
+            }
+        }
+    }
+
+    /**
      * Mark this node as being generated to replace an aggregate.
      * (Useful for replacing aggregates in the HAVING clause with
      * column references to the matching aggregate in the
@@ -1342,8 +1356,12 @@ public class ColumnReference extends ValueNode {
 
     @Override
     public int hashCode(){
-        int hc = tableNumber;
-        hc = hc*31+columnName.hashCode();
+        int hc = 31 * getBaseHashCode() + tableNumber;
+        if (columnName.length() == 0) {
+            hc = hc * 31 + getSource().hashCode();
+        } else {
+            hc = hc * 31 + columnName.hashCode();
+        }
         return hc;
     }
 

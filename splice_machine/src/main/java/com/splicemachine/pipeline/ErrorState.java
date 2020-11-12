@@ -23,6 +23,7 @@ import com.splicemachine.pipeline.api.PipelineTooBusy;
 import com.splicemachine.pipeline.client.WriteFailedException;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
+import com.splicemachine.pipeline.constraint.NotNullConstraintViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import com.splicemachine.si.api.data.ReadOnlyModificationException;
 import com.splicemachine.si.api.server.FailedServerException;
@@ -691,6 +692,22 @@ public enum ErrorState{
         }
     },
     LANG_CHECK_CONSTRAINT_VIOLATED("23513"),
+
+    LANG_FK_SET_NULL_TO_NON_NULL("23514") {
+        @Override
+        public boolean accepts(Throwable t){
+            return super.accepts(t) || t instanceof NotNullConstraintViolation;
+        }
+
+        @Override
+        public StandardException newException(Throwable rootCause){
+            if(!(rootCause instanceof NotNullConstraintViolation))
+                return super.newException(rootCause);
+            NotNullConstraintViolation cause=(NotNullConstraintViolation)rootCause;
+            ConstraintContext context=cause.getContext();
+            return StandardException.newException(getSqlState(),context.getMessages());
+        }
+    },
 
     // From SQL/XML[2006] spec), there are others, but
     // these are the ones we actually use with our

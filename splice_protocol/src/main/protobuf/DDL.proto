@@ -312,6 +312,8 @@ message FKConstraintInfo {
     optional Table childTable = 7; // the table in which the foreign key is defined
     repeated int32 columnIndices = 8; // 1-based
     optional int64 parentTableConglomerate = 9; // needed for checking self-referencing FKs.
+    /* nullability flag for FK cols */
+    repeated bool nullFlags = 10;
 }
 
 message NotifyJarLoader {
@@ -330,6 +332,14 @@ message SetReplicationRole {
 }
 
 message UpdateSystemProcedures{
+}
+
+message RollingUpgrade {
+  enum OperationType {
+    BEGIN = 1;
+    END = 2;
+  }
+     required OperationType type = 1;
 }
 
 enum DDLChangeType {
@@ -376,6 +386,7 @@ enum DDLChangeType {
     SET_DATABASE_PROPERTY = 40;
     SET_REPLICATION_ROLE = 41;
     UPDATE_SYSTEM_PROCEDURES = 42;
+    ROLLING_UPGRADE = 43;
 }
 
 message DDLChange {
@@ -418,4 +429,5 @@ message DDLChange {
     optional SetDatabaseProperty setDatabaseProperty = 37;
     optional SetReplicationRole setReplicationRole = 38;
     optional UpdateSystemProcedures updateSystemProcedures = 39;
+    optional RollingUpgrade rollingUpgrade = 40;
 }

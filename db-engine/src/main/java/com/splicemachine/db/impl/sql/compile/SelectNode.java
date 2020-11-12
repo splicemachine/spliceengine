@@ -790,7 +790,7 @@ public class SelectNode extends ResultSetNode{
             /* Select * currently only valid for EXISTS/NOT EXISTS.  NOT EXISTS
              * does not appear prior to preprocessing.
              */
-            if(subqueryType!=SubqueryNode.EXISTS_SUBQUERY){
+            if(subqueryType!=SubqueryNode.EXISTS_SUBQUERY && subqueryType!=SubqueryNode.IN_SUBQUERY){
                 throw StandardException.newException(SQLState.LANG_CANT_SELECT_STAR_SUBQUERY);
             }
 
@@ -850,7 +850,7 @@ public class SelectNode extends ResultSetNode{
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables,GroupByList gbl,FromList fl) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fl) throws StandardException{
         ResultSetNode newTop=this;
 
         /* Put the expression trees in conjunctive normal form.
@@ -1220,6 +1220,23 @@ public class SelectNode extends ResultSetNode{
         boolean eliminateSort=false;
         ResultSetNode prnRSN;
 
+        // replace index expressions in select list with column references referencing child result set
+        // only happen when best access path is an expression-based covering index
+        ResultColumnList childResultColumns = ((ResultSetNode)fromList.elementAt(0)).getResultColumns();
+        if (childResultColumns.isFromExprIndex()) {
+            for (ResultColumn rc : resultColumns) {
+                rc.replaceIndexExpression(childResultColumns);
+            }
+            // Do not set fromIndexExpr for select node's result columns since they are used as
+            // anchors for outer level column references. An outer column references refers to an
+            // inner level index expression points to these anchors. If the flag is propagated to
+            // outer level, it doesn't help replacing index expressions but break column mapping.
+
+            if (wherePredicates != null) {
+                wherePredicates.replaceIndexExpression(childResultColumns);
+            }
+        }
+
         prnRSN=(ResultSetNode)getNodeFactory().getNode(
                 C_NodeTypes.PROJECT_RESTRICT_NODE,
                 fromList.elementAt(0),    /* Child ResultSet */
@@ -1244,6 +1261,20 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
+        if(hasWindows()) {
+            for (WindowNode windowDefinition : windowDefinitionList) {
+                if (childResultColumns.isFromExprIndex()) {
+                    windowDefinition.replaceIndexExpression((ResultSetNode) fromList.elementAt(0));
+                }
+            }
+        }
+
+        if(orderByList!=null) {
+            if (childResultColumns.isFromExprIndex()) {
+                orderByList.replaceIndexExpressions((ResultSetNode) fromList.elementAt(0));
+            }
+        }
+
         /*
         ** If we have aggregates OR a select list we want
         ** to generate a GroupByNode.  In the case of a
@@ -1253,6 +1284,28 @@ public class SelectNode extends ResultSetNode{
         ** block.
         */
         if(((selectAggregates!=null) && (!selectAggregates.isEmpty())) || (groupByList!=null)){
+            if (childResultColumns.isFromExprIndex()) {
+                if (groupByList != null) {
+                    groupByList.replaceIndexExpressions(childResultColumns);
+                }
+                if (havingClause != null) {
+                    for (ResultColumn childRC : childResultColumns) {
+                        IndexExpressionReplacementVisitor ierv =
+                                new IndexExpressionReplacementVisitor(childRC, null);
+                        havingClause.accept(ierv);
+                    }
+                }
+                if (havingAggregates != null) {
+                    for (AggregateNode havingAggr : havingAggregates) {
+                        havingAggr.replaceIndexExpression(childResultColumns);
+                    }
+                }
+                if (selectAggregates != null) {
+                    for (AggregateNode selectAggr : selectAggregates) {
+                        selectAggr.replaceIndexExpression(childResultColumns);
+                    }
+                }
+            }
 
             List<AggregateNode> aggs=selectAggregates;
             if(havingAggregates!=null && !havingAggregates.isEmpty()){
@@ -1895,6 +1948,19 @@ public class SelectNode extends ResultSetNode{
             rightRCList.genVirtualColumnNodes(rightResultSet,rightResultSet.resultColumns);
             rightRCList.adjustVirtualColumnIds(leftRCList.size());
 
+            /* At this point, the right side may still have join predicates pushed down to it but refer
+             * to outer index expressions. If the outer result set chose a covering expression-based
+             * index access path, all outer index expressions used in inner result set should be replaced
+             * here because the outer result columns are updated during modifyAccessPath(). If we don't
+             * replace these index expressions, they refer to the outdated result columns which will not
+             * get any result set number assigned later.
+             * Index expressions refer to the inner table are already replaced during modifying inner
+             * table's access path.
+             */
+            if (leftRCList.isFromExprIndex()) {
+                rightResultSet.replaceIndexExpressions(leftResultSet.getResultColumns());
+            }
+
 //            if(leftBaseTable != null && rightBaseTable != null){
 //                int size = rightBaseTable.restrictionList.size();
 //
@@ -1911,6 +1977,9 @@ public class SelectNode extends ResultSetNode{
 
             /* Concatenate the 2 ResultColumnLists */
             leftRCList.nondestructiveAppend(rightRCList);
+            if (rightRCList.isFromExprIndex()) {
+                leftRCList.setFromExprIndex(true);
+            }
 
             /* Now we're finally ready to generate the JoinNode and have it
              * replace the 1st 2 entries in the FromList.
@@ -1956,6 +2025,10 @@ public class SelectNode extends ResultSetNode{
                         newPRNode.addNewPredicate(pred);
                     }
                     ((FromTable)rightResultSet).setPostJoinPredicates(null);
+                    if (postJoinPredicates.size() > 0) {
+                        ((ProjectRestrictNode) newPRNode).getRestrictionList()
+                                .replaceIndexExpression(joinNode.getResultColumns());
+                    }
                 }
             }
 
@@ -2385,29 +2458,6 @@ public class SelectNode extends ResultSetNode{
         }
 
         return wl;
-    }
-
-
-    /*
-        From where clause, this method returns a collection of all predicates that are eligible as a hash join predicate.
-        That is, the operator is an equal operator, both operands are column references.
-     */
-    private void collectJoinPredicates(ValueNode n,List<BinaryRelationalOperatorNode> l){
-
-        if(n instanceof BinaryRelationalOperatorNode){
-            BinaryRelationalOperatorNode cNode=(BinaryRelationalOperatorNode)n;
-            if(cNode.operator.compareTo("=")==0
-                    && cNode.leftOperand instanceof ColumnReference
-                    && cNode.rightOperand instanceof ColumnReference){
-
-                l.add((BinaryRelationalOperatorNode)n);
-            }
-        }else if(n instanceof BinaryOperatorNode){
-            collectJoinPredicates(((BinaryOperatorNode)n).leftOperand,l);
-            collectJoinPredicates(((BinaryOperatorNode)n).rightOperand,l);
-        }else if(n instanceof UnaryOperatorNode){
-            collectJoinPredicates(((UnaryOperatorNode)n).operand,l);
-        }
     }
 
     /**
@@ -2876,4 +2926,60 @@ public class SelectNode extends ResultSetNode{
         }
         return collected;
     }
+
+    public Map<Integer, Set<ValueNode>> collectExpressions() {
+        HashMap<Integer, Set<ValueNode>> result = new HashMap<>();
+
+        if (groupByList != null) {
+            groupByList.collectExpressions(result);
+        }
+
+        if (orderByList != null) {
+            orderByList.collectExpressions(result);
+        }
+
+        if (whereClause != null) {
+            whereClause.collectExpressions(result);
+        }
+        if (wherePredicates != null) {
+            wherePredicates.collectExpressions(result);
+        }
+
+        if (havingClause != null) {
+            havingClause.collectExpressions(result);
+        }
+
+        if (selectAggregates != null) {
+            for (AggregateNode selectAggregate : selectAggregates) {
+                selectAggregate.collectExpressions(result);
+            }
+        }
+
+        if (havingAggregates != null) {
+            for (AggregateNode havingAggregate : havingAggregates) {
+                havingAggregate.collectExpressions(result);
+            }
+        }
+        // no need to check whereAggregates, should be empty
+
+        if (windowDefinitionList != null) {
+            for (WindowNode wn : windowDefinitionList) {
+                wn.collectExpressions(result);
+            }
+        }
+
+        for (QueryTreeNode fromItem : fromList) {
+            if (fromItem instanceof ResultSetNode) {  // this is probably always true?
+                ((ResultSetNode) fromItem).collectExpressions(result);
+            }
+        }
+
+        for (ResultColumn rc : resultColumns) {
+            rc.getExpression().collectSingleExpression(result);
+        }
+
+        return result;
+    }
+
+
 }

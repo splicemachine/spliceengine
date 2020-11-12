@@ -105,7 +105,7 @@ public class DeleteOperation extends DMLWriteOperation {
             // transaction to writable.
             if (triggerHandler != null) {
                 finalTableErrorCheck2(triggerHandler);
-                triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
+                triggerHandler.initTriggerRowHolders(isOlapServer() || SpliceClient.isClient(), txn, SpliceClient.token, 0);
             }
 
             if (bulkDeleteDirectory != null) {
