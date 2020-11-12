@@ -166,7 +166,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			equal.setOuterJoinLevel(getOuterJoinLevel());
 			return equal;
 		}
-		else if (allLeftOperandsColumnReferences() &&
+		else if (allLeftOperandsContainColumnReferences() &&
 			     rightOperandList.containsOnlyConstantAndParamNodes())
 		{
 			boolean DB2CompatibilityMode = getCompilerContext().getVarcharDB2CompatibilityMode();
@@ -175,6 +175,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			 * parameter values.  Ex.:
 			 *
 			 *  select id, name from emp where id in (34, 28, ?)
+			 * or
+			 *  select id, name from emp where id + 3 in (34, 28, ?)
 			 *
 			 * Since the optimizer does not recognize InListOperatorNodes
 			 * as potential start/stop keys for indexes, it (the optimizer)
@@ -189,8 +191,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			 *
 			 * What we do, then, is create an "IN-list probe predicate",
 			 * which is an internally generated equality predicate with a
-			 * parameter value on the right.  So for the query shown above
-			 * the probe predicate would be "id = ?".  We then replace
+			 * parameter value on the right.  So for the queries shown above
+			 * the probe predicates would be "id = ?" and "id+3 = ?".  We then replace
 			 * this InListOperatorNode with the probe predicate during
 			 * optimization.  The optimizer in turn recognizes the probe
 			 * predicate, which is disguised to look like a typical binary
@@ -288,7 +290,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                  * type found above.
                  */
                 
-                DataValueDescriptor judgeODV = null;
+                DataValueDescriptor judgeODV;
                 
                 if (singleLeftOperand) {
                     judgeODV = ((DataTypeDescriptor) targetTypes.get(0)).getNull();
