@@ -523,5 +523,20 @@ public class FunctionIT extends SpliceUnitTest {
             assertEquals("42ZD6", e.getSQLState());
         }
     }
+
+    @Test
+    public void testLengthOfCastToVarchar() throws Exception {
+        // See DB-10618
+        methodWatcher.executeUpdate("create table testLengthOfCastToVarchar (v varchar(10))");
+        String sql = "select length(coalesce(max(substr(v,1,1)),char('',2))) from testLengthOfCastToVarchar --splice-properties useSpark=%s\n";
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, true))) {
+            rs.next();
+            assertEquals(2, rs.getInt(1));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, false))) {
+            rs.next();
+            assertEquals(2, rs.getInt(1));
+        }
+    }
 }
 
