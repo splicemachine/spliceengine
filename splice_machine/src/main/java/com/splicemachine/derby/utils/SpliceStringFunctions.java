@@ -19,6 +19,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.primitives.Bytes;
 import org.apache.commons.lang3.text.WordUtils;
 
 import org.spark_project.guava.cache.CacheBuilder;
@@ -139,7 +140,7 @@ public class SpliceStringFunctions {
         if (s == null)
             return null;
         else {
-            byte[] b = s.getBytes("UTF-8");
+            byte[] b = s.getBytes(Bytes.UTF8_CHARSET);
             return StringUtil.toHexString(b, 0, b.length).toUpperCase();
         }
     }
