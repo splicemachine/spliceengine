@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.utils;
 
+import java.io.UnsupportedEncodingException;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Pattern;
 
@@ -134,16 +135,14 @@ public class SpliceStringFunctions {
      * @param s An expression that returns a value with a maximum length of 16 336 bytes.
      * @return Returns a hexadecimal representation of a value as a character string
      */
-    @SuppressFBWarnings(value = "DM_DEFAULT_ENCODING", justification = "DB-9844")
-    public static String HEX(String s)
-    {
+    public static String HEX(String s) throws UnsupportedEncodingException {
         if (s == null)
             return null;
-        else
-            return StringUtil.toHexString(s.getBytes(),0,s.length()).toUpperCase();
-
+        else {
+            byte[] b = s.getBytes("UTF-8");
+            return StringUtil.toHexString(b, 0, b.length).toUpperCase();
+        }
     }
-
 
     private static LoadingCache<String, Pattern> patternCache = CacheBuilder.newBuilder().maximumSize(100).build(
         new CacheLoader<String, Pattern>() {
