@@ -341,12 +341,12 @@ public class OverClause extends QueryTreeNode {
         }
     }
 
-    public OverClause replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+    public OverClause replaceIndexExpression(ResultSetNode child) throws StandardException {
         if (partition != null) {
-            partition.replaceIndexExpressions(childRCL);
+            partition.replaceIndexExpressions(child.getResultColumns());
         }
         if (orderByClause != null) {
-            orderByClause.replaceIndexExpressions(childRCL);
+            orderByClause.replaceIndexExpressions(child);
         }
         return this;
     }

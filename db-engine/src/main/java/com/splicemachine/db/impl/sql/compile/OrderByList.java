@@ -620,11 +620,19 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         return false;
     }
 
-    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+    public void replaceIndexExpressions(ResultSetNode child) throws StandardException {
+        ResultColumnList childRCL = child.getResultColumns();
         for (int i = 0; i < size(); i++) {
             OrderByColumn obc = (OrderByColumn) elementAt(i);
             obc.setColumnExpression(obc.getColumnExpression().replaceIndexExpression(childRCL));
         }
+        // OrderByColumns have to be bound again because each OrderByColumn has a resultCol
+        // field pointing to the source ResultColumn, and its columnPosition is obtained from
+        // it. If we replace its expression, the source ResultColumn is likely to be different,
+        // too. Re-bind it so that resultCol and columnPosition can be updated properly. Code
+        // generation logic of OrderByList relies on the underlying columnPositions.
+        // GroupByColumn doesn't have this issue.
+        bindOrderByColumns(child);
     }
 
     public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {

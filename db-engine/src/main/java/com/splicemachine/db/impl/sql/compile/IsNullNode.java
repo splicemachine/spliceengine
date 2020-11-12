@@ -46,6 +46,8 @@ import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This node represents either a unary 
@@ -281,5 +283,13 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
 			operand = operand.replaceIndexExpression(childRCL);
 		}
 		return this;
+	}
+
+	@Override
+	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+		if (operand != null) {
+			return operand.collectExpressions(exprMap);
+		}
+		return true;
 	}
 }

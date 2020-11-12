@@ -272,11 +272,12 @@ public final class WindowDefinitionNode extends WindowNode
     }
 
     @Override
-    public WindowNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+    public WindowNode replaceIndexExpression(ResultSetNode child) throws StandardException {
         if (overClause != null) {
-            overClause = overClause.replaceIndexExpression(childRCL);
+            overClause = overClause.replaceIndexExpression(child);
         }
         if (functionNodes != null) {
+            ResultColumnList childRCL = child.getResultColumns();
             for (WindowFunctionNode wfn : functionNodes) {
                 wfn.replaceIndexExpression(childRCL);
             }

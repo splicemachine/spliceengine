@@ -1261,6 +1261,20 @@ public class SelectNode extends ResultSetNode{
             }
         }
 
+        if(hasWindows()) {
+            for (WindowNode windowDefinition : windowDefinitionList) {
+                if (childResultColumns.isFromExprIndex()) {
+                    windowDefinition.replaceIndexExpression((ResultSetNode) fromList.elementAt(0));
+                }
+            }
+        }
+
+        if(orderByList!=null) {
+            if (childResultColumns.isFromExprIndex()) {
+                orderByList.replaceIndexExpressions((ResultSetNode) fromList.elementAt(0));
+            }
+        }
+
         /*
         ** If we have aggregates OR a select list we want
         ** to generate a GroupByNode.  In the case of a
@@ -1322,9 +1336,6 @@ public class SelectNode extends ResultSetNode{
         if(hasWindows()){
             // Now we add a window result set wrapped in a PRN on top of what we currently have.
             for (WindowNode windowDefinition : windowDefinitionList) {
-                if (childResultColumns.isFromExprIndex()) {
-                    windowDefinition.replaceIndexExpression(childResultColumns);
-                }
                 WindowResultSetNode wrsn =
                         (WindowResultSetNode) getNodeFactory().getNode(
                                 C_NodeTypes.WINDOW_RESULTSET_NODE,
@@ -1410,9 +1421,6 @@ public class SelectNode extends ResultSetNode{
          */
 
         if(orderByList!=null){
-            if (childResultColumns.isFromExprIndex()) {
-                orderByList.replaceIndexExpressions(childResultColumns);
-            }
             // Need to remove sort reduction if you are aggregating (hash)
             if(orderByList.isSortNeeded()
                     || (((selectAggregates!=null) && (!selectAggregates.isEmpty())) || (groupByList!=null))){
@@ -2446,29 +2454,6 @@ public class SelectNode extends ResultSetNode{
         }
 
         return wl;
-    }
-
-
-    /*
-        From where clause, this method returns a collection of all predicates that are eligible as a hash join predicate.
-        That is, the operator is an equal operator, both operands are column references.
-     */
-    private void collectJoinPredicates(ValueNode n,List<BinaryRelationalOperatorNode> l){
-
-        if(n instanceof BinaryRelationalOperatorNode){
-            BinaryRelationalOperatorNode cNode=(BinaryRelationalOperatorNode)n;
-            if(cNode.operator.compareTo("=")==0
-                    && cNode.leftOperand instanceof ColumnReference
-                    && cNode.rightOperand instanceof ColumnReference){
-
-                l.add((BinaryRelationalOperatorNode)n);
-            }
-        }else if(n instanceof BinaryOperatorNode){
-            collectJoinPredicates(((BinaryOperatorNode)n).leftOperand,l);
-            collectJoinPredicates(((BinaryOperatorNode)n).rightOperand,l);
-        }else if(n instanceof UnaryOperatorNode){
-            collectJoinPredicates(((UnaryOperatorNode)n).operand,l);
-        }
     }
 
     /**

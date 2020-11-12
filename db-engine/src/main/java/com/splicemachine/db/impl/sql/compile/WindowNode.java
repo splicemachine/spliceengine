@@ -91,7 +91,7 @@ public abstract class WindowNode extends QueryTreeNode
 
     public abstract void setOverClause(OverClause overClause);
 
-    public abstract WindowNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException;
+    public abstract WindowNode replaceIndexExpression(ResultSetNode child) throws StandardException;
 
     public abstract boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap);
 

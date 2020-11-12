@@ -41,9 +41,11 @@ import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.ast.CollectingVisitor;
 import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
 import com.splicemachine.db.impl.ast.SpliceDerbyVisitorAdapter;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
+import splice.com.google.common.base.Predicates;
 
 import java.util.*;
 
@@ -173,19 +175,38 @@ public abstract class DMLStatementNode extends StatementNode {
         // in the query and set them to base tables accordingly. This step is
         // necessary for deciding if an index on expressions is a covering index.
         Map<Integer, Set<ValueNode>> exprMap = new HashMap<>();
-        CollectNodesVisitor cnv = new CollectNodesVisitor(SelectNode.class);
-        accept(cnv);
-        List<SelectNode> snList = cnv.getList();
-        for (SelectNode sn : snList) {
-            sn.collectExpressions().forEach((k, v) -> {
-                if (exprMap.containsKey(k)) {
-                    exprMap.get(k).addAll(v);
-                } else {
-                    exprMap.put(k, v);
+        CollectingVisitor<QueryTreeNode> cv = new CollectingVisitor<>(
+                Predicates.or(
+                        Predicates.instanceOf(SelectNode.class),
+                        Predicates.instanceOf(SubqueryNode.class)
+                ));
+        accept(cv);
+        List<QueryTreeNode> nodeList = cv.getCollected();
+        for (QueryTreeNode node : nodeList) {
+            if (node instanceof SelectNode) {
+                ((SelectNode) node).collectExpressions().forEach((k, v) -> {
+                    if (exprMap.containsKey(k)) {
+                        exprMap.get(k).addAll(v);
+                    } else {
+                        exprMap.put(k, v);
+                    }
+                });
+            } else if (node instanceof SubqueryNode) {
+                SubqueryNode subq = (SubqueryNode) node;
+                if (subq.leftOperand != null) {
+                    subq.leftOperand.collectExpressions(exprMap);
                 }
-            });
+                if (subq.resultSet instanceof ProjectRestrictNode) {
+                    // don't call ProjectRestrictNode.collectExpressions() because it will
+                    // collect child SelectNode again
+                    PredicateList predList = ((ProjectRestrictNode) subq.resultSet).restrictionList;
+                    if (predList != null) {
+                        predList.collectExpressions(exprMap);
+                    }
+                }
+            }
         }
-        cnv = new CollectNodesVisitor(FromBaseTable.class);
+        CollectNodesVisitor cnv = new CollectNodesVisitor(FromBaseTable.class);
         accept(cnv);
         List<FromBaseTable> fbtList = cnv.getList();
         for (FromBaseTable fbt : fbtList) {

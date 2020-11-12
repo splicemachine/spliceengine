@@ -1590,7 +1590,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     }
 
     public boolean collectSingleExpression(Map<Integer, Set<ValueNode>> map) {
-        if (this instanceof AggregateNode || this instanceof SubqueryNode) {
+        if (this instanceof AggregateNode || this instanceof SubqueryNode || this instanceof VirtualColumnNode) {
             return true;
         }
 

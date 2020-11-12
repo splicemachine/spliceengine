@@ -105,7 +105,7 @@ public final class WindowReferenceNode extends WindowNode
     }
 
     @Override
-    public WindowNode replaceIndexExpression(ResultColumnList childRCL) {
+    public WindowNode replaceIndexExpression(ResultSetNode child) {
         return this;
     }
 
