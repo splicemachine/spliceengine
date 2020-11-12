@@ -15,6 +15,7 @@
 package com.splicemachine.ck.visitor;
 
 import com.splicemachine.ck.decoder.UserDataDecoder;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Result;
 
@@ -25,8 +26,8 @@ public class TableRowPrinter implements IRowPrinter {
 
     private final TableCellPrinter tableCellPrinter;
 
-    public TableRowPrinter(UserDataDecoder decoder) {
-        this.tableCellPrinter = new TableCellPrinter(decoder);
+    public TableRowPrinter(UserDataDecoder decoder, boolean hbase) {
+        this.tableCellPrinter = new TableCellPrinter(decoder, hbase);
     }
 
     @Override
