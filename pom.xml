@@ -92,7 +92,7 @@
         <netty-all.version>4.1.17.Final</netty-all.version>
         <scalatest.version>2.2.4</scalatest.version>
         <scalamock.version>3.1.4</scalamock.version>
-        <commons.lang3.version>3.3.2</commons.lang3.version>
+        <commons.lang3.version>3.5</commons.lang3.version>
         <fasterxml.jackson.version>2.9.9</fasterxml.jackson.version>
         <spark.warehouse>-Dsplice.spark.sql.warehouse.dir=${project.build.directory}/spark-warehouse</spark.warehouse>
         <hbase.rootdir>-Dhbase.rootdir=${project.build.directory}/hbase</hbase.rootdir>
