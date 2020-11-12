@@ -1088,7 +1088,7 @@ public class OptimizerImpl implements Optimizer{
         if (irg != null && irg.isOnExpression()) {
             for (int i = 0; i < predicateList.size(); i++) {
                 PredicateList.isIndexUseful((Predicate) predicateList.getOptPredicate(i), optimizable,
-                        false, false, optimizable.getCurrentAccessPath().getConglomerateDescriptor());
+                        false, false, currentCd);
             }
         }
 

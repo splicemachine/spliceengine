@@ -1745,7 +1745,7 @@ public class IndexIT extends SpliceUnitTest{
 
         /* check plan */
         try(ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
-            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             Assert.assertTrue(explainPlanText.contains("IndexScan"));
             Assert.assertFalse(explainPlanText.contains("IndexLookup"));  // no base row retrieving
             Assert.assertTrue(explainPlanText.contains("OrderBy"));
@@ -2350,7 +2350,7 @@ public class IndexIT extends SpliceUnitTest{
                 "ProjectRestrict",
                 "IndexScan[TEST_SUBQ_A_IDX",
         };
-        rowContainsQuery(new int[]{5,7,8,9,10}, "explain " + query, methodWatcher, expectedOps);
+        rowContainsQuery(new int[]{5,6,7,8,9}, "explain " + query, methodWatcher, expectedOps);
 
         expected = "A2 |\n" +
                 "----\n" +

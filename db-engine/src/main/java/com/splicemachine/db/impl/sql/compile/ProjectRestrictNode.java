@@ -1093,6 +1093,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
     }
 
     /**
+     * @inheritDoc
+     */
+    @Override
+    public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException {
+        return childResult.getMatchingColumn(columnReference);
+    }
+
+    /**
      * Put a ProjectRestrictNode on top of each FromTable in the FromList.
      * ColumnReferences must continue to point to the same ResultColumn, so
      * that ResultColumn must percolate up to the new PRN.  However,

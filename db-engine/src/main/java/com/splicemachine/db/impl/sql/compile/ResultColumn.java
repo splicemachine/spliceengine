@@ -85,7 +85,6 @@ public class ResultColumn extends ValueNode
     String            tableName;
     String            sourceTableName;
     long              sourceConglomerateNumber;
-    int               sourceConglomerateColumnPosition;
     //Used by metadata api ResultSetMetaData.getSchemaName to get a column's table's schema.
     String            sourceSchemaName;
     ValueNode        expression;
@@ -452,12 +451,6 @@ public class ResultColumn extends ValueNode
         this.sourceConglomerateNumber = sourceConglomerateName;
     }
 
-    public int getSourceConglomerateColumnPosition() { return sourceConglomerateColumnPosition; }
-
-    public void setSourceConglomerateColumnPosition(int sourceConglomerateColumnPosition) {
-        this.sourceConglomerateColumnPosition = sourceConglomerateColumnPosition;
-    }
-
     /**
      * Clear the table name for the underlying ColumnReference.
      * See UpdateNode.scrubResultColumns() for full explaination.
@@ -478,8 +471,6 @@ public class ResultColumn extends ValueNode
     public int getColumnPosition() {
         if (columnDescriptor!=null)
             return columnDescriptor.getPosition();
-        else if (sourceConglomerateColumnPosition > 0)
-            return sourceConglomerateColumnPosition;
         else
             return virtualColumnId;
     }
@@ -487,8 +478,6 @@ public class ResultColumn extends ValueNode
     public int getStoragePosition() {
         if (columnDescriptor!=null)
             return columnDescriptor.getStoragePosition();
-        else if (sourceConglomerateColumnPosition > 0)
-            return sourceConglomerateColumnPosition;
         else
             return virtualColumnId;
     }
@@ -1619,7 +1608,6 @@ public class ResultColumn extends ValueNode
         newResultColumn.setSourceTableName(getSourceTableName());
         newResultColumn.setSourceSchemaName(getSourceSchemaName());
         newResultColumn.setSourceConglomerateNumber(getSourceConglomerateNumber());
-        newResultColumn.setSourceConglomerateColumnPosition(getSourceConglomerateColumnPosition());
 
         /* Set the "is generated for unmatched column in insert" status in the new node
         This if for bug 4194*/

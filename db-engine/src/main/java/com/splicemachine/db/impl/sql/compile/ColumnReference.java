@@ -412,7 +412,7 @@ public class ColumnReference extends ValueNode {
      * @return boolean    True if this node was generated to replace an index
      *                    expression in the user's SELECT. False otherwise.
      */
-    public boolean getGeneratedToReplaceIndexExpression()
+    public boolean isGeneratedToReplaceIndexExpression()
     {
         return replacesIndexExpression;
     }
@@ -457,7 +457,7 @@ public class ColumnReference extends ValueNode {
         replacesWindowFunctionCall =
                 oldCR.getGeneratedToReplaceWindowFunctionCall();
         replacesIndexExpression =
-                oldCR.getGeneratedToReplaceIndexExpression();
+                oldCR.isGeneratedToReplaceIndexExpression();
         scoped = oldCR.isScoped();
     }
 

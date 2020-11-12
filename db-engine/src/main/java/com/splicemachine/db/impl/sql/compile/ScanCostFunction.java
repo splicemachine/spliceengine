@@ -33,10 +33,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -280,7 +278,7 @@ public class ScanCostFunction{
             for (Object o : p.getSourceInList().leftOperandList) {
                 List<ColumnReference> crList = ((ValueNode)o).getHashableJoinColumnReference();
                 for (ColumnReference cr : crList) {
-                    if (!scc.useRealColumnStatistics(cr.getGeneratedToReplaceIndexExpression(), cr.getColumnNumber()))
+                    if (!scc.useRealColumnStatistics(cr.isGeneratedToReplaceIndexExpression(), cr.getColumnNumber()))
                         usedNoStatsColumnIds.add(cr.getColumnNumber());
                 }
             }
@@ -290,7 +288,7 @@ public class ScanCostFunction{
     private void collectNoStatsColumnsFromUnaryAndBinaryPred(Predicate p) {
         if (p.getRelop() != null) {
             ColumnReference cr = p.getRelop().getColumnOperand(baseTable);
-            if (cr != null && !scc.useRealColumnStatistics(cr.getGeneratedToReplaceIndexExpression(), cr.getColumnNumber())) {
+            if (cr != null && !scc.useRealColumnStatistics(cr.isGeneratedToReplaceIndexExpression(), cr.getColumnNumber())) {
                 usedNoStatsColumnIds.add(cr.getColumnNumber());
             }
         }

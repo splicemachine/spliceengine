@@ -1621,6 +1621,14 @@ public class BinaryRelationalOperatorNode
         }
     }
 
+    /* Get a ColumnReference for an index on expression column so that we can get a
+     * StoreCostController to get correct statistics. We need this because in cost
+     * estimation, index expression are not rewritten yet.
+     * Note that the returned ColumnReference should only be used to retrieve
+     * statistics because it's column position is set to conglomerate column
+     * position of the index expression. It doesn't refer to any child result set
+     * columns.
+     */
     private ColumnReference getColumnOrIndexExprColumn(int side)
             throws StandardException
     {
@@ -1649,12 +1657,13 @@ public class BinaryRelationalOperatorNode
                 getContextManager());
         rc.setIndexExpression(operand);
         rc.setReferenced();
-        rc.setVirtualColumnId(indexColumnPosition + 1);  // virtual column IDs are 1-based
+        // virtual column IDs are 1-based, set to conglomerate index column position
+        // so that we can get column statistics correctly
+        rc.setVirtualColumnId(indexColumnPosition + 1);
         rc.setName(conglomDesc.getConglomerateName() + "_col" + rc.getColumnPosition());
         rc.setSourceTableName(baseColumnRef.getSourceTableName());
         rc.setSourceSchemaName(baseColumnRef.getSourceSchemaName());
         rc.setSourceConglomerateNumber(conglomDesc.getConglomerateNumber());
-        rc.setSourceConglomerateColumnPosition(indexColumnPosition);
 
         return rc.getColumnReference(operand);
     }
@@ -1713,6 +1722,9 @@ public class BinaryRelationalOperatorNode
         StoreCostController innerTableCostController = innerColumn.getStoreCostController();
         StoreCostController outerTableCostController = outerColumn.getStoreCostController();
 
+        final int innerColumnPosition = innerColumn.getSource().getColumnPosition();
+        final int outerColumnPosition = outerColumn.getSource().getColumnPosition();
+
         DataValueDescriptor minOuterColumn = null;
         DataValueDescriptor maxOuterColumn = null;
         DataValueDescriptor minInnerColumn = null;
@@ -1721,18 +1733,18 @@ public class BinaryRelationalOperatorNode
             long rc = (long)outerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            boolean forIndexExpr = outerColumn.getGeneratedToReplaceIndexExpression();
-            minOuterColumn = outerTableCostController.minValue(forIndexExpr, outerColumn.getColumnNumber());
-            maxOuterColumn = outerTableCostController.maxValue(forIndexExpr, outerColumn.getColumnNumber());
+            boolean forIndexExpr = outerColumn.isGeneratedToReplaceIndexExpression();
+            minOuterColumn = outerTableCostController.minValue(forIndexExpr, outerColumnPosition);
+            maxOuterColumn = outerTableCostController.maxValue(forIndexExpr, outerColumnPosition);
         }
 
         if (innerTableCostController != null) {
             long rc = (long)innerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            boolean forIndexExpr = innerColumn.getGeneratedToReplaceIndexExpression();
-            minInnerColumn = innerTableCostController.minValue(forIndexExpr, innerColumn.getColumnNumber());
-            maxInnerColumn = innerTableCostController.maxValue(forIndexExpr, innerColumn.getColumnNumber());
+            boolean forIndexExpr = innerColumn.isGeneratedToReplaceIndexExpression();
+            minInnerColumn = innerTableCostController.minValue(forIndexExpr, innerColumnPosition);
+            maxInnerColumn = innerTableCostController.maxValue(forIndexExpr, innerColumnPosition);
         }
 
         DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
@@ -1740,21 +1752,21 @@ public class BinaryRelationalOperatorNode
 
         if (startKey!= null && minInnerColumn != null && startKey.compare(minInnerColumn) > 0 ||
                 endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
-            selectivity *= innerTableCostController.getSelectivity(innerColumn.getGeneratedToReplaceIndexExpression(),
-                    innerColumn.getColumnNumber(), startKey, true, endKey, true, false);
+            selectivity *= innerTableCostController.getSelectivity(innerColumn.isGeneratedToReplaceIndexExpression(),
+                    innerColumnPosition, startKey, true, endKey, true, false);
         }
         else if (this.operatorType == EQUALS_RELOP) {
             // Use a more realistic selectivity that takes the
             // inner table RPV into account instead of defaulting
             // to a selectivity of 1.
             double outerCardinality =
-                     outerTableCostController.cardinality(
-                             outerColumn.getGeneratedToReplaceIndexExpression(),
-                             outerColumn.getColumnNumber());
+                    outerTableCostController.cardinality(
+                            outerColumn.isGeneratedToReplaceIndexExpression(),
+                            outerColumnPosition);
             double innerCardinality =
-                        innerTableCostController.cardinality(
-                                innerColumn.getGeneratedToReplaceIndexExpression(),
-                                innerColumn.getColumnNumber());
+                    innerTableCostController.cardinality(
+                            innerColumn.isGeneratedToReplaceIndexExpression(),
+                            innerColumnPosition);
 
             // If cardinality values are uninitialized (zero),
             // we can't apply this estimation formula.

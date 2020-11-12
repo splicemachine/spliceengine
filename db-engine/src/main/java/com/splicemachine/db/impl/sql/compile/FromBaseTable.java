@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -1561,7 +1562,7 @@ public class FromBaseTable extends FromTable {
      * that matches the ColumnReference.
      * Returns null if there is no match.
      */
-
+    @Override
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException{
         ResultColumn resultColumn=null;
         TableName columnsTableName;
@@ -2120,7 +2121,6 @@ public class FromBaseTable extends FromTable {
                 rc.setSourceTableName(this.getBaseTableName());
                 rc.setSourceSchemaName(this.getTableDescriptor().getSchemaName());
                 rc.setSourceConglomerateNumber(idxCD.getConglomerateNumber());
-                rc.setSourceConglomerateColumnPosition(rc.getColumnPosition());
                 newCols.addResultColumn(rc);
             }
         } else {
@@ -3395,17 +3395,7 @@ public class FromBaseTable extends FromTable {
 
         if (irg.isOnExpression()) {
             LanguageConnectionContext lcc = getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = irg.getExprTexts();
-            ValueNode[] exprAsts = new ValueNode[exprTexts.length];
-            for (String exprText : exprTexts) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprText);
-                PredicateList.setTableNumber(exprAst, this);
-            }
-            lcc.popCompilerContext(newCC);
-
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(lcc, this);
             for (ValueNode exprAst : exprAsts) {
                 List<Predicate> optimizableEqualityPredicateList =
                         restrictionList.getOptimizableEqualityPredicateList(this, exprAst, true);
