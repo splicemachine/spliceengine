@@ -2054,6 +2054,27 @@ public class IndexIT extends SpliceUnitTest{
         try(ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
+
+        // left outer join with post join conditions
+        query = "select a1+1, b2 from TEST_INDEX_EXPR_FOJ_2 left join TEST_INDEX_EXPR_FOJ_1 --splice-properties index=TEST_INDEX_EXPR_FOJ_1_IDX\n " +
+                "on a1+1=a2 where a1+1 is null";
+
+        /* check plan */
+        try (ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
+            Assert.assertTrue(explainPlanText.contains("IndexScan[TEST_INDEX_EXPR_FOJ_1_IDX"));
+            Assert.assertTrue(explainPlanText.contains("[is null(TEST_INDEX_EXPR_FOJ_1_IDX_col1["));
+            Assert.assertFalse(explainPlanText.contains("IndexLookup")); // no base row retrieving
+        }
+
+        /* check result */
+        expected = "1  |B2 |\n" +
+                "----------\n" +
+                "NULL | 1 |\n" +
+                "NULL | 5 |";
+        try(ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
     }
 
     @Test

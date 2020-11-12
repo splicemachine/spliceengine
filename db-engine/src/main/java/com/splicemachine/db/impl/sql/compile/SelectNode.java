@@ -2025,6 +2025,10 @@ public class SelectNode extends ResultSetNode{
                         newPRNode.addNewPredicate(pred);
                     }
                     ((FromTable)rightResultSet).setPostJoinPredicates(null);
+                    if (postJoinPredicates.size() > 0) {
+                        ((ProjectRestrictNode) newPRNode).getRestrictionList()
+                                .replaceIndexExpression(joinNode.getResultColumns());
+                    }
                 }
             }
 
