@@ -120,4 +120,20 @@ public class TimeTravelTest {
         TxnTimeTraveler timeTraveler = new TxnTimeTraveler(txnFinder);
         Assert.assertEquals(4277504, (long)timeTraveler.getTxAt(toTs("2020-07-03 21:31:19.123")).getFirst() - SIConstants.TRASANCTION_INCREMENT);
     }
+
+    @Test // DB-10705
+    public void testExtensiveTransactionalLoad() throws Exception {
+        MockTxnFinder txnFinder = new MockTxnFinder();
+        txnFinder
+                .AddTxn(2, 4277504, "2020-07-03 21:27:15.540")
+                .AddTxn(2, 4277760, "2020-07-03 21:27:16.600")
+                .AddTxn(2, 4278016, "2020-07-03 21:27:17.000")
+                .AddTxn(2, 4278272, "2020-07-03 21:27:17.000")
+                .AddTxn(2, 4278528, "2020-07-03 21:27:17.000")
+                .AddTxn(2, 4278784, "2020-07-03 21:27:17.000")
+                .AddTxn(2, 4279040, "2020-07-03 21:27:17.000")
+                .AddTxn(2, 4279296, "2020-07-03 21:27:17.000");
+        TxnTimeTraveler timeTraveler = new TxnTimeTraveler(txnFinder);
+        Assert.assertEquals(4277760, (long) timeTraveler.getTxAt(toTs("2020-07-03 21:27:16.900")).getFirst() - SIConstants.TRASANCTION_INCREMENT);
+    }
 }
