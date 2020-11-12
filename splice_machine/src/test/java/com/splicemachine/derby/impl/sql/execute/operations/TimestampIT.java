@@ -797,15 +797,31 @@ public class TimestampIT extends SpliceUnitTest {
         for (int i=0; i< units.length; i++) {
             String sqlText = format("select current_timestamp - 3 %s, timestampadd(%s, -3, current_timestamp) from sysibm.sysdummy1 --splice-properties useSpark=%s", units[i], units2[i], useSpark);
 
-            ResultSet rs = methodWatcher.executeQuery(sqlText);
-            assertTrue("Result does not match!", !rs.next() || rs.getTimestamp(1) != rs.getTimestamp(2));
-            rs.close();
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                assertTrue("Result does not match!", !rs.next() || rs.getTimestamp(1) != rs.getTimestamp(2));
+            }
 
             sqlText = format("select current_timestamp + 3 %s, timestampadd(%s, 3, current_timestamp) from sysibm.sysdummy1 --splice-properties useSpark=%s", units[i], units2[i], useSpark);
 
-            rs = methodWatcher.executeQuery(sqlText);
-            assertTrue("Result does not match!", !rs.next() || rs.getTimestamp(1) != rs.getTimestamp(2));
-            rs.close();
+            try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+                assertTrue("Result does not match!", !rs.next() || rs.getTimestamp(1) != rs.getTimestamp(2));
+            }
+        }
+    }
+
+    @Test
+    public void testAddTimeSpanToTimestampValue() throws Exception {
+        try (ResultSet rs = methodWatcher.executeQuery("select timestamp('2020-01-01 00:00:00') + 2 minutes")) {
+            rs.next();
+            assertEquals(new Timestamp(2020 - 1900, 0, 1, 0, 2, 0, 0), rs.getTimestamp(1));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery("select 1 minute + timestamp('2020-01-01 00:00:00')")) {
+            rs.next();
+            assertEquals(new Timestamp(2020 - 1900, 0, 1, 0, 1, 0, 0), rs.getTimestamp(1));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery("select timestamp('2020-01-01 00:00:00') + 2 minutes + 30 seconds")) {
+            rs.next();
+            assertEquals(new Timestamp(2020 - 1900, 0, 1, 0, 2, 30, 0), rs.getTimestamp(1));
         }
     }
 }

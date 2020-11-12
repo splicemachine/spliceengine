@@ -1694,6 +1694,13 @@ Guide.
             </msg>
 
             <msg>
+                <name>429BX</name>
+                <text>Invalid index expression: '{0}'. An index expression must contain at least one column reference and not any subqueries, aggregate functions, window functions, nondeterminstic functions, user-defined functions, sequence references, parameters, or disallowed functions. Also, it must return a scalar value which can be indexed.
+                </text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
                 <name>42X01</name>
                 <text>Syntax error: {0}.</text>
                 <arg>error</arg>
@@ -2965,6 +2972,12 @@ Guide.
             <msg>
                 <name>42Z50</name>
                 <text>INTERNAL ERROR: Unable to generate code for {0}.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
+                <name>42Z51</name>
+                <text>INTERNAL ERROR: Unable to load generate code for {0}.</text>
                 <arg>value</arg>
             </msg>
 

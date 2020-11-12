@@ -895,6 +895,13 @@ public class OperatorToString {
                 int typeFormatId = operand.getTypeId().getTypeFormatId();
                 if (!sparkSupportedType(typeFormatId, operand))
                     throwNotImplementedError();
+                if (operand.getTypeId().isCharOrVarChar()) {
+                    // Disallow cast to a string type for possible problematic cases.
+                    // CHAR and VARCHAR are mapped to the same String type in spark sql,
+                    // so char('', 2) and varchar('', 2) are resolved to the same type, with lenght 0
+                    // varchar('abc', 1) and char('abc', 1) don't truncate strings properly either
+                    throwNotImplementedError();
+                }
 
                 sb.append(format("CAST(%s ", opToString2(castOperand, vars)));
                 SparkExpressionNode childExpression = vars.sparkExpressionTree;
