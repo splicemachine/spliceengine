@@ -28,89 +28,59 @@
  * All such Splice Machine modifications are Copyright 2012 - 2020 Splice Machine, Inc.,
  * and are licensed to you under the GNU Affero General Public License.
  */
-
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 /**
- * Represents a reference to an explicitly defined window
+ * Replaces an expression matching the index expression of
+ * ResultColumn <em>rc</em> with a ColumnReference to <em>rc</em>.
+ * 
  */
-public final class WindowReferenceNode extends WindowNode
+class IndexExpressionReplacementVisitor implements Visitor
 {
-    /**
-     * Initializer
-     *
-     * @param arg1 The window name referenced
-     *
-     * @exception StandardException
-     */
-    public void init(Object arg1)
-        throws StandardException
+    protected int          numSubstitutions;
+    protected ResultColumn rc;
+    private   Class        skipOverClass;
+
+    IndexExpressionReplacementVisitor(ResultColumn rc, Class skipThisClass) {
+        this.rc = rc;
+        this.skipOverClass = skipThisClass;
+    }
+
+    @Override
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
+        if (!(node instanceof ValueNode)) {
+            return node;
+        }
+        
+        ValueNode nd = (ValueNode)node;
+        if (nd.semanticallyEquals(rc.getIndexExpression())) {
+            ++numSubstitutions;
+            return rc.getColumnReference(nd);
+        } else {
+            return node;
+        }
+    }
+
+    public int getNumSubstitutions() {
+        return numSubstitutions;
+    }
+
+    public boolean stopTraversal() 
     {
-        super.init(arg1);
+        return false;
     }
 
-    @Override
-    public List<OrderedColumn> getPartition() {
-        return null;
+    public boolean skipChildren(Visitable node) 
+    {
+        return skipOverClass != null && skipOverClass.isInstance(node);
     }
 
-    @Override
-    public WindowFrameDefinition getFrameExtent() {
-        return null;
-    }
-
-    @Override
-    public List<OrderedColumn> getOrderByList() {
-        return null;
-    }
-
-    @Override
-    public List<WindowFunctionNode> getWindowFunctions() {
-        return null;
-    }
-
-    @Override
-    public void addWindowFunction(WindowFunctionNode functionNode) {
-
-    }
-
-    @Override
-    public void bind(SelectNode selectNode) {
-    }
-
-    @Override
-    public List<OrderedColumn> getOverColumns() {
-        return null;
-    }
-
-    @Override
-    public String toString() {
-        return "referenced window: " + getName() + "\n" +
-            super.toString();
-    }
-
-    @Override
-    public OverClause getOverClause() {
-        return null;
-    }
-
-    @Override
-    public void setOverClause(OverClause overClause) {
-    }
-
-    @Override
-    public WindowNode replaceIndexExpression(ResultSetNode child) {
-        return this;
-    }
-
-    @Override
-    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
-        return true;
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
     }
 }

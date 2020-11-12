@@ -42,9 +42,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.BitSet;
-import java.util.Hashtable;
-import java.util.List;
+import java.util.*;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
@@ -63,6 +61,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      */
     int equivalenceClass=-1;
     // indexPosition of -1 is used by rowId, so use -2 to indicate that it has been set
+    // indexPosition is set and used per table, it could be set to a different value in each pass
     int indexPosition=-2;
     protected boolean startKey;
     protected boolean stopKey;
@@ -1480,6 +1479,24 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     public void setMatchIndexExpression(boolean matchIndexExpression) {
         this.matchIndexExpression = matchIndexExpression;
+    }
+
+    public void replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        if (childRCL != null) {
+            ValueNode op = getAndNode().getLeftOperand();
+            if (op == null)
+                return;
+
+            andNode.leftOperand = op.replaceIndexExpression(childRCL);
+        }
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        ValueNode op = getAndNode().getLeftOperand();
+        if (op == null)
+            return true;
+
+        return op.collectExpressions(exprMap);
     }
 
     public PredicateList getOriginalInListPredList() { return originalInListPredList; }

@@ -46,6 +46,8 @@ import com.splicemachine.db.iapi.types.TypeId;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This node represents either a unary 
@@ -254,6 +256,16 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
 		return cr!=null;
 	}
 
+	@Override
+	public boolean optimizableEqualityNode(Optimizable optTable,
+										   ValueNode indexExpr,
+										   boolean isNullOkay) {
+		if (!isNullNode() || !isNullOkay)
+			return false;
+
+		return indexExpr.semanticallyEquals(operand);
+	}
+
     /**
      *
      * The cardinality of a isNull UnaryOperator.  Always 2.
@@ -265,5 +277,19 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
         return Math.min(2L, numberOfRows);
     }
 
+    @Override
+	public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+		if (operand != null) {
+			operand = operand.replaceIndexExpression(childRCL);
+		}
+		return this;
+	}
 
+	@Override
+	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+		if (operand != null) {
+			return operand.collectExpressions(exprMap);
+		}
+		return true;
+	}
 }
