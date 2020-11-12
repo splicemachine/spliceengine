@@ -52,10 +52,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 import static com.splicemachine.db.iapi.types.Orderable.*;
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
@@ -199,7 +196,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
             if (id.isOnExpression()) {
                 assert exprAst != null;
-                if (matchIndexExpression(relop, inNode, isIn, pred.isInListProbePredicate(), exprAst, optTable)) {
+                if (matchIndexExpression(relop, inNode, isIn, pred.isInListProbePredicate(), exprAst, 0, optTable, cd)) {
                     List<ColumnReference> crList = exprAst.getHashableJoinColumnReference();
                     assert !crList.isEmpty() : "index expression must contain at least one column reference";
                     indexCol = crList.get(0);
@@ -368,10 +365,21 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
     @Override
     public boolean hasOptimizableEquijoin(Optimizable optTable,int columnNumber) throws StandardException{
+        return hasOptimizableEquijoinHelper(optTable, columnNumber, null, false);
+    }
+
+    @Override
+    public boolean hasOptimizableEquijoin(Optimizable optTable, ValueNode expr) throws StandardException {
+        return hasOptimizableEquijoinHelper(optTable, -1, expr, true);
+    }
+
+    private boolean hasOptimizableEquijoinHelper(Optimizable optTable,
+                                                 int columnNumber, ValueNode expr,
+                                                 boolean isExpr) throws StandardException {
         int size=size();
-        for(int index=0;index<size;index++){
+        for (int i = 0; i < size; i++){
             AndNode andNode;
-            Predicate predicate=elementAt(index);
+            Predicate predicate = elementAt(i);
 
             // This method is used by HashJoinStrategy to determine if
             // there are any equality predicates that can be used to
@@ -382,45 +390,57 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // because one of the operands is in an outer query and
             // the other (scoped) operand is down in a subquery. Thus
             // we skip this predicate if it has been scoped.
-            if(predicate.isScopedForPush()){
+            if (predicate.isScopedForPush()) {
                 continue;
             }
 
-            andNode=predicate.getAndNode();
-
-            ValueNode leftNode=andNode.getLeftOperand();
-
-            if(!leftNode.optimizableEqualityNode(optTable,columnNumber,false)){
+            // skip non-join comparisons
+            if (predicate.getReferencedMap().hasSingleBitSet()) {
                 continue;
             }
 
-            /*
-            ** Skip comparisons that are not qualifiers for the table
-            ** in question.
-            */
+            andNode = predicate.getAndNode();
+            ValueNode leftNode = andNode.getLeftOperand();
+
+            if (isExpr) {
+                if (!leftNode.optimizableEqualityNode(optTable, expr, false)) {
+                    continue;
+                }
+            } else {
+                if (!leftNode.optimizableEqualityNode(optTable, columnNumber, false)) {
+                    continue;
+                }
+            }
+
             if (!(leftNode instanceof BinaryRelationalOperatorNode)) {
                 continue;
             }
-            if(!((BinaryRelationalOperatorNode)leftNode).isQualifierForHashableJoin(optTable,false)){
-                continue;
-            }
 
-            /*
-            ** Skip non-join comparisons.
-            */
-            if(predicate.getReferencedMap().hasSingleBitSet()){
-                continue;
+            if (!isExpr) {
+                if (!((BinaryRelationalOperatorNode)leftNode).isQualifierForHashableJoin(optTable,false)) {
+                    continue;
+                }
             }
+            // for index expression comparison, optimizableEqualityNode() is already sufficient
 
-            // We found a match
             return true;
         }
-
         return false;
     }
 
     @Override
-    public void putOptimizableEqualityPredicateFirst(Optimizable optTable,int columnNumber) throws StandardException{
+    public void putOptimizableEqualityPredicateFirst(Optimizable optTable, int columnNumber) throws StandardException{
+        putOptimizableEqualityPredicateFirstHelper(optTable, columnNumber, null, false);
+    }
+
+    @Override
+    public void putOptimizableEqualityPredicateFirst(Optimizable optTable, ValueNode expr) throws StandardException{
+        putOptimizableEqualityPredicateFirstHelper(optTable, -1, expr, true);
+    }
+
+    private void putOptimizableEqualityPredicateFirstHelper(Optimizable optTable,
+                                                            int columnNumber, ValueNode expr,
+                                                            boolean isExpr) throws StandardException{
         int size=size();
         for(int index=0;index<size;index++){
             Predicate predicate=elementAt(index);
@@ -430,8 +450,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             // skip non-equality predicates
             ValueNode opNode=andNode.getLeftOperand();
 
-            if(!opNode.optimizableEqualityNode(optTable,columnNumber,false))
-                continue;
+            if (isExpr) {
+                if (!opNode.optimizableEqualityNode(optTable, expr, false))
+                    continue;
+            } else {
+                if (!opNode.optimizableEqualityNode(optTable, columnNumber, false))
+                    continue;
+            }
 
             // We found a match - make this entry first in the list
             if(index!=0){
@@ -446,7 +471,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
          * know that the desired equality predicate exists.
          */
         if(SanityManager.DEBUG){
-            SanityManager.THROWASSERT("Could  not find the expected equality predicate on column #"+columnNumber);
+            if (isExpr) {
+                SanityManager.THROWASSERT("Could not find the expected equality predicate on expression " + expr.toString());
+            } else {
+                SanityManager.THROWASSERT("Could not find the expected equality predicate on column #" + columnNumber);
+            }
         }
     }
 
@@ -513,11 +542,15 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                         Optimizable optTable,
                                         boolean pushPreds,
                                         boolean skipProbePreds,
-                                        IndexDescriptor indexDescriptor) throws StandardException{
+                                        ConglomerateDescriptor cd) throws StandardException{
         boolean indexColumnOnOneSide = false;
         int indexPosition = -1;
         RelationalOperator relop=pred.getRelop();
-        boolean isIndexOnExpr = indexDescriptor != null && indexDescriptor.isOnExpression();
+        IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
+        if (irg != null && irg.getIndexDescriptor() == null) {
+            irg = null;
+        }
+        boolean isIndexOnExpr = irg != null && irg.isOnExpression();
 
         /* InListOperatorNodes, while not relational operators, may still
          * be useful.  There are two cases: a) we transformed the IN-list
@@ -550,9 +583,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         /* Look for an index column on one side of the relop */
         if (isIndexOnExpr) {
             LanguageConnectionContext lcc = pred.getLanguageConnectionContext();
-            ValueNode[] exprAsts = indexDescriptor.getParsedIndexExpressions(lcc, optTable);
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(lcc, optTable);
             for (indexPosition = 0; indexPosition < exprAsts.length; indexPosition++) {
-                if (matchIndexExpression(relop, inNode, isIn, pred.isInListProbePredicate(), exprAsts[indexPosition], optTable)) {
+                if (matchIndexExpression(relop, inNode, isIn, pred.isInListProbePredicate(), exprAsts[indexPosition], indexPosition, optTable, cd)) {
                     indexColumnOnOneSide = true;
                     pred.setMatchIndexExpression(true);
                     break;
@@ -560,7 +593,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             }
         } else {
             ColumnReference indexCol=null;
-            int[] baseColumnPositions = indexDescriptor == null ? null : indexDescriptor.baseColumnPositions();
+            int[] baseColumnPositions = irg == null ? null : irg.baseColumnPositions();
             if (baseColumnPositions != null) {
                 for (indexPosition = 0; indexPosition < baseColumnPositions.length; indexPosition++) {
                     if (isIn) {
@@ -608,33 +641,34 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
     private static boolean matchIndexExpression(RelationalOperator relOp, InListOperatorNode inNode,
                                                 boolean isIn, boolean isProbe,
-                                                ValueNode indexExprAst, Optimizable optTable) {
+                                                ValueNode indexExprAst, int indexColumnPosition,
+                                                Optimizable optTable, ConglomerateDescriptor conglomDesc) {
         boolean match = false;
         int tableNumber = optTable.getTableNumber();  // OK to be -1, will be checked when use
         if (isIn) {
-            if (inNode.getLeftOperand().semanticallyEquals(indexExprAst)) {
+            if (indexExprAst.semanticallyEquals(inNode.getLeftOperand())) {
                 match = true;
                 if (isProbe) {
                     assert relOp instanceof BinaryOperatorNode;
                     BinaryOperatorNode binOp = (BinaryOperatorNode) relOp;
-                    binOp.setMatchIndexExpr(tableNumber, true);
+                    binOp.setMatchIndexExpr(tableNumber, indexColumnPosition, conglomDesc, true);
                 }
             }
         } else {
             if (relOp instanceof BinaryOperatorNode) {
                 BinaryOperatorNode binOp = (BinaryOperatorNode) relOp;
-                if (binOp.getLeftOperand().semanticallyEquals(indexExprAst)) {
+                if (indexExprAst.semanticallyEquals(binOp.getLeftOperand())) {
                     match = true;
-                    binOp.setMatchIndexExpr(tableNumber, true);
-                } else if (binOp.getRightOperand().semanticallyEquals(indexExprAst)) {
+                    binOp.setMatchIndexExpr(tableNumber, indexColumnPosition, conglomDesc, true);
+                } else if (indexExprAst.semanticallyEquals(binOp.getRightOperand())) {
                     match = true;
-                    binOp.setMatchIndexExpr(tableNumber, false);
+                    binOp.setMatchIndexExpr(tableNumber, indexColumnPosition, conglomDesc, false);
                 }
             } else if (relOp instanceof IsNullNode) {
                 IsNullNode isNull = (IsNullNode) relOp;
-                if (isNull.getOperand().semanticallyEquals(indexExprAst)) {
+                if (indexExprAst.semanticallyEquals(isNull.getOperand())) {
                     match = true;
-                    // No need to set any matchIndexExpr flag since it won't be used in code generation.
+                    isNull.setMatchIndexExpr(tableNumber, indexColumnPosition, conglomDesc);
                 }
             }
         }
@@ -916,7 +950,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         for(int index=0;index<size;index++){
             Predicate pred=elementAt(index);
 
-            Integer position=isIndexUseful(pred,optTable,pushPreds,skipProbePreds,irg);
+            Integer position=isIndexUseful(pred,optTable,pushPreds,skipProbePreds,cd);
             if(!pred.isFullJoinPredicate() && position!=null){
                 if (pred.isInListProbePredicate()) {
                     inlistPreds.put(position, pred);
@@ -3179,7 +3213,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         ConglomerateDescriptor bestCD = optTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
         boolean isIndexOnExpression = bestCD != null && bestCD.isIndex() && bestCD.getIndexDescriptor().isOnExpression();
         if (isIndexOnExpression) {
-            int indexPosition = pred.getIndexPosition();
+            // pred.getIndexPosition() is not always sufficient, e.g. for multi-column in-list probe.
+            // In that case, it's always the first qualified index column.
+            int indexPosition = or_node.getMatchingExprIndexColumnPosition(optTable.getTableNumber());
             assert indexPosition >= 0;
             if (!absolute)
                 indexPosition = optTable.convertAbsoluteToRelativeColumnPosition(indexPosition);
@@ -3831,6 +3867,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             /* Now we fill in the body of the method */
             LocalField rowField=generateIndexableRow(acb, numberOfColumns);
 
+            /* Why we can simply iterate this predicate list in order and having colNum starts from 0, not checking
+             * on which index column we build a start key from this predicate?
+             * The answer is that when predicates are pushed down to this base table in orderUsefulPredicates(),
+             * all useful predicates are sorted in their index position ascending order, and then pushed in that
+             * order. So if we have decided there, for example, three predicates form a start key, then they are here
+             * just in that order.
+             */
             int colNum=0;
             for(int index=0;index<size;index++){
                 Predicate pred=elementAt(index);
@@ -4704,6 +4747,22 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return canSupportExcludedColumns;
     }
 
+    public void replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        if (childRCL != null) {
+            for (int i = 0; i < size(); i++) {
+                Predicate pred = elementAt(i);
+                pred.replaceIndexExpression(childRCL);
+            }
+        }
+    }
 
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        for(int i = 0; i < size(); i++) {
+            Predicate pred = elementAt(i);
+            result = result && pred.collectExpressions(exprMap);
+        }
+        return result;
+    }
 
 }

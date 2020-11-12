@@ -327,10 +327,4 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 		newAnd.postBindFixup();
 		newAnd.generateExpression(acb, mb);
 	}
-	
-	public int hashCode(){
-		int result = getLeftOperand()==null? 0: getLeftOperand().hashCode();
-		result = 31*result+(rightOperandList==null?0:rightOperandList.hashCode());
-		return result;
-	}
 }
