@@ -262,6 +262,8 @@ public class SpliceIndexObserver implements RegionObserver, RegionCoprocessor {
                     throw exceptionFactory.doNotRetry(mutationResult.toString());//TODO -sf- implement properly!
                 case WRITE_CONFLICT:
                     throw HWriteConflict.fromString(mutationResult.getErrorMessage());
+                case NOT_NULL:
+                    throw exceptionFactory.notNullViolation(mutationResult.getConstraintContext());
                 case NOT_RUN:
                 case SUCCESS:
                 default:
