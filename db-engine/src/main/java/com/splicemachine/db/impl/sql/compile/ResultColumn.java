@@ -1852,8 +1852,8 @@ public class ResultColumn extends ValueNode
                 if (sourceWidth <= maxWidth)
                 {
                     if(formatId == StoredFormatIds.VARCHAR_TYPE_ID)
-                        return dvf.getVarcharDataValue(sourceValue);
-                }
+                            return dvf.getVarcharDataValue(sourceValue);
+                    }
 
                 /*
                 ** Check whether any non-blank characters will be truncated.
@@ -1873,7 +1873,7 @@ public class ResultColumn extends ValueNode
                 }
 
                 if (formatId == StoredFormatIds.VARCHAR_TYPE_ID)
-                    return dvf.getVarcharDataValue(sourceValue.substring(0, maxWidth));
+                        return dvf.getVarcharDataValue(sourceValue.substring(0, maxWidth));
 
             case StoredFormatIds.LONGVARCHAR_TYPE_ID:
                 //No need to check widths here (unlike varchar), since no max width
@@ -1983,8 +1983,24 @@ public class ResultColumn extends ValueNode
         return false;
     }
 
+    public boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (o.getNodeType() == getNodeType()) {
+            ResultColumn other = (ResultColumn)o;
+            if (expression != null) {
+                return expression.isSemanticallyEquivalent(other.expression);
+            }
+        }
+        return false;
+    }
+
     public boolean equals(Object o){
         return this == o;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        return 31 * result + (expression == null ? 0 : expression.hashCode());
     }
 
 
@@ -2024,7 +2040,7 @@ public class ResultColumn extends ValueNode
             return 0;
         ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
         int leftPosition = getColumnPosition();
-        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false, 0).cardinality(false, leftPosition);
+        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false, 0, 0).cardinality(false, leftPosition);
     }
     /**
      *
@@ -2119,6 +2135,21 @@ public class ResultColumn extends ValueNode
         return -1L;
     }
 
+    public ResultColumn getChildResultColumn() {
+        ValueNode expression = getExpression();
+        while (expression != null) {
+            if (expression instanceof VirtualColumnNode) {
+                return ((VirtualColumnNode) expression).getSourceColumn();
+            } else if (expression instanceof ColumnReference) {
+                return ((ColumnReference) expression).getSource();
+            } else if (expression instanceof CastNode) {
+                expression = ((CastNode) expression).getCastOperand();
+            } else {
+                expression = null;
+            }
+        }
+        return null;
+    }
 
     public void setFromLeftChild(boolean fromLeftChild) {
         this.fromLeftChild = fromLeftChild;
@@ -2139,7 +2170,8 @@ public class ResultColumn extends ValueNode
     /**
      * Get a ColumnReference node referring to this ResultColumn. This method should be used only in
      * case of replacing an index expression.
-     * @param originalExpr Original expression to be replaced. originalExpr.equals(getIndexExpression()) should always be true.
+     * @param originalExpr Original expression to be replaced.
+     *                     originalExpr.semanticallyEquals(getIndexExpression()) should always be true.
      * @return A column reference referring to this ResultColumn.
      */
     public ColumnReference getColumnReference(ValueNode originalExpr) throws StandardException {
@@ -2169,6 +2201,22 @@ public class ResultColumn extends ValueNode
         }
 
         return cr;
+    }
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        // For ResultColumn, never construct a new instance. Only replace expression
+        // and set indexExpression properly.
+        if (childRCL != null) {
+            for (ResultColumn childRC : childRCL) {
+                if (expression.semanticallyEquals(childRC.getIndexExpression())) {
+                    expression = childRC.getColumnReference(expression);
+                    indexExpression = childRC.getIndexExpression();
+                    break;
+                }
+            }
+        }
+        return this;
     }
 }
 

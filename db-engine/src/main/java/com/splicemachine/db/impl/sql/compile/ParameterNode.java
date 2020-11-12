@@ -42,7 +42,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.JSQLType;
 import com.splicemachine.db.iapi.types.TypeId;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.sql.Types;
 import java.util.LinkedList;
@@ -54,7 +53,6 @@ import java.util.Vector;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ParameterNode extends ValueNode
 {
 
@@ -524,6 +522,10 @@ public class ParameterNode extends ValueNode
     protected boolean isEquivalent(ValueNode o)
     {
         return this == o;
+    }
+
+    public int hashCode() {
+        return System.identityHashCode(this);
     }
 
     /**

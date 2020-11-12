@@ -35,15 +35,19 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.ast.CollectingVisitor;
+import com.splicemachine.db.impl.ast.LimitOffsetVisitor;
+import com.splicemachine.db.impl.ast.SpliceDerbyVisitorAdapter;
 import com.splicemachine.db.impl.sql.compile.subquery.SubqueryFlattening;
+import splice.com.google.common.base.Predicates;
 
-import java.util.Collection;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A DMLStatementNode represents any type of DML statement: a cursor declaration, an INSERT statement, and UPDATE
@@ -151,7 +155,7 @@ public abstract class DMLStatementNode extends StatementNode {
         int maximalPossibleTableCount = getCompilerContext().getNumTables() + numOfWhereSubqueries;
         getCompilerContext().setMaximalPossibleTableCount(maximalPossibleTableCount);
 
-        resultSet = resultSet.preprocess(maximalPossibleTableCount, null, null, null);
+        resultSet = resultSet.preprocess(maximalPossibleTableCount, null, null);
         // Evaluate expressions with constant operands here to simplify the
         // query tree and to reduce the runtime cost. Do it before optimize()
         // since the simpler tree may have more accurate information for
@@ -167,7 +171,47 @@ public abstract class DMLStatementNode extends StatementNode {
         // prune tree based on unsat condition
         accept(new TreePruningVisitor());
 
-
+        // At this point, the query tree should be stable. Collect all expressions
+        // in the query and set them to base tables accordingly. This step is
+        // necessary for deciding if an index on expressions is a covering index.
+        Map<Integer, Set<ValueNode>> exprMap = new HashMap<>();
+        CollectingVisitor<QueryTreeNode> cv = new CollectingVisitor<>(
+                Predicates.or(
+                        Predicates.instanceOf(SelectNode.class),
+                        Predicates.instanceOf(SubqueryNode.class)
+                ));
+        accept(cv);
+        List<QueryTreeNode> nodeList = cv.getCollected();
+        for (QueryTreeNode node : nodeList) {
+            if (node instanceof SelectNode) {
+                ((SelectNode) node).collectExpressions().forEach((k, v) -> {
+                    if (exprMap.containsKey(k)) {
+                        exprMap.get(k).addAll(v);
+                    } else {
+                        exprMap.put(k, v);
+                    }
+                });
+            } else if (node instanceof SubqueryNode) {
+                SubqueryNode subq = (SubqueryNode) node;
+                if (subq.leftOperand != null) {
+                    subq.leftOperand.collectExpressions(exprMap);
+                }
+                if (subq.resultSet instanceof ProjectRestrictNode) {
+                    // don't call ProjectRestrictNode.collectExpressions() because it will
+                    // collect child SelectNode again
+                    PredicateList predList = ((ProjectRestrictNode) subq.resultSet).restrictionList;
+                    if (predList != null) {
+                        predList.collectExpressions(exprMap);
+                    }
+                }
+            }
+        }
+        CollectNodesVisitor cnv = new CollectNodesVisitor(FromBaseTable.class);
+        accept(cnv);
+        List<FromBaseTable> fbtList = cnv.getList();
+        for (FromBaseTable fbt : fbtList) {
+            fbt.setReferencingExpressions(exprMap);
+        }
 
         // We should try to cost control first, and fallback to spark if necessary
         DataSetProcessorType connectionType = getLanguageConnectionContext().getDataSetProcessorType();
@@ -177,8 +221,17 @@ public abstract class DMLStatementNode extends StatementNode {
             resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d, false);
         }
 
+        // Before calling shouldRunSpark(), adjust cost by considering limit and offset values.
+        if (resultSet instanceof SelectNode) {
+            ResultSetNode temp = ((SelectNode)resultSet).genRowCount(resultSet);
+            if (temp != resultSet) {
+                ASTVisitor v = new SpliceDerbyVisitorAdapter(new LimitOffsetVisitor());
+                temp.accept(v);
+            }
+        }
+
         if (shouldRunSpark(resultSet)) {
-            CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
+            cnv = new CollectNodesVisitor(FromTable.class);
             resultSet.accept(cnv);
             for (Object obj : cnv.getList()) {
                 FromTable ft = (FromTable) obj;
@@ -218,7 +271,7 @@ public abstract class DMLStatementNode extends StatementNode {
         resultSet.accept(cnv);
         for (Object obj : cnv.getList()) {
             if (obj instanceof FromBaseTable) {
-                ((FromBaseTable) obj).determineSpark();
+                  ((FromBaseTable) obj).determineSpark();
             }
             type = type.combine(((FromTable) obj).getDataSetProcessorType());
         }

@@ -42,7 +42,6 @@ import splice.com.google.common.base.Joiner;
 import splice.com.google.common.collect.Lists;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * An HalfOuterJoinNode represents a left or a right outer join result set.
@@ -171,13 +170,11 @@ public class HalfOuterJoinNode extends JoinNode{
      * @param numTables Number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
-     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
         ResultSetNode newTreeTop;
 
 		/* Transform right outer joins to the equivalent left outer join */
@@ -194,7 +191,7 @@ public class HalfOuterJoinNode extends JoinNode{
             transformed=true;
         }
 
-        newTreeTop=super.preprocess(numTables,gbl,fromList, exprMap);
+        newTreeTop=super.preprocess(numTables,gbl,fromList);
 
         return newTreeTop;
     }

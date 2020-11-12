@@ -79,7 +79,7 @@ public class ScanCostFunction{
     private final boolean isPrimaryKey;
     private final boolean isIndexOnExpression;
 
-    private final CostEstimate totalCost;
+    private final CostEstimate scanCost;
     private final StoreCostController scc;
 
     // resultColumns from the base table
@@ -132,7 +132,7 @@ public class ScanCostFunction{
      * @param baseTable
      * @param cd
      * @param scc
-     * @param totalCost
+     * @param scanCost
      * @param resultColumns
      * @param scanRowTemplate
      * @param forUpdate
@@ -141,7 +141,7 @@ public class ScanCostFunction{
     public ScanCostFunction(Optimizable baseTable,
                             ConglomerateDescriptor cd,
                             StoreCostController scc,
-                            CostEstimate totalCost,
+                            CostEstimate scanCost,
                             ResultColumnList resultColumns,
                             DataValueDescriptor[] scanRowTemplate,
                             BitSet baseColumnsInScan,
@@ -154,7 +154,7 @@ public class ScanCostFunction{
         this.isIndex = cd.isIndex();
         this.isPrimaryKey = cd.isPrimaryKey();
         this.isIndexOnExpression = isIndex && indexDescriptor.isOnExpression();
-        this.totalCost = totalCost;
+        this.scanCost = scanCost;
         this.scc = scc;
         this.resultColumns = resultColumns;
         this.baseColumnsInScan = baseColumnsInScan;
@@ -195,17 +195,7 @@ public class ScanCostFunction{
         if (isIndexOnExpression) {
             assert baseTable instanceof QueryTreeNode;
             LanguageConnectionContext lcc = ((QueryTreeNode)baseTable).getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = indexDescriptor.getExprTexts();
-            indexColumns = new ValueNode[exprTexts.length];
-            for (int i = 0; i < exprTexts.length; i++) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-                PredicateList.setTableNumber(exprAst, baseTable);
-                indexColumns[i] = exprAst;
-            }
-            lcc.popCompilerContext(newCC);
+            indexColumns = indexDescriptor.getParsedIndexExpressions(lcc, baseTable);
         } else {
             int[] keyColumns = indexDescriptor.baseColumnPositions();
             indexColumns = new ValueNode[keyColumns.length];
@@ -382,7 +372,7 @@ public class ScanCostFunction{
         // Total Row Count from the Base Conglomerate
         double totalRowCount = 1.0d;
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
-        totalCost.setEstimatedRowCount(Math.round(totalRowCount));
+        scanCost.setEstimatedRowCount(Math.round(totalRowCount));
 
         int numCols = getTotalNumberOfBaseColumnsInvolved();
         if (isIndexOnExpression && numCols == 0) {
@@ -401,15 +391,15 @@ public class ScanCostFunction{
         // Heap Size is the avg row width of the columns for the base table*total rows
         // Average Row Width
         // This should be the same for every conglomerate path
-        totalCost.setEstimatedHeapSize((long)(totalRowCount*colSizeFactor));
+        scanCost.setEstimatedHeapSize((long)(totalRowCount*colSizeFactor));
         // Should be the same for each conglomerate
-        totalCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*scc.getRemoteLatency()*(1+colSizeFactor/100d)));
+        scanCost.setRemoteCost((long)(scc.getOpenLatency()+scc.getCloseLatency()+totalRowCount*scc.getRemoteLatency()*(1+colSizeFactor/100d)));
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
         double baseCost = scc.getOpenLatency()+scc.getCloseLatency()+(totalRowCount*scc.getLocalLatency()*(1+scc.getConglomerateAvgRowWidth()/100d));
-        totalCost.setFromBaseTableRows(totalRowCount);
-        totalCost.setFromBaseTableCost(baseCost);
-        totalCost.setScannedBaseTableRows(totalRowCount);
+        scanCost.setFromBaseTableRows(totalRowCount);
+        scanCost.setFromBaseTableCost(baseCost);
+        scanCost.setScannedBaseTableRows(totalRowCount);
         double lookupCost;
         if (baseColumnsInLookup == null) {
             lookupCost = 0.0d;
@@ -418,20 +408,21 @@ public class ScanCostFunction{
                from the previous access path
                see how the cost and rowcount are initialized in SimpleCostEstimate
              */
-            totalCost.setIndexLookupRows(-1.0d);
-            totalCost.setIndexLookupCost(-1.0d);
+            scanCost.setIndexLookupRows(-1.0d);
+            scanCost.setIndexLookupCost(-1.0d);
         } else {
             lookupCost = totalRowCount*(scc.getOpenLatency()+scc.getCloseLatency());
-            totalCost.setIndexLookupRows(totalRowCount);
-            totalCost.setIndexLookupCost(lookupCost+baseCost);
+            scanCost.setIndexLookupRows(totalRowCount);
+            scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
         double projectionCost = totalRowCount * (scc.getLocalLatency() * colSizeFactor*1d/1000d + exprEvalCostPerRow);
-        totalCost.setProjectionRows(totalCost.getEstimatedRowCount());
-        totalCost.setProjectionCost(lookupCost+baseCost+projectionCost);
-        totalCost.setLocalCost(baseCost+lookupCost+projectionCost);
-        totalCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        totalCost.setLocalCostPerPartition(totalCost.localCost(), totalCost.partitionCount());
-        totalCost.setRemoteCostPerPartition(totalCost.remoteCost(), totalCost.partitionCount());
+        scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
+        scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
+        scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
+        scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
+        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
+        scanCost.setLocalCostPerParallelTask(scanCost.localCost(), scanCost.getParallelism());
+        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
         if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("%n" +
                             "============= generateOneRowCost() for table: %s =============%n" +
@@ -453,12 +444,12 @@ public class ScanCostFunction{
                             "========================================================%n",
                     baseTable.getBaseTableName(),
                     baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
-                    totalCost.rowCount(), totalCost.getEstimatedHeapSize(), congAverageWidth,
-                    totalCost.getFromBaseTableRows(), totalCost.getScannedBaseTableRows(),
-                    totalCost.getFromBaseTableCost(), totalCost.getRemoteCost(),
-                    totalCost.getIndexLookupRows(), totalCost.getIndexLookupCost(),
-                    totalCost.getProjectionRows(), totalCost.getProjectionCost(),
-                    totalCost.getLocalCost(), scc.getNumPartitions(), totalCost.getLocalCost()/scc.getNumPartitions()));
+                    scanCost.rowCount(), scanCost.getEstimatedHeapSize(), congAverageWidth,
+                    scanCost.getFromBaseTableRows(), scanCost.getScannedBaseTableRows(),
+                    scanCost.getFromBaseTableCost(), scanCost.getRemoteCost(),
+                    scanCost.getIndexLookupRows(), scanCost.getIndexLookupCost(),
+                    scanCost.getProjectionRows(), scanCost.getProjectionCost(),
+                    scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost()/scc.getNumPartitions()));
         }
     }
 
@@ -486,7 +477,7 @@ public class ScanCostFunction{
         double totalRowCount = scc.baseRowCount();
         assert totalRowCount >= 0 : "totalRowCount cannot be negative -> " + totalRowCount;
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
-        totalCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
+        scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
 
         int numCols = getTotalNumberOfBaseColumnsInvolved();
         if (isIndexOnExpression && numCols == 0) {
@@ -518,18 +509,18 @@ public class ScanCostFunction{
         // Heap Size is the avg row width of the columns for the base table*total rows
         // Average Row Width
         // This should be the same for every conglomerate path
-        totalCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
+        scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
         // Should be the same for each conglomerate
-        totalCost.setRemoteCost((long)remoteCost);
+        scanCost.setRemoteCost((long)remoteCost);
         // Base Cost + LookupCost + Projection Cost
         double congAverageWidth = scc.getConglomerateAvgRowWidth();
         double baseCost = openLatency+closeLatency+(totalRowCount*baseTableSelectivity*localLatency*(1+congAverageWidth/100d));
         assert congAverageWidth >= 0 : "congAverageWidth cannot be negative -> " + congAverageWidth;
         assert baseCost >= 0 : "baseCost cannot be negative -> " + baseCost;
-        totalCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));
-        totalCost.setFromBaseTableCost(baseCost);
+        scanCost.setFromBaseTableRows(Math.round(filterBaseTableSelectivity * totalRowCount));
+        scanCost.setFromBaseTableCost(baseCost);
         // set how many base table rows to scan
-        totalCost.setScannedBaseTableRows(Math.round(baseTableSelectivity * totalRowCount));
+        scanCost.setScannedBaseTableRows(Math.round(baseTableSelectivity * totalRowCount));
         double lookupCost;
         if (baseColumnsInLookup == null) {
             lookupCost = 0.0d;
@@ -537,12 +528,12 @@ public class ScanCostFunction{
                from the previous access path
                see how the cost and rowcount are initialized in SimpleCostEstimate
              */
-            totalCost.setIndexLookupRows(-1.0d);
-            totalCost.setIndexLookupCost(-1.0d);
+            scanCost.setIndexLookupRows(-1.0d);
+            scanCost.setIndexLookupCost(-1.0d);
         } else {
             lookupCost = totalRowCount*filterBaseTableSelectivity*(openLatency+closeLatency);
-            totalCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
-            totalCost.setIndexLookupCost(lookupCost+baseCost);
+            scanCost.setIndexLookupRows(Math.round(filterBaseTableSelectivity*totalRowCount));
+            scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
         assert lookupCost >= 0 : "lookupCost cannot be negative -> " + lookupCost;
 
@@ -553,21 +544,22 @@ public class ScanCostFunction{
                from the previous access path
                see how the cost and rowcount are initialized in SimpleCostEstimate
              */
-            totalCost.setProjectionRows(-1.0d);
-            totalCost.setProjectionCost(-1.0d);
+            scanCost.setProjectionRows(-1.0d);
+            scanCost.setProjectionCost(-1.0d);
         } else {
             projectionCost = totalRowCount * filterBaseTableSelectivity * (localLatency * colSizeFactor*1d/1000d + exprEvalCostPerRow);
-            totalCost.setProjectionRows((double) totalCost.getEstimatedRowCount());
-            totalCost.setProjectionCost(lookupCost+baseCost+projectionCost);
+            scanCost.setProjectionRows((double) scanCost.getEstimatedRowCount());
+            scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }
         assert projectionCost >= 0 : "projectionCost cannot be negative -> " + projectionCost;
 
         double localCost = baseCost+lookupCost+projectionCost;
         assert localCost >= 0 : "localCost cannot be negative -> " + localCost;
-        totalCost.setLocalCost(localCost);
-        totalCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
-        totalCost.setLocalCostPerPartition((baseCost + lookupCost + projectionCost), totalCost.partitionCount());
-        totalCost.setRemoteCostPerPartition(totalCost.remoteCost(), totalCost.partitionCount());
+        scanCost.setLocalCost(localCost);
+        scanCost.setNumPartitions(scc.getNumPartitions() != 0 ? scc.getNumPartitions() : 1);
+        scanCost.setParallelism(scc.getParallelism() != 0 ? scc.getParallelism() : 1);
+        scanCost.setLocalCostPerParallelTask((baseCost + lookupCost + projectionCost), scanCost.getParallelism());
+        scanCost.setRemoteCostPerParallelTask(scanCost.remoteCost(), scanCost.getParallelism());
 
         if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("%n" +
@@ -596,12 +588,12 @@ public class ScanCostFunction{
             baseTable.getCurrentAccessPath().getConglomerateDescriptor().toString(),
             baseTableSelectivity,
             filterBaseTableSelectivity, projectionSelectivity, totalSelectivity,
-            totalCost.rowCount(), totalCost.getEstimatedHeapSize(), congAverageWidth,
-            totalCost.getFromBaseTableRows(), totalCost.getScannedBaseTableRows(),
-            totalCost.getFromBaseTableCost(), totalCost.getRemoteCost(),
-            totalCost.getIndexLookupRows(), totalCost.getIndexLookupCost(),
-            totalCost.getProjectionRows(), totalCost.getProjectionCost(),
-            totalCost.getLocalCost(), scc.getNumPartitions(), totalCost.getLocalCost()/scc.getNumPartitions()));
+            scanCost.rowCount(), scanCost.getEstimatedHeapSize(), congAverageWidth,
+            scanCost.getFromBaseTableRows(), scanCost.getScannedBaseTableRows(),
+            scanCost.getFromBaseTableCost(), scanCost.getRemoteCost(),
+            scanCost.getIndexLookupRows(), scanCost.getIndexLookupCost(),
+            scanCost.getProjectionRows(), scanCost.getProjectionCost(),
+            scanCost.getLocalCost(), scc.getNumPartitions(), scanCost.getLocalCost()/scc.getNumPartitions()));
         }
     }
 

@@ -36,12 +36,14 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -251,8 +253,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
                 costEstimate.setSingleScanRowCount(estimatedRowCount);
                 costEstimate.setLocalCost(estimatedCost);
                 costEstimate.setRemoteCost(estimatedCost);
-                costEstimate.setLocalCostPerPartition(estimatedCost, costEstimate.partitionCount());
-                costEstimate.setRemoteCostPerPartition(estimatedCost, costEstimate.partitionCount());
+                costEstimate.setLocalCostPerParallelTask(estimatedCost, costEstimate.getParallelism());
+                costEstimate.setRemoteCostPerParallelTask(estimatedCost, costEstimate.getParallelism());
 
             }
             catch (SQLException sqle)
@@ -917,7 +919,6 @@ public class FromVTI extends FromTable implements VTIEnvironment {
      * @param gbl                The group by list, if any
      * @param fromList            The from list, if any
      *
-     * @param exprMap
      * @return ResultSetNode at top of preprocessed tree.
      *
      * @exception StandardException        Thrown on error
@@ -925,8 +926,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
-                                    FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    FromList fromList)
             throws StandardException
     {
         methodCall.preprocess(
@@ -1447,7 +1447,12 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         mb.push(printExplainInformationForActivation());
 
-        return 18;
+        boolean quotedEmptyIsNull = !PropertyUtil.getCachedDatabaseBoolean(
+                getLanguageConnectionContext(), Property.SPLICE_DB2_IMPORT_EMPTY_STRING_COMPATIBLE);
+
+        mb.push(quotedEmptyIsNull);
+
+        return 19;
     }
 
     /** Store an object in the prepared statement.  Returns -1 if the object is

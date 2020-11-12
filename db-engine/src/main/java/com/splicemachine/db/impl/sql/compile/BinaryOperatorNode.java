@@ -995,25 +995,70 @@ public class BinaryOperatorNode extends OperatorNode
         }
     }
 
-        /**
-         * @inheritDoc
-         */
-        protected boolean isEquivalent(ValueNode o) throws StandardException
+    /**
+     * @inheritDoc
+     */
+    protected boolean isEquivalent(ValueNode o) throws StandardException
+    {
+        if (!isSameNodeType(o))
         {
-            if (!isSameNodeType(o))
-            {
-                return false;
-            }
-            BinaryOperatorNode other = (BinaryOperatorNode)o;
-            return methodName.equals(other.methodName)
-                   && leftOperand.isEquivalent(other.leftOperand)
-                   && rightOperand.isEquivalent(other.rightOperand);
+            return false;
         }
+        BinaryOperatorNode other = (BinaryOperatorNode)o;
+        return methodName.equals(other.methodName)
+               && leftOperand.isEquivalent(other.leftOperand)
+               && rightOperand.isEquivalent(other.rightOperand);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        BinaryOperatorNode other = (BinaryOperatorNode)o;
+        if (methodName.equals(other.methodName)) {
+            if (isCommutative()) {
+                return (leftOperand.isSemanticallyEquivalent(other.leftOperand) &&
+                        rightOperand.isSemanticallyEquivalent(other.rightOperand)) ||
+                        (leftOperand.isSemanticallyEquivalent(other.rightOperand) &&
+                        rightOperand.isSemanticallyEquivalent(other.leftOperand));
+            } else {
+                return leftOperand.isSemanticallyEquivalent(other.leftOperand) &&
+                        rightOperand.isSemanticallyEquivalent(other.rightOperand);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if this binary operator is commutative on its operands.
+     * @return True if it is commutative, false otherwise.
+     */
+    public boolean isCommutative() {
+        // Only methodName is always set for all kinds of binary operators.
+        // Do not use operator or operatorType here.
+        switch (methodName) {
+            case "plus":
+            case "times":
+            case "equals":
+            case "notEquals":
+            case "and":
+            case "or":
+                return true;
+            default:
+                break;
+        }
+        return false;
+    }
 
     public int hashCode() {
-        int hashCode = methodName.hashCode();
-        hashCode = 31*hashCode+leftOperand.hashCode();
-        hashCode = 31*hashCode + rightOperand.hashCode();
+        int hashCode = getBaseHashCode();
+        hashCode = 31 * hashCode + methodName.hashCode();
+        hashCode = 31 * hashCode + leftOperand.hashCode();
+        hashCode = 31 * hashCode + rightOperand.hashCode();
         return hashCode;
     }
 

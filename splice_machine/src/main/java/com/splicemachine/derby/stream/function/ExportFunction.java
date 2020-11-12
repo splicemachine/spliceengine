@@ -14,6 +14,7 @@
 
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportCSVWriterBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
@@ -39,7 +40,7 @@ public class ExportFunction extends SpliceFunction2<ExportOperation, OutputStrea
         @Override
         public Integer call(OutputStream outputStream, Iterator<ExecRow> locatedRowIterator) throws Exception {
             ExportOperation op = operationContext.getOperation();
-            ExportExecRowWriter rowWriter = initializeRowWriter(outputStream, op.getExportParams());
+            ExportExecRowWriter rowWriter = initializeRowWriter(outputStream, op.getExportParams(), op.getSourceResultColumnDescriptors());
             int count = 0;
             while (locatedRowIterator.hasNext()) {
                 count++;
@@ -49,8 +50,9 @@ public class ExportFunction extends SpliceFunction2<ExportOperation, OutputStrea
             return count;
         }
 
-    public static ExportExecRowWriter initializeRowWriter(OutputStream outputStream, ExportParams exportParams) throws IOException {
-        CsvListWriter writer = new ExportCSVWriterBuilder().build(outputStream, exportParams);
+    public static ExportExecRowWriter initializeRowWriter(
+            OutputStream outputStream, ExportParams exportParams, ResultColumnDescriptor[] exportColumns) throws IOException {
+        CsvListWriter writer = new ExportCSVWriterBuilder().build(outputStream, exportParams, exportColumns);
         return new ExportExecRowWriter(writer);
     }
 

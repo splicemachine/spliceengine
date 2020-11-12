@@ -752,6 +752,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                      */
                     resultColumns.doProjection(false);
                 }
+
                 /* We consider materialization into a temp table as a last step.
                  * Currently, we only materialize VTIs that are inner tables
                  * and can't be instantiated multiple times.  In the future we
@@ -824,6 +825,20 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         if (childResult.getResultColumns().isFromExprIndex()) {
             /* We get a shallow copy of the ResultColumnList and its
              * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+             *
+             * The following assignment to resultColumns is destructive because
+             * the column mapping from parent node to this PRN is broken. However,
+             * it has to be done because if childResult's access path is an index
+             * on expressions, the number of result columns may change here. As
+             * long as this code path is executed, resultColumns of (grand-)parent
+             * nodes must be rebuilt until the top select node in the current query
+             * block. There, we can replace RC's expressions but keep RC instances.
+             *
+             * If parent is also a PRN, its result columns would be rebuilt here,
+             * too. If parent is any type of join, then its result columns would be
+             * rebuilt in modifyAccessPath() in JoinNode. If parent is SelectNode,
+             * there is no need to rebuild its result columns but only replace
+             * their expressions.
              */
             resultColumns = childResult.getResultColumns().copyListAndObjects();
             resultColumns.genVirtualColumnNodes(childResult, childResult.getResultColumns());
@@ -1096,14 +1111,12 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * @param numTables Number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
-     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
-        childResult=childResult.preprocess(numTables,gbl,fromList, exprMap);
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        childResult=childResult.preprocess(numTables,gbl,fromList);
 
         /* Build the referenced table map */
         referencedTableMap=(JBitSet)childResult.getReferencedTableMap().clone();
@@ -2098,8 +2111,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         if (restrictionList != null) {
             restrictionList.replaceIndexExpression(childRCL);
         }
-        if (childResult instanceof Optimizable) {
-            ((Optimizable)childResult).replaceIndexExpressions(childRCL);
+        childResult.replaceIndexExpressions(childRCL);
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (restrictionList != null) {
+            result = restrictionList.collectExpressions(exprMap);
         }
+        return result && childResult.collectExpressions(exprMap);
     }
 }

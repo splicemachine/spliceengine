@@ -1346,9 +1346,33 @@ public class ColumnReference extends ValueNode {
     }
 
     @Override
+    public boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        ColumnReference other = (ColumnReference)o;
+        if (tableNumber != other.tableNumber)
+            return false;
+        if (columnName.equals(other.getColumnName())) {
+            // A ColumnReference with zero-length column name may be an expression.
+            // Compare the source trees in this case to see if they really
+            // are equivalent.
+            if (columnName.length() == 0)
+                return this.getSource().isSemanticallyEquivalent(other.getSource());
+            else
+                return true;
+        }
+        return false;
+    }
+
+    @Override
     public int hashCode(){
-        int hc = tableNumber;
-        hc = hc*31+columnName.hashCode();
+        int hc = 31 * getBaseHashCode() + tableNumber;
+        if (columnName.length() == 0) {
+            hc = hc * 31 + getSource().hashCode();
+        } else {
+            hc = hc * 31 + columnName.hashCode();
+        }
         return hc;
     }
 
@@ -1509,13 +1533,13 @@ public class ColumnReference extends ValueNode {
             SchemaDescriptor sd = getSchemaDescriptor(getSource().getSourceSchemaName());
             TableDescriptor td = getTableDescriptor(getSource().getSourceTableName(), sd);
             ConglomerateDescriptor cd = td.getConglomerateDescriptor(getSource().getSourceConglomerateNumber());
-            storeCostController = getCompilerContext().getStoreCostController(td, cd, skipStats, 0);
+            storeCostController = getCompilerContext().getStoreCostController(td, cd, skipStats, 0, 0);
         } else {
             ColumnDescriptor cd = getSource().getTableColumnDescriptor();
             // TODO THROW EXCEPTION HERE JL
             if (cd != null && cd.getTableDescriptor() != null) {
                 ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-                storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(), outercCD, skipStats, 0);
+                storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(), outercCD, skipStats, 0, 0);
             }
         }
         return storeCostController;
@@ -1528,7 +1552,16 @@ public class ColumnReference extends ValueNode {
     }
 
     public boolean useRealColumnStatistics() throws StandardException {
-        return getStoreCostController().useRealColumnStatistics(replacesIndexExpression, columnNumber);
+        StoreCostController scc = getStoreCostController();
+        if (scc != null) {
+            return getStoreCostController().useRealColumnStatistics(replacesIndexExpression, columnNumber);
+        }
+        // There are cases in which scc is null because of no columnDescriptor. An
+        // example can be this column comes from a dynamic view defined in with clause.
+        // Do not report such cases because they should not be used in any cost
+        // estimation (otherwise other calls like rowCountEstimate() above will also
+        // fail) and their original source columns should be reported correctly anyway.
+        return true;
     }
 
     public ConglomerateDescriptor getBaseConglomerateDescriptor() {

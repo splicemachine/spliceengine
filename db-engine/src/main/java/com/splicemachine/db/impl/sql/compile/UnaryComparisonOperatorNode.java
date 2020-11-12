@@ -249,6 +249,10 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 
 	@Override
 	public int getMatchingExprIndexColumnPosition(int tableNumber) {
+		if (operandMatchIndexExpr >= 0 && operandMatchIndexExpr == tableNumber) {
+			assert operandMatchIndexExprColumnPosition >= 0;
+			return operandMatchIndexExprColumnPosition;
+		}
 		return -1;
 	}
 

@@ -42,45 +42,45 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 class IndexExpressionReplacementVisitor implements Visitor
 {
     protected int          numSubstitutions;
-	protected ResultColumn rc;
-	private   Class        skipOverClass;
+    protected ResultColumn rc;
+    private   Class        skipOverClass;
 
-	IndexExpressionReplacementVisitor(ResultColumn rc, Class skipThisClass) {
-		this.rc = rc;
-		this.skipOverClass = skipThisClass;
-	}
+    IndexExpressionReplacementVisitor(ResultColumn rc, Class skipThisClass) {
+        this.rc = rc;
+        this.skipOverClass = skipThisClass;
+    }
 
     @Override
-	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
-		if (!(node instanceof ValueNode)) {
-			return node;
-		}
-		
-		ValueNode nd = (ValueNode)node;
-		if (nd.equals(rc.getIndexExpression())) {
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
+        if (!(node instanceof ValueNode)) {
+            return node;
+        }
+        
+        ValueNode nd = (ValueNode)node;
+        if (nd.semanticallyEquals(rc.getIndexExpression())) {
             ++numSubstitutions;
-			return rc.getColumnReference(nd);
-		} else {
-			return node;
-		}
-	}
+            return rc.getColumnReference(nd);
+        } else {
+            return node;
+        }
+    }
 
     public int getNumSubstitutions() {
         return numSubstitutions;
     }
 
-	public boolean stopTraversal() 
-	{
-		return false;
-	}
+    public boolean stopTraversal() 
+    {
+        return false;
+    }
 
-	public boolean skipChildren(Visitable node) 
-	{
-		return skipOverClass != null && skipOverClass.isInstance(node);
-	}
+    public boolean skipChildren(Visitable node) 
+    {
+        return skipOverClass != null && skipOverClass.isInstance(node);
+    }
 
-	public boolean visitChildrenFirst(Visitable node)
-	{
-		return false;
-	}
+    public boolean visitChildrenFirst(Visitable node)
+    {
+        return false;
+    }
 }

@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.splicemachine.db.shared.common.sanity.SanityManager.THROWASSERT;
 
@@ -115,8 +116,10 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         CollectNodesVisitor cnv = new CollectNodesVisitor(ColumnReference.class);
         for (int i = 0; i < leftOperandList.size(); i++) {
             leftOperandList.elementAt(i).accept(cnv);
-            if (cnv.getList().isEmpty())
+            if (cnv.getList().isEmpty()) {
                 return false;
+            }
+            cnv.getList().clear();
         }
         return true;
     }
@@ -448,8 +451,26 @@ public abstract class BinaryListOperatorNode extends ValueNode{
             return false;
         }
         BinaryListOperatorNode other = (BinaryListOperatorNode) o;
-        return !(!operator.equals(other.operator) || !leftOperandList.isEquivalent(other.getLeftOperandList())) && rightOperandList.isEquivalent(other.rightOperandList);
+        return operator.equals(other.operator) && leftOperandList.isEquivalent(other.getLeftOperandList()) && rightOperandList.isEquivalent(other.rightOperandList);
+    }
 
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        BinaryListOperatorNode other = (BinaryListOperatorNode) o;
+        return operator.equals(other.operator) &&
+                leftOperandList.isSemanticallyEquivalent(other.getLeftOperandList()) &&
+                rightOperandList.isSemanticallyEquivalent(other.rightOperandList);
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + operator.hashCode();
+        result = 31 * result + (leftOperandList == null ? 0 : leftOperandList.hashCode());
+        result = 31 * result + (rightOperandList == null ? 0 : rightOperandList.hashCode());
+        return result;
     }
 
     @Override
@@ -496,22 +517,25 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         outerJoinLevel = level;
     }
 
+    @Override
     public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
-        ValueNodeList newList = (ValueNodeList) getNodeFactory().getNode(
-                C_NodeTypes.VALUE_NODE_LIST,
-                getContextManager());
-        for (Object leftItem : leftOperandList) {
-            newList.addValueNode(((ValueNode) leftItem).replaceIndexExpression(childRCL));
+        if (leftOperandList != null) {
+            leftOperandList = leftOperandList.replaceIndexExpression(childRCL);
         }
-        leftOperandList = newList;
+        if (rightOperandList != null) {
+            rightOperandList = rightOperandList.replaceIndexExpression(childRCL);
+        }
         return this;
     }
 
     @Override
-    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         boolean result = true;
-        for (Object leftItem : leftOperandList) {
-            result = result && ((ValueNode) leftItem).collectExpressions(exprMap);
+        if (leftOperandList != null) {
+            result = leftOperandList.collectExpressions(exprMap);
+        }
+        if (rightOperandList != null) {
+            result = result && rightOperandList.collectExpressions(exprMap);
         }
         return result;
     }

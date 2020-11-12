@@ -450,6 +450,34 @@ public class MergeJoinIT extends SpliceUnitTest {
                         row(null, null, null)))
                 .create();
 
+        new TableCreator(conn)
+                .withCreate("create table t11 (a char(5), primary key(a))")
+                .withInsert("insert into t11 values(?)")
+                .withRows(rows(
+                        row("a   ")))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t22 (a char(3), primary key(a))")
+                .withInsert("insert into t22 values(?)")
+                .withRows(rows(
+                        row("a   ")))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t33 (a varchar(3), primary key(a))")
+                .withInsert("insert into t33 values(?)")
+                .withRows(rows(
+                        row("a"), row("a "), row("a  ")))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table t44 (a varchar(5), primary key(a))")
+                .withInsert("insert into t44 values(?)")
+                .withRows(rows(
+                        row("a"), row("a  "), row("a   "), row("a    ")))
+                .create();
+
     }
     @Test
     public void testJoinWithRangePred() throws Exception {
@@ -1569,6 +1597,37 @@ public class MergeJoinIT extends SpliceUnitTest {
          assertEquals("\n" + sql + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
          rs.close();
      }
+
+    @Test
+    public void testCharAndVarcharMergeJoin() throws Exception {
+        String templateSQL = "select count(*) from %s a, %s b --splice-properties useSpark=%s\n" +
+                             "where a.a = b.a\n";
+        String tables[] = {"t11", "t22", "t33", "t44"};
+        String useSparkArray[] = {"true", "false"};
+        String expectedResults[] = {"1 |\n----\n 1 |", "1 |\n----\n 0 |", "1 |\n----\n 1 |", "1 |\n----\n 1 |", "1 |\n----\n 1 |", "1 |\n----\n 2 |"};
+
+        int m = 0;
+        for (int i=0; i < tables.length-1; i++) {
+            String table1 = tables[i];
+            for (int j=i+1; j < tables.length; j++) {
+                String table2 = tables[j];
+                String expected = expectedResults[m++];
+                for (String useSpark:useSparkArray) {
+                    String sql = format(templateSQL, table1, table2, useSpark);
+                    ResultSet rs = methodWatcher.executeQuery(sql);
+
+                    assertEquals(sql, expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                    rs.close();
+
+                    sql = format(templateSQL, table2, table1, useSpark);
+                    rs = methodWatcher.executeQuery(sql);
+
+                    assertEquals(sql, expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+                    rs.close();
+                }
+            }
+        }
+    }
 
     //@Test
     // DB-5227

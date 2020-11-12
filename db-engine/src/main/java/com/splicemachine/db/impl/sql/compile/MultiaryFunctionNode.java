@@ -43,7 +43,6 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * SQL Reference Guide for DB2 has section titled "Rules for result data types" at the following url
@@ -354,9 +353,27 @@ public abstract class MultiaryFunctionNode extends ValueNode
                 functionName.equals(other.functionName));
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+
+        MultiaryFunctionNode other = (MultiaryFunctionNode)o;
+        return (argumentsList.isSemanticallyEquivalent(other.argumentsList) &&
+                functionName.equals(other.functionName));
+    }
+
     @Override
     public int hashCode() {
-        return Objects.hash(functionName, argumentsList);
+        int result = getBaseHashCode();
+        result = 31 * result + functionName.hashCode();
+        result = 31 * result + argumentsList.hashCode();
+        return result;
     }
 
     /**

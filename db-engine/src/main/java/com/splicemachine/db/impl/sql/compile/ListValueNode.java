@@ -190,9 +190,12 @@ public final class ListValueNode extends ValueNode {
     public int hashCode() {
         final int prime = 37;
         int result = 17;
-        
-        for (int i = 0; i < numValues(); i++) {
-            result = result * prime + valuesList.elementAt(i).hashCode();
+
+        result = prime * result + getBaseHashCode();
+        if (valuesList != null) {
+            for (int i = 0; i < numValues(); i++) {
+                result = result * prime + valuesList.elementAt(i).hashCode();
+            }
         }
         return result;
     }
@@ -234,6 +237,30 @@ public final class ListValueNode extends ValueNode {
             for (int i = 0; i < valuesList.size(); i++) {
                 if (!((ValueNode) valuesList.elementAt(i)).
                     isEquivalent((ValueNode) other.valuesList.elementAt(i)))
+                    return false;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            ListValueNode other = (ListValueNode) o;
+
+            if (valuesList == other.valuesList)
+                return true;
+
+            if (valuesList == null || other.valuesList == null)
+                return false;
+
+            if (valuesList.size() != other.valuesList.size())
+                return false;
+
+            for (int i = 0; i < valuesList.size(); i++) {
+                if (!((ValueNode) valuesList.elementAt(i)).
+                        isSemanticallyEquivalent((ValueNode) other.valuesList.elementAt(i)))
                     return false;
             }
             return true;

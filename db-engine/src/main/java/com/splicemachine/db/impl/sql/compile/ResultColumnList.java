@@ -3170,6 +3170,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         ResultColumnList newCols=(ResultColumnList)getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN_LIST,
                 getContextManager());
+        newCols.setFromExprIndex(fromExprIndex);
 
         int size=size();
         for(index=0;index<size;index++){

@@ -1743,6 +1743,26 @@ public class BinaryRelationalOperatorNode
             selectivity *= innerTableCostController.getSelectivity(innerColumn.getGeneratedToReplaceIndexExpression(),
                     innerColumn.getColumnNumber(), startKey, true, endKey, true, false);
         }
+        else if (this.operatorType == EQUALS_RELOP) {
+            // Use a more realistic selectivity that takes the
+            // inner table RPV into account instead of defaulting
+            // to a selectivity of 1.
+            double outerCardinality =
+                     outerTableCostController.cardinality(
+                             outerColumn.getGeneratedToReplaceIndexExpression(),
+                             outerColumn.getColumnNumber());
+            double innerCardinality =
+                        innerTableCostController.cardinality(
+                                innerColumn.getGeneratedToReplaceIndexExpression(),
+                                innerColumn.getColumnNumber());
+
+            // If cardinality values are uninitialized (zero),
+            // we can't apply this estimation formula.
+            if (outerCardinality != 0.0d && innerCardinality != 0.0d) {
+                double tempSelectivity = outerCardinality / innerCardinality;
+                selectivity = Math.min(tempSelectivity, 1.0d);
+            }
+        }
 
         return selectivity;
     }
@@ -1850,7 +1870,7 @@ public class BinaryRelationalOperatorNode
                  return false;
          }
 
-         if (!indexExpr.equals(expr)) {
+         if (!indexExpr.semanticallyEquals(expr)) {
              return false;
          }
 

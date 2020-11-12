@@ -46,10 +46,7 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * A ValueNode is an abstract class for all nodes that can represent data
@@ -1480,6 +1477,39 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         return result;
     }
 
+    public abstract int hashCode();
+
+    /**
+     * Enhanced version of <code>isEquivalent</code> (to be extended):
+     * <ul>
+     *   <li> Calls to the same deterministic method with the same arguments
+     *        are equivalent.
+     *   <li> Commutative operators on the same set of operands are equivalent,
+     *        e.g., a + b == b + a, a OR b == b OR a.
+     * </ul>
+     * @param other the node to compare this ValueNode against.
+     * @return <code>true</code> if the two nodes are semantically equivalent,
+     *         <code>false</code> otherwise.
+     * @throws StandardException
+     */
+    protected boolean isSemanticallyEquivalent(ValueNode other) throws StandardException {
+        return this.isEquivalent(other);
+    }
+
+    public boolean semanticallyEquals(Object o) {
+        boolean result;
+        if(o instanceof ValueNode){
+            try{
+                result = isSemanticallyEquivalent((ValueNode) o);
+            }catch (StandardException e){
+                throw new RuntimeException(e);
+            }
+        }else{
+            result = super.equals(o);
+        }
+        return result;
+    }
+
     /**
      * Tests if this node is of the same type as the specified node as
      * reported by {@link QueryTreeNode#getNodeType()}.
@@ -1532,7 +1562,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         // by default, try replace this whole subtree
         if (childRCL != null) {
             for (ResultColumn childRC : childRCL) {
-                if (this.equals(childRC.getIndexExpression())) {
+                if (this.semanticallyEquals(childRC.getIndexExpression())) {
                     return childRC.getColumnReference(this);
                 }
             }
@@ -1564,8 +1594,8 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         return refTableNumber;
     }
 
-    public boolean collectSingleExpression(Map<Integer, List<ValueNode>> map) {
-        if (this instanceof AggregateNode || this instanceof SubqueryNode) {
+    public boolean collectSingleExpression(Map<Integer, Set<ValueNode>> map) {
+        if (this instanceof AggregateNode || this instanceof SubqueryNode || this instanceof VirtualColumnNode) {
             return true;
         }
 
@@ -1576,12 +1606,10 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
 
         if (tableNumber != ValueNode.NOT_FOUND) {
             if (map.containsKey(tableNumber)) {
-                List<ValueNode> exprList = map.get(tableNumber);
-                if (!exprList.contains(this)) {
-                    exprList.add(this);
-                }
+                Set<ValueNode> exprList = map.get(tableNumber);
+                exprList.add(this);
             } else {
-                List<ValueNode> values = new ArrayList<>();
+                Set<ValueNode> values = new HashSet<>();
                 values.add(this);
                 map.put(tableNumber, values);
             }
@@ -1589,7 +1617,7 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
         return true;
     }
 
-    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         // by default, take this whole subtree as an expression
         return collectSingleExpression(exprMap);
     }

@@ -31,14 +31,16 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
+import splice.com.google.common.collect.ArrayListMultimap;
+import splice.com.google.common.collect.Multimap;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This class aggregates objects that make up a Window Over() clause.<br/>
@@ -337,5 +339,26 @@ public class OverClause extends QueryTreeNode {
             }
             return this;
         }
+    }
+
+    public OverClause replaceIndexExpression(ResultSetNode child) throws StandardException {
+        if (partition != null) {
+            partition.replaceIndexExpressions(child.getResultColumns());
+        }
+        if (orderByClause != null) {
+            orderByClause.replaceIndexExpressions(child);
+        }
+        return this;
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (partition != null) {
+            result = partition.collectExpressions(exprMap);
+        }
+        if (orderByClause != null) {
+            result = result && orderByClause.collectExpressions(exprMap);
+        }
+        return result;
     }
 }

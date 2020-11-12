@@ -31,25 +31,18 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.compiler.LocalField;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.types.JSQLType;
-
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
-
 import com.splicemachine.db.iapi.reference.ClassName;
-
-import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.LocalField;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.JSQLType;
+import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -535,5 +528,19 @@ public class SQLToJavaValueNode extends JavaValueNode {
     @Override
     public boolean isConstantOrParameterTreeNode() {
         return value.isConstantOrParameterTreeNode();
+    }
+
+    @Override
+    public boolean isSemanticallyEquivalent(QueryTreeNode o) throws StandardException {
+        if (o instanceof SQLToJavaValueNode) {
+            SQLToJavaValueNode other = (SQLToJavaValueNode) o;
+            return (this == other) || (value.isSemanticallyEquivalent(other.value));
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * getBaseHashCode() + value.hashCode();
     }
 }

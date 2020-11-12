@@ -44,7 +44,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -160,6 +159,11 @@ public class FromBaseTable extends FromTable {
      */
     private String[] columnNames;
 
+    /* Keep a copy of original base table result columns for binding
+     * expressions after changeAccessPath() for index on expressions.
+     */
+    private ResultColumnList originalBaseTableResultColumns;
+
     // true if we are to do a special scan to retrieve the last value
     // in the index
     private boolean specialMaxScan;
@@ -202,8 +206,10 @@ public class FromBaseTable extends FromTable {
 
     private ValueNode pastTxIdExpression = null;
 
+    private long minRetentionPeriod = -1;
+
     // expressions in whole query referencing columns in this base table
-    private List<ValueNode> referencingExpressions = null;
+    private Set<ValueNode> referencingExpressions = null;
 
     @Override
     public boolean isParallelizable(){
@@ -583,7 +589,7 @@ public class FromBaseTable extends FromTable {
 
     private boolean areAllReferencingExprsCoveredByIndex(IndexDescriptor id) throws StandardException {
         if (referencingExpressions == null || referencingExpressions.isEmpty()) {
-            return false;
+            return true;
         }
         return getRefExprIndexPositions(id).size() == referencingExpressions.size();
     }
@@ -593,25 +599,13 @@ public class FromBaseTable extends FromTable {
             return new ArrayList<>();
         }
 
-        LanguageConnectionContext lcc = getLanguageConnectionContext();
-        CompilerContext newCC = lcc.pushCompilerContext();
-        Parser p = newCC.getParser();
-
-        String[] exprTexts = id.getExprTexts();
-        ValueNode[] exprAsts = new ValueNode[exprTexts.length];
-        for (int i = 0; i < exprTexts.length; i++) {
-            ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-            PredicateList.setTableNumber(exprAst, this);
-            exprAsts[i] = exprAst;
-        }
-        lcc.popCompilerContext(newCC);
-
+        ValueNode[] exprAsts = id.getParsedIndexExpressions(getLanguageConnectionContext(), this);
         List<Integer> exprIndexPositions = new ArrayList<>();
         boolean match;
         for (ValueNode refExpr : referencingExpressions) {
             match = false;
             for (int j = 0; j < exprAsts.length; j++) {
-                if (refExpr.equals(exprAsts[j])) {
+                if (refExpr.semanticallyEquals(exprAsts[j])) {
                     exprIndexPositions.add(j);
                     match = true;
                     break;
@@ -782,13 +776,14 @@ public class FromBaseTable extends FromTable {
                 }
                 if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
                     throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
-            } else if (key.equals("broadcastCrossRight")) {
+            } else if (key.equals("broadcastCrossRight") || key.equals("unboundedTimeTravel")) {
                 // no op since parseBoolean never throw
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
                         "index, constraint, joinStrategy, useSpark, useOLAP, pin, skipStats, splits, " +
-                                "useDefaultRowcount, defaultSelectivityFactor");
+                                "useDefaultRowcount, defaultSelectivityFactor, broadcastCrossRight," +
+                                "unboundedTimeTravel");
             }
 
 
@@ -876,6 +871,7 @@ public class FromBaseTable extends FromTable {
         /* Get the uniqueness factory for later use (see below) */
         /* Get the predicates that can be used for scanning the base table */
         baseTableRestrictionList.removeAllElements();
+        baseTableRestrictionList.countScanFlags();
 
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
         /* RESOLVE: Need to figure out how to cache the StoreCostController */
@@ -1129,6 +1125,12 @@ public class FromBaseTable extends FromTable {
             }
             else if(tableType==TableDescriptor.WITH_TYPE) {
                 throw StandardException.newException(SQLState.LANG_ILLEGAL_TIME_TRAVEL, "common table expressions");
+            }
+            if(tableProperties != null && Boolean.parseBoolean(tableProperties.getProperty("unboundedTimeTravel"))) {
+                this.minRetentionPeriod = -1;
+            } else {
+                Long minRetentionPeriod = tableDescriptor.getMinRetentionPeriod();
+                this.minRetentionPeriod = minRetentionPeriod == null ? -1 : minRetentionPeriod;
             }
         }
 
@@ -1590,8 +1592,9 @@ public class FromBaseTable extends FromTable {
         ** matches the table we're looking at, see whether the column
         ** is in this table.
         */
+        ResultColumnList resultColumnsToUse = resultColumns.isFromExprIndex() ? originalBaseTableResultColumns : resultColumns;
         if(columnsTableName==null || columnsTableName.equals(exposedTableName) || columnsTableName.equals(temporaryTableName)){
-            resultColumn=resultColumns.getResultColumn(columnReference.getColumnName());
+            resultColumn=resultColumnsToUse.getResultColumn(columnReference.getColumnName());
             /* Did we find a match? */
             if(resultColumn!=null){
                 columnReference.setTableNumber(tableNumber);
@@ -1644,21 +1647,17 @@ public class FromBaseTable extends FromTable {
      * @param numTables The number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
-     * @param exprMap
      * @return ResultSetNode at top of preprocessed tree.
      * @throws StandardException Thrown on error
      */
 
     public ResultSetNode preprocess(int numTables,
                                     GroupByList gbl,
-                                    FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap)
+                                    FromList fromList)
             throws StandardException{
         /* Generate the referenced table map */
         referencedTableMap=new JBitSet(numTables);
         referencedTableMap.set(tableNumber);
-
-        referencingExpressions = exprMap.get(tableNumber);
 
         return genProjectRestrict(numTables);
     }
@@ -1870,17 +1869,23 @@ public class FromBaseTable extends FromTable {
         /* No need to go to the data page if this is a covering index */
         /* Derby-1087: use data page when returning an updatable resultset */
         if(ap.getCoveringIndexScan() && (!cursorTargetTable())){
-            /* Massage resultColumns so that it matches the index. */
-            resultColumns=newResultColumns(resultColumns,
+            originalBaseTableResultColumns = resultColumns;
+            /* Generate new resultColumns so that it matches the index.
+             * fromExprIndex needs to be set immediately after resultColumns
+             * is modified. Otherwise it may not be possible to bind index
+             * expressions afterwards.
+             */
+            resultColumns = newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
                     false);
+            resultColumns.setFromExprIndex(isOnExpression);
 
             /* We are going against the index.  The template row must be the full index row.
              * The template row will have the RID but the result row will not
              * since there is no need to go to the data page.
              */
-            templateColumns=newResultColumns(resultColumns,
+            templateColumns = newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
                     false);
@@ -1916,7 +1921,6 @@ public class FromBaseTable extends FromTable {
             resultColumns.setIndexRow(
                     baseConglomerateDescriptor.getConglomerateNumber(),
                     forUpdate());
-            resultColumns.setFromExprIndex(isOnExpression);
 
             if (isOnExpression) {
                 // do translation before replacing index expressions, otherwise
@@ -2001,7 +2005,8 @@ public class FromBaseTable extends FromTable {
         ** The template row is all the columns.  The
         ** result set is the compacted column list.
         */
-        resultColumns=newResultColumns;
+        originalBaseTableResultColumns = resultColumns;
+        resultColumns = newResultColumns;
         if (isOnExpression) {
             templateColumns = resultColumns.copyListAndObjects();
             /* newResultColumns was built with all columns set to referenced. But we only
@@ -2015,6 +2020,7 @@ public class FromBaseTable extends FromTable {
             if (nonStoreRestrictionList != null) {
                 markReferencedIndexExpr(resultColumns, nonStoreRestrictionList);
             }
+            resultColumns.setFromExprIndex(true);
         } else {
             templateColumns = newResultColumns(resultColumns,trulyTheBestConglomerateDescriptor,baseConglomerateDescriptor,false);
             /* Since we are doing a non-covered index scan, if bulkFetch is on, then
@@ -2033,6 +2039,7 @@ public class FromBaseTable extends FromTable {
                     nonStoreRestrictionList.markReferencedColumns();
                 }
             }
+            resultColumns.setFromExprIndex(false);
         }
         resultColumns.addRCForRID();
         templateColumns.addRCForRID();
@@ -2043,7 +2050,6 @@ public class FromBaseTable extends FromTable {
         resultColumns.setIndexRow(
                 baseConglomerateDescriptor.getConglomerateNumber(),
                 forUpdate());
-        resultColumns.setFromExprIndex(isOnExpression);
 
         /* We must remember if this was the cursorTargetTable
           * in order to get the right locking on the scan.
@@ -2097,23 +2103,16 @@ public class FromBaseTable extends FromTable {
 
         if (irg.isOnExpression()) {
             assert !oldColumns.isEmpty();
-            LanguageConnectionContext lcc = getLanguageConnectionContext();
-            CompilerContext newCC = lcc.pushCompilerContext();
-            Parser p = newCC.getParser();
-
-            String[] exprTexts = irg.getExprTexts();
             DataTypeDescriptor[] indexColumnTypes = irg.getIndexColumnTypes();
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(getLanguageConnectionContext(), this);
 
             for (int i = 0; i < indexColumnTypes.length; i++) {
-                ValueNode exprAst = (ValueNode) p.parseSearchCondition(exprTexts[i]);
-                PredicateList.setTableNumber(exprAst, this);
-
                 ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN,
                         indexColumnTypes[i],
-                        exprAst,
+                        exprAsts[i],
                         getContextManager());
-                rc.setIndexExpression(exprAst);
+                rc.setIndexExpression(exprAsts[i]);
                 rc.setReferenced();
                 rc.setVirtualColumnId(i + 1);  // virtual column IDs are 1-based
                 rc.setName(idxCD.getConglomerateName() + "_col" + rc.getColumnPosition());
@@ -2124,7 +2123,6 @@ public class FromBaseTable extends FromTable {
                 rc.setSourceConglomerateColumnPosition(rc.getColumnPosition());
                 newCols.addResultColumn(rc);
             }
-            lcc.popCompilerContext(newCC);
         } else {
             int[] baseCols = irg.baseColumnPositions();
             for (int basePosition : baseCols) {
@@ -2378,8 +2376,8 @@ public class FromBaseTable extends FromTable {
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
         generatePastTxFunc(acb, mb);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,16);
-
+        mb.push(minRetentionPeriod);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getLastIndexKeyResultSet", ClassName.NoPutResultSet,17);
     }
 
     private void generateDistinctScan ( ExpressionClassBuilder acb, MethodBuilder mb ) throws StandardException{
@@ -2459,8 +2457,9 @@ public class FromBaseTable extends FromTable {
         mb.push(partitionReferenceItem);
         generateDefaultRow((ActivationClassBuilder)acb, mb);
         generatePastTxFunc(acb, mb);
+        mb.push(minRetentionPeriod);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,29);
+                ClassName.NoPutResultSet,30);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
@@ -2571,6 +2570,9 @@ public class FromBaseTable extends FromTable {
 
         // also add the past transaction id functor
         generatePastTxFunc(acb, mb);
+        numArgs++;
+
+        mb.push(minRetentionPeriod);
         numArgs++;
 
         return numArgs;
@@ -3474,11 +3476,11 @@ public class FromBaseTable extends FromTable {
         if (skipStats) {
             if (!getCompilerContext().skipStats(this.getTableNumber()))
                 getCompilerContext().getSkipStatsTableList().add(this.getTableNumber());
-            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount);
+            return getCompilerContext().getStoreCostController(td, cd, true, defaultRowCount, splits);
         }
         else {
             return getCompilerContext().getStoreCostController(td, cd,
-                    getCompilerContext().skipStats(this.getTableNumber()), 0);
+                    getCompilerContext().skipStats(this.getTableNumber()), 0, splits);
         }
     }
 
@@ -3761,7 +3763,7 @@ public class FromBaseTable extends FromTable {
         if (accessPath != null &&
                 (accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
                  accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
-            return DataSetProcessorType.COST_SUGGESTED_SPARK;
+                return DataSetProcessorType.COST_SUGGESTED_SPARK;
         }
         return dataSetProcessorType;
     }
@@ -3789,6 +3791,10 @@ public class FromBaseTable extends FromTable {
 
     public List<Integer> getNoStatsColumnIds() {
         return new ArrayList<>(usedNoStatsColumnIds);
+    }
+
+    public void setReferencingExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        referencingExpressions = exprMap.get(tableNumber);
     }
 
     @Override

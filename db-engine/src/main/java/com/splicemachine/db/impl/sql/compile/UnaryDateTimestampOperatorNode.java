@@ -53,7 +53,7 @@ import java.util.List;
  * These two functions implement a few special cases of string conversions beyond the normal string to
  * date/timestamp casts.
  */
-@SuppressFBWarnings(value = "HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
+@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
     private static final String TIMESTAMP_METHOD_NAME="getTimestamp";
     private static final String DATE_METHOD_NAME="getDate";
@@ -112,6 +112,7 @@ public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
             case Types.SMALLINT:
             case Types.TINYINT:
             case Types.DECIMAL:
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
             case Types.NUMERIC:
             case Types.DOUBLE:
             case Types.FLOAT:

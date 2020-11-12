@@ -40,8 +40,8 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A TableOperatorNode represents a relational operator like UNION, INTERSECT,
@@ -146,6 +146,7 @@ public abstract class TableOperatorNode extends FromTable{
         if(callModifyAccessPaths){
             return (Optimizable)modifyAccessPaths();
         }
+
         return this;
     }
 
@@ -523,14 +524,12 @@ public abstract class TableOperatorNode extends FromTable{
      * @param numTables Number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
-     * @param exprMap
      * @return The generated ProjectRestrictNode atop the original FromTable.
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
-        leftResultSet=leftResultSet.preprocess(numTables,gbl,fromList, exprMap);
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+        leftResultSet=leftResultSet.preprocess(numTables,gbl,fromList);
         /* If leftResultSet is a FromSubquery, then we must explicitly extract
          * out the subquery (flatten it).  (SelectNodes have their own
          * method of flattening them.
@@ -538,7 +537,7 @@ public abstract class TableOperatorNode extends FromTable{
         if(leftResultSet instanceof FromSubquery){
             leftResultSet=((FromSubquery)leftResultSet).extractSubquery(numTables);
         }
-        rightResultSet=rightResultSet.preprocess(numTables,gbl,fromList, exprMap);
+        rightResultSet=rightResultSet.preprocess(numTables,gbl,fromList);
         /* If rightResultSet is a FromSubquery, then we must explicitly extract
          * out the subquery (flatten it).  (SelectNodes have their own
          * method of flattening them.
@@ -847,4 +846,25 @@ public abstract class TableOperatorNode extends FromTable{
         leftResultSet.buildTree(tree,depth+1);
     }
 
+    @Override
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+        if (leftResultSet != null) {
+            leftResultSet.replaceIndexExpressions(childRCL);
+        }
+        if (rightResultSet != null) {
+            rightResultSet.replaceIndexExpressions(childRCL);
+        }
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (leftResultSet != null) {
+            result = leftResultSet.collectExpressions(exprMap);
+        }
+        if (rightResultSet != null) {
+            result = result && rightResultSet.collectExpressions(exprMap);
+        }
+        return result;
+    }
 }

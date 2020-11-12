@@ -48,13 +48,13 @@ import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * A TernaryOperatorNode represents a built-in ternary operators.
@@ -64,7 +64,6 @@ import java.util.Map;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class TernaryOperatorNode extends OperatorNode
 {
     String        operator;
@@ -1385,11 +1384,10 @@ public class TernaryOperatorNode extends OperatorNode
         return new DataTypeDescriptor(TypeId.getBuiltInTypeId(Types.VARBINARY), true);
     }
 
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
-        if (isSameNodeType(o))
-    {
-        TernaryOperatorNode other = (TernaryOperatorNode)o;
+    @Override
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            TernaryOperatorNode other = (TernaryOperatorNode) o;
 
             /*
              * SUBSTR function can either have 2 or 3 arguments.  In the
@@ -1397,13 +1395,42 @@ public class TernaryOperatorNode extends OperatorNode
              * additional handling in the equivalence check.
              */
             return (other.methodName.equals(methodName)
-                && other.receiver.isEquivalent(receiver)
+                    && other.receiver.isEquivalent(receiver)
                     && other.leftOperand.isEquivalent(leftOperand)
-                    && ( (rightOperand == null && other.rightOperand == null) ||
-                         (other.rightOperand != null &&
-                            other.rightOperand.isEquivalent(rightOperand)) ) );
+                    && ((rightOperand == null && other.rightOperand == null) ||
+                    (other.rightOperand != null &&
+                            other.rightOperand.isEquivalent(rightOperand))));
         }
         return false;
+    }
+
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            TernaryOperatorNode other = (TernaryOperatorNode) o;
+
+            /*
+             * SUBSTR function can either have 2 or 3 arguments.  In the
+             * 2-args case, rightOperand will be null and thus needs
+             * additional handling in the equivalence check.
+             */
+            return (other.methodName.equals(methodName)
+                    && other.receiver.isSemanticallyEquivalent(receiver)
+                    && other.leftOperand.isSemanticallyEquivalent(leftOperand)
+                    && ((rightOperand == null && other.rightOperand == null) ||
+                    (other.rightOperand != null &&
+                            other.rightOperand.isSemanticallyEquivalent(rightOperand))));
+        }
+        return false;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + methodName.hashCode();
+        result = 31 * result + (receiver == null ? 0 : receiver.hashCode());
+        result = 31 * result + (leftOperand == null ? 0 : leftOperand.hashCode());
+        result = 31 * result + (rightOperand == null ? 0 : rightOperand.hashCode());
+        return result;
     }
 
     public List<? extends QueryTreeNode> getChildren() {
@@ -1487,7 +1514,7 @@ public class TernaryOperatorNode extends OperatorNode
     }
 
     @Override
-    public boolean collectExpressions(Map<Integer, List<ValueNode>> exprMap) {
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
         // this special handling for like predicate is fine because like cannot appear in index expressions
         if (operatorType == LIKE) {
             boolean result = true;

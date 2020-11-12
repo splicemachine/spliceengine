@@ -534,13 +534,11 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @param numTables The number of tables in the DML Statement
      * @param gbl       The group by list, if any
      * @param fromList  The from list, if any
-     * @param exprMap
      * @return ResultSetNode at top of preprocessed tree.
      * @throws StandardException Thrown on error
      */
 
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList,
-                                    Map<Integer, List<ValueNode>> exprMap) throws StandardException{
+    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
         if(SanityManager.DEBUG)
             SanityManager.THROWASSERT(
                     "preprocess() not expected to be called for "+getClass().toString());
@@ -1762,5 +1760,12 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
     public boolean getContainsSelfReference() {
         return containsSelfReference;
+    }
+
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        return true;
     }
 }
