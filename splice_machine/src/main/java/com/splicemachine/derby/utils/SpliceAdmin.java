@@ -2275,14 +2275,14 @@ public class SpliceAdmin extends BaseAdminProcedures{
     @SuppressFBWarnings(value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE", justification="Intentional")
     public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException
     {
-        List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false);
+        List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false, true);
         StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
         sb.append(ddls.get(0));
         sb.append(";') FOO (DDL)");
         resultSet[0] = executeStatement(sb);
     }
 
-    public static List<String> SHOW_CREATE_TABLE_CORE(String schemaName, String tableName, boolean separateFK) throws SQLException {
+    public static List<String> SHOW_CREATE_TABLE_CORE(String schemaName, String tableName, boolean separateFK, boolean escapeDefaults) throws SQLException {
         Connection connection = getDefaultConn();
         schemaName = EngineUtils.validateSchema(schemaName);
         tableName = EngineUtils.validateTable(tableName);
@@ -2370,7 +2370,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             boolean firstCol = true;
             cdl.sort(Comparator.comparing(columnDescriptor -> columnDescriptor.getPosition()));
             for (ColumnDescriptor col: cdl) {
-                createColString = createColumn(col);
+                createColString = createColumn(col, escapeDefaults);
                 colStringBuilder.append(firstCol ? createColString : "," + createColString).append("\n");
                 firstCol = false;
             }
@@ -2397,7 +2397,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
-    private static String createColumn(ColumnDescriptor columnDescriptor) throws SQLException
+    private static String createColumn(ColumnDescriptor columnDescriptor, boolean escapeDefaults) throws SQLException
     {
         StringBuffer colDef = new StringBuffer();
 
@@ -2428,11 +2428,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         || colType.indexOf("TIME") > -1
                         || colType.indexOf("TIMESTAMP") > -1
                         ) {
-                    if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
-                        defaultText = "'" + defaultText + "'";
-                    if (columnDescriptor.getType().getTypeId().isBitTypeId() &&
-                            defaultText.startsWith("X'")) {
-                        defaultText = "X'" + defaultText.substring(1) + "'";
+                    if (escapeDefaults) {
+                        if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
+                            defaultText = "'" + defaultText + "'";
+                        if (columnDescriptor.getType().getTypeId().isBitTypeId() &&
+                                defaultText.startsWith("X'")) {
+                            defaultText = "X'" + defaultText.substring(1) + "'";
+                        }
                     }
                 }
             }
@@ -2479,7 +2481,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 }
                 String s = String.format("ALTER TABLE \"%s\".\"%s\" ADD ", schemaName, tableName);
                 fkKeys.append(s + buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
-                fks.add(fkKeys.toString());
+                fks.add(fkKeys.toString() + "\n");
             }
         }
         return fks;
