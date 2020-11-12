@@ -38,12 +38,8 @@ import com.splicemachine.db.iapi.sql.StatementType;
 import java.util.Hashtable;
 
 import com.splicemachine.db.iapi.services.i18n.MessageService;
-import com.splicemachine.db.iapi.sql.StatementType;
-import com.splicemachine.db.iapi.sql.dictionary.fk.Dfs;
-import com.splicemachine.db.iapi.sql.dictionary.fk.DictionaryGraphBuilder;
-import com.splicemachine.db.iapi.sql.dictionary.fk.Graph;
-import com.splicemachine.db.iapi.sql.dictionary.fk.GraphAnnotator;
-import org.apache.log4j.Logger;
+import com.splicemachine.db.iapi.sql.dictionary.foreignkey.Graph;
+import com.splicemachine.db.iapi.sql.dictionary.foreignkey.GraphAnnotator;
 
 import java.util.Enumeration;
 
