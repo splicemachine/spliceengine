@@ -253,6 +253,56 @@ class SplicemachineContextIT extends FunSuite with TestContext with Matchers {
     org.junit.Assert.assertTrue( msg.contains("duplicate key value") )
   }
 
+  test("Test Insert with Trigger") {
+    import org.apache.spark.sql.types._
+
+    val sch = StructType(
+      StructField("I", IntegerType, false) ::
+      StructField("C", StringType, true) :: Nil
+    )
+
+    val t1 = s"$schema.foo"
+    val t2 = s"$schema.bar"
+    splicemachineContext.createTable(t1, sch, Seq("I") )
+    splicemachineContext.createTable(t2, sch, Seq("I") )
+    
+    execute(s"""CREATE TRIGGER FOO_TRIGGER
+               |AFTER INSERT ON $t1
+               |REFERENCING NEW_TABLE AS NEW_ROWS
+               |INSERT INTO $t2 (i,c) SELECT i,c FROM NEW_ROWS""".stripMargin)
+
+    splicemachineContext.insert(
+      dataframe(
+        rdd( Seq( 
+          Row.fromSeq( Seq(1,"one") ),
+          Row.fromSeq( Seq(2,"two") ),
+          Row.fromSeq( Seq(3,"three") )
+        ) ),
+        sch
+      ),
+      t1
+    )
+
+    def res: String => String = table => executeQuery(
+      s"select * from $table",
+      rs => {
+        var s = Seq.empty[String]
+        while( rs.next ) {
+          s = s :+ s"${rs.getInt(1)},${rs.getString(2)}"
+        }
+        s.sorted.mkString("; ")
+      }
+    ).asInstanceOf[String]
+    
+    val res1 = res(t1)
+    val res2 = res(t2)
+
+    splicemachineContext.dropTable(t1)
+    splicemachineContext.dropTable(t2)
+
+    org.junit.Assert.assertEquals(res1, res2)
+  }
+
   test("Test Bulk Import") {
     dropInternalTable
     createInternalTable
