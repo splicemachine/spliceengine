@@ -593,7 +593,7 @@ public class SubqueryNode extends ValueNode{
 
         resultSet=resultSet.preprocess(numTables,null,null);
 
-        if (!isEXISTS() && !isNOT_EXISTS() && !isIN() && resultSet.getResultColumns().visibleSize() != 1) {
+        if (!isEXISTS() && !isNOT_EXISTS() && !isIN() && !isNOT_IN() && resultSet.getResultColumns().visibleSize() != 1) {
             throw StandardException.newException(SQLState.LANG_NON_SINGLE_COLUMN_SUBQUERY);
         }
 
@@ -2222,53 +2222,16 @@ public class SubqueryNode extends ValueNode{
          *      (3) Otherwise, return {all left row} - {NULLs}
          */
         if(isNOT_IN() || isALL()){
-            boolean leftNullable=leftOperand.getTypeServices().isNullable();
-            boolean rightNullable=rightOperand.getTypeServices().isNullable();
-            if(leftNullable || rightNullable){
-                /* Create a normalized structure.
-                 */
-                BooleanConstantNode falseNode=(BooleanConstantNode)getNodeFactory().getNode(
-                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                        Boolean.FALSE,
-                        getContextManager());
-                OrNode newOr=(OrNode)getNodeFactory().getNode(
-                        C_NodeTypes.OR_NODE,
-                        joinCondition,
-                        falseNode,
-                        getContextManager());
-                newOr.postBindFixup();
-                andLeft=newOr;
+            if (leftOperand instanceof ValueTupleNode && rightOperand instanceof ValueTupleNode) {
+                ValueTupleNode leftItems = (ValueTupleNode) leftOperand;
+                ValueTupleNode rightItems = (ValueTupleNode) rightOperand;
 
-                if(leftNullable){
-                    UnaryComparisonOperatorNode leftIsNull=(UnaryComparisonOperatorNode)
-                            getNodeFactory().getNode(
-                                    C_NodeTypes.IS_NULL_NODE,
-                                    leftOperand,
-                                    getContextManager());
-                    leftIsNull.bindComparisonOperator();
-                    newOr=(OrNode)getNodeFactory().getNode(
-                            C_NodeTypes.OR_NODE,
-                            leftIsNull,
-                            andLeft,
-                            getContextManager());
-                    newOr.postBindFixup();
-                    andLeft=newOr;
+                for (int i = 0; i < leftItems.size(); i++) {
+                    andLeft = fixPredicateForNotInAndAll(andLeft, leftItems.get(i), rightItems.get(i));
                 }
-                if(rightNullable){
-                    UnaryComparisonOperatorNode rightIsNull=(UnaryComparisonOperatorNode)
-                            getNodeFactory().getNode(
-                                    C_NodeTypes.IS_NULL_NODE,
-                                    rightOperand,
-                                    getContextManager());
-                    rightIsNull.bindComparisonOperator();
-                    newOr=(OrNode)getNodeFactory().getNode(
-                            C_NodeTypes.OR_NODE,
-                            rightIsNull,
-                            andLeft,
-                            getContextManager());
-                    newOr.postBindFixup();
-                    andLeft=newOr;
-                }
+                andLeft = SelectNode.normExpressions(andLeft);
+            } else {
+                andLeft = fixPredicateForNotInAndAll(andLeft, leftOperand, rightOperand);
             }
         }
 
@@ -2338,6 +2301,62 @@ public class SubqueryNode extends ValueNode{
         }
         ucoNode.bindComparisonOperator();
         return ucoNode;
+    }
+
+    private ValueNode fixPredicateForNotInAndAll(ValueNode currentPred, ValueNode leftItem, ValueNode rightItem)
+            throws StandardException
+    {
+        ValueNode newTop = currentPred;
+        boolean leftNullable = leftItem.getTypeServices().isNullable();
+        boolean rightNullable = rightItem.getTypeServices().isNullable();
+
+        if (leftNullable || rightNullable) {
+            /* Create a normalized structure */
+            BooleanConstantNode falseNode = (BooleanConstantNode) getNodeFactory().getNode(
+                    C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                    Boolean.FALSE,
+                    getContextManager());
+            OrNode newOr = (OrNode) getNodeFactory().getNode(
+                    C_NodeTypes.OR_NODE,
+                    newTop,
+                    falseNode,
+                    getContextManager());
+            newOr.postBindFixup();
+            newTop = newOr;
+
+            if (leftNullable) {
+                UnaryComparisonOperatorNode leftIsNull = (UnaryComparisonOperatorNode)
+                        getNodeFactory().getNode(
+                                C_NodeTypes.IS_NULL_NODE,
+                                leftItem,
+                                getContextManager());
+                leftIsNull.bindComparisonOperator();
+                newOr = (OrNode) getNodeFactory().getNode(
+                        C_NodeTypes.OR_NODE,
+                        leftIsNull,
+                        newTop,
+                        getContextManager());
+                newOr.postBindFixup();
+                newTop = newOr;
+            }
+            if (rightNullable) {
+                UnaryComparisonOperatorNode rightIsNull = (UnaryComparisonOperatorNode)
+                        getNodeFactory().getNode(
+                                C_NodeTypes.IS_NULL_NODE,
+                                rightItem,
+                                getContextManager());
+                rightIsNull.bindComparisonOperator();
+                newOr = (OrNode) getNodeFactory().getNode(
+                        C_NodeTypes.OR_NODE,
+                        rightIsNull,
+                        newTop,
+                        getContextManager());
+                newOr.postBindFixup();
+                newTop = newOr;
+            }
+        }
+
+        return newTop;
     }
 
     /**

@@ -42,7 +42,7 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
         classWatcher.executeUpdate("create table B(b1 int, b2 int)");
         classWatcher.executeUpdate("create table C(name varchar(20), surname varchar(20))");
         classWatcher.executeUpdate("insert into A values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
-        classWatcher.executeUpdate("insert into B values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50)");
+        classWatcher.executeUpdate("insert into B values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50),(NULL,NULL)");
         classWatcher.executeUpdate("insert into C values('Jon', 'Snow'),('Eddard', 'Stark'),('Robb', 'Stark'), ('Jon', 'Arryn')");
     }
 
@@ -164,12 +164,81 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
     }
 
     @Test
-    public void testMultiColumnNotIn() throws Exception {
+    public void testMultiColumnNotInNotFlatten() throws Exception {
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from A where (a1, a2) not in (select * from B where b2 <= 20)", ONE_SUBQUERY_NODE, "" +
+                        "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 3 |30 |\n" +
+                        " 4 |40 |\n" +
+                        " 5 |50 |"
+        );
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from A where (a1, a2) not in (select * from B where b2 <= 20 or b2 is null)", ONE_SUBQUERY_NODE, ""
+        );
+    }
+
+    @Test
+    public void testMultiColumnNotInFlatten() throws Exception {
+        methodWatcher.executeUpdate("create table if not exists A1 (a1 int not null, a2 int not null)");
+        methodWatcher.executeUpdate("create table if not exists B1 (b1 int not null, b2 int not null)");
+        methodWatcher.executeUpdate("delete from A1");
+        methodWatcher.executeUpdate("delete from B1");
+        methodWatcher.executeUpdate("insert into A1 values(0,0),(1,10),(2,20),(3,30),(4,40),(5,50)");
+        methodWatcher.executeUpdate("insert into B1 values(0,0),(0,0),(1,10),(1,10),(2,20),(2,20),(3,30),(3,30),(4,40),(4,40),(5,50),(5,50)");
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from A1 where (a1, a2) not in (select * from B1 where b2 <= 20)", ZERO_SUBQUERY_NODES, "" +
+                        "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 3 |30 |\n" +
+                        " 4 |40 |\n" +
+                        " 5 |50 |"
+        );
+
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from A1 where a1 between 4 and 10 and (a1, a2) not in (select * from B1 where b2 <= 20)", ZERO_SUBQUERY_NODES, "" +
+                        "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 4 |40 |\n" +
+                        " 5 |50 |"
+        );
+    }
+
+    @Test
+    public void degeneratedLeftTuple() throws Exception {
+        assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                "select * from A where (a1) in (select b1 from B where b2 > 20)", ZERO_SUBQUERY_NODES, "" +
+                        "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 3 |30 |\n" +
+                        " 4 |40 |\n" +
+                        " 5 |50 |"
+        );
+
         try {
-            methodWatcher.execute("select * from A where (a1, a2) not in (select * from B where b2 > 20)");
-            Assert.fail("expect failure because table subquery is allowed only for (not)exists and in");
+            methodWatcher.executeQuery("select * from A where (a1) in (select b1, b2 from B where b2 > 20)");
+            Assert.fail("expect exception of number of columns mismatch");
         } catch (SQLException e) {
-            Assert.assertEquals("42X39", e.getSQLState());
+            Assert.assertEquals("42X58", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void numberOfColumnsMismatch() throws Exception {
+        try {
+            methodWatcher.executeQuery("select * from A where a1 in (select b1, b2 from B where b2 > 20)");
+            Assert.fail("expect exception of number of columns mismatch");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X58", e.getSQLState());
+        }
+
+        try {
+            methodWatcher.executeQuery("select * from A where (a1, a2) in (select b1 from B where b2 > 20)");
+            Assert.fail("expect exception of number of columns mismatch");
+        } catch (SQLException e) {
+            Assert.assertEquals("42X58", e.getSQLState());
         }
     }
 }
