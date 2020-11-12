@@ -16,6 +16,7 @@ package com.splicemachine.pipeline;
 
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
+import com.splicemachine.pipeline.constraint.NotNullConstraintViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 
@@ -95,7 +96,7 @@ public class ConstraintViolation extends DoNotRetryIOException{
         }
     }
 
-    public static class NotNullViolation extends ConstraintViolation{
+    public static class NotNullViolation extends ConstraintViolation implements NotNullConstraintViolation {
         public NotNullViolation(){ }
 
         public NotNullViolation(String message){

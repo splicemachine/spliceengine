@@ -790,7 +790,7 @@ public class SelectNode extends ResultSetNode{
             /* Select * currently only valid for EXISTS/NOT EXISTS.  NOT EXISTS
              * does not appear prior to preprocessing.
              */
-            if(subqueryType!=SubqueryNode.EXISTS_SUBQUERY){
+            if(subqueryType!=SubqueryNode.EXISTS_SUBQUERY && subqueryType!=SubqueryNode.IN_SUBQUERY){
                 throw StandardException.newException(SQLState.LANG_CANT_SELECT_STAR_SUBQUERY);
             }
 

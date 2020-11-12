@@ -154,6 +154,8 @@ public class HPipelineExceptionFactory extends HExceptionFactory implements Pipe
                     return new HNotServingRegion();
                 case WRONG_REGION:
                     return new HWrongRegion();
+                case NOT_NULL:
+                    return notNullViolation(result.getConstraintContext());
                 case REGION_TOO_BUSY:
                     return new HTooBusy("Region too busy");
                 case NOT_RUN:
