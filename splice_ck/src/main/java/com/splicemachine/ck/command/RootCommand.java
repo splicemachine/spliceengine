@@ -15,6 +15,7 @@
 package com.splicemachine.ck.command;
 
 import com.splicemachine.ck.ConnectionCache;
+import com.splicemachine.ck.Utils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import picocli.CommandLine;
@@ -44,9 +45,14 @@ class RootCommand {
                 System.out.print("spliceck> ");
                 String s = command.nextLine();
                 if (s.equals("exit")) break;
+                if (s.trim().length() == 0) continue;
                 String[] args2 = s.split(" ");
                 exitCode = cl.execute(args2);
-                System.out.println("returned " + exitCode);
+                if( exitCode == 0 )
+                    System.out.println(Utils.Colored.green( "return code " + exitCode + "\n") );
+                else
+                    System.out.println(Utils.Colored.red( "return code " + exitCode + "\n") );
+
             }
             command.close();
         }
