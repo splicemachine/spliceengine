@@ -161,7 +161,10 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
 
         this.fromSparkExecution = fromSparkExecution;
         this.fromTableDmlSpsDescriptor = fromTableDmlSpsDescriptor;
-        // only use the local cache for spark execution
+        // Only use the local cache for spark execution, or if we have a temporary
+        // trigger created for execution of a FROM FINAL TABLE clause, which
+        // does not store its SPS in the data dictionary, so needs to use
+        // a ManagedCache.
         if (fromSparkExecution || fromTableDmlSpsDescriptor != null) {
             this.spsCache = new ManagedCache<>(CacheBuilder.newBuilder().recordStats().maximumSize(100).build(), 100);
             if (fromTableDmlSpsDescriptor != null)

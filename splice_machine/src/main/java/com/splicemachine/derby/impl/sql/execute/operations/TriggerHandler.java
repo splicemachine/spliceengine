@@ -294,6 +294,21 @@ public class TriggerHandler {
     }
 
     public void cleanup() throws StandardException {
+        // If an Exception is encountered, some resources may be closed more than
+        // once during unwinding of the call stack we want to make sure that
+        // full cleanup isn't indefinitely deferred, and isn't unnecessarily
+        // called multiple times, so add a cleanup1Done phase to indicate
+        // the next time around, we don't defer full cleanup any longer, and
+        // a cleanup2Done phase to indicate we've already done full cleanup
+        // and we don't accidentally try to clean already-cleaned resources.
+        //
+        // This is also needed for statements such as:
+        // SELECT * FROM FINAL TABLE (INSERT INTO t1 VALUES(1,2));
+        // The first time cleanup is called, for the DML statement,
+        // we want to retain the trigger result set for consumption
+        // by the SELECT statement, but once the SELECT completes,
+        // we want to make sure any buffers or temporary conglomerates
+        // are cleaned up.
         if (triggerActivator != null && !cleanup2Done) {
             if (cleanup1Done)
                 cleanup2Done = true;
