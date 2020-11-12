@@ -115,6 +115,7 @@ public class DictionaryGraphBuilder implements GraphBuilder {
             dd.getDataDictionaryCache().constraintDescriptorListCacheAdd(constraintId, result);
         }
         return result;
+        // return dd.getForeignKeys(constraintId);
     }
 
     List<Pair<TableDescriptor, EdgeNode.Type>> getChildren(TableDescriptor tableDescriptor) throws StandardException {
@@ -123,11 +124,7 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         for (ConstraintDescriptor cd : constraintDescriptorList) {
             if ((cd instanceof ReferencedKeyConstraintDescriptor)) {
                 ConstraintDescriptorList fkcdl = retrieveFromCache(cd.getUUID());
-                int size = fkcdl.size();
-                if (size == 0) {
-                    continue;
-                }
-                for (int inner = 0; inner < size; inner++) {
+                for (int inner = 0; inner < fkcdl.size(); inner++) {
                     ForeignKeyConstraintDescriptor fkcd = (ForeignKeyConstraintDescriptor) fkcdl.elementAt(inner);
                     // take care of cases where the FK is self-referencing, for now ignore.
                     if (fkcd.isSelfReferencingFK()) {
