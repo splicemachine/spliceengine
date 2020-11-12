@@ -21,7 +21,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1981-SNAPSHOT</version>
+        <version>3.2.0.1985-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -108,6 +108,7 @@
             splice_backup,
             splice_replication,
             splice_replication_monitor,
+            splice_upgrade,
             splice_auth,
             splice_colperms,
             splice_encryption,
@@ -1324,14 +1325,6 @@
 
         <profile>
             <id>dbaas</id>
-            <dependencies>
-                <dependency>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                    <version>${guava.version}</version>
-                </dependency>
-            </dependencies>
-
             <build>
                 <plugins>
                     <plugin>
@@ -1351,7 +1344,6 @@
                                     </excludeArtifactIds>
                                     <includeArtifactIds>
                                         commonArtifacts,
-                                        guava,
                                         snappy-java,
                                         kryo-shaded,
                                         kryo-serializers,

@@ -116,7 +116,9 @@ public interface SConfiguration {
 
     boolean replicationEnabled();
 
-    public String getReplicationPath();
+    String getReplicationPath();
+
+    String getRollingRestartPath();
 
     int getReplicationSnapshotInterval();
 
@@ -403,6 +405,10 @@ public interface SConfiguration {
     void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue);
 
     CompilerContext.NativeSparkModeType getNativeSparkAggregationMode();
+
+    void setNewMergeJoin(CompilerContext.NewMergeJoinExecutionType newValue);
+
+    CompilerContext.NewMergeJoinExecutionType getNewMergeJoin();
 
     String getMetadataRestrictionEnabled();
 

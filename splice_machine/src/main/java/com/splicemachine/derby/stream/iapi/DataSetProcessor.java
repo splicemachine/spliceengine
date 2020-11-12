@@ -229,9 +229,9 @@ public interface DataSetProcessor {
      * @return
      * @throws StandardException
      */
-    <V> DataSet<V> readORCFile(int[] baseColumnMap, int[] partitionColumnMap, String location,
-                               OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow,
-                               boolean useSample, double sampleFraction, boolean statsjob) throws StandardException;
+    <V> DataSet<V> readORCFile(StructType schema, int[] baseColumnMap, int[] partitionColumnMap, String location,
+                               OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue,
+                               ExecRow execRow, boolean useSample, double sampleFraction) throws StandardException;
 
     /**
      *
@@ -284,4 +284,6 @@ public interface DataSetProcessor {
     // <- End operations related to spark explain.
 
     <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext op) throws StandardException;
+
+    boolean isSparkDB2CompatibilityMode();
 }

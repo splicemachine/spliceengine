@@ -174,6 +174,11 @@ public class SubqueryNode extends ValueNode{
     private boolean foundCorrelation;
     private boolean doneCorrelationCheck;
     /*
+    ** List of correlated columns, constructed lazily.
+     */
+    private boolean correlationCRsConstructed;
+    private List<ValueNode> correlationCRs;
+    /*
     ** Indicate whether we found an invariant node
     ** below us or not. And track whether we have
     ** checked yet.
@@ -222,6 +227,7 @@ public class SubqueryNode extends ValueNode{
          */
         underTopAndNode=false;
         this.leftOperand=(ValueNode)leftOperand;
+        this.correlationCRsConstructed = false;
     }
 
     public void setProperties(Properties properties) throws StandardException {
@@ -1001,6 +1007,53 @@ public class SubqueryNode extends ValueNode{
         return foundCorrelation;
     }
 
+    public List<ValueNode> getCorrelationCRs() throws StandardException {
+        if(correlationCRsConstructed) {
+            return correlationCRs;
+        }
+        correlationCRsConstructed = true;
+        correlationCRs = new ArrayList<>();
+        if(!hasCorrelatedCRs()) {
+            return correlationCRs;
+        }
+        ResultSetNode realSubquery=resultSet;
+        ResultColumnList oldRCL=null;
+
+        /* If we have pushed the new join predicate on top, we want to disregard it
+         * to see if anything under the predicate is correlated.  If nothing correlated
+         * under the new join predicate, we could then materialize the subquery.
+         * See beetle 4373.
+         */
+        if(pushedNewPredicate){
+            if(SanityManager.DEBUG){
+                SanityManager.ASSERT(resultSet instanceof ProjectRestrictNode,
+                        "resultSet expected to be a ProjectRestrictNode!");
+            }
+
+            realSubquery=((ProjectRestrictNode)resultSet).getChildResult();
+            oldRCL=realSubquery.getResultColumns();
+
+            /* Only first column matters.
+             */
+            if(oldRCL.size()>1){
+                ResultColumnList newRCL=new ResultColumnList();
+                newRCL.addResultColumn(oldRCL.getResultColumn(1));
+                realSubquery.setResultColumns(newRCL);
+            }
+        }
+
+        // do we need to treat SelectNode separately (similar to above)?
+        CorrelationCRCollector collector = new CorrelationCRCollector();
+        realSubquery.accept(collector);
+        correlationCRs = collector.getCorrelationCRs();
+
+        if(pushedNewPredicate && (oldRCL.size()>1)){
+            realSubquery.setResultColumns(oldRCL);
+        }
+
+        return correlationCRs;
+    }
+
     /**
      * Finish putting an expression into conjunctive normal
      * form.  An expression tree in conjunctive normal form meets
@@ -1125,8 +1178,85 @@ public class SubqueryNode extends ValueNode{
     @Override
     public void generateExpression(ExpressionClassBuilder expressionBuilder,
                                    MethodBuilder mbex) throws StandardException{
-        CompilerContext cc=getCompilerContext();
-        String resultSetString;
+
+        generateExpressionCore(expressionBuilder, mbex);
+        generateSubqueryResultSets(expressionBuilder);
+    }
+
+    public void generateExpressionCore(ExpressionClassBuilder expressionBuilder,
+                                   MethodBuilder mbex) throws StandardException{
+
+        ///////////////////////////////////////////////////////////////////////////
+        //
+        //    Subqueries should not appear in Filter expressions. We should get here
+        //    only if we're compiling a query. That means that our class builder
+        //    is an activation builder. If we ever allow subqueries in filters, we'll
+        //    have to revisit this code.
+        //
+        ///////////////////////////////////////////////////////////////////////////
+
+        if(SanityManager.DEBUG){
+            SanityManager.ASSERT(expressionBuilder instanceof ActivationClassBuilder,
+                    "Expecting an ActivationClassBuilder");
+        }
+
+        ActivationClassBuilder acb=(ActivationClassBuilder)expressionBuilder;
+
+        String subqueryTypeString=
+                getTypeCompiler().interfaceName();
+        MethodBuilder mb=acb.newGeneratedFun(subqueryTypeString,Modifier.PROTECTED);
+
+        /* Declare the field to hold the suquery's ResultSet tree */
+        LocalField rsFieldLF=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
+        LocalField colVar=acb.newFieldDeclaration(Modifier.PRIVATE,subqueryTypeString);
+
+        generateCore(acb, mb, rsFieldLF);
+        /* rs.openCore() */
+        mb.getField(rsFieldLF);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"openCore","void",0);
+
+        /* r = rs.next() */
+        mb.getField(rsFieldLF);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getNextRowCore",ClassName.ExecRow,0);
+
+        mb.push(1); // both the Row interface and columnId are 1-based
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"getColumn",ClassName.DataValueDescriptor,1);
+        mb.cast(subqueryTypeString);
+        mb.setField(colVar);
+
+        /* Only generate the close() method for materialized
+         * subqueries.  All others will be closed when the
+         * close() method is called on the top ResultSet.
+         */
+      /* Splice addition: add close() for *all* subqueries. This seems correct in general,
+       * & Splice was having trouble closing subqueries from the top RS.
+       */
+        /* rs.close() */
+        mb.getField(rsFieldLF);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.ResultSet,"close","void",0);
+
+        /* return col */
+        mb.getField(colVar);
+        mb.methodReturn();
+        mb.complete();
+
+        /*
+        ** If we have an expression subquery, then we
+        ** can materialize it if it has no correlated
+        ** column references and is invariant.
+        */
+        if(isMaterializable()){
+            LocalField lf=generateMaterialization(acb,mb,subqueryTypeString);
+            mbex.getField(lf);
+        }else{
+            /* Generate the call to the new method */
+            mbex.pushThis();
+            mbex.callMethod(VMOpcode.INVOKEVIRTUAL,null,mb.getName(),subqueryTypeString,0);
+        }
+    }
+
+    public void generateSubqueryResultSets(ExpressionClassBuilder expressionBuilder) throws StandardException {
+
 
         ///////////////////////////////////////////////////////////////////////////
         //
@@ -1145,15 +1275,8 @@ public class SubqueryNode extends ValueNode{
         ActivationClassBuilder acb=(ActivationClassBuilder)expressionBuilder;
         /* Reuse generated code, where possible */
 
-        /* Generate the appropriate (Any or Once) ResultSet */
-        if(subqueryType==EXPRESSION_SUBQUERY){
-            resultSetString="getOnceResultSet";
-        }else{
-            resultSetString="getAnyResultSet";
-        }
-
-        // Get cost estimate for underlying subquery
-        CostEstimate costEstimate=resultSet.getFinalCostEstimate(false);
+        /* Declare the field to hold the suquery's ResultSet tree */
+        LocalField rsFieldLF=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
 
         /* Generate a new method.  It's only used within the other
          * exprFuns, so it could be private. but since we don't
@@ -1161,13 +1284,27 @@ public class SubqueryNode extends ValueNode{
          * we just make it protected.  This generated class won't
          * have any subclasses, certainly! (nat 12/97)
          */
-        String subqueryTypeString=
-                getTypeCompiler().interfaceName();
-        MethodBuilder mb=acb.newGeneratedFun(subqueryTypeString,Modifier.PROTECTED);
+        MethodBuilder mb = createSubqueryResultSetsMb(acb);
+        generateCore(acb, mb, rsFieldLF);
 
-        /* Declare the field to hold the suquery's ResultSet tree */
-        LocalField rsFieldLF=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
+        mb.getField(rsFieldLF);
+        mb.methodReturn();
+        mb.complete();
+        acb.addSubqueryResultSet(mb);
+    }
 
+    private void generateCore(ActivationClassBuilder acb,
+                                        MethodBuilder mb,
+                                        LocalField rsFieldLF) throws StandardException {
+        CompilerContext cc=getCompilerContext();
+        CostEstimate costEstimate=resultSet.getFinalCostEstimate(false);
+        /* Generate the appropriate (Any or Once) ResultSet */
+        String resultSetString;
+        if(subqueryType==EXPRESSION_SUBQUERY){
+            resultSetString="getOnceResultSet";
+        }else{
+            resultSetString="getAnyResultSet";
+        }
         ResultSetNode subNode=null;
 
         if(!isMaterializable()){
@@ -1182,7 +1319,7 @@ public class SubqueryNode extends ValueNode{
                  * We do this trick by replacing the child result with a new node --
                  * MaterializeSubqueryNode, which refers to the field that holds the
                  * possibly materialized subquery.  This may have big performance
-             * improvement.  See beetle 4373.
+                 * improvement.  See beetle 4373.
                  */
                 if(SanityManager.DEBUG){
                     SanityManager.ASSERT(resultSet instanceof ProjectRestrictNode,
@@ -1303,11 +1440,6 @@ public class SubqueryNode extends ValueNode{
          * and adds it to exprFun
          */
 
-        /* Generate the declarations */ // PUSHCOMPILE
-        //VariableDeclaration colVar = mb.addVariableDeclaration(subqueryTypeString);
-        //VariableDeclaration rVar   = mb.addVariableDeclaration(ClassName.ExecRow);
-        LocalField colVar=acb.newFieldDeclaration(Modifier.PRIVATE,subqueryTypeString);
-
         if(!isMaterializable()){
             /* put it back
              */
@@ -1321,73 +1453,17 @@ public class SubqueryNode extends ValueNode{
         }
 
         mb.setField(rsFieldLF);
-
-        /* rs.openCore() */
-        mb.getField(rsFieldLF);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"openCore","void",0);
-
-        /* r = rs.next() */
-        mb.getField(rsFieldLF);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getNextRowCore",ClassName.ExecRow,0);
-        //mb.putVariable(rVar);
-        //mb.endStatement();
-
-        /* col = (<Datatype interface>) r.getColumn(1) */
-        //mb.getVariable(rVar);
-        mb.push(1); // both the Row interface and columnId are 1-based
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"getColumn",ClassName.DataValueDescriptor,1);
-        mb.cast(subqueryTypeString);
-        mb.setField(colVar);
-        //mb.putVariable(colVar);
-        //mb.endStatement();
-
-        /* Only generate the close() method for materialized
-         * subqueries.  All others will be closed when the
-         * close() method is called on the top ResultSet.
-         */
-      /* Splice addition: add close() for *all* subqueries. This seems correct in general,
-       * & Splice was having trouble closing subqueries from the top RS.
-       */
-//        if(true){
-            /* rs.close() */
-            mb.getField(rsFieldLF);
-            mb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.ResultSet,"close","void",0);
-//        }else{
-//         /* Unused Splice addition:
-//          * close non-materialized subqueries (i.e. those which have possibly been cached
-//          * with a call to materializeResultSetIfPossible) when the activation closes. This
-//          * attempted as a (probably premature) optimization to avoid costs of closing subqueries
-//          * which execute many times.
-//          */
-//            MethodBuilder closeMB=acb.getCloseActivationMethod();
-//            closeMB.getField(rsFieldLF);
-//            closeMB.conditionalIfNull();
-//            closeMB.startElseCode();
-//            closeMB.getField(rsFieldLF);
-//            closeMB.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.ResultSet,"close","void",0);
-//            closeMB.completeConditional();
-//        }
-
-        /* return col */
-        mb.getField(colVar);
-        mb.methodReturn();
-        mb.complete();
-
-        /*
-        ** If we have an expression subquery, then we
-        ** can materialize it if it has no correlated
-        ** column references and is invariant.
-        */
-        if(isMaterializable()){
-            LocalField lf=generateMaterialization(acb,mb,subqueryTypeString);
-            mbex.getField(lf);
-        }else{
-            /* Generate the call to the new method */
-            mbex.pushThis();
-            mbex.callMethod(VMOpcode.INVOKEVIRTUAL,null,mb.getName(),subqueryTypeString,0);
-        }
     }
+    private MethodBuilder createSubqueryResultSetsMb(ActivationClassBuilder acb) {
+        MethodBuilder mb = acb.newGeneratedFun(ClassName.ResultSet, Modifier.PRIVATE);
+        mb.addThrownException(ClassName.StandardException);
 
+        mb.pushThis(); // instance
+        mb.push("getSubqueryResultSets");
+        mb.callMethod(VMOpcode.INVOKEVIRTUAL, ClassName.BaseActivation, "throwIfClosed", "void", 1);
+
+        return mb;
+    }
     /**
      * Accept the visitor for all visitable children of this node.
      *

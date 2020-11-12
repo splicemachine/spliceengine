@@ -43,8 +43,6 @@ import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.List;
 
@@ -148,60 +146,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 
 		public boolean doesProjection() {
 				return doesProjection;
-		}
-
-		@Override
-		public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
-				super.readExternal(in);
-				restrictionMethodName = readNullableString(in);
-				projectionMethodName = readNullableString(in);
-				constantRestrictionMethodName = readNullableString(in);
-				mapRefItem = in.readInt();
-				cloneMapItem = in.readInt();
-				int version = in.readUnsignedByte();
-				if (version < PROJECT_RESTRICT_OPERATION_V2)
-				    reuseResult = (version == 1);
-				else
-				    reuseResult = in.readBoolean();
-				doesProjection = in.readBoolean();
-				source = (SpliceOperation) in.readObject();
-				if (version >= PROJECT_RESTRICT_OPERATION_V2) {
-				    filterPred = readNullableString(in);
-				    int numexpressions = in.readInt();
-				    if (numexpressions > 0) {
-				        expressions = new String[numexpressions];
-				        for (int i = 0; i < numexpressions; i++) {
-				            expressions[i] = readNullableString(in);
-				        }
-				    }
-				    hasGroupingFunction = in.readBoolean();
-				}
-				subqueryText = readNullableString(in);
-		}
-
-		@Override
-		public void writeExternal(ObjectOutput out) throws IOException {
-				super.writeExternal(out);
-				writeNullableString(restrictionMethodName, out);
-				writeNullableString(projectionMethodName, out);
-				writeNullableString(constantRestrictionMethodName, out);
-				out.writeInt(mapRefItem);
-				out.writeInt(cloneMapItem);
-				out.writeByte(PROJECT_RESTRICT_OPERATION_V2);
-				out.writeBoolean(reuseResult);
-				out.writeBoolean(doesProjection);
-				out.writeObject(source);
-				writeNullableString(filterPred, out);
-				if (expressions == null)
-				    out.writeInt(0);
-				else {
-				    out.writeInt(expressions.length);
-				    for (int i = 0; i < expressions.length; i++) {
-				        writeNullableString(expressions[i], out);
-				    }
-				}
-				out.writeBoolean(hasGroupingFunction);
-				writeNullableString(subqueryText, out);
 		}
 
 		@Override
@@ -413,6 +357,16 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	@Override
 	public ExecIndexRow getStartPosition() throws StandardException {
 		return source.getStartPosition();
+	}
+
+	@Override
+	public ExecIndexRow getStopPosition() throws StandardException {
+		return source.getStopPosition();
+	}
+
+	@Override
+	public boolean getSameStartStopPosition() {
+		return source.getSameStartStopPosition();
 	}
 
     @Override

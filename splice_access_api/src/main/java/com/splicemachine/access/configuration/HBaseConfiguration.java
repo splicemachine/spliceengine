@@ -41,6 +41,9 @@ public class HBaseConfiguration implements ConfigurationDefault {
     public static final String DEFAULT_BACKUP_PATH = "/backup";
     public static final String DEFAULT_BACKUP_LOCK_PATH = "/backup_lock";
 
+    public static final String ROLLING_RESTART_PATH = "splice.rolling.restart.path";
+    public static final String DEFAULT_ROLLING_RESTART_PATH = "/rollingRestart";
+
     public static final String REPLICATION_PATH = "splice.replication.path";
     public static final String DEFAULT_REPLICATION_PATH = "/replication";
     public static final String DEFAULT_REPLICATION_SOURCE_PATH = "/source";
@@ -128,6 +131,12 @@ public class HBaseConfiguration implements ConfigurationDefault {
      * Path in ZooKeeper for registering servers
      */
     public static final String SERVERS_PATH = "/servers";
+
+    /**
+     * Path in ZooKeeper for registering the number or spark nodes
+     */
+    public static final String SPARK_NUM_NODES_PATH = "/sparkNumNodes";
+
 
     public static final String DDL_PATH="/ddl";
     public static final String DDL_CHANGE_PATH="/ddlChange";
@@ -277,6 +286,7 @@ public class HBaseConfiguration implements ConfigurationDefault {
         builder.namespace = configurationSource.getString(NAMESPACE, DEFAULT_NAMESPACE);
         builder.backupPath = configurationSource.getString(BACKUP_PATH, DEFAULT_BACKUP_PATH);
         builder.replicationPath = configurationSource.getString(REPLICATION_PATH, DEFAULT_REPLICATION_PATH);
+        builder.rollingRestartPath = configurationSource.getString(ROLLING_RESTART_PATH, DEFAULT_ROLLING_RESTART_PATH);
 
         builder.hbaseSecurityAuthentication = configurationSource.getBoolean(HBASE_SECURITY_AUTHENTICATION, false);
         builder.hbaseSecurityAuthorization = configurationSource.getString(HBASE_SECURITY_AUTHORIZATION,

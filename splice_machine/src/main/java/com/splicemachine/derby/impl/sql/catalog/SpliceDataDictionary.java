@@ -73,6 +73,8 @@ import java.util.List;
 import java.util.Properties;
 import java.util.function.Function;
 
+import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
+
 /**
  * @author Scott Fines
  *         Created on: 2/28/13
@@ -346,7 +348,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // add new view deifnition
-        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM);
+        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
 
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
     }
@@ -482,6 +484,34 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void updateColumnViewInSysVW(TransactionController tc) throws StandardException {
         updateColumnViewInSys(tc, "SYSCOLUMNSVIEW", 0, sysViewSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
+    }
+
+    public void addBaseTableSchemaColumnToTableViewInSysibm(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSTABLES", sysIBMSchemaDesc, tc);
+
+        Boolean needUpdate = true;
+        if (td != null) {
+            ColumnDescriptor cd = td.getColumnDescriptor("BASE_SCHEMA");
+            if (cd != null)
+                needUpdate = false;
+        }
+
+        if (needUpdate) {
+            if (td != null) {
+                ViewDescriptor vd = getViewDescriptor(td);
+                // drop the view deifnition
+                dropAllColumnDescriptors(td.getUUID(), tc);
+                dropViewDescriptor(vd, tc);
+                dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+            }
+
+            // add new view deifnition
+            createOneSystemView(tc, SYSTABLES_CATALOG_NUM, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME_IN_SYSIBM, 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
+
+            SpliceLogUtils.info(LOG, String.format("The view %s in %s has been updated with default column!", "SYSTABLES", sysIBMSchemaDesc.getSchemaName()));
+        }
     }
 
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {

@@ -38,6 +38,7 @@ import static org.junit.Assert.fail;
  * ON DELETE NO ACTION
  * ON DELETE CASCADE
  * ON DELETE SET NULL
+ * ON DELETE RESTRICT
  * ON UPDATE NO ACTION
  */
 public class ForeignKeyActionIT {
@@ -55,7 +56,7 @@ public class ForeignKeyActionIT {
     public void deleteTables() throws Exception {
         conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
-        new TableDAO(conn).drop(SCHEMA, "T3", "T2", "T4", "T1", "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
+        new TableDAO(conn).drop(SCHEMA, "RP", "RC", "T3", "T2", "T4", "T1", "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
                 "FC", "FP", "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
     }
 
@@ -419,6 +420,28 @@ public class ForeignKeyActionIT {
             s.executeUpdate("delete from FP where col1 = 1");
             try(ResultSet rs = s.executeQuery("select * from FC")) {
                 Assert.assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void onDeleteRestrictIsSynonymToOnDeleteNoAction() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            // RP, RC
+            s.executeUpdate("create table RP (col1 int primary key)");
+            s.executeUpdate("create table RC(col1 int references RP(col1) on delete restrict)");
+            s.executeUpdate("insert into RP values (1)");
+            s.executeUpdate("insert into RP values (2)");
+            s.executeUpdate("insert into RC values (1)");
+            s.executeUpdate("insert into RC values (2)");
+            try {
+                s.executeUpdate("delete from RP where col1 = 1");
+                Assert.fail("expected an exception containing the following message: Operation on table 'RP' caused a violation of foreign key constraint");
+            } catch(Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+                SQLException exception = (SQLException)e;
+                Assert.assertEquals("23503", exception.getSQLState());
+                Assert.assertTrue(exception.getMessage().contains("Operation on table 'RP' caused a violation of foreign key constraint"));
             }
         }
     }

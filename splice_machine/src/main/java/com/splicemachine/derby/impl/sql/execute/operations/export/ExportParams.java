@@ -30,12 +30,16 @@ import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COM
  * Represents the user provided parameters of a given export.
  */
 public class ExportParams implements Serializable {
+    enum QuoteMode {
+        ALWAYS, DEFAULT
+    }
 
     private static final String DEFAULT_ENCODING = Charsets.UTF_8.name();
     private static final short DEFAULT_REPLICATION_COUNT = 1;
     private static final char DEFAULT_FIELD_DELIMITER = ',';
     private static final char DEFAULT_QUOTE_CHAR = '"';
     private static final String DEFAULT_RECORD_DELIMITER = "\n";
+    private static QuoteMode DEFAULT_QUOTE_MODE = QuoteMode.DEFAULT;
 
     private String directory;
     private String format;
@@ -45,13 +49,14 @@ public class ExportParams implements Serializable {
 
     private char fieldDelimiter = DEFAULT_FIELD_DELIMITER;
     private char quoteChar = DEFAULT_QUOTE_CHAR;
+    private QuoteMode quoteMode = DEFAULT_QUOTE_MODE;
 
     // for serialization
     public ExportParams() {
     }
 
     public ExportParams(String directory, String compression, String format, int replicationCount, String characterEncoding,
-                        String fieldDelimiter, String quoteChar) throws StandardException {
+                        String fieldDelimiter, String quoteChar, String quoteMode) throws StandardException {
         setDirectory(directory);
         setFormat(format);
         setCompression(compression);
@@ -59,6 +64,7 @@ public class ExportParams implements Serializable {
         setCharacterEncoding(characterEncoding);
         setDefaultFieldDelimiter(StringEscapeUtils.unescapeJava(fieldDelimiter));
         setQuoteChar(StringEscapeUtils.unescapeJava(quoteChar));
+        setQuoteMode(quoteMode);
     }
 
     /**
@@ -102,6 +108,10 @@ public class ExportParams implements Serializable {
         return replicationCount;
     }
 
+    public QuoteMode getQuoteMode() {
+        return quoteMode;
+    }
+
     // - - - - - - - - - - -
     // private setters
     // - - - - - - - - - - -
@@ -123,32 +133,47 @@ public class ExportParams implements Serializable {
         }
         if (compression!= null && compression.length() > 0) {
             String f = format.trim().toUpperCase();
-            if (f.compareTo("PARQUET") == 0) {
+            if (f.equals("PARQUET")) {
                 // Only support snappy compression for parquet
-                if (compression.compareTo("SNAPPY") == 0 ||
-                        compression.compareTo("TRUE") == 0) {
+                if (compression.equals("SNAPPY") ||
+                        compression.equals("TRUE")) {
                     this.compression = COMPRESSION.SNAPPY;
-                } else if (compression.compareTo("NONE") == 0 ||
-                        compression.compareTo("FALSE") == 0) {
+                } else if (compression.equals("NONE") ||
+                        compression.equals("FALSE")) {
                     this.compression = COMPRESSION.NONE;
                 } else throw StandardException.newException(SQLState.UNSUPPORTED_COMPRESSION_FORMAT, compression);
-            } else if (f.compareTo("CSV") == 0) {
+            } else if (f.equals("CSV")) {
                 // Support gzip, bzip2 for csv
-                if (compression.compareTo("BZ2") == 0 ||
-                        compression.compareTo("BZIP2") == 0) {
+                if (compression.equals("BZ2") ||
+                        compression.equals("BZIP2")) {
                     this.compression = COMPRESSION.BZ2;
-                } else if (compression.compareTo("GZ") == 0 ||
-                        compression.compareTo("GZIP") == 0 ||
-                        compression.compareTo("TRUE") == 0) {
+                } else if (compression.equals("GZ") ||
+                        compression.equals("GZIP") ||
+                        compression.equals("TRUE")) {
                     this.compression = COMPRESSION.GZ;
-                } else if (compression.compareTo("NONE") == 0 ||
-                        compression.compareTo("FALSE") == 0) {
+                } else if (compression.equals("NONE") ||
+                        compression.equals("FALSE")) {
                     this.compression = COMPRESSION.NONE;
                 } else throw StandardException.newException(SQLState.UNSUPPORTED_COMPRESSION_FORMAT, compression);
             }
         }
         else
             this.compression = COMPRESSION.NONE;
+    }
+
+    public void setQuoteMode(String quoteMode) throws StandardException {
+        if (quoteMode != null) {
+            quoteMode = quoteMode.trim().toUpperCase();
+        }
+        if (quoteMode != null && quoteMode.length() > 0) {
+            if (quoteMode.equals("ALWAYS")) {
+                this.quoteMode = QuoteMode.ALWAYS;
+            } else if (quoteMode.equals("DEFAULT")) {
+                this.quoteMode = QuoteMode.DEFAULT;
+            } else {
+                throw StandardException.newException(SQLState.UNSUPPORTED_QUOTE_MODE, quoteMode);
+            }
+        }
     }
 
     private void setReplicationCount(short replicationCount) {

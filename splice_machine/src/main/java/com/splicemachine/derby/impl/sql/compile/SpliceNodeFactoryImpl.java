@@ -304,6 +304,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.DECIMAL_CONSTANT_NODE:
             case C_NodeTypes.DOUBLE_CONSTANT_NODE:
             case C_NodeTypes.FLOAT_CONSTANT_NODE:
+            case C_NodeTypes.DECFLOAT_CONSTANT_NODE:
                 return C_NodeNames.NUMERIC_CONSTANT_NODE_NAME;
 
             case C_NodeTypes.USERTYPE_CONSTANT_NODE:
@@ -632,9 +633,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 
             case C_NodeTypes.EXPORT_NODE:
                 return C_NodeNames.EXPORT_NODE_NAME;
-
-            case C_NodeTypes.BINARY_EXPORT_NODE:
-                return C_NodeNames.BINARY_EXPORT_NODE_NAME;
 
             case C_NodeTypes.KAFKA_EXPORT_NODE:
                 return C_NodeNames.KAFKA_EXPORT_NODE_NAME;

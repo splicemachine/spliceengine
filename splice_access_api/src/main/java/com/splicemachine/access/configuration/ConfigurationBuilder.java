@@ -114,6 +114,7 @@ public class ConfigurationBuilder {
     public long transactionsWatcherUpdateInterval;
     public String backupPath;
     public String replicationPath;
+    public String rollingRestartPath;
     public String compressionAlgorithm;
     public String namespace;
     public String spliceRootPath;
@@ -182,6 +183,7 @@ public class ConfigurationBuilder {
     public int rollForwardFirstThreads;
     public int rollForwardSecondThreads;
     public CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
+    public CompilerContext.NewMergeJoinExecutionType newMergeJoin;
     public int splitsPerRegionMin;
 
     // PipelineConfiguration

@@ -62,7 +62,6 @@ public class ArrayConstantNode extends ValueNode {
     /**
      * Initializer for a ArrayNode
      *
-     * @param functionName    Tells if the function was called with name COALESCE or with name VALUE
      * @param argumentsList    The list of arguments to the coalesce/value function
      */
     public void init(Object argumentsList) throws StandardException {
@@ -304,17 +303,27 @@ public class ArrayConstantNode extends ValueNode {
     /**
      * {@inheritDoc}
      */
-    protected boolean isEquivalent(ValueNode o) throws StandardException
-    {
-        if (!isSameNodeType(o))
-        {
+    @Override
+    protected boolean isEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
             return false;
         }
 
-        CoalesceFunctionNode other = (CoalesceFunctionNode)o;
-
+        ArrayConstantNode other = (ArrayConstantNode)o;
         return argumentsList.isEquivalent(other.argumentsList);
+    }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+
+        ArrayConstantNode other = (ArrayConstantNode)o;
+        return argumentsList.isSemanticallyEquivalent(other.argumentsList);
     }
 
     /**

@@ -22,16 +22,19 @@ import java.util.concurrent.atomic.AtomicLong;
 public class SimpleCompactionContext implements CompactionContext {
     private static final Logger LOG = Logger.getLogger(SimpleCompactionContext.class);
     
-    private AtomicLong readData = new AtomicLong();
-    private AtomicLong recordResolutionCached = new AtomicLong();
-    private AtomicLong readCommit = new AtomicLong();
-    private AtomicLong recordResolutionScheduled = new AtomicLong();
-    private AtomicLong rowRead = new AtomicLong();
-    private AtomicLong recordTimeout = new AtomicLong();
-    private AtomicLong recordUnresolvedTransaction = new AtomicLong();
-    private AtomicLong recordResolutionRejected = new AtomicLong();
-    private AtomicLong recordRPC = new AtomicLong();
-    private AtomicLong timeBlocked = new AtomicLong();
+    AtomicLong readData = new AtomicLong();
+    AtomicLong recordResolutionCached = new AtomicLong();
+    AtomicLong readCommit = new AtomicLong();
+    AtomicLong recordResolutionScheduled = new AtomicLong();
+    AtomicLong rowRead = new AtomicLong();
+    AtomicLong recordTimeout = new AtomicLong();
+    AtomicLong recordUnresolvedTransaction = new AtomicLong();
+    AtomicLong recordResolutionRejected = new AtomicLong();
+    AtomicLong recordRPC = new AtomicLong();
+    AtomicLong timeBlocked = new AtomicLong();
+    AtomicLong cellsRolledback = new AtomicLong();
+    AtomicLong purgedDeletedCells = new AtomicLong();
+    AtomicLong purgedUpdatedCells = new AtomicLong();
 
     @Override
     public void readData() {
@@ -89,6 +92,39 @@ public class SimpleCompactionContext implements CompactionContext {
     }
 
     @Override
+    public void recordRollback() {
+        cellsRolledback.incrementAndGet();
+    }
+
+    @Override
+    public void recordPurgedDelete() {
+        purgedDeletedCells.incrementAndGet();
+    }
+
+    @Override
+    public void recordPurgedUpdate() {
+        purgedUpdatedCells.incrementAndGet();
+    }
+
+
+    // Visible for testing
+    public void reset() {
+        readData.set(0);
+        recordResolutionCached.set(0);
+        readCommit.set(0);
+        recordResolutionScheduled.set(0);
+        rowRead.set(0);
+        recordTimeout.set(0);
+        recordUnresolvedTransaction.set(0);
+        recordResolutionRejected.set(0);
+        recordRPC.set(0);
+        timeBlocked.set(0);
+        cellsRolledback.set(0);
+        purgedDeletedCells.set(0);
+        purgedUpdatedCells.set(0);
+    }
+
+    @Override
     public String toString() {
         return "SimpleCompactionContext{" +
                 "readData=" + readData +
@@ -101,6 +137,9 @@ public class SimpleCompactionContext implements CompactionContext {
                 ", recordResolutionRejected=" + recordResolutionRejected +
                 ", recordRPC=" + recordRPC +
                 ", timeBlocked(ms)=" + timeBlocked +
+                ", cellsRolledback=" + cellsRolledback +
+                ", purgedDeletedCells=" + purgedDeletedCells +
+                ", purgedUpdatedCells=" + purgedUpdatedCells +
                 '}';
     }
 }

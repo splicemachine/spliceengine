@@ -502,6 +502,7 @@ public class UnaryOperatorNode extends OperatorNode
             case Types.BIGINT:
                 resultLength = 19;
                 break;
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
             case Types.DECIMAL:
             case Types.DOUBLE:
             case Types.REAL:
@@ -877,6 +878,21 @@ public class UnaryOperatorNode extends OperatorNode
             return ((operator == null && other.operator == null) || (operator != null && operator.equals(other.operator)) &&
                     // the first condition in the || covers the case when both operands are null.
                     ((operand == other.operand)|| ((operand != null) && operand.isEquivalent(other.operand))));
+        }
+        return false;
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (isSameNodeType(o)) {
+            UnaryOperatorNode other = (UnaryOperatorNode)o;
+            return ((operator == null && other.operator == null) || (operator != null && operator.equals(other.operator)) &&
+                    // the first condition in the || covers the case when both operands are null.
+                    ((operand == other.operand) || ((operand != null) && operand.isSemanticallyEquivalent(other.operand))));
         }
         return false;
     }
