@@ -111,7 +111,7 @@ public class ScanCostFunction{
     private final ValueNode[] indexColumns;
 
     // cost of evaluating all expressions used in added predicates per row
-    private double exprEvalCostPerRow = 0.0f;
+    private double exprEvalCostPerRow = 0.0;
 
     /**
      *

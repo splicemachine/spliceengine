@@ -53,6 +53,9 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         double outputRows = 1;
         List<Long> cardinalityList = new ArrayList<>();
 
+        // cost of evaluating all expressions in grouping list
+        double exprEvalCostPerRow = 0.0;
+
         /* Base cost row count doesn't reflects how many distinct values the intermediate result has.
          * Maybe some group columns has been filtered to a narrow range or even single value, but
          * we still get cardinality from statistics. This could be improved.
@@ -60,6 +63,7 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         for(OrderedColumn oc:groupingList) {
             long returnedRows = oc.nonZeroCardinality((long) baseCost.rowCount());
             cardinalityList.add(returnedRows);
+            exprEvalCostPerRow += oc.getColumnExpression().getBaseOperationCost();
         }
         Collections.sort(cardinalityList);
 
@@ -84,7 +88,7 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
             remoteCostPerRow = 0d;
             heapPerRow = 0d;
         }else{
-            localCostPerRow=baseCost.localCost()/baseCost.rowCount();
+            localCostPerRow=baseCost.localCost()/baseCost.rowCount() + exprEvalCostPerRow;
             remoteCostPerRow=baseCost.remoteCost()/baseCost.rowCount();
             heapPerRow=baseCost.getEstimatedHeapSize()/baseCost.rowCount();
         }
