@@ -645,6 +645,21 @@ public class ValueNodeList extends QueryTreeNodeVector
         return true;
     }
 
+	boolean isSemanticallyEquivalent(ValueNodeList other) throws StandardException {
+		if (size() != other.size()) {
+			return false;
+		}
+
+		for (int i = 0; i < size(); i++) {
+			ValueNode vn1 = (ValueNode) elementAt(i);
+			ValueNode vn2 = (ValueNode) other.elementAt(i);
+			if (!vn1.isSemanticallyEquivalent(vn2)) {
+				return false;
+			}
+		}
+		return true;
+	}
+
 	/**
 	 * Return whether or not this expression tree represents a constant expression.
 	 *

@@ -332,6 +332,14 @@ message SetReplicationRole {
 message UpdateSystemProcedures{
 }
 
+message RollingUpgrade {
+  enum OperationType {
+    BEGIN = 1;
+    END = 2;
+  }
+     required OperationType type = 1;
+}
+
 enum DDLChangeType {
     CHANGE_PK = 0;
     ADD_CHECK = 1;
@@ -376,6 +384,7 @@ enum DDLChangeType {
     SET_DATABASE_PROPERTY = 40;
     SET_REPLICATION_ROLE = 41;
     UPDATE_SYSTEM_PROCEDURES = 42;
+    ROLLING_UPGRADE = 43;
 }
 
 message DDLChange {
@@ -418,4 +427,5 @@ message DDLChange {
     optional SetDatabaseProperty setDatabaseProperty = 37;
     optional SetReplicationRole setReplicationRole = 38;
     optional UpdateSystemProcedures updateSystemProcedures = 39;
+    optional RollingUpgrade rollingUpgrade = 40;
 }
