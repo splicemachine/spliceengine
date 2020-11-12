@@ -18,7 +18,6 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.*;
 
 import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,7 +82,7 @@ public class ForeignKeyGraphIT {
             return this;
         }
 
-        public DDLGenerator materialize() throws Exception {
+        public DDLGenerator execute() throws Exception {
             for(String ddl : ddls) {
                 watcher.executeUpdate(ddl);
             }
@@ -117,7 +116,7 @@ public class ForeignKeyGraphIT {
                 .link(1, 0, Action.CASCADE)
                 .link(2, 0, Action.CASCADE)
                 .link(3, 1, Action.SET_NULL)
-                .materialize()
+                .execute()
                 .shouldFail(3, 2, Action.CASCADE);
     }
 
@@ -128,7 +127,7 @@ public class ForeignKeyGraphIT {
                 .link(1, 0, Action.CASCADE)
                 .link(2, 0, Action.CASCADE)
                 .link(3, 1, Action.CASCADE)
-                .materialize()
+                .execute()
                 .shouldFail(3, 2, Action.NO_ACTION);
     }
 
@@ -139,7 +138,7 @@ public class ForeignKeyGraphIT {
                 .link(2, 0, Action.SET_NULL)
                 .link(1, 0, Action.SET_NULL)
                 .link(1, 2, Action.SET_NULL)
-                .materialize()
+                .execute()
                 .shouldSucceed(2, 3, Action.CASCADE);
     }
 
@@ -150,7 +149,7 @@ public class ForeignKeyGraphIT {
                 .link(1, 0, Action.SET_NULL)
                 .link(2, 1, Action.SET_NULL)
                 .link(2, 0, Action.CASCADE)
-                .materialize()
+                .execute()
                 .shouldSucceed(1, 3, Action.CASCADE);
     }
 
@@ -162,7 +161,7 @@ public class ForeignKeyGraphIT {
                 .link(1, 0, Action.SET_NULL)
                 .link(2, 0, Action.CASCADE)
                 .link(2, 1, Action.RESTRICT)
-                .materialize()
+                .execute()
                 .shouldSucceed(1, 3, Action.CASCADE);
     }
 
@@ -174,7 +173,7 @@ public class ForeignKeyGraphIT {
                 .link(4, 0, Action.CASCADE)
                 .link(2, 1, Action.SET_NULL)
                 .link(3, 2, Action.CASCADE)
-                .materialize()
+                .execute()
                 .shouldSucceed(5,3, Action.CASCADE)
                 .shouldSucceed(5,4, Action.RESTRICT);
     }
@@ -187,7 +186,7 @@ public class ForeignKeyGraphIT {
                 .link(4, 0, Action.CASCADE)
                 .link(2, 1, Action.SET_NULL)
                 .link(3, 2, Action.CASCADE)
-                .materialize()
+                .execute()
                 .shouldSucceed(5,4, Action.RESTRICT)
                 .shouldSucceed(5,3, Action.CASCADE);
     }

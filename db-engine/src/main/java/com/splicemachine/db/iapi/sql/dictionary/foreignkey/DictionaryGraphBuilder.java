@@ -11,12 +11,13 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.db.iapi.sql.dictionary.fk;
+package com.splicemachine.db.iapi.sql.dictionary.foreignkey;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.utils.Pair;
 
 import java.util.*;
@@ -61,13 +62,13 @@ public class DictionaryGraphBuilder implements GraphBuilder {
     private EdgeNode.Type toEdgeNodeType(int action) {
         switch (action) {
             case StatementType.RA_CASCADE:
-                return EdgeNode.Type.C;
+                return EdgeNode.Type.Cascade;
             case StatementType.RA_NOACTION:
-                return EdgeNode.Type.NA;
+                return EdgeNode.Type.NoAction;
             case StatementType.RA_RESTRICT:
-                return EdgeNode.Type.R;
+                return EdgeNode.Type.Restrict;
             case StatementType.RA_SETNULL:
-                return EdgeNode.Type.SN;
+                return EdgeNode.Type.SetNull;
         }
         throw new IllegalArgumentException("unexpected action type: " + action);
     }
@@ -166,20 +167,20 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         while(!descriptors.isEmpty()) {
             TableDescriptor descriptor = descriptors.remove();
             visited.add(descriptor.getUUID());
-            String tableName = descriptor.getSchemaName() + "." + descriptor.getName();
+            String tableName = descriptor.getQualifiedName();
             for(Pair<TableDescriptor, EdgeNode.Type> child : getChildren(descriptor)) {
-                String childName = child.getFirst().getSchemaName() + "." + child.getFirst().getName();
+                String childName = child.getFirst().getQualifiedName();
                 tableNames.add(childName);
-                edges.add(new Edge(tableName, child.getSecond(), childName));
+                edges.add(new Edge(childName, child.getSecond(), tableName));
                 if(!visited.contains(child.getFirst().getUUID())) {
                     descriptors.add(child.getFirst());
                 }
             }
             for(Pair<TableDescriptor, EdgeNode.Type> parent : getParents(descriptor)) {
 
-                String parentName = parent.getFirst().getSchemaName() + "." + parent.getFirst().getName();
+                String parentName = parent.getFirst().getQualifiedName();
                 tableNames.add(parentName);
-                edges.add(new Edge(parentName, parent.getSecond(), tableName));
+                edges.add(new Edge(tableName, parent.getSecond(), parentName));
                 if(!visited.contains(parent.getFirst().getUUID())) {
                     descriptors.add(parent.getFirst());
                 }
@@ -187,18 +188,18 @@ public class DictionaryGraphBuilder implements GraphBuilder {
         }
 
         // finally add the newly added FK (if it is not self-referencing)
-        String from = schemaName + "." + tableName;
-        String to = referencedTableDescriptor.getSchemaName() + "." + referencedTableDescriptor.getName();
+        String from = IdUtil.mkQualifiedName(schemaName, tableName);
+        String to = referencedTableDescriptor.getQualifiedName();
         if(!isSelfReferencing()) {
             int newFKDeletionActionRule = newConstraintInfo.getReferentialActionDeleteRule();
-            edges.add(new Edge(to, toEdgeNodeType(newFKDeletionActionRule), from));
+            edges.add(new Edge(from, toEdgeNodeType(newFKDeletionActionRule), to));
         }
         tableNames.add(from);
         tableNames.add(to);
 
         Graph result = new Graph(tableNames, newConstraintName);
         for(Edge edge : edges) {
-            result.addEdge(edge.to, edge.from, edge.type);
+            result.addEdge(edge.from, edge.to, edge.type);
         }
         return result;
     }
