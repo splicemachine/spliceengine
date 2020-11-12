@@ -1265,6 +1265,19 @@ public class Subquery_Table_IT extends SpliceUnitTest {
         }
     }
 
+    @Test
+    public void testSubquerywithInListOnKeyColumns2() throws Exception {
+        String sqlText = "select * from tab5 X where exists(select 1 from tab5 Y where Y.a5 in (1,2,3) and Y.c5=X.c5) or X.a5=1";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected = "A5 |B5 |C5 |\n" +
+                    "------------\n" +
+                    " 1 | 1 | 2 |\n" +
+                    " 1 | 1 | 3 |\n" +
+                    " 1 | 1 | 4 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
     private static void assertUnorderedResult(ResultSet rs, String expectedResult) throws Exception {
         assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
