@@ -473,6 +473,8 @@ abstract class JavaValueNode extends QueryTreeNode implements ParentNode
     public void setCollationType(int type) {
         collationType = type;
     }
-    
-    
+
+    public boolean isSemanticallyEquivalent(QueryTreeNode o) throws StandardException {
+        return false;
+    }
 }

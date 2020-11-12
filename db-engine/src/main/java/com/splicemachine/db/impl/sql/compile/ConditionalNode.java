@@ -734,6 +734,19 @@ public class ConditionalNode extends ValueNode
         return false;
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (isSameNodeType(o)) {
+            ConditionalNode other = (ConditionalNode)o;
+            return testCondition.isSemanticallyEquivalent(other.testCondition) &&
+                    thenElseList.isSemanticallyEquivalent(other.thenElseList);
+        }
+        return false;
+    }
+
     public List<? extends QueryTreeNode> getChildren() {
         List<QueryTreeNode> nodes = new LinkedList<>();
         nodes.add(testCondition);

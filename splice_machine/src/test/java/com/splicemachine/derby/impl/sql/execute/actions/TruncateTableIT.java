@@ -281,6 +281,27 @@ public class TruncateTableIT extends SpliceUnitTest {
             if (rs.next())
                 Assert.fail("expect empty result set");
         }
+
+        // test deleting expression-based indexes' statistics
+        methodWatcher.executeUpdate("create index test_idx_1 on " + table + " (b * 5, a - 1, a + b)");
+        methodWatcher.execute("analyze table " + table);
+
+        String indexColumnStatsQuery = "select count(*) from sys.sysconglomerates c, sys.syscolumnstats sc " +
+                "where c.conglomeratenumber = sc.conglom_id and c.isindex = true and c.conglomeratename='TEST_IDX_1'";
+
+        String expectedIndexColumnStatsCount = "1 |\n" +
+                "----\n" +
+                " 3 |";
+
+        testQuery(indexColumnStatsQuery, expectedIndexColumnStatsCount, methodWatcher);
+
+        methodWatcher.execute("truncate table "+ table);
+
+        expectedIndexColumnStatsCount = "1 |\n" +
+                "----\n" +
+                " 0 |";
+
+        testQuery(indexColumnStatsQuery, expectedIndexColumnStatsCount, methodWatcher);
     }
 
     @Test
