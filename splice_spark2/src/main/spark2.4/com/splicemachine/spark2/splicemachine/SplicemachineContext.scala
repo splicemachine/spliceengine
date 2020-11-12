@@ -27,11 +27,12 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.serialization.{ByteArraySerializer, IntegerSerializer}
-import com.splicemachine.db.iapi.types.{SQLBlob, SQLBoolean, SQLClob, SQLDate, SQLDecimal, SQLDouble, SQLInteger, SQLLongint, SQLReal, SQLSmallint, SQLTime, SQLTimestamp, SQLTinyint}
+import com.splicemachine.db.iapi.types.{SQLBlob, SQLBoolean, SQLClob, SQLDate, SQLDecimal, SQLDouble, SQLInteger, SQLLongint, SQLReal, SQLSmallint, SQLTime, SQLTimestamp, SQLTinyint, SQLVarchar}
 import com.splicemachine.db.impl.sql.execute.ValueRow
 import com.splicemachine.derby.impl.kryo.KryoSerialization
 import com.splicemachine.derby.stream.spark.KafkaReadFunction
 import com.splicemachine.nsds.kafka.{KafkaTopics, KafkaUtils}
+import com.splicemachine.spark2.splicemachine
 import com.splicemachine.spark2.splicemachine.SplicemachineContext.RowForKafka
 import org.apache.log4j.Logger
 import org.apache.spark.TaskContext
@@ -175,8 +176,6 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
     )
   }
 
-  private[this]val dialect = new SplicemachineDialect2
-  private[this]val dialectNoTime = new SplicemachineDialectNoTime2
   JdbcDialects.registerDialect(new SplicemachineDialect2)
 
   SparkSession.builder.getOrCreate.sparkContext.addSparkListener(new SparkListener {
@@ -202,6 +201,9 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
   private[this] def trace(msg: String): Unit = {
     log.trace(s"${java.time.Instant.now} $msg")
   }
+
+  def columnNamesCaseSensitive(caseSensitive: Boolean): Unit =
+    splicemachine.columnNamesCaseSensitive(caseSensitive)
 
   /**
     *
@@ -272,7 +274,7 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
 
       val primaryKeyString = if( keys.isEmpty ) {""}
       else {
-        ", PRIMARY KEY(" + keys.map(dialect.quoteIdentifier(_)).mkString(", ") + ")"
+        ", PRIMARY KEY(" + keys.map(quoteIdentifier(_)).mkString(", ") + ")"
       }
       
       val sql = s"CREATE TABLE $schemaTableName ($actSchemaString$primaryKeyString)"
@@ -815,10 +817,14 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
       case ByteType => Option( if (isNull) new SQLTinyint else new SQLTinyint(row.getByte(i)) )
       case BooleanType => Option( if (isNull) new SQLBoolean else new SQLBoolean(row.getBoolean(i)) )
       case StringType => {
-        val clob = new SQLClob
-        clob setStreamHeaderFormat false
-        if (isNull) clob.setToNull else clob.setValue( row.getString(i) )
-        Option(clob)
+        val varchar = new SQLVarchar
+        if (isNull) varchar.setToNull else varchar.setValue( row.getString(i) )
+        Option(varchar)
+        // Keep CLOB code for reference in case it's needed in the future
+        // val clob = new SQLClob
+        // clob setStreamHeaderFormat false
+        // if (isNull) clob.setToNull else clob.setValue( row.getString(i) )
+        // Option(clob)
       }
       case BinaryType => {
         val blob = new SQLBlob
@@ -919,9 +925,8 @@ class SplicemachineContext(options: Map[String, String]) extends Serializable {
         val sqlText = sqlStart +
           " from new com.splicemachine.derby.vti.KafkaVTI('" + topicName + topicSuffix(ptnInfo, rdd.getNumPartitions) + "') " +
           "as SDVTI (" + tableSchemaStr + ") where "
-        val dialect = JdbcDialects.get(url)
-        val whereClause = keys.map(x => schemaTableName + "." + dialect.quoteIdentifier(x) +
-          " = SDVTI." ++ dialect.quoteIdentifier(x)).mkString(" AND ")
+        val whereClause = keys.map(x => schemaTableName + "." + quoteIdentifier(x) +
+          " = SDVTI." ++ quoteIdentifier(x)).mkString(" AND ")
         val combinedText = sqlText + whereClause + ")"
 
         trace(s"SMC.modifyOnKeys sql $combinedText")

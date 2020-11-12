@@ -255,4 +255,15 @@ public final class StaticClassFieldReferenceNode extends JavaValueNode {
     public void setChild(int index, QueryTreeNode newValue) {
         assert false;
     }
+
+    @Override
+    public boolean isSemanticallyEquivalent(QueryTreeNode o) {
+        if (o instanceof StaticClassFieldReferenceNode) {
+            StaticClassFieldReferenceNode other = (StaticClassFieldReferenceNode) o;
+            return javaClassName.equals(other.javaClassName) &&
+                    fieldName.equals(other.fieldName) &&
+                    Modifier.isFinal(field.getModifiers());
+        }
+        return false;
+    }
 }

@@ -226,21 +226,22 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	}
 
 	@Override
-	public boolean selfComparison(ColumnReference cr) {
-		assert cr==operand: "ColumnReference not found in IsNullNode.";
+	public boolean selfComparison(ColumnReference cr, boolean forIndexExpression) {
+		assert forIndexExpression || cr == operand : "ColumnReference not found in IsNullNode.";
 
 		/* An IsNullNode is not a comparison with any other column */
 		return false;
 	}
 
 	@Override
-	public ValueNode getExpressionOperand(int tableNumber, int columnNumber, FromTable ft) {
+	public ValueNode getExpressionOperand(int tableNumber, int columnNumber, FromTable ft, boolean forIndexExpression) {
 		return null;
 	}
 
 	@Override
 	public void generateExpressionOperand(Optimizable optTable,
 										  int columnPosition,
+										  boolean forIndexExpression,
 										  ExpressionClassBuilder acb,
 										  MethodBuilder mb) throws StandardException {
 		acb.generateNull(mb, operand.getTypeCompiler(),  operand.getTypeServices());
@@ -274,7 +275,8 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	@Override
 	public void generateQualMethod(ExpressionClassBuilder acb,
 								   MethodBuilder mb,
-								   Optimizable optTable) throws StandardException {
+								   Optimizable optTable,
+								   boolean forIndexExpression) throws StandardException {
 		MethodBuilder qualMethod = acb.newUserExprFun();
 
 		/* Generate a method that returns that expression */

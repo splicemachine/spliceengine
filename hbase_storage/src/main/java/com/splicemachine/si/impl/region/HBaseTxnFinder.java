@@ -178,11 +178,12 @@ public class HBaseTxnFinder implements TxnFinder {
             else
                 hbaseScan.withStartRow(new byte[]{bucket});
         }
-        HBaseTxnFinder.ScanTimestampIterator si = new ScanTimestampIterator(region.getScanner(hbaseScan));
-        if (si.hasNext()) {
-            return si.next;
-        } else {
-            return null;
+        try (HBaseTxnFinder.ScanTimestampIterator si = new ScanTimestampIterator(region.getScanner(hbaseScan))) {
+            if (si.hasNext()) {
+                return si.next;
+            } else {
+                return null;
+            }
         }
     }
 }
