@@ -11,10 +11,33 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.db.iapi.sql.dictionary.fk;
+package com.splicemachine.db.iapi.sql.dictionary.foreignkey;
 
-import com.splicemachine.db.iapi.error.StandardException;
+public class EdgeNode {
+    public EdgeNode(int to, Type type) {
+        this.to = to;
+        this.type = type;
+        this.next = null;
+    }
 
-public interface GraphBuilder {
-    Graph generateGraph() throws StandardException;
+    enum Type {
+        Cascade,
+        Restrict,
+        SetNull,
+        NoAction
+    }
+
+    ;
+    Type     type;
+    int      to;
+    EdgeNode next;
+
+    void add(int name, Type type) {
+        EdgeNode edgeNode = new EdgeNode(name, type);
+        EdgeNode runner = next;
+        while (runner.next != null) {
+            runner = runner.next;
+        }
+        runner.next = edgeNode;
+    }
 }

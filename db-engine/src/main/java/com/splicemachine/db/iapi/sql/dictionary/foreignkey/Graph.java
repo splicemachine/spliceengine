@@ -11,13 +11,48 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.db.iapi.sql.dictionary.fk;
+package com.splicemachine.db.iapi.sql.dictionary.foreignkey;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import java.util.*;
 
+/**
+ * Represents a directed graph, backed up by an adjacency list, look at the example before for more information
+ * about its internal structure.
+ *
+ * Example:
+ *        digraph {
+ *          SPLICEB -> SPLICEA[label="C"];
+ *          SPLICEC -> SPLICEA[label="C"];
+ *          SPLICED -> SPLICEC[label="NA"];
+ *          SPLICED -> SPLICEB[label="C"];
+ *        }
+ * Resulting graph:
+ *    vertexIndex:
+ *         "SPLICED" -> 0
+ *         "SPLICEB" -> 1
+ *         "SPLICEC" -> 2
+ *         "SPLICEA" -> 3
+ *    edgeNodes:
+ *         0 =
+ *            type =  "C"
+ *            y = 1
+ *            next =
+ *               type = "NA"
+ *               y = 2
+ *               next = null
+ *         1 =
+ *            type = "C"
+ *            y = 3
+ *            next = null
+ *         2 =
+ *            type = "C"
+ *            y = 3
+ *            next = null
+ *         3 = null
+ */
 public class Graph {
     List<EdgeNode> edgeNodes;
     Map<String, Integer> vertexIndex;
@@ -56,10 +91,15 @@ public class Graph {
         edgeNodes.add(null); // for the surrogate
     }
 
+    /**
+     * adds am edge and checks for cycles, if a cycle is found, it attempts to break the cycle by redirecting one
+     * of the cycle edges to a new "surrogate" node. This is very important for subsequent steps.
+     * a cycle is breakable if it has at leasy one edge not of type <code>EdgeNode.Type.C</code>.
+     */
     void addEdgeInternal(int fromIdx, int toIdx, EdgeNode.Type type) throws StandardException {
-        Dfs dfs = new Dfs(this, newConstraintName);
-        dfs.run(toIdx);
-        List<Integer> p = dfs.getPath(toIdx, fromIdx);
+        DepthFirstSearch depthFirstSearch = new DepthFirstSearch(this, newConstraintName);
+        depthFirstSearch.run(toIdx);
+        List<Integer> p = depthFirstSearch.getPath(toIdx, fromIdx);
         if(p.size() >= 2 && p.get(0) == toIdx && p.get(p.size() - 1) == fromIdx) {
             breakCycle(p, type, fromIdx, toIdx);
         } else {
@@ -70,13 +110,13 @@ public class Graph {
     }
 
     private void breakCycle(List<Integer> p, EdgeNode.Type type, int fromIdx, int toIdx) throws StandardException {
-        if(type != EdgeNode.Type.C) {
+        if(type != EdgeNode.Type.Cascade) {
             addSurrogate(fromIdx, toIdx, type);
             return;
         } else {
             for(int i = 1; i < p.size(); i++) { // find first none-C in the cycle and break it up
                 EdgeNode.Type edgeType = getEdgeType(p.get(i-1), p.get(i));
-                if(edgeType != EdgeNode.Type.C) {
+                if(edgeType != EdgeNode.Type.Cascade) {
                     addSurrogate(p.get(i-1), p.get(i), edgeType);
                     // remove this edge
                     removeEdge(p.get(i-1), p.get(i));
@@ -88,8 +128,11 @@ public class Graph {
         }
         // cycle is unbreakable, bail out
         StringBuilder sb = new StringBuilder();
-        sb.append("adding the constraint between ").append(
-                getName(p.get(0))).append(" and ").append(getName(p.get(p.size()-1))).append(" would cause the following illegal delete action cascade cycle");
+        sb.append("adding the constraint between ")
+          .append(getName(p.get(0)))
+          .append(" and ")
+          .append(getName(p.get(p.size()-1)))
+          .append(" would cause the following illegal delete action cascade cycle");
         for(int v : p) {
             sb.append(" ").append(getName(v));
         }
@@ -115,7 +158,7 @@ public class Graph {
         for (EdgeNode edge : edgeNodes) {
             EdgeNode next = edge;
             while (next != null) {
-                sb.append("\t").append(getName(i)).append(" -> ").append(getName(next.y)).append("[label=\"").append(next.type.toString()).append("\"];").append("\n");
+                sb.append("\t").append(getName(i)).append(" -> ").append(getName(next.to)).append("[label=\"").append(next.type.toString()).append("\"];").append("\n");
                 next = next.next;
             }
             i++;
@@ -139,7 +182,7 @@ public class Graph {
             if(edgeNode == null) {
                 throw new IllegalArgumentException("no edge between " + getName(from) + " and " + getName(to));
             }
-            if(edgeNode.y == to) {
+            if(edgeNode.to == to) {
                 return edgeNode.type;
             }
             edgeNode = edgeNode.next;
@@ -151,8 +194,8 @@ public class Graph {
         if(edgeNode == null) {
             throw new IllegalArgumentException("no edge between " + getName(from) + " and " + getName(to));
         }
-        if(edgeNode.y == to) {
-            edgeNodes.set(from, null);
+        if(edgeNode.to == to) {
+            edgeNodes.set(from, edgeNode.next);
         } else {
             EdgeNode previous = edgeNode;
             edgeNode = edgeNode.next;
@@ -160,7 +203,7 @@ public class Graph {
                 if(edgeNode == null) {
                     throw new IllegalArgumentException("no edge between " + getName(from) + " and " + getName(to));
                 }
-                if(edgeNode.y == to) {
+                if(edgeNode.to == to) {
                     previous.next = edgeNode.next;
                     edgeNode.next = null; // bye, GC.
                     return;

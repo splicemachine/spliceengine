@@ -11,13 +11,15 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.db.iapi.sql.dictionary.fk;
+package com.splicemachine.db.iapi.sql.dictionary.foreignkey;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.utils.Pair;
 
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -84,12 +86,13 @@ public class GraphAnnotator {
     }
 
     public void annotate() throws StandardException {
-        Dfs dfs = new Dfs(graph, newConstraintName);
-        List<Integer> schedule = dfs.topologicalSort();
+        DepthFirstSearch depthFirstSearch = new DepthFirstSearch(graph, newConstraintName);
+        Deque<Integer> schedule = depthFirstSearch.topologicalSort();
 
-        List<Pair<Integer, EdgeNode.Type>>[] parents = dfs.getParents();
-        for(int i = 0; i < schedule.size(); ++i) {
-            int v = schedule.get(i);
+        List<Pair<Integer, EdgeNode.Type>>[] parents = depthFirstSearch.getParents();
+        Iterator<Integer> it = schedule.descendingIterator();
+        while(it.hasNext()) {
+            int v = it.next();
             if(parents[v] == null) {
                 continue; // no parents;
             }
@@ -101,7 +104,7 @@ public class GraphAnnotator {
                     annotations[p.getFirst()].paths.add(new Path(vertices, p.getSecond()));
                 } else {
                     for(Path childPath : childPaths) {
-                        if(childPath.action != EdgeNode.Type.C) {
+                        if(childPath.action != EdgeNode.Type.Cascade) {
                             ArrayList<Integer> vertices = new ArrayList<>();
                             vertices.add(v);
                             annotations[p.getFirst()].paths.add(new Path(vertices, p.getSecond()));
