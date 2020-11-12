@@ -165,6 +165,8 @@ public class WriteResult implements Externalizable {
                 return Code.FOREIGN_KEY_VIOLATION;
             case CHECK:
                 return Code.CHECK_VIOLATION;
+            case NOT_NULL:
+                return Code.NOT_NULL;
             default:
                 return Code.SUCCESS;
         }
