@@ -1,3 +1,16 @@
+/*
+ * Copyright (c) 2012 - 2020 Splice Machine, Inc.
+ *
+ * This file is part of Splice Machine.
+ * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU Affero General Public License as published by the Free Software Foundation, either
+ * version 3, or (at your option) any later version.
+ * Splice Machine is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
 package com.splicemachine.spark2.splicemachine
 
 import java.sql.{Connection, JDBCType, ResultSet, SQLException}
@@ -19,7 +32,7 @@ object SpliceJDBCUtil {
     */
   def listColumns(columns: Array[String]): String = {
     val sb = new StringBuilder()
-    columns.foreach(x => sb.append(",").append(x))
+    columns.foreach(x => sb.append(",").append(quoteIdentifier(x)) )
     if (sb.isEmpty) "*" else sb.substring(1)
   }
 
@@ -54,9 +67,9 @@ object SpliceJDBCUtil {
     schema.fields foreach { field =>
       val name =
         if (field.metadata.contains("name"))
-          dialect.quoteIdentifier(field.metadata.getString("name"))
+          quoteIdentifier(field.metadata.getString("name"))
       else
-          dialect.quoteIdentifier(field.name)
+          quoteIdentifier(field.name)
       val typ: String = getJdbcType(field.dataType, dialect).databaseTypeDefinition
       sb.append(s", $name $typ")
     }
