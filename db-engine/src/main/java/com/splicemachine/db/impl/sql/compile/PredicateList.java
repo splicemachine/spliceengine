@@ -3331,11 +3331,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
             /* We're going to generate the relevant code for the probe
              * predicate below
-             * However we cannot remove it from the list. This is because if this predicate is part of a subquery,
-             * there is a chance that the subquery will go through code generation twice
-
-               removeOptPredicate(pred);
-            */
+             */
 
             InListOperatorNode ilon=pred.getSourceInList();
             /* create a new method to get the probeValues*/
