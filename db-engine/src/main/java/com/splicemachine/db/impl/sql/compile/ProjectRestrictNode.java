@@ -740,6 +740,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                      */
                     resultColumns.doProjection(false);
                 }
+
                 /* We consider materialization into a temp table as a last step.
                  * Currently, we only materialize VTIs that are inner tables
                  * and can't be instantiated multiple times.  In the future we
@@ -808,6 +809,31 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             childResult=childResult.changeAccessPath(outerTables);
         }
         accessPathModified=true;
+
+        if (childResult.getResultColumns().isFromExprIndex()) {
+            /* We get a shallow copy of the ResultColumnList and its
+             * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+             *
+             * The following assignment to resultColumns is destructive because
+             * the column mapping from parent node to this PRN is broken. However,
+             * it has to be done because if childResult's access path is an index
+             * on expressions, the number of result columns may change here. As
+             * long as this code path is executed, resultColumns of (grand-)parent
+             * nodes must be rebuilt until the top select node in the current query
+             * block. There, we can replace RC's expressions but keep RC instances.
+             *
+             * If parent is also a PRN, its result columns would be rebuilt here,
+             * too. If parent is any type of join, then its result columns would be
+             * rebuilt in modifyAccessPath() in JoinNode. If parent is SelectNode,
+             * there is no need to rebuild its result columns but only replace
+             * their expressions.
+             */
+            resultColumns = childResult.getResultColumns().copyListAndObjects();
+            resultColumns.genVirtualColumnNodes(childResult, childResult.getResultColumns());
+            if (restrictionList != null) {
+                restrictionList.replaceIndexExpression(childResult.getResultColumns());
+            }
+        }
 
         /*
         ** Replace this PRN with a HTN if a hash join
@@ -2066,5 +2092,22 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             return ((FromTable)childResult).hasJoinPredicatePushedDownFromOuter();
 
         return hasJoinPredicatePushedDownFromOuter;
+    }
+
+    @Override
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+        if (restrictionList != null) {
+            restrictionList.replaceIndexExpression(childRCL);
+        }
+        childResult.replaceIndexExpressions(childRCL);
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (restrictionList != null) {
+            result = restrictionList.collectExpressions(exprMap);
+        }
+        return result && childResult.collectExpressions(exprMap);
     }
 }

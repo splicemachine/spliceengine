@@ -41,6 +41,8 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * This node is the superclass  for all binary comparison operators, such as =,
@@ -337,23 +339,21 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 	public void bindComparisonOperator()
 			throws StandardException
 	{
-		boolean				nullableResult;
-
+		boolean nullableResult;
 
 		/*
 		** Can the types be compared to each other?  If not, throw an
 		** exception.
 		*/
 
-        boolean cmp = leftOperand.getTypeServices().comparable( rightOperand.getTypeServices() );
+		boolean cmp = leftOperand.getTypeServices().comparable( rightOperand.getTypeServices() );
 		// Bypass the comparable check if this is a rewrite from the 
 		// optimizer.  We will assume Mr. Optimizer knows what he is doing.
-          if (!cmp && !forQueryRewrite) {
-			throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE, 
+		if (!cmp && !forQueryRewrite) {
+			throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
 					leftOperand.getTypeServices().getSQLTypeNameWithCollation() ,
 					rightOperand.getTypeServices().getSQLTypeNameWithCollation());
-				
-		  }
+		}
 
 		
 		/*
@@ -562,5 +562,31 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		}
 
 		return this;
+	}
+
+	@Override
+	public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+		if (childRCL == null) {
+			return this;
+		}
+		if (leftOperand != null) {
+			leftOperand = leftOperand.replaceIndexExpression(childRCL);
+		}
+		if (rightOperand != null) {
+			rightOperand = rightOperand.replaceIndexExpression(childRCL);
+		}
+		return this;
+	}
+
+	@Override
+	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+		boolean result = true;
+		if (leftOperand != null) {
+			result = leftOperand.collectExpressions(exprMap);
+		}
+		if (rightOperand != null) {
+			result = result && rightOperand.collectExpressions(exprMap);
+		}
+		return result;
 	}
 }

@@ -43,7 +43,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.util.Collections;
@@ -53,7 +52,6 @@ import java.util.List;
  * This node type converts a value from the Java domain to the SQL domain.
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class JavaToSQLValueNode extends ValueNode
 {
     JavaValueNode    javaNode;
@@ -376,6 +374,10 @@ public class JavaToSQLValueNode extends ValueNode
             return javaNode.isSemanticallyEquivalent(other.javaNode);
         }
         return false;
+    }
+
+    public int hashCode() {
+        return 31 * getBaseHashCode() + (javaNode == null ? 0 : javaNode.hashCode());
     }
 
     public List<? extends QueryTreeNode> getChildren() {
