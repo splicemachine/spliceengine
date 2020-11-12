@@ -15,6 +15,7 @@
 package com.splicemachine.derby.test.framework;
 
 import org.apache.log4j.Logger;
+import org.junit.Assert;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.junit.runners.model.MultipleFailureException;
@@ -376,5 +377,14 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             }
         }
         return -1l;
+    }
+
+    public String executeGetString(String sql, int index) throws SQLException {
+        try( Statement s = getOrCreateConnection().createStatement();
+             ResultSet rs = s.executeQuery(sql))
+        {
+            Assert.assertTrue(rs.next());
+            return rs.getString(index);
+        }
     }
 }
