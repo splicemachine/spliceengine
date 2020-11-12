@@ -91,8 +91,8 @@ public class DataDictionaryCache {
     private ManagedCache<Long, Optional<String>> catalogVersionCache;
     private DataDictionary dd;
 
-    public static ThreadLocal<TriggerDescriptor> fromTableTriggerDescriptor = new ThreadLocal<>();
-    public static ThreadLocal<SPSDescriptor> fromTableTriggerSPSDescriptor = new ThreadLocal<>();
+    public static final ThreadLocal<TriggerDescriptor> fromTableTriggerDescriptor = new ThreadLocal<>();
+    public static final ThreadLocal<SPSDescriptor> fromTableTriggerSPSDescriptor = new ThreadLocal<>();
     @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     private static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",

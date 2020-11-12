@@ -156,7 +156,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         // the FINAL table, error out.  In this case the user should
         // use NEW TABLE to see the written rows before AFTER trigger
         // or foreign key changes are made to it.
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         if (fromTableDmlSpsDescriptor != null &&
             fromTableDmlSpsDescriptor.getFinalTableConglomID() != 0) {
             triggerHandler.errorIfAfterTriggerWritesToConglom(fromTableDmlSpsDescriptor.getFinalTableConglomID());
