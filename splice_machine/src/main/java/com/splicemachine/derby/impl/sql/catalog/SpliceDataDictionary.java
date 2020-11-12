@@ -386,13 +386,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
      * @throws StandardException Standard Derby error policy
      */
     private void populateSYSNATURALNUMBERS(TransactionController tc) throws StandardException{
-        TabInfoImpl ti = getNonCoreTI(SYSNATURALNUMBERS_CATALOG_NUM);
-        for (int i = 1; i <= 2048; i++) {
-            NaturalNumberDescriptor nnd = new NaturalNumberDescriptor(i);
-            ExecRow row = ti.getCatalogRowFactory().makeRow(nnd, null);
-            // ignore return value because sysnaturalnumbers does not have indexes
-            ti.insertRow(row, tc);
-        }
+        SYSNATURALNUMBERSRowFactory.populateSYSNATURALNUMBERS(getNonCoreTI(SYSNATURALNUMBERS_CATALOG_NUM), tc);
     }
 
     public void createNaturalNumbersTable(TransactionController tc) throws StandardException {

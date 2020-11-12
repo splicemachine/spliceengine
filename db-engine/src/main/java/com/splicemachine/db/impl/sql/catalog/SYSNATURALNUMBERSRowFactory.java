@@ -35,9 +35,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.SQLInteger;
 
@@ -53,6 +53,8 @@ public class SYSNATURALNUMBERSRowFactory extends CatalogRowFactory
 
     private static final int SYSNATURALNUMBERS_COLUMN_COUNT = 1;
     private static final int SYSNATURALNUMBERS_N = 1;
+
+    private static final int MAX_NUMBER = 2048;
 
     private static final String[] uuids =
     {
@@ -90,7 +92,7 @@ public class SYSNATURALNUMBERSRowFactory extends CatalogRowFactory
     public ExecRow makeRow(boolean latestVersion, TupleDescriptor td, TupleDescriptor parent)
 			throws StandardException
     {
-        ExecIndexRow row;
+        ExecRow row;
         int value = -1;
 
         if (td != null) {
@@ -101,7 +103,7 @@ public class SYSNATURALNUMBERSRowFactory extends CatalogRowFactory
             value = nnd.getValue();
         }
 
-        row = getExecutionFactory().getIndexableRow(SYSNATURALNUMBERS_COLUMN_COUNT);
+        row = getExecutionFactory().getValueRow(SYSNATURALNUMBERS_COLUMN_COUNT);
         row.setColumn(SYSNATURALNUMBERS_N, new SQLInteger(value));
 
         return row;
@@ -144,5 +146,21 @@ public class SYSNATURALNUMBERSRowFactory extends CatalogRowFactory
        return new SystemColumn[] {
             SystemColumnImpl.getColumn("N", Types.INTEGER, false)
        };
+    }
+
+    /**
+     * Populate SYSNATURALNUMBERS table.
+     *
+     * @throws StandardException Standard Derby error policy
+     */
+    public static void populateSYSNATURALNUMBERS(TabInfoImpl sysNaturalNumbersTable, TransactionController tc)
+            throws StandardException
+    {
+        for (int i = 1; i <= MAX_NUMBER; i++) {
+            NaturalNumberDescriptor nnd = new NaturalNumberDescriptor(i);
+            ExecRow row = sysNaturalNumbersTable.getCatalogRowFactory().makeRow(nnd, null);
+            // ignore return value because sysnaturalnumbers does not have indexes
+            sysNaturalNumbersTable.insertRow(row, tc);
+        }
     }
 }
