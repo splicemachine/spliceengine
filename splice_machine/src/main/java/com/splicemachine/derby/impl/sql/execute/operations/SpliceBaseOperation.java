@@ -218,6 +218,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, ScopeNamed
     }
 
     @Override
+    @SuppressFBWarnings(value = "REC_CATCH_EXCEPTION", justification = "NullPointerException and others are not explicitly thrown.")
     public void close() throws StandardException {
         if (uuid != null) {
             EngineDriver.driver().getOperationManager().unregisterOperation(uuid);
