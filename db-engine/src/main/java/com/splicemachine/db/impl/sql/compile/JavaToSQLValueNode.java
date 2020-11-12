@@ -369,6 +369,15 @@ public class JavaToSQLValueNode extends ValueNode
         return false;//this == o;
     }
 
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            JavaToSQLValueNode other = (JavaToSQLValueNode) o;
+            return javaNode.isSemanticallyEquivalent(other.javaNode);
+        }
+        return false;
+    }
+
     public List<? extends QueryTreeNode> getChildren() {
         return Collections.singletonList(javaNode);
     }
