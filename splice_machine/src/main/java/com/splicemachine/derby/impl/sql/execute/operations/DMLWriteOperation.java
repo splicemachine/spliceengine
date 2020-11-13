@@ -130,38 +130,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
     }
 
-    protected void finalTableErrorCheck() throws StandardException {
-        // If we are not currently processing the FROM TABLE clause,
-        // and another triggered statement is trying to write to
-        // the FINAL table, error out.  In this case the user should
-        // use NEW TABLE to see the written rows before AFTER trigger
-        // or foreign key changes are made to it.
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-        if (fromTableDmlSpsDescriptor == null) {
-            if (lcc != null) {
-                TriggerExecutionContext tec = lcc.getTriggerExecutionContext();
-                if (tec != null && tec.getFromTableDmlSpsDescriptor() != null) {
-                    SPSDescriptor sps = tec.getFromTableDmlSpsDescriptor();
-                    if (sps.getFinalTableConglomID() == writeInfo.getConglomerateId())
-                        throw StandardException.newException(LANG_MODIFIED_FINAL_TABLE,
-                           tec.getTriggerName(), tec.getTargetTableName());
-                }
-            }
-        }
-    }
-
-    protected void finalTableErrorCheck2(TriggerHandler triggerHandler) throws StandardException {
-        // If we are not currently processing the FROM TABLE clause,
-        // and another triggered statement is trying to write to
-        // the FINAL table, error out.  In this case the user should
-        // use NEW TABLE to see the written rows before AFTER trigger
-        // or foreign key changes are made to it.
-        if (fromTableDmlSpsDescriptor != null &&
-            fromTableDmlSpsDescriptor.getFinalTableConglomID() != 0) {
-            triggerHandler.errorIfAfterTriggerWritesToConglom(fromTableDmlSpsDescriptor.getFinalTableConglomID());
-        }
-    }
-
     public boolean hasGenerationClause() {
         return generationClausesFunMethodName != null || checkGMFunMethodName != null;
     }
@@ -272,7 +240,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         super.init(context);
         source.init(context);
         writeInfo.initialize(context);
-        finalTableErrorCheck();
         if (isOlapServer())
             isSpark = true;
 

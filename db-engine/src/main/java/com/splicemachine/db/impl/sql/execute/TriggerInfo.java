@@ -232,21 +232,4 @@ public final class TriggerInfo implements Formatable {
 
     public boolean hasSpecialFromTableTrigger() { return hasSpecialFromTableTrigger; }
 
-    public boolean errorIfAfterTriggerWritesToConglom(long conglomID) throws StandardException {
-        if (triggerDescriptors != null) {
-            for (TriggerDescriptor aTriggerArray : triggerDescriptors) {
-                if (aTriggerArray instanceof TriggerDescriptorV4) {
-                    TriggerDescriptorV4 triggerDescriptorV4 = (TriggerDescriptorV4) aTriggerArray;
-                    if (triggerDescriptorV4.isSpecialFromTableTrigger())
-                        continue;
-                }
-                if (aTriggerArray.isBeforeTrigger() == false            &&
-                    aTriggerArray.getTableDescriptor().getHeapConglomerateId() == conglomID) {
-                    throw StandardException.newException(LANG_MODIFIED_FINAL_TABLE,
-                       aTriggerArray.getName(), aTriggerArray.getTableDescriptor().getName());
-                }
-            }
-        }
-        return false;
-    }
 }
