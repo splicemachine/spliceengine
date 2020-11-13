@@ -23,7 +23,7 @@ import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import splice.com.google.common.collect.Lists;
+import com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
