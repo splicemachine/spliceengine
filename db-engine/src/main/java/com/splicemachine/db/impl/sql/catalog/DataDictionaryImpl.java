@@ -8030,6 +8030,9 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                 case SYSMONGETCONNECTION_CATALOG_NUM:
                     retval=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(luuidFactory,exFactory,dvf, this));
                     break;
+                case SYSNATURALNUMBERS_CATALOG_NUM:
+                    retval=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(luuidFactory,exFactory,dvf,this));
+                    break;
                 default:
                     retval=null;
                     break;
