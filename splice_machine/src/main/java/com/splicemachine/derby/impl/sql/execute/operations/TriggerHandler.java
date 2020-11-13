@@ -98,6 +98,7 @@ public class TriggerHandler {
 
     private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
 
+    @SuppressFBWarnings(value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",justification = "Intentional")
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
                           Activation activation,
