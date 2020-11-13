@@ -3804,8 +3804,6 @@ StatementPart(Token[] tokenHolder) throws StandardException :
         statementNode = exportStatement() |
         statementNode = binaryExportStatement() |
         statementNode = kafkaExportStatement() |
-        statementNode = pinStatement() |
-        statementNode = dropPinStatement() |
         statementNode = signalStatement()
     )
     {
@@ -4185,26 +4183,6 @@ explainStatement() throws StandardException :
                                    SparkExplainKind.OPTIMIZED,
                                    false,
                                    getContextManager());
-    }
-}
-
-StatementNode
-pinStatement() throws StandardException :
-{
-    StatementNode   statementNode;
-    String authName = null;
-    TableName tableName = null;
-    Vector parameterList = new Vector();
-}
-{
-    <PIN>
-    [ <AUTHORIZATION> authName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true) ]
-    <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-    {
-        return (CreatePinNode) nodeFactory.getNode(C_NodeTypes.CREATE_PIN_NODE,
-                                   tableName,
-                                   getContextManager());
-
     }
 }
 
@@ -5658,24 +5636,7 @@ exactNumericType() throws StandardException :
     | <DECIMAL> | <DEC> )
     [ <LEFT_PAREN> precision = precision() [ <COMMA> scale = scale() ] <RIGHT_PAREN> ]
     {
-        if ((precision <= 0) ||
-            (precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
-        {
-            throw StandardException.newException(SQLState.LANG_INVALID_PRECISION,
-                typeStr, String.valueOf(precision));
-        }
-        else if ((scale < 0) ||
-                 (scale > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
-        {
-            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_SCALE,
-                typeStr, String.valueOf(scale));
-        }
-        else if (scale > precision)
-        {
-            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_PRECISION_SCALE,
-                String.valueOf(scale),
-                String.valueOf(precision));
-        }
+        DataTypeUtilities.isValidDecimalPrecisionAndScale(precision, scale);
         /*
         ** If we have a decimal point, need to count it
         ** towards maxwidth.  Max width needs to account
@@ -7217,176 +7178,31 @@ multiplicativeExpression(ValueNode farLeftOperand, int additiveOperator) throws 
             return leftOperand;
 
         // manipulation for current timestamp operation
-        if ((farLeftOperand instanceof CurrentDatetimeOperatorNode) &&
-            ((CurrentDatetimeOperatorNode)farLeftOperand).isCurrentTimestamp()) {
-            switch (additiveOperator)
-            {
+        switch (additiveOperator)
+        {
 
-              case BinaryOperatorNode.PLUS:
-                if (leftOperand instanceof TimeSpanNode) {
-                    return convertToTimestampAdd(farLeftOperand, (TimeSpanNode) leftOperand, false);
-                }
-                return (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
-                                        farLeftOperand,
-                                        leftOperand,
-                                        getContextManager()
-                                        );
-              case BinaryOperatorNode.MINUS:
-                if (leftOperand instanceof TimeSpanNode) {
-                    return convertToTimestampAdd(farLeftOperand, (TimeSpanNode) leftOperand, true);
-                }
-                return (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
-                                        farLeftOperand,
-                                        leftOperand,
-                                        getContextManager()
-                                        );
+          case BinaryOperatorNode.PLUS:
+            return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
+                                    farLeftOperand,
+                                    leftOperand,
+                                    getContextManager()
+                                    );
+          case BinaryOperatorNode.MINUS:
+            return (ValueNode) nodeFactory.getNode(
+                                    C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
+                                    farLeftOperand,
+                                    leftOperand,
+                                    getContextManager()
+                                    );
 
-              default:
-                if (SanityManager.DEBUG)
-                SanityManager.THROWASSERT(
-                        "Unexpected operator value of " + additiveOperator);
-                return null;
-            }
-        } else {
-            switch (additiveOperator)
-            {
-              case BinaryOperatorNode.PLUS:
-                if (leftOperand instanceof TimeSpanNode) {
-                    return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, false);
-                }
-                return (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.BINARY_PLUS_OPERATOR_NODE,
-                                        farLeftOperand,
-                                        leftOperand,
-                                        getContextManager()
-                                        );
-              case BinaryOperatorNode.MINUS:
-                if (leftOperand instanceof TimeSpanNode) {
-                    return convertAddTimeIntervalToFunction(farLeftOperand, (TimeSpanNode) leftOperand, true);
-                }
-                return (ValueNode) nodeFactory.getNode(
-                                        C_NodeTypes.BINARY_MINUS_OPERATOR_NODE,
-                                        farLeftOperand,
-                                        leftOperand,
-                                        getContextManager()
-                                        );
-
-              default:
-                if (SanityManager.DEBUG)
-                SanityManager.THROWASSERT(
-                        "Unexpected operator value of " + additiveOperator);
-                return null;
-            }
+          default:
+            if (SanityManager.DEBUG)
+            SanityManager.THROWASSERT(
+                    "Unexpected operator value of " + additiveOperator);
+            return null;
         }
     }
-}
-
-/*
- * <A NAME="convertAddTimeIntervalToFunction">convertAddTimeIntervalToFunction</A>
- */
-ValueNode
-convertAddTimeIntervalToFunction(ValueNode base, TimeSpanNode timeSpanNode, boolean negate) throws StandardException :
-{
-    Vector parameterList = new Vector();
-    String function = null;
-}
-{
-    {
-        switch (timeSpanNode.getUnit()) {
-            case DateTimeDataValue.DAY_INTERVAL:
-                function = "ADD_DAYS";
-                break;
-            case DateTimeDataValue.MONTH_INTERVAL:
-                function = "ADD_MONTHS";
-                break;
-            case DateTimeDataValue.YEAR_INTERVAL:
-                function = "ADD_YEARS";
-                break;
-            default:
-                throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION,
-                                                                                timeSpanNode.getUnit());
-        }
-        MethodCallNode methodNode = (MethodCallNode) nodeFactory.getNode(
-                                C_NodeTypes.STATIC_METHOD_CALL_NODE,
-                                (TableName) nodeFactory.getNode(
-                                            C_NodeTypes.TABLE_NAME,
-                                            null,
-                                            function,
-                                            getContextManager()
-                                            ),
-                                null,
-                                getContextManager()
-                                );
-        parameterList.addElement(base);
-        ValueNode value = timeSpanNode.getValue();
-        if (negate) {
-            value = (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
-                                value,
-                                getContextManager());
-        }
-        parameterList.addElement(value);
-        methodNode.addParms(parameterList);
-        return (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
-                                methodNode,
-                                getContextManager());
-    }
-}
-
-/*
- * <A NAME="convertToTimestampAdd">convertToTimestampAdd</A>
- */
-ValueNode
-convertToTimestampAdd(ValueNode base, TimeSpanNode timeSpanNode, boolean negate) throws StandardException :
-{
-    ValueNode value = null;
-    ValueNode intervalType = null;
-}
-{
-    {
-        switch (timeSpanNode.getUnit()) {
-            case DateTimeDataValue.DAY_INTERVAL:
-                intervalType = getJdbcIntervalNode(DateTimeDataValue.DAY_INTERVAL);
-                break;
-            case DateTimeDataValue.MONTH_INTERVAL:
-                intervalType = getJdbcIntervalNode( DateTimeDataValue.MONTH_INTERVAL);
-                break;
-            case DateTimeDataValue.YEAR_INTERVAL:
-                intervalType = getJdbcIntervalNode( DateTimeDataValue.YEAR_INTERVAL);
-                break;
-            case DateTimeDataValue.HOUR_INTERVAL:
-                intervalType = getJdbcIntervalNode( DateTimeDataValue.HOUR_INTERVAL);
-                break;
-            case DateTimeDataValue.MINUTE_INTERVAL:
-                intervalType = getJdbcIntervalNode( DateTimeDataValue.MINUTE_INTERVAL);
-                break;
-            case DateTimeDataValue.SECOND_INTERVAL:
-                intervalType = getJdbcIntervalNode( DateTimeDataValue.SECOND_INTERVAL);
-                break;
-            default:
-                throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION,
-                                                                timeSpanNode.getUnit());
-        }
-        value = timeSpanNode.getValue();
-        if (negate) {
-            value = (ValueNode) nodeFactory.getNode(
-                                C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
-                                value,
-                                getContextManager());
-        }
-        return (ValueNode) nodeFactory.getNode( C_NodeTypes.TIMESTAMP_ADD_FN_NODE,
-                                                base,
-                                                intervalType,
-                                                value,
-                                                ReuseFactory.getInteger( TernaryOperatorNode.TIMESTAMPADD),
-                                                null,
-                                                getContextManager());
-
-    }
-
 }
 
 /*
@@ -8082,7 +7898,6 @@ ValueNode
 numericValueFunction() throws StandardException :
 {
     ValueNode    value;
-    int            field;
 }
 {
     /*
@@ -8121,7 +7936,51 @@ numericValueFunction() throws StandardException :
                         C_NodeTypes.IDENTITY_VAL_NODE,
                         getContextManager());
     }
+|
+    <DECIMAL> value = decimalFunction("DECIMAL")
+    {
+        return value;
+    }
+|
+    <DEC> value = decimalFunction("DEC")
+    {
+        return value;
+    }
 }
+
+ValueNode
+decimalFunction(String functionName) throws StandardException :
+{
+    ValueNode value;
+    Integer   precision = null;
+    Integer   scale = null;
+    String    decimalCharacter = null;
+}
+{
+   <LEFT_PAREN> value = additiveExpression(null,0) [ <COMMA> precision = precision() [ <COMMA> scale = scale() [ <COMMA> decimalCharacter = string() ] ] ] <RIGHT_PAREN>
+   {
+
+        if(precision != null) {
+            DataTypeUtilities.isValidDecimalPrecision(precision);
+        }
+        if(scale != null) {
+            DataTypeUtilities.isValidDecimalScale(precision, scale);
+        }
+        if(decimalCharacter != null) {
+            DataTypeUtilities.isValidDecimalCharacter(decimalCharacter);
+        }
+        return (ValueNode)nodeFactory.getNode(
+                C_NodeTypes.DECIMAL_FUNCTION_NODE,
+                functionName,
+                value,
+                precision,
+                scale,
+                decimalCharacter,
+                getContextManager());
+   }
+}
+
+
 
 /*
  * <A NAME="coalesceFunction">coalesceFunction</A>
@@ -8822,7 +8681,9 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == TO_INSTANT ||
                 getToken(1).kind == TO_HBASE_ESCAPED ||
                 getToken(1).kind == SPLIT_PART ||
-                getToken(1).kind == GET_NEAREST_TRANSACTION ) &&
+                getToken(1).kind == GET_NEAREST_TRANSACTION ||
+                getToken(1).kind == DECIMAL ||
+                getToken(1).kind == DEC ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
@@ -17327,34 +17188,6 @@ dropTableStatement() throws StandardException :
         return deleteNode;
     }
 }
-
-/*
- * <A NAME="dropPinStatement">dropPinStatement</A>
- */
-StatementNode
-dropPinStatement() throws StandardException :
-{
-    Token ifTok = null;
-    Token existsTok = null;
-    TableName tableName;
-}
-{
-    <UNPIN> <TABLE> [ ifTok = <IF> existsTok = <EXISTS> ] tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-    {
-        // must have both "if" and "exists"
-        boolean ifExists = ifTok != null && existsTok != null;
-        // DB2 does not support a drop behaviour
-        StatementNode deleteNode = (StatementNode) nodeFactory.getNode(
-                                            C_NodeTypes.DROP_PIN_NODE,
-                                            tableName,
-                                            (ifExists ?
-                                              new Integer(StatementType.DROP_IF_EXISTS) :
-                                              new Integer(StatementType.DROP_DEFAULT)),
-                                            getContextManager());
-        return deleteNode;
-    }
-}
-
 
 /*
  * <A NAME="dropIndexStatement">dropIndexStatement</A>

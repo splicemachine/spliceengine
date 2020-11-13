@@ -947,6 +947,13 @@ Guide.
                 <arg>tableName</arg>
             </msg>
 
+            <msg>
+                <name>23514</name>
+                <text>foreign key {0} caused an attempt to set some not-nullable columns in table {1} to null. The statement has been rolled back.</text>
+                <arg>constraintName</arg>
+                <arg>tableName</arg>
+            </msg>
+
         </family>
 
 
@@ -3287,6 +3294,39 @@ Guide.
                 <name>42ZD8</name>
                 <text>time travel query requested with invalid past transaction ID {0}</text>
                 <arg>pastTxId</arg>
+            </msg>
+
+            <msg>
+                <name>42ZE0</name>
+                <text>Invalid decimal character '{0}'. The character is not allowed to be a digit, plus sign, minus sign, or blank.</text>
+                <arg>decimalCharacter</arg>
+            </msg>
+
+            <msg>
+                <name>42ZE1</name>
+                <text>Invalid decimal argument, only numeric and string expressions are allowed.</text>
+            </msg>
+
+            <msg>
+                <name>42ZE2</name>
+                <text>Can not convert '{0}' to DECIMAL({1}, {2}).</text>
+                <arg>expression</arg>
+                <arg>precision</arg>
+                <arg>scale</arg>
+            </msg>
+
+            <msg>
+                <name>42ZE3</name>
+                <text>The specific string '{0}' cannot be converted to DECIMAL({1}, {2}).</text>
+                <arg>stringExpression</arg>
+                <arg>precision</arg>
+                <arg>scale</arg>
+            </msg>
+
+            <msg>
+                <name>42ZE4</name>
+                <text>The type '{0}' can not be used with DECIMAL and DEC functions.</text>
+                <arg>type</arg>
             </msg>
 
             <msg>

@@ -52,6 +52,7 @@ public class TxnTimeTraveler {
             if(middleTS == needleTS) {
                 return middleTx;
             } else if(needleTS < middleTS) {
+                right = toRowKeyWithBucket(middleTx.getFirst(), bucket);
                 if(middleTS == rightTS)
                 {
                     reversed = true;
@@ -59,7 +60,6 @@ public class TxnTimeTraveler {
                 }
                 else if(middleTS < rightTS)
                 {
-                    right = toRowKeyWithBucket(middleTx.getFirst(), bucket);
                     rightTS = middleTS;
                     changed = true;
                 }

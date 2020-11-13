@@ -1,7 +1,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +12,8 @@ import java.util.List;
  *
  */
 public class ValueTupleNode extends ValueNode {
-    private ArrayList<ValueNode> tuple = new ArrayList<>();
+    private List<ValueNode> tuple = new ArrayList<>();
+
     @Override
     protected boolean isEquivalent(ValueNode o) throws StandardException {
         if (!isSameNodeType(o)) {
@@ -76,8 +77,12 @@ public class ValueTupleNode extends ValueNode {
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
                                     List<AggregateNode> aggregateVector) throws StandardException {
-        // For now, ValueTupleNode should be replaced during parsing
-        throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, "Illegal tuple");
+        List<ValueNode> newTuple = new ArrayList<>();
+        for (ValueNode element : tuple) {
+            newTuple.add(element.bindExpression(fromList, subqueryList, aggregateVector));
+        }
+        tuple = newTuple;
+        return this;
     }
 
     public int size() {
@@ -90,5 +95,24 @@ public class ValueTupleNode extends ValueNode {
 
     public void addValueNode(ValueNode value) {
         tuple.add(value);
+    }
+
+    @Override
+    public JBitSet getTablesReferenced() throws StandardException {
+        JBitSet tableNumbers = new JBitSet(size());
+        for (ValueNode vn : tuple) {
+            tableNumbers.or(vn.getTablesReferenced());
+        }
+        return tableNumbers;
+    }
+
+    @Override
+    public boolean categorize(JBitSet referencedTabs, boolean simplePredsOnly) throws StandardException {
+        for (ValueNode vn : tuple) {
+            if (!vn.categorize(referencedTabs, simplePredsOnly)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

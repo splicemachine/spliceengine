@@ -1145,5 +1145,6 @@ public class BinaryOperatorNode extends OperatorNode
         double rightCost = rightOperand == null ? 0.0 : rightOperand.getBaseOperationCost();
         return leftCost + rightCost;
     }
+
 }
 

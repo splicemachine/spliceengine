@@ -548,4 +548,5 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         }
         return localCost;
     }
+
 }

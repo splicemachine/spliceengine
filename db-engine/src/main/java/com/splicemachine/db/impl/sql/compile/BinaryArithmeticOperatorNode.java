@@ -31,11 +31,13 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
 import com.splicemachine.db.iapi.types.DataTypeUtilities;
+import com.splicemachine.db.iapi.types.DateTimeDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -45,8 +47,11 @@ import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.iapi.util.ReuseFactory;
 
+import java.sql.Types;
 import java.util.List;
+import java.util.Vector;
 
 /**
  * This node represents a binary arithmetic operator, like + or *.
@@ -127,6 +132,9 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
      */
     @Override
     public ValueNode bindExpression( FromList	fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector) throws StandardException {
+        if (leftOperand instanceof TimeSpanNode || rightOperand instanceof TimeSpanNode) {
+            return bindTimeSpanOperation(fromList, subqueryList, aggregateVector);
+        }
         super.bindExpression(fromList, subqueryList, aggregateVector);
 
         TypeId	leftType = leftOperand.getTypeId();
@@ -212,6 +220,93 @@ public final class BinaryArithmeticOperatorNode extends BinaryOperatorNode
         );
 
         return this;
+    }
+
+    private ValueNode bindTimeSpanOperation(FromList fromList,
+                                            SubqueryList subqueryList,
+                                            List<AggregateNode> aggregateVector) throws StandardException {
+        if (leftOperand instanceof TimeSpanNode && rightOperand instanceof TimeSpanNode) {
+            throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION);
+        }
+        ValueNode base;
+        TimeSpanNode timespan;
+        if (leftOperand instanceof TimeSpanNode) {
+            timespan = (TimeSpanNode) leftOperand;
+            rightOperand = rightOperand.bindExpression(fromList, subqueryList, aggregateVector);
+            base = rightOperand;
+        } else {
+            timespan = (TimeSpanNode) rightOperand;
+            leftOperand = leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
+            base = leftOperand;
+        }
+        if (!"+".equals(operator) && !"-".equals(operator) || !base.getTypeId().isDateTimeTimeStampTypeId()) {
+            throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION);
+        }
+        if (base.getTypeId().getJDBCTypeId() == Types.DATE) {
+            String function;
+            Vector<ValueNode> parameterList = new Vector<>();
+            switch (timespan.getUnit()) {
+                case DateTimeDataValue.DAY_INTERVAL:
+                    function = "ADD_DAYS";
+                    break;
+                case DateTimeDataValue.MONTH_INTERVAL:
+                    function = "ADD_MONTHS";
+                    break;
+                case DateTimeDataValue.YEAR_INTERVAL:
+                    function = "ADD_YEARS";
+                    break;
+                default:
+                    throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION,
+                            timespan.getUnit());
+            }
+            MethodCallNode methodNode = (MethodCallNode) getNodeFactory().getNode(
+                    C_NodeTypes.STATIC_METHOD_CALL_NODE,
+                    getNodeFactory().getNode(
+                            C_NodeTypes.TABLE_NAME,
+                            null,
+                            function,
+                            getContextManager()
+                    ),
+                    null,
+                    getContextManager()
+            );
+            parameterList.addElement(base);
+            ValueNode value = timespan.getValue();
+            if ("-".equals(operator)) {
+                value = (ValueNode) getNodeFactory().getNode(
+                        C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
+                        value,
+                        getContextManager());
+            }
+            parameterList.addElement(value);
+            methodNode.addParms(parameterList);
+            return ((ValueNode) getNodeFactory().getNode(
+                    C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+                    methodNode,
+                    getContextManager())).bindExpression(fromList, subqueryList, aggregateVector);
+        } else if (base.getTypeId().getJDBCTypeId() == Types.TIMESTAMP) {
+            ValueNode value = null;
+            ValueNode intervalType = (ValueNode) getNodeFactory().getNode( C_NodeTypes.INT_CONSTANT_NODE,
+                    ReuseFactory.getInteger(timespan.getUnit()),
+                    getContextManager());
+
+            value = timespan.getValue();
+            if ("-".equals(operator)) {
+                value = (ValueNode) getNodeFactory().getNode(
+                        C_NodeTypes.UNARY_MINUS_OPERATOR_NODE,
+                        value,
+                        getContextManager());
+            }
+            return ((ValueNode) getNodeFactory().getNode( C_NodeTypes.TIMESTAMP_ADD_FN_NODE,
+                    base,
+                    intervalType,
+                    value,
+                    ReuseFactory.getInteger( TernaryOperatorNode.TIMESTAMPADD),
+                    null,
+                    getContextManager())).bindExpression(fromList, subqueryList, aggregateVector);
+
+        }
+        throw StandardException.newException(SQLState.LANG_INVALID_TIME_SPAN_OPERATION);
     }
 
     @Override

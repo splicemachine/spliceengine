@@ -198,7 +198,8 @@ public interface C_NodeTypes
     int DROP_ALIAS_NODE = 156;
     int INTERSECT_OR_EXCEPT_NODE = 157;
     int REPLACE_OPERATOR_NODE = 158;
-    // 159 - 183 available
+    // 159 - 181 available
+    int DECIMAL_FUNCTION_NODE = 182;
     int SCALAR_MIN_MAX_FUNCTION_NODE = 183;
     int TIMESTAMP_ADD_FN_NODE = 184;
     int TIMESTAMP_DIFF_FN_NODE = 185;
@@ -263,8 +264,7 @@ public interface C_NodeTypes
     int TRUNC_NODE = 251;
     int FIRST_LAST_VALUE_FUNCTION_NODE = 253;
     int LEAD_LAG_FUNCTION_NODE = 254;
-    int CREATE_PIN_NODE = 255;
-    int DROP_PIN_NODE = 256;
+
     int ARRAY_OPERATOR_NODE = 257;
     int ARRAY_CONSTANT_NODE = 258;
     int SET_SESSION_PROPERTY_NODE = 259;

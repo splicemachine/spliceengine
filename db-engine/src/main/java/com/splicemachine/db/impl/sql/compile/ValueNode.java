@@ -1630,5 +1630,5 @@ public abstract class ValueNode extends QueryTreeNode implements ParentNode
     protected static final double BYPASS_COST_FACTOR = 1.5;        // switch between integer and floating-point units
     protected static final double ALLOC_COST_FACTOR = 350;
 
-    public double getBaseOperationCost() throws StandardException { return 0.0f; }
+    public double getBaseOperationCost() throws StandardException { return 0.0; }
 }
