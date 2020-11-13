@@ -478,9 +478,4 @@ public class TriggerHandler {
             }
         };
     }
-
-    public void errorIfAfterTriggerWritesToConglom(long conglomID) throws StandardException {
-        triggerInfo.errorIfAfterTriggerWritesToConglom(conglomID);
-    }
-
 }
