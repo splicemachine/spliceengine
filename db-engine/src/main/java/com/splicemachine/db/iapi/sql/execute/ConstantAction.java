@@ -58,4 +58,8 @@ public interface ConstantAction
 	 */
 	void	executeConstantAction(Activation activation)
 						throws StandardException;
+
+	default long getTargetConglomId() {
+		return 0L;
+	}
 }

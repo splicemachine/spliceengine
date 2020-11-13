@@ -219,7 +219,6 @@ public class UpdateOperation extends DMLWriteOperation{
             // because it has to be called after getCurrentTransaction() elevates the
             // transaction to writable.
             if (triggerHandler != null) {
-                finalTableErrorCheck2(triggerHandler);
                 triggerHandler.initTriggerRowHolders(isOlapServer() || SpliceClient.isClient(), txn, SpliceClient.token, 0);
             }
 
