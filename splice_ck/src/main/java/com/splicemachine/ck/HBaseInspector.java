@@ -44,7 +44,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.function.Predicate;
 
 import static com.splicemachine.ck.Constants.*;
@@ -58,25 +57,33 @@ public class HBaseInspector {
         this.config = config;
     }
 
+    String limitString(int limit)
+    {
+        return "   .\n   .\n   .\n" + Utils.Colored.red(
+                "--- Result list was limited to " + limit + " entries, " + "result was cut off ---");
+    }
+
     public String scanRow(final String region, final String rowKey, final Utils.SQLType[] cols,
                           int limit, int versions, boolean hbase) throws Exception {
 
         StringBuilder result = new StringBuilder();
         UserDataDecoder decoder = cols == null ? null : new UserDefinedDataDecoder(cols, 4);
 
+        // scan for one more than the limit so now if we truncated
+        int scanLimit = limit == 0 ? 0 : limit+1;
         int count = 0;
         ConnectionWrapper c = getCachedConnection().withRegion(region);
         try(final ResultScanner rs = rowKey == null ?
-                c.scanAllVersions(limit+1, versions) :
-                c.scanSingleRowAllVersions(rowKey, versions)) {
+                c.scanVersions(scanLimit, versions) :
+                c.scanSingleRow(rowKey, versions)) {
             for(Result row : rs) {
                 if( count++ == limit ) {
-                    result.append(Utils.Colored.red("\n--- Result list was limited to " + limit + " entries, result was cut off ---"));
+                    result.append(limitString(limit));
                     break;
                 }
                 TableRowPrinter rowVisitor = new TableRowPrinter(decoder, hbase);
                 String hbaseStr = !hbase ? "" : " / " + com.splicemachine.primitives.Bytes.toStringBinary(row.getRow());
-                result.append(Utils.Colored.red("[ Row " + Hex.encodeHexString(row.getRow()) + hbaseStr + "]\n"));
+                result.append(Utils.Colored.red("[ Row " + Hex.encodeHexString(row.getRow()) + hbaseStr + " ]\n"));
                 for(String s : rowVisitor.processRow(row)) {
                     result.append(s);
                 }
@@ -145,19 +152,29 @@ public class HBaseInspector {
         return schemaId.get().getSecond();
     }
 
-    private Utils.Tabular getListTransactions() throws Exception {
+    public String getListTransactions(int limit) throws Exception {
         String region = SPLICE_PREFIX + HBaseConfiguration.TRANSACTION_TABLE;
         Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsInteger,
                 TBL_TXN_COL0, TBL_TXN_COL1, TBL_TXN_COL2, TBL_TXN_COL3, TBL_TXN_COL4,
                 TBL_TXN_COL5, TBL_TXN_COL6, TBL_TXN_COL7, TBL_TXN_COL8, TBL_TXN_COL9);
         TxnTableRowPrinter rowVisitor = new TxnTableRowPrinter();
-        try(final ResultScanner rs = getCachedConnection().withRegion(region).scan()) {
+
+        // scan for one more than the limit so now if we truncated
+        int scanLimit = limit == 0 ? 0 : limit+1, count = 0;
+        ConnectionWrapper c = getCachedConnection().withRegion(region);
+        try(final ResultScanner rs = c.scanVersions(scanLimit, 0 /*all*/ ) ) {
             for (Result row : rs) {
+                if( count++ == limit ) {
+                    break;
+                }
                 List<String> rowString = rowVisitor.processRow(row);
                 tabular.addRow(rowString.toArray(new String[0]));
             }
         }
-        return tabular;
+        String result = Utils.printTabularResults(tabular);
+        if(count > limit)
+            result = result + limitString(limit);
+        return result;
     }
 
     public String listTables(String filter) throws Exception {
@@ -174,10 +191,6 @@ public class HBaseInspector {
 
     public String listSchemas() throws Exception {
         return Utils.printTabularResults(getListSchemas());
-    }
-
-    public String listTransactions() throws Exception {
-        return Utils.printTabularResults(getListTransactions());
     }
 
     private String referenceId(String schema, String table) throws Exception {

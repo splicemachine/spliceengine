@@ -50,16 +50,24 @@ public class ConnectionWrapper implements AutoCloseable {
         return this;
     }
 
-    public ResultScanner scanSingleRowAllVersions(String key, int versions) throws IOException {
+    /**
+     * @param rowKey the row key to scan for
+     * @param versions number of versions. if 0, all versions
+     */
+    public ResultScanner scanSingleRow(String rowKey, int versions) throws IOException {
         assert table != null;
         Scan scan = new Scan();
         tell("hbase scan table", table.getName().toString(), "with all versions");
         if(versions == 0) versions = Integer.MAX_VALUE;
-        scan.withStartRow(Bytes.fromHex(key)).setLimit(1).readVersions(versions);
+        scan.withStartRow(Bytes.fromHex(rowKey)).setLimit(1).readVersions(versions);
         return table.getScanner(scan);
     }
 
-    public ResultScanner scanAllVersions(int limit, int versions) throws IOException {
+    /**
+     * @param limit maximum number of elements to return
+     * @param versions  number of versions. if 0, all versions
+     */
+    public ResultScanner scanVersions(int limit, int versions) throws IOException {
         assert table != null;
         Scan scan = new Scan();
         if(limit != 0 ) scan.setLimit(limit);
