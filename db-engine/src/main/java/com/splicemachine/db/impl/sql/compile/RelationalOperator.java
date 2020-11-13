@@ -143,6 +143,15 @@ public interface RelationalOperator
 						throws StandardException;
 
 	/**
+	 * Get the index column position if there is one operand matches an index
+	 * expression defined on optTable.
+	 * @param tableNumber Table number of the base table on which the index
+	 *                    expression is defined.
+	 * @return The matching index column position if there is a match, otherwise -1.
+	 */
+	int getMatchingExprIndexColumnPosition(int tableNumber);
+
+	/**
 	 * Check whether this RelationalOperator compares the given ColumnReference
 	 * to any columns in the same table as the ColumnReference.
 	 *
