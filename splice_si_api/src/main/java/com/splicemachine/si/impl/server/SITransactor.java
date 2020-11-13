@@ -271,7 +271,7 @@ public class SITransactor implements Transactor{
                                                                MutationStatus[] finalStatus, boolean skipConflictDetection,
                                                                boolean skipWAL, TxnSupplier supplier, boolean rollforward) throws IOException {
         IntObjectHashMap<DataPut> finalMutationsToWrite = new IntObjectHashMap(dataAndLocks.length, 0.9f);
-
+        DataResult possibleConflicts = null;
         BitSet bloomInMemoryCheck  = skipConflictDetection ? null : table.getBloomInMemoryCheck(constraintChecker!=null,dataAndLocks);
         List<ByteSlice> toRollforward = null;
         if (rollforward) {
@@ -284,17 +284,6 @@ public class SITransactor implements Transactor{
             ConflictResults conflictResults=ConflictResults.NO_CONFLICT;
             KVPair kvPair=baseDataAndLock.getFirst();
             KVPair.Type writeType=kvPair.getType();
-
-            DataResult possibleConflicts = null;
-            if(!skipConflictDetection)
-            {
-                // we need the possibleConflicts for
-                // - has constraintChecker && writeType == UPSERT/UPDATE/DELETE: checking for constraint violations
-                // - writeType == INSERT/UPSERT/DELETE: evaluating addFirstOccurrenceToken
-                if( bloomInMemoryCheck == null || bloomInMemoryCheck.get(i) ) {
-                    possibleConflicts = table.getLatest(kvPair.getRowKey(), possibleConflicts);
-                }
-            }
             if(!skipConflictDetection && (constraintChecker!=null || !KVPair.Type.INSERT.equals(writeType))){
                 /*
                  *
@@ -306,6 +295,7 @@ public class SITransactor implements Transactor{
                  * applied on key elements.
                  */
                 //todo -sf remove the Row key copy here
+                possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
                 if(possibleConflicts!=null && !possibleConflicts.isEmpty()){
                     //we need to check for write conflicts
                     try {
@@ -335,8 +325,7 @@ public class SITransactor implements Transactor{
             conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
 
-            if (!skipConflictDetection) { // todo(martinrupp): not sure if we can skip the FIRST_WRITE_TOKEN check even for this case
-                // check if we need to add FIRST_WRITE_TOKEN (INSERT/UPSERT) or DELETE_RIGHT_AFTER_FIRST_WRITE_TOKEN (DELETE)
+            if (!skipConflictDetection) {
                 if (possibleConflicts == null || possibleConflicts.isEmpty())
                 {
                     // First write
