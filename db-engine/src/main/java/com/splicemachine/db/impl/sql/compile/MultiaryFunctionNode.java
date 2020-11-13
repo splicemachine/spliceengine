@@ -479,4 +479,14 @@ public abstract class MultiaryFunctionNode extends ValueNode
     public boolean isConstantOrParameterTreeNode() {
         return argumentsList.containsOnlyConstantAndParamNodes();
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double childrenCost = 0.0;
+        for (Object arg : argumentsList) {
+            childrenCost += ((ValueNode) arg).getBaseOperationCost();
+        }
+        double localCost = SIMPLE_OP_COST * (argumentsList.size() / 2.0);
+        return childrenCost + localCost + SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+    }
 }

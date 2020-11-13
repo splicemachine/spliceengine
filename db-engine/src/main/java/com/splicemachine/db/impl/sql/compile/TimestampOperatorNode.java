@@ -162,4 +162,10 @@ public class TimestampOperatorNode extends BinaryOperatorNode
         return newTS;
     }
 
+	@Override
+	public double getBaseOperationCost() throws StandardException {
+		double localCost = SIMPLE_OP_COST * 2.0;
+		double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+		return localCost + callCost + getChildrenCost();
+	}
 }
