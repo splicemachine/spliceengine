@@ -148,6 +148,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
     /*private helper methods*/
     protected void executeConstantActionBody(Activation activation) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantActionBody with activation %s",activation);
+        for (ConstantAction ca : constraintActions) {
+            if (ca instanceof CreateConstraintConstantOperation) {
+                ((CreateConstraintConstantOperation) ca).prePrepareDataDictionaryActions(activation);
+            }
+        }
         prepareDataDictionary(activation);
 
         // adjust dependencies on user defined types

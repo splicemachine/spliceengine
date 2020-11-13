@@ -742,6 +742,15 @@ public interface Property {
     String	LANG_PROPERTY_CACHE_SIZE = "derby.language.propertyCacheSize";
     int		LANG_PROPERTY_CACHE_SIZE_DEFAULT =128;
 
+
+    /**
+     * The size of the constraint descriptor cache which is used to build the foreign key graph.
+     * <p>
+     * Undocumented.
+     */
+    String  LANG_CONSTRAINT_CACHE_SIZE = "derby.language.constraintCacheSize";
+    int     LANG_CONSTRAINT_CACHE_SIZE_DEFAULT =1024;
+
     /**
      * Name of the implementation of SequencePreallocator which is used
      * to tune how many values Derby pre-allocates for identity columns

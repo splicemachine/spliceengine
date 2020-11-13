@@ -24,6 +24,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentMap;
 
 public class ManagedCache<K, V> implements ManagedCacheMBean, GenericManagedCacheIFace<K, V>, Externalizable {
 
@@ -54,6 +55,10 @@ public class ManagedCache<K, V> implements ManagedCacheMBean, GenericManagedCach
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(maxSize);
         out.writeObject(new HashMap<>(managedCache.asMap()));
+    }
+
+    public ConcurrentMap<K, V> asMap() {
+        return managedCache.asMap();
     }
 
     @Override
