@@ -164,7 +164,8 @@ public abstract class BaseDataDictionary implements DataDictionary, ModuleContro
 			"SYSTOKENS",
 			"SYSDUMMY1",
 			"SYSREPLICATION",
-			"MON_GET_CONNECTION"
+			"MON_GET_CONNECTION",
+			"SYSNATURALNUMBERS"
 	};
 
 	protected	static final int		NUM_NONCORE = nonCoreNames.length;
