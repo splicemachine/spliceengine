@@ -36,13 +36,17 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * This will be the Level 1 Optimizer.
@@ -1071,6 +1075,22 @@ public class OptimizerImpl implements Optimizer{
         assert outerCost!=null: "outerCost is not expected to be null";
 
         Optimizable optimizable=optimizableList.getOptimizable(proposedJoinOrder[joinPosition]);
+
+        /* We need to run isIndexUseful for all predicates on the
+         * current conglomerate, no matter if they are useful or not,
+         * to set flags of index expressions referencing optimizable
+         * properly so that utility methods relying on them can work.
+         * Note that not all predicates are in predicateList, some
+         * may have been pushed down to optimizable.
+         */
+        ConglomerateDescriptor currentCd = optimizable.getCurrentAccessPath().getConglomerateDescriptor();
+        IndexRowGenerator irg = currentCd == null ? null : currentCd.getIndexDescriptor();
+        if (irg != null && irg.isOnExpression()) {
+            for (int i = 0; i < predicateList.size(); i++) {
+                PredicateList.isIndexUseful((Predicate) predicateList.getOptPredicate(i), optimizable,
+                        false, false, currentCd);
+            }
+        }
 
         /*
         ** Don't consider non-feasible join strategies.

@@ -196,5 +196,17 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
         if( operand instanceof ConstantNode)
             return ((ConstantNode) operand).getValue().getLength();
         return -1;
-    }        
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double cost = 0.0;
+        if (operand != null) {
+            if (getConstantLength() == -1) {
+                cost += SIMPLE_OP_COST * Math.min(operand.getTypeServices().getNull().getLength(), 16);
+            }
+            cost += SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
+        }
+        return cost;
+    }
 }

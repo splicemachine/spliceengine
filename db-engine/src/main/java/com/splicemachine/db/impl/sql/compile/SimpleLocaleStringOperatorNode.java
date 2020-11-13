@@ -190,4 +190,10 @@ public class SimpleLocaleStringOperatorNode extends BinaryOperatorNode
 	public String getReceiverInterfaceName() {
 	    return ClassName.StringDataValue;
 	}
+
+	@Override
+	public double getBaseOperationCost() throws StandardException {
+		double localCost = SIMPLE_OP_COST * Math.min(leftOperand.getTypeServices().getNull().getLength(), 64);
+		return localCost + SIMPLE_OP_COST * FN_CALL_COST_FACTOR + getChildrenCost();
+	}
 }

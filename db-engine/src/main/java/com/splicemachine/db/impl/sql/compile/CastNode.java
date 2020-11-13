@@ -1214,6 +1214,19 @@ public class CastNode extends ValueNode
         return castOperand.isConstantOrParameterTreeNode();
     }
 
+    @Override
+    public boolean isKnownConstant(boolean considerParameters) { return castOperand.isKnownConstant(considerParameters); }
+
+    @Override
+    public DataValueDescriptor getKnownConstantValue() {
+        return castOperand.getKnownConstantValue();
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        return SIMPLE_OP_COST + castOperand.getBaseOperationCost();
+    }
+
     public boolean isForSbcsData() {
         return forSbcsData;
     }

@@ -38,24 +38,23 @@ import com.splicemachine.db.iapi.sql.compile.Optimizable;
  * Predicate Selectivity Computation
  *
  */
-    public class PredicateSelectivity extends AbstractSelectivityHolder {
-        private Predicate p;
-        private Optimizable baseTable;
-        private double selectivityFactor;
-        public PredicateSelectivity(Predicate p,Optimizable baseTable, QualifierPhase phase, double selectivityFactor){
-            super(0,phase);
-            this.p = p;
-            this.baseTable = baseTable;
-            this.selectivityFactor = selectivityFactor;
-        }
-
-        public double getSelectivity() throws StandardException {
-            if (selectivity == -1.0d) {
-                selectivity = p.selectivity(baseTable);
-                if (selectivityFactor > 0) // we may hint to adjust selectivity by a factor
-                    selectivity *= selectivityFactor;
-            }
-            return selectivity;
-        }
-
+public class DefaultPredicateSelectivity extends AbstractSelectivityHolder {
+    private final Predicate p;
+    private final Optimizable baseTable;
+    private final double selectivityFactor;
+    public DefaultPredicateSelectivity(Predicate p, Optimizable baseTable, QualifierPhase phase, double selectivityFactor){
+        super(false,0,phase);
+        this.p = p;
+        this.baseTable = baseTable;
+        this.selectivityFactor = selectivityFactor;
     }
+
+    public double getSelectivity() throws StandardException {
+        if (selectivity == -1.0d) {
+            selectivity = p.selectivity(baseTable);
+            if (selectivityFactor > 0) // we may hint to adjust selectivity by a factor
+                selectivity *= selectivityFactor;
+        }
+        return selectivity;
+    }
+}
