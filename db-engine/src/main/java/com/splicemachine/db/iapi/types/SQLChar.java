@@ -3546,4 +3546,9 @@ public class SQLChar
         }
     }
 
+    @Override
+    public void setValueForSbcsData(DataValueDescriptor dvd) throws StandardException
+    {
+        setValue(dvd.getBytes()==null?null:new String(dvd.getBytes(), StandardCharsets.UTF_8));
+    }
 }

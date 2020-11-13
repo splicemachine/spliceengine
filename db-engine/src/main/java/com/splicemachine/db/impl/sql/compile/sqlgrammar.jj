@@ -48,7 +48,7 @@ PARSER_BEGIN(SQLParser)
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.apache.commons.lang3.mutable.MutableInt;
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.StatementType;
 
@@ -2798,6 +2798,7 @@ TOKEN [IGNORE_CASE] :
 |    <ARRAY: "array">
 |    <AS: "as">
 |    <ASC: "asc">
+|    <ASCII: "ascii">
 |    <ASSERTION: "assertion">
 |    <AT: "at">
 |    <AUTHORIZATION: "authorization">
@@ -2812,6 +2813,7 @@ TOKEN [IGNORE_CASE] :
 |    <CASCADED: "cascaded">
 |    <CASE: "case">
 |    <CAST: "cast">
+|    <CCSID: "ccsid">
 |    <CHAR: "char">
 |    <CHARACTER: "character">
 |    <CHARACTER_LENGTH: "character_length">
@@ -2958,8 +2960,9 @@ TOKEN [IGNORE_CASE] :
 |    <REVOKE: "revoke">
 |    <RIGHT: "right">
 |    <ROLLBACK: "rollback">
-|   <RANGE: "range">
+|    <RANGE: "range">
 |    <ROWS: "rows">
+|    <SBCS: "sbcs">
 |    <SCHEMA: "schema">
 |    <SCROLL: "scroll">
 |    <SECOND: "second">
@@ -5278,7 +5281,7 @@ dataTypeDDL() throws StandardException :
 }
 {
     LOOKAHEAD( { commonDatatypeName(false) } )
-    typeDescriptor = dataTypeCommon()
+    typeDescriptor = dataTypeCommon(null)
     {
         return typeDescriptor;
     }
@@ -5311,7 +5314,7 @@ catalogType() throws StandardException :
  * <A NAME="dataTypeCast">dataTypeCast</A>
  */
 DataTypeDescriptor
-dataTypeCast() throws StandardException :
+dataTypeCast(MutableBoolean forSbcsData) throws StandardException :
 {
     DataTypeDescriptor    typeDescriptor;
     DataTypeDescriptor    optionalParentDescriptor;
@@ -5320,7 +5323,7 @@ dataTypeCast() throws StandardException :
     // This lookahead is required because the names of the built-in
     // datatypes are not reserved words
     LOOKAHEAD( { commonDatatypeName(true) } )
-    typeDescriptor = dataTypeCommon()
+    typeDescriptor = dataTypeCommon(forSbcsData)
     {
         return typeDescriptor;
     }
@@ -5335,7 +5338,7 @@ dataTypeCast() throws StandardException :
  * <A NAME="dataTypeCommon">dataTypeCommon</A>
  */
 DataTypeDescriptor
-dataTypeCommon() throws StandardException :
+dataTypeCommon(MutableBoolean forSbcsData) throws StandardException :
 {
     DataTypeDescriptor    typeDescriptor;
     boolean checkCS = false;
@@ -5350,7 +5353,7 @@ dataTypeCommon() throws StandardException :
     ** out characterSetSpecification().
     */
     ( LOOKAHEAD({getToken(2).kind != LARGE})
-        typeDescriptor = characterStringType()
+        typeDescriptor = characterStringType(forSbcsData)
         [ <ARRAY> { isArray = true; } ]
     )
         /* [ <CHARACTER> <SET> characterSetSpecification() ] */
@@ -5399,11 +5402,12 @@ dataTypeCommon() throws StandardException :
  * <A NAME="characterStringType">characterStringType</A>
  */
 DataTypeDescriptor
-characterStringType() throws StandardException :
+characterStringType(MutableBoolean forSbcsData) throws StandardException :
 {
     int                    length = DEFAULT_STRING_COLUMN_LENGTH;
     Token                varyingToken = null;
     int type;
+    boolean sbcs = false;
 }
 {
   (
@@ -5424,8 +5428,24 @@ characterStringType() throws StandardException :
         // If the user says CHARACTER VARYING, it's really VARCHAR
         type = (varyingToken == null ? Types.CHAR : Types.VARCHAR);
     }
-  ) [ type = forBitData(type) ]
+  )
+  [ <CCSID> <ASCII> ]
 
+  [ <FOR>
+    (
+        <BIT> <DATA>
+        {
+            type = charTypeToBinaryType(type);
+        }
+    |
+        <SBCS> <DATA>
+        {
+            if (forSbcsData != null) {
+                forSbcsData.setTrue();
+            }
+        }
+    )
+  ]
     {
         checkTypeLimits(type,length);
         DataTypeDescriptor charDTD = DataTypeDescriptor.getBuiltInDataTypeDescriptor(type, length);
@@ -5460,24 +5480,17 @@ charLength() throws StandardException :
     }
 }
 
-/*
-** <A NAME="forBitData">forBitData</A>
-*/
-
-int
-forBitData(int charType) :
+int charTypeToBinaryType(int charType) :
 {
 }
 {
-    <FOR> <BIT> <DATA>
     {
         if (charType == Types.CHAR)
-            charType = Types.BINARY;
+            return Types.BINARY;
         else if (charType == Types.VARCHAR)
-            charType = Types.VARBINARY;
+            return Types.VARBINARY;
         else if (charType == Types.LONGVARCHAR)
-            charType = Types.LONGVARBINARY;
-
+            return Types.LONGVARBINARY;
         return charType;
     }
 }
@@ -5817,7 +5830,7 @@ longSubType() throws StandardException :
     int lvcType = Types.LONGVARCHAR;
 }
 {
-    <VARCHAR> [ lvcType = forBitData(lvcType) ]
+    <VARCHAR> [ <FOR> <BIT> <DATA> { lvcType = Types.LONGVARBINARY; } ]
     {
         return DataTypeDescriptor.getBuiltInDataTypeDescriptor(lvcType);
     }
@@ -12423,9 +12436,10 @@ castSpecification() throws StandardException :
     ValueNode         value;
     int                 charType;
     int                 length = -1;
+    MutableBoolean forSbcsData = new MutableBoolean(false);
 }
 {
-    <CAST> <LEFT_PAREN> value = castOperand() <AS> dts = dataTypeCast() <RIGHT_PAREN>
+    <CAST> <LEFT_PAREN> value = castOperand() <AS> dts = dataTypeCast(forSbcsData) <RIGHT_PAREN>
     {
         treeTop = (ValueNode) nodeFactory.getNode(
                                     C_NodeTypes.CAST_NODE,
@@ -12433,6 +12447,7 @@ castSpecification() throws StandardException :
                                     dts,
                                     getContextManager());
         ((CastNode) treeTop).setForExternallyGeneratedCASTnode();
+        ((CastNode) treeTop).setForSbcsData(forSbcsData.toBoolean());
 
         /* We need to generate a SQL->Java conversion tree above us if
          * the dataTypeCast is a user type.
@@ -18308,6 +18323,7 @@ nonReservedKeyword()  :
     |    tok = <AFTER>
     |    tok = <AGGREGATE>
     |    tok = <ALWAYS>
+    |    tok = <ASCII>
     |    tok = <AT> // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <ATOMIC>
     |    tok = <AUTO>
@@ -18319,6 +18335,7 @@ nonReservedKeyword()  :
     |    tok = <BZIP2>
     |    tok = <C>
     |    tok = <CALLED>
+    |    tok = <CCSID>
     |    tok = <CLASS>
     |    tok = <CLOB>
     |    tok = <COALESCE>
@@ -18492,6 +18509,7 @@ nonReservedKeyword()  :
     |   tok = <RR>
     |   tok = <RS>
     |   tok = <SAMPLE>
+    |    tok = <SBCS>
     |    tok = <SCALE>
     |    tok = <SAVEPOINT>
     |    tok = <SECONDS>
