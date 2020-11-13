@@ -71,7 +71,8 @@ public class SICompactionState {
      * @return the size of all cells in the `row` parameter.
      */
     public long mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, PurgeConfig purgeConfig) throws IOException {
-        return SICompactionStateMutate.mutate(purgeConfig, context, rawList, txns, results);
+        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig, context);
+        return impl.mutate(rawList, txns, results);
     }
 
     private void ensureTransactionCached(long timestamp,Cell element) throws IOException {

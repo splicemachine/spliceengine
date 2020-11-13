@@ -1220,8 +1220,7 @@ public class CastNode extends ValueNode
 
     public void setForSbcsData(boolean forSbcsData) {
         this.forSbcsData = forSbcsData;
-    }
-    
+
     @Override
     public boolean isKnownConstant(boolean considerParameters) { return castOperand.isKnownConstant(considerParameters); }
 
