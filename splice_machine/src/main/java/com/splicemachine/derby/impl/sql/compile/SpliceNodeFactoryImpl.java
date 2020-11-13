@@ -643,12 +643,6 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.TRUNC_NODE:
                 return C_NodeNames.TRUNC_NODE_NAME;
 
-            case C_NodeTypes.CREATE_PIN_NODE:
-                return C_NodeNames.CREATE_PIN_NODE_NAME;
-
-            case C_NodeTypes.DROP_PIN_NODE:
-                return C_NodeNames.DROP_PIN_NODE_NAME;
-
             case C_NodeTypes.ARRAY_OPERATOR_NODE:
                 return C_NodeNames.ARRAY_OPERATOR_NODE_NAME;
 
