@@ -54,6 +54,10 @@ import java.io.IOException;
 public final class GenericColumnDescriptor
 	implements ResultColumnDescriptor, Formatable
 {
+	// DO NOT CHANGE OR REMOVE THIS WITHOUT PROVIDING AN UPDATE SCRIPT
+	// it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
+	public static final long serialVersionUID = -7718734896813275598l;
+
 
 	/********************************************************
 	**

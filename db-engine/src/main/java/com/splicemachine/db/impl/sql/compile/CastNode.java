@@ -47,7 +47,6 @@ import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -59,7 +58,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class CastNode extends ValueNode
 {
     ValueNode   castOperand;
@@ -1165,11 +1163,18 @@ public class CastNode extends ValueNode
     @Override
     protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o)) {
-            CastNode other = (CastNode)o;
+            CastNode other = (CastNode) o;
             return getTypeServices().equals(other.getTypeServices())
                     && castOperand.isSemanticallyEquivalent(other.castOperand);
         }
         return false;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + getTypeServices().hashCode();
+        result = 31 * result + castOperand.hashCode();
+        return result;
     }
 
     public List<? extends QueryTreeNode> getChildren() {

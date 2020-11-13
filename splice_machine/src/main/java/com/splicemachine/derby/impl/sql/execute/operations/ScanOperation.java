@@ -44,10 +44,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 
-import java.io.Externalizable;
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
 import java.sql.Timestamp;
 import java.util.Arrays;
 
@@ -73,7 +70,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
     protected String scanQualifiersField;
     protected String tableVersion;
     protected boolean rowIdKey;
-    protected boolean pin;
     protected int splits;
     protected String delimited;
     protected String escaped;
@@ -90,20 +86,20 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         super();
     }
 
-    public ScanOperation(long conglomId,Activation activation,int resultSetNumber,
-                         GeneratedMethod startKeyGetter,int startSearchOperator,
-                         GeneratedMethod stopKeyGetter,int stopSearchOperator,
+    public ScanOperation(long conglomId, Activation activation, int resultSetNumber,
+                         GeneratedMethod startKeyGetter, int startSearchOperator,
+                         GeneratedMethod stopKeyGetter, int stopSearchOperator,
                          boolean sameStartStopPosition,
                          boolean rowIdKey,
                          String scanQualifiersField,
                          GeneratedMethod resultRowAllocator,
-                         int lockMode,boolean tableLocked,int isolationLevel,
+                         int lockMode, boolean tableLocked, int isolationLevel,
                          int colRefItem,
                          int indexColItem,
                          boolean oneRowScan,
                          double optimizerEstimatedRowCount,
-                         double optimizerEstimatedCost,String tableVersion,
-                         boolean pin, int splits, String delimited, String escaped, String lines,
+                         double optimizerEstimatedCost, String tableVersion,
+                         int splits, String delimited, String escaped, String lines,
                          String storedAs, String location, int partitionRefItem, GeneratedMethod defaultRowFunc,
                          int defaultValueMapItem, GeneratedMethod pastTxFunctor, long minRetentionPeriod
     ) throws StandardException{
@@ -114,7 +110,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         this.scanQualifiersField=scanQualifiersField;
         this.tableVersion=tableVersion;
         this.rowIdKey = rowIdKey;
-        this.pin = pin;
         this.splits = splits;
         this.delimited = delimited;
         this.escaped = escaped;

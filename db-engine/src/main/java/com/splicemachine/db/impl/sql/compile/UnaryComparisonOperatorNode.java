@@ -247,6 +247,15 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 		acb.generateNull(mb, operand.getTypeCompiler(),  operand.getTypeServices());
 	}
 
+	@Override
+	public int getMatchingExprIndexColumnPosition(int tableNumber) {
+		if (operandMatchIndexExpr >= 0 && operandMatchIndexExpr == tableNumber) {
+			assert operandMatchIndexExprColumnPosition >= 0;
+			return operandMatchIndexExprColumnPosition;
+		}
+		return -1;
+	}
+
 	/** @see RelationalOperator#getStartOperator */
 	@Override
 	public int getStartOperator(Optimizable optTable) {

@@ -42,7 +42,6 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -85,7 +84,6 @@ import java.util.List;
 
 
 */
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SpecialFunctionNode extends ValueNode
 {
     /**
@@ -313,6 +311,10 @@ public class SpecialFunctionNode extends ValueNode
             return methodName.equals(other.methodName);
         }
         return false;
+    }
+
+    public int hashCode() {
+        return 31 * getBaseHashCode() + methodName.hashCode();
     }
 
     public List<? extends QueryTreeNode> getChildren() {

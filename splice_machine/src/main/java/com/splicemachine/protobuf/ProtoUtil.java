@@ -14,6 +14,7 @@
 
 package com.splicemachine.protobuf;
 
+import com.google.common.primitives.Booleans;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.db.catalog.IndexDescriptor;
@@ -263,6 +264,7 @@ public class ProtoUtil {
                 .setChildTable(createTable(td.getHeapConglomerateId(),td,lcc))
                 .addAllColumnIndices(Ints.asList(fKConstraintDescriptor.getReferencedColumns()))
                 .setParentTableConglomerate(fKConstraintDescriptor.getReferencedConstraint().getTableDescriptor().getHeapConglomerateId())
+                .addAllNullFlags(Booleans.asList(columnDescriptors.getNullabilityFlags()))
                 .build();
         } catch (StandardException se) {
             throw new RuntimeException(se);
@@ -465,6 +467,7 @@ public class ProtoUtil {
                                 .setBackingIndexConglomerateId(backingIndexConglomerateId)
                                 .setReferencedConglomerateNumber(baseConglomerate)
                                 .setReferencingConglomerateNumber(backingIndexConglomerateId)
+                                .setConstraintUuid(transferDerbyUUID((BasicUUID)foreignKeyConstraintDescriptor.getReferencedConstraint().getUUID()))
                 ).build();
     }
 

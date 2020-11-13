@@ -273,6 +273,14 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             }
         }
 
+        if(constraintActions != null) {
+            for (ConstantAction ca : constraintActions) {
+                if (ca instanceof CreateConstraintConstantOperation) {
+                    ((CreateConstraintConstantOperation) ca).prePrepareDataDictionaryActions(activation);
+                }
+            }
+        }
+
         /*
          * Inform the data dictionary that we are about to write to it.
          * There are several calls to data dictionary "get" methods here

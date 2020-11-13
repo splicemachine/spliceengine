@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2012 - 2020 Splice Machine, Inc.
- *
  * This file is part of Splice Machine.
  * Splice Machine is free software: you can redistribute it and/or modify it under the terms of the
  * GNU Affero General Public License as published by the Free Software Foundation, either
@@ -12,29 +11,8 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl.sql.execute.pin;
+package com.splicemachine.pipeline.constraint;
 
-import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
-
-
-
-/**
- * Created by jfilali on 1/12/17.
- * PlaceHolder for the schema information provided by Spark.
- */
-public class GetIsCachedResult extends AbstractOlapResult {
-    private Boolean isCached;
-
-    public GetIsCachedResult(Boolean isCached) {
-        this.isCached = isCached;
-    }
-
-    public  Boolean isCached(){
-        return  isCached;
-    }
-
-    @Override
-    public boolean isSuccess(){
-        return true;
-    }
+public interface NotNullConstraintViolation {
+    ConstraintContext getContext();
 }
