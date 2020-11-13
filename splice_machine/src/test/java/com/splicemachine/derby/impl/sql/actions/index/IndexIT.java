@@ -1446,10 +1446,18 @@ public class IndexIT extends SpliceUnitTest{
         }
 
         // gap from the first index column
-        query = format("select c from %s --splice-properties index=%s_IDX\n where mod(i,3) = 0", tableName, tableName);
-        expected = "C  |\n" +
+        query = format("select d from %s --splice-properties index=%s_IDX\n where mod(i,3) = 0", tableName, tableName);
+
+        String[] expectedOps = new String[] {
+                "ProjectRestrict",  // directly on top of IndexScan, no other ops in between
+                "IndexScan",
+                " = 0"              // should be on the same line as IndexScan
+        };
+        rowContainsQuery(new int[]{3,4,4}, "explain " + query, methodWatcher, expectedOps);
+
+        expected = "D  |\n" +
                 "-----\n" +
-                "abc |";
+                "0.5 |";
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -1457,19 +1465,35 @@ public class IndexIT extends SpliceUnitTest{
     }
 
     @Test
-    public void testIndexExpressionPredicateNotQualifier() throws Exception {
+    public void testIndexExpressionPredicateBetween() throws Exception {
         String tableName = "TEST_NOT_QUALIFIER_EXPR_INDEX";
-        methodWatcher.executeUpdate(format("create table %s (c char(4), i int)", tableName));
-        methodWatcher.executeUpdate(format("insert into %s values ('foo', 0), ('bar', 1)", tableName));
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2), ('ghi', 30, 3.3)", tableName));
 
-        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C))", tableName, tableName));
-        methodWatcher.executeUpdate(format("insert into %s values ('abc', 2)", tableName));
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (c, i, mod(i,2), i+2, upper(c))", tableName, tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('xyz', 40, 3.3)", tableName));
 
-        String query = format("select c from %s --splice-properties index=%s_IDX\n where upper(c) between 'AAA' and 'BAT' order by c", tableName, tableName);
+        // as a qualifier
+        String query = format("select c from %s --splice-properties index=%s_IDX\n where c = 'def' and upper(c) between 'ABC' and 'JKL '", tableName, tableName);
+
+        String[] expectedOps = new String[] {
+                "ProjectRestrict",  // directly on top of IndexScan, no other ops in between
+                "IndexScan",
+                " >= ABC",          // should be on the same line as IndexScan
+                " <= JKL"           // should be on the same line as IndexScan
+        };
+        rowContainsQuery(new int[]{3,4,4,4}, "explain " + query, methodWatcher, expectedOps);
+
         String expected = "C  |\n" +
                 "-----\n" +
-                "abc |\n" +
-                "bar |";
+                "def |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // as part of a start/stop key
+        query = format("select c from %s --splice-properties index=%s_IDX\n where c = 'def' and i = 20 and mod(i,2) = 0 and i + 3 = 23 and upper(c) between 'ABC' and 'JKL '", tableName, tableName);
 
         try (ResultSet rs = methodWatcher.executeQuery(query)) {
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
@@ -1721,7 +1745,7 @@ public class IndexIT extends SpliceUnitTest{
 
         /* check plan */
         try(ResultSet rs = methodWatcher.executeQuery("explain " + query)) {
-            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs);
+            String explainPlanText = TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs);
             Assert.assertTrue(explainPlanText.contains("IndexScan"));
             Assert.assertFalse(explainPlanText.contains("IndexLookup"));  // no base row retrieving
             Assert.assertTrue(explainPlanText.contains("OrderBy"));
@@ -1877,7 +1901,7 @@ public class IndexIT extends SpliceUnitTest{
     public void testJoinOverTwoCompoundExpressionBasedIndexes() throws Exception {
         methodWatcher.executeUpdate("CREATE TABLE PERSON_ADDRESS_1 (PID INTEGER, ADDR_ID INTEGER)");
         methodWatcher.executeUpdate("CREATE TABLE ADDRESS_1 (ADDR_ID INTEGER, STD_STATE_PROVENCE VARCHAR(30))");
-        methodWatcher.executeUpdate("CREATE INDEX pa_idx_1 ON PERSON_ADDRESS_1 (pid, max(addr_id, 300))");
+        methodWatcher.executeUpdate("CREATE INDEX pa_idx_1 ON PERSON_ADDRESS_1 (pid, pid + 3, max(addr_id, 300))");
         methodWatcher.executeUpdate("CREATE INDEX a_idx_1 ON ADDRESS_1 (lower(std_state_provence), abs(addr_id))");
         methodWatcher.executeUpdate("INSERT INTO PERSON_ADDRESS_1 VALUES (10, 100),(20, 200),(30,300),(40, 400),(50,500)");
         methodWatcher.executeUpdate("INSERT INTO ADDRESS_1 VALUES (100, 'MO'),(200, 'IA'),(300,'NY'),(400,'FL'),(500,'AL')");
@@ -1949,11 +1973,11 @@ public class IndexIT extends SpliceUnitTest{
 
         /* check plan */
         expectedOps = new String[] {
+                "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
                 "IndexLookup",                 // base row retrieving for ADDRESS_1
                 "IndexScan[PA_IDX_1",
-                "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
         };
-        rowContainsQuery(new int[]{5,6,7}, "explain " + format(query, ""), methodWatcher, expectedOps);
+        rowContainsQuery(new int[]{6,8,9}, "explain " + format(query, ""), methodWatcher, expectedOps);
 
         /* check result */
         expected = "1 | 2  |\n" +
@@ -1979,7 +2003,7 @@ public class IndexIT extends SpliceUnitTest{
                 "IndexLookup",                 // base row retrieving for PERSON_ADDRESS_1
                 "MultiProbeIndexScan[A_IDX_1", // in-list for ADDRESS_1
         };
-        rowContainsQuery(new int[]{5,6,7,8}, "explain " + format(query, ""), methodWatcher, expectedOps);
+        rowContainsQuery(new int[]{7,8,10,11}, "explain " + format(query, ""), methodWatcher, expectedOps);
 
         /* check result */
         expected = "PID | ADDR_ID | ADDR_ID |STD_STATE_PROVENCE |\n" +
@@ -2326,7 +2350,7 @@ public class IndexIT extends SpliceUnitTest{
                 "ProjectRestrict",
                 "IndexScan[TEST_SUBQ_A_IDX",
         };
-        rowContainsQuery(new int[]{5,7,8,9,10}, "explain " + query, methodWatcher, expectedOps);
+        rowContainsQuery(new int[]{5,6,7,8,9}, "explain " + query, methodWatcher, expectedOps);
 
         expected = "A2 |\n" +
                 "----\n" +
