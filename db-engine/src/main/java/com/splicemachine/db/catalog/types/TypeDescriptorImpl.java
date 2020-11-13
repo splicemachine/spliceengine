@@ -65,6 +65,8 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
     private int                        scale;
     private boolean                    isNullable;
     private int                        maximumWidth;
+
+    transient private boolean          forSbcsData;
     private TypeDescriptor[] children;
     /** @see TypeDescriptor#getCollationType() */
     private int    collationType = StringDataValue.COLLATION_TYPE_UCS_BASIC;
@@ -633,5 +635,13 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 
     public void setChildren(TypeDescriptor[] children) {
         this.children = children;
+    }
+
+    public boolean isForSbcsData() {
+        return forSbcsData;
+    }
+
+    public void setForSbcsData(boolean forSbcsData) {
+        this.forSbcsData = forSbcsData;
     }
 }

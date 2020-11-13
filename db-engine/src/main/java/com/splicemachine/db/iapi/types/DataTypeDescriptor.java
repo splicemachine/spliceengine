@@ -1781,5 +1781,13 @@ public class DataTypeDescriptor implements Formatable{
         return typeId.getStructField(columnName, getPrecision(), getScale(), childStructField);
 
     }
+
+    public boolean isForSbcsData() {
+        return typeDescriptor.isForSbcsData();
+    }
+
+    public void setForSbcsData(boolean forSbcsData) {
+        this.typeDescriptor.setForSbcsData(forSbcsData);
+    }
 }
 

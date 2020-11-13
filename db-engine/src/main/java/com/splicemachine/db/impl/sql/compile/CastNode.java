@@ -1025,8 +1025,13 @@ public class CastNode extends ValueNode
                 mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DateTimeDataValue,
                         "setStringFormat", "void", 1);
             }
-            mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DataValueDescriptor,
-                    "setValue", "void", 1);
+            if (dataTypeServices.isForSbcsData()) {
+                mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DataValueDescriptor,
+                        "setValueForSbcsData", "void", 1);
+            } else {
+                mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DataValueDescriptor,
+                        "setValue", "void", 1);
+            }
         }
         else
         {
