@@ -24,10 +24,12 @@ import java.util.concurrent.Callable;
 @CommandLine.Command(name = "txlist", description = "list SpliceMachine transactions" )
 public class TxListCommand extends CommonOptions implements Callable<Integer>
 {
+    @CommandLine.Option(names = {"-L", "--limit"}, required = false, description =
+            "maximum number of entries to print (default is 250)", defaultValue = "250") Integer limit;
     @Override
     public Integer call() throws Exception {
         HBaseInspector hbaseInspector = new HBaseInspector(Utils.constructConfig(zkq, port));
-        System.out.println(hbaseInspector.listTransactions());
+        System.out.println(hbaseInspector.getListTransactions(limit.intValue()));
         return 0;
     }
 }

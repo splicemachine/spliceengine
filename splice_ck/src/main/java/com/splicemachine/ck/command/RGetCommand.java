@@ -39,7 +39,7 @@ public class RGetCommand extends CommonOptions implements Callable<Integer>
     TableNameGroup tableNameGroup;
 
     @CommandLine.Option(names = {"-L", "--limit"}, required = false, description =
-            "maximum number of rows to print (default is 100)", defaultValue = "100") Long limit;
+            "maximum number of rows to print (default is 100)", defaultValue = "100") Integer limit;
 
     @CommandLine.Option(names = {"-V", "--versions"}, required = false, description =
             "versions to display (default 0 = all)", defaultValue = "0") Long versions;
