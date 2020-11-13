@@ -782,5 +782,15 @@ public class FunctionIT extends SpliceUnitTest {
             assertEquals(2, rs.getInt(1));
         }
     }
+
+    @Test
+    public void testCastToCharCcsidAscii() throws SQLException {
+        try (ResultSet rs = methodWatcher.executeQuery("select cast('abc' as char(5)), cast('abc' as char(5) ccsid ascii)," +
+                "cast('abc' as varchar(5)), cast('abc' as varchar(5) ccsid ascii)")) {
+            rs.next();
+            assertEquals(rs.getString(1), rs.getString(2));
+            assertEquals(rs.getString(3), rs.getString(4));
+        }
+    }
 }
 
