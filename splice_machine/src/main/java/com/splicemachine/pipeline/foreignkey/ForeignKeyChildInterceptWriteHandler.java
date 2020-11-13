@@ -159,24 +159,20 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
 
     private boolean hasData(DataResult result,SimpleTxnFilter filter) throws IOException {
         if(result!=null && !result.isEmpty()) {
-            int cellCount = result.size();
             for (DataCell dc : result) {
                 DataFilter.ReturnCode returnCode = filter.filterCell(dc);
                 switch (returnCode) {
-                    case NEXT_ROW:
-                        return false; //the entire row is filtered
-                    case SKIP:
-                    case NEXT_COL:
-                    case SEEK:
-                        cellCount--; //the cell is filtered
-                        break;
-                    case INCLUDE:
+                    case INCLUDE: // fallthrough
                     case INCLUDE_AND_NEXT_COL: //the cell is included, so we have some data
-                    default: //do nothing
+                        return true;
+                    case SKIP: // fallthrough
+                    case NEXT_COL: // fallthrough
+                    case SEEK: // fallthrough
+                    case NEXT_ROW: // fallthrough
+                    default: //do nothing, keep trying
                         break;
                 }
             }
-            if(cellCount>0) return true; // Has Data...
         }
         return false; // No data returned, fail
     }
