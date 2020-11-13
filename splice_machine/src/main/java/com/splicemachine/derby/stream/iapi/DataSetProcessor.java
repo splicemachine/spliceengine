@@ -260,4 +260,7 @@ public interface DataSetProcessor {
     <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext op) throws StandardException;
 
     boolean isSparkDB2CompatibilityMode();
+
+    void setTempTriggerConglomerate(long conglomID);
+    long getTempTriggerConglomerate();
 }

@@ -818,6 +818,8 @@ public interface SQLState {
     String AUTH_NO_PERMISSION_FOR_KILLING_OPERATION           = "4251N";
     String LANG_NO_SUCH_RUNNING_OPERATION                     = "4251P";
     String LANG_DB2_NOT_NULL_COLUMN_INVALID_DEFAULT           = "42601";
+    String LANG_UNSUPPORTED_FROM_TABLE                        = "42602";
+    String LANG_MODIFIED_FINAL_TABLE                          = "42603";
     String LANG_DB2_INVALID_HEXADECIMAL_CONSTANT              = "42606";
     String LANG_DB2_OPERATION_NOT_SUPPORTED_IN_READ_ONLY_MODE = "51045";
     String LANG_DB2_STRING_CONSTANT_TOO_LONG                  = "54002";

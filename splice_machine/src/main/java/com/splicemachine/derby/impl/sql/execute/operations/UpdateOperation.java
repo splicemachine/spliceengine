@@ -80,9 +80,10 @@ public class UpdateOperation extends DMLWriteOperation{
 
     public UpdateOperation(SpliceOperation source,GeneratedMethod generationClauses,
                            GeneratedMethod checkGM,Activation activation,double optimizerEstimatedRowCount,
-                           double optimizerEstimatedCost,String tableVersion)
+                           double optimizerEstimatedCost,String tableVersion, String fromTableDmlSpsDescriptorAsString)
             throws StandardException, IOException{
-        super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+        super(source,generationClauses,checkGM,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,
+              tableVersion, fromTableDmlSpsDescriptorAsString);
         init();
     }
 
@@ -113,7 +114,8 @@ public class UpdateOperation extends DMLWriteOperation{
                     getAfterEvent(getClass()),
                     getHeapList(),
                     getExecRowDefinition(),
-                    getTableVersion()
+                    getTableVersion(),
+                    fromTableDmlSpsDescriptor
             );
             this.triggerHandler.setIsSpark(isSpark);
         }
@@ -216,8 +218,9 @@ public class UpdateOperation extends DMLWriteOperation{
             // initTriggerRowHolders can't be called in the TriggerHandler constructor
             // because it has to be called after getCurrentTransaction() elevates the
             // transaction to writable.
-            if (triggerHandler != null)
+            if (triggerHandler != null) {
                 triggerHandler.initTriggerRowHolders(isOlapServer() || SpliceClient.isClient(), txn, SpliceClient.token, 0);
+            }
 
             DataSetWriter writer=set.updateData(operationContext)
                     .execRowTypeFormatIds(execRowTypeFormatIds)

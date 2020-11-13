@@ -1424,7 +1424,18 @@ Guide.
                 <name>42601.S.372</name>
                 <text>ALTER TABLE statement cannot add an IDENTITY column to a table.</text>
             </msg>
-
+            <msg>
+                <name>42602</name>
+                <text>FROM '{0}' TABLE clause not supported for '{1}' statement.</text>
+                <arg>fromTableName</arg>
+                <arg>dmlStmtType</arg>
+            </msg>
+            <msg>
+                <name>42603</name>
+                <text>Trigger '{0}' attempted to modify a row in FINAL TABLE '{1}'; statement aborted.</text>
+                <arg>triggerName</arg>
+                <arg>tableName</arg>
+            </msg>
             <msg>
                 <name>42605</name>
                 <text>The number of arguments for function '{0}' is incorrect.</text>

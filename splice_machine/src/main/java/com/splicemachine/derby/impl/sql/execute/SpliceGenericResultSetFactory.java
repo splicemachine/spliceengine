@@ -21,6 +21,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.sql.execute.ResultSetFactory;
@@ -884,6 +885,36 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                           int vtiResultDescriptionNumber,
                                           String explainPlan,
                                           boolean quotedEmptyIsNull) throws StandardException {
+        return getVTIResultSet(activation,
+                               row, resultSetNumber,
+                               constructor, javaClassName,
+                               pushedQualifiersField, erdNumber,
+                               ctcNumber, isTarget,
+                               scanIsolationLevel, optimizerEstimatedRowCount,
+                               optimizerEstimatedCost, isDerbyStyleTableFunction,
+                               returnTypeNumber, vtiProjectionNumber,
+                               vtiRestrictionNumber,
+                               vtiResultDescriptionNumber,
+                               explainPlan,
+                               quotedEmptyIsNull,
+                               (String) null);
+
+    }
+
+    @Override
+    public NoPutResultSet getVTIResultSet(Activation activation,
+                                          GeneratedMethod row, int resultSetNumber,
+                                          GeneratedMethod constructor, String javaClassName,
+                                          String pushedQualifiersField, int erdNumber,
+                                          int ctcNumber, boolean isTarget,
+                                          int scanIsolationLevel, double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost, boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber, int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
+                                          String explainPlan,
+                                          boolean quotedEmptyIsNull,
+                                          String fromTableDmlSpsAsString) throws StandardException {
 
         VTIOperation op =  new VTIOperation(activation, row, resultSetNumber,
                 constructor,
@@ -900,7 +931,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 vtiProjectionNumber,
                 vtiRestrictionNumber,
                 vtiResultDescriptionNumber,
-                quotedEmptyIsNull);
+                quotedEmptyIsNull,
+                fromTableDmlSpsAsString);
         op.setExplainPlan(explainPlan);
         return op;
     }
@@ -970,6 +1002,52 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int vtiResultDescriptionNumber,
             String explainPlan,
             boolean quotedEmptyIsNull)
+                          throws StandardException {
+        return getVTIResultSet(
+                    activation,
+                    row,
+                    resultSetNumber,
+                    constructor,
+                    javaClassName,
+                    pushedQualifiersField,
+                    erdNumber,
+                    ctcNumber,
+                    isTarget,
+                    scanIsolationLevel,
+                    optimizerEstimatedRowCount,
+                    optimizerEstimatedCost,
+                    isDerbyStyleTableFunction,
+                    returnTypeNumber,
+                    vtiProjectionNumber,
+                    vtiRestrictionNumber,
+                    vtiResultDescriptionNumber,
+                    explainPlan,
+                    quotedEmptyIsNull,
+                    (String) null);
+    }
+
+    @Override
+    public NoPutResultSet getVTIResultSet(
+            Activation activation,
+            GeneratedMethod row,
+            int resultSetNumber,
+            GeneratedMethod constructor,
+            String javaClassName,
+            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            int erdNumber,
+            int ctcNumber,
+            boolean isTarget,
+            int scanIsolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            boolean isDerbyStyleTableFunction,
+            int returnTypeNumber,
+            int vtiProjectionNumber,
+            int vtiRestrictionNumber,
+            int vtiResultDescriptionNumber,
+            String explainPlan,
+            boolean quotedEmptyIsNull,
+            String fromTableDmlSpsAsString)
             throws StandardException {
         
         return getVTIResultSet(
@@ -991,7 +1069,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                 vtiRestrictionNumber,
                 vtiResultDescriptionNumber,
                 explainPlan,
-                quotedEmptyIsNull
+                quotedEmptyIsNull,
+                fromTableDmlSpsAsString
         );
     }
 
@@ -1974,7 +2053,8 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              boolean outputKeysOnly,
                                              boolean skipSampling,
                                              double sampleFraction,
-                                             String indexName)
+                                             String indexName,
+                                             String fromTableDmlSpsDescriptorAsString)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
@@ -1982,7 +2062,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     statusDirectory, failBadRecordCount, skipConflictDetection, skipWAL,
                     optimizerEstimatedRowCount,optimizerEstimatedCost, tableVersion,
                     delimited,escaped,lines,storedAs,location, compression, partitionBy,bulkImportDirectory,
-            samplingOnly, outputKeysOnly, skipSampling, sampleFraction, indexName);
+            samplingOnly, outputKeysOnly, skipSampling, sampleFraction, indexName, fromTableDmlSpsDescriptorAsString);
 
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
@@ -2000,10 +2080,14 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              double optimizerEstimatedRowCount,
                                              double optimizerEstimatedCost,
                                              String tableVersion,
-                                             String explainPlan) throws StandardException {
+                                             String explainPlan,
+                                             String fromTableDmlSpsDescriptorAsString) throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
-            SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM, source.getActivation(),optimizerEstimatedCost,optimizerEstimatedRowCount,tableVersion);
+            SpliceOperation top = new UpdateOperation(below.getOperation(), generationClauses, checkGM,
+                                                      source.getActivation(),optimizerEstimatedCost,
+                                                      optimizerEstimatedRowCount,tableVersion,
+                                                      fromTableDmlSpsDescriptorAsString);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);
@@ -2026,13 +2110,14 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                              String tableVersion,
                                              String explainPlan,
                                              String bulkDeleteDirectory,
-                                             int colMapRefItem)
+                                             int colMapRefItem,
+                                             String fromTableDmlSpsDescriptorAsString)
             throws StandardException {
         try{
             ConvertedResultSet below = (ConvertedResultSet)source;
             SpliceOperation top =
                     new DeleteOperation(below.getOperation(), source.getActivation(), optimizerEstimatedRowCount,
-                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem);
+                            optimizerEstimatedCost, tableVersion, bulkDeleteDirectory, colMapRefItem, fromTableDmlSpsDescriptorAsString);
             source.getActivation().getLanguageConnectionContext().getAuthorizer().authorize(source.getActivation(), 1);
             top.markAsTopResultSet();
             top.setExplainPlan(explainPlan);

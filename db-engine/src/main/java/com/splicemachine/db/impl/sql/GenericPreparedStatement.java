@@ -297,7 +297,7 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
      * @param activation            the activation to run.
      * @return the result set to be pawed through
      */
-    private ResultSet executeStmt(Activation activation, boolean rollbackParentContext, long timeoutMillis) throws StandardException {
+    public ResultSet executeStmt(Activation activation, boolean rollbackParentContext, long timeoutMillis) throws StandardException {
         boolean needToClearSavePoint = false;
 
         if (activation == null || activation.getPreparedStatement() != this) {
