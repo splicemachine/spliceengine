@@ -16,9 +16,9 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
-import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.GroupByList;
+import com.splicemachine.db.impl.sql.compile.OrderedColumn;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,9 +53,17 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         double outputRows = 1;
         List<Long> cardinalityList = new ArrayList<>();
 
+        // cost of evaluating all expressions in grouping list
+        double exprEvalCostPerRow = 0.0;
+
+        /* Base cost row count doesn't reflects how many distinct values the intermediate result has.
+         * Maybe some group columns has been filtered to a narrow range or even single value, but
+         * we still get cardinality from statistics. This could be improved.
+         */
         for(OrderedColumn oc:groupingList) {
             long returnedRows = oc.nonZeroCardinality((long) baseCost.rowCount());
             cardinalityList.add(returnedRows);
+            exprEvalCostPerRow += oc.getColumnExpression().getBaseOperationCost();
         }
         Collections.sort(cardinalityList);
 
@@ -80,7 +88,7 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
             remoteCostPerRow = 0d;
             heapPerRow = 0d;
         }else{
-            localCostPerRow=baseCost.localCost()/baseCost.rowCount();
+            localCostPerRow=baseCost.localCost()/baseCost.rowCount() + exprEvalCostPerRow;
             remoteCostPerRow=baseCost.remoteCost()/baseCost.rowCount();
             heapPerRow=baseCost.getEstimatedHeapSize()/baseCost.rowCount();
         }
@@ -100,6 +108,10 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         return newEstimate;
     }
 
+    /* Usually, exponential backoff is applied on selectivity of predicates. But here, it is applied
+     * on cardinality. It feels contradicts with the idea to apply exponential backoff because the
+     * more predicates we have, the smaller final output will be. It feels buggy.
+     */
     private long computeCardinality(List<Long> cardinalityList) {
         long cardinality = 1;
         for (int i = 0; i < cardinalityList.size(); ++i) {

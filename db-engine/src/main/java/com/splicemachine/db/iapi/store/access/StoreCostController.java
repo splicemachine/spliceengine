@@ -98,6 +98,9 @@ public interface StoreCostController extends RowCountable{
      * getScanCost()
      * <p/>
      *
+     *
+     * @param forExprIndex If we are fetching from an expression-based
+     *                     index or not.
      * @param validColumns A description of which columns to return from
      *                     row on the page into "templateRow."  templateRow,
      *                     and validColumns work together to
@@ -120,9 +123,10 @@ public interface StoreCostController extends RowCountable{
      * @throws StandardException Standard exception policy.
      * @see RowUtil
      */
-    void getFetchFromFullKeyCost(BitSet validColumns,
+    void getFetchFromFullKeyCost(boolean forExprIndex,
+                                 BitSet validColumns,
                                  int access_type,
-                                 CostEstimate cost) throws StandardException;
+                                 CostEstimate cost);
 
     /**
      * Return an "empty" row location object of the correct type.
@@ -131,7 +135,7 @@ public interface StoreCostController extends RowCountable{
      * @return The empty Rowlocation.
      * @throws StandardException Standard exception policy.
      */
-    RowLocation newRowLocationTemplate() throws StandardException;
+    RowLocation newRowLocationTemplate();
 
     /**
      * Get the selectivity fraction for the specified range and the specified column.
@@ -141,6 +145,8 @@ public interface StoreCostController extends RowCountable{
      * <p/>
      * If no statistics exist, then this should be 1.0d
      *
+     *
+     * @param fromExprIndex if the column is an expression-based index column
      * @param columnNumber the id of the column to perform estimate for (indexed from 1)
      * @param start        the value for the start of the range, or {@code null} if no stop is estimated
      * @param includeStart whether to include the start value in the estimate
@@ -149,7 +155,8 @@ public interface StoreCostController extends RowCountable{
      * @param useExtrapolation whether to do extrapolation if the range falls beyond the min-max range recorded in stats
      * @return an estimate of the selectivity fraction
      */
-    double getSelectivity(int columnNumber,
+    double getSelectivity(boolean fromExprIndex,
+                          int columnNumber,
                           DataValueDescriptor start,
                           boolean includeStart,
                           DataValueDescriptor stop,
@@ -163,26 +170,31 @@ public interface StoreCostController extends RowCountable{
 
     /**
      * @return the total number of non-null rows in the store for the specified column
+     * @param fromExprIndex if the column is an expression-based index column
      * @param columnNumber the column of interest (indexed from 1);
      */
-    double nonNullCount(int columnNumber);
+    double nonNullCount(boolean fromExprIndex, int columnNumber);
 
     /**
      * Get the selectivity fraction for {@code null} entries for the specified column.
      *
+     *
+     * @param fromExprIndex if the column is an expression-based index column
      * @param columnNumber the id of the column to estimate (indexed from 1)
      * @return an estimate of the percentage of rows in the data set which are null.
      */
-    double nullSelectivity(int columnNumber);
+    double nullSelectivity(boolean fromExprIndex, int columnNumber);
 
     /**
      *
      * Retrieve the cardinality for the specified column.  If not available, returns 0.
      *
+     *
+     * @param fromExprIndex if the column is an expression-based index column
      * @param columnNumber the id of the column to estimate (indexed from 1)
      * @return an estimate of the number of distinct entries (cardinality).
      */
-    long cardinality(int columnNumber);
+    long cardinality(boolean fromExprIndex, int columnNumber);
 
     /**
      *
@@ -263,23 +275,25 @@ public interface StoreCostController extends RowCountable{
      * Column Size factor for the base table regardless of conglomerate being evaluated.  This represents the ratio
      * of the data being returned.
      *
-     * @param validColumns
+     * @param numValidColumns
      * @return
      */
-    double baseTableColumnSizeFactor(BitSet validColumns);
+    double baseTableColumnSizeFactor(int numValidColumns);
 
     /**
      * @return the total number of rows in the base conglomerate (including null and non-null)
      */
     double baseRowCount();
 
-    DataValueDescriptor minValue(int columnNumber);
+    DataValueDescriptor minValue(boolean fromExprIndex, int columnNumber);
 
-    DataValueDescriptor maxValue(int columnNumber) ;
+    DataValueDescriptor maxValue(boolean fromExprIndex, int columnNumber);
 
-    double getSelectivityExcludingValueIfSkewed(int columnNumber, DataValueDescriptor value);
+    double getSelectivityExcludingValueIfSkewed(boolean fromIndexExpr, int columnNumber, DataValueDescriptor value);
 
     boolean useRealTableStatistics();
 
-    boolean useRealColumnStatistics(int columnId);
+    boolean useRealExpressionBasedIndexStatistics();
+
+    boolean useRealColumnStatistics(boolean fromExprIndex, int columnId);
 }

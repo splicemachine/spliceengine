@@ -799,4 +799,18 @@ public class ConditionalNode extends ValueNode
 
         return true;
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double cost = 0.0;
+        if (testCondition != null) {
+            cost += testCondition.getBaseOperationCost();
+        }
+        if (thenElseList != null) {
+            for (Object e : thenElseList) {
+                cost += ((ValueNode) e).getBaseOperationCost();
+            }
+        }
+        return cost;
+    }
 }
