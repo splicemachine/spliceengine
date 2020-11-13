@@ -254,15 +254,15 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
 
 	/** @see IndexDescriptor#isAscending */
 	public boolean isAscending(Integer keyColumnPosition) {
-		int i = keyColumnPosition.intValue() - 1;
+		int i = keyColumnPosition - 1;
 		if (i < 0 || i >= baseColumnPositions.length)
 			return false;
 		return isAscending[i];
     }
 
 	/** @see IndexDescriptor#isDescending */
-	public boolean			isDescending(Integer keyColumnPosition) {
-		int i = keyColumnPosition.intValue() - 1;
+	public boolean isDescending(Integer keyColumnPosition) {
+		int i = keyColumnPosition - 1;
 		if (i < 0 || i >= baseColumnPositions.length)
 			return false;
 		return ! isAscending[i];
@@ -533,6 +533,16 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable {
     /** @see IndexDescriptor#getExprTexts */
     @Override
     public String[] getExprTexts() { return exprTexts; }
+
+    /** @see IndexDescriptor#getExprTexts */
+    @Override
+    public String getExprText(Integer keyColumnPosition) {
+        int i = keyColumnPosition - 1;
+        if (i < 0 || i >= exprTexts.length) {
+            return null;
+        }
+        return exprTexts[i];
+    }
 
     /** @see IndexDescriptor#getExprBytecode */
     @Override
