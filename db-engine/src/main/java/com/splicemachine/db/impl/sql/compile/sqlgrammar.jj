@@ -1672,6 +1672,14 @@ public class SQLParser
             getToken(1).kind == SPLICEDASHPROPERTIES;
     }
 
+    private boolean tableFollows(int startToken)
+    {
+        if (getToken(startToken).kind == TABLE)
+            return true;
+
+        return false;
+    }
+
     /**
      * Determine whether the next sequence of tokens can be the beginning
      * of a newInvocation(). A newInvocation() begins with the word "new"
@@ -11540,6 +11548,7 @@ FromTable tableFactor() throws StandardException :
         return fromTable;
     }
 |
+    LOOKAHEAD( { tableFollows(2) } )
     fromTableType = fromTableType() <TABLE> <LEFT_PAREN> statement = preparableDMLDataStatement() <RIGHT_PAREN>
     [ optionalTableClauses = optionalTableProperties() ]  {
         boolean isOld = fromTableType.kind == OLD;
