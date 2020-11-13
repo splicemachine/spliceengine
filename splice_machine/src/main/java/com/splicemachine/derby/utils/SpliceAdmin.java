@@ -2356,8 +2356,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
             colStringBuilder.append(createConstraint(td, schemaName, tableName, separateFK));
 
             String DDL = "CREATE " + tableTypeString + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
-            StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
-            sb.append(DDL);
             String extStr = extTblString.toString();
             if (extStr.length() > 0)
                 DDL += extStr;
