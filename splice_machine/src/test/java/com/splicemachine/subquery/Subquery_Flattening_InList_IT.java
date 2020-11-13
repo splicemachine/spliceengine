@@ -153,7 +153,7 @@ public class Subquery_Flattening_InList_IT extends SpliceUnitTest {
     @Test
     public void testMultiColumnLikeNotFlattenOrNodeCorrelated() throws Exception {
         assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                "select * from C as O where 1+1=1 or (name, surname) in (select * from C as I where length(I.surname) = length(O.surname))", ONE_SUBQUERY_NODE, "" +
+                "select * from C as O where 1+1=1 or (name, surname) in (select * from C as I --splice-properties joinStrategy=nestedloop\n where length(I.surname) = length(O.surname))", ONE_SUBQUERY_NODE, "" +
                         "NAME  | SURNAME |\n" +
                         "------------------\n" +
                         "Eddard |  Stark  |\n" +

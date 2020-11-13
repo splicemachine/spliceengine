@@ -46,9 +46,19 @@ public class BroadcastJoinSelectivityIT extends BaseJoinSelectivityIT {
     public void innerJoin() throws Exception {
         try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
             rowContainsQuery(s,
-                    new int[]{3},
+                    new int[]{1,3},
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk, ts_5_npk --splice-properties joinStrategy=BROADCAST\n where ts_10_npk.c1 = ts_5_npk.c1",
-                    "BroadcastJoin");
+                    "rows=10", "BroadcastJoin");
+        }
+
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(s,
+                    new int[]{1,3},
+                    "explain select upper(ts_10_npk.c2), upper(ts_5_npk.c2) from --splice-properties joinOrder=fixed\n " +
+                            "ts_10_npk --splice-properties index=ts_10_npk_expr_idx\n, " +
+                            "ts_5_npk --splice-properties index=ts_5_npk_expr_idx, joinStrategy=BROADCAST\n " +
+                            "where upper(ts_10_npk.c2) = upper(ts_5_npk.c2)",
+                    "rows=10", "BroadcastJoin");
         }
     }
 
@@ -56,19 +66,42 @@ public class BroadcastJoinSelectivityIT extends BaseJoinSelectivityIT {
     public void leftOuterJoin() throws Exception {
         try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
             rowContainsQuery(s,
-                    new int[]{3},
+                    new int[]{1,3},
                     "explain select * from --splice-properties joinOrder=fixed\n ts_10_npk left outer join ts_5_npk --splice-properties joinStrategy=BROADCAST\n on ts_10_npk.c1 = ts_5_npk.c1",
-                    "BroadcastLeftOuterJoin");
+                    "rows=10", "BroadcastLeftOuterJoin");
+        }
+
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(s,
+                    new int[]{1,3},
+                    "explain select upper(ts_10_npk.c2), upper(ts_5_npk.c2) from --splice-properties joinOrder=fixed\n " +
+                            "ts_10_npk --splice-properties index=ts_10_npk_expr_idx\n" +
+                            "left outer join " +
+                            "ts_5_npk --splice-properties index=ts_5_npk_expr_idx, joinStrategy=BROADCAST\n " +
+                            "on upper(ts_10_npk.c2) = upper(ts_5_npk.c2)",
+                    "rows=10", "BroadcastLeftOuterJoin");
         }
     }
 
+    // TODO: Join selectivity estimation always use right side of a binary predicate as if it refers to the inner table.
+    // This is not true in many cases and affects join selectivity of asymmetric join types.
     @Test
     public void rightOuterJoin() throws Exception {
         try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
             rowContainsQuery(s,
-                    new int[]{4},
+                    new int[]{1,4},
                     "explain select * from ts_10_npk --splice-properties joinStrategy=BROADCAST\n right outer join ts_5_npk on ts_10_npk.c1 = ts_5_npk.c1",
-                    "BroadcastLeftOuterJoin");
+                    "rows=10", "BroadcastLeftOuterJoin");
+        }
+
+        try(Statement s = methodWatcher.getOrCreateConnection().createStatement()){
+            rowContainsQuery(s,
+                    new int[]{1,4},
+                    "explain select upper(ts_10_npk.c2), upper(ts_5_npk.c2) from ts_10_npk --splice-properties index=ts_10_npk_expr_idx, joinStrategy=BROADCAST\n " +
+                            "right outer join " +
+                            "ts_5_npk --splice-properties index=ts_5_npk_expr_idx\n " +
+                            "on upper(ts_10_npk.c2) = upper(ts_5_npk.c2)",
+                    "rows=10", "BroadcastLeftOuterJoin");
         }
     }
 

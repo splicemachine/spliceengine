@@ -46,12 +46,12 @@ public class RangeSelectivity extends AbstractSelectivityHolder {
     public DataValueDescriptor stop;
     public boolean includeStop;
     public StoreCostController storeCost;
-    private double selectivityFactor;
-    private boolean useExtrapolation;
+    private final double selectivityFactor;
+    private final boolean useExtrapolation;
 
     public RangeSelectivity(StoreCostController storeCost,DataValueDescriptor start, DataValueDescriptor stop,boolean includeStart, boolean includeStop,
-                            int colNum, QualifierPhase phase, double selectivityFactor, boolean useExtrapolation){
-        super(colNum,phase);
+                            boolean fromExprIndex, int colNum, QualifierPhase phase, double selectivityFactor, boolean useExtrapolation){
+        super(fromExprIndex, colNum, phase);
         this.start = start;
         this.stop = stop;
         this.includeStart = includeStart;
@@ -63,7 +63,7 @@ public class RangeSelectivity extends AbstractSelectivityHolder {
 
     public double getSelectivity()  throws StandardException {
         if (selectivity==-1.0d) {
-            selectivity = storeCost.getSelectivity(colNum, start, includeStart, stop, includeStop, useExtrapolation);
+            selectivity = storeCost.getSelectivity(useExprIndexStats, colNum, start, includeStart, stop, includeStop, useExtrapolation);
             if (selectivityFactor > 0)
                 selectivity *= selectivityFactor;
         }
