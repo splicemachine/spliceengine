@@ -1219,7 +1219,7 @@ public class CastNode extends ValueNode
 
     @Override
     public DataValueDescriptor getKnownConstantValue() {
-        return castOperand.getKnownConstantValue();
+        return castOperand.getKnownConstantValue();  
     }
 
     @Override
