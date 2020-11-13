@@ -25,18 +25,17 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
@@ -49,7 +48,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ArrayConstantNode extends ValueNode {
     ValueNodeList    argumentsList; //this is the list of arguments to the function. We are interested in the first not-null argument
 
@@ -310,7 +308,8 @@ public class ArrayConstantNode extends ValueNode {
         }
 
         ArrayConstantNode other = (ArrayConstantNode)o;
-        return argumentsList.isEquivalent(other.argumentsList);
+        return (argumentsList == null && other.argumentsList == null) ||
+                (argumentsList != null && argumentsList.isEquivalent(other.argumentsList));
     }
 
     /**
@@ -323,7 +322,13 @@ public class ArrayConstantNode extends ValueNode {
         }
 
         ArrayConstantNode other = (ArrayConstantNode)o;
-        return argumentsList.isSemanticallyEquivalent(other.argumentsList);
+        return (argumentsList == null && other.argumentsList == null) ||
+                (argumentsList != null && argumentsList.isSemanticallyEquivalent(other.argumentsList));
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * getBaseHashCode() + (argumentsList == null ? 0 : argumentsList.hashCode());
     }
 
     /**
