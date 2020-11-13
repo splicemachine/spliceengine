@@ -800,12 +800,16 @@ public class FunctionIT extends SpliceUnitTest {
         methodWatcher.executeUpdate("create table sbcs(a varchar(30) for bit data, b char(30) for bit data)");
         methodWatcher.executeUpdate("insert into sbcs values (cast('a' as varchar(30) for bit data), cast('b' as char(30) for bit data))");
         methodWatcher.executeUpdate("insert into sbcs values (case when 1 = 2 then 'dummy' end, case when 1 = 2 then 'dummy' end)");
-        try (ResultSet rs = methodWatcher.executeQuery("select cast(a as varchar(30)), cast(a as varchar(30) for sbcs data)," +
-                                                            "cast(b as char(30)), cast(b as char(30) for sbcs data) from sbcs order by a")) {
+        String sql = "select cast(a as varchar(30)), cast(a as varchar(30) for sbcs data)," +
+                "cast(b as char(30)), cast(b as char(30) for sbcs data) from sbcs --splice-properties useSpark=%s\n order by a";
             String expected = "1  |  2  |               3               |  4  |\n" +
-                    "--------------------------------------------------\n" +
-                    " 61  |  a  |622020202020202020202020202020 |  b  |\n" +
-                    "NULL |NULL |             NULL              |NULL |";
+                "--------------------------------------------------\n" +
+                " 61  |  a  |622020202020202020202020202020 |  b  |\n" +
+                "NULL |NULL |             NULL              |NULL |";
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, false))) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, true))) {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
