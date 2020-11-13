@@ -573,7 +573,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                                     baseColumnPositions,
                                     indexColumnTypes,
                                     isAscending,
-                                    baseColumnPositions.length,excludeNulls,excludeDefaults,
+                                    isAscending.length,excludeNulls,excludeDefaults,
                                     exprTexts,
                                     exprBytecode,
                                     generatedClassNames);
@@ -742,7 +742,7 @@ public class CreateIndexConstantOperation extends IndexConstantOperation impleme
                     baseColumnPositions,
                     indexColumnTypes,
                     isAscending,
-                    baseColumnPositions.length,
+                    isAscending.length,
                     excludeNulls,
                     excludeDefaults,
                     exprTexts,

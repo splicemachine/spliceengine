@@ -570,6 +570,10 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     @Override
     public String[] getExprTexts() { return id.getExprTexts(); }
 
+	/** @see IndexDescriptor#getExprTexts */
+	@Override
+	public String getExprText(Integer keyColumnPosition) { return id.getExprText(keyColumnPosition); }
+
     /** @see IndexDescriptor#getExprBytecode */
     @Override
     public ByteArray[] getExprBytecode() { return id.getExprBytecode(); }
