@@ -2798,6 +2798,7 @@ TOKEN [IGNORE_CASE] :
 |    <ARRAY: "array">
 |    <AS: "as">
 |    <ASC: "asc">
+|    <ASCII: "ascii">
 |    <ASSERTION: "assertion">
 |    <AT: "at">
 |    <AUTHORIZATION: "authorization">
@@ -2812,6 +2813,7 @@ TOKEN [IGNORE_CASE] :
 |    <CASCADED: "cascaded">
 |    <CASE: "case">
 |    <CAST: "cast">
+|    <CCSID: "ccsid">
 |    <CHAR: "char">
 |    <CHARACTER: "character">
 |    <CHARACTER_LENGTH: "character_length">
@@ -5446,7 +5448,10 @@ characterStringType() throws StandardException :
         // If the user says CHARACTER VARYING, it's really VARCHAR
         type = (varyingToken == null ? Types.CHAR : Types.VARCHAR);
     }
-  ) [ type = forBitData(type) ]
+  )
+  [ <CCSID> <ASCII> ]
+
+  [ type = forBitData(type) ]
 
     {
         checkTypeLimits(type,length);
@@ -18330,6 +18335,7 @@ nonReservedKeyword()  :
     |    tok = <AFTER>
     |    tok = <AGGREGATE>
     |    tok = <ALWAYS>
+    |    tok = <ASCII>
     |    tok = <AT> // SQL92 says it is reserved, but we want it to be non-reserved.
     |    tok = <ATOMIC>
     |    tok = <AUTO>
@@ -18341,6 +18347,7 @@ nonReservedKeyword()  :
     |    tok = <BZIP2>
     |    tok = <C>
     |    tok = <CALLED>
+    |    tok = <CCSID>
     |    tok = <CLASS>
     |    tok = <CLOB>
     |    tok = <COALESCE>
