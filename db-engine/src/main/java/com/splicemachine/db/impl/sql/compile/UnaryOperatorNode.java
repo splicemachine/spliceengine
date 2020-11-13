@@ -961,4 +961,10 @@ public class UnaryOperatorNode extends OperatorNode
         this.operandMatchIndexExprColumnPosition = columnPosition;
         this.operandMatchIndexExprConglomDesc = conglomDesc;
     }
+
+    public double getBaseOperationCost() throws StandardException { return getOperandCost(); }
+
+    protected double getOperandCost() throws StandardException {
+        return operand == null ? 0.0 : operand.getBaseOperationCost();
+    }
 }

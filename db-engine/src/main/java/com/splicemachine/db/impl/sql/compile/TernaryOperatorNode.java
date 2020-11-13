@@ -1532,4 +1532,19 @@ public class TernaryOperatorNode extends OperatorNode
             return this.collectSingleExpression(exprMap);
         }
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double cost = 0.0;
+        if (receiver != null) {
+            cost += receiver.getBaseOperationCost();
+        }
+        if (leftOperand != null) {
+            cost += leftOperand.getBaseOperationCost();
+        }
+        if (rightOperand != null) {
+            cost += rightOperand.getBaseOperationCost();
+        }
+        return cost;
+    }
 }
