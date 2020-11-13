@@ -5658,24 +5658,7 @@ exactNumericType() throws StandardException :
     | <DECIMAL> | <DEC> )
     [ <LEFT_PAREN> precision = precision() [ <COMMA> scale = scale() ] <RIGHT_PAREN> ]
     {
-        if ((precision <= 0) ||
-            (precision > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
-        {
-            throw StandardException.newException(SQLState.LANG_INVALID_PRECISION,
-                typeStr, String.valueOf(precision));
-        }
-        else if ((scale < 0) ||
-                 (scale > TypeCompiler.MAX_DECIMAL_PRECISION_SCALE))
-        {
-            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_SCALE,
-                typeStr, String.valueOf(scale));
-        }
-        else if (scale > precision)
-        {
-            throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_PRECISION_SCALE,
-                String.valueOf(scale),
-                String.valueOf(precision));
-        }
+        DataTypeUtilities.isValidDecimalPrecisionAndScale(precision, scale);
         /*
         ** If we have a decimal point, need to count it
         ** towards maxwidth.  Max width needs to account
@@ -7937,7 +7920,6 @@ ValueNode
 numericValueFunction() throws StandardException :
 {
     ValueNode    value;
-    int            field;
 }
 {
     /*
@@ -7976,7 +7958,51 @@ numericValueFunction() throws StandardException :
                         C_NodeTypes.IDENTITY_VAL_NODE,
                         getContextManager());
     }
+|
+    <DECIMAL> value = decimalFunction("DECIMAL")
+    {
+        return value;
+    }
+|
+    <DEC> value = decimalFunction("DEC")
+    {
+        return value;
+    }
 }
+
+ValueNode
+decimalFunction(String functionName) throws StandardException :
+{
+    ValueNode value;
+    Integer   precision = null;
+    Integer   scale = null;
+    String    decimalCharacter = null;
+}
+{
+   <LEFT_PAREN> value = additiveExpression(null,0) [ <COMMA> precision = precision() [ <COMMA> scale = scale() [ <COMMA> decimalCharacter = string() ] ] ] <RIGHT_PAREN>
+   {
+
+        if(precision != null) {
+            DataTypeUtilities.isValidDecimalPrecision(precision);
+        }
+        if(scale != null) {
+            DataTypeUtilities.isValidDecimalScale(precision, scale);
+        }
+        if(decimalCharacter != null) {
+            DataTypeUtilities.isValidDecimalCharacter(decimalCharacter);
+        }
+        return (ValueNode)nodeFactory.getNode(
+                C_NodeTypes.DECIMAL_FUNCTION_NODE,
+                functionName,
+                value,
+                precision,
+                scale,
+                decimalCharacter,
+                getContextManager());
+   }
+}
+
+
 
 /*
  * <A NAME="coalesceFunction">coalesceFunction</A>
@@ -8677,7 +8703,9 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == TO_INSTANT ||
                 getToken(1).kind == TO_HBASE_ESCAPED ||
                 getToken(1).kind == SPLIT_PART ||
-                getToken(1).kind == GET_NEAREST_TRANSACTION ) &&
+                getToken(1).kind == GET_NEAREST_TRANSACTION ||
+                getToken(1).kind == DECIMAL ||
+                getToken(1).kind == DEC ) &&
                 getToken(2).kind == LEFT_PAREN
               )
     } )
