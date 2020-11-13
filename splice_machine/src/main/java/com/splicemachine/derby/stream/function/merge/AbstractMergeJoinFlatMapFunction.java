@@ -541,7 +541,7 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
+        super.writeExternal(out);  
         out.writeBoolean(useOldMergeJoin);
     }
 
