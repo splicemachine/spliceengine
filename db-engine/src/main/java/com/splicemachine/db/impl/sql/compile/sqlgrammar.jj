@@ -2960,8 +2960,9 @@ TOKEN [IGNORE_CASE] :
 |    <REVOKE: "revoke">
 |    <RIGHT: "right">
 |    <ROLLBACK: "rollback">
-|   <RANGE: "range">
+|    <RANGE: "range">
 |    <ROWS: "rows">
+|    <SBCS: "sbcs">
 |    <SCHEMA: "schema">
 |    <SCROLL: "scroll">
 |    <SECOND: "second">
@@ -5406,6 +5407,7 @@ characterStringType() throws StandardException :
     int                    length = DEFAULT_STRING_COLUMN_LENGTH;
     Token                varyingToken = null;
     int type;
+    boolean sbcs = false;
 }
 {
   (
@@ -5429,11 +5431,23 @@ characterStringType() throws StandardException :
   )
   [ <CCSID> <ASCII> ]
 
-  [ type = forBitData(type) ]
-
+  [ <FOR>
+    (
+        <BIT> <DATA>
+        {
+            type = charTypeToBinaryType(type);
+        }
+    |
+        <SBCS> <DATA>
+        {
+            sbcs = true;
+        }
+    )
+  ]
     {
         checkTypeLimits(type,length);
         DataTypeDescriptor charDTD = DataTypeDescriptor.getBuiltInDataTypeDescriptor(type, length);
+        charDTD.setForSbcsData(sbcs);
         return charDTD;
     }
 }
@@ -5465,24 +5479,17 @@ charLength() throws StandardException :
     }
 }
 
-/*
-** <A NAME="forBitData">forBitData</A>
-*/
-
-int
-forBitData(int charType) :
+int charTypeToBinaryType(int charType) :
 {
 }
 {
-    <FOR> <BIT> <DATA>
     {
         if (charType == Types.CHAR)
-            charType = Types.BINARY;
+            return Types.BINARY;
         else if (charType == Types.VARCHAR)
-            charType = Types.VARBINARY;
+            return Types.VARBINARY;
         else if (charType == Types.LONGVARCHAR)
-            charType = Types.LONGVARBINARY;
-
+            return Types.LONGVARBINARY;
         return charType;
     }
 }
@@ -5822,7 +5829,7 @@ longSubType() throws StandardException :
     int lvcType = Types.LONGVARCHAR;
 }
 {
-    <VARCHAR> [ lvcType = forBitData(lvcType) ]
+    <VARCHAR> [ <FOR> <BIT> <DATA> { lvcType = Types.LONGVARBINARY; } ]
     {
         return DataTypeDescriptor.getBuiltInDataTypeDescriptor(lvcType);
     }
@@ -18499,6 +18506,7 @@ nonReservedKeyword()  :
     |   tok = <RR>
     |   tok = <RS>
     |   tok = <SAMPLE>
+    |    tok = <SBCS>
     |    tok = <SCALE>
     |    tok = <SAVEPOINT>
     |    tok = <SECONDS>
