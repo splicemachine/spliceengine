@@ -782,5 +782,36 @@ public class FunctionIT extends SpliceUnitTest {
             assertEquals(2, rs.getInt(1));
         }
     }
+
+    @Test
+    public void testCastToCharCcsidAscii() throws SQLException {
+        try (ResultSet rs = methodWatcher.executeQuery("select cast('abc' as char(5)), cast('abc' as char(5) ccsid ascii)," +
+                "cast('abc' as varchar(5)), cast('abc' as varchar(5) ccsid ascii)")) {
+            rs.next();
+            assertEquals(rs.getString(1), rs.getString(2));
+            assertEquals(rs.getString(3), rs.getString(4));
+        }
+    }
+
+    @Test
+    public void testCastToCharForSbcsData() throws Exception
+    {
+        methodWatcher.executeUpdate("drop table sbcs if exists");
+        methodWatcher.executeUpdate("create table sbcs(a varchar(30) for bit data, b char(30) for bit data)");
+        methodWatcher.executeUpdate("insert into sbcs values (cast('a' as varchar(30) for bit data), cast('b' as char(30) for bit data))");
+        methodWatcher.executeUpdate("insert into sbcs values (null, null)");
+        String sql = "select cast(a as varchar(30)), cast(a as varchar(30) for sbcs data)," +
+                "cast(b as char(30)), cast(b as char(30) for sbcs data) from sbcs --splice-properties useSpark=%s\n order by a";
+            String expected = "1  |  2  |               3               |  4  |\n" +
+                "--------------------------------------------------\n" +
+                " 61  |  a  |622020202020202020202020202020 |  b  |\n" +
+                "NULL |NULL |             NULL              |NULL |";
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, false))) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+        try (ResultSet rs = methodWatcher.executeQuery(format(sql, true))) {
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
 }
 
