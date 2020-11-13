@@ -31,16 +31,16 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Collections;
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * A BaseColumnNode represents a column in a base table.  The parser generates a
@@ -52,7 +52,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class BaseColumnNode extends ValueNode
 {
     private String    columnName;
@@ -191,6 +190,10 @@ public class BaseColumnNode extends ValueNode
             && other.columnName.equals(columnName);
         }
         return false;
+    }
+
+    public int hashCode() {
+        return Objects.hash(getBaseHashCode(), tableName, columnName);
     }
 
     public List<? extends QueryTreeNode> getChildren() {

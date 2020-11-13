@@ -31,8 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Iterator;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;

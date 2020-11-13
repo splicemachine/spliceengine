@@ -32,16 +32,16 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
-import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 {
@@ -227,5 +227,31 @@ abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 
 		return leftType.getNullabilityType(
 					leftType.isNullable() || rightType.isNullable());
+	}
+
+	@Override
+	public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+		if (childRCL == null) {
+			return this;
+		}
+		if (leftOperand != null) {
+			leftOperand = leftOperand.replaceIndexExpression(childRCL);
+		}
+		if (rightOperand != null) {
+			rightOperand = rightOperand.replaceIndexExpression(childRCL);
+		}
+		return this;
+	}
+
+	@Override
+	public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+		boolean result = true;
+		if (leftOperand != null) {
+			result = leftOperand.collectExpressions(exprMap);
+		}
+		if (rightOperand != null) {
+			result = result && rightOperand.collectExpressions(exprMap);
+		}
+		return result;
 	}
 }
