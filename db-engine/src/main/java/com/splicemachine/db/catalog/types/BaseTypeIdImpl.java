@@ -209,6 +209,9 @@ public class BaseTypeIdImpl implements Formatable
               retval += "(" + impl.getTypeName() + ")";
 //              retval += "(" +  impl!=null && impl.getChildren() != null?impl.getChildren()[0].getTypeName():""+ ")";
               break;
+
+            default:
+                break;
         }
 
         return retval;
@@ -496,11 +499,7 @@ public class BaseTypeIdImpl implements Formatable
               break;
 
           default:
-                if (SanityManager.DEBUG)
-                {
-                    SanityManager.THROWASSERT("Unexpected formatId " + getTypeFormatId());
-                }
-                break;
+              throw new RuntimeException("Unexpected formatId " + getTypeFormatId());
         }
     }
 
