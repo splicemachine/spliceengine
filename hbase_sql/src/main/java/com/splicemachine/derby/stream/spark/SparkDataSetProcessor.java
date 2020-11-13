@@ -1018,4 +1018,17 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
             return false;
         return broadcastedActivation.isDB2VarcharCompatibilityMode();
     }
+
+    @Override
+    public void setTempTriggerConglomerate(long conglomID) {
+        if (broadcastedActivation != null)
+            broadcastedActivation.setTempTriggerConglomerate(conglomID);
+    }
+
+    @Override
+    public long getTempTriggerConglomerate() {
+        if (broadcastedActivation == null)
+            return 0;
+        return broadcastedActivation.getTempTriggerConglomerate();
+    }
 }

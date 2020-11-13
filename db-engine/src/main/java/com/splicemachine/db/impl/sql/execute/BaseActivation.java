@@ -393,7 +393,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
      */
     public void reset() throws StandardException
     {
-        if (resultSet != null)
+        if (resultSet != null && !resultSet.isClosed())
             resultSet.close();
 
         updateHeapCC = null;

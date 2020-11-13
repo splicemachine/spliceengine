@@ -612,7 +612,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 			// we hang on to theResults and messenger
 			// in case more calls come in on this resultSet
 
-			lcc.logEndFetching((uuid == null ? "" : uuid.toString()), getSQLText(), NumberofFetchedRows);
+			if (lcc != null)
+			    lcc.logEndFetching((uuid == null ? "" : uuid.toString()), getSQLText(), NumberofFetchedRows);
 		}
 
 	}

@@ -40,8 +40,10 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
+import com.splicemachine.db.iapi.sql.execute.TemporaryRowHolder;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -72,6 +74,7 @@ public class TriggerEventActivator {
     private boolean triggerExecutionContextPushed;
     private boolean executionStmtValidatorPushed;
     private boolean fromSparkExecution;
+    private SPSDescriptor fromTableDmlSpsDescriptor;
 
     // getLcc() may return a different LanguageConnectionContext at the time
     // we pop the triggerExecutionContext and executionStmtValidator, versus
@@ -101,11 +104,12 @@ public class TriggerEventActivator {
     public TriggerEventActivator(UUID tableId,
                                  TriggerInfo triggerInfo,
                                  Activation activation,
-                                 Vector<AutoincrementCounter> aiCounters, 
-                                 ExecutorService executorService, 
+                                 Vector<AutoincrementCounter> aiCounters,
+                                 ExecutorService executorService,
                                  Function<Function<LanguageConnectionContext,Void>, Callable> withContext,
                                  FormatableBitSet heapList,
-                                 boolean fromSparkExecution) throws StandardException {
+                                 boolean fromSparkExecution,
+                                 SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException {
         if (triggerInfo == null) {
             return;
         }
@@ -114,6 +118,7 @@ public class TriggerEventActivator {
         this.activation = activation;
         this.tableId = tableId;
         this.triggerInfo = triggerInfo;
+        this.fromTableDmlSpsDescriptor = fromTableDmlSpsDescriptor;
 
         StatementContext context = getLcc().getStatementContext();
         if (context != null) {
@@ -127,7 +132,6 @@ public class TriggerEventActivator {
         setupExecutors(triggerInfo);
         this.executorService = executorService;
         this.withContext = withContext;
-
     }
 
     private void pushExecutionStmtValidator() throws StandardException {
@@ -173,8 +177,13 @@ public class TriggerEventActivator {
     }
 
     private void popTriggerExecutionContext() throws StandardException {
-        if(triggerExecutionContextPushed)
+        if(triggerExecutionContextPushed && !tec.hasSpecialFromTableTrigger())
         {
+            if (tec.hasTriggeringResultSet()) {
+                TemporaryRowHolder rowHolder = tec.getTemporaryRowHolder();
+                if (rowHolder != null)
+                    rowHolder.close();
+            }
             tecLCC1.popTriggerExecutionContext(tec);
             if (tecLCC2 != null)
                 tecLCC2.popTriggerExecutionContext(tec);
@@ -188,7 +197,7 @@ public class TriggerEventActivator {
         GenericExecutionFactory executionFactory = (GenericExecutionFactory) getLcc().getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
         connectionContext, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
-                tableId, tableName, aiCounters, heapList, fromSparkExecution);
+                tableId, tableName, aiCounters, heapList, fromSparkExecution, fromTableDmlSpsDescriptor);
     }
 
     /**
@@ -350,7 +359,7 @@ public class TriggerEventActivator {
                         lccPushed = pushLanguageConnectionContextToCM(lcc, cm);
                         TriggerExecutionContext tec = executionFactory.getTriggerExecutionContext(connectionContext,
                                 statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
-                                tableId, tableName, null, heapList, fromSparkExecution);
+                                tableId, tableName, null, heapList, fromSparkExecution, fromTableDmlSpsDescriptor);
                         RowTriggerExecutor triggerExecutor = new RowTriggerExecutor(tec, td, activation, lcc);
 
                         try {
