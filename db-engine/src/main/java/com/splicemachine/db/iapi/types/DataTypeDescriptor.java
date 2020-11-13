@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.spark.sql.types.StructField;
 
 import java.io.IOException;
@@ -67,7 +68,12 @@ import static com.splicemachine.db.iapi.types.TypeId.DECFLOAT_PRECISION;
  * <p/>
  * A DataTypeDescriptor is immutable.
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
 public class DataTypeDescriptor implements Formatable{
+    // DO NOT CHANGE OR REMOVE THIS WITHOUT PROVIDING AN UPDATE SCRIPT
+    // it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
+    public static final long serialVersionUID = 804804029538241393l;
+
     /********************************************************
      **
      **    This class implements Formatable. That means that it
