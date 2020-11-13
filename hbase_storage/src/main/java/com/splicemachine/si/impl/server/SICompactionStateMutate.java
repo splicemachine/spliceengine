@@ -38,7 +38,6 @@ class SICompactionStateMutate {
     }
 
     private static final Logger LOG = Logger.getLogger(SICompactionStateMutate.class);
-    private SortedSet<Cell> dataToReturn = new TreeSet<>(new CellComparatorWithValueLength());
     private final PurgeConfig purgeConfig;
     private Cell maxTombstone = null;
     private Cell lastSeenAntiTombstone = null;
@@ -71,28 +70,19 @@ class SICompactionStateMutate {
         return true;
     }
 
-    private void handleSanityChecks(List<Cell> results,
-                                    List<Cell> rawList,
+    private void handleSanityChecks(List<Cell> rawList,
                                     List<TxnView> txns) {
-        final boolean dataToReturnIsEmpty = dataToReturn.isEmpty();
-        final boolean resultsIsEmpty = results.isEmpty();
         final boolean maxTombstoneIsNull = maxTombstone == null;
         final boolean rawListAndTxnListSameSize = rawList.size() == txns.size();
         final boolean debugSortCheck = !LOG.isDebugEnabled() || isSorted(rawList);
 
         if (!debugSortCheck)
             setBypassPurgeWithWarning("CompactionStateMutate: rawList is not sorted.");
-        if (!dataToReturnIsEmpty)
-            setBypassPurgeWithWarning("dataToReturn is not properly initialized.");
-        if (!resultsIsEmpty)
-            setBypassPurgeWithWarning("results list not properly initialized.");
         if (!maxTombstoneIsNull)
             setBypassPurgeWithWarning("maxTombstone not properly initialized to null.");
         if (!rawListAndTxnListSameSize)
             setBypassPurgeWithWarning("rawList and txn list not the same length.");
 
-        assert dataToReturnIsEmpty;
-        assert resultsIsEmpty;
         assert maxTombstoneIsNull;
         assert debugSortCheck : "CompactionStateMutate: rawList not sorted";
         assert rawListAndTxnListSameSize;
@@ -107,14 +97,17 @@ class SICompactionStateMutate {
      * @return the size of all cells in the `rawList` parameter.
      */
     public long mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results) throws IOException {
-        handleSanityChecks(results, rawList, txns);
+        results.clear();
+        handleSanityChecks(rawList, txns);
         long totalSize = 0;
         try {
             Iterator<TxnView> it = txns.iterator();
+
+            SortedSet<Cell> dataToReturn = new TreeSet<>(new CellComparatorWithValueLength());
             for (Cell cell : rawList) {
                 totalSize += KeyValueUtil.length(cell);
                 TxnView txn = it.next();
-                mutate(cell, txn);
+                mutate(cell, txn, dataToReturn);
             }
             Stream<Cell> stream = dataToReturn.stream();
             if (shouldPurgeDeletes())
@@ -135,10 +128,15 @@ class SICompactionStateMutate {
         }
     }
 
+    static public long mutate(SICompactionStateMutate impl,
+                              List<Cell> rawList, List<TxnView> txns, List<Cell> results) throws IOException {
+        return impl.mutate(rawList, txns, results);
+    }
+
     /**
      * Apply SI mutation logic to an individual key-value.
      */
-    private void mutate(Cell element, TxnView txn) throws IOException {
+    private void mutate(Cell element, TxnView txn, SortedSet<Cell> dataToReturn) throws IOException {
         final CellType cellType = CellUtils.getKeyValueType(element);
         if (element.getTypeByte() != KeyValue.Type.Put.getCode()) {
             // Rolled back data, remove it
@@ -152,7 +150,7 @@ class SICompactionStateMutate {
             if (!timeStampInElement)
                 setBypassPurgeWithWarning("Element does not contain a timestamp: " + element);
             assert txnIsNull;
-            assert timeStampInElement: "Element does not contain a timestamp: " + element;
+            assert timeStampInElement : "Element does not contain a timestamp: " + element;
             dataToReturn.add(element);
             return;
         }
@@ -181,8 +179,15 @@ class SICompactionStateMutate {
          * commit timestamp can be placed on it.
          */
         long commitTimestamp = txn.getEffectiveCommitTimestamp();
-        long beginTimestamp = element.getTimestamp();
         dataToReturn.add(newTransactionTimeStampKeyValue(element, Bytes.toBytes(commitTimestamp)));
+        processElement(element, commitTimestamp);
+        dataToReturn.add(element);
+    }
+
+    private void processElement(Cell element, long commitTimestamp) {
+        long beginTimestamp = element.getTimestamp();
+        final CellType cellType = CellUtils.getKeyValueType(element);
+
         switch (cellType) {
             case TOMBSTONE:
                 boolean maxTombstoneIsNullOrValid = maxTombstone == null || maxTombstone.getTimestamp() >= beginTimestamp;
@@ -267,7 +272,6 @@ class SICompactionStateMutate {
             default:
                 break;
         }
-        dataToReturn.add(element);
     }
 
     private boolean shouldPurgeDeletes() {

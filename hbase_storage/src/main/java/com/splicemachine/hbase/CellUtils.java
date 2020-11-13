@@ -204,4 +204,16 @@ public class CellUtils {
         return CellType.OTHER;
     }
 
+    public static String getUserDataHex(Cell cell)
+    {
+        assert CellUtils.getKeyValueType(cell) == CellType.USER_DATA;
+        return com.splicemachine.primitives.Bytes.toStringBinary(cell.getValueArray());
+    }
+
+    public static long getCommitTimestamp(Cell cell)
+    {
+        assert CellUtils.getKeyValueType(cell) == CellType.COMMIT_TIMESTAMP;
+        return com.splicemachine.primitives.Bytes.toLong(cell.getValueArray(),
+                cell.getValueOffset(),cell.getValueLength());
+    }
 }
