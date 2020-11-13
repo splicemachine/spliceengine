@@ -65,6 +65,7 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
     private int                        scale;
     private boolean                    isNullable;
     private int                        maximumWidth;
+
     private TypeDescriptor[] children;
     /** @see TypeDescriptor#getCollationType() */
     private int    collationType = StringDataValue.COLLATION_TYPE_UCS_BASIC;
@@ -644,4 +645,5 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
     public void setChildren(TypeDescriptor[] children) {
         this.children = children;
     }
+
 }
