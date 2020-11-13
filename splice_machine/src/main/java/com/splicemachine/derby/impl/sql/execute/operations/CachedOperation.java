@@ -174,10 +174,14 @@ public class CachedOperation extends SpliceBaseOperation {
             aRow = source.getNextRowCore();
             if (aRow != null) {
                 toClone = new FormatableBitSet(aRow.nColumns() + 1);
-                toClone.set(1);
+                for (int i = 1; i <= aRow.nColumns(); i++) {
+                    toClone.set(i);
+                }
             }
             while (aRow != null) {
-                cacheSize += aRow.getColumn(1).getLength();
+                for (int i = 1; i <= aRow.nColumns(); i++) {
+                    cacheSize += aRow.getColumn(i).getLength();
+                }
                 if (cacheSize > maxMemoryPerTable ||
                         rows.size() > Optimizer.MAX_DYNAMIC_MATERIALIZED_ROWS) {
                     rows.clear();

@@ -17,6 +17,7 @@ package com.splicemachine.pipeline.mem;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
 import com.splicemachine.pipeline.constraint.UniqueConstraintViolation;
+import com.splicemachine.pipeline.constraint.NotNullConstraintViolation;
 
 import java.io.IOException;
 
@@ -95,7 +96,7 @@ public class ConstraintViolation extends IOException{
         }
     }
 
-    public static class NotNullViolation extends ConstraintViolation{
+    public static class NotNullViolation extends ConstraintViolation implements NotNullConstraintViolation{
         public NotNullViolation(){ }
 
         public NotNullViolation(String message){

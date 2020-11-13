@@ -947,6 +947,13 @@ Guide.
                 <arg>tableName</arg>
             </msg>
 
+            <msg>
+                <name>23514</name>
+                <text>foreign key {0} caused an attempt to set some not-nullable columns in table {1} to null. The statement has been rolled back.</text>
+                <arg>constraintName</arg>
+                <arg>tableName</arg>
+            </msg>
+
         </family>
 
 
@@ -1695,6 +1702,13 @@ Guide.
             <msg>
                 <name>42995</name>
                 <text>The requested function does not apply to temporary tables.</text>
+            </msg>
+
+            <msg>
+                <name>429BX</name>
+                <text>Invalid index expression: '{0}'. An index expression must contain at least one column reference and not any subqueries, aggregate functions, window functions, nondeterminstic functions, user-defined functions, sequence references, parameters, or disallowed functions. Also, it must return a scalar value which can be indexed.
+                </text>
+                <arg>value</arg>
             </msg>
 
             <msg>
@@ -2969,6 +2983,12 @@ Guide.
             <msg>
                 <name>42Z50</name>
                 <text>INTERNAL ERROR: Unable to generate code for {0}.</text>
+                <arg>value</arg>
+            </msg>
+
+            <msg>
+                <name>42Z51</name>
+                <text>INTERNAL ERROR: Unable to load generate code for {0}.</text>
                 <arg>value</arg>
             </msg>
 

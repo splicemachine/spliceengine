@@ -1079,7 +1079,7 @@ public class StaticMethodCallNode extends MethodCallNode {
 
         LocalField functionEntrySQLAllowed = null;
 
-        if (routineInfo != null) {
+        if (routineInfo != null && acb instanceof ActivationClassBuilder) {
 
             short sqlAllowed = routineInfo.getSQLAllowed();
 
@@ -1342,7 +1342,7 @@ public class StaticMethodCallNode extends MethodCallNode {
         }
 
 
-        if (routineInfo != null) {
+        if (routineInfo != null && acb instanceof ActivationClassBuilder) {
 
             // reset the SQL allowed setting that we set upon
             // entry to the method.

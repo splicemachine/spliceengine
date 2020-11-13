@@ -350,6 +350,20 @@ public class ColumnReference extends ValueNode {
     }
 
     /**
+     * Decrease source level by one if table number matches any of the
+     * input table numbers.
+     * @param tableNumbers   The input table numbers to match.
+     */
+    public void decreaseSourceLevel(int[] tableNumbers) {
+        for(int tn : tableNumbers){
+            if(tableNumber == tn){
+                setSourceLevel(getSourceLevel()-1);
+                break;
+            }
+        }
+    }
+
+    /**
      * Mark this node as being generated to replace an aggregate.
      * (Useful for replacing aggregates in the HAVING clause with
      * column references to the matching aggregate in the
@@ -1111,18 +1125,25 @@ public class ColumnReference extends ValueNode {
 
         if (SanityManager.DEBUG)
         {
-            if (sourceResultSetNumber < 0)
+            if (!(acb instanceof ExecutableIndexExpressionClassBuilder) && sourceResultSetNumber < 0)
             {
                 SanityManager.THROWASSERT("sourceResultSetNumber expected to be >= 0 for " + getTableName() + "." + getColumnName());
             }
         }
 
-        /* The ColumnReference is from an immediately underlying ResultSet.
+        /*
+         * For select statements:
+         * The ColumnReference is from an immediately underlying ResultSet.
          * The Row for that ResultSet is Activation.row[sourceResultSetNumber],
          * where sourceResultSetNumber is the resultSetNumber for that ResultSet.
          *
          * The generated java is the expression:
          *    (<interface>) this.row[sourceResultSetNumber].getColumn(#columnId);
+         *
+         * For expression-based index creation:
+         * The ColumnReference refers to a column in the input base table ExecRow.
+         * The generated java expression is:
+         *    (<interface>) baseRow.getColumn(#columnId);
          *
          * where <interface> is the appropriate Datatype protocol interface
          * for the type of the column.
@@ -1307,6 +1328,26 @@ public class ColumnReference extends ValueNode {
             // are equivalent.
             if (columnName.length() == 0)
                 return this.getSource().isEquivalent(other.getSource());
+            else
+                return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        ColumnReference other = (ColumnReference)o;
+        if (tableNumber != other.tableNumber)
+            return false;
+        if (columnName.equals(other.getColumnName())) {
+            // A ColumnReference with zero-length column name may be an expression.
+            // Compare the source trees in this case to see if they really
+            // are equivalent.
+            if (columnName.length() == 0)
+                return this.getSource().isSemanticallyEquivalent(other.getSource());
             else
                 return true;
         }

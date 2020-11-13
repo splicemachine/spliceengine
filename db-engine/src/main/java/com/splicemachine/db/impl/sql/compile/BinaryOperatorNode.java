@@ -48,9 +48,6 @@ import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * A BinaryOperatorNode represents a built-in binary operator as defined by
@@ -92,6 +89,12 @@ public class BinaryOperatorNode extends OperatorNode
     String        rightInterfaceType;
     String        resultInterfaceType;
     int            operatorType;
+
+    // If an operand matches an index expression.
+    // -1  : no match
+    // >=0 : table number
+    protected int leftMatchIndexExpr  = -1;
+    protected int rightMatchIndexExpr = -1;
 
     // At the time of adding XML support, it was decided that
     // we should avoid creating new OperatorNodes where possible.
@@ -976,20 +979,64 @@ public class BinaryOperatorNode extends OperatorNode
         }
     }
 
-        /**
-         * @inheritDoc
-         */
-        protected boolean isEquivalent(ValueNode o) throws StandardException
+    /**
+     * @inheritDoc
+     */
+    protected boolean isEquivalent(ValueNode o) throws StandardException
+    {
+        if (!isSameNodeType(o))
         {
-            if (!isSameNodeType(o))
-            {
-                return false;
-            }
-            BinaryOperatorNode other = (BinaryOperatorNode)o;
-            return methodName.equals(other.methodName)
-                   && leftOperand.isEquivalent(other.leftOperand)
-                   && rightOperand.isEquivalent(other.rightOperand);
+            return false;
         }
+        BinaryOperatorNode other = (BinaryOperatorNode)o;
+        return methodName.equals(other.methodName)
+               && leftOperand.isEquivalent(other.leftOperand)
+               && rightOperand.isEquivalent(other.rightOperand);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        BinaryOperatorNode other = (BinaryOperatorNode)o;
+        if (methodName.equals(other.methodName)) {
+            if (isCommutative()) {
+                return (leftOperand.isSemanticallyEquivalent(other.leftOperand) &&
+                        rightOperand.isSemanticallyEquivalent(other.rightOperand)) ||
+                        (leftOperand.isSemanticallyEquivalent(other.rightOperand) &&
+                        rightOperand.isSemanticallyEquivalent(other.leftOperand));
+            } else {
+                return leftOperand.isSemanticallyEquivalent(other.leftOperand) &&
+                        rightOperand.isSemanticallyEquivalent(other.rightOperand);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if this binary operator is commutative on its operands.
+     * @return True if it is commutative, false otherwise.
+     */
+    public boolean isCommutative() {
+        // Only methodName is always set for all kinds of binary operators.
+        // Do not use operator or operatorType here.
+        switch (methodName) {
+            case "plus":
+            case "times":
+            case "equals":
+            case "notEquals":
+            case "and":
+            case "or":
+                return true;
+            default:
+                break;
+        }
+        return false;
+    }
 
     public int hashCode() {
         int hashCode = methodName.hashCode();
@@ -1057,5 +1104,13 @@ public class BinaryOperatorNode extends OperatorNode
     public boolean isRepeat () { return this.operatorType == REPEAT; }
 
     public int getOperatorType() { return operatorType; }
+
+    public void setMatchIndexExpr(int tableNumber, boolean isLeft) {
+        if (isLeft) {
+            this.leftMatchIndexExpr = tableNumber;
+        } else {
+            this.rightMatchIndexExpr = tableNumber;
+        }
+    }
 }
 

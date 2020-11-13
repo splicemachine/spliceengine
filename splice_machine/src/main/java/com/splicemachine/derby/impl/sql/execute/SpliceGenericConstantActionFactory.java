@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.impl.sql.compile.TableName;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.actions.*;
@@ -110,37 +111,41 @@ public abstract class SpliceGenericConstantActionFactory extends GenericConstant
 
 
     @Override
-    public ConstantAction getCreateIndexConstantAction(boolean      forCreateTable,
-                                                       boolean		unique,
-                                                       boolean		uniqueWithDuplicateNulls,
-                                                       String		indexType,
-                                                       String		schemaName,
-                                                       String		indexName,
-                                                       String		tableName,
-                                                       UUID			tableId,
-                                                       String[]		columnNames,
-                                                       boolean[]    isAscending,
-                                                       boolean		isConstraint,
-                                                       UUID			conglomerateUUID,
-                                                       boolean		excludeNulls,
-                                                       boolean 		excludeDefaults,
-                                                       boolean      preSplit,
-                                                       boolean      isLogicalKey,
-                                                       boolean      sampling,
-                                                       double       sampleFraction,
-                                                       String       splitKeyPath,
-                                                       String       hfilePath,
-                                                       String       columnDelimiter,
-                                                       String       characterDelimiter,
-                                                       String       timestampFormat,
-                                                       String       dateFormat,
-                                                       String       timeFormat,
-                                                       Properties	properties){
+    public ConstantAction getCreateIndexConstantAction(boolean              forCreateTable,
+                                                       boolean              unique,
+                                                       boolean              uniqueWithDuplicateNulls,
+                                                       String               indexType,
+                                                       String               schemaName,
+                                                       String               indexName,
+                                                       String               tableName,
+                                                       UUID                 tableId,
+                                                       String[]             columnNames,
+                                                       DataTypeDescriptor[] indexColumnTypes,
+                                                       boolean[]            isAscending,
+                                                       boolean              isConstraint,
+                                                       UUID                 conglomerateUUID,
+                                                       boolean              excludeNulls,
+                                                       boolean              excludeDefaults,
+                                                       boolean              preSplit,
+                                                       boolean              isLogicalKey,
+                                                       boolean              sampling,
+                                                       double               sampleFraction,
+                                                       String               splitKeyPath,
+                                                       String               hfilePath,
+                                                       String               columnDelimiter,
+                                                       String               characterDelimiter,
+                                                       String               timestampFormat,
+                                                       String               dateFormat,
+                                                       String               timeFormat,
+                                                       String[]             exprTexts,
+                                                       ByteArray[]          exprBytecode,
+                                                       String[]             generatedClassNames,
+                                                       Properties           properties){
         SpliceLogUtils.trace(LOG,"getCreateIndexConstantAction for index {%s.%s} on {%s.%s} with columnNames %s",schemaName,indexName,schemaName,tableName,Arrays.toString(columnNames));
         return new CreateIndexConstantOperation(forCreateTable,unique,uniqueWithDuplicateNulls,indexType, schemaName,
-                indexName,tableName,tableId,columnNames,isAscending,isConstraint, conglomerateUUID, excludeNulls,
+                indexName,tableName,tableId,columnNames,indexColumnTypes,isAscending,isConstraint, conglomerateUUID, excludeNulls,
                 excludeDefaults,preSplit,isLogicalKey,sampling,sampleFraction,splitKeyPath,hfilePath,columnDelimiter,characterDelimiter,
-                timestampFormat, dateFormat,timeFormat,properties);
+                timestampFormat, dateFormat,timeFormat,exprTexts,exprBytecode,generatedClassNames,properties);
     }
 
     @Override
