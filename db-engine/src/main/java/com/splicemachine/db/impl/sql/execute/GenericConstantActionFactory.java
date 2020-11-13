@@ -353,11 +353,6 @@ public abstract class GenericConstantActionFactory {
         String timeFormat
         );
 
-    public abstract    ConstantAction    getPinTableConstantAction (
-                    String            schemaName,
-                    String            tableName
-            );
-
 
     /**
      *    Make the ConstantAction for a savepoint statement (ROLLBACK savepoint, RELASE savepoint and SAVEPOINT).
@@ -571,28 +566,6 @@ public abstract class GenericConstantActionFactory {
         long                conglomerateNumber,
         UUID                tableId,
         int                    behavior
-    );
-
-    /**
-     *    Make the ConstantAction for a DROP TABLE statement.
-     *
-     *
-     *    @param    fullTableName        Fully qualified table name
-     *    @param    tableName            Table name.
-     *    @param    sd                    Schema that table lives in.
-     *  @param  conglomerateNumber    Conglomerate number for heap
-     *  @param  tableId                UUID for table
-     *  @param  behavior            drop behavior, CASCADE, RESTRICT or DEFAULT
-     *
-     */
-    public abstract ConstantAction    getDropPinConstantAction
-    (
-            String                fullTableName,
-            String                tableName,
-            SchemaDescriptor    sd,
-            long                conglomerateNumber,
-            UUID                tableId,
-            int                    behavior
     );
 
 

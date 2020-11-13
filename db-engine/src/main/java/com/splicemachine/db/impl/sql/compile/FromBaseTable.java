@@ -114,7 +114,6 @@ public class FromBaseTable extends FromTable {
 
     ConglomerateDescriptor baseConglomerateDescriptor;
     ConglomerateDescriptor[] conglomDescs;
-    private boolean pin;
     int updateOrDelete;
     boolean skipStats;
     boolean useRealTableStats;
@@ -715,15 +714,6 @@ public class FromBaseTable extends FromTable {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, key, value);
                 }
             }
-            else if (key.equals("pin")) {
-                try {
-                    pin = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
-                    dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
-                    tableProperties.setProperty("index","null");
-                } catch (Exception pinE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, key, value); // TODO Fix Error message - JL
-                }
-            }
             else if (key.equals("skipStats")) {
                 try {
                     boolean bValue = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
@@ -765,7 +755,7 @@ public class FromBaseTable extends FromTable {
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, useOLAP, pin, skipStats, splits, " +
+                        "index, constraint, joinStrategy, useSpark, useOLAP, skipStats, splits, " +
                                 "useDefaultRowcount, defaultSelectivityFactor, broadcastCrossRight," +
                                 "unboundedTimeTravel");
             }
@@ -2411,7 +2401,6 @@ public class FromBaseTable extends FromTable {
         mb.push(costEstimate.getEstimatedCost());
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
-        mb.push(pin);
         mb.push(splits);
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getDelimited());
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getEscaped());
@@ -2423,7 +2412,7 @@ public class FromBaseTable extends FromTable {
         generatePastTxFunc(acb, mb);
         mb.push(minRetentionPeriod);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,30);
+                ClassName.NoPutResultSet,29);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
@@ -2519,7 +2508,6 @@ public class FromBaseTable extends FromTable {
                 ap.getOptimizer().getMaxMemoryPerTable(),
                 multiProbing,
                 tableDescriptor.getVersion(),
-                pin,
                 splits,
                 tableDescriptor.getDelimited(),
                 tableDescriptor.getEscaped(),
