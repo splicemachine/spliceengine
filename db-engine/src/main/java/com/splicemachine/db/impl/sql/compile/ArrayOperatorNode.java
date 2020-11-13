@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.util.Collections;
@@ -50,7 +49,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ArrayOperatorNode extends ValueNode {
     public int extractField = -1;
     public ValueNode operand;
@@ -170,7 +168,11 @@ public class ArrayOperatorNode extends ValueNode {
         ArrayOperatorNode other = (ArrayOperatorNode) o;
 
         return operand.isEquivalent(other.operand);
+    }
 
+    @Override
+    public int hashCode() {
+        return 31 * getBaseHashCode() + operand.hashCode();
     }
 
     /**

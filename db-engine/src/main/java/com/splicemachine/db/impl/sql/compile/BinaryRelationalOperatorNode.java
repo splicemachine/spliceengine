@@ -505,6 +505,19 @@ public class BinaryRelationalOperatorNode
         exprOp.generateExpression(acb,mb);
     }
 
+    @Override
+    public int getMatchingExprIndexColumnPosition(int tableNumber) {
+        if (leftMatchIndexExpr >= 0 && leftMatchIndexExpr == tableNumber) {
+            assert leftMatchIndexExprColumnPosition >= 0;
+            return leftMatchIndexExprColumnPosition;
+        } else if (rightMatchIndexExpr >= 0 && rightMatchIndexExpr == tableNumber) {
+            assert rightMatchIndexExprColumnPosition >= 0;
+            return rightMatchIndexExprColumnPosition;
+        } else {
+            return -1;
+        }
+    }
+
     /**
      * @throws StandardException Thrown on error
      * @see RelationalOperator#selfComparison
@@ -1795,6 +1808,43 @@ public class BinaryRelationalOperatorNode
         return !selfComparison(cr,false) && !implicitVarcharComparison();
 
     }
+
+     @Override
+     public boolean optimizableEqualityNode(Optimizable optTable,
+                                            ValueNode indexExpr,
+                                            boolean isNullOkay) throws StandardException {
+         if (operatorType != EQUALS_RELOP)
+             return false;
+
+         /* If this rel op is for a probe predicate then we do not treat
+          * it as an equality node; it's actually a disguised IN-list node.
+          */
+         if (isInListProbeNode())
+             return false;
+
+         ValueNode expr;
+         int side = indexExprOnOneSide(optTable);
+         switch(side) {
+             case LEFT:
+                 expr = leftOperand;
+                 break;
+             case RIGHT:
+                 expr = rightOperand;
+                 break;
+             case NEITHER:
+             default:
+                 return false;
+         }
+
+         if (!indexExpr.semanticallyEquals(expr)) {
+             return false;
+         }
+
+         List<ColumnReference> crList = expr.getHashableJoinColumnReference();
+         assert crList != null && !crList.isEmpty();
+         return !selfComparison(crList.get(0),false) && !implicitVarcharComparison();
+
+     }
 
     /**
      * Return whether or not this binary relational predicate requires an implicit

@@ -247,6 +247,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
             case C_NodeTypes.COALESCE_FUNCTION_NODE:
                 return C_NodeNames.COALESCE_FUNCTION_NODE_NAME;
 
+            case C_NodeTypes.DECIMAL_FUNCTION_NODE:
+                return C_NodeNames.DECIMAL_FUNCTION_NODE_NAME;
+
             case C_NodeTypes.SCALAR_MIN_MAX_FUNCTION_NODE:
                 return C_NodeNames.SCALAR_MIN_MAX_FUNCTION_NODE_NAME;
 

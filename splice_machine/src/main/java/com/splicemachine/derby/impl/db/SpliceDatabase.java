@@ -338,7 +338,6 @@ public class SpliceDatabase extends BasicDatabase{
                         break;
                     case CHANGE_PK:
                     case ADD_CHECK:
-                    case ADD_FOREIGN_KEY:
                     case ADD_NOT_NULL:
                     case ADD_COLUMN:
                     case ADD_PRIMARY_KEY:
@@ -346,7 +345,6 @@ public class SpliceDatabase extends BasicDatabase{
                     case DROP_COLUMN:
                     case DROP_CONSTRAINT:
                     case DROP_PRIMARY_KEY:
-                    case DROP_FOREIGN_KEY:
                     case DICTIONARY_UPDATE:
                     case CREATE_TABLE:
                     case CREATE_SCHEMA:
@@ -445,6 +443,9 @@ public class SpliceDatabase extends BasicDatabase{
                     case CREATE_ALIAS:
                     case CREATE_VIEW:
                         break;
+                    case ADD_FOREIGN_KEY: // fallthrough, this is necessary since the parent of the foreign key now has one extra child!
+                    case DROP_FOREIGN_KEY:
+                        DDLUtils.preDropForeignKey(change, dataDictionary);
                     default:
                         break;
                 }

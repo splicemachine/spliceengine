@@ -156,4 +156,5 @@ public interface ClassName
 	String RowIdUtil = "com.splicemachine.db.iapi.util.RowIdUtil";
 	String TxnUtil = "com.splicemachine.db.iapi.util.TxnUtil";
 	String SPSDescriptor = "com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor";
+	String 	DecimalUtil = "com.splicemachine.db.iapi.util.DecimalUtil";
 }

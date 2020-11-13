@@ -2,7 +2,6 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.util.JBitSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,7 +11,6 @@ import java.util.List;
  * select * from t where (a,b) = (0,0)
  *
  */
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class ValueTupleNode extends ValueNode {
     private List<ValueNode> tuple = new ArrayList<>();
 
@@ -50,6 +48,14 @@ public class ValueTupleNode extends ValueNode {
             }
         }
         return true;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        for (ValueNode vn : tuple) {
+            result = 31 * result + vn.hashCode();
+        }
+        return result;
     }
 
     @Override

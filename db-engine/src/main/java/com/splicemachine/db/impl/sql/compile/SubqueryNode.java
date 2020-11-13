@@ -39,10 +39,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.Qualifier;
@@ -50,7 +47,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.OnceResultSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.util.*;
@@ -84,7 +80,6 @@ import java.util.*;
  * <UL> where x = (SELECT true FROM (SELECT MAX(x) FROM z) WHERE SQLCOL1 = y) </UL>
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class SubqueryNode extends ValueNode{
     /* Subquery types.
      * NOTE: FROM_SUBQUERY only exists for a brief second in the parser.  It
@@ -1206,13 +1201,6 @@ public class SubqueryNode extends ValueNode{
     public void generateExpression(ExpressionClassBuilder expressionBuilder,
                                    MethodBuilder mbex) throws StandardException{
 
-        generateExpressionCore(expressionBuilder, mbex);
-        generateSubqueryResultSets(expressionBuilder);
-    }
-
-    public void generateExpressionCore(ExpressionClassBuilder expressionBuilder,
-                                   MethodBuilder mbex) throws StandardException{
-
         ///////////////////////////////////////////////////////////////////////////
         //
         //    Subqueries should not appear in Filter expressions. We should get here
@@ -1231,25 +1219,38 @@ public class SubqueryNode extends ValueNode{
 
         String subqueryTypeString=
                 getTypeCompiler().interfaceName();
-        MethodBuilder mb=acb.newGeneratedFun(subqueryTypeString,Modifier.PROTECTED);
+        MethodBuilder mb1=acb.newGeneratedFun(subqueryTypeString,Modifier.PROTECTED);
 
         /* Declare the field to hold the suquery's ResultSet tree */
         LocalField rsFieldLF=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
         LocalField colVar=acb.newFieldDeclaration(Modifier.PRIVATE,subqueryTypeString);
 
+        MethodBuilder mb = createSubqueryResultSetsMb(acb);
         generateCore(acb, mb, rsFieldLF);
-        /* rs.openCore() */
+
         mb.getField(rsFieldLF);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"openCore","void",0);
+        mb.methodReturn();
+        mb.complete();
+        acb.addSubqueryResultSet(mb);
+
+        /* rsFieldLF2 = the call to the above function to build the subquery operation tree */
+        LocalField rsFieldLF2 = acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
+
+        mb1.pushThis();
+        mb1.callMethod(VMOpcode.INVOKEVIRTUAL, null, mb.getName(), ClassName.ResultSet, 0);
+        mb1.setField(rsFieldLF2);
+        /* rs.openCore() */
+        mb1.getField(rsFieldLF2);
+        mb1.callMethod(VMOpcode.INVOKEINTERFACE,null,"openCore","void",0);
 
         /* r = rs.next() */
-        mb.getField(rsFieldLF);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getNextRowCore",ClassName.ExecRow,0);
+        mb1.getField(rsFieldLF2);
+        mb1.callMethod(VMOpcode.INVOKEINTERFACE,null,"getNextRowCore",ClassName.ExecRow,0);
 
-        mb.push(1); // both the Row interface and columnId are 1-based
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"getColumn",ClassName.DataValueDescriptor,1);
-        mb.cast(subqueryTypeString);
-        mb.setField(colVar);
+        mb1.push(1); // both the Row interface and columnId are 1-based
+        mb1.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"getColumn",ClassName.DataValueDescriptor,1);
+        mb1.cast(subqueryTypeString);
+        mb1.setField(colVar);
 
         /* Only generate the close() method for materialized
          * subqueries.  All others will be closed when the
@@ -1259,13 +1260,13 @@ public class SubqueryNode extends ValueNode{
        * & Splice was having trouble closing subqueries from the top RS.
        */
         /* rs.close() */
-        mb.getField(rsFieldLF);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.ResultSet,"close","void",0);
+        mb1.getField(rsFieldLF2);
+        mb1.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.ResultSet,"close","void",0);
 
         /* return col */
-        mb.getField(colVar);
-        mb.methodReturn();
-        mb.complete();
+        mb1.getField(colVar);
+        mb1.methodReturn();
+        mb1.complete();
 
         /*
         ** If we have an expression subquery, then we
@@ -1273,51 +1274,13 @@ public class SubqueryNode extends ValueNode{
         ** column references and is invariant.
         */
         if(isMaterializable()){
-            LocalField lf=generateMaterialization(acb,mb,subqueryTypeString);
+            LocalField lf=generateMaterialization(acb,mb1,subqueryTypeString);
             mbex.getField(lf);
         }else{
             /* Generate the call to the new method */
             mbex.pushThis();
-            mbex.callMethod(VMOpcode.INVOKEVIRTUAL,null,mb.getName(),subqueryTypeString,0);
+            mbex.callMethod(VMOpcode.INVOKEVIRTUAL,null,mb1.getName(),subqueryTypeString,0);
         }
-    }
-
-    public void generateSubqueryResultSets(ExpressionClassBuilder expressionBuilder) throws StandardException {
-
-
-        ///////////////////////////////////////////////////////////////////////////
-        //
-        //    Subqueries should not appear in Filter expressions. We should get here
-        //    only if we're compiling a query. That means that our class builder
-        //    is an activation builder. If we ever allow subqueries in filters, we'll
-        //    have to revisit this code.
-        //
-        ///////////////////////////////////////////////////////////////////////////
-
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(expressionBuilder instanceof ActivationClassBuilder,
-                    "Expecting an ActivationClassBuilder");
-        }
-
-        ActivationClassBuilder acb=(ActivationClassBuilder)expressionBuilder;
-        /* Reuse generated code, where possible */
-
-        /* Declare the field to hold the suquery's ResultSet tree */
-        LocalField rsFieldLF=acb.newFieldDeclaration(Modifier.PRIVATE,ClassName.NoPutResultSet);
-
-        /* Generate a new method.  It's only used within the other
-         * exprFuns, so it could be private. but since we don't
-         * generate the right bytecodes to invoke private methods,
-         * we just make it protected.  This generated class won't
-         * have any subclasses, certainly! (nat 12/97)
-         */
-        MethodBuilder mb = createSubqueryResultSetsMb(acb);
-        generateCore(acb, mb, rsFieldLF);
-
-        mb.getField(rsFieldLF);
-        mb.methodReturn();
-        mb.complete();
-        acb.addSubqueryResultSet(mb);
     }
 
     private void generateCore(ActivationClassBuilder acb,
@@ -1714,6 +1677,10 @@ public class SubqueryNode extends ValueNode{
      */
     protected boolean isEquivalent(ValueNode o){
         return this==o;
+    }
+
+    public int hashCode() {
+        return System.identityHashCode(this);
     }
 
     /**
@@ -2894,5 +2861,11 @@ public class SubqueryNode extends ValueNode{
         } else {
             return OnceResultSet.DO_CARDINALITY_CHECK;
         }
+    }
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        resultSet.replaceIndexExpressions(childRCL);
+        return this;
     }
 }
