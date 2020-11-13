@@ -799,7 +799,7 @@ public class FunctionIT extends SpliceUnitTest {
         methodWatcher.executeUpdate("drop table sbcs if exists");
         methodWatcher.executeUpdate("create table sbcs(a varchar(30) for bit data, b char(30) for bit data)");
         methodWatcher.executeUpdate("insert into sbcs values (cast('a' as varchar(30) for bit data), cast('b' as char(30) for bit data))");
-        methodWatcher.executeUpdate("insert into sbcs values (case when 1 = 2 then 'dummy' end, case when 1 = 2 then 'dummy' end)");
+        methodWatcher.executeUpdate("insert into sbcs values (null, null)");
         String sql = "select cast(a as varchar(30)), cast(a as varchar(30) for sbcs data)," +
                 "cast(b as char(30)), cast(b as char(30) for sbcs data) from sbcs --splice-properties useSpark=%s\n order by a";
             String expected = "1  |  2  |               3               |  4  |\n" +
