@@ -97,7 +97,7 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
 
         // group by index expression
         // TableScan and IndexScan scan the same number of rows, but there is no need to evaluate upper(c2) in IndexScan
-        rowContainsQuery(new int[]{2,6}, "explain select count(*), upper(c2) from ts_low_cardinality group by upper(c2)", methodWatcher,
+        rowContainsQuery(new int[]{2,6}, "explain select count(*), upper(c2) from ts_low_cardinality --splice-properties index=ts_low_cardinality_expr_ix_1\n group by upper(c2)", methodWatcher,
                 "outputRows=5", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_1");
     }
 
@@ -111,11 +111,11 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
         secondRowContainsQuery("explain select count(*), c1,c4 from ts_low_cardinality group by c1,c4", "outputRows=2", methodWatcher);
         secondRowContainsQuery("explain select count(*), c4,c2 from ts_low_cardinality group by c4,c2", "outputRows=2", methodWatcher);
 
-        rowContainsQuery(new int[]{2,6}, "explain select count(*), mod(c1,3), upper(c2) from ts_low_cardinality group by mod(c1,3), upper(c2)", methodWatcher,
+        rowContainsQuery(new int[]{2,6}, "explain select count(*), mod(c1,3), upper(c2) from ts_low_cardinality --splice-properties index=ts_low_cardinality_expr_ix_2\n group by mod(c1,3), upper(c2)", methodWatcher,
                 "outputRows=6", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2");   // 16 rows
-        rowContainsQuery(new int[]{2,6}, "explain select count(*), mod(c1,3), timestampadd(SQL_TSI_DAY, 2, c3) from ts_low_cardinality group by mod(c1,3), timestampadd(SQL_TSI_DAY, 2, c3)", methodWatcher,
+        rowContainsQuery(new int[]{2,6}, "explain select count(*), mod(c1,3), timestampadd(SQL_TSI_DAY, 2, c3) from ts_low_cardinality --splice-properties index=ts_low_cardinality_expr_ix_2\n group by mod(c1,3), timestampadd(SQL_TSI_DAY, 2, c3)", methodWatcher,
                 "outputRows=6", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2");   // 16 rows
-        rowContainsQuery(new int[]{2,6}, "explain select count(*), upper(c2), timestampadd(SQL_TSI_DAY, 2, c3) from ts_low_cardinality group by upper(c2), timestampadd(SQL_TSI_DAY, 2, c3)", methodWatcher,
+        rowContainsQuery(new int[]{2,6}, "explain select count(*), upper(c2), timestampadd(SQL_TSI_DAY, 2, c3) from ts_low_cardinality --splice-properties index=ts_low_cardinality_expr_ix_2\n group by upper(c2), timestampadd(SQL_TSI_DAY, 2, c3)", methodWatcher,
                 "outputRows=10", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2");  // 26 rows
     }
 
@@ -129,7 +129,7 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
     public void testSelectivityEffectOnGroupBy() throws Exception {
         secondRowContainsQuery("explain select count(*), c1,c2 from ts_low_cardinality where c1 = 1 group by c1,c2", "outputRows=10", methodWatcher);
 
-        rowContainsQuery(new int[]{2,6}, "explain select count(*), mod(c1,3), upper(c2) from ts_low_cardinality where mod(c1,3) = 1 group by mod(c1,3), upper(c2)", methodWatcher,
+        rowContainsQuery(new int[]{2,6}, "explain select count(*), mod(c1,3), upper(c2) from ts_low_cardinality --splice-properties index=ts_low_cardinality_expr_ix_2\n where mod(c1,3) = 1 group by mod(c1,3), upper(c2)", methodWatcher,
                 "outputRows=6", "IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2");  // 2 rows
     }
 

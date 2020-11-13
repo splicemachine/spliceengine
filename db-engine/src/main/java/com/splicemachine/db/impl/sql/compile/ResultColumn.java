@@ -85,6 +85,7 @@ public class ResultColumn extends ValueNode
     String            tableName;
     String            sourceTableName;
     long              sourceConglomerateNumber;
+    int               sourceConglomerateColumnPosition;
     //Used by metadata api ResultSetMetaData.getSchemaName to get a column's table's schema.
     String            sourceSchemaName;
     ValueNode        expression;
@@ -449,6 +450,12 @@ public class ResultColumn extends ValueNode
 
     public void setSourceConglomerateNumber(long sourceConglomerateName) {
         this.sourceConglomerateNumber = sourceConglomerateName;
+    }
+
+    public int getSourceConglomerateColumnPosition() { return sourceConglomerateColumnPosition; }
+
+    public void setSourceConglomerateColumnPosition(int sourceConglomerateColumnPosition) {
+        this.sourceConglomerateColumnPosition = sourceConglomerateColumnPosition;
     }
 
     /**
@@ -1608,6 +1615,7 @@ public class ResultColumn extends ValueNode
         newResultColumn.setSourceTableName(getSourceTableName());
         newResultColumn.setSourceSchemaName(getSourceSchemaName());
         newResultColumn.setSourceConglomerateNumber(getSourceConglomerateNumber());
+        newResultColumn.setSourceConglomerateColumnPosition(getSourceConglomerateColumnPosition());
 
         /* Set the "is generated for unmatched column in insert" status in the new node
         This if for bug 4194*/

@@ -1664,6 +1664,7 @@ public class BinaryRelationalOperatorNode
         rc.setSourceTableName(baseColumnRef.getSourceTableName());
         rc.setSourceSchemaName(baseColumnRef.getSourceSchemaName());
         rc.setSourceConglomerateNumber(conglomDesc.getConglomerateNumber());
+        rc.setSourceConglomerateColumnPosition(indexColumnPosition + 1);
 
         return rc.getColumnReference(operand);
     }
@@ -1722,8 +1723,8 @@ public class BinaryRelationalOperatorNode
         StoreCostController innerTableCostController = innerColumn.getStoreCostController();
         StoreCostController outerTableCostController = outerColumn.getStoreCostController();
 
-        final int innerColumnPosition = innerColumn.getSource().getColumnPosition();
-        final int outerColumnPosition = outerColumn.getSource().getColumnPosition();
+        final int innerColumnPosition = innerColumn.getColumnPositionForStatistics();
+        final int outerColumnPosition = outerColumn.getColumnPositionForStatistics();
 
         DataValueDescriptor minOuterColumn = null;
         DataValueDescriptor maxOuterColumn = null;

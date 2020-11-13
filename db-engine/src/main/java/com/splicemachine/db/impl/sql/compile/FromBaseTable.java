@@ -2121,6 +2121,7 @@ public class FromBaseTable extends FromTable {
                 rc.setSourceTableName(this.getBaseTableName());
                 rc.setSourceSchemaName(this.getTableDescriptor().getSchemaName());
                 rc.setSourceConglomerateNumber(idxCD.getConglomerateNumber());
+                rc.setSourceConglomerateColumnPosition(i + 1);
                 newCols.addResultColumn(rc);
             }
         } else {

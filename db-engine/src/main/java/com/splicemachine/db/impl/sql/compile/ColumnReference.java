@@ -1467,7 +1467,7 @@ public class ColumnReference extends ValueNode {
             if (source == null || source.getTableColumnDescriptor() == null)
                 return 0;
         }
-        return getStoreCostController().cardinality(replacesIndexExpression, getSource().getColumnPosition());
+        return getStoreCostController().cardinality(replacesIndexExpression, getColumnPositionForStatistics());
     }
 
     /**
@@ -1494,7 +1494,7 @@ public class ColumnReference extends ValueNode {
                     newDefault.normalize(columnDesc.getType(), newDefault);
                     defaultValue = newDefault;
                 }
-                return getStoreCostController().getSelectivityExcludingValueIfSkewed(replacesIndexExpression, source.getColumnPosition(), defaultValue);
+                return getStoreCostController().getSelectivityExcludingValueIfSkewed(replacesIndexExpression, getColumnPositionForStatistics(), defaultValue);
             }
         }
 
@@ -1523,7 +1523,7 @@ public class ColumnReference extends ValueNode {
         // Check for not null in declaration
         if (!getSource().getType().isNullable())
             return 0.0;
-        return getStoreCostController().nullSelectivity(replacesIndexExpression, getSource().getColumnPosition());
+        return getStoreCostController().nullSelectivity(replacesIndexExpression, getColumnPositionForStatistics());
     }
 
     public StoreCostController getStoreCostController() throws StandardException{
@@ -1554,7 +1554,7 @@ public class ColumnReference extends ValueNode {
     public boolean useRealColumnStatistics() throws StandardException {
         StoreCostController scc = getStoreCostController();
         if (scc != null) {
-            return getStoreCostController().useRealColumnStatistics(replacesIndexExpression, columnNumber);
+            return getStoreCostController().useRealColumnStatistics(replacesIndexExpression, getColumnPositionForStatistics());
         }
         // There are cases in which scc is null because of no columnDescriptor. An
         // example can be this column comes from a dynamic view defined in with clause.
@@ -1593,5 +1593,10 @@ public class ColumnReference extends ValueNode {
 
     public boolean isSourceRowIdColumn() {
         return source != null && source.getExpression() instanceof CurrentRowLocationNode;
+    }
+
+    public int getColumnPositionForStatistics() {
+        return replacesIndexExpression ? getSource().getSourceConglomerateColumnPosition()
+                                       : getSource().getColumnPosition();
     }
 }
