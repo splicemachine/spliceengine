@@ -42,6 +42,9 @@ import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.Map;
+import java.util.Set;
+
 /**
  * An OrderByList is an ordered list of columns in the ORDER BY clause.
  * That is, the order of columns in this list is significant - the
@@ -615,5 +618,29 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
          * source (at least not from this OrderByList).
          */
         return false;
+    }
+
+    public void replaceIndexExpressions(ResultSetNode child) throws StandardException {
+        ResultColumnList childRCL = child.getResultColumns();
+        for (int i = 0; i < size(); i++) {
+            OrderByColumn obc = (OrderByColumn) elementAt(i);
+            obc.setColumnExpression(obc.getColumnExpression().replaceIndexExpression(childRCL));
+        }
+        // OrderByColumns have to be bound again because each OrderByColumn has a resultCol
+        // field pointing to the source ResultColumn, and its columnPosition is obtained from
+        // it. If we replace its expression, the source ResultColumn is likely to be different,
+        // too. Re-bind it so that resultCol and columnPosition can be updated properly. Code
+        // generation logic of OrderByList relies on the underlying columnPositions.
+        // GroupByColumn doesn't have this issue.
+        bindOrderByColumns(child);
+    }
+
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        for (int i = 0; i < size(); i++) {
+            OrderByColumn obc = (OrderByColumn) elementAt(i);
+            result = result && obc.getColumnExpression().collectSingleExpression(exprMap);
+        }
+        return result;
     }
 }

@@ -83,6 +83,8 @@ public interface C_NodeNames
 
     String COALESCE_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CoalesceFunctionNode";
 
+    String DECIMAL_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DecimalFunctionNode";
+
     String COLUMN_DEFINITION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode";
 
     String COLUMN_REFERENCE_NAME = "com.splicemachine.db.impl.sql.compile.ColumnReference";
