@@ -39,11 +39,13 @@ package com.splicemachine.db.impl.sql.compile;
 public abstract class AbstractSelectivityHolder implements SelectivityHolder {
     protected QualifierPhase phase;
     protected int colNum;
+    protected boolean useExprIndexStats;
     protected double selectivity = -1.0d;
 
-    public AbstractSelectivityHolder(int colNum, QualifierPhase phase) {
+    public AbstractSelectivityHolder(boolean useExprIndexStats, int colNum, QualifierPhase phase) {
         this.phase = phase;
         this.colNum = colNum;
+        this.useExprIndexStats = useExprIndexStats;
     }
     public int getColNum () {
         return colNum;

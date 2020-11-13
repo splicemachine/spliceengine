@@ -397,4 +397,9 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode impl
 	public int getOrderableVariantType(Optimizable optTable)  throws StandardException {
 		return operand.getOrderableVariantType();
 	}
+
+	@Override
+	public double getBaseOperationCost() throws StandardException {
+		return getOperandCost() + SIMPLE_OP_COST;
+	}
 }

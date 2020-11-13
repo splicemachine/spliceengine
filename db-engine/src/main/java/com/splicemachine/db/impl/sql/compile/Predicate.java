@@ -202,7 +202,16 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public int hasEqualOnColumnList(int[] baseColumnPositions,Optimizable optTable) throws StandardException{
+    public int hasEqualOnColumnList(int[] baseColumnPositions, Optimizable optTable) throws StandardException {
+        return hasEqualOnColumnOrIndexExpr(baseColumnPositions, optTable);
+    }
+
+    @Override
+    public int hasEqualOnIndexExpression(Optimizable optTable) throws StandardException {
+        return hasEqualOnColumnOrIndexExpr(null, optTable);
+    }
+
+    public int hasEqualOnColumnOrIndexExpr(int[] baseColumnPositions, Optimizable optTable) throws StandardException {
         RelationalOperator relop=getRelop();
         assert relop!=null;
 
@@ -212,18 +221,31 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         if(!(relop.getOperator()==RelationalOperator.EQUALS_RELOP))
             return -1;
 
-        for(int i=0;i<baseColumnPositions.length;i++){
-            ColumnReference cr=relop.getColumnOperand(optTable,baseColumnPositions[i]);
+        if (baseColumnPositions != null) {
+            for (int i = 0; i < baseColumnPositions.length; i++) {
+                ColumnReference cr = relop.getColumnOperand(optTable, baseColumnPositions[i]);
 
-            if(cr==null)
-                continue;
+                if (cr == null)
+                    continue;
 
-            if(relop.selfComparison(cr, false))
-                continue;
+                if (relop.selfComparison(cr, false))
+                    continue;
 
-            // If I made it thus far in the loop, we've found
-            // something.
-            return i;
+                // If I made it thus far in the loop, we've found
+                // something.
+                return i;
+            }
+        } else {
+            ValueNode indexExpr = relop.getExpressionOperand(optTable.getTableNumber(), -1, null, true);
+            if (indexExpr != null) {
+                ColumnReference cr = indexExpr.getHashableJoinColumnReference().get(0);
+                if (!relop.selfComparison(cr, true)) {
+                    int indexColumnPosition = relop.getMatchingExprIndexColumnPosition(optTable.getTableNumber());
+                    if (indexColumnPosition >= 0) {
+                        return indexColumnPosition;
+                    }
+                }
+            }
         }
 
         return -1;
@@ -577,8 +599,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 		/* if it's for "in" operator's dynamic start key, operator is GE,
 		 * beetle 3858
+		 * between operator is inclusive, also GE
 		 */
-        if(andNode.getLeftOperand() instanceof InListOperatorNode)
+        if(andNode.getLeftOperand() instanceof BinaryListOperatorNode)
             return ScanController.GE;
 
         RelationalOperator relop=getRelop();
@@ -592,8 +615,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 		 /* if it's for "in" operator's dynamic stop key, operator is GT,
 		  * beetle 3858
+		  * between operator is inclusive, also GT
 		  */
-        if(andNode.getLeftOperand() instanceof InListOperatorNode)
+        if(andNode.getLeftOperand() instanceof BinaryListOperatorNode)
             return ScanController.GT;
 
         RelationalOperator relop=getRelop();
@@ -805,8 +829,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
     /**
      * Is this predicate a join predicate?  In order to be so,
-     * it must be a binary relational operator node that has
-     * a column reference on both sides.
+     * it must be a binary relational operator node that has either
+     * a column reference or an index expression on both sides.
      *
      * @return Whether or not this is a join predicate.
      */
@@ -821,29 +845,39 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         ValueNode leftOperand=opNode.getLeftOperand();
         ValueNode rightOperand=opNode.getRightOperand();
-        boolean isColumnReferenceOnLeft=false;
-        boolean isColumnReferenceOnRight=false;
+        boolean leftUsableAsJoinColumn = false;
+        boolean rightUsableAsJoinColumn = false;
         int leftTableNumber=-1;
         int rightTableNumber=-1;
 
-        List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
-        if (columnReferences != null && columnReferences.size() == 1) {
-            isColumnReferenceOnLeft = true;
-            leftTableNumber = columnReferences.get(0).getTableNumber();
+        if (matchIndexExpression && opNode.leftMatchIndexExpr >= 0) {
+            leftUsableAsJoinColumn = true;
+            leftTableNumber = opNode.leftMatchIndexExpr;
+        } else {
+            List<ColumnReference> columnReferences = leftOperand.getHashableJoinColumnReference();
+            if (columnReferences != null && columnReferences.size() == 1) {
+                leftUsableAsJoinColumn = true;
+                leftTableNumber = columnReferences.get(0).getTableNumber();
+            }
         }
 
-        columnReferences = rightOperand.getHashableJoinColumnReference();
-        if (columnReferences != null && columnReferences.size() == 1) {
-            isColumnReferenceOnRight = true;
-            rightTableNumber = columnReferences.get(0).getTableNumber();
+        if (matchIndexExpression && opNode.rightMatchIndexExpr >= 0) {
+            rightUsableAsJoinColumn = true;
+            rightTableNumber = opNode.rightMatchIndexExpr;
+        } else {
+            List<ColumnReference> columnReferences = rightOperand.getHashableJoinColumnReference();
+            if (columnReferences != null && columnReferences.size() == 1) {
+                rightUsableAsJoinColumn = true;
+                rightTableNumber = columnReferences.get(0).getTableNumber();
+            }
         }
 
-        // If both sides are column references AND they point to different
+        // If both sides are one of column references or index expressions AND they point to different
         // tables, then this is a join pred.
         // Scoped predicates are nestedloop join predicate that are pushed down, if checkScope is true,
         // we should no longer treat them as join condition, but single table condition instead
-        return (isColumnReferenceOnLeft &&
-                isColumnReferenceOnRight &&
+        return (leftUsableAsJoinColumn &&
+                rightUsableAsJoinColumn &&
                 leftTableNumber!=rightTableNumber) &&
                 (!checkScope  || !isScopedForPush());
     }
@@ -1337,16 +1371,24 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      *
      * With DB-6231's enhancement, inlist does not need to be on the first index column anymore
      */
-    public boolean isMultiProbeQualifier(int[] keyColumns) throws StandardException{
+    public boolean isMultiProbeQualifier(ValueNode[] keyColumns) throws StandardException{
         if(keyColumns==null)
             return false; //can't be a MPQ if there are no keyed columns
         InListOperatorNode sourceInList=getSourceInList();
         if(sourceInList==null)
             return false; //not a multi-probe predicate
+        boolean found;
         for (int i = 0; i < sourceInList.leftOperandList.size(); i++) {
+            found = false;
             ValueNode lo = (ValueNode) sourceInList.leftOperandList.elementAt(i);
-            //if it doesn't refer to a column, then it can't be a qualifier
-            if (!(lo instanceof ColumnReference))
+            //if it doesn't refer to an index column, then it can't be a qualifier
+            for (ValueNode keyCol : keyColumns) {
+                if (lo.equals(keyCol)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
                 return false;
         }
 
@@ -1499,7 +1541,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return op.collectExpressions(exprMap);
     }
 
+    public boolean isBetween() {
+        return andNode.getLeftOperand() instanceof BetweenOperatorNode;
+    }
+
     public PredicateList getOriginalInListPredList() { return originalInListPredList; }
 
-    public void setOriginalInListPredList (PredicateList predList) { originalInListPredList = predList;}
+    public void setOriginalInListPredList (PredicateList predList) { originalInListPredList = predList; }
+
 }

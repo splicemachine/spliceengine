@@ -31,11 +31,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.sql.Types;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -44,6 +39,11 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+
+import java.sql.Types;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * The TruncateOperatorNode class implements the trunc[ate]( {date | time} [, string] | {decimal , integer} ) function.
@@ -186,4 +186,9 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
             this.methodName = methodName;
         }
     }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+	    return SIMPLE_OP_COST * FN_CALL_COST_FACTOR + getChildrenCost();
+	}
 }

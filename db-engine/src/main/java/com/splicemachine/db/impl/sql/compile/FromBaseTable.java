@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -443,27 +444,42 @@ public class FromBaseTable extends FromTable {
                 int[] baseColumnPositions=irg.baseColumnPositions();
                 boolean[] isAscending=irg.isAscending();
 
-                for(int i=0;i<baseColumnPositions.length;i++){
-                    if (!irg.isOnExpression()) {
+                if (irg.isOnExpression()) {
+                    if (isCoveringIndex(currentConglomerateDescriptor)) {
+                        for (int i = 0; i < isAscending.length; i++) {
+                            int rowOrderDirection = isAscending[i] ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
+                            setRowOrderingForColumn(i, rowOrderDirection, rowOrdering, predList);
+                        }
+                    }
+                    // if it's an expression-based index and not covering, nothing can be assumed
+                    // for the row ordering of base columns
+                } else {
+                    for (int i = 0; i < baseColumnPositions.length; i++) {
                         int rowOrderDirection = isAscending[i] ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
-                        int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection, getTableNumber(), baseColumnPositions[i]);
-                        if (pos == -1) {
-                            rowOrdering.nextOrderPosition(rowOrderDirection);
-                            pos = rowOrdering.addOrderedColumn(rowOrderDirection, getTableNumber(), baseColumnPositions[i]);
-                        }
-                        // check if the column has a constant predicate like "col=constant" defined on it,
-                        // if so, we can treat it as sorted as it has only one value
-                        if (pos >= 0 &&    /* a column ordering is added or exists */
-                                hasConstantPredicate(getTableNumber(), baseColumnPositions[i], predList)) {
-                            ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
-                            co.setBoundByConstant(true);
-                        }
+                        setRowOrderingForColumn(baseColumnPositions[i], rowOrderDirection, rowOrdering, predList);
                     }
                 }
             }
         }
         ap.setConglomerateDescriptor(currentConglomerateDescriptor);
         return currentConglomerateDescriptor!=null;
+    }
+
+    private void setRowOrderingForColumn(int columnPosition, int rowOrderDirection, RowOrdering rowOrdering,
+                                         OptimizablePredicateList predList) throws StandardException {
+        int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection, getTableNumber(), columnPosition);
+        if (pos == -1) {
+            rowOrdering.nextOrderPosition(rowOrderDirection);
+            pos = rowOrdering.addOrderedColumn(rowOrderDirection, getTableNumber(), columnPosition);
+        }
+        // check if the column has a constant predicate like "col=constant" defined on it,
+        // if so, we can treat it as sorted as it has only one value
+        // TODO: DB-10335, setBoundByConstant for index expressions
+        if (pos >= 0 &&    /* a column ordering is added or exists */
+                hasConstantPredicate(getTableNumber(), columnPosition, predList)) {
+            ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
+            co.setBoundByConstant(true);
+        }
     }
 
     @Override
@@ -873,22 +889,29 @@ public class FromBaseTable extends FromTable {
              * the index baseColumnPositions, and remove everything else
              */
 
-//            if (cd.isIndex() || cd.isPrimaryKey()) {
             if (cd.isIndex() || cd.isPrimaryKey()) {
-                baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
-               if (!isCoveringIndex(cd) && !cd.isPrimaryKey()) {
-                    indexLookupList = new BitSet();
-                    for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
-                        boolean found = false;
-                        for (int baseColumnPosition : baseColumnPositions) {
-                            if (i == baseColumnPosition) {
-                                found = true;
-                                break;
+                if (!isCoveringIndex(cd) && !cd.isPrimaryKey()) {
+                    if (cd.getIndexDescriptor().isOnExpression()) {
+                        // If the index is defined on expressions and is not covering, all columns
+                        // of the base table need to be looked up. Special cases like part of the
+                        // index columns are covering or some index expressions are simply column
+                        // references are not considered here.
+                        indexLookupList = scanColumnList;
+                    } else {
+                        baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+                        indexLookupList = new BitSet();
+                        for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
+                            boolean found = false;
+                            for (int baseColumnPosition : baseColumnPositions) {
+                                if (i == baseColumnPosition) {
+                                    found = true;
+                                    break;
+                                }
                             }
-                        }
-                        if (!found) {
-                            indexLookupList.set(i);
-                            scanColumnList.clear(i);
+                            if (!found) {
+                                indexLookupList.set(i);
+                                scanColumnList.clear(i);
+                            }
                         }
                     }
                 }
@@ -897,15 +920,16 @@ public class FromBaseTable extends FromTable {
             scanColumnList = new BitSet();
         }
         DataValueDescriptor[] rowTemplate=getRowTemplate(cd,getBaseCostController());
-        ScanCostFunction scf = new ScanCostFunction(scanColumnList,
-                indexLookupList,
+        ScanCostFunction scf = new ScanCostFunction(
                 this,
+                cd,
                 scc,
                 costEstimate,
-                rowTemplate,
-                baseColumnPositions,
+                resultColumns,       // not correct in case of covering index on expressions
+                rowTemplate,         // this is a correct row template for all cases
+                scanColumnList,      // meaningless in case of index on expressions
+                indexLookupList,
                 forUpdate(),
-                resultColumns,
                 usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable
@@ -1528,7 +1552,7 @@ public class FromBaseTable extends FromTable {
      * that matches the ColumnReference.
      * Returns null if there is no match.
      */
-
+    @Override
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException{
         ResultColumn resultColumn=null;
         TableName columnsTableName;
@@ -1890,6 +1914,9 @@ public class FromBaseTable extends FromTable {
                     forUpdate());
 
             if (isOnExpression) {
+                // do translation before replacing index expressions, otherwise
+                // orderUsefulPredicates() doesn't recognize generated column
+                translateBetweenOnIndexExprToGEAndLE();
                 // for expressions from outer tables, replace them later
                 replaceIndexExpressions(resultColumns);
             }
@@ -2021,6 +2048,10 @@ public class FromBaseTable extends FromTable {
         getUpdateLocks=cursorTargetTable;
         cursorTargetTable=false;
 
+        if (isOnExpression) {
+            translateBetweenOnIndexExprToGEAndLE();
+        }
+
         return retval;
     }
 
@@ -2076,6 +2107,11 @@ public class FromBaseTable extends FromTable {
                 rc.setReferenced();
                 rc.setVirtualColumnId(i + 1);  // virtual column IDs are 1-based
                 rc.setName(idxCD.getConglomerateName() + "_col" + rc.getColumnPosition());
+                // don't set isNameGenerated flag, otherwise cannot be used as an order-by column
+                rc.setSourceTableName(this.getBaseTableName());
+                rc.setSourceSchemaName(this.getTableDescriptor().getSchemaName());
+                rc.setSourceConglomerateNumber(idxCD.getConglomerateNumber());
+                rc.setSourceConglomerateColumnPosition(i + 1);
                 newCols.addResultColumn(rc);
             }
         } else {
@@ -3346,35 +3382,54 @@ public class FromBaseTable extends FromTable {
         if(!irg.isUnique())
             return false;
 
-        int[] baseColumnPositions=irg.baseColumnPositions();
+        if (irg.isOnExpression()) {
+            LanguageConnectionContext lcc = getLanguageConnectionContext();
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(lcc, this);
+            for (ValueNode exprAst : exprAsts) {
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(this, exprAst, true);
 
-        // Do we have an exact match on the full key
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
 
-        for(int curCol : baseColumnPositions){
-            // get the column number at this position
-            /* Is there a pushable equality predicate on this key column?
-             * (IS NULL is also acceptable)
-             */
-            List<Predicate> optimizableEqualityPredicateList =
-                    restrictionList.getOptimizableEqualityPredicateList(this,curCol,true);
-
-            // No equality predicate for this column, so this is not a one row result set
-            if (optimizableEqualityPredicateList == null)
-                return false;
-
-            // Look for equality predicate that is not a join predicate
-            boolean existsNonjoinPredicate = false;
-            for (Predicate predicate : optimizableEqualityPredicateList) {
-                if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
-                    existsNonjoinPredicate = true;
-                    break;
-                }
+                // Look for equality predicate that is not a join predicate
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (areAllJoinPredicates(optimizableEqualityPredicateList))
+                    return false;
             }
-            // If all equality predicates are join predicates, then this is NOT a one row result set
-            if (!existsNonjoinPredicate)
-                return false;
-        }
+        } else {
+            int[] baseColumnPositions = irg.baseColumnPositions();
 
+            // Do we have an exact match on the full key
+
+            for (int curCol : baseColumnPositions) {
+                // get the column number at this position
+                /* Is there a pushable equality predicate on this key column?
+                 * (IS NULL is also acceptable)
+                 */
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(this, curCol, true);
+
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
+
+                // Look for equality predicate that is not a join predicate
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (areAllJoinPredicates(optimizableEqualityPredicateList))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean areAllJoinPredicates(List<Predicate> predList) {
+        for (Predicate predicate : predList) {
+            if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -3732,5 +3787,71 @@ public class FromBaseTable extends FromTable {
         if (requalificationRestrictionList != null) {
             requalificationRestrictionList.replaceIndexExpression(childRCL);
         }
+    }
+
+    private void translateBetweenOnIndexExprToGEAndLE() throws StandardException {
+        if (storeRestrictionList != null) {
+            storeRestrictionList = translateBetweenHelper(storeRestrictionList);
+        }
+        if (nonStoreRestrictionList != null) {
+            nonStoreRestrictionList = translateBetweenHelper(nonStoreRestrictionList);
+        }
+        if (requalificationRestrictionList != null) {
+            requalificationRestrictionList = translateBetweenHelper(requalificationRestrictionList);
+        }
+    }
+
+    private PredicateList translateBetweenHelper(PredicateList predList) throws StandardException {
+        PredicateList newList = (PredicateList)getNodeFactory().getNode(
+                C_NodeTypes.PREDICATE_LIST,
+                getContextManager());
+
+        for (int i = 0; i < predList.size(); i++) {
+            Predicate pred = predList.elementAt(i);
+            if (pred.isBetween()) {
+                BetweenOperatorNode bon = (BetweenOperatorNode) pred.getAndNode().getLeftOperand();
+                AndNode newAnd = bon.translateToGEAndLE();
+
+                Predicate le = (Predicate)getNodeFactory().getNode(
+                        C_NodeTypes.PREDICATE,
+                        newAnd.getRightOperand(),
+                        pred.getReferencedSet(),
+                        getContextManager());
+                le.copyFields(pred);
+                le.clearScanFlags();
+                if (pred.isStopKey()) {
+                    le.markStopKey();
+                }
+                if (pred.isQualifier()) {
+                    le.markQualifier();
+                }
+                newList.addOptPredicate(le);
+
+                BooleanConstantNode trueNode = (BooleanConstantNode)getNodeFactory().getNode(
+                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                        Boolean.TRUE,
+                        getContextManager());
+                newAnd.setRightOperand(trueNode);
+
+                Predicate ge = (Predicate)getNodeFactory().getNode(
+                        C_NodeTypes.PREDICATE,
+                        newAnd,
+                        pred.getReferencedSet(),
+                        getContextManager());
+                ge.copyFields(pred);
+                ge.clearScanFlags();
+                if (pred.isStartKey()) {
+                    ge.markStartKey();
+                }
+                if (pred.isQualifier()) {
+                    ge.markQualifier();
+                }
+                newList.addOptPredicate(ge);
+            } else {
+                newList.addOptPredicate(pred);
+            }
+        }
+        newList.classify(this, getTrulyTheBestAccessPath().getConglomerateDescriptor(), true);
+        return newList;
     }
 }

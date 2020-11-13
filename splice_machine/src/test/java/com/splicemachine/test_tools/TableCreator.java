@@ -14,13 +14,15 @@
 
 package com.splicemachine.test_tools;
 
-import splice.com.google.common.collect.Lists;
 import org.apache.commons.dbutils.DbUtils;
+import org.apache.commons.lang.StringUtils;
+import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.List;
 
 import static splice.com.google.common.base.Preconditions.checkState;
@@ -129,7 +131,10 @@ public class TableCreator {
 
     private void createIndexes() throws SQLException {
         for (String indexSql : indexSqlList) {
-            String INDEX_SQL = tableName == null ? indexSql : String.format(indexSql, tableName);
+            int numFormatSpec = StringUtils.countMatches(indexSql, "%s");
+            String[] args = new String[numFormatSpec];
+            Arrays.fill(args, tableName);
+            String INDEX_SQL = tableName == null ? indexSql : String.format(indexSql, (Object[]) args);
             Statement statement = connection.createStatement();
             statement.setQueryTimeout(queryTimeout);
             try {

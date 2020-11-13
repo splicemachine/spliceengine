@@ -31,26 +31,27 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.catalog.IndexDescriptor;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.ClassName;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.Orderable;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.util.JBitSet;
+ import com.splicemachine.db.catalog.IndexDescriptor;
+ import com.splicemachine.db.iapi.error.StandardException;
+ import com.splicemachine.db.iapi.reference.ClassName;
+ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
+ import com.splicemachine.db.iapi.services.sanity.SanityManager;
+ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+ import com.splicemachine.db.iapi.sql.compile.Optimizable;
+ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+ import com.splicemachine.db.iapi.store.access.ScanController;
+ import com.splicemachine.db.iapi.store.access.StoreCostController;
+ import com.splicemachine.db.iapi.types.DataValueDescriptor;
+ import com.splicemachine.db.iapi.types.Orderable;
+ import com.splicemachine.db.iapi.types.TypeId;
+ import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.sql.Types;
-import java.util.HashSet;
-import java.util.List;
+ import java.sql.Types;
+ import java.util.HashSet;
+ import java.util.List;
 
-import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
+ import static com.splicemachine.db.impl.sql.compile.SelectivityUtil.*;
 
  /**
  * This class represents the 6 binary operators: LessThan, LessThanEquals,
@@ -1099,27 +1100,14 @@ public class BinaryRelationalOperatorNode
         }
     }
 
-    public static boolean isKnownConstant(ValueNode node, boolean considerParameters) {
-        if (node instanceof CastNode)
-            node = ((CastNode) node).castOperand;
-
-        if(considerParameters){
-            return (node instanceof ConstantNode) ||
-                    ((node.requiresTypeFromContext()) &&
-                            (((ParameterNode)node).getDefaultValue()!=null));
-        }else{
-            return node instanceof ConstantNode;
-        }
-    }
-
     @Override
     public boolean compareWithKnownConstant(Optimizable optTable,boolean considerParameters){
         ValueNode node;
         if (optTable != null) {
             node = keyColumnOnLeft(optTable) ? rightOperand : leftOperand;
-            return isKnownConstant(node, considerParameters);
+            return node.isKnownConstant(considerParameters);
         } else {
-            return (isKnownConstant(rightOperand, considerParameters) || isKnownConstant(leftOperand, considerParameters));
+            return (rightOperand.isKnownConstant(considerParameters) || leftOperand.isKnownConstant(considerParameters));
         }
     }
 
@@ -1132,21 +1120,7 @@ public class BinaryRelationalOperatorNode
         ** the key column.
         */
         node=keyColumnOnLeft(optTable)?rightOperand:leftOperand;
-        if (node instanceof CastNode)
-            node = ((CastNode) node).castOperand;
-
-        if(node instanceof ConstantNode){
-            return ((ConstantNode)node).getValue();
-        }else if(node.requiresTypeFromContext()){
-            ParameterNode pn;
-            if(node instanceof UnaryOperatorNode)
-                pn=((UnaryOperatorNode)node).getParameterOperand();
-            else
-                pn=(ParameterNode)(node);
-            return pn.getDefaultValue();
-        }else{
-            return null;
-        }
+        return node.getKnownConstantValue();
     }
 
 
@@ -1598,8 +1572,9 @@ public class BinaryRelationalOperatorNode
         // Binary Relational Operator Node...
         double selectivity;
 
-        if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null) {
-            ColumnReference right = (ColumnReference) rightOperand;
+        if (operandMayHaveStatistics(RIGHT)) {
+            ColumnReference right = getColumnOrIndexExprColumn(RIGHT);
+            assert right != null;
             if (!right.useRealColumnStatistics()) {
                 noStatsColumns.add(right.getSchemaQualifiedColumnName());
             }
@@ -1608,8 +1583,9 @@ public class BinaryRelationalOperatorNode
             } else if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.FULLOUTER)) {
                 // TODO DB-7816, temporarily borrow the selectivity logic from left join, may need to revisit
                 selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
-            } else if (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
-                ColumnReference left = (ColumnReference) leftOperand;
+            } else if (operandMayHaveStatistics(LEFT)) {
+                ColumnReference left = getColumnOrIndexExprColumn(LEFT);
+                assert left != null;
                 if (!left.useRealColumnStatistics()) {
                     noStatsColumns.add(left.getSchemaQualifiedColumnName());
                 }
@@ -1620,7 +1596,7 @@ public class BinaryRelationalOperatorNode
                 if (optTable instanceof FromTable && ((FromTable) optTable).getExistsTable()) {
                     selectivity = selectivity * left.nonZeroCardinality(outerRowCount)/outerRowCount;
                     if ((optTable instanceof FromBaseTable) && ((FromBaseTable) optTable).isAntiJoin()) {
-                        selectivity = selectivity /(innerRowCount - innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
+                        selectivity = selectivity /(innerRowCount - (double)innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
                     }
                 }
             } else { // No Left Column Reference
@@ -1631,6 +1607,66 @@ public class BinaryRelationalOperatorNode
         }
         assert selectivity >= 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + rightOperand + " left -> " + leftOperand;
         return selectivity;
+    }
+
+    private boolean operandMayHaveStatistics(int side) {
+        if (side == LEFT) {
+            return (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null)
+                    || (leftMatchIndexExpr >= 0 && leftMatchIndexExprColumnPosition >= 0 && leftMatchIndexExprConglomDesc != null);
+        } else if (side == RIGHT) {
+            return (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null)
+                    || (rightMatchIndexExpr >= 0 && rightMatchIndexExprColumnPosition >= 0 && rightMatchIndexExprConglomDesc != null);
+        } else {
+            throw new RuntimeException("invalid side argument passed in");
+        }
+    }
+
+    /* Get a ColumnReference for an index on expression column so that we can get a
+     * StoreCostController to get correct statistics. We need this because in cost
+     * estimation, index expression are not rewritten yet.
+     * Note that the returned ColumnReference should only be used to retrieve
+     * statistics because it's column position is set to conglomerate column
+     * position of the index expression. It doesn't refer to any child result set
+     * columns.
+     */
+    private ColumnReference getColumnOrIndexExprColumn(int side)
+            throws StandardException
+    {
+        ValueNode operand = side == LEFT ? leftOperand : rightOperand;
+        int tableNumber = side == LEFT ? leftMatchIndexExpr : rightMatchIndexExpr;
+        int indexColumnPosition = side == LEFT ? leftMatchIndexExprColumnPosition : rightMatchIndexExprColumnPosition;
+        ConglomerateDescriptor conglomDesc = side == LEFT ? leftMatchIndexExprConglomDesc : rightMatchIndexExprConglomDesc;
+
+        IndexRowGenerator irg = conglomDesc == null ? null : conglomDesc.getIndexDescriptor();
+        if (irg == null || !irg.isOnExpression() || tableNumber < 0 || indexColumnPosition < 0) {
+            if (operand instanceof ColumnReference) {
+                return (ColumnReference)operand;
+            } else {
+                return null;
+            }
+        }
+        List<ColumnReference> baseColumnRefs = operand.getHashableJoinColumnReference();
+        assert !baseColumnRefs.isEmpty() : "no column reference found in index expression";
+        ColumnReference baseColumnRef = baseColumnRefs.get(0);
+
+        // build a fake ResultColumn
+        ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN,
+                irg.getIndexColumnTypes()[indexColumnPosition],
+                operand,
+                getContextManager());
+        rc.setIndexExpression(operand);
+        rc.setReferenced();
+        // virtual column IDs are 1-based, set to conglomerate index column position
+        // so that we can get column statistics correctly
+        rc.setVirtualColumnId(indexColumnPosition + 1);
+        rc.setName(conglomDesc.getConglomerateName() + "_col" + rc.getColumnPosition());
+        rc.setSourceTableName(baseColumnRef.getSourceTableName());
+        rc.setSourceSchemaName(baseColumnRef.getSourceSchemaName());
+        rc.setSourceConglomerateNumber(conglomDesc.getConglomerateNumber());
+        rc.setSourceConglomerateColumnPosition(indexColumnPosition + 1);
+
+        return rc.getColumnReference(operand);
     }
 
     public RelationalOperator getTransitiveSearchClause(ColumnReference otherCR) throws StandardException{
@@ -1658,30 +1694,37 @@ public class BinaryRelationalOperatorNode
         double selectivity = 1.0d;
         ColumnReference innerColumn = null;
         ColumnReference outerColumn = null;
-        if (leftOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) leftOperand;
+
+        if (operandMayHaveStatistics(LEFT)) {
+            ColumnReference cr = getColumnOrIndexExprColumn(LEFT);
+            assert cr != null;
             if (cr.getTableNumber() == innerTable.getTableNumber()) {
                 innerColumn = cr;
-            }
-            else {
+            } else {
                 outerColumn = cr;
             }
         }
         else return selectivity;
 
-        if (rightOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) rightOperand;
+        if (operandMayHaveStatistics(RIGHT)) {
+            ColumnReference cr = getColumnOrIndexExprColumn(RIGHT);
+            assert cr != null;
             if (cr.getTableNumber() == innerTable.getTableNumber()) {
                 innerColumn = cr;
-            }
-            else {
+            } else {
                 outerColumn = cr;
             }
         }
         else return selectivity;
+
+        if (innerColumn == null || outerColumn == null)
+            return selectivity;
 
         StoreCostController innerTableCostController = innerColumn.getStoreCostController();
         StoreCostController outerTableCostController = outerColumn.getStoreCostController();
+
+        final int innerColumnPosition = innerColumn.getColumnPositionForStatistics();
+        final int outerColumnPosition = outerColumn.getColumnPositionForStatistics();
 
         DataValueDescriptor minOuterColumn = null;
         DataValueDescriptor maxOuterColumn = null;
@@ -1691,18 +1734,18 @@ public class BinaryRelationalOperatorNode
             long rc = (long)outerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minOuterColumn = outerTableCostController.minValue(outerColumn.getSource().getColumnPosition());
-            maxOuterColumn = outerTableCostController.maxValue(outerColumn.getSource().getColumnPosition());
+            boolean forIndexExpr = outerColumn.isGeneratedToReplaceIndexExpression();
+            minOuterColumn = outerTableCostController.minValue(forIndexExpr, outerColumnPosition);
+            maxOuterColumn = outerTableCostController.maxValue(forIndexExpr, outerColumnPosition);
         }
 
-        final int innerColumnPos = innerColumn.getSource().getColumnPosition();
-        final int outerColumnPos = outerColumn.getSource().getColumnPosition();
         if (innerTableCostController != null) {
             long rc = (long)innerTableCostController.baseRowCount();
             if (rc == 0)
                 return 0.0d;
-            minInnerColumn = innerTableCostController.minValue(innerColumnPos);
-            maxInnerColumn = innerTableCostController.maxValue(innerColumnPos);
+            boolean forIndexExpr = innerColumn.isGeneratedToReplaceIndexExpression();
+            minInnerColumn = innerTableCostController.minValue(forIndexExpr, innerColumnPosition);
+            maxInnerColumn = innerTableCostController.maxValue(forIndexExpr, innerColumnPosition);
         }
 
         DataValueDescriptor startKey = getKeyBoundary(minInnerColumn, minOuterColumn, true);
@@ -1710,17 +1753,21 @@ public class BinaryRelationalOperatorNode
 
         if (startKey!= null && minInnerColumn != null && startKey.compare(minInnerColumn) > 0 ||
                 endKey!= null && maxInnerColumn != null && endKey.compare(maxInnerColumn)< 0) {
-            selectivity *= innerTableCostController.getSelectivity(innerColumn.getSource().getColumnPosition(),
-                    startKey, true, endKey, true, false);
+            selectivity *= innerTableCostController.getSelectivity(innerColumn.isGeneratedToReplaceIndexExpression(),
+                    innerColumnPosition, startKey, true, endKey, true, false);
         }
         else if (this.operatorType == EQUALS_RELOP) {
             // Use a more realistic selectivity that takes the
             // inner table RPV into account instead of defaulting
             // to a selectivity of 1.
             double outerCardinality =
-                     outerTableCostController.cardinality(outerColumnPos);
+                    outerTableCostController.cardinality(
+                            outerColumn.isGeneratedToReplaceIndexExpression(),
+                            outerColumnPosition);
             double innerCardinality =
-                        innerTableCostController.cardinality(innerColumnPos);
+                    innerTableCostController.cardinality(
+                            innerColumn.isGeneratedToReplaceIndexExpression(),
+                            innerColumnPosition);
 
             // If cardinality values are uninitialized (zero),
             // we can't apply this estimation formula.
