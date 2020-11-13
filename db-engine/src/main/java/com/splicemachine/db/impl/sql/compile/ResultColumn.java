@@ -84,6 +84,8 @@ public class ResultColumn extends ValueNode
     String            exposedName;
     String            tableName;
     String            sourceTableName;
+    long              sourceConglomerateNumber;
+    int               sourceConglomerateColumnPosition;
     //Used by metadata api ResultSetMetaData.getSchemaName to get a column's table's schema.
     String            sourceSchemaName;
     ValueNode        expression;
@@ -442,6 +444,18 @@ public class ResultColumn extends ValueNode
     public String getSourceSchemaName()
     {
         return sourceSchemaName;
+    }
+
+    public long getSourceConglomerateNumber() { return sourceConglomerateNumber; }
+
+    public void setSourceConglomerateNumber(long sourceConglomerateName) {
+        this.sourceConglomerateNumber = sourceConglomerateName;
+    }
+
+    public int getSourceConglomerateColumnPosition() { return sourceConglomerateColumnPosition; }
+
+    public void setSourceConglomerateColumnPosition(int sourceConglomerateColumnPosition) {
+        this.sourceConglomerateColumnPosition = sourceConglomerateColumnPosition;
     }
 
     /**
@@ -1600,6 +1614,8 @@ public class ResultColumn extends ValueNode
         // good measure...
         newResultColumn.setSourceTableName(getSourceTableName());
         newResultColumn.setSourceSchemaName(getSourceSchemaName());
+        newResultColumn.setSourceConglomerateNumber(getSourceConglomerateNumber());
+        newResultColumn.setSourceConglomerateColumnPosition(getSourceConglomerateColumnPosition());
 
         /* Set the "is generated for unmatched column in insert" status in the new node
         This if for bug 4194*/
@@ -2020,7 +2036,7 @@ public class ResultColumn extends ValueNode
             return 0;
         ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
         int leftPosition = getColumnPosition();
-        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false, 0, 0).cardinality(leftPosition);
+        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false, 0, 0).cardinality(false, leftPosition);
     }
     /**
      *
@@ -2155,10 +2171,6 @@ public class ResultColumn extends ValueNode
      * @return A column reference referring to this ResultColumn.
      */
     public ColumnReference getColumnReference(ValueNode originalExpr) throws StandardException {
-        List<ColumnReference> origCRs = originalExpr.getHashableJoinColumnReference();
-        assert !origCRs.isEmpty();
-        ColumnReference origCR = origCRs.get(0);
-
         ColumnReference cr = (ColumnReference) getNodeFactory().getNode(
                 C_NodeTypes.COLUMN_REFERENCE,
                 getColumnName(),
@@ -2166,13 +2178,23 @@ public class ResultColumn extends ValueNode
                 getContextManager()
         );
         cr.setSource(this);
-        cr.setTableNumber(getTableNumber());
+        if (getTableNumber() >= 0) {
+            cr.setTableNumber(getTableNumber());
+        }
         cr.setColumnNumber(getColumnPosition());
         cr.columnName = this.name;
         cr.setType(getTypeServices());
-        cr.setOuterJoinLevel(origCR.getOuterJoinLevel());
-        cr.setNestingLevel(origCR.getNestingLevel());
-        cr.setSourceLevel(origCR.getSourceLevel());
+        cr.markGeneratedToReplaceIndexExpression();
+
+        if (originalExpr != null) {
+            List<ColumnReference> origCRs = originalExpr.getHashableJoinColumnReference();
+            assert !origCRs.isEmpty();
+            ColumnReference origCR = origCRs.get(0);
+
+            cr.setOuterJoinLevel(origCR.getOuterJoinLevel());
+            cr.setNestingLevel(origCR.getNestingLevel());
+            cr.setSourceLevel(origCR.getSourceLevel());
+        }
 
         return cr;
     }
