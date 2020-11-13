@@ -20,6 +20,7 @@ import com.splicemachine.pipeline.api.PipelineExceptionFactory;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ForeignKeyViolation;
+import com.splicemachine.pipeline.constraint.NotNullConstraintViolation;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.primitives.Bytes;
 
@@ -47,8 +48,10 @@ public class ForeignKeyViolationProcessor {
     @SuppressWarnings("ThrowableResultOfMethodCallIgnored")
     public void failWrite(Exception originalException, WriteContext ctx, Map<String, KVPair> originators) {
         Throwable t =exceptionFactory.processPipelineException(originalException);
-        if(t instanceof ForeignKeyViolation){
-            doFail(ctx,(ForeignKeyViolation)t, originators);
+        if(t instanceof ForeignKeyViolation) {
+            doFail(ctx,((ForeignKeyViolation) t).getContext(), Code.FOREIGN_KEY_VIOLATION, originators);
+        } else if(t instanceof NotNullConstraintViolation) {
+            doFail(ctx,((NotNullConstraintViolation) t).getContext(), Code.NOT_NULL, originators);
         }
     }
 
@@ -56,22 +59,21 @@ public class ForeignKeyViolationProcessor {
      *  @param ctx The write context
      * @param cause The cause, if the cause if coming from another pipeline, then we peek its messages looking for an originator
      *              which is a rowKey of a local mutation caused a failure on a (remote) pipeline.
-     * @param originators childTableBaseRow -> parentTableBaseRow mapping for also failing any originating row in the current
+     * @param originators childTableBaseRow -> parentTableBaseRow mapping for also failing any originating row in the current transaction.
      */
-    private void doFail(WriteContext ctx, ForeignKeyViolation cause, Map<String, KVPair> originators) {
+    private void doFail(WriteContext ctx, ConstraintContext constraintContext, Code code, Map<String, KVPair> originators) {
         String hexEncodedFailedRowKey;
-        if(cause.getContext().getMessages().length == 5) {
-            hexEncodedFailedRowKey = cause.getContext().getMessages()[4];
+        if(constraintContext.getMessages().length == 5) {
+            hexEncodedFailedRowKey = constraintContext.getMessages()[4];
         } else {
-            hexEncodedFailedRowKey = cause.getContext().getMessages()[0];
+            hexEncodedFailedRowKey = constraintContext.getMessages()[0];
         }
         byte[] failedRowKey = Bytes.fromHex(hexEncodedFailedRowKey);
-        ConstraintContext constraintContext = cause.getContext();
-        ctx.result(failedRowKey, new WriteResult(Code.FOREIGN_KEY_VIOLATION, constraintContext));
+        ctx.result(failedRowKey, new WriteResult(code, constraintContext));
         if(originators != null) {
             KVPair originator = originators.remove(hexEncodedFailedRowKey);
             if (originator != null) {
-                ctx.result(originator, new WriteResult(Code.FOREIGN_KEY_VIOLATION, constraintContext));
+                ctx.result(originator, new WriteResult(code, constraintContext));
             }
         }
     }

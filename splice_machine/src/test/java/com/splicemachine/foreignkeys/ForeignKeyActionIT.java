@@ -56,7 +56,8 @@ public class ForeignKeyActionIT {
     public void deleteTables() throws Exception {
         conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
-        new TableDAO(conn).drop(SCHEMA, "RP", "RC", "T3", "T2", "T4", "T1", "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
+        new TableDAO(conn).drop(SCHEMA, "SNGC2", "SNGC1", "SNC", "SNP", "RP", "RC",
+                                "T3", "T2", "T4", "T1", "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
                 "FC", "FP", "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
     }
 
@@ -350,10 +351,6 @@ public class ForeignKeyActionIT {
             s.executeUpdate("insert into GC2 values (2, 'y')");
             s.executeUpdate("insert into GC2 values (800, 'x')");
         }
-
-        if(withNoActionGrandChildren) {
-
-        }
     }
 
     @Test
@@ -443,6 +440,35 @@ public class ForeignKeyActionIT {
                 Assert.assertEquals("23503", exception.getSQLState());
                 Assert.assertTrue(exception.getMessage().contains("Operation on table 'RP' caused a violation of foreign key constraint"));
             }
+        }
+    }
+
+    @Test
+    public void onDeleteSetNullWithSomeNotNullableFieldsFailsProperly() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.executeUpdate("create table SNP(col1 int primary key, col2 int)");
+            s.executeUpdate("create table SNC(col1 int, col2 int, col3 int references SNP(col1) on delete cascade, primary key(col1, col2))");
+            s.executeUpdate("create table SNGC1(col1 int primary key, col2 int, col3 int, foreign key(col2, col3) references SNC(col1, col2) on delete set null)");
+            s.executeUpdate("create table SNGC2(col1 int primary key, col2 int not null, col3 int)");
+            s.executeUpdate("alter table SNGC2 add constraint \"SNGC_FK\" foreign key(col2, col3) references SNC(col1, col2) on delete set null");
+            s.executeUpdate("insert into SNP values (42, 42)");
+            s.executeUpdate("insert into SNC values (42, 42, 42)");
+            s.executeUpdate("insert into SNGC1 values (42, 42, 42)");
+            s.executeUpdate("insert into SNGC2 values (42, 42, 42)");
+
+            try{
+                s.executeUpdate("delete from SNP where col1 = 42");
+                fail("expected query to fail with error: foreign key SNGC_FK caused an attempt to set some not-nullable columns in table SNGC2 to null. The statement has been rolled back");
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+                SQLException sqlException = (SQLException)e;
+                Assert.assertEquals("23514", sqlException.getSQLState());
+                Assert.assertTrue(sqlException.getMessage().contains("foreign key SNGC_FK caused an attempt to set some not-nullable columns in table SNGC2 to null. The statement has been rolled back"));
+            }
+            shouldContain("SNP", new int[][]{{42,42}});
+            shouldContain("SNC", new int[][]{{42,42,42}});
+            shouldContain("SNGC1", new int[][]{{42,42,42}});
+            shouldContain("SNGC2", new int[][]{{42,42,42}});
         }
     }
 
@@ -625,9 +651,10 @@ public class ForeignKeyActionIT {
         try(Statement s = conn.createStatement()) {
             ResultSet rs = s.executeQuery(String.format("select * from %s order by col1 asc", child));
             for(int[] row : rows) {
-                assert row.length == 2;
                 Assert.assertTrue(rs.next());
-                Assert.assertEquals(row[0], rs.getInt(1));Assert.assertEquals(row[1], rs.getInt(2));
+                for(int i = 0; i < row.length; ++i) {
+                    Assert.assertEquals(row[i], rs.getInt(i+1));
+                }
             }
             Assert.assertFalse(rs.next());
         }
