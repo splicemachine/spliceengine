@@ -965,6 +965,6 @@ public class UnaryOperatorNode extends OperatorNode
     public double getBaseOperationCost() throws StandardException { return getOperandCost(); }
 
     protected double getOperandCost() throws StandardException {
-        return operand == null ? 0.0f : operand.getBaseOperationCost();
+        return operand == null ? 0.0 : operand.getBaseOperationCost();
     }
 }

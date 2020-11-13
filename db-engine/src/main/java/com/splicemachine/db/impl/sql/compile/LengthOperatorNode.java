@@ -168,7 +168,7 @@ public final class LengthOperatorNode extends UnaryOperatorNode
 	@Override
 	public double getBaseOperationCost() throws StandardException {
 		double lowerCost = getOperandCost();
-		double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : operand.getTypeServices().getNull().getLength());
+		double localCost = SIMPLE_OP_COST * (operand == null ? 1.0 : Math.min(operand.getTypeServices().getNull().getLength(), 16));
 		double callCost = SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
 		return lowerCost + localCost + callCost;
 	}

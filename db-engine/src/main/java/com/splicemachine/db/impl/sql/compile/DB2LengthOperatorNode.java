@@ -203,7 +203,7 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
         double cost = 0.0;
         if (operand != null) {
             if (getConstantLength() == -1) {
-                cost += SIMPLE_OP_COST * operand.getTypeServices().getNull().getLength();
+                cost += SIMPLE_OP_COST * Math.min(operand.getTypeServices().getNull().getLength(), 16);
             }
             cost += SIMPLE_OP_COST * FN_CALL_COST_FACTOR;
         }

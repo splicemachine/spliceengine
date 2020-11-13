@@ -249,20 +249,17 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                     innerColumns.set(innerEquals);
                 } else {
                     BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode) relop;
-                    int outerTableNum;
-                    int outerColNum;
-
                     /*
                      * We are still sortable if we have constant predicates on the first N keys on the outer
                      * side of the join, as long as we match the inner columns
                      */
                     Pair<Integer, Integer> outerColumnInfo = getOuterColumnInfo(bron, innerTable, null);
-                    if (outerColumnInfo != null) {
-                        outerTableNum = outerColumnInfo.getFirst();
-                        outerColNum = outerColumnInfo.getSecond();
-                    } else {
+                    if (outerColumnInfo == null) {
                         continue;
                     }
+                    int outerTableNum = outerColumnInfo.getFirst();
+                    int outerColNum = outerColumnInfo.getSecond();
+
                     //we don't care what the sort order for this column is, since it's an equals predicate anyway
                     int pos = outerRowOrdering.orderedPositionForColumn(RowOrdering.ASCENDING, outerTableNum, outerColNum);
                     if (pos >= 0) {
@@ -297,9 +294,6 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                 if (bron.getOperator() == RelationalOperator.EQUALS_RELOP) {
                     ColumnReference innerColumn = null;
                     int innerColumnNumber;
-                    int outerTableNum;
-                    int outerColNum;
-
                     if (isIndexOnExpr) {
                         innerColumnNumber = pred.hasEqualOnIndexExpression(innerTable);
                     } else {
@@ -311,12 +305,12 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
                     }
 
                     Pair<Integer, Integer> outerColumnInfo = getOuterColumnInfo(bron, innerTable, innerColumn);
-                    if (outerColumnInfo != null) {
-                        outerTableNum = outerColumnInfo.getFirst();
-                        outerColNum = outerColumnInfo.getSecond();
-                    } else {
+                    if (outerColumnInfo == null) {
                         continue;
                     }
+
+                    int outerTableNum = outerColumnInfo.getFirst();
+                    int outerColNum = outerColumnInfo.getSecond();
                     if (innerColumnNumber == innerColumnPosition) {
                         innerColumns.set(i);
                         int rowOrdering = ascending ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
