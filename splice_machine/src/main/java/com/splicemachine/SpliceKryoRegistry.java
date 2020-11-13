@@ -23,11 +23,7 @@ import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.*;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV2;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV3;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
@@ -900,6 +896,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER,333);
         instance.register(StringBuilder.class,334);
         instance.register(TriggerDescriptorV3.class,EXTERNALIZABLE_SERIALIZER,335);
+        instance.register(TriggerDescriptorV4.class,EXTERNALIZABLE_SERIALIZER,336);
         instance.register(Vector.class,110);
     }
 }

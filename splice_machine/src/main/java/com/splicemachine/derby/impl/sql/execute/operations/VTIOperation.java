@@ -25,10 +25,15 @@ import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -39,6 +44,8 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -123,6 +130,7 @@ public class VTIOperation extends SpliceBaseOperation {
     private ResultDescription resultDescription;
     private boolean convertTimestamps;
     private boolean quotedEmptyIsNull;
+    private GenericStorablePreparedStatement fromTableDML_SPS = null;
 
 
 	/**
@@ -161,7 +169,8 @@ public class VTIOperation extends SpliceBaseOperation {
                  int vtiProjectionNumber,
                  int vtiRestrictionNumber,
                  int resultDescriptionNumber,
-                 boolean quotedEmptyIsNull
+                 boolean quotedEmptyIsNull,
+                 String fromTableDmlSpsAsString
                  ) 
 		throws StandardException
 	{
@@ -204,6 +213,9 @@ public class VTIOperation extends SpliceBaseOperation {
         // if database property is not set, treat it as false
 		this.convertTimestamps = convertTimestampsString != null && Boolean.valueOf(convertTimestampsString);
         this.quotedEmptyIsNull = quotedEmptyIsNull;
+        if (fromTableDmlSpsAsString != null)
+            this.fromTableDML_SPS =
+                 SerializationUtils.deserialize(Base64.decodeBase64(fromTableDmlSpsAsString));
         init();
     }
 
@@ -270,13 +282,23 @@ public class VTIOperation extends SpliceBaseOperation {
         return "VTIOperation";
     }
 
+    private void executeFromTableDML() throws StandardException {
+        if (fromTableDML_SPS != null) {
+            LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
+            fromTableDML_SPS.setValid();
+            getActivation().setSingleExecution();
+            fromTableDML_SPS.executeSubStatement(lcc, false, 0L);
+        }
+    }
+
     @SuppressWarnings({ "rawtypes", "unchecked" })
     @Override
     public DataSet<ExecRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (!isOpen)
             throw new IllegalStateException("Operation is not open");
         operationContext = dsp.createOperationContext(this);
-        
+
+        executeFromTableDML();
         if (this.userVTI instanceof TriggerNewTransitionRows) {
             TriggerNewTransitionRows triggerTransitionRows = (TriggerNewTransitionRows) this.userVTI;
             triggerTransitionRows.finishDeserialization(activation);

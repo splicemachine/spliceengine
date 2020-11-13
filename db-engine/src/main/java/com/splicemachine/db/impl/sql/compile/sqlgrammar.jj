@@ -186,6 +186,7 @@ import java.util.StringTokenizer;
 import java.util.Vector;
 import java.util.Arrays;
 import java.lang.Character;
+import static java.lang.String.format;
 
 public class SQLParser
 {
@@ -1689,6 +1690,9 @@ public class SQLParser
         // newInvocation() starts with the word "new"
         if (getToken(startToken).kind == NEW)
         {
+            if (finalTableFollows(startToken))
+                return false;
+
             // Look at every other token. Ignore the identifiers, because
             // they are hard to test for.
             for (int i = 2 + startToken; true; i += 2)
@@ -1712,6 +1716,16 @@ public class SQLParser
 
         return retval;
     }
+
+    private boolean finalTableFollows(int startToken)
+    {
+        Token token = getToken(startToken);
+        return ((token.kind == NEW ||
+                 token.kind == OLD ||
+                 token.kind == FINAL)
+                && getToken(startToken+1).kind == TABLE);
+    }
+
     /**
      * Determine whether the next sequence of tokens is a class name
      *
@@ -3281,6 +3295,7 @@ TOKEN [IGNORE_CASE] :
 |   <ESTIMATE: "estimate">
 |    <EUR: "eur">
 |    <EXCLUSIVE: "exclusive">
+|    <FINAL: "final">
 |    <FN: "fn">
 |   <FRACTION: "fraction">
 |    <INDEX: "index">
@@ -3739,6 +3754,28 @@ proceduralStatement(Token[] tokenHolder) throws StandardException :
 )
     {
         return statementNode;
+    }
+}
+
+StatementNode
+preparableDMLDataStatement() throws StandardException :
+{
+    StatementNode    dmlStatement;
+}
+{
+    dmlStatement = preparableDeleteStatement()
+    {
+        return dmlStatement;
+    }
+|
+    dmlStatement = insertStatement()
+    {
+        return dmlStatement;
+    }
+|
+    dmlStatement = preparableUpdateStatement()
+    {
+        return dmlStatement;
     }
 }
 
@@ -4478,7 +4515,8 @@ deleteBody() throws StandardException :
     <FROM> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
         [
             LOOKAHEAD
-            ( { (getToken(1).kind != EOF) && (getToken(1).kind != WHERE) && !splicePropertiesListFollows() } )
+            ( { (getToken(1).kind != EOF) && (getToken(1).kind != RIGHT_PAREN) &&
+                (getToken(1).kind != WHERE) && !splicePropertiesListFollows() } )
             [ <AS> ] correlationName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
         ]
         [tableProperties = propertyList(false) <CHECK_PROPERTIES>]
@@ -11433,6 +11471,22 @@ tableReference(boolean nestedInParens) throws StandardException :
     }
 }
 
+Token
+fromTableType() throws StandardException :
+{
+    Token    retval;
+}
+{
+    (
+        retval = <FINAL> |
+        retval = <NEW> |
+        retval = <OLD>
+    )
+    {
+        return retval;
+    }
+}
+
 FromTable tableFactor() throws StandardException :
 {
     JavaToSQLValueNode    javaToSQLNode = null;
@@ -11445,6 +11499,18 @@ FromTable tableFactor() throws StandardException :
     Properties            tableProperties = null;
     SubqueryNode        derivedTable;
     TypeDescriptor typeDescriptor = null;
+    StatementNode       statement;
+    DMLModStatementNode dmlStatement;
+    TableName           triggerName;
+    CreateTriggerNode   tempTriggerDefinition;
+    ResultColumnList    triggerColumns;
+    Vector              refClause = null;
+    String              internalSelectStmt;
+    StatementNode       selectStatementNode;
+    StatementListNode   actionNodeList;
+    List<String>        actionTextList;
+    QueryTreeNode       newNode;
+    Token               fromTableType;
 }
 {
     /* NOTE: this rule has to come first in order to avoid making NEW
@@ -11472,6 +11538,115 @@ FromTable tableFactor() throws StandardException :
                                 typeDescriptor,
                                 getContextManager());
         return fromTable;
+    }
+|
+    fromTableType = fromTableType() <TABLE> <LEFT_PAREN> statement = preparableDMLDataStatement() <RIGHT_PAREN>
+    [ optionalTableClauses = optionalTableProperties() ]  {
+        boolean isOld = fromTableType.kind == OLD;
+        boolean isFinalTable = fromTableType.kind == FINAL;
+        dmlStatement = (DMLModStatementNode)statement;
+        LanguageConnectionContext lcc = dmlStatement.getLanguageConnectionContext();
+        tableName = dmlStatement.getTargetTableName();
+        String uniqueId = java.util.UUID.randomUUID().toString().replaceAll("-", "_").toUpperCase();
+        String tempTriggerName = "TRIG_" + uniqueId;
+        String schemaName = lcc.getDefaultSchema().getSchemaName();
+        triggerName = (TableName) nodeFactory.getNode(
+                                C_NodeTypes.TABLE_NAME,
+                                schemaName,
+                                tempTriggerName,
+                                getContextManager());
+        triggerColumns = (ResultColumnList) nodeFactory.getNode(
+                                        C_NodeTypes.RESULT_COLUMN_LIST,
+                                        getContextManager());
+        correlationName = "NT_" + uniqueId;
+        refClause = new Vector();
+        refClause.addElement(new TriggerReferencingStruct(false, !isOld, correlationName));
+
+        internalSelectStmt = "SELECT * FROM " + correlationName;
+        actionTextList = new ArrayList();
+        actionTextList.add(internalSelectStmt);
+        selectStatementNode = dmlStatement.parseStatement(internalSelectStmt, true);
+        actionNodeList = (StatementListNode) nodeFactory.getNode(C_NodeTypes.STATEMENT_LIST_NODE, getContextManager());
+        actionNodeList.addStatement(selectStatementNode);
+
+        String javaClassName =
+               isOld ? "com.splicemachine.derby.catalog.TriggerOldTransitionRows":
+                       "com.splicemachine.derby.catalog.TriggerNewTransitionRows";
+        newNode = (QueryTreeNode) nodeFactory.getNode(
+                               C_NodeTypes.NEW_INVOCATION_NODE,
+                               javaClassName,
+                               parameterList,
+                               getContextManager());
+
+        javaToSQLNode = (JavaToSQLValueNode) nodeFactory.getNode(
+                                C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+                                newNode,
+                                getContextManager());
+
+        TriggerEventDML triggerEvent;
+        String          stmtKind;
+
+        if (dmlStatement instanceof InsertNode) {
+            stmtKind     = "INSERT";
+            triggerEvent = TriggerEventDML.INSERT;
+            if (isOld)
+                throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE,
+                                                      fromTableType.toString(), "INSERT");
+        }
+        else if (dmlStatement instanceof DeleteNode) {
+            stmtKind     = "DELETE";
+            triggerEvent = TriggerEventDML.DELETE;
+            if (!isOld)
+                throw StandardException.newException( SQLState.LANG_UNSUPPORTED_FROM_TABLE,
+                                                      fromTableType.toString(), "DELETE");
+        }
+        else {
+            stmtKind     = "UPDATE";
+            triggerEvent = TriggerEventDML.UPDATE;
+        }
+
+        tempTriggerDefinition =
+            (CreateTriggerNode) nodeFactory.getNode(
+                                C_NodeTypes.CREATE_TRIGGER_NODE,
+                                triggerName,
+                                tableName,
+                                triggerEvent,
+                                triggerColumns,
+                                false,                   // isBefore
+                                false,                   // isRow
+                                Boolean.TRUE,            // enabled
+                                refClause,               // referencing clause
+                                null,                    // when clause node
+                                null,                    // when clause text
+                                actionNodeList,
+                                actionTextList,
+                                getContextManager());
+
+        tempTriggerDefinition.setIsFinalTable(isFinalTable);
+        String targetTableName = tableName.toString();
+        String newOrOld = isOld ? "OLD" : "NEW";
+        // The trigger text is not parsed.  It is just used as a handy representation of
+        // the CreateTriggerNode.
+        String tempTriggerSQLText =
+               format("CREATE TRIGGER %s AFTER %s ON %s REFERENCING %s_TABLE AS %s FOR EACH STATEMENT VALUES 1",
+                      triggerName, stmtKind, targetTableName, newOrOld, correlationName);
+
+        FromVTI fromVTI =
+          (FromVTI) nodeFactory.getNode(
+                        C_NodeTypes.FROM_VTI,
+                        javaToSQLNode.getJavaValueNode(),
+                        correlationName,
+                        derivedRCL,
+                        ((optionalTableClauses != null) ?
+                            (Properties) optionalTableClauses[OPTIONAL_TABLE_CLAUSES_TABLE_PROPERTIES] :
+                            (Properties) null),
+                        typeDescriptor,
+                        getContextManager());
+        fromVTI.setFromTableDMLStmt(dmlStatement);
+        fromVTI.setTempTriggerDefinition(tempTriggerDefinition);
+        fromVTI.setTempTriggerSQLText(tempTriggerSQLText);
+        fromVTI.setTempTriggerName(tempTriggerName);
+        return (FromTable)fromVTI;
     }
 |
     /* identifier() used to be correlationName() */
@@ -18382,6 +18557,7 @@ nonReservedKeyword()  :
     |    tok = <EXCLUSIVE>
     |    tok = <EXTRACT>
     |    tok = <FIELD_SEPARATOR>
+    |    tok = <FINAL>
     |    tok = <FIRSTVALUE>
     |    tok = <FN>
     |    tok = <FORTRAN>
