@@ -302,7 +302,7 @@ public class CreateConstraintConstantAction extends ConstraintConstantAction
 			case DataDictionary.FOREIGNKEY_CONSTRAINT:
 				ReferencedKeyConstraintDescriptor referencedConstraint = DDUtils.locateReferencedConstraint
 					( dd, td, constraintName, columnNames, otherConstraintInfo );
-				DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames);
+				// DDUtils.validateReferentialActions(dd, td, constraintName, otherConstraintInfo,columnNames);
 				
 				conDesc = ddg.newForeignKeyConstraintDescriptor(
 								td, constraintName,

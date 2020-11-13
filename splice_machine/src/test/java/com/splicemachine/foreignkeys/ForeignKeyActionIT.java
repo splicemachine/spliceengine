@@ -57,8 +57,9 @@ public class ForeignKeyActionIT {
         conn = methodWatcher.getOrCreateConnection();
         conn.setAutoCommit(false);
         new TableDAO(conn).drop(SCHEMA, "SNGC2", "SNGC1", "SNC", "SNP", "RP", "RC",
-                                "T3", "T2", "T4", "T1", "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
-                "FC", "FP", "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P");
+                                        "T3", "T2", "T4", "T1", "DHC10", "DHC9", "DHC8", "DHC7", "DHC6", "DHC5", "DHC4", "DHC3", "DHC2", "DHC1",
+                                        "FC", "FP", "SRT2", "GC2", "GC1", "CC", "CP", "C1I", "C2I", "PI","SRT", "LC", "YAC", "AC", "AP", "C2", "C", "P",
+                                        "cc1", "cc2", "cc3", "cc4", "cc6", "cc7");
     }
 
     @After
@@ -77,18 +78,6 @@ public class ForeignKeyActionIT {
     @AfterClass
     public static void afterClass() throws Exception {
         SpliceUnitTest.deleteTempDirectory(BADDIR);
-    }
-
-    /* DB-10545 */
-    @Test
-    public void validConstraintGraphWorksCorrectly() throws Exception {
-        try(Statement s = conn.createStatement()) {
-            s.executeUpdate("create table t1(col1 int primary key)");
-            s.executeUpdate("create table t2(col1 int primary key, col2 int references t1(col1) on delete set null)");
-            s.executeUpdate("create table t3(col1 int, col2 int references t2(col1) on delete restrict, col3 int references t1(col1) on delete cascade)");
-            s.executeUpdate("create table t4(col1 int primary key)");
-            s.executeUpdate("alter table t2 add constraint \"bla42\" foreign key (col2) references t4(col1) on delete cascade");
-        }
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -537,6 +526,43 @@ public class ForeignKeyActionIT {
                 rs.getInt(2); Assert.assertTrue(rs.wasNull());
                 Assert.assertEquals("y", rs.getString(3));
                 Assert.assertFalse(rs.next());
+            }
+        }
+    }
+
+    @Test
+    public void cacheIsCoherent() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.executeUpdate("create table cct1(col1 int primary key, col2 int)");
+            s.executeUpdate("create table cct2(col1 int primary key, col2 int references cct1(col1) on delete cascade)");
+            s.executeUpdate("create table cct3(col1 int primary key, col2 int references cct1(col1) on delete cascade)");
+            s.executeUpdate("create table cct4(col1 int primary key, col2 int)");
+            s.executeUpdate("create table cct6(col1 int primary key, col2 int references cct2(col1) on delete cascade)");
+            s.executeUpdate("create table cct7(col1 int primary key, col2 int references cct6(col1) on delete cascade)");
+            s.executeUpdate("alter table cct7 add constraint \"ccfk1\" foreign key (col2) references cct4(col1) on delete set null");
+            // we faced an issue where the cache wasn't up to date with each referencing constraint containing a list of children
+            // if the cache is not working properly then this addition of the foreign key would succeed since cct1 will not have and children
+            // cutting the links leading to inconsistent referential effects on table cct4 (cascade + set null) from cct1 which is wrong.
+            // this test checks that the cache is always up to date with the constraint's state.
+            try {
+                s.executeUpdate("alter table cct4 add constraint \"ccfk2\" foreign key (col2) references cct3(col1) on delete cascade");
+                Assert.fail("alter table should have failed with SQLException containing this message: Foreign  Key 'ccfk2' is invalid because " +
+                                    "'adding this foreign key leads to the " +
+                                    "conflicting delete actions on the table '\"FOREIGNKEYACTIONIT\".\"CCT7\"' " +
+                                    "coming from this path 'PATH action: SetNull \"FOREIGNKEYACTIONIT\".\"CCT1\" " +
+                                    "\"FOREIGNKEYACTIONIT\".\"CCT3\" \"FOREIGNKEYACTIONIT\".\"CCT4\" ' and this " +
+                                    "path 'PATH action: Cascade \"FOREIGNKEYACTIONIT\".\"CCT1\" \"FOREIGNKEYACTIONIT\".\"CCT2\" " +
+                                    "\"FOREIGNKEYACTIONIT\".\"CCT6\" ''. ");
+            } catch (Exception e) {
+                Assert.assertTrue(e instanceof SQLException);
+                SQLException sqlException = (SQLException)e;
+                Assert.assertEquals("42915", sqlException.getSQLState());
+                Assert.assertTrue(sqlException.getMessage().contains("Foreign  Key 'ccfk2' is invalid because 'adding this foreign key leads to the " +
+                                                                     "conflicting delete actions on the table '\"FOREIGNKEYACTIONIT\".\"CCT7\"' " +
+                                                                     "coming from this path 'PATH action: SetNull \"FOREIGNKEYACTIONIT\".\"CCT1\" " +
+                                                                     "\"FOREIGNKEYACTIONIT\".\"CCT3\" \"FOREIGNKEYACTIONIT\".\"CCT4\" ' and this " +
+                                                                     "path 'PATH action: Cascade \"FOREIGNKEYACTIONIT\".\"CCT1\" \"FOREIGNKEYACTIONIT\".\"CCT2\" " +
+                                                                     "\"FOREIGNKEYACTIONIT\".\"CCT6\" ''. "));
             }
         }
     }

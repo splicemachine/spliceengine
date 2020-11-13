@@ -467,6 +467,7 @@ public class ProtoUtil {
                                 .setBackingIndexConglomerateId(backingIndexConglomerateId)
                                 .setReferencedConglomerateNumber(baseConglomerate)
                                 .setReferencingConglomerateNumber(backingIndexConglomerateId)
+                                .setConstraintUuid(transferDerbyUUID((BasicUUID)foreignKeyConstraintDescriptor.getReferencedConstraint().getUUID()))
                 ).build();
     }
 
