@@ -433,7 +433,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 double optimizerEstimatedCost,
                                                 String tableVersion,
                                                 String explainPlan,
-                                                boolean pin,
                                                 int splits,
                                                 String delimited,
                                                 String escaped,
@@ -444,7 +443,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                                                 GeneratedMethod defaultRowFunc,
                                                 int defaultValueMapItem,
                                                 GeneratedMethod pastTxFunctor,
-                                                long minRetentionPeriod )
+                                                long minRetentionPeriod)
             throws StandardException {
         SpliceLogUtils.trace(LOG, "getTableScanResultSet");
         try{
@@ -478,7 +477,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     tableVersion,
-                    pin,
                     splits,
                     delimited,
                     escaped,
@@ -726,7 +724,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String tableVersion,
             String explainPlan,
-            boolean pin,
             int splits,
             String delimited,
             String escaped,
@@ -755,7 +752,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             optimizerEstimatedCost,
             tableVersion,
             explainPlan,
-            pin,
             splits,
             delimited,
             escaped,
@@ -789,7 +785,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             double optimizerEstimatedCost,
             String tableVersion,
             String explainPlan,
-            boolean pin,
             int splits,
             String delimited,
             String escaped,
@@ -800,7 +795,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod ) throws StandardException {
+            long minRetentionPeriod) throws StandardException {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().getSavedObject(scociItem));
             ScanOperation op = new DistinctScanOperation(
@@ -821,7 +816,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     tableVersion,
-                    pin,
                     splits,
                     delimited,
                     escaped,
@@ -1095,7 +1089,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             int colRefItem, int indexColItem, int lockMode,
             boolean tableLocked, int isolationLevel, boolean oneRowScan,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion,
-            String explainPlan, boolean pin, int splits,
+            String explainPlan, int splits,
             String delimited,
             String escaped,
             String lines,
@@ -1105,7 +1099,7 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
             GeneratedMethod defaultRowFunc,
             int defaultValueMapItem,
             GeneratedMethod pastTxFunctor,
-            long minRetentionPeriod )
+            long minRetentionPeriod)
 
             throws StandardException {
         try{
@@ -1143,7 +1137,6 @@ public class SpliceGenericResultSetFactory implements ResultSetFactory {
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost,
                     tableVersion,
-                    pin,
                     splits,
                     delimited,
                     escaped,

@@ -768,7 +768,7 @@ public interface SQLState {
     // From SQL/XML[2006] spec; there are others, but
     // these are the ones we actually use with our
     // current XML support.
-    String LANG_XML_QUERY_ERROR            = 10000";
+    String LANG_XML_QUERY_ERROR            = "10000";
     String LANG_NOT_AN_XML_DOCUMENT        = "2200L";
     String LANG_INVALID_XML_DOCUMENT       = "2200M";
     String LANG_INVALID_XML_CONTEXT_ITEM   = "2200V";

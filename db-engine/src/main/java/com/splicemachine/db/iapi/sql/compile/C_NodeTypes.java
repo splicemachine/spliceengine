@@ -264,8 +264,7 @@ public interface C_NodeTypes
     int TRUNC_NODE = 251;
     int FIRST_LAST_VALUE_FUNCTION_NODE = 253;
     int LEAD_LAG_FUNCTION_NODE = 254;
-    int CREATE_PIN_NODE = 255;
-    int DROP_PIN_NODE = 256;
+
     int ARRAY_OPERATOR_NODE = 257;
     int ARRAY_CONSTANT_NODE = 258;
     int SET_SESSION_PROPERTY_NODE = 259;

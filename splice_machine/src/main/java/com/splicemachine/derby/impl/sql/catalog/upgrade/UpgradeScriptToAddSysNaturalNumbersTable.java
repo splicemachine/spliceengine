@@ -11,30 +11,23 @@
  * You should have received a copy of the GNU Affero General Public License along with Splice Machine.
  * If not, see <http://www.gnu.org/licenses/>.
  */
+package com.splicemachine.derby.impl.sql.catalog.upgrade;
 
-package com.splicemachine.derby.impl.sql.execute.pin;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.utils.SpliceLogUtils;
 
-import com.splicemachine.derby.iapi.sql.olap.AbstractOlapResult;
-
-
-
-/**
- * Created by jfilali on 1/12/17.
- * PlaceHolder for the schema information provided by Spark.
- */
-public class GetIsCachedResult extends AbstractOlapResult {
-    private Boolean isCached;
-
-    public GetIsCachedResult(Boolean isCached) {
-        this.isCached = isCached;
-    }
-
-    public  Boolean isCached(){
-        return  isCached;
+public class UpgradeScriptToAddSysNaturalNumbersTable extends UpgradeScriptBase {
+    public UpgradeScriptToAddSysNaturalNumbersTable(SpliceDataDictionary sdd, TransactionController tc) {
+        super(sdd, tc);
     }
 
     @Override
-    public boolean isSuccess(){
-        return true;
+    protected void upgradeSystemTables() throws StandardException {
+        sdd.updateNaturalNumbersTable(tc);
+
+        SpliceLogUtils.info(LOG, "Catalog upgraded: added SYSNATURALNUMBERS system table");
     }
 }
+
