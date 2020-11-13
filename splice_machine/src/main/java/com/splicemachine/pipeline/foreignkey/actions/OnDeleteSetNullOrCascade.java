@@ -15,6 +15,7 @@
 package com.splicemachine.pipeline.foreignkey.actions;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -26,7 +27,9 @@ import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.kvpair.KVPair;
+import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.client.WriteResult;
+import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.foreignkey.ForeignKeyViolationProcessor;
 import com.splicemachine.primitives.Bytes;
@@ -42,8 +45,8 @@ public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
                                     DDLMessage.FKConstraintInfo constraintInfo,
                                     WriteContext writeContext,
                                     TxnOperationFactory txnOperationFactory,
-                                    ForeignKeyViolationProcessor violationProcessor) throws Exception {
-        super(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
+                                    ForeignKeyViolationProcessor violationProcessor, String parentTableName) throws Exception {
+        super(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor, parentTableName);
         isSelfReferencing = childBaseTableConglomId == constraintInfo.getParentTableConglomerate();
     }
 
@@ -74,10 +77,15 @@ public class OnDeleteSetNullOrCascade extends OnDeleteAbstractAction {
     @Override
     protected WriteResult handleExistingRow(byte[] indexRowId, KVPair sourceMutation) throws Exception {
         byte[] baseTableRowId = toChildBaseRowId(indexRowId, constraintInfo);
+        originators.put(Bytes.toHex(baseTableRowId), sourceMutation); // needs to trace back errors correctly and also fail referencing rows.
+        if(constraintInfo.getDeleteRule() == StatementType.RA_SETNULL && constraintInfo.getNullFlagsList().stream().anyMatch(nullableFlag -> !nullableFlag)) {
+            ConstraintContext context = ConstraintContext.foreignKey(constraintInfo, sourceMutation.getRowKey());
+            failed = true;
+            return new WriteResult(Code.NOT_NULL, context.withMessage(1, constraintInfo.getTableName()));
+        }
         if(constraintInfo.getDeleteRule() == StatementType.RA_SETNULL && isSelfReferencing && Arrays.equals(sourceMutation.getRowKey(), baseTableRowId)) {
             return WriteResult.success(); // do not add an update mutation since this row will be deleted anyway.
         }
-        originators.put(Bytes.toHex(baseTableRowId), sourceMutation); // needs to trace back errors correctly and also fail referencing rows.
         KVPair pair = constructUpdateToNull(baseTableRowId);
         pipelineBuffer.add(pair);
         mutationBuffer.putIfAbsent(pair, pair);

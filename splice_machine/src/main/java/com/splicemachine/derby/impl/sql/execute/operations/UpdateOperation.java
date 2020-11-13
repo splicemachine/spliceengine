@@ -217,7 +217,7 @@ public class UpdateOperation extends DMLWriteOperation{
             // because it has to be called after getCurrentTransaction() elevates the
             // transaction to writable.
             if (triggerHandler != null)
-                triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
+                triggerHandler.initTriggerRowHolders(isOlapServer() || SpliceClient.isClient(), txn, SpliceClient.token, 0);
 
             DataSetWriter writer=set.updateData(operationContext)
                     .execRowTypeFormatIds(execRowTypeFormatIds)

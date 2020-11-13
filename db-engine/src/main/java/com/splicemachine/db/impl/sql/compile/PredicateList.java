@@ -3329,11 +3329,9 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(!pred.isInListProbePredicate())
                 continue;
 
-                /* We're going to generate the relevant code for the probe
-                   * predicate below, so we no longer need it to be in the
-                   * list.  Remove it now.
-                   */
-            removeOptPredicate(pred);
+            /* We're going to generate the relevant code for the probe
+             * predicate below
+             */
 
             InListOperatorNode ilon=pred.getSourceInList();
             /* create a new method to get the probeValues*/
