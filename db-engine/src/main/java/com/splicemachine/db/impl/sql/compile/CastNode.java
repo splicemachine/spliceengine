@@ -1124,7 +1124,7 @@ public class CastNode extends ValueNode
 
     @Override
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        return castOperand.nonZeroCardinality(numberOfRows);
+        return castOperand.nonZeroCardinality(numberOfRows);   
     }
 
     @Override
