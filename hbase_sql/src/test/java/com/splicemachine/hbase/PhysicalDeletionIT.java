@@ -18,7 +18,6 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.hbase.TableName;

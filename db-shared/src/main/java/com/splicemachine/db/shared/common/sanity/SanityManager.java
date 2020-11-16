@@ -67,7 +67,7 @@ public class SanityManager {
      */
 
     public static final boolean ASSERT = Boolean.getBoolean("com.splicemachine.enableLegacyAsserts");
-    public static final boolean DEBUG = Boolean.getBoolean("com.splicemachine.enableLegacyAsserts");
+    public static boolean DEBUG = Boolean.getBoolean("com.splicemachine.enableLegacyAsserts");
 
     public static final String DEBUGDEBUG = "DumpSanityDebug";
 
