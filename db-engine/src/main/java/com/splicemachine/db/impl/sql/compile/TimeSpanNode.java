@@ -84,7 +84,7 @@ public class TimeSpanNode extends ValueNode
 
     public int hashCode() {
         int result = Objects.hash(getBaseHashCode(), unit);
-        return 31 * result + value.hashCode();
+        return 31 * result + (value == null ? 0 : value.hashCode());
     }
 
     @Override
