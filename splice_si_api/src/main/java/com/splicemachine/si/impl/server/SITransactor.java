@@ -327,6 +327,7 @@ public class SITransactor implements Transactor{
             conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
 
+            // todo DB-10761: improve this solution for the cases where we know that there's no conflicts and we don't need to check
             if (checkedConflicts) {
                 if (possibleConflicts == null || possibleConflicts.isEmpty())
                 {

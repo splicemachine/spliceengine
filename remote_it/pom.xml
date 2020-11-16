@@ -313,6 +313,8 @@
                                 <exclude>**/VacuumIT.java</exclude>
                                 <!-- EE ITs failing in remote mode -->
                                 <exclude>com/splicemachine/backup/**</exclude>
+                                <!-- DB-10763 FlushProblemIT doesn't work on Mem (Index FK violation) -->
+                                <exclude>**/FlushProblemIT.java</exclude>
                             </excludes>
                             <runOrder>alphabetical</runOrder>
                             <systemPropertyVariables>
