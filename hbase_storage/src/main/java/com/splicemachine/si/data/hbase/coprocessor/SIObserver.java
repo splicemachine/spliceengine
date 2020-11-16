@@ -349,8 +349,14 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
     }
 
     protected boolean shouldUseSI(OperationWithAttributes op){
+        if(op.getAttributesMap().isEmpty()) return false;
         if(op.getAttribute(SIConstants.SI_NEEDED)==null) return false;
         else return op.getAttribute(SIConstants.SUPPRESS_INDEXING_ATTRIBUTE_NAME)==null;
+    }
+
+    protected boolean shouldReadAllVersions(OperationWithAttributes op) {
+        if(op.getAttributesMap().isEmpty()) return false;
+        return op.getAttribute(SIConstants.ALL_VERSIONS) != null;
     }
 
     @SuppressWarnings("RedundantIfStatement") //we keep it this way for clarity
@@ -406,6 +412,10 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 get.setTimeRange(0L,Long.MAX_VALUE);
                 assert (get.getMaxVersions()==Integer.MAX_VALUE);
                 addSIFilterToGet(get);
+            }
+            if(tableEnvMatch && shouldReadAllVersions(get)) {
+                get.setMaxVersions();
+                get.setTimeRange(0L,Long.MAX_VALUE);
             }
             SpliceLogUtils.trace(LOG,"preGet after %s",get);
 
