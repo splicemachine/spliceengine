@@ -702,4 +702,21 @@ public class InsertOperationIT {
             }
         }
     }
+
+    @Test
+    public void testRegressionDb10753() throws Exception {
+        methodWatcher.executeUpdate("drop table if exists DB_10753");
+        methodWatcher.executeUpdate("create table DB_10753 (A boolean)");
+        methodWatcher.executeUpdate("insert into DB_10753 values (false), (null)");
+        try(ResultSet rs = methodWatcher.executeQuery("select * from DB_10753")) {
+            String expected = "A   |\n" +
+                    "-------\n" +
+                    "NULL  |\n" +
+                    "false |";
+            assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
+
+
+
 }
