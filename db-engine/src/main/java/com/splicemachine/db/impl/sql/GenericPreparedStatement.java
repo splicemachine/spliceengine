@@ -171,8 +171,10 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
         ModuleFactory moduleFactory = Monitor.getMonitor();
         if (moduleFactory != null) {
             UUIDFactory uuidFactory = moduleFactory.getUUIDFactory();
-            UUIDValue = uuidFactory.createUUID();
-            UUIDString = UUIDValue.toString();
+            if(uuidFactory != null) {
+                UUIDValue = uuidFactory.createUUID();
+                UUIDString = UUIDValue.toString();
+            }
         }
         spsAction = false;
     }
