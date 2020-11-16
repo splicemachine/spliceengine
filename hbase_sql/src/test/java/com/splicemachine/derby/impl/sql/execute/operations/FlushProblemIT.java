@@ -12,18 +12,21 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.triggers;
+package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
