@@ -28,15 +28,13 @@ import com.splicemachine.pipeline.client.WriteResult;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.context.WriteContext;
 import com.splicemachine.pipeline.writehandler.WriteHandler;
+import com.splicemachine.si.constants.SIConstants;
 import com.splicemachine.si.impl.SimpleTxnFilter;
 import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.txn.ActiveWriteTxn;
 import com.splicemachine.si.impl.txn.WritableTxn;
-import com.splicemachine.storage.DataCell;
-import com.splicemachine.storage.DataFilter;
-import com.splicemachine.storage.DataResult;
-import com.splicemachine.storage.Partition;
+import com.splicemachine.storage.*;
 import com.splicemachine.storage.util.MapAttributes;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.io.IOException;
@@ -118,7 +116,9 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler{
             }else
                 throw new IOException("invalidTxn");
 
-            Iterator<DataResult> iterator = table.batchGet(new MapAttributes(),rowKeysToFetch);
+            Attributable attributes = new MapAttributes();
+            attributes.addAttribute(SIConstants.ALL_VERSIONS, SIConstants.ALL_VERSIONS_VALUE);
+            Iterator<DataResult> iterator = table.batchGet(attributes,rowKeysToFetch);
             BitSet misses = new BitSet(rowKeysToFetch.size());
 
             int i = 0;
