@@ -284,6 +284,7 @@ public class SITransactor implements Transactor{
             ConflictResults conflictResults=ConflictResults.NO_CONFLICT;
             KVPair kvPair=baseDataAndLock.getFirst();
             KVPair.Type writeType=kvPair.getType();
+            boolean checkedConflicts = false;
             if(!skipConflictDetection && (constraintChecker!=null || !KVPair.Type.INSERT.equals(writeType))){
                 /*
                  *
@@ -295,6 +296,7 @@ public class SITransactor implements Transactor{
                  * applied on key elements.
                  */
                 //todo -sf remove the Row key copy here
+                checkedConflicts = true;
                 possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
                 if(possibleConflicts!=null && !possibleConflicts.isEmpty()){
                     //we need to check for write conflicts
@@ -336,6 +338,26 @@ public class SITransactor implements Transactor{
                     // Delete following first write
                     assert possibleConflicts.userData() != null;
                     addFirstOccurrenceToken = possibleConflicts.firstWriteToken().version() == possibleConflicts.userData().version();
+                }
+
+                if (addFirstOccurrenceToken && !checkedConflicts) {
+                    possibleConflicts = bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
+                    boolean addFirstOccurrenceToken2 = false;
+                    if (possibleConflicts == null || possibleConflicts.isEmpty())
+                    {
+                        // First write
+                        if (KVPair.Type.INSERT.equals(writeType) ||
+                                KVPair.Type.UPSERT.equals(writeType))
+                            addFirstOccurrenceToken2 = true;
+                    } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
+                        // Delete following first write
+                        assert possibleConflicts.userData() != null;
+                        addFirstOccurrenceToken2 = possibleConflicts.firstWriteToken().version() == possibleConflicts.userData().version();
+                    }
+
+                    if( addFirstOccurrenceToken != addFirstOccurrenceToken2 )
+                        throw new RuntimeException("----- MISMATCH: addFirstOccurrenceToken MISMATCH -----");
+
                 }
             }
 
