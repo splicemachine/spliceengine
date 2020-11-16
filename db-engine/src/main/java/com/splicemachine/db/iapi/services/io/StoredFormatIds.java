@@ -1185,6 +1185,12 @@ public interface StoredFormatIds {
             (MIN_ID_2 + 318);
 
     /**
+     class com.splicemachine.db.impl.sql.execute.TriggerInfoV2
+     */
+    int TRIGGER_INFO_V02_ID     =
+            (MIN_ID_2 + 319);
+
+    /**
     class com.splicemachine.db.Database.Language.Execution.SetTriggersConstantAction
      */
     int SET_TRIGGERS_CONSTANT_ACTION_V01_ID     =

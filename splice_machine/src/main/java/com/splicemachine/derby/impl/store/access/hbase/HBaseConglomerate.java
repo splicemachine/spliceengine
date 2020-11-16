@@ -353,8 +353,10 @@ public class HBaseConglomerate extends SpliceConglomerate{
         num_columns=in.readInt();
         columnOrdering=ConglomerateUtil.readFormatIdArray(num_columns,in);
 
-        partitionFactory=SIDriver.driver().getTableFactory();
-        opFactory=SIDriver.driver().getOperationFactory();
+        if( SIDriver.driver() != null ) {
+            partitionFactory = SIDriver.driver().getTableFactory();
+            opFactory = SIDriver.driver().getOperationFactory();
+        }
     }
 
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException{
