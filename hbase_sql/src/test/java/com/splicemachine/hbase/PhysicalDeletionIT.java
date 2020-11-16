@@ -21,10 +21,12 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.test_tools.TableCreator;
-import org.apache.hadoop.conf.Configuration;
+import com.splicemachine.test.SerialTest;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.ResultSet;
 
@@ -34,6 +36,8 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 5/24/17.
  */
+@SuppressFBWarnings("SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE")
+@Category(value = {SerialTest.class})
 public class PhysicalDeletionIT extends SpliceUnitTest {
 
     private static final String SCHEMA = PhysicalDeletionIT.class.getSimpleName().toUpperCase();
