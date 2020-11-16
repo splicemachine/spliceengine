@@ -601,7 +601,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         GenericDescriptorList<TriggerDescriptor> triggerList = new GenericDescriptorList<>();
         triggerList.add(triggerd);
 
-        TriggerInfoV2 triggerInfo = new TriggerInfoV2(targetTableDescriptor, null, triggerList);
+        TriggerInfo triggerInfo = new TriggerInfo(targetTableDescriptor, null, triggerList);
         // A special location to hold the temporary trigger descriptor
         // so we don't muck around with the dictionary cache.
         DataDictionaryCache.fromTableTriggerDescriptor.set(triggerd);

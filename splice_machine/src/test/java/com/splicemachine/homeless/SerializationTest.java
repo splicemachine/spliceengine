@@ -16,7 +16,6 @@ import com.splicemachine.db.impl.sql.CursorInfo;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.GenericResultDescription;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.db.impl.sql.execute.TriggerInfoV2;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
@@ -29,18 +28,6 @@ import java.sql.Types;
 import java.util.Arrays;
 
 public class SerializationTest {
-    final static String triggerInfoSerialization = "\\x00\\x00\\x00\\x01\\xD1\\x02W\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0\\x90G\\x81T\\x03TG\\xB2W\\x00\\x00\\x00\\x0A\\x0AA,\\x00\\x00\\x00\\x00\\xD2\\xB3\\x8FL\\xDA\\x80\\x00\\x00\\x00W\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0UU\\xC1K\\x00\\x00\\x00\\x04\\x00\\x01\\x01W\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0\\x19GAW\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x00\\x01\\x00\\x03NEW_RO\\xD7\\x03NEW_ROW.i = \\xB1\\x00\\x00\\x00\\x03p\\x02\\x03insert into b values \\xB1\\x03insert into b values \\xB2p\\x02W\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0x\\x9C\\x81UW\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0\\xA0\\xF1\\xC1V\\x00\\x00\\x00\\x00\\x00";
-    final static String triggerInfoToString = "TriggerInfo{columnIds=null, triggerDescriptors=[name=TG2\n" +
-            "id=90478154-0175-d076-fcc0-000000f33448\n" +
-            "oldReferencingName=NULL\n" +
-            "newReferencingName=NEW_ROW\n" +
-            "triggerDefinition = insert into b values 1\n" +
-            "triggerDefinition = insert into b values 2\n" +
-            "triggerDML=INSERT\n" +
-            "whenClauseText=NEW_ROW.i = 1\n" +
-            "version=3\n" +
-            "], columnNames=null, hasSpecialFromTableTrigger = %s}";
-
     byte[] serializeKryo(Object o, int size) throws IOException {
         Kryo kryo = SpliceKryoRegistry.getInstance().get();
         Output out = new Output(size);
@@ -64,23 +51,21 @@ public class SerializationTest {
     }
     @Test
     public void testTriggerInfo() throws IOException, ClassNotFoundException {
-        byte[] data = Bytes.toBytesBinary("\\xFF\\x01" // varint 253+2
-                + triggerInfoSerialization);
+        byte[] data = Bytes.toBytesBinary("\\xFF\\x01" +
+                "\\x00\\x00\\x00\\x01\\xD1\\x02W\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0\\x90G\\x81T\\x03TG\\xB2W\\x00\\x00\\x00\\x0A\\x0AA,\\x00\\x00\\x00\\x00\\xD2\\xB3\\x8FL\\xDA\\x80\\x00\\x00\\x00W\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0UU\\xC1K\\x00\\x00\\x00\\x04\\x00\\x01\\x01W\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0\\x19GAW\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00\\x00\\x00\\x01\\x00\\x00\\x01\\x00\\x03NEW_RO\\xD7\\x03NEW_ROW.i = \\xB1\\x00\\x00\\x00\\x03p\\x02\\x03insert into b values \\xB1\\x03insert into b values \\xB2p\\x02W\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0x\\x9C\\x81UW\\x00\\x00\\x00\\x00\\x00\\xF34H\\x00\\x00\\x01u\\xD0v\\xFC\\xC0\\xA0\\xF1\\xC1V\\x00\\x00\\x00\\x00\\x00");
         KryoObjectInput in = new KryoObjectInput(SpliceKryoRegistry.getInstance().get(), new Input(data));
         TriggerInfo o = (TriggerInfo) in.readObject();
         Assert.assertNotEquals(null, o);
-        Assert.assertEquals(String.format(triggerInfoToString, "false"), o.toString());
-        testSerDe(o, 1000);
-    }
-
-    @Test
-    public void testTriggerInfo2() throws IOException, ClassNotFoundException {
-        byte[] data = Bytes.toBytesBinary("\\xD3\\x02" // varint 337+2
-                + triggerInfoSerialization + "\\x01");
-        KryoObjectInput in = new KryoObjectInput(SpliceKryoRegistry.getInstance().get(), new Input(data));
-        TriggerInfoV2 o = (TriggerInfoV2) in.readObject();
-        Assert.assertNotEquals(null, o);
-        Assert.assertEquals( String.format(triggerInfoToString, "true"), o.toString());
+        Assert.assertEquals("TriggerInfo{columnIds=null, triggerDescriptors=[name=TG2\n" +
+                "id=90478154-0175-d076-fcc0-000000f33448\n" +
+                "oldReferencingName=NULL\n" +
+                "newReferencingName=NEW_ROW\n" +
+                "triggerDefinition = insert into b values 1\n" +
+                "triggerDefinition = insert into b values 2\n" +
+                "triggerDML=INSERT\n" +
+                "whenClauseText=NEW_ROW.i = 1\n" +
+                "version=3\n" +
+                "], columnNames=null}", o.toString());
         testSerDe(o, 1000);
     }
 
@@ -88,7 +73,6 @@ public class SerializationTest {
     public void testCursorInfo() throws IOException, ClassNotFoundException {
         byte[] data = Bytes.toBytesBinary("g\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x00\\x01\\x00");
         KryoObjectInput in = new KryoObjectInput(SpliceKryoRegistry.getInstance().get(), new Input(data));
-        boolean b = SanityManager.DEBUG; SanityManager.DEBUG = true;
         CursorInfo o = (CursorInfo) in.readObject();
         Assert.assertNotEquals(null, o);
         Assert.assertEquals("CursorInfo\n" +
@@ -97,7 +81,6 @@ public class SerializationTest {
                 "\tupdateColumns: NULL\n" +
                 "\tTargetColumnDescriptors: \n" +
                 "NULL", o.toString());
-        SanityManager.DEBUG = b;
         testSerDe(o, 15);
     }
 
@@ -107,10 +90,8 @@ public class SerializationTest {
         KryoObjectInput in = new KryoObjectInput(SpliceKryoRegistry.getInstance().get(), new Input(data));
         GenericStorablePreparedStatement o = (GenericStorablePreparedStatement) in.readObject();
         Assert.assertNotEquals(null, o);
-        boolean b = SanityManager.DEBUG; SanityManager.DEBUG = true;
-        Assert.assertEquals( "GSPS " + System.identityHashCode(o) + " activationClassName=null " +
+        Assert.assertEquals( "GenericStorablePreparedStatement activationClassName=null " +
                 "className=com.splicemachine.db.exe.ac34b10149x0175xd076xfcc0x000000f334484", o.toString());
-        SanityManager.DEBUG = b;
         testSerDe(o, 5000);
     }
 

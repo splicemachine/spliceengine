@@ -235,17 +235,13 @@ public class GenericStorablePreparedStatement extends GenericPreparedStatement
 
     @Override
     public String toString() {
-        if (SanityManager.DEBUG) {
-            String acn;
-            if (activationClass == null)
-                acn = "null";
-            else
-                acn = activationClass.getName();
+        String acn;
+        if (activationClass == null)
+            acn = "null";
+        else
+            acn = activationClass.getName();
 
-            return "GSPS " + System.identityHashCode(this) + " activationClassName=" + acn + " className=" + className;
-        } else {
-            return "";
-        }
+        return "GenericStorablePreparedStatement activationClassName=" + acn + " className=" + className;
     }
 
 

@@ -37,12 +37,12 @@ import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.*;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIED_FINAL_TABLE;
 
@@ -51,19 +51,50 @@ import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIE
  * about a foreign key.  Used by DML to figure out what to
  * check.
  */
-public class TriggerInfo implements Formatable {
+@SuppressFBWarnings("EI_EXPOSE_REP")
+public final class TriggerInfo implements Formatable {
 
-    TriggerDescriptor[] triggerDescriptors;
-    String[] columnNames;
-    int[] columnIds;
-    boolean hasSpecialFromTableTrigger = false;
+    private TriggerDescriptor[] triggerDescriptors;
+    private String[] columnNames;
+    private int[] columnIds;
 
     /**
      * Default constructor for Formattable
      */
     public TriggerInfo() {
     }
-    // do not use constructors with this class anymore. use TriggerInfoV2.
+
+    /**
+     * Constructor for TriggerInfo
+     *
+     * @param td          the table upon which the trigger is declared
+     * @param changedCols the columns that are changed in the dml that is causing the trigger to fire
+     * @param triggers    the list of trigger descriptors
+     */
+    public TriggerInfo(TableDescriptor td, int[] changedCols, GenericDescriptorList<TriggerDescriptor> triggers) {
+
+        this.columnIds = changedCols;
+        if (columnIds != null) {
+            /* Find the names of all the columns that are being changed. */
+            columnNames = new String[columnIds.length];
+            for (int i = 0; i < columnIds.length; i++) {
+                columnNames[i] = td.getColumnDescriptor(columnIds[i]).getColumnName();
+            }
+        }
+
+        if (SanityManager.DEBUG) {
+            SanityManager.ASSERT(triggers != null, "null trigger descriptor list");
+            SanityManager.ASSERT(triggers != null && !triggers.isEmpty(), "trigger descriptor list has no elements");
+        }
+
+        /* Copy the trigger descriptors into an array of the right type */
+        Iterator<TriggerDescriptor> descIter = triggers.iterator();
+        int size = triggers.size();
+        triggerDescriptors = new TriggerDescriptor[size];
+        for (int i = 0; i < size; i++) {
+            triggerDescriptors[i] = descIter.next();
+        }
+    }
 
     public boolean hasBeforeStatementTrigger() {
         return hasTrigger(true, false);
@@ -141,7 +172,6 @@ public class TriggerInfo implements Formatable {
                 "columnIds=" + Arrays.toString(columnIds) +
                 ", triggerDescriptors=" + Arrays.toString(triggerDescriptors) +
                 ", columnNames=" + Arrays.toString(columnNames) +
-                ", hasSpecialFromTableTrigger = " + Boolean.toString(hasSpecialFromTableTrigger) +
                 '}';
     }
 
@@ -195,6 +225,16 @@ public class TriggerInfo implements Formatable {
         return StoredFormatIds.TRIGGER_INFO_V01_ID;
     }
 
-    public boolean hasSpecialFromTableTrigger() { return hasSpecialFromTableTrigger; }
+    public boolean hasSpecialFromTableTrigger() {
+        boolean hasSpecialFromTableTrigger = false;
+        for (int i = 0; i < triggerDescriptors.length; i++) {
+            if (triggerDescriptors[i] instanceof TriggerDescriptorV4) {
+                TriggerDescriptorV4 triggerDesc = (TriggerDescriptorV4) triggerDescriptors[i];
+                if (triggerDesc.isSpecialFromTableTrigger())
+                    hasSpecialFromTableTrigger = true;
+            }
+        }
+        return hasSpecialFromTableTrigger;
+    }
 
 }
