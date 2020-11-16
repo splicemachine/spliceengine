@@ -716,7 +716,4 @@ public class InsertOperationIT {
             assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
-
-
-
 }
