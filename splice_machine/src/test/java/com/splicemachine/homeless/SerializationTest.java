@@ -1,6 +1,5 @@
 package com.splicemachine.homeless;
 
-import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.KryoObjectInput;
 import com.esotericsoftware.kryo.io.Output;
@@ -8,7 +7,6 @@ import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -19,6 +17,7 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.spark.sql.types.StructField;
 import org.junit.Assert;
 import org.junit.Test;
@@ -28,17 +27,17 @@ import java.sql.Types;
 import java.util.Arrays;
 
 public class SerializationTest {
+    KryoPool kryoPool = SpliceKryoRegistry.getInstance();
+
     byte[] serializeKryo(Object o, int size) throws IOException {
-        Kryo kryo = SpliceKryoRegistry.getInstance().get();
         Output out = new Output(size);
-        KryoObjectOutput koo = new KryoObjectOutput(out, kryo);
+        KryoObjectOutput koo = new KryoObjectOutput(out, kryoPool.get());
         koo.writeObject(o);
         return out.getBuffer();
     }
 
     Object deserializeKryo(byte[] data) throws IOException, ClassNotFoundException {
-        Kryo kryo = SpliceKryoRegistry.getInstance().get();
-        KryoObjectInput in = new KryoObjectInput(kryo, new Input(data));
+        KryoObjectInput in = new KryoObjectInput(kryoPool.get(), new Input(data));
         return in.readObject();
     }
 
