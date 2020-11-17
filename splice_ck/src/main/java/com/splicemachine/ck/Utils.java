@@ -25,9 +25,11 @@ import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.txn.Txn;
 import com.splicemachine.utils.Pair;
+import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.TableNotFoundException;
+import org.apache.hadoop.hbase.client.Result;
 
 import java.io.UncheckedIOException;
 import java.util.*;
@@ -43,6 +45,25 @@ public class Utils {
         conf.set(Constants.HBASE_CONFIGURATION_ZOOKEEPER_QUORUM, zkq);
         conf.set(Constants.HBASE_CONFIGURATION_ZOOKEEPER_CLIENTPORT, Integer.toString(port));
         return conf;
+    }
+
+    /**
+     * helper method to print when results are truncated
+     */
+    public static String limitString(int limit)
+    {
+        return "   .\n   .\n   .\n" + Colored.red(
+                "--- Result list was limited to " + limit + " entries, " + "result was cut off ---");
+    }
+
+    /**
+     * get the string representation of the row id
+     * @param hbaseStyle if true, add hbase Style binary printing (e.g. b2b75d580918e001 / \xB2\xB7]X\x09\x18\xE0\x01 )
+     */
+    public static String getRowId(Result row, boolean hbaseStyle)
+    {
+        String hbaseStr = !hbaseStyle ? "" : " / " + com.splicemachine.primitives.Bytes.toStringBinary(row.getRow());
+        return "Row " + Hex.encodeHexString(row.getRow()) + hbaseStr;
     }
 
     public static class Tabular {

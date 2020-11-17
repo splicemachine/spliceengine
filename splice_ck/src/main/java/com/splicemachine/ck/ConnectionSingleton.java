@@ -5,7 +5,7 @@ import org.apache.hadoop.conf.Configuration;
 
 import java.io.IOException;
 
-public class ConnectionCache {
+public class ConnectionSingleton {
 
     static ConnectionWrapper c;
     public static ConnectionWrapper getConnection(final Configuration config) throws IOException {
