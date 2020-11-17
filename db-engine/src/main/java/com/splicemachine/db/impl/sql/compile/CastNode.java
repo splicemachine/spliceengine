@@ -504,6 +504,22 @@ public class CastNode extends ValueNode
                         sourceCTI.getSQLTypeName(),
                         getTypeId().getSQLTypeName());
             }
+            /* DB-10646 removes the restriction of casting from numeric types to char
+             * or varchar types. Generally, it's allowed in both explicit and implicit
+             * cast. However, if an implicit cast is generated on a function argument,
+             * we should disable it for now since that might change the semantic and
+             * lead to incorrect result. An example:
+             * In DB2, hex() accepts decimal values and hex(2.5) = 0x025C, which is
+             * the internal binary representation of the decimal value.
+             * In Splice, hex() accepts only varchar. With implicit cast allowed,
+             * hex(2.5) == hex(varchar(2.5)) == hex('2.5') = 0x322E35.
+             * But if user writes hex(cast(2.5 as varchar(3))), it should be accepted.
+             */
+            if (tc instanceof NumericTypeCompiler && getTypeId().isCharOrVarChar() && assignmentSemantics) {
+                throw StandardException.newException(SQLState.LANG_INVALID_CAST,
+                        sourceCTI.getSQLTypeName(),
+                        getTypeId().getSQLTypeName());
+            }
         }
 
         //
