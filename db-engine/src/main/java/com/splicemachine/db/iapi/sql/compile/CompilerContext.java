@@ -676,6 +676,10 @@ public interface CompilerContext extends Context
 
     DataSetProcessorType getDataSetProcessorType();
 
+    SparkExecutionType getSparkExecutionType();
+
+    void setSparkExecutionType(SparkExecutionType type) throws StandardException;
+
     boolean skipStats(int tableNumber);
 
     Vector<Integer> getSkipStatsTableList();

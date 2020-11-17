@@ -126,7 +126,7 @@ public final class InsertNode extends DMLModStatementNode {
     private     double             sampleFraction;
     private     String             indexName;
 
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
 
 
     protected   RowLocation[]         autoincRowLocation;
@@ -800,8 +800,8 @@ public final class InsertNode extends DMLModStatementNode {
                 try {
                     dataSetProcessorType = dataSetProcessorType.combine(
                             Boolean.parseBoolean(StringUtil.SQLToUpperCase(val)) ?
-                            DataSetProcessorType.QUERY_HINTED_SPARK :
-                            DataSetProcessorType.QUERY_HINTED_CONTROL);
+                            DataSetProcessorType.QUERY_HINTED_OLAP :
+                            DataSetProcessorType.QUERY_HINTED_OLTP);
                 } catch (Exception sparkE) {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK,
                             propertyStr, val);
@@ -946,7 +946,7 @@ public final class InsertNode extends DMLModStatementNode {
         resultSet.pushOffsetFetchFirst( offset, fetchFirst, hasJDBClimitClause );
 
         if (targetTableDescriptor != null && targetTableDescriptor.getStoredAs() != null) {
-            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
         }
         getCompilerContext().setDataSetProcessorType(dataSetProcessorType);
 
