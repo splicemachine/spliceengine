@@ -23,9 +23,10 @@ message BaseTypeIdImpl {
   extensions 1000 to max;
   enum Type
   {
-    UserDefinedTypeIdImpl = 1;
-    DecimalTypeIdImpl = 2;
-    RowMultiSetImpl=3;
+    BaseTypeIdImpl = 1;
+    UserDefinedTypeIdImpl = 2;
+    DecimalTypeIdImpl = 3;
+    RowMultiSetImpl=4;
   }
   optional Type type = 1;
 

@@ -241,7 +241,7 @@ public class RowMultiSetImpl extends BaseTypeIdImpl
 
         CatalogMessage.BaseTypeIdImpl baseTypeId = super.toProtobuf();
         CatalogMessage.BaseTypeIdImpl.Builder builder = CatalogMessage.BaseTypeIdImpl.newBuilder().mergeFrom(baseTypeId);
-        builder.setType(CatalogMessage.BaseTypeIdImpl.Type.valueOf(CatalogMessage.BaseTypeIdImpl.Type.RowMultiSetImpl_VALUE))
+        builder.setType(CatalogMessage.BaseTypeIdImpl.Type.RowMultiSetImpl)
                 .setExtension(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl, rowMultiSet);
         return builder.build();
     }

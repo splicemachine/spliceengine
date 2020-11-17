@@ -114,7 +114,7 @@ public class DecimalTypeIdImpl extends BaseTypeIdImpl
 
 		CatalogMessage.BaseTypeIdImpl baseTypeId = super.toProtobuf();
 		CatalogMessage.BaseTypeIdImpl.Builder builder = CatalogMessage.BaseTypeIdImpl.newBuilder().mergeFrom(baseTypeId);
-		builder.setType(CatalogMessage.BaseTypeIdImpl.Type.valueOf(CatalogMessage.BaseTypeIdImpl.Type.DecimalTypeIdImpl_VALUE))
+		builder.setType(CatalogMessage.BaseTypeIdImpl.Type.DecimalTypeIdImpl)
 				.setExtension(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl, decimalTypeId);
 		return builder.build();
 	}

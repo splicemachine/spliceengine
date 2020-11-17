@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.catalog.types2;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
@@ -517,7 +518,12 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
          throws IOException, ClassNotFoundException
     {
         byte[] bs = ArrayUtil.readByteArray(in);
-        CatalogMessage.TypeDescriptorImpl typeDescriptor = CatalogMessage.TypeDescriptorImpl.parseFrom(bs);
+        ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+        extensionRegistry.add(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+        extensionRegistry.add(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+        extensionRegistry.add(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+
+        CatalogMessage.TypeDescriptorImpl typeDescriptor = CatalogMessage.TypeDescriptorImpl.parseFrom(bs, extensionRegistry);
         typeId = BaseTypeIdImpl.fromProtobuf(typeDescriptor.getTypeId());
         precision = typeDescriptor.getPrecision();
 

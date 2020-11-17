@@ -33,6 +33,7 @@ package com.splicemachine.db.catalog.types2;
 
 import com.clearspring.analytics.util.Lists;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
@@ -318,7 +319,12 @@ public class RoutineAliasInfo extends MethodAliasInfo
 	{
 		super.readExternal(in);
 		byte[] bs = ArrayUtil.readByteArray(in);
-		CatalogMessage.RoutineAliasInfo routineAliasInfo = CatalogMessage.RoutineAliasInfo.parseFrom(bs);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+		extensionRegistry.add(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+		extensionRegistry.add(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+
+		CatalogMessage.RoutineAliasInfo routineAliasInfo = CatalogMessage.RoutineAliasInfo.parseFrom(bs, extensionRegistry);
 		if (routineAliasInfo.hasSpecificName()) {
 			specificName = routineAliasInfo.getSpecificName();
 		}
@@ -401,8 +407,10 @@ public class RoutineAliasInfo extends MethodAliasInfo
 				.setParameterStyle(parameterStyle)
 				.setSqlOptions(sqlOptions)
 				.setCalledOnNullInput(calledOnNullInput)
-				.setExpansionNum(expansionNum)
-				.addAllParameterNames(Arrays.asList(parameterNames));
+				.setExpansionNum(expansionNum);
+		if (parameterCount > 0) {
+			builder.addAllParameterNames(Arrays.asList(parameterNames));
+		}
 		for (int i = 0; i < parameterCount; ++i) {
 			builder.addParameterTypes(((TypeDescriptorImpl)parameterTypes[i]).toProtobuf());
 			builder.addParameterModes(parameterModes[i]);

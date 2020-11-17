@@ -373,11 +373,17 @@ public class BaseTypeIdImpl implements Formatable
                     decimalTypeIdImpl.setNumericType();
                 }
                 break;
+            case BaseTypeIdImpl:
+            default:
+                typeId = new BaseTypeIdImpl();
+                break;
         }
 
         typeId.JDBCTypeId = baseTypeId.getJDBCTypeId();
         typeId.formatId = baseTypeId.getFormatId();
-        typeId.unqualifiedName = baseTypeId.getUnqualifiedName();
+        if (baseTypeId.hasUnqualifiedName()) {
+            typeId.unqualifiedName = baseTypeId.getUnqualifiedName();
+        }
 
         //
         // If the name begins with a quote, then it is just the first part
@@ -419,7 +425,9 @@ public class BaseTypeIdImpl implements Formatable
         if (schemaName != null) {
             builder.setSchemaName(doubleQuote(schemaName));
         }
-        builder.setUnqualifiedName(unqualifiedName);
+        if (unqualifiedName != null) {
+            builder.setUnqualifiedName(unqualifiedName);
+        }
         return builder.build();
     }
 

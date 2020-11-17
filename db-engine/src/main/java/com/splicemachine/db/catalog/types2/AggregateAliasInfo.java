@@ -35,6 +35,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -137,7 +138,11 @@ public class AggregateAliasInfo implements AliasInfo, Formatable
 		 throws IOException, ClassNotFoundException
 	{
 		byte[] bs = ArrayUtil.readByteArray(in);
-		CatalogMessage.AggregateAliasInfo aggregateAliasInfo = CatalogMessage.AggregateAliasInfo.parseFrom(bs);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+		extensionRegistry.add(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+		extensionRegistry.add(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+		CatalogMessage.AggregateAliasInfo aggregateAliasInfo = CatalogMessage.AggregateAliasInfo.parseFrom(bs, extensionRegistry);
         _forType = TypeDescriptorImpl.fromProtobuf(aggregateAliasInfo.getForType());
         _returnType = TypeDescriptorImpl.fromProtobuf(aggregateAliasInfo.getReturnType());
 	}
