@@ -17,38 +17,30 @@ package com.splicemachine.derby.transactions;
 
 import com.splicemachine.access.HConfiguration;
 import com.splicemachine.derby.impl.storage.TableSplit;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceTestDataSource;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.impl.TxnUtils;
+import com.splicemachine.storage.CellType;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.client.ConnectionFactory;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.ResultScanner;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.Table;
+import org.apache.hadoop.hbase.client.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashMap;
 
-import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -178,6 +170,17 @@ public class TransactionResolutionIT {
         }
     }
 
+    static int getRowNums(Table table) throws IOException {
+        try( ResultScanner rs = table.getScanner(new Scan())) {
+            Result result;
+            int count = 0;
+            while ((result = rs.next()) != null) {
+                count += result.size();
+            }
+            return count;
+        }
+    }
+
     @Test
     public void testTransactionResolutionFlush() throws Exception {
         try (Connection conn1 = dataSource.getConnection("localhost", 1527)) {
@@ -190,13 +193,14 @@ public class TransactionResolutionIT {
 
             //noinspection unchecked
             new TableCreator(conn1)
-                    .withCreate(String.format("create table %s (i int)", tableName))
+                    .withCreate(String.format("create table %s (i int PRIMARY KEY)", tableName))
                     .create();
             conn1.commit();
 
-            try (PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s values 1", tableName))) {
+            try (PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s values ?", tableName))) {
 
                 for (int i = 0; i < 256; ++i) {
+                    ps.setInt(1, i);
                     ps.execute();
                 }
 
@@ -206,6 +210,7 @@ public class TransactionResolutionIT {
 
 
                 for (int i = 0; i < 256; ++i) {
+                    ps.setInt(1, i+256);
                     ps.execute();
                 }
 
@@ -215,38 +220,32 @@ public class TransactionResolutionIT {
                 try (org.apache.hadoop.hbase.client.Connection hbaseConn = ConnectionFactory.createConnection(config)) {
                     Table table = hbaseConn.getTable(TableName.valueOf("splice:" + conglomerateId));
 
-                    Scan scan = new Scan();
-                    try (ResultScanner rs = table.getScanner(scan)) {
-
-                        Result result;
-                        int count = 0;
-                        while ((result = rs.next()) != null) {
-                            count += result.size();
-                        }
-                        assertEquals(1024, count);
-                    }
-
-
+                    assertEquals(1024, getRowNums(table));
                     hbaseConn.getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
 
                     Thread.sleep(4000);
 
-                    try (ResultScanner rs = table.getScanner(scan)) {
-
-                        Result result;
-                        int count = 0;
-                        while ((result = rs.next()) != null) {
-                            count += result.size();
-                        }
-                        // Only half of the rows should be resolved
-                        assertEquals(1024 + 256, count);
-                    }
+                    // Only half of the rows should be resolved
+                    assertEquals(1024+256, getRowNums(table));
                 }
             }
             conn1.rollback();
         }
     }
 
+    static HashMap<CellType, Integer> getTableCellTypes(Table table) throws IOException {
+        HashMap<CellType, Integer> m = new HashMap<>();
+        try( ResultScanner rs = table.getScanner(new Scan())) {
+            Result result;
+            while ((result = rs.next()) != null) {
+                while (result.advance()) {
+                    CellType ct = CellUtils.getKeyValueType(result.current());
+                    m.put(ct, m.getOrDefault(ct, 0) + 1);
+                }
+            }
+            return m;
+        }
+    }
     @Test
     public void testTransactionResolutionCompaction() throws Exception {
         try (Connection conn1 = dataSource.getConnection("localhost", 1527)) {
@@ -255,78 +254,76 @@ public class TransactionResolutionIT {
             conn1.setSchema(SCHEMA);
             String tableName = "COMPACTION";
             new TableDAO(conn1).drop(SCHEMA, tableName);
+            HashMap<CellType, Integer> counts;
 
 
             //noinspection unchecked
             new TableCreator(conn1)
-                    .withCreate(String.format("create table %s (i int)", tableName))
+                    .withCreate(String.format("create table %s (i int PRIMARY KEY)", tableName))
                     .create();
             conn1.commit();
 
-            try (PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s values 1", tableName))) {
+            long conglomerateId = TableSplit.getConglomerateId(conn1, SCHEMA, tableName, null);
+            Configuration config = HConfiguration.unwrapDelegate();
+            TableName t = TableName.valueOf("splice:" + conglomerateId);
 
-                for (int i = 0; i < 256; ++i) {
+            int Ninsert1 = 100;
+            int Ninsert2 = 10;
+
+            try (PreparedStatement ps = conn1.prepareStatement(String.format("insert into %s values ?", tableName))) {
+
+                for (int i = 0; i < Ninsert1; ++i) {
+                    ps.setInt(1, i);
                     ps.execute();
                 }
 
-                long conglomerateId = TableSplit.getConglomerateId(conn1, SCHEMA, tableName, null);
-                Configuration config = HConfiguration.unwrapDelegate();
                 try (org.apache.hadoop.hbase.client.Connection hbaseConn = ConnectionFactory.createConnection(config)) {
-                    hbaseConn.getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
+                    hbaseConn.getAdmin().flush(t);
+                    Table table = hbaseConn.getTable(t);
+
+                    counts = getTableCellTypes(table);
+                    assertEquals( 2, counts.size() );
+                    assertEquals( Ninsert1, counts.get(CellType.USER_DATA).intValue() );
+                    assertEquals( Ninsert1, counts.get(CellType.FIRST_WRITE_TOKEN).intValue() );
 
                     Thread.sleep(1000);
 
                     conn1.commit();
 
-                    for (int i = 0; i < 256; ++i) {
+                    for (int i = 0; i < Ninsert2; ++i) {
+                        ps.setInt(1, Ninsert1+i);
                         ps.execute();
                     }
 
-                    hbaseConn.getAdmin().flush(TableName.valueOf("splice:" + conglomerateId));
-                    Table table = hbaseConn.getTable(TableName.valueOf("splice:" + conglomerateId));
-                    Scan scan = new Scan();
-                    try (ResultScanner rs = table.getScanner(scan)) {
+                    hbaseConn.getAdmin().flush(t);
 
-                        Result result;
-                        int count = 0;
-                        while ((result = rs.next()) != null) {
-                            count += result.size();
-                        }
-                        assertEquals(1024, count);
-                    }
+                    counts = getTableCellTypes(table);
+                    assertEquals( 2, counts.size() );
+                    assertEquals( Ninsert1+Ninsert2, counts.get(CellType.USER_DATA).intValue() );
+                    assertEquals( Ninsert1+Ninsert2, counts.get(CellType.FIRST_WRITE_TOKEN).intValue() );
 
-                    hbaseConn.getAdmin().majorCompact(TableName.valueOf("splice:" + conglomerateId));
+                    hbaseConn.getAdmin().majorCompact(t);
 
                     try (Statement st = conn1.createStatement()) {
                         st.execute(String.format("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE( '%s', '%s')", SCHEMA, tableName));
 
                         Thread.sleep(2000);
-                        try (ResultScanner rs = table.getScanner(scan)) {
-
-                            Result result;
-                            int count = 0;
-                            while ((result = rs.next()) != null) {
-                                count += result.size();
-                            }
-                            // Only half of the rows should be resolved
-                            assertEquals(1024 + 256, count);
-                        }
-
+                        // Only half of the rows should be resolved
+                        counts = getTableCellTypes(table);
+                        assertEquals( 3, counts.size() );
+                        assertEquals( Ninsert1+Ninsert2, counts.get(CellType.USER_DATA).intValue() );
+                        assertEquals( Ninsert1+Ninsert2, counts.get(CellType.FIRST_WRITE_TOKEN).intValue() );
+                        assertEquals( Ninsert1, counts.get(CellType.COMMIT_TIMESTAMP).intValue() );
                         conn1.commit();
                         st.execute(String.format("call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE( '%s', '%s')", SCHEMA, tableName));
                     }
 
                     Thread.sleep(2000);
-                    try (ResultScanner rs = table.getScanner(scan)) {
-
-                        Result result;
-                        int count = 0;
-                        while ((result = rs.next()) != null) {
-                            count += result.size();
-                        }
-                        // All rows should be resolved
-                        assertEquals(1024 + 512, count);
-                    }
+                    counts = getTableCellTypes(table);
+                    assertEquals( 3, counts.size() );
+                    assertEquals( Ninsert1+Ninsert2, counts.get(CellType.USER_DATA).intValue() );
+                    assertEquals( Ninsert1+Ninsert2, counts.get(CellType.FIRST_WRITE_TOKEN).intValue() );
+                    assertEquals( Ninsert1+Ninsert2, counts.get(CellType.COMMIT_TIMESTAMP).intValue() );
                     conn1.rollback();
                 }
 
