@@ -71,6 +71,18 @@ public class FromFinalTableIT extends SpliceUnitTest {
         }
         catch (Exception e) {
         }
+        sqlText = "drop alias a1";
+        try {
+            spliceClassWatcher.executeUpdate(sqlText);
+        }
+        catch (Exception e) {
+        }
+        sqlText = "drop alias a11";
+        try {
+            spliceClassWatcher.executeUpdate(sqlText);
+        }
+        catch (Exception e) {
+        }
 
         sqlText = "drop table if exists t1";
 		spliceClassWatcher.executeUpdate(sqlText);
@@ -99,6 +111,13 @@ public class FromFinalTableIT extends SpliceUnitTest {
 
         sqlText = "insert into t11 select * from t1";
 		spliceClassWatcher.executeUpdate(sqlText);
+
+        new TableCreator(conn)
+                .withCreate("create alias a1 for t1")
+                .create();
+        new TableCreator(conn)
+                .withCreate("create synonym a11 for t11")
+                .create();
     }
 
     @Before
@@ -253,6 +272,60 @@ public class FromFinalTableIT extends SpliceUnitTest {
 //        "\n SELECT * from t11) WHERE a not in (select a+a from t11)";
 //
 //        testQuery(sql, expected, methodWatcher);
+    }
+
+    @Test
+    public void testSynonym() throws Exception {
+        String sql = "SELECT a, b FROM FINAL TABLE (INSERT INTO A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n values (1,'alias1')) ";
+        String
+        expected =
+            "A |   B   |\n" +
+            "------------\n" +
+            " 1 |alias1 |";
+
+        testQuery(sql, expected, methodWatcher);
+
+        sql = "SELECT a, b FROM FINAL TABLE (INSERT INTO A11 --splice-properties useSpark=" + useSpark.toString() +
+        "\n values (1,'alias1')) ";
+        testQuery(sql, expected, methodWatcher);
+
+        expected =
+            "A |   B   |\n" +
+            "------------\n" +
+            " 1 |   a   |\n" +
+            " 1 |alias1 |\n" +
+            "11 |   z   |\n" +
+            "12 |  xyz  |\n" +
+            " 2 |   a   |\n" +
+            " 3 |  ab   |\n" +
+            " 4 |  abc  |\n" +
+            " 5 |  a b  |\n" +
+            " 6 | abcd  |";
+        sql = "SELECT a, b FROM FINAL TABLE (INSERT INTO A11 --splice-properties useSpark=" + useSpark.toString() +
+        "\n SELECT a,b from A1) ";
+        testQuery(sql, expected, methodWatcher);
+
+        expected =
+            "A |   B   |\n" +
+            "------------\n" +
+            "10 |  abc  |\n" +
+            "11 |  a b  |\n" +
+            "12 | abcd  |\n" +
+            "17 |   z   |\n" +
+            "18 |  xyz  |\n" +
+            " 7 |   a   |\n" +
+            " 7 |alias1 |\n" +
+            " 8 |   a   |\n" +
+            " 9 |  ab   |";
+        sql = "SELECT a, b FROM FINAL TABLE (UPDATE A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n set a = a+6 where b in (select b from a11)) ";
+        testQuery(sql, expected, methodWatcher);
+
+        sql = "SELECT a, b FROM OLD TABLE (DELETE FROM A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n where b in (select b from a11)) ";
+        testQuery(sql, expected, methodWatcher);
+
     }
 
 }
