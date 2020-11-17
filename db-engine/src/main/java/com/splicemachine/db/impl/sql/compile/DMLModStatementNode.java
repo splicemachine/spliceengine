@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Hashtable;
@@ -60,6 +61,7 @@ import java.util.Vector;
  *
  */
 
+@SuppressFBWarnings({"UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"})
 abstract class DMLModStatementNode extends DMLStatementNode
 {
 //    protected DataDictionary    dataDictionary;
@@ -70,7 +72,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 
     protected FKInfo[]            fkInfo;            // array of FKInfo structures
                                                 // generated during bind
-    protected TriggerInfo        triggerInfo;    // generated during bind
+    protected TriggerInfo       triggerInfo;    // generated during bind
     public TableDescriptor        targetTableDescriptor;
 
 

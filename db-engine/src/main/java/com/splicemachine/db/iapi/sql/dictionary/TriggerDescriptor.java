@@ -590,7 +590,18 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 
     @Override
     public String toString() {
-        return "name=" + name;
+        StringBuilder sb = new StringBuilder();
+        sb.append("name=" + name + "\n");
+        sb.append("id=" + id + "\n");
+        sb.append("oldReferencingName=" + (oldReferencingName==null?"NULL":oldReferencingName)  + "\n");
+        sb.append("newReferencingName=" + (newReferencingName==null?"NULL":newReferencingName)  + "\n");
+        for(String def : triggerDefinitionList)
+            sb.append("triggerDefinition = " + def + "\n");
+        sb.append("triggerDML=" + triggerDML.toString() + "\n");
+        sb.append("whenClauseText=" + (whenClauseText==null?"NULL":whenClauseText)  + "\n");
+        sb.append("version=" + version + "\n");
+
+        return sb.toString();
     }
 
     ////////////////////////////////////////////////////////////////////
