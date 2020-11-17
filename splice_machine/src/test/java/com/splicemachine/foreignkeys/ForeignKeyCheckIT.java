@@ -22,6 +22,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
+import java.sql.Connection;
 import java.sql.Statement;
 import java.util.regex.Pattern;
 
@@ -724,6 +725,35 @@ public class ForeignKeyCheckIT {
         }
     }
 
+    @Test
+    public void rowHistoryIsReadyCorrectly() throws Exception {
+            new TableCreator(conn)
+                    .withCreate("create table P(col1 int, col2 varchar(2), col3 int, col4 int, primary key (col2, col4))")
+                    .withInsert("insert into P values(?,?,?,?)")
+                    .withRows(rows(row(1, "a", 1, 1)))
+                    .create();
+            new TableCreator(conn)
+                    .withCreate("create table C (col1 int primary key, col2 varchar(2), col3 int, col4 int, constraint CHILD_FKEY foreign key(col2, col3) references P(col2, col4) )")
+                    .create();
+            conn.commit();
+
+        try(Connection c = newNoAutoCommitConnection()) {
+            c.setAutoCommit(false);
+
+            try (Statement statement = c.createStatement()) {
+                statement.executeUpdate("update P set col1 = 42");
+            }
+            c.rollback();
+        }
+
+        try(Connection conn = newNoAutoCommitConnection()) {
+            try(Statement s = conn.createStatement()) {
+                s.executeUpdate("insert into C values (400, 'a', 1, 42)"); // should not fail
+            }
+            conn.commit();
+        }
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // FK is UNIQUE in child table -- this is a very distinct case because we will reuse the unique index in the
@@ -778,6 +808,12 @@ public class ForeignKeyCheckIT {
             assertTrue(String.format("exception '%s' did not match expected pattern '%s'", e.getMessage(), expectedExceptionMessagePattern),
                     Pattern.compile(expectedExceptionMessagePattern).matcher(e.getMessage()).matches());
         }
+    }
+
+    private Connection newNoAutoCommitConnection() throws Exception {
+        Connection connection = methodWatcher.createConnection();
+        connection.setAutoCommit(false);
+        return connection;
     }
 
 }
