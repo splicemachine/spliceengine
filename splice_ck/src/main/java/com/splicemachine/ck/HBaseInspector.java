@@ -94,8 +94,8 @@ public class HBaseInspector {
         Utils.Tabular tabular = new Utils.Tabular(Utils.Tabular.SortHint.AsString, TBL_TABLES_COL0, TBL_TABLES_COL1,
                                                   TBL_TABLES_COL2, TBL_TABLES_COL3, TBL_TABLES_COL4);
 
-        final List<TableDescriptor> descriptors = getCachedConnection().descriptorsOfPattern(Constants.SPLICE_PATTERN);
-        for (TableDescriptor td : descriptors) {
+        final HTableDescriptor[] descriptors = getCachedConnection().descriptorsOfPattern(Constants.SPLICE_PATTERN);
+        for (HTableDescriptor td : descriptors) {
             tabular.addRow(filter, checkNull(td.getTableName().toString()),
                     checkNull(td.getValue(SIConstants.SCHEMA_DISPLAY_NAME_ATTR)),
                     checkNull(td.getValue(SIConstants.TABLE_DISPLAY_NAME_ATTR)),
