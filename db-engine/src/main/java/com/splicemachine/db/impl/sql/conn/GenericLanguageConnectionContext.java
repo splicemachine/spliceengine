@@ -79,7 +79,6 @@ import java.security.NoSuchAlgorithmException;
 import java.util.*;
 
 import static com.splicemachine.db.iapi.reference.Property.MATCHING_STATEMENT_CACHE_IGNORING_COMMENT_OPTIMIZATION_ENABLED;
-import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getCurrentCharTypeCompiler;
 
 /**
  * LanguageConnectionContext keeps the pool of prepared statements,
@@ -145,6 +144,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     private StringBuffer sb;
     private DataSetProcessorType type;
+    private SparkExecutionType sparkExecutionType;
 
     private final String ipAddress;
     private InternalDatabase db;
@@ -366,16 +366,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             String dbname,
             String rdbIntTkn,
             DataSetProcessorType type,
+            SparkExecutionType sparkExecutionType,
             boolean skipStats,
             double defaultSelectivityFactor,
             String ipAddress,
             String defaultSchema,
             Properties connectionProperties
-            ) throws StandardException{
+    ) throws StandardException{
         super(cm,ContextId.LANG_CONNECTION);
         acts=new ArrayList<>();
         tran=tranCtrl;
         this.type = type;
+        this.sparkExecutionType = sparkExecutionType;
         this.ipAddress = ipAddress;
         dataFactory=lcf.getDataValueFactory();
         tcf=lcf.getTypeCompilerFactory();
@@ -466,9 +468,9 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             }
         }
         if (type.isSessionHinted()) {
-            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isSpark());
+            this.sessionProperties.setProperty(SessionProperties.PROPERTYNAME.USEOLAP, type.isOlap());
         } else {
-            assert type.isDefaultControl();
+            assert type.isDefaultOltp();
         }
 
 
@@ -3802,7 +3804,12 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
 
     @Override
     public DataSetProcessorType getDataSetProcessorType() {
-        return this.type;
+        return type;
+    }
+
+    @Override
+    public SparkExecutionType getSparkExecutionType() {
+        return sparkExecutionType;
     }
 
     public void materialize() throws StandardException {}

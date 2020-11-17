@@ -1482,6 +1482,11 @@ public interface Property {
     String CONNECTION_USE_OLAP = "useOLAP";
 
     /**
+     * True hints native spark execution for this session; false hints non native spark execution for this connection
+     */
+    String CONNECTION_USE_NATIVE_SPARK = "useNativeSpark";
+
+    /**
      * True ignores statistics for this connection
      */
     String CONNECTION_SKIP_STATS = "skipStats";

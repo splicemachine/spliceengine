@@ -54,6 +54,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.LanguageFactory;
 import com.splicemachine.db.iapi.sql.compile.DataSetProcessorType;
+import com.splicemachine.db.iapi.sql.compile.SparkExecutionType;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
@@ -276,6 +277,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
     public LanguageConnectionContext setupConnection(ContextManager cm, String user, List<String> groupuserlist, String drdaID, String dbname,
                                                      String rdbIntTkn,
                                                      DataSetProcessorType type,
+                                                     SparkExecutionType sparkExecutionType,
                                                      boolean skipStats,
                                                      double defaultSelectivityFactor,
                                                      String ipAddress,
@@ -305,7 +307,7 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
         // push a database shutdown context
         // we also need to push a language connection context.
         LanguageConnectionContext lctx = lcf.newLanguageConnectionContext(cm, tc, lf, this, user, groupuserlist, drdaID, dbname,
-                rdbIntTkn, type,skipStats,defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
+                rdbIntTkn, type, sparkExecutionType, skipStats, defaultSelectivityFactor, ipAddress, defaultSchema, sessionProperties);
 
         // push the context that defines our class factory
         pushClassFactoryContext(cm, lcf.getClassFactory());
