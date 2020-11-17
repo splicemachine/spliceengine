@@ -152,7 +152,8 @@ public class HBaseInspector {
         TxnTableRowPrinter rowVisitor = new TxnTableRowPrinter();
 
         // scan for one more than the limit so the we know if we truncated
-        int scanLimit = limit == 0 ? 0 : limit+1, count = 0;
+        int scanLimit = limit == 0 ? 0 : limit+1;
+        int count = 0;
         ConnectionWrapper c = getCachedConnection().withRegion(region);
         try(final ResultScanner rs = c.scanVersions(scanLimit, 0 /*all*/ ) ) {
             for (Result row : rs) {
