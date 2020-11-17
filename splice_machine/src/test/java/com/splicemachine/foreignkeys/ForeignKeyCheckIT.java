@@ -725,7 +725,6 @@ public class ForeignKeyCheckIT {
             try (Statement statement = c.createStatement()) {
                 statement.executeUpdate("update P set col1 = 42");
             }
-            Thread.sleep(30 * 1000);
             c.rollback();
         }
 
