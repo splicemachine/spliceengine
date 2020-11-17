@@ -3255,14 +3255,12 @@ Guide.
 
             <msg>
                 <name>42ZD0</name>
-        <text>Surpassed limit of buffered rows in control mode, please resubmit as Spark query</text>
-                <!-- todo(Spark->OLAP) -->
+                <text>Surpassed limit of buffered rows in control mode, please resubmit as OLAP query</text>
             </msg>
 
             <msg>
                 <name>42ZD1</name>
-                <text>Using both useSpark=true and useSpark=false at the same level ('{0}') is illegal</text>
-                <!-- todo(Spark->OLAP) -->
+                <text>Using both useOLAP=true and useOLAP=false at the same level ('{0}') is illegal</text>
                 <arg>level</arg>
             </msg>
 
@@ -3305,6 +3303,12 @@ Guide.
                 <name>42ZD8</name>
                 <text>time travel query requested with invalid past transaction ID {0}</text>
                 <arg>pastTxId</arg>
+            </msg>
+
+            <msg>
+                <name>42ZD9</name>
+                <text>Using both useNativeSpark=true and useNativeSpark=false at the same level ('{0}') is illegal</text>
+                <arg>level</arg>
             </msg>
 
             <msg>

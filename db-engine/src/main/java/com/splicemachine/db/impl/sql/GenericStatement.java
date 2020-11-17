@@ -533,19 +533,22 @@ public class GenericStatement implements Statement{
                 }
                 cc.setDisablePredicateSimplification(disablePredicateSimplification);
 
-                String nativeSparkAggregationModeString =
-                PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NATIVE_SPARK_AGGREGATION_MODE);
-                CompilerContext.NativeSparkModeType nativeSparkAggregationMode =
-                CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
+                String nativeSparkAggregationModeString = PropertyUtil.getCachedDatabaseProperty(lcc, Property.SPLICE_NATIVE_SPARK_AGGREGATION_MODE);
+                CompilerContext.NativeSparkModeType nativeSparkAggregationMode = CompilerContext.DEFAULT_SPLICE_NATIVE_SPARK_AGGREGATION_MODE;
                 try {
                     if (nativeSparkAggregationModeString != null) {
                         nativeSparkAggregationModeString = nativeSparkAggregationModeString.toLowerCase();
-                        if (nativeSparkAggregationModeString.equals("on"))
-                            nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.ON;
-                        else if (nativeSparkAggregationModeString.equals("off"))
-                            nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.OFF;
-                        else if (nativeSparkAggregationModeString.equals("forced"))
-                            nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
+                        switch (nativeSparkAggregationModeString) {
+                            case "on":
+                                nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.ON;
+                                break;
+                            case "off":
+                                nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.OFF;
+                                break;
+                            case "forced":
+                                nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
+                                break;
+                        }
                     }
                 } catch (Exception e) {
                     // If the property value failed to get decoded to a valid value, don't throw an error,

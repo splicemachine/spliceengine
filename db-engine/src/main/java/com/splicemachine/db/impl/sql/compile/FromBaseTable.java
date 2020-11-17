@@ -620,19 +620,24 @@ public class FromBaseTable extends FromTable {
     @Override
     public void verifyProperties(DataDictionary dDictionary) throws StandardException{
         if (tableDescriptor.getStoredAs()!=null) {
-            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
+            dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
         }
 
-        /* check if we need to inherent some property from the connection */
+        /* check if we need to inherit some property from the connection */
         Boolean skipStatsObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.SKIPSTATS);
-        skipStats = skipStatsObj==null?false:skipStatsObj.booleanValue();
+        skipStats = skipStatsObj != null && skipStatsObj;
         Double defaultSelectivityFactorObj = (Double)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.DEFAULTSELECTIVITYFACTOR);
         defaultSelectivityFactor = defaultSelectivityFactorObj==null?-1d:defaultSelectivityFactorObj.doubleValue();
-        Boolean useSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USESPARK);
+        Boolean useSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USEOLAP);
         if (useSparkObj != null)
             dataSetProcessorType = dataSetProcessorType.combine(useSparkObj ?
-                    DataSetProcessorType.SESSION_HINTED_SPARK:
-                    DataSetProcessorType.SESSION_HINTED_CONTROL);
+                    DataSetProcessorType.SESSION_HINTED_OLAP :
+                    DataSetProcessorType.SESSION_HINTED_OLTP);
+        Boolean useNativeSparkObj = (Boolean)getLanguageConnectionContext().getSessionProperties().getProperty(SessionProperties.PROPERTYNAME.USE_NATIVE_SPARK);
+        if (useNativeSparkObj != null)
+            sparkExecutionType = sparkExecutionType.combine(useNativeSparkObj ?
+                    SparkExecutionType.SESSION_HINTED_NATIVE :
+                    SparkExecutionType.SESSION_HINTED_NON_NATIVE);
 
         if (defaultSelectivityFactor > 0)
             skipStats = true;
@@ -659,123 +664,136 @@ public class FromBaseTable extends FromTable {
             String key=(String)e.nextElement();
             String value=(String)tableProperties.get(key);
 
+            switch (key.toLowerCase()) {
+                case "index":
+                    // User only allowed to specify 1 of index and constraint, not both
+                    if(constraintSpecified){
+                        throw StandardException.newException(SQLState.LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED,
+                                getBaseTableName());
+                    }
+                    indexSpecified=true;
 
-            //noinspection IfCanBeSwitch
-            if(key.equals("index")){
-                // User only allowed to specify 1 of index and constraint, not both
-                if(constraintSpecified){
-                    throw StandardException.newException(SQLState.LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED,
-                            getBaseTableName());
-                }
-                indexSpecified=true;
+                    /* Validate index name - NULL means table scan */
+                    if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
+                        ConglomerateDescriptor[] cds=tableDescriptor.getConglomerateDescriptors();
 
-                /* Validate index name - NULL means table scan */
-                if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
-                    ConglomerateDescriptor[] cds=tableDescriptor.getConglomerateDescriptors();
-
-                    ConglomerateDescriptor cd=null;
-                    for(ConglomerateDescriptor toFind : cds){
-                        cd=toFind;
-                        String conglomerateName=cd.getConglomerateName();
-                        if(conglomerateName!=null){
-                            if(conglomerateName.equals(value)){
-                                break;
+                        ConglomerateDescriptor cd=null;
+                        for(ConglomerateDescriptor toFind : cds){
+                            cd=toFind;
+                            String conglomerateName=cd.getConglomerateName();
+                            if(conglomerateName!=null){
+                                if(conglomerateName.equals(value)){
+                                    break;
+                                }
                             }
+                            // Not a match, clear cd
+                            cd=null;
                         }
-                        // Not a match, clear cd
-                        cd=null;
+
+                        // Throw exception if user specified index not found
+                        if(cd==null){
+                            throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX1, value,getBaseTableName());
+                        }
+                        /* Query is dependent on the ConglomerateDescriptor */
+                        getCompilerContext().createDependency(cd);
                     }
-
-                    // Throw exception if user specified index not found
-                    if(cd==null){
-                        throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX1, value,getBaseTableName());
+                    break;
+                case "constraint":
+                    // User only allowed to specify 1 of index and constraint, not both
+                    if(indexSpecified){
+                        throw StandardException.newException(SQLState.LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED,
+                                getBaseTableName());
                     }
-                                  /* Query is dependent on the ConglomerateDescriptor */
-                    getCompilerContext().createDependency(cd);
-                }
-            } else if(key.equals("constraint")){
-                // User only allowed to specify 1 of index and constraint, not both
-                if(indexSpecified){
-                    throw StandardException.newException(SQLState.LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED,
-                            getBaseTableName());
-                }
-                constraintSpecified=true;
+                    constraintSpecified=true;
 
-             if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
-                 consDesc=dDictionary.getConstraintDescriptorByName(tableDescriptor,null,value,false);
+                    if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
+                        consDesc=dDictionary.getConstraintDescriptorByName(tableDescriptor,null,value,false);
 
-                    /* Throw exception if user specified constraint not found
-                     * or if it does not have a backing index.
-                     */
-                    if((consDesc==null) || !consDesc.hasBackingIndex()){
-                        throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX2,value,getBaseTableName());
+                        /* Throw exception if user specified constraint not found
+                         * or if it does not have a backing index.
+                         */
+                        if((consDesc==null) || !consDesc.hasBackingIndex()){
+                            throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX2,value,getBaseTableName());
+                        }
+
+                        /* Query is dependent on the ConstraintDescriptor */
+                        getCompilerContext().createDependency(consDesc);
                     }
-
-                    /* Query is dependent on the ConstraintDescriptor */
-                    getCompilerContext().createDependency(consDesc);
-                }
-            }else if(key.equals("joinStrategy")){
-                userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
-                if (userSpecifiedJoinStrategy.equals("CROSS")) {
-                    dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
-                }
-            }
-            else if (key.equals("useSpark") || key.equals("useOLAP")) {
-                try {
-                    dataSetProcessorType = dataSetProcessorType.combine(
+                    break;
+                case "joinstrategy":
+                    userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
+                    if (userSpecifiedJoinStrategy.equals("CROSS")) {
+                        dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_OLAP);
+                    }
+                    break;
+                case "usespark":
+                case "useolap":
+                    try {
+                        dataSetProcessorType = dataSetProcessorType.combine(
+                                Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))?
+                                        DataSetProcessorType.QUERY_HINTED_OLAP :
+                                        DataSetProcessorType.QUERY_HINTED_OLTP);
+                    } catch (Exception sparkE) {
+                        throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, key, value);
+                    }
+                    break;
+                case "usenativespark":
+                    sparkExecutionType = sparkExecutionType.combine(
                             Boolean.parseBoolean(StringUtil.SQLToUpperCase(value))?
-                                    DataSetProcessorType.QUERY_HINTED_SPARK:
-                                    DataSetProcessorType.QUERY_HINTED_CONTROL);
-                } catch (Exception sparkE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, key, value);
-                }
-            }
-            else if (key.equals("skipStats")) {
-                try {
-                    boolean bValue = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
-                    // skipStats may have been set to true by the other hint useDefaultRowCount or defaultSelectivityFactor
-                    // in that case, useDefaultRowCount and defaultSelectivityFactor take precedence and we don't want to override that decision
-                    if (!skipStats)
-                        skipStats = bValue;
-                } catch (Exception skipStatsE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SKIPSTATS, value);
-                }
-            } else if (key.equals("splits")) {
-                try {
-                    splits = Integer.parseInt(value);
-                    if (splits <= 0)
+                                    SparkExecutionType.QUERY_HINTED_NATIVE :
+                                    SparkExecutionType.QUERY_HINTED_NON_NATIVE);
+                    break;
+                case "skipstats":
+                    try {
+                        boolean bValue = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
+                        // skipStats may have been set to true by the other hint useDefaultRowCount or defaultSelectivityFactor
+                        // in that case, useDefaultRowCount and defaultSelectivityFactor take precedence and we don't want to override that decision
+                        if (!skipStats)
+                            skipStats = bValue;
+                    } catch (Exception skipStatsE) {
+                        throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SKIPSTATS, value);
+                    }
+                    break;
+                case "splits":
+                    try {
+                        splits = Integer.parseInt(value);
+                        if (splits <= 0)
+                            throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
+                    } catch (NumberFormatException skipStatsE) {
                         throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
-                } catch (NumberFormatException skipStatsE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_SPLITS, value);
-                }
-            } else if (key.equals("useDefaultRowCount")) {
-                try {
-                    skipStats = true;
-                    defaultRowCount = Long.parseLong(value);
-                } catch (NumberFormatException parseLongE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
-                }
-                if (defaultRowCount <= 0)
-                    throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
-            } else if (key.equals("defaultSelectivityFactor")) {
-                try {
-                    skipStats = true;
-                    defaultSelectivityFactor = Double.parseDouble(value);
-                } catch (NumberFormatException parseDoubleE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
-                }
-                if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
-                    throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
-            } else if (key.equals("broadcastCrossRight") || key.equals("unboundedTimeTravel")) {
-                // no op since parseBoolean never throw
-            }else {
-                // No other "legal" values at this time
-                throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, useOLAP, skipStats, splits, " +
-                                "useDefaultRowcount, defaultSelectivityFactor, broadcastCrossRight," +
-                                "unboundedTimeTravel");
+                    }
+                    break;
+                case "usedefaultrowcount":
+                    try {
+                        skipStats = true;
+                        defaultRowCount = Long.parseLong(value);
+                    } catch (NumberFormatException parseLongE) {
+                        throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
+                    }
+                    if (defaultRowCount <= 0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
+                    }
+                    break;
+                case "defaultselectivityfactor":
+                    try {
+                        skipStats = true;
+                        defaultSelectivityFactor = Double.parseDouble(value);
+                    } catch (NumberFormatException parseDoubleE) {
+                        throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
+                    }
+                    if (defaultSelectivityFactor <= 0 || defaultSelectivityFactor > 1.0)
+                        throw StandardException.newException(SQLState.LANG_INVALID_SELECTIVITY, value);
+                    break;
+                case "broadcastcrossright":
+                case "unboundedtimetravel":
+                    // no op since parseBoolean never throw
+                    break;
+                default:
+                    throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
+                            "index, constraint, joinStrategy, useSpark, useOLAP, skipStats, splits, " +
+                                    "useDefaultRowcount, defaultSelectivityFactor, broadcastCrossRight," +
+                                    "unboundedTimeTravel");
             }
-
 
             /* If user specified a non-null constraint name(DERBY-1707), then
              * replace it in the properties list with the underlying index name to
@@ -3730,18 +3748,18 @@ public class FromBaseTable extends FromTable {
      * @param accessPath the access path
      */
     public DataSetProcessorType getDataSetProcessorTypeForAccessPath(AccessPath accessPath) {
-        if (! dataSetProcessorType.isDefaultControl()) {
+        if (! dataSetProcessorType.isDefaultOltp()) {
             // No need to assess cost
             return dataSetProcessorType;
         }
         long sparkRowThreshold = getLanguageConnectionContext().getOptimizerFactory().getDetermineSparkRowThreshold();
         // we need to check not only the number of row scanned, but also the number of output rows for the
         // join result
-        assert dataSetProcessorType.isDefaultControl();
+        assert dataSetProcessorType.isDefaultOltp();
         if (accessPath != null &&
                 (accessPath.getCostEstimate().getScannedBaseTableRows() > sparkRowThreshold ||
                  accessPath.getCostEstimate().getEstimatedRowCount() > sparkRowThreshold)) {
-                return DataSetProcessorType.COST_SUGGESTED_SPARK;
+                return DataSetProcessorType.COST_SUGGESTED_OLAP;
         }
         return dataSetProcessorType;
     }

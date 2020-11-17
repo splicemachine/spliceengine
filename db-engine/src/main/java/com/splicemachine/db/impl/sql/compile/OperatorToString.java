@@ -155,6 +155,10 @@ public class OperatorToString {
     public static String opToSparkString(ValueNode operand) throws StandardException {
         String retval = "";
 
+        if (operand == null || operand.getCompilerContext().getSparkExecutionType().isNonNative()) {
+            return retval;
+        }
+
         // Do not throw any errors encountered.  An error condition
         // just means we can't generate a valid spark representation
         // of the SQL expression to apply to a native spark Dataset,
@@ -168,7 +172,7 @@ public class OperatorToString {
 
         }
         catch (StandardException e) {
-            if (e.getSQLState() != SQLState.LANG_DOES_NOT_IMPLEMENT)
+            if (!e.getSQLState().equals(SQLState.LANG_DOES_NOT_IMPLEMENT))
                 throw e;
         }
         return retval;

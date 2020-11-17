@@ -998,7 +998,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         Integer inlistPosition = -2;
 
         boolean multiColumnMultiProbeEnabled =
-            (optTable instanceof FromBaseTable && !getCompilerContext().getDataSetProcessorType().isSpark()) ||
+            (optTable instanceof FromBaseTable && !getCompilerContext().getDataSetProcessorType().isOlap()) ||
                 getCompilerContext().getMulticolumnInlistProbeOnSparkEnabled();
 
         TreeMap<Integer, Predicate> inlistPreds = new TreeMap<>();

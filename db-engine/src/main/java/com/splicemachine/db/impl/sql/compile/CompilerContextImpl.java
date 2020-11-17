@@ -133,7 +133,8 @@ public class CompilerContextImpl extends ContextImpl
         initRequiredPriv();
         defaultSchemaStack = null;
         referencedSequences = null;
-        dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+        dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+        sparkExecutionType = SparkExecutionType.UNSPECIFIED;
         skipStatsTableList.clear();
         selectivityEstimationIncludingSkewedDefault = false;
         projectionPruningEnabled = false;
@@ -260,7 +261,7 @@ public class CompilerContextImpl extends ContextImpl
         return sparkVersionInitialized;
     }
 
-        public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
+    public void setNativeSparkAggregationMode(CompilerContext.NativeSparkModeType newValue) {
         nativeSparkAggregationMode = newValue;
     }
 
@@ -1132,7 +1133,6 @@ public class CompilerContextImpl extends ContextImpl
      */
     public boolean isReferenced( SequenceDescriptor sd ) {
         return referencedSequences != null && referencedSequences.containsKey(sd.getUUID());
-
     }
 
     public int getNextOJLevel() {
@@ -1214,7 +1214,17 @@ public class CompilerContextImpl extends ContextImpl
     private HashMap requiredUsagePrivileges;
     private HashMap requiredRolePrivileges;
     private HashMap referencedSequences;
-    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_CONTROL;
+    private DataSetProcessorType dataSetProcessorType = DataSetProcessorType.DEFAULT_OLTP;
+
+    public SparkExecutionType getSparkExecutionType() {
+        return sparkExecutionType;
+    }
+
+    public void setSparkExecutionType(SparkExecutionType type) throws StandardException {
+        this.sparkExecutionType = sparkExecutionType.combine(type);
+    }
+
+    private SparkExecutionType sparkExecutionType = SparkExecutionType.UNSPECIFIED;
 
     @Override
     public void setDataSetProcessorType(DataSetProcessorType type) throws StandardException {
