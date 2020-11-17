@@ -57,19 +57,13 @@ public class HBaseInspector {
         this.config = config;
     }
 
-    String limitString(int limit)
-    {
-        return "   .\n   .\n   .\n" + Utils.Colored.red(
-                "--- Result list was limited to " + limit + " entries, " + "result was cut off ---");
-    }
-
     public String scanRow(final String region, final String rowKey, final Utils.SQLType[] cols,
-                          int limit, int versions, boolean hbase) throws Exception {
+                          int limit, int versions, boolean hbaseStyle) throws Exception {
 
         StringBuilder result = new StringBuilder();
         UserDataDecoder decoder = cols == null ? null : new UserDefinedDataDecoder(cols, 4);
 
-        // scan for one more than the limit so now if we truncated
+        // scan for one more than the limit so the we know if we truncated
         int scanLimit = limit == 0 ? 0 : limit+1;
         int count = 0;
         ConnectionWrapper c = getCachedConnection().withRegion(region);
@@ -78,12 +72,10 @@ public class HBaseInspector {
                 c.scanSingleRow(rowKey, versions)) {
             for(Result row : rs) {
                 if( count++ == limit ) {
-                    result.append(limitString(limit));
+                    result.append(Utils.limitString(limit));
                     break;
                 }
-                TableRowPrinter rowVisitor = new TableRowPrinter(decoder, hbase);
-                String hbaseStr = !hbase ? "" : " / " + com.splicemachine.primitives.Bytes.toStringBinary(row.getRow());
-                result.append(Utils.Colored.red("[ Row " + Hex.encodeHexString(row.getRow()) + hbaseStr + " ]\n"));
+                TableRowPrinter rowVisitor = new TableRowPrinter(decoder, hbaseStyle);
                 for(String s : rowVisitor.processRow(row)) {
                     result.append(s);
                 }
@@ -94,7 +86,7 @@ public class HBaseInspector {
     }
 
     ConnectionWrapper getCachedConnection() throws IOException {
-        return ConnectionCache.getConnection(config);
+        return ConnectionSingleton.getConnection(config);
     }
 
 
@@ -159,7 +151,7 @@ public class HBaseInspector {
                 TBL_TXN_COL5, TBL_TXN_COL6, TBL_TXN_COL7, TBL_TXN_COL8, TBL_TXN_COL9);
         TxnTableRowPrinter rowVisitor = new TxnTableRowPrinter();
 
-        // scan for one more than the limit so now if we truncated
+        // scan for one more than the limit so the we know if we truncated
         int scanLimit = limit == 0 ? 0 : limit+1, count = 0;
         ConnectionWrapper c = getCachedConnection().withRegion(region);
         try(final ResultScanner rs = c.scanVersions(scanLimit, 0 /*all*/ ) ) {
@@ -173,7 +165,7 @@ public class HBaseInspector {
         }
         String result = Utils.printTabularResults(tabular);
         if(count > limit)
-            result = result + limitString(limit);
+            result = result + Utils.limitString(limit);
         return result;
     }
 

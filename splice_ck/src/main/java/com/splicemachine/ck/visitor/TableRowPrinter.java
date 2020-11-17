@@ -14,8 +14,8 @@
 
 package com.splicemachine.ck.visitor;
 
+import com.splicemachine.ck.Utils;
 import com.splicemachine.ck.decoder.UserDataDecoder;
-import org.apache.commons.codec.binary.Hex;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Result;
 
@@ -33,6 +33,8 @@ public class TableRowPrinter implements IRowPrinter {
     @Override
     public List<String> processRow(Result row) throws Exception {
         List<String> result = new ArrayList<>();
+        result.add( Utils.Colored.red("[ " + Utils.getRowId(row, this.tableCellPrinter.hbase) + " ]") );
+
         for(Cell cell : row.listCells()) {
             tableCellPrinter.visit(cell);
         }

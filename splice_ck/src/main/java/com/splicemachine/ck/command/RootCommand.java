@@ -14,14 +14,13 @@
 
 package com.splicemachine.ck.command;
 
-import com.splicemachine.ck.ConnectionCache;
+import com.splicemachine.ck.ConnectionSingleton;
 import com.splicemachine.ck.Utils;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
-import java.util.Arrays;
 import java.util.Scanner;
 
 @Command(mixinStandardHelpOptions = true, name = "spliceck", description = "SpliceMachine check command suite",
@@ -32,7 +31,7 @@ import java.util.Scanner;
 class RootCommand {
     public static void main(String... args) {
         Logger.getRootLogger().setLevel(Level.OFF);
-        ConnectionCache c = new ConnectionCache();
+        ConnectionSingleton c = new ConnectionSingleton();
 
         int exitCode = 0;
         if(!args[0].equals("interactive")) {
@@ -43,16 +42,13 @@ class RootCommand {
             CommandLine cl = new CommandLine(new RootCommand()).setExecutionStrategy(new CommandLine.RunLast());
             while (true) {
                 System.out.print("spliceck> ");
-                String s = command.nextLine();
-                if (s.equals("exit")) break;
-                if (s.trim().length() == 0) continue;
+                String s = command.nextLine().trim();
+
+                if (s.equals("exit") || s.equals("quit") || s.equals("q") ) break;
+                if (s.length() == 0) continue;
+
                 String[] args2 = s.split(" ");
                 exitCode = cl.execute(args2);
-                if( exitCode == 0 )
-                    System.out.println(Utils.Colored.green( "return code " + exitCode + "\n") );
-                else
-                    System.out.println(Utils.Colored.red( "return code " + exitCode + "\n") );
-
             }
             command.close();
         }
