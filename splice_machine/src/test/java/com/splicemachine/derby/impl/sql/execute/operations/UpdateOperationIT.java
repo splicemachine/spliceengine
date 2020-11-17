@@ -114,8 +114,6 @@ public class UpdateOperationIT {
                             "a int, primary key(a))")
                 .withIndex("create index t_idx on T(COL4, TABLE_PK1)")
                 .withIndex("create index uni_idx on T(TABLE_PK1,TS_COL)")
-                .withInsert("INSERT INTO T VALUES(?,?,?,?,?)")
-                .withRows(rows(row("id", "pk", new Timestamp(82376296), "0", 1)))
                 .create();
 
         try(CallableStatement cs = connection.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
@@ -741,8 +739,11 @@ public class UpdateOperationIT {
         conn.setAutoCommit(false);
 
         try (Statement s = conn.createStatement()) {
+            String sql = "INSERT INTO T VALUES ('id', 'pk', '1970-01-01 14:52:56.296', '0', 1)";
+            s.executeUpdate(sql);
+
             /* update Q1 -- simple update*/
-            String sql = "UPDATE T SET COL4 = 'X'";
+            sql = "UPDATE T SET COL4 = 'X'";
             int n = s.executeUpdate(sql);
             Assert.assertEquals("Incorrect number of rows updated", 1, n);
 
