@@ -160,8 +160,6 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 
-import com.splicemachine.db.impl.sql.compile.GrammarImpl;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.catalog.AliasInfo;
@@ -188,10 +186,9 @@ import java.util.Vector;
 import java.util.Arrays;
 import java.lang.Character;
 
+import com.splicemachine.db.impl.sql.compile.SQLGrammarImpl;
 
-import  com.splicemachine.db.impl.sql.compile.GrammarImpl;
-
-public class SQLParser extends GrammarImpl
+public class SQLParser extends SQLGrammarImpl
 {
     /**
      * Determine whether the current token represents one of
