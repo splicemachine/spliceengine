@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -71,6 +72,8 @@ import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
+import org.apache.spark.sql.SparkSession;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -352,6 +355,8 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private boolean db2VarcharCompatibilityModeNeedsReset = false;
     private CharTypeCompiler charTypeCompiler = null;
     private boolean compilingFromTableTempTrigger = false;
+    private SparkContext sparkContext = null;
+    private int applicationJarsHashCode = 0;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -4047,5 +4052,60 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public boolean isCompilingFromTableTempTrigger() {
         return compilingFromTableTempTrigger;
+    }
+
+    @Override
+    public boolean isSparkJob() {
+        return sparkContext != null;
+    }
+
+    @Override
+    public void setSparkContext(SparkContext sparkContext) {
+        this.sparkContext = sparkContext;
+    }
+
+    @Override
+    public SparkContext getSparkContext() {
+        return sparkContext;
+    }
+
+    @Override
+    public void setApplicationJarsHashCode(int applicationJarsHashCode) {
+        this.applicationJarsHashCode = applicationJarsHashCode;
+    }
+
+    @Override
+    public int getApplicationJarsHashCode() {
+        return applicationJarsHashCode;
+    }
+
+    @Override
+    public void addUserJarsToSparkContext() {
+        if (!isSparkJob())
+            return;
+        LanguageConnectionFactory lcf = getLanguageConnectionFactory();
+        if (lcf == null)
+            return;
+        ClassFactory cf = lcf.getClassFactory();
+        if (cf == null)
+            return;
+        List<String> applicationJars = cf.getApplicationJarPaths();
+        if (applicationJars == null)
+            return;
+        int applicationJarsHashCode = cf.getApplicationJarsHashCode();
+        if (applicationJarsHashCode == 0)
+            return;
+
+        if (sparkContext == null)
+            return;
+
+        // If there is no change in loaded jars, the no need to add new jars to spark.
+        if (applicationJarsHashCode == this.applicationJarsHashCode)
+            return;
+
+        for (String jarPath:applicationJars)
+            sparkContext.addJar(jarPath);
+
+        this.applicationJarsHashCode = applicationJarsHashCode;
     }
 }
