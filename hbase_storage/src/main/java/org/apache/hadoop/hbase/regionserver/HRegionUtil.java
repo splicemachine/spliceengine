@@ -107,8 +107,8 @@ public class HRegionUtil {
         // We use the MemStore size to estimate the right number of splits because we take it into account when
         // computing bytesPerSplit in AbstractSMInputFormat, even though we don't scan the memstore for split points
         // We hope the data in the MemStore follows a similar distribution to that in the HFiles
-        long numSplits;
-        numSplits = (totalStoreFileInBytes + store.getMemStoreSize().getDataSize()) / bytesPerSplit;
+        // Since Java rounds down on integer division, add 1 split per region
+        long numSplits = (totalStoreFileInBytes + store.getMemStoreSize().getDataSize()) / bytesPerSplit + 1;
 
         long finalNumSplits = numSplits = Math.max(numSplits, minSplits);
 

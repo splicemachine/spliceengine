@@ -42,8 +42,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class HBaseSubregionSplitter implements SubregionSplitter{
     private static final Logger LOG = Logger.getLogger(HBaseSubregionSplitter.class);
     @Override
-    public List<InputSplit>
-    getSubSplits(Table table, List<Partition> splits, final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits, long tableSize) {
+    public List<InputSplit> getSubSplits(Table table, List<Partition> splits,
+                                         final byte[] scanStartRow, final byte[] scanStopRow, int requestedSplits, long tableSize) {
         try {
             // Results has to be synchronized because we are adding to it from multiple threads concurrently
             final List<InputSplit> results = Collections.synchronizedList(new ArrayList<>());
