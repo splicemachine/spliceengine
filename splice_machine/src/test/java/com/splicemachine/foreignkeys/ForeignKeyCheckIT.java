@@ -22,6 +22,7 @@ import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 
+import java.sql.Connection;
 import java.sql.Statement;
 import java.util.regex.Pattern;
 
@@ -705,6 +706,53 @@ public class ForeignKeyCheckIT {
         assertQueryFail("update C2 set a=-1", "Operation on table 'C2' caused a violation of foreign key constraint 'C_FK_2' for key (A).  The statement has been rolled back.");
     }
 
+    @Test
+    public void addingRowToChildTableReferencingParentRowWhichWasDeletedAndAddedAgainWorks() throws Exception {
+        new TableCreator(conn)
+                .withCreate("create table P(col1 int, col2 varchar(2), col3 int, col4 int, primary key (col2, col4))")
+                .withInsert("insert into P values(?,?,?,?)")
+                .withRows(rows(row(1, "a", 1, 1)))
+                .create();
+
+        new TableCreator(conn)
+                .withCreate("create table C (col1 int primary key, col2 varchar(2), col3 int, col4 int, constraint CHILD_FKEY foreign key(col2, col3) references P(col2, col4) )")
+                .create();
+
+        try(Statement s = conn.createStatement()){
+            s.executeUpdate("delete from P");
+            s.executeUpdate("insert into P values (1, 'a', 1, 1)");
+            s.executeUpdate("insert into C values (400, 'a', 1, 42)"); // should not fail
+        }
+    }
+
+    @Test
+    public void rowHistoryIsReadyCorrectly() throws Exception {
+        try(Connection c = newNoAutoCommitConnection()) {
+            new TableCreator(c)
+                    .withCreate("create table PRHIRC(col1 int, col2 varchar(2), col3 int, col4 int, primary key (col2, col4))")
+                    .withInsert("insert into PRHIRC values(?,?,?,?)")
+                    .withRows(rows(row(1, "a", 1, 1)))
+                    .create();
+            new TableCreator(c)
+                    .withCreate("create table CRH (col1 int primary key, col2 varchar(2), col3 int, col4 int, constraint CHILD_FKEY_RHIRC foreign key(col2, col3) references PRHIRC(col2, col4) )")
+                    .create();
+            c.commit();
+        }
+
+        try(Connection c = newNoAutoCommitConnection()) {
+            try (Statement statement = c.createStatement()) {
+                statement.executeUpdate("update PRHIRC set col1 = 42");
+            }
+            c.rollback();
+        }
+
+        try(Connection conn = newNoAutoCommitConnection()) {
+            try(Statement s = conn.createStatement()) {
+                s.executeUpdate("insert into CRH values (400, 'a', 1, 42)"); // should not fail
+            }
+            conn.commit();
+        }
+    }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -760,6 +808,12 @@ public class ForeignKeyCheckIT {
             assertTrue(String.format("exception '%s' did not match expected pattern '%s'", e.getMessage(), expectedExceptionMessagePattern),
                     Pattern.compile(expectedExceptionMessagePattern).matcher(e.getMessage()).matches());
         }
+    }
+
+    private Connection newNoAutoCommitConnection() throws Exception {
+        Connection connection = methodWatcher.createConnection();
+        connection.setAutoCommit(false);
+        return connection;
     }
 
 }

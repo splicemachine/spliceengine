@@ -272,8 +272,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             return ndv;
         }
 
-        public final NumberDataValue getDecimalDataValue(Number value, NumberDataValue previous)
-                        throws StandardException
+        public final NumberDataValue getDecimalDataValue(Number value, NumberDataValue previous) throws StandardException
         {
                 if (previous == null)
                         return getDecimalDataValue(value);
@@ -282,9 +281,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 return previous;
         }
 
-        public final NumberDataValue getDecimalDataValue(String value,
-                                                                                                NumberDataValue previous)
-                        throws StandardException
+        public final NumberDataValue getDecimalDataValue(String value, NumberDataValue previous) throws StandardException
         {
                 if (previous == null)
                         return getDecimalDataValue(value);
@@ -293,8 +290,33 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 return previous;
         }
 
-        public BooleanDataValue getDataValue(boolean value,
-                                                                                BooleanDataValue previous)
+        public final NumberDataValue getDecfloatDataValue(Number value)
+                throws StandardException
+        {
+            NumberDataValue ndv = getNullDecfloat((NumberDataValue) null);
+            ndv.setValue(value);
+            return ndv;
+        }
+
+        public final NumberDataValue getDecfloatDataValue(Number value, NumberDataValue previous) throws StandardException
+        {
+            if (previous == null)
+                return getDecfloatDataValue(value);
+
+            previous.setValue(value);
+            return previous;
+        }
+
+        public final NumberDataValue getDecfloatDataValue(String value, NumberDataValue previous) throws StandardException
+        {
+            if (previous == null)
+                return getDecfloatDataValue(value);
+
+            previous.setValue(value);
+            return previous;
+        }
+
+        public BooleanDataValue getDataValue(boolean value, BooleanDataValue previous)
                         throws StandardException
         {
                 if (previous == null)
@@ -409,12 +431,25 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 return new SQLVarchar(value);
         }
 
-        public StringDataValue getVarcharDataValue(String value,
-                                                                                                StringDataValue previous)
-                                                                                                        throws StandardException
+        public StringDataValue getVarcharDB2CompatibleDataValue(String value)
+        {
+                return new SQLVarcharDB2Compatible(value);
+        }
+
+        public StringDataValue getVarcharDataValue(String value, StringDataValue previous)
+                               throws StandardException
         {
                 if (previous == null)
                         return new SQLVarchar(value);
+                previous.setValue(value);
+                return previous;
+        }
+
+        public StringDataValue getVarcharDB2CompatibleDataValue(String value, StringDataValue previous)
+                               throws StandardException
+        {
+                if (previous == null)
+                        return new SQLVarcharDB2Compatible(value);
                 previous.setValue(value);
                 return previous;
         }
@@ -432,6 +467,21 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
 
             if (previous == null)
                 return new CollatorSQLVarchar(value,
+                        getCharacterCollator(collationType));
+
+            previous.setValue(value);
+            return previous;
+        }
+
+        public StringDataValue getVarcharDB2CompatibleDataValue(String value,
+                StringDataValue previous, int collationType)
+            throws StandardException
+        {
+            if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
+                return getVarcharDB2CompatibleDataValue(value, previous);
+
+            if (previous == null)
+                return new CollatorSQLVarcharDB2Compatible(value,
                         getCharacterCollator(collationType));
 
             previous.setValue(value);
@@ -870,6 +920,53 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             return ret;
         }
 
+        public StringDataValue getNullVarcharDB2Compatible(StringDataValue dataValue)
+        {
+                if (dataValue == null)
+                {
+                        return getVarcharDB2CompatibleDataValue((String) null);
+                }
+                else
+                {
+                        dataValue.setToNull();
+                        return dataValue;
+                }
+        }
+
+        public StringDataValue getNullVarcharDB2Compatible(StringDataValue previous,
+                int collationType)
+        throws StandardException
+        {
+            if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC)
+                return getNullChar(previous);
+
+            if (previous == null)
+                return new CollatorSQLVarcharDB2Compatible(getCharacterCollator(collationType));
+
+            previous.setToNull();
+            return previous;
+        }
+
+        public StringDataValue getNullVarcharDB2Compatible(StringDataValue previous, int collationType, int maxSize)
+        throws StandardException
+        {
+            if (previous != null) {
+                previous.setToNull();
+                return previous;
+            }
+
+            SQLVarcharDB2Compatible ret = null;
+
+            if (collationType == StringDataValue.COLLATION_TYPE_UCS_BASIC) {
+                    ret = (SQLVarcharDB2Compatible) getVarcharDB2CompatibleDataValue((String) null);
+            } else {
+                    ret = new CollatorSQLVarcharDB2Compatible(getCharacterCollator(collationType));
+            }
+            ret.setSqlCharSize(maxSize);
+
+            return ret;
+        }
+
         public StringDataValue          getNullLongvarchar(StringDataValue dataValue)
         {
                 if (dataValue == null)
@@ -1215,6 +1312,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             case StoredFormatIds.SQL_TIMESTAMP_ID: return new SQLTimestamp();
             case StoredFormatIds.SQL_TINYINT_ID: return new SQLTinyint();
             case StoredFormatIds.SQL_VARCHAR_ID: return new SQLVarchar();
+            case StoredFormatIds.SQL_VARCHAR_DB2_COMPATIBLE_ID: return new SQLVarcharDB2Compatible();
             case StoredFormatIds.SQL_LONGVARCHAR_ID: return new SQLLongvarchar();
             case StoredFormatIds.SQL_VARBIT_ID: return new SQLVarbit();
             case StoredFormatIds.SQL_LONGVARBIT_ID: return new SQLLongVarbit();
@@ -1223,6 +1321,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             case StoredFormatIds.SQL_CLOB_ID: return new SQLClob();
             case StoredFormatIds.XML_ID: return new XML();
             case StoredFormatIds.SQL_ARRAY_ID: return new SQLArray();
+            case StoredFormatIds.SQL_DECFLOAT_ID: return new SQLDecfloat();
             case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID: return new HBaseRowLocation();
         default:return null;
         }
@@ -1283,6 +1382,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             REAL(StoredFormatIds.SQL_REAL_ID),
             DOUBLE(StoredFormatIds.SQL_DOUBLE_ID),
             DECIMAL(StoredFormatIds.SQL_DECIMAL_ID),
+            DECFLOAT(StoredFormatIds.SQL_DECFLOAT_ID),
             REF(StoredFormatIds.SQL_REF_ID),
             USERTYPE(StoredFormatIds.SQL_USERTYPE_ID_V3),
             DATE(StoredFormatIds.SQL_DATE_ID),
@@ -1324,6 +1424,8 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                         return DOUBLE;
                     case StoredFormatIds.SQL_DECIMAL_ID:
                         return DECIMAL;
+                    case StoredFormatIds.SQL_DECFLOAT_ID:
+                        return DECFLOAT;
                     case StoredFormatIds.SQL_BOOLEAN_ID:
                         return BOOLEAN;
                     case StoredFormatIds.SQL_TINYINT_ID:

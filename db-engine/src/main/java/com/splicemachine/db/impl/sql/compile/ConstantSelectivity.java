@@ -40,7 +40,7 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 public class ConstantSelectivity extends AbstractSelectivityHolder {
     public ConstantSelectivity(double selectivity, int colNum, QualifierPhase phase){
-        super(colNum,phase);
+        super(false,colNum,phase);
         this.selectivity = selectivity;
     }
 

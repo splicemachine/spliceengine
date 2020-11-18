@@ -42,13 +42,11 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.ListDataType;
-import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.iapi.types.*;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * An InListOperatorNode represents an IN list.
@@ -172,6 +170,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		else if (allLeftOperandsContainColumnReferences() &&
 			     rightOperandList.containsOnlyConstantAndParamNodes())
 		{
+			boolean DB2CompatibilityMode = getCompilerContext().getVarcharDB2CompatibilityMode();
+
 			/* At this point we have an IN-list made up of constant and/or
 			 * parameter values.  Ex.:
 			 *
@@ -295,11 +295,22 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                 
                 if (singleLeftOperand) {
                     judgeODV = ((DataTypeDescriptor) targetTypes.get(0)).getNull();
+                    if ((judgeODV instanceof SQLVarchar) && DB2CompatibilityMode) {
+                    	SQLVarcharDB2Compatible newDVD = new SQLVarcharDB2Compatible();
+                    	newDVD.setSqlCharSize(((SQLVarchar)judgeODV).getSqlCharSize());
+						judgeODV = newDVD;
+					}
                 }
                 else {
                     ListDataType ldt = new ListDataType(leftOperandList.size());
                     for (int j = 0; j < leftOperandList.size(); j++) {
-                        ldt.setFrom(((DataTypeDescriptor) targetTypes.get(j)).getNull(), j);
+                    	judgeODV = ((DataTypeDescriptor) targetTypes.get(j)).getNull();
+						if ((judgeODV instanceof SQLVarchar) && DB2CompatibilityMode) {
+							SQLVarcharDB2Compatible newDVD = new SQLVarcharDB2Compatible();
+							newDVD.setSqlCharSize(((SQLVarchar)judgeODV).getSqlCharSize());
+							judgeODV = newDVD;
+						}
+                        ldt.setFrom(judgeODV, j);
                     }
                     judgeODV = ldt;
                 }
@@ -523,28 +534,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		}
 
 		return leftSide;
-	}
-
-	/**
-	 * See if this IN list operator is referencing the same table.
-	 *
-	 * @param cr	The column reference.
-	 *
-	 * @return	true if in list references the same table as in cr.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean selfReference(ColumnReference cr)
-		throws StandardException
-	{
-		int size = rightOperandList.size();
-		for (int i = 0; i < size; i++)
-		{
-			ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
-			if (vn.getTablesReferenced().get(cr.getTableNumber()))
-				return true;
-		}
-		return false;
 	}
 
 	/**
@@ -973,10 +962,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	
 	@Override
 	public int hashCode(){
-		int result=(isOrdered?1:0);
-		result=31*result+(sortDescending?1:0);
-		result = 31*result + leftOperandList.hashCode();
-		result = 31*result + rightOperandList.hashCode();
-		return result;
+		int result = super.hashCode();
+		return Objects.hash(result, isOrdered, sortDescending);
 	}
 }

@@ -1392,4 +1392,15 @@ abstract class MethodCallNode extends JavaValueNode
         }
         return false;
     }
+
+    @Override
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + javaClassName.hashCode();
+        result = 31 * result + methodName.hashCode();
+        for (JavaValueNode methodParm : methodParms) {
+            result = 31 * result + methodParm.hashCode();
+        }
+        return Objects.hash(result, deterministicBuiltInFunctions.contains(methodName.toLowerCase()));
+    }
 }

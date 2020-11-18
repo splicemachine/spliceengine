@@ -119,6 +119,7 @@ public class BroadcastFullOuterJoinOperation extends BroadcastJoinOperation {
 
         DataSet<ExecRow> result;
         boolean usesNativeSparkDataSet =
+                !dsp.isSparkDB2CompatibilityMode() &&
                 (dsp.getType().equals(DataSetProcessor.Type.SPARK) &&
                         (restriction == null || hasSparkJoinPredicate()) &&
                         !containsUnsafeSQLRealComparison());

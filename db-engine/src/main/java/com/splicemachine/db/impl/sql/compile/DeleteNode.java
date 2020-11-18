@@ -55,7 +55,10 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.vti.DeferModification;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.lang.reflect.Modifier;
 import java.util.Hashtable;
@@ -708,7 +711,14 @@ public class DeleteNode extends DMLModStatementNode
             } else {
                 mb.push(-1);
             }
-            argCount += 3;
+            SPSDescriptor fromTableTriggerSPSDescriptor = DataDictionaryCache.fromTableTriggerSPSDescriptor.get();
+            if (fromTableTriggerSPSDescriptor == null)
+                mb.pushNull("java.lang.String");
+            else {
+                String spsAsString = Base64.encodeBase64String(SerializationUtils.serialize(fromTableTriggerSPSDescriptor));
+                mb.push(spsAsString);
+            }
+            argCount += 4;
         }
         mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, resultSetGetter, ClassName.ResultSet, argCount+3);
 

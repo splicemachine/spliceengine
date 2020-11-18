@@ -42,6 +42,8 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static com.splicemachine.db.shared.common.sanity.SanityManager.THROWASSERT;
 
@@ -323,6 +325,28 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     }
 
     /**
+     * See if this binary list operator is referencing the same table.
+     *
+     * @param cr	The column reference.
+     *
+     * @return	true if this list references the same table as in cr.
+     *
+     * @exception StandardException		Thrown on error
+     */
+    public boolean selfReference(ColumnReference cr)
+            throws StandardException
+    {
+        int size = rightOperandList.size();
+        for (int i = 0; i < size; i++)
+        {
+            ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
+            if (vn.getTablesReferenced().get(cr.getTableNumber()))
+                return true;
+        }
+        return false;
+    }
+
+    /**
      * Categorize this predicate.  Initially, this means
      * building a bit map of the referenced tables for each predicate.
      * If the source of this ColumnReference (at the next underlying level)
@@ -441,6 +465,14 @@ public abstract class BinaryListOperatorNode extends ValueNode{
                 rightOperandList.isSemanticallyEquivalent(other.rightOperandList);
     }
 
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + operator.hashCode();
+        result = 31 * result + (leftOperandList == null ? 0 : leftOperandList.hashCode());
+        result = 31 * result + (rightOperandList == null ? 0 : rightOperandList.hashCode());
+        return result;
+    }
+
     @Override
     public List<? extends QueryTreeNode> getChildren(){
         return new LinkedList<QueryTreeNode>(){{
@@ -484,4 +516,37 @@ public abstract class BinaryListOperatorNode extends ValueNode{
     public void setOuterJoinLevel(int level) {
         outerJoinLevel = level;
     }
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        if (leftOperandList != null) {
+            leftOperandList = leftOperandList.replaceIndexExpression(childRCL);
+        }
+        if (rightOperandList != null) {
+            rightOperandList = rightOperandList.replaceIndexExpression(childRCL);
+        }
+        return this;
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (leftOperandList != null) {
+            result = leftOperandList.collectExpressions(exprMap);
+        }
+        if (rightOperandList != null) {
+            result = result && rightOperandList.collectExpressions(exprMap);
+        }
+        return result;
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double localCost = 0.0;
+        for (Object leftOperand : leftOperandList) {
+            localCost += ((ValueNode) leftOperand).getBaseOperationCost();
+        }
+        return localCost;
+    }
+
 }

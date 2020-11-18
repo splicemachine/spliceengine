@@ -21,7 +21,7 @@
     <parent>
         <artifactId>spliceengine-parent</artifactId>
         <groupId>com.splicemachine</groupId>
-        <version>3.2.0.1983-SNAPSHOT</version>
+        <version>3.2.0.1986-SNAPSHOT</version>
     </parent>
     <dependencies>
         <dependency>
@@ -108,6 +108,7 @@
             splice_backup,
             splice_replication,
             splice_replication_monitor,
+            splice_upgrade,
             splice_auth,
             splice_colperms,
             splice_encryption,

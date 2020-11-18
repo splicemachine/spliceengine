@@ -44,6 +44,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.SessionProperties;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -114,7 +115,6 @@ public class FromBaseTable extends FromTable {
 
     ConglomerateDescriptor baseConglomerateDescriptor;
     ConglomerateDescriptor[] conglomDescs;
-    private boolean pin;
     int updateOrDelete;
     boolean skipStats;
     boolean useRealTableStats;
@@ -159,6 +159,11 @@ public class FromBaseTable extends FromTable {
      */
     private String[] columnNames;
 
+    /* Keep a copy of original base table result columns for binding
+     * expressions after changeAccessPath() for index on expressions.
+     */
+    private ResultColumnList originalBaseTableResultColumns;
+
     // true if we are to do a special scan to retrieve the last value
     // in the index
     private boolean specialMaxScan;
@@ -202,6 +207,9 @@ public class FromBaseTable extends FromTable {
     private ValueNode pastTxIdExpression = null;
 
     private long minRetentionPeriod = -1;
+
+    // expressions in whole query referencing columns in this base table
+    private Set<ValueNode> referencingExpressions = null;
 
     @Override
     public boolean isParallelizable(){
@@ -436,27 +444,42 @@ public class FromBaseTable extends FromTable {
                 int[] baseColumnPositions=irg.baseColumnPositions();
                 boolean[] isAscending=irg.isAscending();
 
-                for(int i=0;i<baseColumnPositions.length;i++){
-                    if (!irg.isOnExpression()) {
+                if (irg.isOnExpression()) {
+                    if (isCoveringIndex(currentConglomerateDescriptor)) {
+                        for (int i = 0; i < isAscending.length; i++) {
+                            int rowOrderDirection = isAscending[i] ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
+                            setRowOrderingForColumn(i, rowOrderDirection, rowOrdering, predList);
+                        }
+                    }
+                    // if it's an expression-based index and not covering, nothing can be assumed
+                    // for the row ordering of base columns
+                } else {
+                    for (int i = 0; i < baseColumnPositions.length; i++) {
                         int rowOrderDirection = isAscending[i] ? RowOrdering.ASCENDING : RowOrdering.DESCENDING;
-                        int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection, getTableNumber(), baseColumnPositions[i]);
-                        if (pos == -1) {
-                            rowOrdering.nextOrderPosition(rowOrderDirection);
-                            pos = rowOrdering.addOrderedColumn(rowOrderDirection, getTableNumber(), baseColumnPositions[i]);
-                        }
-                        // check if the column has a constant predicate like "col=constant" defined on it,
-                        // if so, we can treat it as sorted as it has only one value
-                        if (pos >= 0 &&    /* a column ordering is added or exists */
-                                hasConstantPredicate(getTableNumber(), baseColumnPositions[i], predList)) {
-                            ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
-                            co.setBoundByConstant(true);
-                        }
+                        setRowOrderingForColumn(baseColumnPositions[i], rowOrderDirection, rowOrdering, predList);
                     }
                 }
             }
         }
         ap.setConglomerateDescriptor(currentConglomerateDescriptor);
         return currentConglomerateDescriptor!=null;
+    }
+
+    private void setRowOrderingForColumn(int columnPosition, int rowOrderDirection, RowOrdering rowOrdering,
+                                         OptimizablePredicateList predList) throws StandardException {
+        int pos = rowOrdering.orderedPositionForColumn(rowOrderDirection, getTableNumber(), columnPosition);
+        if (pos == -1) {
+            rowOrdering.nextOrderPosition(rowOrderDirection);
+            pos = rowOrdering.addOrderedColumn(rowOrderDirection, getTableNumber(), columnPosition);
+        }
+        // check if the column has a constant predicate like "col=constant" defined on it,
+        // if so, we can treat it as sorted as it has only one value
+        // TODO: DB-10335, setBoundByConstant for index expressions
+        if (pos >= 0 &&    /* a column ordering is added or exists */
+                hasConstantPredicate(getTableNumber(), columnPosition, predList)) {
+            ColumnOrdering co = rowOrdering.getOrderedColumn(pos);
+            co.setBoundByConstant(true);
+        }
     }
 
     @Override
@@ -514,14 +537,15 @@ public class FromBaseTable extends FromTable {
 
     @Override
     public boolean isCoveringIndex(ConglomerateDescriptor cd) throws StandardException{
-            /* You can only be a covering index if you're an index */
+        /* You can only be a covering index if you're an index */
         if(!cd.isIndex())
             return false;
 
         IndexRowGenerator irg=cd.getIndexDescriptor();
 
-        if (irg.isOnExpression())
-            return false;
+        if (irg.isOnExpression()) {
+            return areAllReferencingExprsCoveredByIndex(irg);
+        }
 
         int[] baseCols=irg.baseColumnPositions();
         int rclSize=resultColumns.size();
@@ -561,6 +585,36 @@ public class FromBaseTable extends FromTable {
             }
         }
         return coveringIndex;
+    }
+
+    private boolean areAllReferencingExprsCoveredByIndex(IndexDescriptor id) throws StandardException {
+        if (referencingExpressions == null || referencingExpressions.isEmpty()) {
+            return true;
+        }
+        return getRefExprIndexPositions(id).size() == referencingExpressions.size();
+    }
+
+    private List<Integer> getRefExprIndexPositions(IndexDescriptor id) throws StandardException {
+        if (referencingExpressions == null || referencingExpressions.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        ValueNode[] exprAsts = id.getParsedIndexExpressions(getLanguageConnectionContext(), this);
+        List<Integer> exprIndexPositions = new ArrayList<>();
+        boolean match;
+        for (ValueNode refExpr : referencingExpressions) {
+            match = false;
+            for (int j = 0; j < exprAsts.length; j++) {
+                if (refExpr.semanticallyEquals(exprAsts[j])) {
+                    exprIndexPositions.add(j);
+                    match = true;
+                    break;
+                }
+            }
+            if (!match)
+                break;
+        }
+        return exprIndexPositions;
     }
 
     @Override
@@ -676,15 +730,6 @@ public class FromBaseTable extends FromTable {
                     throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, key, value);
                 }
             }
-            else if (key.equals("pin")) {
-                try {
-                    pin = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
-                    dataSetProcessorType = dataSetProcessorType.combine(DataSetProcessorType.FORCED_SPARK);
-                    tableProperties.setProperty("index","null");
-                } catch (Exception pinE) {
-                    throw StandardException.newException(SQLState.LANG_INVALID_FORCED_SPARK, key, value); // TODO Fix Error message - JL
-                }
-            }
             else if (key.equals("skipStats")) {
                 try {
                     boolean bValue = Boolean.parseBoolean(StringUtil.SQLToUpperCase(value));
@@ -727,7 +772,7 @@ public class FromBaseTable extends FromTable {
             }else {
                 // No other "legal" values at this time
                 throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "index, constraint, joinStrategy, useSpark, useOLAP, pin, skipStats, splits, " +
+                        "index, constraint, joinStrategy, useSpark, useOLAP, skipStats, splits, " +
                                 "useDefaultRowcount, defaultSelectivityFactor, broadcastCrossRight," +
                                 "unboundedTimeTravel");
             }
@@ -844,22 +889,29 @@ public class FromBaseTable extends FromTable {
              * the index baseColumnPositions, and remove everything else
              */
 
-//            if (cd.isIndex() || cd.isPrimaryKey()) {
             if (cd.isIndex() || cd.isPrimaryKey()) {
-                baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
-               if (!isCoveringIndex(cd) && !cd.isPrimaryKey()) {
-                    indexLookupList = new BitSet();
-                    for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
-                        boolean found = false;
-                        for (int baseColumnPosition : baseColumnPositions) {
-                            if (i == baseColumnPosition) {
-                                found = true;
-                                break;
+                if (!isCoveringIndex(cd) && !cd.isPrimaryKey()) {
+                    if (cd.getIndexDescriptor().isOnExpression()) {
+                        // If the index is defined on expressions and is not covering, all columns
+                        // of the base table need to be looked up. Special cases like part of the
+                        // index columns are covering or some index expressions are simply column
+                        // references are not considered here.
+                        indexLookupList = scanColumnList;
+                    } else {
+                        baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+                        indexLookupList = new BitSet();
+                        for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
+                            boolean found = false;
+                            for (int baseColumnPosition : baseColumnPositions) {
+                                if (i == baseColumnPosition) {
+                                    found = true;
+                                    break;
+                                }
                             }
-                        }
-                        if (!found) {
-                            indexLookupList.set(i);
-                            scanColumnList.clear(i);
+                            if (!found) {
+                                indexLookupList.set(i);
+                                scanColumnList.clear(i);
+                            }
                         }
                     }
                 }
@@ -868,15 +920,16 @@ public class FromBaseTable extends FromTable {
             scanColumnList = new BitSet();
         }
         DataValueDescriptor[] rowTemplate=getRowTemplate(cd,getBaseCostController());
-        ScanCostFunction scf = new ScanCostFunction(scanColumnList,
-                indexLookupList,
+        ScanCostFunction scf = new ScanCostFunction(
                 this,
+                cd,
                 scc,
                 costEstimate,
-                rowTemplate,
-                baseColumnPositions,
+                resultColumns,       // not correct in case of covering index on expressions
+                rowTemplate,         // this is a correct row template for all cases
+                scanColumnList,      // meaningless in case of index on expressions
+                indexLookupList,
                 forUpdate(),
-                resultColumns,
                 usedNoStatsColumnIds);
 
         // check if specialMaxScan is applicable
@@ -1499,7 +1552,7 @@ public class FromBaseTable extends FromTable {
      * that matches the ColumnReference.
      * Returns null if there is no match.
      */
-
+    @Override
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException{
         ResultColumn resultColumn=null;
         TableName columnsTableName;
@@ -1530,8 +1583,9 @@ public class FromBaseTable extends FromTable {
         ** matches the table we're looking at, see whether the column
         ** is in this table.
         */
+        ResultColumnList resultColumnsToUse = resultColumns.isFromExprIndex() ? originalBaseTableResultColumns : resultColumns;
         if(columnsTableName==null || columnsTableName.equals(exposedTableName) || columnsTableName.equals(temporaryTableName)){
-            resultColumn=resultColumns.getResultColumn(columnReference.getColumnName());
+            resultColumn=resultColumnsToUse.getResultColumn(columnReference.getColumnName());
             /* Did we find a match? */
             if(resultColumn!=null){
                 columnReference.setTableNumber(tableNumber);
@@ -1797,23 +1851,32 @@ public class FromBaseTable extends FromTable {
             templateColumns=resultColumns;
             referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,isSysstatements,false,false);
             resultColumns=resultColumns.compactColumns(cursorTargetTable,isSysstatements);
+            resultColumns.setFromExprIndex(false);
             return this;
         }
+
+        boolean isOnExpression = trulyTheBestConglomerateDescriptor.getIndexDescriptor().isOnExpression();
 
         /* No need to go to the data page if this is a covering index */
         /* Derby-1087: use data page when returning an updatable resultset */
         if(ap.getCoveringIndexScan() && (!cursorTargetTable())){
-            /* Massage resultColumns so that it matches the index. */
-            resultColumns=newResultColumns(resultColumns,
+            originalBaseTableResultColumns = resultColumns;
+            /* Generate new resultColumns so that it matches the index.
+             * fromExprIndex needs to be set immediately after resultColumns
+             * is modified. Otherwise it may not be possible to bind index
+             * expressions afterwards.
+             */
+            resultColumns = newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
                     false);
+            resultColumns.setFromExprIndex(isOnExpression);
 
             /* We are going against the index.  The template row must be the full index row.
              * The template row will have the RID but the result row will not
              * since there is no need to go to the data page.
              */
-            templateColumns=newResultColumns(resultColumns,
+            templateColumns = newResultColumns(resultColumns,
                     trulyTheBestConglomerateDescriptor,
                     baseConglomerateDescriptor,
                     false);
@@ -1824,17 +1887,39 @@ public class FromBaseTable extends FromTable {
                 resultColumns.addRCForRID();
             }
 
+            if (isOnExpression) {
+                resultColumns.markAllUnreferenced();
+                /* Don't try to "optimize" the following by setting ref expr index positions
+                 * in isCoveringIndex() and reuse here. Although referencingExpressions will
+                 * not change, there matching index positions can be different when there are
+                 * multiple expression-based indexes defined on table. isCoveringIndex() is
+                 * called for each index when estimating cost and truly the best access path
+                 * does not have to be the last one considered.
+                 */
+                for (int indexPosition : getRefExprIndexPositions(trulyTheBestConglomerateDescriptor.getIndexDescriptor())) {
+                    resultColumns.elementAt(indexPosition).setReferenced();
+                }
+            }
+
             /* Compact RCL down to the partial row.  We always want a new
              * RCL and FormatableBitSet because this is a covering index.  (This is
              * because we don't want the RID in the partial row returned
              * by the store.)
              */
             referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,true,false,true);
-                        resultColumns=resultColumns.compactColumns(cursorTargetTable,true);
+            resultColumns=resultColumns.compactColumns(cursorTargetTable,true);
 
             resultColumns.setIndexRow(
                     baseConglomerateDescriptor.getConglomerateNumber(),
                     forUpdate());
+
+            if (isOnExpression) {
+                // do translation before replacing index expressions, otherwise
+                // orderUsefulPredicates() doesn't recognize generated column
+                translateBetweenOnIndexExprToGEAndLE();
+                // for expressions from outer tables, replace them later
+                replaceIndexExpressions(resultColumns);
+            }
 
             return this;
         }
@@ -1911,8 +1996,9 @@ public class FromBaseTable extends FromTable {
         ** The template row is all the columns.  The
         ** result set is the compacted column list.
         */
-        resultColumns=newResultColumns;
-        if (trulyTheBestConglomerateDescriptor.getIndexDescriptor().isOnExpression()) {
+        originalBaseTableResultColumns = resultColumns;
+        resultColumns = newResultColumns;
+        if (isOnExpression) {
             templateColumns = resultColumns.copyListAndObjects();
             /* newResultColumns was built with all columns set to referenced. But we only
              * need index columns referenced in predicates since all expression-based
@@ -1925,6 +2011,7 @@ public class FromBaseTable extends FromTable {
             if (nonStoreRestrictionList != null) {
                 markReferencedIndexExpr(resultColumns, nonStoreRestrictionList);
             }
+            resultColumns.setFromExprIndex(true);
         } else {
             templateColumns = newResultColumns(resultColumns,trulyTheBestConglomerateDescriptor,baseConglomerateDescriptor,false);
             /* Since we are doing a non-covered index scan, if bulkFetch is on, then
@@ -1943,6 +2030,7 @@ public class FromBaseTable extends FromTable {
                     nonStoreRestrictionList.markReferencedColumns();
                 }
             }
+            resultColumns.setFromExprIndex(false);
         }
         resultColumns.addRCForRID();
         templateColumns.addRCForRID();
@@ -1959,6 +2047,10 @@ public class FromBaseTable extends FromTable {
          */
         getUpdateLocks=cursorTargetTable;
         cursorTargetTable=false;
+
+        if (isOnExpression) {
+            translateBetweenOnIndexExprToGEAndLE();
+        }
 
         return retval;
     }
@@ -2001,19 +2093,25 @@ public class FromBaseTable extends FromTable {
                         getContextManager());
 
         if (irg.isOnExpression()) {
-            // When building new ResultColumn instances, we don't need to set expression
-            // or virtual column number as they are not needed. In case of a scan on an
-            // expression-based index, these are just placeholders. All we care about is
-            // that they should all be referenced for now so that we can build the
-            // template row, then we will clear reference status and set them properly.
+            assert !oldColumns.isEmpty();
             DataTypeDescriptor[] indexColumnTypes = irg.getIndexColumnTypes();
-            for (DataTypeDescriptor dtd : indexColumnTypes) {
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(getLanguageConnectionContext(), this);
+
+            for (int i = 0; i < indexColumnTypes.length; i++) {
                 ResultColumn rc = (ResultColumn) getNodeFactory().getNode(
                         C_NodeTypes.RESULT_COLUMN,
-                        dtd,
-                        null,
+                        indexColumnTypes[i],
+                        exprAsts[i],
                         getContextManager());
+                rc.setIndexExpression(exprAsts[i]);
                 rc.setReferenced();
+                rc.setVirtualColumnId(i + 1);  // virtual column IDs are 1-based
+                rc.setName(idxCD.getConglomerateName() + "_col" + rc.getColumnPosition());
+                // don't set isNameGenerated flag, otherwise cannot be used as an order-by column
+                rc.setSourceTableName(this.getBaseTableName());
+                rc.setSourceSchemaName(this.getTableDescriptor().getSchemaName());
+                rc.setSourceConglomerateNumber(idxCD.getConglomerateNumber());
+                rc.setSourceConglomerateColumnPosition(i + 1);
                 newCols.addResultColumn(rc);
             }
         } else {
@@ -2340,7 +2438,6 @@ public class FromBaseTable extends FromTable {
         mb.push(costEstimate.getEstimatedCost());
         mb.push(tableDescriptor.getVersion());
         mb.push(printExplainInformationForActivation());
-        mb.push(pin);
         mb.push(splits);
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getDelimited());
         BaseJoinStrategy.pushNullableString(mb,tableDescriptor.getEscaped());
@@ -2352,7 +2449,7 @@ public class FromBaseTable extends FromTable {
         generatePastTxFunc(acb, mb);
         mb.push(minRetentionPeriod);
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getDistinctScanResultSet",
-                ClassName.NoPutResultSet,30);
+                ClassName.NoPutResultSet,29);
     }
 
     private void generatePastTxFunc(ExpressionClassBuilder acb, MethodBuilder mb) throws StandardException {
@@ -2448,7 +2545,6 @@ public class FromBaseTable extends FromTable {
                 ap.getOptimizer().getMaxMemoryPerTable(),
                 multiProbing,
                 tableDescriptor.getVersion(),
-                pin,
                 splits,
                 tableDescriptor.getDelimited(),
                 tableDescriptor.getEscaped(),
@@ -3286,35 +3382,54 @@ public class FromBaseTable extends FromTable {
         if(!irg.isUnique())
             return false;
 
-        int[] baseColumnPositions=irg.baseColumnPositions();
+        if (irg.isOnExpression()) {
+            LanguageConnectionContext lcc = getLanguageConnectionContext();
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(lcc, this);
+            for (ValueNode exprAst : exprAsts) {
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(this, exprAst, true);
 
-        // Do we have an exact match on the full key
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
 
-        for(int curCol : baseColumnPositions){
-            // get the column number at this position
-            /* Is there a pushable equality predicate on this key column?
-             * (IS NULL is also acceptable)
-             */
-            List<Predicate> optimizableEqualityPredicateList =
-                    restrictionList.getOptimizableEqualityPredicateList(this,curCol,true);
-
-            // No equality predicate for this column, so this is not a one row result set
-            if (optimizableEqualityPredicateList == null)
-                return false;
-
-            // Look for equality predicate that is not a join predicate
-            boolean existsNonjoinPredicate = false;
-            for (Predicate predicate : optimizableEqualityPredicateList) {
-                if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
-                    existsNonjoinPredicate = true;
-                    break;
-                }
+                // Look for equality predicate that is not a join predicate
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (areAllJoinPredicates(optimizableEqualityPredicateList))
+                    return false;
             }
-            // If all equality predicates are join predicates, then this is NOT a one row result set
-            if (!existsNonjoinPredicate)
-                return false;
-        }
+        } else {
+            int[] baseColumnPositions = irg.baseColumnPositions();
 
+            // Do we have an exact match on the full key
+
+            for (int curCol : baseColumnPositions) {
+                // get the column number at this position
+                /* Is there a pushable equality predicate on this key column?
+                 * (IS NULL is also acceptable)
+                 */
+                List<Predicate> optimizableEqualityPredicateList =
+                        restrictionList.getOptimizableEqualityPredicateList(this, curCol, true);
+
+                // No equality predicate for this column, so this is not a one row result set
+                if (optimizableEqualityPredicateList == null)
+                    return false;
+
+                // Look for equality predicate that is not a join predicate
+                // If all equality predicates are join predicates, then this is NOT a one row result set
+                if (areAllJoinPredicates(optimizableEqualityPredicateList))
+                    return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean areAllJoinPredicates(List<Predicate> predList) {
+        for (Predicate predicate : predList) {
+            if (!predicate.isJoinPredicate() && !predicate.isFullJoinPredicate()) {
+                return false;
+            }
+        }
         return true;
     }
 
@@ -3655,5 +3770,88 @@ public class FromBaseTable extends FromTable {
 
     public List<Integer> getNoStatsColumnIds() {
         return new ArrayList<>(usedNoStatsColumnIds);
+    }
+
+    public void setReferencingExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        referencingExpressions = exprMap.get(tableNumber);
+    }
+
+    @Override
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+        if (storeRestrictionList != null) {
+            storeRestrictionList.replaceIndexExpression(childRCL);
+        }
+        if (nonStoreRestrictionList != null) {
+            nonStoreRestrictionList.replaceIndexExpression(childRCL);
+        }
+        if (requalificationRestrictionList != null) {
+            requalificationRestrictionList.replaceIndexExpression(childRCL);
+        }
+    }
+
+    private void translateBetweenOnIndexExprToGEAndLE() throws StandardException {
+        if (storeRestrictionList != null) {
+            storeRestrictionList = translateBetweenHelper(storeRestrictionList);
+        }
+        if (nonStoreRestrictionList != null) {
+            nonStoreRestrictionList = translateBetweenHelper(nonStoreRestrictionList);
+        }
+        if (requalificationRestrictionList != null) {
+            requalificationRestrictionList = translateBetweenHelper(requalificationRestrictionList);
+        }
+    }
+
+    private PredicateList translateBetweenHelper(PredicateList predList) throws StandardException {
+        PredicateList newList = (PredicateList)getNodeFactory().getNode(
+                C_NodeTypes.PREDICATE_LIST,
+                getContextManager());
+
+        for (int i = 0; i < predList.size(); i++) {
+            Predicate pred = predList.elementAt(i);
+            if (pred.isBetween()) {
+                BetweenOperatorNode bon = (BetweenOperatorNode) pred.getAndNode().getLeftOperand();
+                AndNode newAnd = bon.translateToGEAndLE();
+
+                Predicate le = (Predicate)getNodeFactory().getNode(
+                        C_NodeTypes.PREDICATE,
+                        newAnd.getRightOperand(),
+                        pred.getReferencedSet(),
+                        getContextManager());
+                le.copyFields(pred);
+                le.clearScanFlags();
+                if (pred.isStopKey()) {
+                    le.markStopKey();
+                }
+                if (pred.isQualifier()) {
+                    le.markQualifier();
+                }
+                newList.addOptPredicate(le);
+
+                BooleanConstantNode trueNode = (BooleanConstantNode)getNodeFactory().getNode(
+                        C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                        Boolean.TRUE,
+                        getContextManager());
+                newAnd.setRightOperand(trueNode);
+
+                Predicate ge = (Predicate)getNodeFactory().getNode(
+                        C_NodeTypes.PREDICATE,
+                        newAnd,
+                        pred.getReferencedSet(),
+                        getContextManager());
+                ge.copyFields(pred);
+                ge.clearScanFlags();
+                if (pred.isStartKey()) {
+                    ge.markStartKey();
+                }
+                if (pred.isQualifier()) {
+                    ge.markQualifier();
+                }
+                newList.addOptPredicate(ge);
+            } else {
+                newList.addOptPredicate(pred);
+            }
+        }
+        newList.classify(this, getTrulyTheBestAccessPath().getConglomerateDescriptor(), true);
+        return newList;
     }
 }

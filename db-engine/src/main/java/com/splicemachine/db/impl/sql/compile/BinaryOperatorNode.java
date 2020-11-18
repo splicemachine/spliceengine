@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -90,11 +91,26 @@ public class BinaryOperatorNode extends OperatorNode
     String        resultInterfaceType;
     int            operatorType;
 
-    // If an operand matches an index expression.
-    // -1  : no match
-    // >=0 : table number
+    /* If an operand matches an index expression. Once set,
+     * values should be valid through the whole optimization
+     * process of the current query.
+     * -1  : no match
+     * >=0 : table number
+     */
     protected int leftMatchIndexExpr  = -1;
     protected int rightMatchIndexExpr = -1;
+
+    /* The following four fields record operand matches for
+     * which conglomerate and which column. These values
+     * are reset and valid only for the current access path.
+     * They should not be used beyond cost estimation.
+     */
+    protected ConglomerateDescriptor leftMatchIndexExprConglomDesc = null;
+    protected ConglomerateDescriptor rightMatchIndexExprConglomDesc = null;
+
+    // 0-based index column position
+    protected int leftMatchIndexExprColumnPosition  = -1;
+    protected int rightMatchIndexExprColumnPosition = -1;
 
     // At the time of adding XML support, it was decided that
     // we should avoid creating new OperatorNodes where possible.
@@ -1039,9 +1055,10 @@ public class BinaryOperatorNode extends OperatorNode
     }
 
     public int hashCode() {
-        int hashCode = methodName.hashCode();
-        hashCode = 31*hashCode+leftOperand.hashCode();
-        hashCode = 31*hashCode + rightOperand.hashCode();
+        int hashCode = getBaseHashCode();
+        hashCode = 31 * hashCode + methodName.hashCode();
+        hashCode = 31 * hashCode + leftOperand.hashCode();
+        hashCode = 31 * hashCode + rightOperand.hashCode();
         return hashCode;
     }
 
@@ -1105,12 +1122,29 @@ public class BinaryOperatorNode extends OperatorNode
 
     public int getOperatorType() { return operatorType; }
 
-    public void setMatchIndexExpr(int tableNumber, boolean isLeft) {
+    public void setMatchIndexExpr(int tableNumber, int columnPosition, ConglomerateDescriptor conglomDesc, boolean isLeft) {
         if (isLeft) {
             this.leftMatchIndexExpr = tableNumber;
+            this.leftMatchIndexExprColumnPosition = columnPosition;
+            this.leftMatchIndexExprConglomDesc = conglomDesc;
         } else {
             this.rightMatchIndexExpr = tableNumber;
+            this.rightMatchIndexExprColumnPosition = columnPosition;
+            this.rightMatchIndexExprConglomDesc = conglomDesc;
         }
     }
+
+    public int getLeftMatchIndexExprTableNumber() { return this.leftMatchIndexExpr; }
+    public int getRightMatchIndexExprTableNumber() { return this.rightMatchIndexExpr; }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException { return getChildrenCost(); }
+
+    protected double getChildrenCost() throws StandardException {
+        double leftCost = leftOperand == null ? 0.0 : leftOperand.getBaseOperationCost();
+        double rightCost = rightOperand == null ? 0.0 : rightOperand.getBaseOperationCost();
+        return leftCost + rightCost;
+    }
+
 }
 

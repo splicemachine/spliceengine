@@ -1757,20 +1757,22 @@ public class SQLChar
         setValue( strValue);
     }
 
-    private void formatJDBCDate( Calendar cal, StringBuffer sb)
+    private void formatJDBCDate( Calendar cal, StringBuffer sb) throws StandardException
     {
         SQLDate.dateToString( cal.get( Calendar.YEAR),
                               cal.get( Calendar.MONTH) - Calendar.JANUARY + 1,
                               cal.get( Calendar.DAY_OF_MONTH),
+                              DateTimeDataValue.ISO,
                               sb);
     }
 
-    private void formatJDBCTime( Calendar cal, StringBuffer sb)
+    private void formatJDBCTime( Calendar cal, StringBuffer sb) throws StandardException
     {
         SQLTime.timeToString(
             cal.get(Calendar.HOUR_OF_DAY),
             cal.get(Calendar.MINUTE),
             cal.get(Calendar.SECOND),
+            DateTimeDataValue.JIS,
             sb);
     }
 
@@ -3544,4 +3546,9 @@ public class SQLChar
         }
     }
 
+    @Override
+    public void setValueForSbcsData(DataValueDescriptor dvd) throws StandardException
+    {
+        setValue(dvd.getBytes()==null?null:new String(dvd.getBytes(), StandardCharsets.UTF_8));
+    }
 }

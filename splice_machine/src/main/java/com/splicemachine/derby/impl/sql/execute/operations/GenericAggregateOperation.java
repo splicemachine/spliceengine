@@ -27,6 +27,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
@@ -76,12 +77,14 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 					this.nativeSparkMode = nativeSparkMode;
 		}
 
-		public boolean nativeSparkForced() {
-			return nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED;
+		public boolean nativeSparkForced(DataSetProcessor dsp) {
+			return nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED &&
+			       !dsp.isSparkDB2CompatibilityMode();
 		}
-		public boolean nativeSparkEnabled() {
-			return nativeSparkMode == CompilerContext.NativeSparkModeType.ON ||
-			       nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED;
+		public boolean nativeSparkEnabled(DataSetProcessor dsp) {
+			return (nativeSparkMode == CompilerContext.NativeSparkModeType.ON ||
+			        nativeSparkMode == CompilerContext.NativeSparkModeType.FORCED) &&
+				   !dsp.isSparkDB2CompatibilityMode();
 		}
 		public boolean nativeSparkUsed() { return nativeSparkUsed; }
 

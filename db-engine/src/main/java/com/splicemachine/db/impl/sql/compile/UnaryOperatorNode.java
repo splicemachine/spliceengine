@@ -41,6 +41,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeUtilities;
@@ -61,7 +62,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class UnaryOperatorNode extends OperatorNode
 {
     String	operator;
@@ -128,6 +128,24 @@ public class UnaryOperatorNode extends OperatorNode
     // Array to hold Objects that contain primitive
     // args required by the operator method call.
     private Object [] additionalArgs;
+
+    /* If operand matches an index expression. Once set,
+     * values should be valid through the whole optimization
+     * process of the current query.
+     * -1  : no match
+     * >=0 : table number
+     */
+    protected int operandMatchIndexExpr = -1;
+
+    /* The following four fields record operand matches for
+     * which conglomerate and which column. These values
+     * are reset and valid only for the current access path.
+     * They should not be used beyond cost estimation.
+     */
+    protected ConglomerateDescriptor operandMatchIndexExprConglomDesc = null;
+
+    // 0-based index column position
+    protected int operandMatchIndexExprColumnPosition = -1;
 
     /**
      * Initializer for a UnaryOperatorNode.
@@ -502,6 +520,7 @@ public class UnaryOperatorNode extends OperatorNode
             case Types.BIGINT:
                 resultLength = 19;
                 break;
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
             case Types.DECIMAL:
             case Types.DOUBLE:
             case Types.REAL:
@@ -885,15 +904,21 @@ public class UnaryOperatorNode extends OperatorNode
      * {@inheritDoc}
      */
     @Override
-    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
-    {
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
         if (isSameNodeType(o)) {
-            UnaryOperatorNode other = (UnaryOperatorNode)o;
+            UnaryOperatorNode other = (UnaryOperatorNode) o;
             return ((operator == null && other.operator == null) || (operator != null && operator.equals(other.operator)) &&
                     // the first condition in the || covers the case when both operands are null.
                     ((operand == other.operand) || ((operand != null) && operand.isSemanticallyEquivalent(other.operand))));
         }
         return false;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + (operator == null ? 0 : operator.hashCode());
+        result = 31 * result + (operand == null ? 0 : operand.hashCode());
+        return result;
     }
 
     public List<? extends QueryTreeNode> getChildren() {
@@ -927,6 +952,19 @@ public class UnaryOperatorNode extends OperatorNode
 
     @Override
     public boolean isConstantOrParameterTreeNode() {
-        return operand.isConstantOrParameterTreeNode();
+        // for count(*), operand is null
+        return operand != null && operand.isConstantOrParameterTreeNode();
+    }
+
+    public void setMatchIndexExpr(int tableNumber, int columnPosition, ConglomerateDescriptor conglomDesc) {
+        this.operandMatchIndexExpr = tableNumber;
+        this.operandMatchIndexExprColumnPosition = columnPosition;
+        this.operandMatchIndexExprConglomDesc = conglomDesc;
+    }
+
+    public double getBaseOperationCost() throws StandardException { return getOperandCost(); }
+
+    protected double getOperandCost() throws StandardException {
+        return operand == null ? 0.0 : operand.getBaseOperationCost();
     }
 }

@@ -538,4 +538,9 @@ public class SQLToJavaValueNode extends JavaValueNode {
         }
         return false;
     }
+
+    @Override
+    public int hashCode() {
+        return 31 * getBaseHashCode() + value.hashCode();
+    }
 }

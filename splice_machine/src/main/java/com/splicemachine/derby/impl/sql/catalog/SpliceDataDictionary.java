@@ -28,7 +28,6 @@ import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
@@ -68,8 +67,13 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Properties;
 import java.util.function.Function;
+
+import static com.splicemachine.db.impl.sql.catalog.SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM;
 
 /**
  * @author Scott Fines
@@ -88,6 +92,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl snapshotTable = null;
     private volatile TabInfoImpl tokenTable = null;
     private volatile TabInfoImpl replicationTable = null;
+    private volatile TabInfoImpl naturalNumbersTable = null;
     private volatile TabInfoImpl ibmConnectionTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     protected boolean metadataAccessRestrictionEnabled;
@@ -343,7 +348,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         }
 
         // add new view deifnition
-        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLESRowFactory.SYSTABLES_VIEW_IN_SYSIBM);
+        createOneSystemView(tc, SYSTABLES_CATALOG_NUM, "SYSTABLES", 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
 
         SpliceLogUtils.info(LOG, "The view syscolumns and systables in SYSIBM are created!");
     }
@@ -365,6 +370,45 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createOneSystemView(tc, SYSCONSTRAINTS_CATALOG_NUM, "SYSKEYCOLUSE", 0, sysIBMSchemaDesc, SYSCONSTRAINTSRowFactory.SYSKEYCOLUSE_VIEW_IN_SYSIBM);
 
         SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
+    }
+
+    private TabInfoImpl getNaturalNumbersTable() throws StandardException{
+        if(naturalNumbersTable==null){
+            naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
+        }
+        initSystemIndexVariables(naturalNumbersTable);
+        return naturalNumbersTable;
+    }
+
+    /**
+     * Populate SYSNATURALNUMBERS table with 1-2048.
+     *
+     * @throws StandardException Standard Derby error policy
+     */
+    private void populateSYSNATURALNUMBERS(TransactionController tc) throws StandardException{
+        SYSNATURALNUMBERSRowFactory.populateSYSNATURALNUMBERS(getNonCoreTI(SYSNATURALNUMBERS_CATALOG_NUM), tc);
+    }
+
+    public void createNaturalNumbersTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+
+        TabInfoImpl table=getNaturalNumbersTable();
+        addTableIfAbsent(tc,systemSchema,table,null, null);
+
+        populateSYSNATURALNUMBERS(tc);
+    }
+
+    public void updateNaturalNumbersTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
+        if (td != null) {
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropTableDescriptor(td, sd, tc);
+        }
+
+        createNaturalNumbersTable(tc);
     }
 
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
@@ -434,6 +478,34 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public void updateColumnViewInSysVW(TransactionController tc) throws StandardException {
         updateColumnViewInSys(tc, "SYSCOLUMNSVIEW", 0, sysViewSchemaDesc, SYSCOLUMNSRowFactory.SYSCOLUMNS_VIEW_SQL);
+    }
+
+    public void addBaseTableSchemaColumnToTableViewInSysibm(TransactionController tc) throws StandardException {
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSTABLES", sysIBMSchemaDesc, tc);
+
+        Boolean needUpdate = true;
+        if (td != null) {
+            ColumnDescriptor cd = td.getColumnDescriptor("BASE_SCHEMA");
+            if (cd != null)
+                needUpdate = false;
+        }
+
+        if (needUpdate) {
+            if (td != null) {
+                ViewDescriptor vd = getViewDescriptor(td);
+                // drop the view deifnition
+                dropAllColumnDescriptors(td.getUUID(), tc);
+                dropViewDescriptor(vd, tc);
+                dropTableDescriptor(td, sysIBMSchemaDesc, tc);
+            }
+
+            // add new view deifnition
+            createOneSystemView(tc, SYSTABLES_CATALOG_NUM, SYSTABLESRowFactory.SYSTABLE_VIEW_NAME_IN_SYSIBM, 1, sysIBMSchemaDesc, SYSTABLES_VIEW_IN_SYSIBM);
+
+            SpliceLogUtils.info(LOG, String.format("The view %s in %s has been updated with default column!", "SYSTABLES", sysIBMSchemaDesc.getSchemaName()));
+        }
     }
 
     public void moveSysStatsViewsToSysVWSchema(TransactionController tc) throws StandardException {
@@ -566,6 +638,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createPermissionTableSystemViews(tc);
 
         createReplicationTables(tc);
+
+        createNaturalNumbersTable(tc);
 
         createTableColumnViewInSysIBM(tc);
 

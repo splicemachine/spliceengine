@@ -23,11 +23,7 @@ import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.*;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV2;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV3;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
@@ -492,6 +488,28 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 object.setValue(input.readDouble());
             }
         }, 45);
+        instance.register(SQLVarcharDB2Compatible.class,new DataValueDescriptorSerializer<SQLVarcharDB2Compatible>(){
+            @Override
+            protected void writeValue(Kryo kryo,Output output,SQLVarcharDB2Compatible object) throws StandardException{
+                output.writeString(object.getString());
+            }
+
+            @Override
+            protected void readValue(Kryo kryo,Input input,SQLVarcharDB2Compatible dvd){
+                dvd.setValue(input.readString());
+            }
+        },46);
+        instance.register(SQLDecfloat.class,new DataValueDescriptorSerializer<SQLDecfloat>(){
+            @Override
+            protected void writeValue(Kryo kryo,Output output,SQLDecfloat object) throws StandardException{
+                kryo.writeObjectOrNull(output,object.getObject(),BigDecimal.class);
+            }
+
+            @Override
+            protected void readValue(Kryo kryo,Input input,SQLDecfloat dvd) throws StandardException{
+                dvd.setBigDecimal(kryo.readObjectOrNull(input,BigDecimal.class));
+            }
+        },47);
         /*instance.register(SQLRef.class, new DataValueDescriptorSerializer<SQLRef>() {
             @Override
             protected void writeValue(Kryo kryo, Output output, SQLRef object) throws StandardException {
@@ -878,6 +896,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER,333);
         instance.register(StringBuilder.class,334);
         instance.register(TriggerDescriptorV3.class,EXTERNALIZABLE_SERIALIZER,335);
+        instance.register(TriggerDescriptorV4.class,EXTERNALIZABLE_SERIALIZER,336);
         instance.register(Vector.class,110);
     }
 }

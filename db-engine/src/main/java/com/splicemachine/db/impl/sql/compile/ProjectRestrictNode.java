@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -263,8 +264,6 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             childCost=((Optimizable)childResult).optimizeIt(optimizer, restrictionList, outerCost, rowOrdering);
             /* Copy child cost to this node's cost */
             costEstimate.setCost(childCost);
-
-
             // Note: we don't call "optimizer.considerCost()" here because
             // a) the child will make that call as part of its own
             // "optimizeIt()" work above, and b) the child might have
@@ -490,6 +489,19 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // where the predicates are pushed down again).
             if(childResult instanceof UnionNode)
                 ((UnionNode)childResult).pullOptPredicates(restrictionList);
+
+            // doing the same as in costPermutation(), because some predicates
+            // may have been pushed down to restrictionList of this node
+            if (restrictionList != null && !restrictionList.isEmpty()) {
+                ConglomerateDescriptor currentCd = ((Optimizable) childResult).getCurrentAccessPath().getConglomerateDescriptor();
+                IndexRowGenerator irg = currentCd == null ? null : currentCd.getIndexDescriptor();
+                if (irg != null && irg.isOnExpression()) {
+                    for (int i = 0; i < restrictionList.size(); i++) {
+                        PredicateList.isIndexUseful((Predicate) restrictionList.getOptPredicate(i), (Optimizable) childResult,
+                                false, false, ((Optimizable) childResult).getCurrentAccessPath().getConglomerateDescriptor());
+                    }
+                }
+            }
 
             return ((Optimizable)childResult).feasibleJoinStrategy(restrictionList,optimizer,outerCost);
         }else{
@@ -740,6 +752,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                      */
                     resultColumns.doProjection(false);
                 }
+
                 /* We consider materialization into a temp table as a last step.
                  * Currently, we only materialize VTIs that are inner tables
                  * and can't be instantiated multiple times.  In the future we
@@ -808,6 +821,31 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             childResult=childResult.changeAccessPath(outerTables);
         }
         accessPathModified=true;
+
+        if (childResult.getResultColumns().isFromExprIndex()) {
+            /* We get a shallow copy of the ResultColumnList and its
+             * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
+             *
+             * The following assignment to resultColumns is destructive because
+             * the column mapping from parent node to this PRN is broken. However,
+             * it has to be done because if childResult's access path is an index
+             * on expressions, the number of result columns may change here. As
+             * long as this code path is executed, resultColumns of (grand-)parent
+             * nodes must be rebuilt until the top select node in the current query
+             * block. There, we can replace RC's expressions but keep RC instances.
+             *
+             * If parent is also a PRN, its result columns would be rebuilt here,
+             * too. If parent is any type of join, then its result columns would be
+             * rebuilt in modifyAccessPath() in JoinNode. If parent is SelectNode,
+             * there is no need to rebuild its result columns but only replace
+             * their expressions.
+             */
+            resultColumns = childResult.getResultColumns().copyListAndObjects();
+            resultColumns.genVirtualColumnNodes(childResult, childResult.getResultColumns());
+            if (restrictionList != null) {
+                restrictionList.replaceIndexExpression(childResult.getResultColumns());
+            }
+        }
 
         /*
         ** Replace this PRN with a HTN if a hash join
@@ -1052,6 +1090,14 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                 restrictSubquerys.treePrint(depth+1);
             }
         }
+    }
+
+    /**
+     * @inheritDoc
+     */
+    @Override
+    public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException {
+        return childResult.getMatchingColumn(columnReference);
     }
 
     /**
@@ -2066,5 +2112,22 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             return ((FromTable)childResult).hasJoinPredicatePushedDownFromOuter();
 
         return hasJoinPredicatePushedDownFromOuter;
+    }
+
+    @Override
+    public void replaceIndexExpressions(ResultColumnList childRCL) throws StandardException {
+        if (restrictionList != null) {
+            restrictionList.replaceIndexExpression(childRCL);
+        }
+        childResult.replaceIndexExpressions(childRCL);
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        boolean result = true;
+        if (restrictionList != null) {
+            result = restrictionList.collectExpressions(exprMap);
+        }
+        return result && childResult.collectExpressions(exprMap);
     }
 }

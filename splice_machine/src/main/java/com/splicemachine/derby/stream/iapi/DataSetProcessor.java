@@ -196,23 +196,6 @@ public interface DataSetProcessor {
      * @param location
      */
     void refreshTable(String location);
-    /**
-     *
-     * Reads in-memory version given the scan variables.  The qualifiers are applied to the in-memory version.
-     *
-     * @param conglomerateId
-     * @param baseColumnMap
-     * @param location
-     * @param context
-     * @param qualifiers
-     * @param probeValue
-     * @param execRow
-     * @param <V>
-     * @return
-     * @throws StandardException
-     */
-    <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location,
-                                   OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException ;
 
     /**
      *
@@ -246,15 +229,6 @@ public interface DataSetProcessor {
                                       DataValueDescriptor probeValue, ExecRow execRow,
                                       boolean useSample, double sampleFraction) throws StandardException;
 
-    /**
-     *
-     * Drops the in-memory version of the table.
-     *
-     * @param conglomerateId
-     * @throws StandardException
-     */
-    void dropPinnedTable(long conglomerateId) throws StandardException;
-
 
     /**
      *  Returns true if the table is currently cached in-memory.
@@ -284,4 +258,9 @@ public interface DataSetProcessor {
     // <- End operations related to spark explain.
 
     <V> DataSet<ExecRow> readKafkaTopic(String topicName, OperationContext op) throws StandardException;
+
+    boolean isSparkDB2CompatibilityMode();
+
+    void setTempTriggerConglomerate(long conglomID);
+    long getTempTriggerConglomerate();
 }

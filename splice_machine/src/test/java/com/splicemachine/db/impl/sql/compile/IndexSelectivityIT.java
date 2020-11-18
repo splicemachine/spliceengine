@@ -65,6 +65,9 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 .withIndex("create index ts_low_cardinality_ix_3 on ts_low_cardinality(c1,c2)")
                 .withIndex("create index ts_low_cardinality_ix_4 on ts_low_cardinality(c1,c2,c3)")
                 .withIndex("create index ts_low_cardinality_ix_5 on ts_low_cardinality(c1,c2,c3,c4)")
+                .withIndex("create index ts_low_cardinality_expr_ix_1 on ts_low_cardinality(c1/2)")
+                .withIndex("create index ts_low_cardinality_expr_ix_2 on ts_low_cardinality(upper(c2))")
+                .withIndex("create index ts_low_cardinality_expr_ix_3 on ts_low_cardinality(c1/2,upper(c2))")
                 .create();
         for (int i = 0; i < 10; i++) {
             spliceClassWatcher.executeUpdate("insert into ts_low_cardinality select * from ts_low_cardinality");
@@ -76,6 +79,8 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                 .withIndex("create index ts_high_cardinality_ix_2 on ts_high_cardinality(c2)")
                 .withIndex("create index ts_high_cardinality_ix_3 on ts_high_cardinality(c1,c2)")
                 .withIndex("create index ts_high_cardinality_ix_4 on ts_high_cardinality(c1,c2,c3)")
+                .withIndex("create index ts_high_cardinality_expr_ix_1 on ts_high_cardinality(abs(c1))")
+                .withIndex("create index ts_high_cardinality_expr_ix_2 on ts_high_cardinality(upper(c2))")
                 .create();
 
         PreparedStatement insert = spliceClassWatcher.prepareStatement("insert into ts_high_cardinality values (?,?,?,?)");
@@ -99,6 +104,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                         row(1, 2),
                         row(3, 4)))
                 .withIndex("create index narrow_table_idx on narrow_table(i)")
+                .withIndex("create index narrow_table_expr_idx on narrow_table(i+2)")
                 .create();
 
         PreparedStatement doubleSize = spliceClassWatcher.prepareStatement("insert into narrow_table select * from narrow_table");
@@ -157,6 +163,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
                         row(8,8,8,8,8,8,8,8,8,8,8,8),
                         row(9,9,9,9,9,9,9,9,9,9,9,9)))
                 .withIndex("create index t1_idx on t1(c3,c4,c5)")
+                .withIndex("create index t1_expr_idx on t1(mod(c2, 3), c4 / 3, abs(c3))")
                 .create();
 
         // we purposely leave t1 out from stats collection, as the test case is to test the plan selection without stats.
@@ -198,19 +205,43 @@ public class IndexSelectivityIT extends SpliceUnitTest {
 
     @Test
     public void testCoveringIndexScan() throws Exception {
+        // indexes on columns
         rowContainsQuery(3,"explain select c1 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_1",methodWatcher);
         rowContainsQuery(3,"explain select c1,c2 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_3",methodWatcher);
         rowContainsQuery(3,"explain select c2 from ts_low_cardinality where c2 = '1'","IndexScan[TS_LOW_CARDINALITY_IX_2",methodWatcher);
         rowContainsQuery(6,"explain select count(*) from ts_low_cardinality where c2 = '1'","IndexScan[TS_LOW_CARDINALITY_IX_2",methodWatcher);
+
+        // indexes on expressions
+        rowContainsQuery(3,"explain select c1/2 from ts_low_cardinality where c1/2 = 0","IndexScan[TS_LOW_CARDINALITY_EXPR_IX_1",methodWatcher);
+        rowContainsQuery(3,"explain select c1/2,upper(c2) from ts_low_cardinality where c1/2 = 0","IndexScan[TS_LOW_CARDINALITY_EXPR_IX_3",methodWatcher);
+        rowContainsQuery(3,"explain select upper(c2) from ts_low_cardinality where upper(c2) = '1'","IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2",methodWatcher);
+        rowContainsQuery(6,"explain select count(*) from ts_low_cardinality where upper(c2) = '1'","IndexScan[TS_LOW_CARDINALITY_EXPR_IX_2",methodWatcher);
     }
 
     @Test
     public void testCoveringIndexOverBaseTableScanWithoutStats () throws Exception {
-        //covering index should be picked
-        rowContainsQuery(3, "explain select c3, c4, c5 from t1 where c4=10", "IndexScan[T1_IDX", methodWatcher);
-        //if not covering index, base table scan should be picked
-        rowContainsQuery(3, "explain select c3, c4, c5, c6 from t1 where c4=10", "TableScan[T1", methodWatcher);
+        /* covering index should be picked */
 
+        rowContainsQuery(3, "explain select c3, c4, c5 from t1 where c4=10", "IndexScan[T1_IDX", methodWatcher);
+        rowContainsQuery(4, "explain select mod(c2,3), abs(c3), c4 / 3 from t1 where c4/3=13", "IndexScan[T1_EXPR_IDX", methodWatcher);
+
+        // T1_EXPR_IDX is not covering but T1_IDX is, still better than TableScan, expression evaluations happen to both
+        rowContainsQuery(5, "explain select abs(c3), c4 / 3, c5 from t1 where c4/3=13", "IndexScan[T1_IDX", methodWatcher);
+
+        /* if not covering index, base table scan should be picked */
+
+        rowContainsQuery(3, "explain select c3, c4, c5, c6 from t1 where c4=10", "TableScan[T1", methodWatcher);
+        rowContainsQuery(5, "explain select abs(c3), c4 / 3, c6 from t1 where c4/3=13", "TableScan[T1", methodWatcher);
+
+        // T1_EXPR_IDX is covering. However, when there is no statistics, selectivity of abs(c3)=3 is 0.1 (default
+        // single-point filter) for TableScan and IndexScan on TI_IDX, and 0.9 (default FakePartitionStatistics range
+        // selectivity) for IndexScan on T1_EXPR_IDX because it's a qualifier. As a result,
+        // remote cost of IndexScan[T1_EXPR_IDX]       : 20 * 0.9 * 10 = 180
+        // remote cost of TableScan/IndexScan[T1_IDX]  : 20 * 0.1 * 10 = 20
+        // evaluation cost of abs(c3)                  : 0.2 * 27.5 * 20 = 110 (only a function call cost)
+        // Obviously, 110 + 20 < 180, expression evaluation cost is not big enough to overcome the remote cost
+        // difference. Optimizer chooses IndexScan[T1_IDX] because it scans fewer columns.
+        rowContainsQuery(5, "explain select abs(c3) from t1 where abs(c3)=3", "IndexScan[T1_IDX", methodWatcher);
     }
 
     @Test @Ignore
@@ -230,6 +261,26 @@ public class IndexSelectivityIT extends SpliceUnitTest {
         // 5000/10000
         rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 5000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
     }
+
+    private void testRangeIndexLookupHelper(String query, int[] levels, double outputRows, double variation,
+                                            String... contains) throws Exception {
+        double[] outputRowsArray = new double[levels.length];
+        double[] variationArray = new double[levels.length];
+        for (int i = 0; i < levels.length; i++) {
+            outputRowsArray[i] = outputRows;
+            variationArray[i] = variation;
+        }
+        rowContainsQuery(levels,
+                query,
+                methodWatcher,
+                contains);
+
+        rowContainsCount(levels,
+                query,
+                methodWatcher,
+                outputRowsArray,
+                variationArray);
+    }
     
     @Test
     public void testRangeIndexLookup1() throws Exception {
@@ -242,88 +293,31 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     	String query = "explain select * from ts_high_cardinality --SPLICE-PROPERTIES index=%s \n where c1 > 1 and c1 < %d";
 
         double variation = 10000.0d*.02;
+        int[] levels = new int[]{3, 4};
 
     	// 10/10000
-        rowContainsQuery(new int[]{3, 4},
-        	format(query, index, 10),
-            methodWatcher,
-            "IndexLookup",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
-
-        rowContainsCount(new int[]{3, 4},
-                format(query, index, 10),
-                methodWatcher,
-                new double[]{8.0d,8.0d},
-                new double[]{variation,variation});
-
+        testRangeIndexLookupHelper(format(query, index, 10), levels, 8.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
 
         // 100/10000
-        rowContainsQuery(new int[]{3, 4},
-        	format(query, index, 100),
-            methodWatcher,
-            "IndexLookup",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
-
-        rowContainsCount(new int[]{3, 4},
-                format(query, index, 100),
-                methodWatcher,
-                new double[]{98.0d,98.0d},
-                new double[]{variation,variation});
-
+        testRangeIndexLookupHelper(format(query, index, 100), levels, 98.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
 
         // 200/10000
-        rowContainsQuery(new int[]{3, 4},
-        	format(query, index, 200),
-            methodWatcher,
-            "IndexLookup",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
-
-        rowContainsCount(new int[]{3, 4},
-                format(query, index, 200),
-                methodWatcher,
-                new double[]{198.0d,198.0d},
-                new double[]{variation,variation});
+        testRangeIndexLookupHelper(format(query, index, 200), levels, 198.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
 
         // 1000/10000
-        rowContainsQuery(new int[]{3, 4},
-        	format(query, index, 1000),
-            methodWatcher,
-            "IndexLookup",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
-
-        rowContainsCount(new int[]{3, 4},
-                format(query, index, 1000),
-                methodWatcher,
-                new double[]{998.0d,998.0d},
-                new double[]{variation,variation});
+        testRangeIndexLookupHelper(format(query, index, 1000), levels, 998.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
 
         // 2000/10000
-        rowContainsQuery(new int[]{3, 4},
-        	format(query, index, 1999),
-            methodWatcher,
-            "IndexLookup",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
-
-        rowContainsCount(new int[]{3, 4},
-                format(query, index, 1999),
-                methodWatcher,
-                new double[]{1998.0d,1998},
-                new double[]{variation,variation});
-
+        testRangeIndexLookupHelper(format(query, index, 2000), levels,1998.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
 
         // 5000/10000
-        rowContainsQuery(new int[]{3, 4},
-        	format(query, index, 5000),
-            methodWatcher,
-            "IndexLookup",
-            "IndexScan[TS_HIGH_CARDINALITY_IX_1");
-
-        rowContainsCount(new int[]{3, 4},
-                format(query, index, 5000),
-                methodWatcher,
-                new double[]{4998.0d,4998.0d},
-                new double[]{variation,variation});
-
+        testRangeIndexLookupHelper(format(query, index, 5000), levels,4998.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
     }
 
     @Test
@@ -336,80 +330,68 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     	String index2 = "TS_HIGH_CARDINALITY_IX_2";
     	String query = "explain select * from ts_high_cardinality --SPLICE-PROPERTIES index=%s \n where c1 > 1 and c1 < %d";
         double variation = 10000.0d*.02;
+        int[] levels = new int[]{3};
 
         // 10/10000
-        rowContainsQuery(new int[]{3},
-        	format(query, index2, 10),
-            methodWatcher,
-            "ProjectRestrict");
-
-        rowContainsCount(new int[]{3},
-                format(query, index2, 10),
-                methodWatcher,
-                new double[]{8.0d},
-                new double[]{variation});
+        testRangeIndexLookupHelper(format(query, index2, 10), levels, 8.0d, variation, "ProjectRestrict");
 
         // 100/10000
-        rowContainsQuery(new int[]{3},
-        	format(query, index2, 100),
-            methodWatcher,
-            "ProjectRestrict");
-        rowContainsCount(new int[]{3},
-                format(query, index2, 100),
-                methodWatcher,
-                new double[]{98.0d},
-                new double[]{variation});
-
+        testRangeIndexLookupHelper(format(query, index2, 100), levels, 98.0d, variation, "ProjectRestrict");
 
         // 200/10000
-        rowContainsQuery(new int[]{3},
-        	format(query, index2, 200),
-            methodWatcher,
-            "ProjectRestrict");
-
-        rowContainsCount(new int[]{3},
-                format(query, index2, 200),
-                methodWatcher,
-                new double[]{198.0d},
-                new double[]{variation});
+        testRangeIndexLookupHelper(format(query, index2, 200), levels, 198.0d, variation, "ProjectRestrict");
 
         // 1000/10000
-        rowContainsQuery(new int[]{3},
-        	format(query, index2, 1000),
-            methodWatcher,
-            "ProjectRestrict");
-
-        rowContainsCount(new int[]{3},
-                format(query, index2, 1000),
-                methodWatcher,
-                new double[]{998.0d},
-                new double[]{variation});
+        testRangeIndexLookupHelper(format(query, index2, 1000), levels, 998.0d, variation, "ProjectRestrict");
 
         // 2000/10000
-        rowContainsQuery(new int[]{3},
-        	format(query, index2, 2000),
-            methodWatcher, "ProjectRestrict");
-
-        rowContainsCount(new int[]{3},
-                format(query, index2, 2000),
-                methodWatcher,
-                new double[]{1998.0d},
-                new double[]{variation});
-
+        testRangeIndexLookupHelper(format(query, index2, 2000), levels, 1998.0d, variation, "ProjectRestrict");
 
         // 5000/10000
-        rowContainsQuery(new int[]{3},
-        	format(query, index2, 5000),
-            methodWatcher,
-            "ProjectRestrict");
-
-        rowContainsCount(new int[]{3},
-                format(query, index2, 5000),
-                methodWatcher,
-                new double[]{4998},
-                new double[]{variation});
-
+        testRangeIndexLookupHelper(format(query, index2, 5000), levels, 4998.0d, variation, "ProjectRestrict");
     }
+
+    @Test
+    public void testRangeExprIndexLookup1() throws Exception {
+        // Hint with an expression-based index, should use index statistics
+
+        String index = "TS_HIGH_CARDINALITY_EXPR_IX_1";
+        String query = "explain select * from ts_high_cardinality --SPLICE-PROPERTIES index=%s \n where abs(c1) > 1 and abs(c1) < %d";
+
+        double variation = 10000.0d*.02;
+        int[] levels = new int[]{3, 4};
+
+        // 10/10000
+        testRangeIndexLookupHelper(format(query, index, 10), levels, 8.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
+
+        // 100/10000
+        testRangeIndexLookupHelper(format(query, index, 100), levels, 98.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
+
+        // 200/10000
+        testRangeIndexLookupHelper(format(query, index, 200), levels, 198.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
+
+        // 1000/10000
+        testRangeIndexLookupHelper(format(query, index, 1000), levels, 998.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
+
+        // 2000/10000
+        testRangeIndexLookupHelper(format(query, index, 2000), levels,1998.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
+
+        // 5000/10000
+        testRangeIndexLookupHelper(format(query, index, 5000), levels,4998.0d, variation,
+                "IndexLookup", "IndexScan[" + index);
+    }
+
+    /* A similar test to RangeIndexLookup2 for expression-based index would fail because when enumerating access paths,
+     * we load index statistics only for the current conglomerate (if it's an index). When hinting with
+     * TS_HIGH_CARDINALITY_EXPR_IX_2, we don't find statistics for abs(c1) since both table and index statistics don't
+     * include this column. To the best, we can setup a similar test by hinting with TS_HIGH_CARDINALITY_EXPR_IX_2 but
+     * use c1 > 1 and c1 < %d. However, this would test nothing more than RangeIndexLookup2.
+     */
 
     @Test
     @Ignore("Splice-1097")
@@ -420,11 +402,14 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     @Test
     public void testFilteredCountChoosesNarrowTableIndex() throws Exception {
         rowContainsQuery(6,"explain select count(*) from narrow_table where i = 1","IndexScan[NARROW_TABLE_IDX",methodWatcher);
+        rowContainsQuery(6,"explain select count(*) from narrow_table where i + 2 = 3","IndexScan[NARROW_TABLE_EXPR_IDX",methodWatcher);
     }
 
     @Test
     public void testCountChoosesWideTableIndex() throws Exception {
         rowContainsQuery(6,"explain select count(*) from wide_table","IndexScan[WIDE_TABLE_IDX",methodWatcher);
+        // Don't add an expression-based index using one base column here. It should have the same cost for the query as
+        // WIDE_TABLE_IDX and the optimizer could choose either of them.
     }
 
     @Test

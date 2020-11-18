@@ -37,234 +37,237 @@ import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.info.JVMInfo;
-import com.splicemachine.db.iapi.types.SQLDouble;
-import com.splicemachine.db.iapi.types.SQLInteger;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.iapi.types.SQLReal;
-import com.splicemachine.db.iapi.types.SQLSmallint;
-import com.splicemachine.db.iapi.types.SQLTinyint;
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.DataTypeUtilities;
-import com.splicemachine.db.iapi.types.NumberDataValue;
+import com.splicemachine.db.iapi.types.*;
 
 import java.sql.Types;
 
 public final class NumericConstantNode extends ConstantNode
 {
-	/**
-	 * Initializer for a typed null node
-	 *
-	 * @param arg1	The TypeId for the type of node OR An object containing the value of the constant.
-	 *
-	 * @exception StandardException
-	 */
-	public void init(Object arg1)
-		throws StandardException
-	{
-		int precision = 0, scal = 0, maxwidth = 0;
-		Boolean isNullable;
-		boolean valueInP; // value in Predicate-- if TRUE a value was passed in
-		TypeId  typeId = null;
-		int typeid = 0;
+    /**
+     * Initializer for a typed null node
+     *
+     * @param arg1    The TypeId for the type of node OR An object containing the value of the constant.
+     *
+     * @exception StandardException
+     */
+    public void init(Object arg1)
+        throws StandardException
+    {
+        int precision = 0, scal = 0, maxwidth = 0;
+        Boolean isNullable;
+        boolean valueInP; // value in Predicate-- if TRUE a value was passed in
+        TypeId  typeId = null;
+        int typeid = 0;
 
-		if (arg1 instanceof TypeId)
-		{
-			typeId = (TypeId)arg1;
-			isNullable = Boolean.TRUE;
-			valueInP = false;
-			maxwidth = 0;
-		}
+        if (arg1 instanceof TypeId)
+        {
+            typeId = (TypeId)arg1;
+            isNullable = Boolean.TRUE;
+            valueInP = false;
+            maxwidth = 0;
+        }
 
-		else	
-		{
-			isNullable = Boolean.FALSE;
-			valueInP = true;
-		}
+        else
+        {
+            isNullable = Boolean.FALSE;
+            valueInP = true;
+        }
 
-		
-		switch (getNodeType())
-		{
-		case C_NodeTypes.TINYINT_CONSTANT_NODE:
-			precision = TypeId.SMALLINT_PRECISION;
-			scal = TypeId.SMALLINT_SCALE;
-			if (valueInP)
-			{
-				maxwidth = TypeId.SMALLINT_MAXWIDTH;
-				typeid = Types.TINYINT;
-				setValue(new SQLTinyint((Byte) arg1));
-			} 
-			break;
 
-		case C_NodeTypes.INT_CONSTANT_NODE:
-			precision = TypeId.INT_PRECISION;
-			scal = TypeId.INT_SCALE;
-			if (valueInP)
-			{
-				maxwidth = TypeId.INT_MAXWIDTH;
-				typeid = Types.INTEGER;
-				setValue(new SQLInteger((Integer) arg1));
-			}
-			break;
+        switch (getNodeType())
+        {
+        case C_NodeTypes.TINYINT_CONSTANT_NODE:
+            precision = TypeId.SMALLINT_PRECISION;
+            scal = TypeId.SMALLINT_SCALE;
+            if (valueInP)
+            {
+                maxwidth = TypeId.SMALLINT_MAXWIDTH;
+                typeid = Types.TINYINT;
+                setValue(new SQLTinyint((Byte) arg1));
+            }
+            break;
 
-		case C_NodeTypes.SMALLINT_CONSTANT_NODE:
-			precision = TypeId.SMALLINT_PRECISION;
-			scal = TypeId.SMALLINT_SCALE;
-			if (valueInP)
-			{
-				maxwidth = TypeId.SMALLINT_MAXWIDTH;
-				typeid = Types.SMALLINT;
-				setValue(new SQLSmallint((Short) arg1));
-			}
-			break;
+        case C_NodeTypes.INT_CONSTANT_NODE:
+            precision = TypeId.INT_PRECISION;
+            scal = TypeId.INT_SCALE;
+            if (valueInP)
+            {
+                maxwidth = TypeId.INT_MAXWIDTH;
+                typeid = Types.INTEGER;
+                setValue(new SQLInteger((Integer) arg1));
+            }
+            break;
 
-		case C_NodeTypes.LONGINT_CONSTANT_NODE:
-			precision = TypeId.LONGINT_PRECISION;
-			scal = TypeId.LONGINT_SCALE;
-			if (valueInP)
-			{
-				maxwidth = TypeId.LONGINT_MAXWIDTH;
-				typeid = Types.BIGINT;
-				setValue(new SQLLongint((Long) arg1));
-			}
-			break;
-			
-		case C_NodeTypes.DECIMAL_CONSTANT_NODE:
-			if (valueInP)
-			{
+        case C_NodeTypes.SMALLINT_CONSTANT_NODE:
+            precision = TypeId.SMALLINT_PRECISION;
+            scal = TypeId.SMALLINT_SCALE;
+            if (valueInP)
+            {
+                maxwidth = TypeId.SMALLINT_MAXWIDTH;
+                typeid = Types.SMALLINT;
+                setValue(new SQLSmallint((Short) arg1));
+            }
+            break;
 
-				NumberDataValue constantDecimal = getDataValueFactory().getDecimalDataValue((String) arg1);
+        case C_NodeTypes.LONGINT_CONSTANT_NODE:
+            precision = TypeId.LONGINT_PRECISION;
+            scal = TypeId.LONGINT_SCALE;
+            if (valueInP)
+            {
+                maxwidth = TypeId.LONGINT_MAXWIDTH;
+                typeid = Types.BIGINT;
+                setValue(new SQLLongint((Long) arg1));
+            }
+            break;
 
-				typeid = Types.DECIMAL;
-				precision = constantDecimal.getDecimalValuePrecision();
-				scal = constantDecimal.getDecimalValueScale();
-				/* be consistent with our convention on maxwidth, see also
-				 * exactNumericType(), otherwise we get format problem, b 3923
-				 */
-				maxwidth = DataTypeUtilities.computeMaxWidth(precision, scal);
-				setValue(constantDecimal);
-			}
-			else
-			{
-				precision = TypeCompiler.DEFAULT_DECIMAL_PRECISION;
-				scal = TypeCompiler.DEFAULT_DECIMAL_SCALE;
-				maxwidth = TypeId.DECIMAL_MAXWIDTH;
-			}
-			break;
-												   
-		case C_NodeTypes.DOUBLE_CONSTANT_NODE:
-			precision = TypeId.DOUBLE_PRECISION;
-			scal = TypeId.DOUBLE_SCALE;
-			if (valueInP)
-			{
-				maxwidth = TypeId.DOUBLE_MAXWIDTH;
-				typeid = Types.DOUBLE;
-				setValue(new SQLDouble((Double) arg1));
-			}
-			break;
+        case C_NodeTypes.DECIMAL_CONSTANT_NODE:
+            if (valueInP)
+            {
 
-		case C_NodeTypes.FLOAT_CONSTANT_NODE:
-			precision = TypeId.REAL_PRECISION;
-			scal = TypeId.REAL_SCALE;
-			if (valueInP)
-			{
-				maxwidth = TypeId.REAL_MAXWIDTH;
-				typeid = Types.REAL;
-				setValue(new SQLReal((Float) arg1));
-			}
-			break;
-			
-		default:
-			if (SanityManager.DEBUG)
-			{
-				// we should never really come here-- when the class is created
-				// it should have the correct nodeType set.
-				SanityManager.THROWASSERT(
-								"Unexpected nodeType = " + getNodeType());
-			}
-			break;
-		}
-		
-		setType(
-				   (typeId != null) ?  typeId :
-				     TypeId.getBuiltInTypeId(typeid),
+                NumberDataValue constantDecimal = getDataValueFactory().getDecimalDataValue((String) arg1);
 
-				   precision, 
-				   scal,
+                typeid = Types.DECIMAL;
+                precision = constantDecimal.getDecimalValuePrecision();
+                scal = constantDecimal.getDecimalValueScale();
+                /* be consistent with our convention on maxwidth, see also
+                 * exactNumericType(), otherwise we get format problem, b 3923
+                 */
+                maxwidth = DataTypeUtilities.computeMaxWidth(precision, scal);
+                setValue(constantDecimal);
+            }
+            else
+            {
+                precision = TypeCompiler.DEFAULT_DECIMAL_PRECISION;
+                scal = TypeCompiler.DEFAULT_DECIMAL_SCALE;
+                maxwidth = TypeId.DECIMAL_MAXWIDTH;
+            }
+            break;
+
+        case C_NodeTypes.DECFLOAT_CONSTANT_NODE:
+            precision = TypeId.DECFLOAT_PRECISION;
+            scal = TypeId.DECFLOAT_SCALE;
+            maxwidth = TypeId.DECFLOAT_MAXWIDTH;
+            if (valueInP) {
+                typeid = com.splicemachine.db.iapi.reference.Types.DECFLOAT;
+                setValue(new SQLDecfloat((String) arg1));
+            }
+            break;
+
+        case C_NodeTypes.DOUBLE_CONSTANT_NODE:
+            precision = TypeId.DOUBLE_PRECISION;
+            scal = TypeId.DOUBLE_SCALE;
+            if (valueInP)
+            {
+                maxwidth = TypeId.DOUBLE_MAXWIDTH;
+                typeid = Types.DOUBLE;
+                setValue(new SQLDouble((Double) arg1));
+            }
+            break;
+
+        case C_NodeTypes.FLOAT_CONSTANT_NODE:
+            precision = TypeId.REAL_PRECISION;
+            scal = TypeId.REAL_SCALE;
+            if (valueInP)
+            {
+                maxwidth = TypeId.REAL_MAXWIDTH;
+                typeid = Types.REAL;
+                setValue(new SQLReal((Float) arg1));
+            }
+            break;
+
+        default:
+            if (SanityManager.DEBUG)
+            {
+                // we should never really come here-- when the class is created
+                // it should have the correct nodeType set.
+                SanityManager.THROWASSERT(
+                                "Unexpected nodeType = " + getNodeType());
+            }
+            break;
+        }
+
+        setType(
+                   (typeId != null) ?  typeId :
+                     TypeId.getBuiltInTypeId(typeid),
+
+                   precision,
+                   scal,
                 isNullable,
-				   maxwidth);
-	}
+                   maxwidth);
+    }
 
-	/**
-	 * Return an Object representing the bind time value of this
-	 * expression tree.  If the expression tree does not evaluate to
-	 * a constant at bind time then we return null.
-	 * This is useful for bind time resolution of VTIs.
-	 * RESOLVE: What do we do for primitives?
-	 *
-	 * @return	An Object representing the bind time value of this expression tree.
-	 *			(null if not a bind time constant.)
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	Object getConstantValueAsObject()
-		throws StandardException
-	{
-		return value.getObject();
-	}
+    /**
+     * Return an Object representing the bind time value of this
+     * expression tree.  If the expression tree does not evaluate to
+     * a constant at bind time then we return null.
+     * This is useful for bind time resolution of VTIs.
+     * RESOLVE: What do we do for primitives?
+     *
+     * @return    An Object representing the bind time value of this expression tree.
+     *            (null if not a bind time constant.)
+     *
+     * @exception StandardException        Thrown on error
+     */
+    Object getConstantValueAsObject()
+        throws StandardException
+    {
+        return value.getObject();
+    }
 
-		/**
-	 * This generates the proper constant.  It is implemented
-	 * by every specific constant node (e.g. IntConstantNode).
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class being built
-	 * @param mb	The method the expression will go into
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb)
-		throws StandardException
-	{
-		switch (getNodeType())
-		{
-		case C_NodeTypes.INT_CONSTANT_NODE:
-			mb.push(value.getInt());
-			break;
-		case C_NodeTypes.TINYINT_CONSTANT_NODE:
-			mb.push(value.getByte());
-			break;
-		case C_NodeTypes.SMALLINT_CONSTANT_NODE:
-			mb.push(value.getShort());
-			break;
-		case C_NodeTypes.DECIMAL_CONSTANT_NODE:
-			// No java.math.BigDecimal class in J2ME so the constant
-			// from the input SQL is handled directly as a String.
-			if (!JVMInfo.J2ME)
-				mb.pushNewStart("java.math.BigDecimal");
-			mb.push(value.getString());
-			if (!JVMInfo.J2ME)
-				mb.pushNewComplete(1);
-			break;
-		case C_NodeTypes.DOUBLE_CONSTANT_NODE:
-			mb.push(value.getDouble());
-			break;
-		case C_NodeTypes.FLOAT_CONSTANT_NODE:
-			mb.push(value.getFloat());
-			break;
-		case C_NodeTypes.LONGINT_CONSTANT_NODE:
-			mb.push(value.getLong());
-			break;
-		default:
-			if (SanityManager.DEBUG)
-			{
-				// we should never really come here-- when the class is created
-				// it should have the correct nodeType set.
-				SanityManager.THROWASSERT(
-						  "Unexpected nodeType = " + getNodeType());
-			}
-		}	
-	}
-	
-	public int hashCode(){
-		return value==null?0 : value.hashCode();
-	}
-}		
+        /**
+     * This generates the proper constant.  It is implemented
+     * by every specific constant node (e.g. IntConstantNode).
+     *
+     * @param acb    The ExpressionClassBuilder for the class being built
+     * @param mb    The method the expression will go into
+     *
+     * @exception StandardException        Thrown on error
+     */
+    void generateConstant(ExpressionClassBuilder acb, MethodBuilder mb)
+        throws StandardException
+    {
+        switch (getNodeType())
+        {
+        case C_NodeTypes.INT_CONSTANT_NODE:
+            mb.push(value.getInt());
+            break;
+        case C_NodeTypes.TINYINT_CONSTANT_NODE:
+            mb.push(value.getByte());
+            break;
+        case C_NodeTypes.SMALLINT_CONSTANT_NODE:
+            mb.push(value.getShort());
+            break;
+        case C_NodeTypes.DECIMAL_CONSTANT_NODE:
+        case C_NodeTypes.DECFLOAT_CONSTANT_NODE:
+            // No java.math.BigDecimal class in J2ME so the constant
+            // from the input SQL is handled directly as a String.
+            if (!JVMInfo.J2ME)
+                mb.pushNewStart("java.math.BigDecimal");
+            mb.push(value.getString());
+            if (!JVMInfo.J2ME)
+                mb.pushNewComplete(1);
+            break;
+        case C_NodeTypes.DOUBLE_CONSTANT_NODE:
+            mb.push(value.getDouble());
+            break;
+        case C_NodeTypes.FLOAT_CONSTANT_NODE:
+            mb.push(value.getFloat());
+            break;
+        case C_NodeTypes.LONGINT_CONSTANT_NODE:
+            mb.push(value.getLong());
+            break;
+        default:
+            if (SanityManager.DEBUG)
+            {
+                // we should never really come here-- when the class is created
+                // it should have the correct nodeType set.
+                SanityManager.THROWASSERT(
+                          "Unexpected nodeType = " + getNodeType());
+            }
+        }
+    }
+
+    public int hashCode(){
+        return value==null?0 : value.hashCode();
+    }
+}

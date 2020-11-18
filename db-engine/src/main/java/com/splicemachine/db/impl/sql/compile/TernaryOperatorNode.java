@@ -48,12 +48,13 @@ import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A TernaryOperatorNode represents a built-in ternary operators.
@@ -63,7 +64,6 @@ import java.util.List;
  *
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class TernaryOperatorNode extends OperatorNode
 {
     String        operator;
@@ -1424,6 +1424,15 @@ public class TernaryOperatorNode extends OperatorNode
         return false;
     }
 
+    public int hashCode() {
+        int result = getBaseHashCode();
+        result = 31 * result + methodName.hashCode();
+        result = 31 * result + (receiver == null ? 0 : receiver.hashCode());
+        result = 31 * result + (leftOperand == null ? 0 : leftOperand.hashCode());
+        result = 31 * result + (rightOperand == null ? 0 : rightOperand.hashCode());
+        return result;
+    }
+
     public List<? extends QueryTreeNode> getChildren() {
         return new ArrayList<QueryTreeNode>(){{
             add(receiver);
@@ -1481,4 +1490,61 @@ public class TernaryOperatorNode extends OperatorNode
     public boolean isLeading()  {return trimType == StringDataValue.LEADING;}
     public boolean isTrailing() {return trimType == StringDataValue.TRAILING;}
     public boolean isBoth()     {return trimType == StringDataValue.BOTH;}
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        if (childRCL == null) {
+            return this;
+        }
+        // this special handling for like predicate is fine because like cannot appear in index expressions
+        if (operatorType == LIKE) {
+            if (receiver != null) {
+                receiver = receiver.replaceIndexExpression(childRCL);
+            }
+            if (leftOperand != null) {
+                leftOperand = leftOperand.replaceIndexExpression(childRCL);
+            }
+            if (rightOperand != null) {
+                rightOperand = rightOperand.replaceIndexExpression(childRCL);
+            }
+            return this;
+        } else {
+            return super.replaceIndexExpression(childRCL);
+        }
+    }
+
+    @Override
+    public boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap) {
+        // this special handling for like predicate is fine because like cannot appear in index expressions
+        if (operatorType == LIKE) {
+            boolean result = true;
+            if (receiver != null) {
+                result = receiver.collectExpressions(exprMap);
+            }
+            if (leftOperand != null) {
+                result = result && leftOperand.collectExpressions(exprMap);
+            }
+            if (rightOperand != null) {
+                result = result && rightOperand.collectExpressions(exprMap);
+            }
+            return result;
+        } else {
+            return this.collectSingleExpression(exprMap);
+        }
+    }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException {
+        double cost = 0.0;
+        if (receiver != null) {
+            cost += receiver.getBaseOperationCost();
+        }
+        if (leftOperand != null) {
+            cost += leftOperand.getBaseOperationCost();
+        }
+        if (rightOperand != null) {
+            cost += rightOperand.getBaseOperationCost();
+        }
+        return cost;
+    }
 }

@@ -40,6 +40,8 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -108,6 +110,7 @@ public class ColumnReference extends ValueNode {
 
     private boolean        replacesAggregate;
     private boolean        replacesWindowFunctionCall;
+    private boolean        replacesIndexExpression;
 
     // 'nestingLevel' is the (0 indexed) level at which the column reference appears in the query.  Zero if this col ref
     // is contained by a top level select, 1 if contained by a singly nested subquery, 2 if a doubly nested subquery, etc.
@@ -350,6 +353,20 @@ public class ColumnReference extends ValueNode {
     }
 
     /**
+     * Decrease source level by one if table number matches any of the
+     * input table numbers.
+     * @param tableNumbers   The input table numbers to match.
+     */
+    public void decreaseSourceLevel(int[] tableNumbers) {
+        for(int tn : tableNumbers){
+            if(tableNumber == tn){
+                setSourceLevel(getSourceLevel()-1);
+                break;
+            }
+        }
+    }
+
+    /**
      * Mark this node as being generated to replace an aggregate.
      * (Useful for replacing aggregates in the HAVING clause with
      * column references to the matching aggregate in the
@@ -367,6 +384,14 @@ public class ColumnReference extends ValueNode {
     public void markGeneratedToReplaceWindowFunctionCall()
     {
         replacesWindowFunctionCall = true;
+    }
+
+    /**
+     * Mark this node as being generated to replace an index expression.
+     */
+    public void markGeneratedToReplaceIndexExpression()
+    {
+        replacesIndexExpression = true;
     }
 
     /**
@@ -392,6 +417,18 @@ public class ColumnReference extends ValueNode {
     public boolean getGeneratedToReplaceWindowFunctionCall()
     {
         return replacesWindowFunctionCall;
+    }
+
+    /**
+     * Determine whether or not this node was generated to
+     * replace an index expression in the user's SELECT.
+     *
+     * @return boolean    True if this node was generated to replace an index
+     *                    expression in the user's SELECT. False otherwise.
+     */
+    public boolean isGeneratedToReplaceIndexExpression()
+    {
+        return replacesIndexExpression;
     }
 
     /**
@@ -433,6 +470,8 @@ public class ColumnReference extends ValueNode {
         replacesAggregate = oldCR.getGeneratedToReplaceAggregate();
         replacesWindowFunctionCall =
                 oldCR.getGeneratedToReplaceWindowFunctionCall();
+        replacesIndexExpression =
+                oldCR.isGeneratedToReplaceIndexExpression();
         scoped = oldCR.isScoped();
     }
 
@@ -1342,8 +1381,12 @@ public class ColumnReference extends ValueNode {
 
     @Override
     public int hashCode(){
-        int hc = tableNumber;
-        hc = hc*31+columnName.hashCode();
+        int hc = 31 * getBaseHashCode() + tableNumber;
+        if (columnName.length() == 0) {
+            hc = hc * 31 + getSource().hashCode();
+        } else {
+            hc = hc * 31 + columnName.hashCode();
+        }
         return hc;
     }
 
@@ -1434,9 +1477,11 @@ public class ColumnReference extends ValueNode {
      * Returns the cardinality of the column reference from statistics if available.  If not, it returns 0.
      */
     public long cardinality() throws StandardException {
-        if (source == null || source.getTableColumnDescriptor() ==null)
-            return 0;
-        return getStoreCostController().cardinality(getSource().getColumnPosition());
+        if (!replacesIndexExpression) {
+            if (source == null || source.getTableColumnDescriptor() == null)
+                return 0;
+        }
+        return getStoreCostController().cardinality(replacesIndexExpression, getColumnPositionForStatistics());
     }
 
     /**
@@ -1463,7 +1508,7 @@ public class ColumnReference extends ValueNode {
                     newDefault.normalize(columnDesc.getType(), newDefault);
                     defaultValue = newDefault;
                 }
-                return getStoreCostController().getSelectivityExcludingValueIfSkewed(source.getColumnPosition(), defaultValue);
+                return getStoreCostController().getSelectivityExcludingValueIfSkewed(replacesIndexExpression, getColumnPositionForStatistics(), defaultValue);
             }
         }
 
@@ -1492,16 +1537,24 @@ public class ColumnReference extends ValueNode {
         // Check for not null in declaration
         if (!getSource().getType().isNullable())
             return 0.0;
-        return getStoreCostController().nullSelectivity(getSource().getColumnPosition());
+        return getStoreCostController().nullSelectivity(replacesIndexExpression, getColumnPositionForStatistics());
     }
 
     public StoreCostController getStoreCostController() throws StandardException{
         StoreCostController storeCostController = null;
-        ColumnDescriptor cd = getSource().getTableColumnDescriptor();
-        // TODO THROW EXCEPTION HERE JL
-        if (cd != null && cd.getTableDescriptor() != null) {
-            ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
-            storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(), outercCD, getCompilerContext().skipStats(getTableNumber()), 0, 0);
+        boolean skipStats = getCompilerContext().skipStats(getTableNumber());
+        if (replacesIndexExpression) {
+            SchemaDescriptor sd = getSchemaDescriptor(getSource().getSourceSchemaName());
+            TableDescriptor td = getTableDescriptor(getSource().getSourceTableName(), sd);
+            ConglomerateDescriptor cd = td.getConglomerateDescriptor(getSource().getSourceConglomerateNumber());
+            storeCostController = getCompilerContext().getStoreCostController(td, cd, skipStats, 0, 0);
+        } else {
+            ColumnDescriptor cd = getSource().getTableColumnDescriptor();
+            // TODO THROW EXCEPTION HERE JL
+            if (cd != null && cd.getTableDescriptor() != null) {
+                ConglomerateDescriptor outercCD = cd.getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
+                storeCostController = getCompilerContext().getStoreCostController(cd.getTableDescriptor(), outercCD, skipStats, 0, 0);
+            }
         }
         return storeCostController;
     }
@@ -1515,7 +1568,7 @@ public class ColumnReference extends ValueNode {
     public boolean useRealColumnStatistics() throws StandardException {
         StoreCostController scc = getStoreCostController();
         if (scc != null) {
-            return getStoreCostController().useRealColumnStatistics(columnNumber);
+            return getStoreCostController().useRealColumnStatistics(replacesIndexExpression, getColumnPositionForStatistics());
         }
         // There are cases in which scc is null because of no columnDescriptor. An
         // example can be this column comes from a dynamic view defined in with clause.
@@ -1554,5 +1607,10 @@ public class ColumnReference extends ValueNode {
 
     public boolean isSourceRowIdColumn() {
         return source != null && source.getExpression() instanceof CurrentRowLocationNode;
+    }
+
+    public int getColumnPositionForStatistics() {
+        return replacesIndexExpression ? getSource().getSourceConglomerateColumnPosition()
+                                       : getSource().getColumnPosition();
     }
 }
