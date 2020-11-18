@@ -63,6 +63,7 @@ public class SpliceSpark {
 
     static SpliceSparkSession session;
     static ThreadLocal<SpliceSparkSession> sessions = new ThreadLocal<>();
+    static boolean spliceStaticComponentsSetup = false;
 
     private static final String SCOPE_KEY = "spark.rdd.scope";
     private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
@@ -74,7 +75,6 @@ public class SpliceSpark {
     private class SpliceSparkSession {
         SparkSession sparkSession;
         boolean initialized = false;
-        boolean spliceStaticComponentsSetup = false;
         JavaSparkContext ctx;
     }
 
@@ -105,13 +105,15 @@ public class SpliceSpark {
     // otherwise there is a sparkContext that a user application wants us to use.
     private static void inializeSpliceSparkSession(SpliceSparkSession spliceSparkSession, JavaSparkContext sparkContext) {
         boolean internalSession = (sparkContext == null);
-        if (internalSession)
+        if (internalSession) {
             spliceSparkSession.sparkSession = initializeSparkSession();
-        else
+            spliceSparkSession.ctx = new JavaSparkContext(session.sparkSession.sparkContext());
+        }
+        else {
             spliceSparkSession.sparkSession =
-                SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
-
-        spliceSparkSession.ctx =  new JavaSparkContext(session.sparkSession.sparkContext());
+            SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
+            spliceSparkSession.ctx = sparkContext;
+        }
         spliceSparkSession.initialized = true;
     }
 
@@ -154,7 +156,7 @@ public class SpliceSpark {
                     sessionToUse.sparkSession = sessionToUse.sparkSession.newSession();
                 }
                 else
-                    inializeSpliceSparkSession(sessionToUse, null);
+                    sessionToUse.sparkSession = initializeSparkSession();
             }
         }
         sessions.set(sessionToUse);
@@ -181,12 +183,8 @@ public class SpliceSpark {
     }
 
     public static synchronized void setupSpliceStaticComponents() throws IOException {
-        setupSpliceStaticComponents2(session);
-    }
-
-    public static synchronized void setupSpliceStaticComponents2(SpliceSparkSession spliceSparkSession) throws IOException {
         try {
-            if (!spliceSparkSession.spliceStaticComponentsSetup && isRunningOnSpark()) {
+            if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
                 SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
 
                 boolean tokenEnabled = HConfiguration.getConfiguration().getAuthenticationTokenEnabled();
@@ -239,7 +237,7 @@ public class SpliceSpark {
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
-                spliceSparkSession.spliceStaticComponentsSetup = true;
+                spliceStaticComponentsSetup = true;
             }
         } catch (RuntimeException e) {
             LOG.error("Unexpected error setting up Splice components", e);
