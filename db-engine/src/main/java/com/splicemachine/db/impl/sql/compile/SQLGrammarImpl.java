@@ -25,7 +25,7 @@ import java.util.Vector;
 
 import static com.splicemachine.db.impl.sql.compile.SQLParserConstants.*;
 
-class GrammarImpl {
+class SQLGrammarImpl {
     static final String[] SAVEPOINT_CLAUSE_NAMES = {"UNIQUE", "ON ROLLBACK RETAIN LOCKS", "ON ROLLBACK RETAIN CURSORS"};
 
     /* Keep in synch with CreateAliasNode's index constants */
@@ -285,9 +285,9 @@ class GrammarImpl {
      */
     void checkInternalFeature(String feature) throws StandardException
     {
-        CompilerContext cc = getCompilerContext();
-//        if ((cc.getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0)
-//            throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, feature);
+        //CompilerContext cc = getCompilerContext();
+        //if ((cc.getReliability() & CompilerContext.INTERNAL_SQL_ILLEGAL) != 0)
+        //  throw StandardException.newException(SQLState.LANG_SYNTAX_ERROR, feature);
     }
 
 
@@ -488,7 +488,7 @@ class GrammarImpl {
         {
             return (NumericConstantNode) nodeFactory.getNode(
                     C_NodeTypes.INT_CONSTANT_NODE,
-                    new Integer(num),
+                    Integer.valueOf(num),
                     cm);
         }
         catch (NumberFormatException nfe)
@@ -501,7 +501,7 @@ class GrammarImpl {
         {
             return (NumericConstantNode) nodeFactory.getNode(
                     C_NodeTypes.LONGINT_CONSTANT_NODE,
-                    new Long(num),
+                    Long.valueOf(num),
                     cm);
         }
         catch (NumberFormatException nfe)
@@ -865,7 +865,7 @@ class GrammarImpl {
                 targetName,
                 methodName,
                 aliasSpecificInfo,
-                new Character(aliasType),
+                Character.valueOf(aliasType),
                 delimitedIdentifier,
                 cm );
     }
@@ -880,7 +880,7 @@ class GrammarImpl {
         StatementNode stmt = (StatementNode) nodeFactory.getNode(
                 C_NodeTypes.DROP_ALIAS_NODE,
                 aliasName,
-                new Character(type),
+                Character.valueOf(type),
                 getContextManager());
 
         return stmt;
@@ -1147,12 +1147,12 @@ class GrammarImpl {
         // if ON COMMIT behavior not explicitly specified in DECLARE command, default to ON COMMIT PRESERVE ROWS
         if (declareTableClauses[1] == null) {
             declareTableClauses[1] = Boolean.FALSE;
-        } else if (declareTableClauses[1] == Boolean.TRUE) {
+        } else if (declareTableClauses[1].equals(Boolean.TRUE)) {
             // ON COMMIT DELETE ROWS is not supported
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "COMMIT");
         }
         // if ON ROLLBACK behavior not explicitly specified in DECLARE command, default to ON ROLLBACK DELETE ROWS
-        if (declareTableClauses[2] == Boolean.TRUE) {
+        if (declareTableClauses[2].equals(Boolean.TRUE)) {
             // ON ROLLBACK DELETE ROWS is not supported
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "ROLLBACK");
         } else {
