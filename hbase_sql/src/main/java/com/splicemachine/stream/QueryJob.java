@@ -16,9 +16,13 @@ package com.splicemachine.stream;
 
 import com.splicemachine.EngineDriver;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.services.reflect.JarLoader;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.olap.OlapStatus;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -31,9 +35,11 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.spark.SparkDataSet;
 import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.sql.internal.SQLConf;
 
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.*;
 
@@ -79,6 +85,7 @@ public class QueryJob implements Callable<Void>{
             }
             ah.reinitialize(null);
             activation = ah.getActivation();
+            addUserJarsToSparkContext(activation);
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
                 activation.materialize();
@@ -129,6 +136,30 @@ public class QueryJob implements Callable<Void>{
         }
 
         return null;
+    }
+
+    // Tell Spark where to find user jars that were
+    // added via CALL SQLJ.INSTALL_JAR.
+    private void addUserJarsToSparkContext(Activation activation) {
+        SparkContext sparkContext = SpliceSpark.getSession().sparkContext();
+        if (sparkContext == null)
+            return;
+
+        LanguageConnectionContext lcc =
+            activation.getLanguageConnectionContext();
+        if (lcc == null)
+            return;
+        LanguageConnectionFactory lcf = lcc.getLanguageConnectionFactory();
+        if (lcf == null)
+            return;
+        ClassFactory cf = lcf.getClassFactory();
+        if (cf == null)
+            return;
+        List<String> applicationJars = cf.getApplicationJarPaths();
+        if (applicationJars == null)
+            return;
+        for (String jarPath:applicationJars)
+            sparkContext.addJar(jarPath);
     }
 
     private void dropConglomerate(long CID, Activation activation) {

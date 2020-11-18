@@ -50,6 +50,8 @@ import com.splicemachine.db.iapi.reference.Property;
 
 import java.io.InputStream;
 import java.security.AccessController;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.reference.Module;
@@ -92,6 +94,7 @@ public final class UpdateLoader implements LockOwner {
     };
 
 	private JarLoader[] jarList;
+	private List<String> jarPathList = null;
 	private HeaderPrintWriter vs;
 	private final ClassLoader myLoader;
 	private boolean initDone;
@@ -180,6 +183,7 @@ public final class UpdateLoader implements LockOwner {
 		
 		thisClasspath = classpath;
 		initDone = false;
+		jarPathList = null;
 	}
 
 	/**
@@ -389,8 +393,14 @@ public final class UpdateLoader implements LockOwner {
 		if (initDone)
 			return;
 
+		if (jarList != null && jarList.length > 0)
+			jarPathList = new ArrayList<>();
+
 		for (JarLoader aJarList : jarList) {
 			aJarList.initialize();
+			String jarPath = aJarList.getPath();
+			if (jarPath != null)
+			    jarPathList.add(jarPath);
 		}
 		initDone = true;
 	}
@@ -449,6 +459,10 @@ public final class UpdateLoader implements LockOwner {
     public boolean noWait() {
         return false;
     }
+
+    public List<String> getJarPathList() {
+    	return jarPathList;
+	}
 }
 
 

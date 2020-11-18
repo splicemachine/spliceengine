@@ -61,48 +61,77 @@ public class SpliceSpark {
 
     private SpliceSpark() {} // private constructor forbids creating instances
 
-    static JavaSparkContext ctx;
-    static SparkSession session;
-    static ThreadLocal<SparkSession> sessions = new ThreadLocal<>();
-    static boolean initialized = false;
-    static boolean spliceStaticComponentsSetup = false;
+    static SpliceSparkSession session;
+    static ThreadLocal<SpliceSparkSession> sessions = new ThreadLocal<>();
 
     private static final String SCOPE_KEY = "spark.rdd.scope";
     private static final String SCOPE_OVERRIDE = "spark.rdd.scope.noOverride";
     private static final String OLD_SCOPE_KEY = "spark.rdd.scope.old";
     private static final String OLD_SCOPE_OVERRIDE = "spark.rdd.scope.noOverride.old";
 
+    // Collection of attributes for one spark session
+    // that should be modified together.
+    private class SpliceSparkSession {
+        SparkSession sparkSession;
+        boolean initialized = false;
+        boolean spliceStaticComponentsSetup = false;
+        JavaSparkContext ctx;
+    }
+
     public static void resetSession() {
         sessions.remove();
     }
 
-    // Sets both ctx and session
     public static synchronized SparkSession getSession() {
+        return getSpliceSparkSession().sparkSession;
+    }
+
+    // Sets both ctx and session
+    private static synchronized SpliceSparkSession getSpliceSparkSession() {
         String threadName = Thread.currentThread().getName();
         if (!SpliceClient.isClient() && !threadName.startsWith("olap-worker-")) {
              // Not running on the Olap Server... raise exception. Use getSessionUnsafe() if you know what you are doing.
             throw new RuntimeException("Trying to get a SparkSession from outside the OlapServer");
         }
-        SparkSession result = sessions.get();
-        if (result == null)
-            result = getSessionUnsafe().newSession();
+        SpliceSparkSession result = sessions.get();
+        if (result == null) {
+            result = getSpliceSparkSessionUnsafe();
+            result.sparkSession = result.sparkSession.newSession();
+        }
         return result;
+    }
+
+    // If sparkContext is null, we're initializing an internal splice spark context,
+    // otherwise there is a sparkContext that a user application wants us to use.
+    private static void inializeSpliceSparkSession(SpliceSparkSession spliceSparkSession, JavaSparkContext sparkContext) {
+        boolean internalSession = (sparkContext == null);
+        if (internalSession)
+            spliceSparkSession.sparkSession = initializeSparkSession();
+        else
+            spliceSparkSession.sparkSession =
+                SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
+
+        spliceSparkSession.ctx =  new JavaSparkContext(session.sparkSession.sparkContext());
+        spliceSparkSession.initialized = true;
     }
 
     /** This method is unsafe, it should only be used on tests are as a convenience when trying to
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */
     public static synchronized SparkSession getSessionUnsafe() {
-        SparkSession sessionToUse = sessions.get();
+        return getSpliceSparkSessionUnsafe().sparkSession;
+    }
+
+    private static synchronized SpliceSparkSession getSpliceSparkSessionUnsafe() {
+        SpliceSparkSession sessionToUse = sessions.get();
         boolean isOlapWorker = Thread.currentThread().getName().startsWith("olap-worker-");
         boolean needsReinitialization = !isOlapWorker &&
-                (sessionToUse == null || sessionToUse.sparkContext().isStopped()) &&
-                (session != null && !session.sparkContext().isStopped());
-        if (!initialized) {
-            sessionToUse = session = initializeSparkSession();
-            ctx =  new JavaSparkContext(session.sparkContext());
-            initialized = true;
-        } else if (!needsReinitialization && session.sparkContext().isStopped()) {
+                (sessionToUse == null || sessionToUse.sparkSession.sparkContext().isStopped()) &&
+                (session != null && !session.sparkSession.sparkContext().isStopped());
+        if (!session.initialized) {
+            sessionToUse = session;
+            inializeSpliceSparkSession(session, null);
+        } else if (!needsReinitialization && session.sparkSession.sparkContext().isStopped()) {
             LOG.warn("SparkContext is stopped, reinitializing...");
             try {
                 if (UserGroupInformation.isSecurityEnabled() && UserGroupInformation.isLoginKeytabBased()) {
@@ -115,15 +144,17 @@ public class SpliceSpark {
                 LOG.error("Olap server's connected to Spark is stopped, shutting down OLAP worker task.");
                 System.exit(0);
             }
-            sessionToUse = session = initializeSparkSession();
-            ctx =  new JavaSparkContext(session.sparkContext());
+            sessionToUse = session;
+            inializeSpliceSparkSession(sessionToUse, null);
         }
         else {
             if (sessionToUse == null || needsReinitialization) {
-                if (session != null)
-                    sessionToUse = session.newSession();
+                if (session != null) {
+                    sessionToUse = session;
+                    sessionToUse.sparkSession = sessionToUse.sparkSession.newSession();
+                }
                 else
-                    sessionToUse = initializeSparkSession();
+                    inializeSpliceSparkSession(sessionToUse, null);
             }
         }
         sessions.set(sessionToUse);
@@ -131,16 +162,16 @@ public class SpliceSpark {
     }
 
     public static synchronized JavaSparkContext getContext() {
-        getSession();
-        return ctx;
+        SpliceSparkSession spliceSparkSession = getSpliceSparkSession();
+        return spliceSparkSession.ctx;
     }
 
     /** This method is unsafe, it should only be used on tests are as a convenience when trying to
      * get a local Spark Context, it should never be used when implementing Splice operations or functions
      */
     public static synchronized JavaSparkContext getContextUnsafe() {
-        getSessionUnsafe();
-        return ctx;
+        SpliceSparkSession spliceSparkSession = getSpliceSparkSessionUnsafe();
+        return spliceSparkSession.ctx;
     }
 
     public static synchronized boolean isRunningOnSpark() {
@@ -148,10 +179,14 @@ public class SpliceSpark {
         // SpliceBaseDerbyCoprocessor.runningOnSpark on master_dataset.
         return !RegionServerLifecycleObserver.isHbaseJVM;
     }
-    
+
     public static synchronized void setupSpliceStaticComponents() throws IOException {
+        setupSpliceStaticComponents2(session);
+    }
+
+    public static synchronized void setupSpliceStaticComponents2(SpliceSparkSession spliceSparkSession) throws IOException {
         try {
-            if (!spliceStaticComponentsSetup && isRunningOnSpark()) {
+            if (!spliceSparkSession.spliceStaticComponentsSetup && isRunningOnSpark()) {
                 SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
 
                 boolean tokenEnabled = HConfiguration.getConfiguration().getAuthenticationTokenEnabled();
@@ -204,7 +239,7 @@ public class SpliceSpark {
                         HBasePipelineEnvironment.loadEnvironment(clock,cfDriver);
                 PipelineDriver.loadDriver(pipelineEnv);
                 HBaseRegionLoads.INSTANCE.startWatching();
-                spliceStaticComponentsSetup = true;
+                spliceSparkSession.spliceStaticComponentsSetup = true;
             }
         } catch (RuntimeException e) {
             LOG.error("Unexpected error setting up Splice components", e);
@@ -379,10 +414,8 @@ public class SpliceSpark {
     }
     
     public synchronized static void setContext(JavaSparkContext sparkContext) {
-        session = SparkSession.builder().config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
+        inializeSpliceSparkSession(session, sparkContext);
         sessions.set(session);
-        ctx = sparkContext;
-        initialized = true;
     }
 
     public synchronized static void setContext(SparkContext sparkContext) {

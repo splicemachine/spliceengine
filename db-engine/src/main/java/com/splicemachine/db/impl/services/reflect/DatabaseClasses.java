@@ -53,6 +53,7 @@ import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.services.io.FileUtil;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 
+import java.util.List;
 import java.util.Properties;
 
 import java.io.ObjectStreamClass;
@@ -310,6 +311,10 @@ public abstract class DatabaseClasses
 		}
 
 		return -1;
+	}
+
+	public List<String> getApplicationJarPaths() {
+        return applicationLoader.getJarPathList();
 	}
 
 	public ByteArray buildSpecificFactory(String className, String factoryName)

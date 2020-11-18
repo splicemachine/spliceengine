@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.util.ByteArray;
 
 import java.io.ObjectStreamClass;
+import java.util.List;
 
 
 /**
@@ -105,4 +106,10 @@ public interface ClassFactory {
 		is bumped everytime the classes are re-loaded.
 	*/
 	int getClassLoaderVersion();
+
+	/**
+		Get the list of user-defined application jar file path names
+	    that were installed via SQLJ.INSTALL_JAR.
+	*/
+	List<String> getApplicationJarPaths();
 }
