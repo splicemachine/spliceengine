@@ -285,7 +285,9 @@ public class TriggerHandler {
         ConnectionContext existingContext = (ConnectionContext) lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
         if (existingContext == null) {
             try {
-                Connection connection = new EmbedConnectionMaker().createNew(new Properties());
+                Properties dbProperties = new Properties();
+                dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true");
+                Connection connection = new EmbedConnectionMaker().createNew(dbProperties);
                 Context newContext = ((EmbedConnection) connection).getContextManager().getContext(ConnectionContext.CONTEXT_ID);
                 lcc.getContextManager().pushContext(newContext);
             } catch (SQLException e) {
