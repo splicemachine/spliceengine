@@ -247,9 +247,6 @@ public abstract class DMLStatementNode extends StatementNode {
 
     private boolean shouldRunControl(ResultSetNode resultSet) throws StandardException {
         DataSetProcessorType type = getCompilerContext().getDataSetProcessorType();
-        if (type.isForced()) {
-            return (!type.isOlap());
-        }
         CollectNodesVisitor cnv = new CollectNodesVisitor(FromTable.class);
         resultSet.accept(cnv);
         for (Object obj : cnv.getList()) {
