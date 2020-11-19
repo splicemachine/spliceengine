@@ -59,6 +59,7 @@ import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
+import org.apache.spark.SparkContext;
 
 import java.util.List;
 import java.util.Map;
@@ -1487,5 +1488,9 @@ public interface LanguageConnectionContext extends Context {
                                                   CharTypeCompiler charTypeCompiler);
 
     void resetDB2VarcharCompatibilityMode();
+
+    SpliceSparkSession getSpliceSparkContext();
+
+    void setSpliceSparkContext(SpliceSparkSession spliceSparkSession);
 
 }

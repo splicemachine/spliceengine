@@ -78,6 +78,7 @@ public class QueryJob implements Callable<Void>{
         String jobName = null;
         Activation activation = null;
         boolean resetSession = false;
+        LanguageConnectionContext lcc = null;
         try {
             if (queryRequest.shufflePartitions != null) {
                 SpliceSpark.getSession().conf().set(SQLConf.SHUFFLE_PARTITIONS().key(), queryRequest.shufflePartitions);
@@ -85,7 +86,8 @@ public class QueryJob implements Callable<Void>{
             }
             ah.reinitialize(null);
             activation = ah.getActivation();
-            addUserJarsToSparkContext(activation);
+            if (activation != null)
+                lcc = activation.getLanguageConnectionContext();
             root.setActivation(activation);
             if (!(activation.isMaterialized()))
                 activation.materialize();
@@ -102,6 +104,7 @@ public class QueryJob implements Callable<Void>{
             }
 
             dsp.setJobGroup(jobName, sql);
+            addUserJarsToSparkContext(activation);
             dataset = root.getDataSet(dsp);
             context = dsp.createOperationContext(root);
             SparkDataSet<ExecRow> sparkDataSet = (SparkDataSet<ExecRow>) dataset
@@ -142,6 +145,12 @@ public class QueryJob implements Callable<Void>{
     // added via CALL SQLJ.INSTALL_JAR.
     private void addUserJarsToSparkContext(Activation activation) {
         SparkContext sparkContext = SpliceSpark.getSession().sparkContext();
+        if (sparkContext == null)
+            return;
+        addUserJarsToSparkContext(activation, sparkContext);
+    }
+
+    private void addUserJarsToSparkContext(Activation activation, SparkContext sparkContext) {
         if (sparkContext == null)
             return;
 

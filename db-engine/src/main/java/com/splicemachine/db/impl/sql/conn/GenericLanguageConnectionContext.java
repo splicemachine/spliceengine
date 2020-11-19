@@ -71,6 +71,7 @@ import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -351,6 +352,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String replicationRole = "NONE";
     private boolean db2VarcharCompatibilityModeNeedsReset = false;
     private CharTypeCompiler charTypeCompiler = null;
+    private SparkContext sparkContext;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -4024,5 +4026,15 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
             charTypeCompiler.setDB2VarcharCompatibilityMode(false);
             charTypeCompiler = null;
         }
+    }
+
+    @Override
+    public SparkContext getSparkContext() {
+        return sparkContext;
+    }
+
+    @Override
+    public void setSparkContext(SparkContext sparkContext) {
+        this.sparkContext = sparkContext;
     }
 }

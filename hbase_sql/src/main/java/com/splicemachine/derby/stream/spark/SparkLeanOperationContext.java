@@ -20,6 +20,7 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceSpark;
@@ -134,6 +135,12 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
             ActivationHolder ah = broadcastedActivation.getActivationHolder();
             op=(Op)ah.getOperationsMap().get(in.readInt());
             activation = ah.getActivation();
+            if (activation != null && (op.isOlapServer() || SpliceClient.isClient())) {
+                LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+                if (lcc != null) {
+                    lcc.setSparkContext(SpliceSpark.getSpliceSparkSession());
+                }
+            }
             TaskContext taskContext = TaskContext.get();
             if (taskContext != null) {
                 taskContext.addTaskCompletionListener((TaskCompletionListener)(ctx) -> ah.close());
