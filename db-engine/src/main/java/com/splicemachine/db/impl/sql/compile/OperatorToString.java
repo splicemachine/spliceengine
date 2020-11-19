@@ -153,11 +153,11 @@ public class OperatorToString {
      * references indicating column names in the source DataFrame.
      */
     public static String opToSparkString(ValueNode operand) throws StandardException {
-        String retval = "";
-
         if (operand == null || operand.getCompilerContext().getSparkExecutionType().isNonNative()) {
-            return retval;
+            return "";
         }
+
+        String retval = "";
 
         // Do not throw any errors encountered.  An error condition
         // just means we can't generate a valid spark representation
