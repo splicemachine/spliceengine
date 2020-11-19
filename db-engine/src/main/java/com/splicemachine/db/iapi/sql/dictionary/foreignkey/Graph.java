@@ -208,6 +208,7 @@ public class Graph {
                     edgeNode.next = null; // bye, GC.
                     return;
                 }
+                previous = edgeNode;
                 edgeNode = edgeNode.next;
             }
         }
