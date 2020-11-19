@@ -95,8 +95,7 @@ class TableCellPrinter {
 
     public void visitCommitTimestamp(Cell cell) {
         stringBuilder.append(Utils.Colored.green("commit timestamp "));
-        stringBuilder.append(Utils.Colored.green(Long.toString(Bytes.toLong(cell.getValueArray(),
-                cell.getValueOffset(),cell.getValueLength()))));
+        stringBuilder.append(Utils.Colored.green(Long.toString(CellUtils.getCommitTimestamp(cell))));
     }
 
     public void visitTombstone() {
@@ -119,7 +118,7 @@ class TableCellPrinter {
             stringBuilder.append(decode(userData, decoder));
         } else {
             stringBuilder.append(Utils.Colored.yellow("in hex "));
-            stringBuilder.append(com.splicemachine.primitives.Bytes.toStringBinary(userData.getValueArray()));
+            stringBuilder.append( CellUtils.getUserDataHex(userData) );
         }
     }
 
