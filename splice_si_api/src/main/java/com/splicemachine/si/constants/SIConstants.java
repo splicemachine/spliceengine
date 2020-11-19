@@ -103,6 +103,10 @@ public class SIConstants {
 
     public static final String ENTRY_PREDICATE_LABEL= "p";
 
+    // flag to indicate the scan should get all the versions.
+    public static final String ALL_VERSIONS = "sav";
+    public static final byte[] ALL_VERSIONS_VALUE = {};
+
     public static final int DEFAULT_CACHE_SIZE=1<<10;
 
     // Name of property to use for caching full display name of table and index.
