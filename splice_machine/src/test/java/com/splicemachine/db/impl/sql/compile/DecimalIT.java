@@ -44,12 +44,14 @@ import static com.splicemachine.test_tools.Rows.rows;
 public class DecimalIT  extends SpliceUnitTest {
     
     private Boolean useSpark;
+    private Boolean useNativeSpark;
     
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(2);
-        params.add(new Object[]{true});
-        params.add(new Object[]{false});
+        params.add(new Object[]{true, true});
+        params.add(new Object[]{true, false});
+        params.add(new Object[]{false, false});
         return params;
     }
     public static final String CLASS_NAME = DecimalIT.class.getSimpleName().toUpperCase();
@@ -62,8 +64,9 @@ public class DecimalIT  extends SpliceUnitTest {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
     
-    public DecimalIT(Boolean useSpark) {
+    public DecimalIT(Boolean useSpark, Boolean useNativeSpark) {
         this.useSpark = useSpark;
+        this.useNativeSpark = useNativeSpark;
     }
     
     public static void createData(Connection conn, String schemaName) throws Exception {
@@ -158,18 +161,18 @@ public class DecimalIT  extends SpliceUnitTest {
     @Test
     public void testIllegalCreateTable() throws Exception {
 
-        String sqlText = format("create table dec1 (a dec(39,0)) --splice-properties useSpark=%s", useSpark);
+        String sqlText = format("create table dec1 (a dec(39,0)) --splice-properties %s", properties());
 
         List<String> expectedErrors =
            Arrays.asList("Value '39' is not a valid precision for DECIMAL.");
         testUpdateFail(sqlText, expectedErrors, methodWatcher);
 
-        sqlText = format("create table dec1 (a dec(38,39)) --splice-properties useSpark=%s", useSpark);
+        sqlText = format("create table dec1 (a dec(38,39)) --splice-properties %s", properties());
         expectedErrors =
            Arrays.asList("Scale '39' is not a valid scale for a DECIMAL.");
         testUpdateFail(sqlText, expectedErrors, methodWatcher);
 
-        sqlText = format("create table dec1 (a dec(38,-1)) --splice-properties useSpark=%s", useSpark);
+        sqlText = format("create table dec1 (a dec(38,-1)) --splice-properties %s", properties());
         expectedErrors =
            Arrays.asList("Syntax error: Encountered \"-\" at line 1, column 29.");
         testUpdateFail(sqlText, expectedErrors, methodWatcher);
@@ -181,10 +184,10 @@ public class DecimalIT  extends SpliceUnitTest {
         // for AVG which can avoid overflows when dealing with large numbers.
         // Since we have no control over native spark execution,
         // skip these tests on Spark for now...
-        if (useSpark)
+        if (useNativeSpark)
             return;
         String
-        sqlText = format("select avg(a) from ts_decimal --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select avg(a) from ts_decimal --splice-properties %s", properties());
 
         String
         expected =
@@ -194,7 +197,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select avg(a*a) from ts_decimal --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select avg(a*a) from ts_decimal --splice-properties %s", properties());
 
         expected =
                 "1              |\n" +
@@ -204,7 +207,7 @@ public class DecimalIT  extends SpliceUnitTest {
         testQuery(sqlText, expected, methodWatcher);
 
 
-        sqlText = format("select avg(b) from ts_decimal2 --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select avg(b) from ts_decimal2 --splice-properties %s", properties());
 
         expected =
                 "1                   |\n" +
@@ -213,7 +216,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select avg(b) from ts_decimal3 --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select avg(b) from ts_decimal3 --splice-properties %s", properties());
 
         testQuery(sqlText, expected, methodWatcher);
 
@@ -221,12 +224,12 @@ public class DecimalIT  extends SpliceUnitTest {
                 "1                   |\n" +
                 "---------------------------------------\n" +
                 "91449.4733424781892181078189218107819 |";
-        sqlText = format("select avg(b) from ts_decimal4 --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select avg(b) from ts_decimal4 --splice-properties %s", properties());
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select avg(a.a) from ts_decimal a --splice-properties useSpark=%s, joinStrategy=SORTMERGE\n" +
-                         ", ts_decimal b where a.b = b.b", useSpark);
+        sqlText = format("select avg(a.a) from ts_decimal a --splice-properties %s, joinStrategy=SORTMERGE\n" +
+                         ", ts_decimal b where a.b = b.b", properties());
 
         expected =
                 "1        |\n" +
@@ -239,7 +242,7 @@ public class DecimalIT  extends SpliceUnitTest {
     @Test
     public void testSum() throws Exception {
 
-        String sqlText = format("select sum(a) from ts_decimal --splice-properties useSpark=%s", useSpark);
+        String sqlText = format("select sum(a) from ts_decimal --splice-properties %s", properties());
 
         String expected =
                 "1         |\n" +
@@ -248,7 +251,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select sum(a*a) from ts_decimal --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select sum(a*a) from ts_decimal --splice-properties %s", properties());
         // DECIMAL(38,5) * DECIMAL(38,5), result scale is reduced to MIN_DECIMAL_MULTIPLICATION_SCALE from 10
 
         expected =
@@ -258,7 +261,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select sum(b) from ts_decimal2 --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select sum(b) from ts_decimal2 --splice-properties %s", properties());
 
         expected =
                 "1                   |\n" +
@@ -267,7 +270,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select sum(b) from ts_decimal3 --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select sum(b) from ts_decimal3 --splice-properties %s", properties());
 
         List<String> expectedErrors =
            Arrays.asList("Overflow occurred during numeric data type conversion of \"1.8222222E+38\".",
@@ -279,11 +282,11 @@ public class DecimalIT  extends SpliceUnitTest {
                 "-----------------------------------------\n" +
                 "1371742.1001371728382716172838271617284 |";
 
-        sqlText = format("select sum(b) from ts_decimal4 --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select sum(b) from ts_decimal4 --splice-properties %s", properties());
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select sum(a.a) from ts_decimal a --splice-properties useSpark=%s, joinStrategy=SORTMERGE\n" +
-                         ", ts_decimal b where a.b = b.b", useSpark);
+        sqlText = format("select sum(a.a) from ts_decimal a --splice-properties %s, joinStrategy=SORTMERGE\n" +
+                         ", ts_decimal b where a.b = b.b", properties());
 
         expected =
                 "1         |\n" +
@@ -295,7 +298,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
     @Test
     public void testArithmetic() throws Exception {
-        String sqlText = format("select a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a from ts_decimal --splice-properties useSpark=%s", useSpark);
+        String sqlText = format("select a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a from ts_decimal --splice-properties %s", properties());
 
         String expected =
                 "1         |\n" +
@@ -306,7 +309,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a/3 from ts_decimal --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select a+a+a+a+a+a+a+a+a+a+a+a+a+a+a+a/3 from ts_decimal --splice-properties %s", properties());
 
         expected =
                 "1         |\n" +
@@ -317,7 +320,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select b+b+b+b+b+b+b+b from ts_decimal4 --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select b+b+b+b+b+b+b+b from ts_decimal4 --splice-properties %s", properties());
 
         expected =
                 "1                    |\n" +
@@ -340,7 +343,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select (b+b+b+b+b+b+b+b)/3 from ts_decimal4 --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select (b+b+b+b+b+b+b+b)/3 from ts_decimal4 --splice-properties %s", properties());
 
         expected =
                 "1                    |\n" +
@@ -368,7 +371,7 @@ public class DecimalIT  extends SpliceUnitTest {
     @Test
     public void testLiterals() throws Exception {
 
-        String sqlText = format("select a, 12345678901234567890123456789012345678 from ts_decimal --splice-properties useSpark=%s\n order by 1,2", useSpark);
+        String sqlText = format("select a, 12345678901234567890123456789012345678 from ts_decimal --splice-properties %s\n order by 1,2", properties());
 
         String expected =
         "A        |                   2                   |\n" +
@@ -379,7 +382,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQueryUnsorted(sqlText, expected, methodWatcher);
 
-        sqlText = format("select a, -0.12345678901234567890123456789012345678 from ts_decimal --splice-properties useSpark=%s\n order by 1,2", useSpark);
+        sqlText = format("select a, -0.12345678901234567890123456789012345678 from ts_decimal --splice-properties %s\n order by 1,2", properties());
         expected =
         "A        |                    2                     |\n" +
         "-------------------------------------------------------------\n" +
@@ -389,7 +392,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQueryUnsorted(sqlText, expected, methodWatcher);
 
-        sqlText = format("values -0.12345678901234567890123456789012345678, -.00000000000000000000000000000000000001", useSpark);
+        sqlText = "values -0.12345678901234567890123456789012345678, -.00000000000000000000000000000000000001";
         expected =
         "1                     |\n" +
         "-------------------------------------------\n" +
@@ -398,7 +401,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("values 12345678901234567890123456789012345678, -0.12345678901234567890123456789012345678, -.00000000000000000000000000000000000001", useSpark);
+        sqlText = "values 12345678901234567890123456789012345678, -0.12345678901234567890123456789012345678, -.00000000000000000000000000000000000001";
 
         List<String> expectedErrors =
            Arrays.asList("The resulting value is outside the range for the data type DECIMAL/NUMERIC(38,38).");
@@ -409,7 +412,7 @@ public class DecimalIT  extends SpliceUnitTest {
     @Test
     public void testOrderBy() throws Exception {
 
-        String sqlText = format("select a from ts_decimal --splice-properties useSpark=%s\n order by a", useSpark);
+        String sqlText = format("select a from ts_decimal --splice-properties %s\n order by a", properties());
 
         String expected =
                 "A        |\n" +
@@ -420,7 +423,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQueryUnsorted(sqlText, expected, methodWatcher);
 
-        sqlText = format("select b from ts_decimal2 --splice-properties useSpark=%s\n order by b", useSpark);
+        sqlText = format("select b from ts_decimal2 --splice-properties %s\n order by b", properties());
 
         expected =
                 "B                   |\n" +
@@ -443,7 +446,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQueryUnsorted(sqlText, expected, methodWatcher);
 
-        sqlText = format("select b from ts_decimal4 --splice-properties useSpark=%s, index=dec_ix4\n order by b", useSpark);
+        sqlText = format("select b from ts_decimal4 --splice-properties %s, index=dec_ix4\n order by b", properties());
 
         expected =
                 "B                    |\n" +
@@ -470,7 +473,7 @@ public class DecimalIT  extends SpliceUnitTest {
     @Test
     public void testJoin() throws Exception {
 
-        String sqlText = format("select t1.b from ts_decimal2 t1, ts_decimal2 t2 --splice-properties useSpark=%s\n where t1.b = t2.b", useSpark);
+        String sqlText = format("select t1.b from ts_decimal2 t1, ts_decimal2 t2 --splice-properties %s\n where t1.b = t2.b", properties());
 
         String expected =
                 "B                   |\n" +
@@ -565,7 +568,7 @@ public class DecimalIT  extends SpliceUnitTest {
 
         testQuery(sqlText, expected, methodWatcher);
 
-        sqlText = format("select t1.b from ts_decimal4 t1, ts_decimal4 t2 --splice-properties useSpark=%s\n where t1.b = t2.b", useSpark);
+        sqlText = format("select t1.b from ts_decimal4 t1, ts_decimal4 t2 --splice-properties %s\n where t1.b = t2.b", properties());
 
         expected =
                 "B                    |\n" +
@@ -592,7 +595,7 @@ public class DecimalIT  extends SpliceUnitTest {
     @Test
     public void testMultiProbe() throws Exception {
 
-        String sqlText = format("select * from ts_decimal4 --splice-properties useSpark=%s, index=dec_ix4\n" +
+        String sqlText = format("select * from ts_decimal4 --splice-properties %s, index=dec_ix4\n" +
                                 "where b in (1234567.8901234567890123456789012345678,\n" +
                                 "123456.7890123456789012345678901234568,\n" +
                                 "12345.6789012345678901234567890123457,\n" +
@@ -607,7 +610,7 @@ public class DecimalIT  extends SpliceUnitTest {
                                 ".0000123456789012345678901234568,\n" +
                                 ".0000012345678901234567890123457,\n" +
                                 ".0000001234567890123456789012346,\n" +
-                                ".0000000123456789012345678901235) order by b", useSpark);
+                                ".0000000123456789012345678901235) order by b", properties());
 
         String expected =
                 "B                    | C |\n" +
@@ -645,7 +648,7 @@ public class DecimalIT  extends SpliceUnitTest {
         statement.close();
 
         String
-        sqlText = format("select a from preparedDecimal --splice-properties useSpark=%s", useSpark);
+        sqlText = format("select a from preparedDecimal --splice-properties %s", properties());
 
         String
         expected =
@@ -699,7 +702,7 @@ public class DecimalIT  extends SpliceUnitTest {
          * Returning an integral value should be better than throws an exception.
          */
         String sqlText = String.format("select a + b\n" +
-                "from DB_9425_TBL_2 --splice-properties useSpark=%s", useSpark);
+                "from DB_9425_TBL_2 --splice-properties %s", properties());
 
         String expected = "1                   |\n" +
                 "----------------------------------------\n" +
@@ -714,7 +717,7 @@ public class DecimalIT  extends SpliceUnitTest {
          * Integral part needs at maximum 22 - 11 + 25 - 19 + 1 = 18 digits. Result type has 8.
          */
         String sqlText = String.format("select b * c\n" +
-                "from DB_9425_TBL_2 --splice-properties useSpark=%s", useSpark);
+                "from DB_9425_TBL_2 --splice-properties %s", properties());
 
         String expected = "1                  |\n" +
                 "--------------------------------------\n" +
@@ -729,7 +732,7 @@ public class DecimalIT  extends SpliceUnitTest {
          * Integral part needs at maximum 22 - 4 + 9 = 27 digits. Result type has 23.
          */
         String sqlText = String.format("select quantity / units\n" +
-                "from DB_9425_TBL --splice-properties useSpark=%s", useSpark);
+                "from DB_9425_TBL --splice-properties %s", properties());
 
         String expected = "1           |\n" +
                 "------------------------\n" +
@@ -741,12 +744,16 @@ public class DecimalIT  extends SpliceUnitTest {
     @Test
     public void testReduceFractionalDigitsForIntegralPartCustomerCase() throws Exception {
         String sqlText = String.format("select cast(COALESCE(((quantity/units) * ( price / units)* cast(factor AS decimal(10,2)) ),0 ) AS NUMERIC(31,10))\n" +
-                "from DB_9425_TBL --splice-properties useSpark=%s", useSpark);
+                "from DB_9425_TBL --splice-properties %s", properties());
 
         String expected = "1              |\n" +
                 "-----------------------------\n" +
                 "3112011525395705.4789160000 |";
 
         testQuery(sqlText, expected, methodWatcher);
+    }
+
+    private String properties() {
+        return format("useSpark=%s, useNativeSpark=%s", useSpark, useNativeSpark);
     }
 }
