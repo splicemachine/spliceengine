@@ -548,6 +548,9 @@ public class GenericStatement implements Statement{
                             case "forced":
                                 nativeSparkAggregationMode = CompilerContext.NativeSparkModeType.FORCED;
                                 break;
+                            default:
+                                // use default value
+                                break;
                         }
                     }
                 } catch (Exception e) {
