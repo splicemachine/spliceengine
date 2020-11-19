@@ -772,7 +772,6 @@ public class FromBaseTable extends FromTable {
                     }
                     if (defaultRowCount <= 0)
                         throw StandardException.newException(SQLState.LANG_INVALID_ROWCOUNT, value);
-                    }
                     break;
                 case "defaultselectivityfactor":
                     try {
