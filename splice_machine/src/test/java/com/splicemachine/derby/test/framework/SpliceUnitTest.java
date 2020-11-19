@@ -512,7 +512,7 @@ public class SpliceUnitTest {
         }
     }
 
-    protected void testFail(String sqlText,
+    public static void testFail(String sqlText,
                             List<String> expectedErrors,
                             SpliceWatcher methodWatcher) throws Exception {
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
@@ -526,7 +526,7 @@ public class SpliceUnitTest {
         }
     }
 
-    protected void testUpdateFail(String sqlText,
+    public static void testUpdateFail(String sqlText,
                                   List<String> expectedErrors,
                                   SpliceWatcher methodWatcher) throws AssertionError {
 
