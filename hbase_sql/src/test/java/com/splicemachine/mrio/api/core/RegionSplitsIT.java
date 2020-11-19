@@ -84,10 +84,13 @@ public class RegionSplitsIT extends SpliceUnitTest {
                             }
                         }
                        // spliceClassWatcher.commit();
-                        String compactionStmt = "call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?, ?)";
-                        ps = spliceClassWatcher.prepareStatement(compactionStmt);
+                        String flushStmt = "call SYSCS_UTIL.SYSCS_FLUSH_TABLE(?, ?)";
+                        ps = spliceClassWatcher.prepareStatement(flushStmt);
+                        ps.setString(1, SCHEMA_NAME);
+                        ps.setString(2, TABLE1_NAME);
+                        ps.execute();
                         RegionUtils.splitTable(conglomId);
-                        compactionStmt = "call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?, ?)";
+                        String compactionStmt = "call SYSCS_UTIL.SYSCS_PERFORM_MAJOR_COMPACTION_ON_TABLE(?, ?)";
                         ps = spliceClassWatcher.prepareStatement(compactionStmt);
                         ps.setString(1, SCHEMA_NAME);
                         ps.setString(2, TABLE1_NAME);
@@ -128,8 +131,10 @@ public class RegionSplitsIT extends SpliceUnitTest {
         List<InputSplit> splits = smInputFormat.getSplits(ctx);
 
         LOG.info("Got "+splits.size() + " splits");
-        assertTrue(format("Expected between 6 and 10 splits, got %d.", splits.size()),
-                splits.size() >= 6 && splits.size() <= 10);
+        /* We have 4 regions and ask for 8 partitions, that's 2 per region. We may generate one extra per region, total number
+        of partitions should be between 8 and 12 */
+        assertTrue(format("Expected between 8 and 12 splits, got %d.", splits.size()),
+                splits.size() >= 8 && splits.size() <= 12);
 
     }
 

@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
@@ -47,6 +48,7 @@ import java.io.IOException;
  * for execution.
  * 
  */
+@SuppressFBWarnings({"EI_EXPOSE_REP2", "DMI_NONSERIALIZABLE_OBJECT_WRITTEN" /*todo: fix*/})
 public class CursorInfo
 	implements Formatable
 {
@@ -150,45 +152,38 @@ public class CursorInfo
 
 	public String toString()
 	{
-		if (SanityManager.DEBUG)
+		StringBuilder strbuf = new StringBuilder();
+
+		strbuf.append("CursorInfo" + "\n\tupdateMode: ").append(updateMode).append("\n\ttargetTable: ").append(targetTable).append("\n\tupdateColumns: ");
+
+		if (updateColumns == null)
 		{
-			StringBuilder strbuf = new StringBuilder();
-		
-			strbuf.append("CursorInfo" + "\n\tupdateMode: ").append(updateMode).append("\n\ttargetTable: ").append(targetTable).append("\n\tupdateColumns: ");
-
-			if (updateColumns == null)
-			{
-				strbuf.append("NULL\n");
-			}
-			else
-			{
-				strbuf.append("{");
-				for (int i = 0; i < updateColumns.length; i++)
-				{
-					if (i > 0)
-						strbuf.append(",");
-					strbuf.append(updateColumns[i]);
-				}
-				strbuf.append(")\n");
-			}
-
-			strbuf.append("\tTargetColumnDescriptors: \n");
-			if (targetColumns == null)
-			{
-				strbuf.append("NULL");
-			}
-			else
-			{
-                for (ResultColumnDescriptor targetColumn : targetColumns) {
-                    strbuf.append(targetColumn);
-                }
-				strbuf.append("\n");
-			}
-			return strbuf.toString();	
+			strbuf.append("NULL\n");
 		}
 		else
 		{
-			return "";
+			strbuf.append("{");
+			for (int i = 0; i < updateColumns.length; i++)
+			{
+				if (i > 0)
+					strbuf.append(",");
+				strbuf.append(updateColumns[i]);
+			}
+			strbuf.append(")\n");
 		}
+
+		strbuf.append("\tTargetColumnDescriptors: \n");
+		if (targetColumns == null)
+		{
+			strbuf.append("NULL");
+		}
+		else
+		{
+			for (ResultColumnDescriptor targetColumn : targetColumns) {
+				strbuf.append(targetColumn);
+			}
+			strbuf.append("\n");
+		}
+		return strbuf.toString();
 	}
 }
