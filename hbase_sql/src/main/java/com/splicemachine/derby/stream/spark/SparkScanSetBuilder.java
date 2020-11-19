@@ -104,6 +104,9 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             if (hasVariantQualifiers(qualifiers)) {
                 return locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
             }
+            if (activation.sparkExecutionType().isNonNative() && locatedRows instanceof NativeSparkDataSet) {
+                locatedRows = new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(((NativeSparkDataSet) locatedRows).dataset, operationContext));
+            }
             return locatedRows;
         }
         
@@ -149,8 +152,13 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         SparkSpliceFunctionWrapper pred = new SparkSpliceFunctionWrapper(new TableScanPredicateFunction<>(operationContext,this.optionalProbeValue));
         SpliceSpark.pushScope(String.format("%s: Deserialize", scopePrefix));
         try {
-            return new SparkDataSet<>(rawRDD.map(f).filter(pred),
+            SparkDataSet dataSet = new SparkDataSet<>(rawRDD.map(f).filter(pred),
                     op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
+            if (activation.sparkExecutionType().isNative()) {
+                return dataSet.upgradeToSparkNativeDataSet(operationContext);
+            } else {
+                return dataSet;
+            }
         } finally {
             SpliceSpark.popScope();
         }
