@@ -271,6 +271,12 @@ public abstract class DatabaseClasses
 		}
         throw new ClassNotFoundException(className + " : " + loadError.getMessage());
 	}
+
+	public int getApplicationJarsHashCode() {
+		if (applicationLoader == null)
+			return 0;
+		return applicationLoader.getJarPathListHash();
+	}
 	
 	protected abstract Class loadClassNotInDatabaseJar(String className)
 		throws ClassNotFoundException;

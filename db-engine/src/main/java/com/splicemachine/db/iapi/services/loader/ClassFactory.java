@@ -112,4 +112,11 @@ public interface ClassFactory {
 	    that were installed via SQLJ.INSTALL_JAR.
 	*/
 	List<String> getApplicationJarPaths();
+
+	/**
+		Get the hash code of all user-defined application jars
+	    that were installed via SQLJ.INSTALL_JAR.
+	    This can be used to detect any changes in loaded jars.
+	*/
+	int getApplicationJarsHashCode();
 }

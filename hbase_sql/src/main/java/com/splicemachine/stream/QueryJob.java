@@ -20,6 +20,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
+import com.splicemachine.db.iapi.sql.conn.SpliceSparkSession;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.services.reflect.JarLoader;
@@ -37,6 +38,7 @@ import com.splicemachine.si.api.txn.TxnView;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.internal.SQLConf;
 
 import java.util.List;
@@ -144,32 +146,19 @@ public class QueryJob implements Callable<Void>{
     // Tell Spark where to find user jars that were
     // added via CALL SQLJ.INSTALL_JAR.
     private void addUserJarsToSparkContext(Activation activation) {
-        SparkContext sparkContext = SpliceSpark.getSession().sparkContext();
-        if (sparkContext == null)
-            return;
-        addUserJarsToSparkContext(activation, sparkContext);
-    }
+        SpliceSparkSession spliceSparkSession = SpliceSpark.getSpliceSparkSession();
 
-    private void addUserJarsToSparkContext(Activation activation, SparkContext sparkContext) {
-        if (sparkContext == null)
+        if (spliceSparkSession == null)
             return;
 
         LanguageConnectionContext lcc =
             activation.getLanguageConnectionContext();
         if (lcc == null)
             return;
-        LanguageConnectionFactory lcf = lcc.getLanguageConnectionFactory();
-        if (lcf == null)
-            return;
-        ClassFactory cf = lcf.getClassFactory();
-        if (cf == null)
-            return;
-        List<String> applicationJars = cf.getApplicationJarPaths();
-        if (applicationJars == null)
-            return;
-        for (String jarPath:applicationJars)
-            sparkContext.addJar(jarPath);
+
+        lcc.addUserJarsToSparkContext(spliceSparkSession);
     }
+
 
     private void dropConglomerate(long CID, Activation activation) {
         TransactionController tc = activation.getTransactionController();

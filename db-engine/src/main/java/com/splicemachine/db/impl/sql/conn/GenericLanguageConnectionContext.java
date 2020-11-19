@@ -44,12 +44,14 @@ import com.splicemachine.db.iapi.services.context.Context;
 import com.splicemachine.db.iapi.services.context.ContextImpl;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.*;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.*;
+import com.splicemachine.db.iapi.sql.conn.SpliceSparkSession;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.depend.Provider;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -72,6 +74,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkContext;
+import org.apache.spark.sql.SparkSession;
 
 import java.io.UnsupportedEncodingException;
 import java.math.BigInteger;
@@ -352,7 +355,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private String replicationRole = "NONE";
     private boolean db2VarcharCompatibilityModeNeedsReset = false;
     private CharTypeCompiler charTypeCompiler = null;
-    private SparkContext sparkContext;
+    private SpliceSparkSession spliceSparkSession;
 
     /* constructor */
     public GenericLanguageConnectionContext(
@@ -4029,12 +4032,45 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     }
 
     @Override
-    public SparkContext getSparkContext() {
-        return sparkContext;
+    public SpliceSparkSession getSpliceSparkSession() {
+        return spliceSparkSession;
     }
 
     @Override
-    public void setSparkContext(SparkContext sparkContext) {
-        this.sparkContext = sparkContext;
+    public void setSpliceSparkSession(SpliceSparkSession spliceSparkSession) {
+        this.spliceSparkSession = spliceSparkSession;
     }
+
+    @Override
+    public void addUserJarsToSparkContext(SpliceSparkSession spliceSparkSession) {
+        if (spliceSparkSession == null)
+            return;
+        LanguageConnectionFactory lcf = getLanguageConnectionFactory();
+        if (lcf == null)
+            return;
+        ClassFactory cf = lcf.getClassFactory();
+        if (cf == null)
+            return;
+        List<String> applicationJars = cf.getApplicationJarPaths();
+        if (applicationJars == null)
+            return;
+        int applicationJarsHashCode = cf.getApplicationJarsHashCode();
+        if (applicationJarsHashCode == 0)
+            return;
+        SparkSession sparkSession = spliceSparkSession.getSparkSession();
+        if (sparkSession == null)
+            return;
+        SparkContext sparkContext = sparkSession.sparkContext();
+        if (sparkContext == null)
+            return;
+        // If there is no change in loaded jars, the no need to add new jars to spark.
+        if (applicationJarsHashCode == spliceSparkSession.getApplicationJarsHash())
+            return;
+
+        for (String jarPath:applicationJars)   // msirek-temp
+            sparkContext.addJar(jarPath);
+
+        spliceSparkSession.setApplicationJarsHash(applicationJarsHashCode);
+    }
+
 }

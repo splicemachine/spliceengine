@@ -12,7 +12,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-package com.splicemachine.derby.impl;
+package com.splicemachine.db.iapi.sql.conn;
 
 import org.apache.spark.sql.SparkSession;
 
@@ -21,6 +21,7 @@ import org.apache.spark.sql.SparkSession;
 public class SpliceSparkSession {
     private SparkSession sparkSession;
     private boolean internalSession = true;
+    private int applicationJarsHash = 0;
 
     public boolean isInternalSession() {
         return internalSession;
@@ -36,5 +37,13 @@ public class SpliceSparkSession {
 
     public void setSparkSession(SparkSession sparkSession) {
         this.sparkSession = sparkSession;
+    }
+
+    public int getApplicationJarsHash() {
+        return applicationJarsHash;
+    }
+
+    public void setApplicationJarsHash(int applicationJarsHash) {
+        this.applicationJarsHash = applicationJarsHash;
     }
 }

@@ -95,6 +95,7 @@ public final class UpdateLoader implements LockOwner {
 
 	private JarLoader[] jarList;
 	private List<String> jarPathList = null;
+	private int jarPathListHash = 0;
 	private HeaderPrintWriter vs;
 	private final ClassLoader myLoader;
 	private boolean initDone;
@@ -184,6 +185,7 @@ public final class UpdateLoader implements LockOwner {
 		thisClasspath = classpath;
 		initDone = false;
 		jarPathList = null;
+		jarPathListHash = 0;
 	}
 
 	/**
@@ -395,6 +397,8 @@ public final class UpdateLoader implements LockOwner {
 
 		if (jarList != null && jarList.length > 0)
 			jarPathList = new ArrayList<>();
+		else
+			jarPathList = null;
 
 		for (JarLoader aJarList : jarList) {
 			aJarList.initialize();
@@ -402,6 +406,10 @@ public final class UpdateLoader implements LockOwner {
 			if (jarPath != null)
 			    jarPathList.add(jarPath);
 		}
+		if (jarPathList != null && jarPathList.size() > 0)
+			jarPathListHash = jarPathList.hashCode();
+		else
+			jarPathListHash = 0;
 		initDone = true;
 	}
 
@@ -462,6 +470,10 @@ public final class UpdateLoader implements LockOwner {
 
     public List<String> getJarPathList() {
     	return jarPathList;
+	}
+
+    public int getJarPathListHash() {
+    	return jarPathListHash;
 	}
 }
 

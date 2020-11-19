@@ -53,6 +53,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.StatementType;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.SpliceSparkSession;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -1664,6 +1665,18 @@ public abstract class QueryTreeNode implements Node, Visitable{
 
         if(ClassInspector.primitiveType(javaClassName))
             throw StandardException.newException(SQLState.LANG_TYPE_DOESNT_EXIST3,javaClassName);
+        if (foundMatch) {
+            if (lcc == null)
+                getLanguageConnectionContext();
+            if (lcc != null && lcc.getSpliceSparkSession() != null) {
+                SpliceSparkSession spliceSparkSession = lcc.getSpliceSparkSession();
+                int applicationJarsHash = classInspector.getApplicationJarsHashCode();
+                if (applicationJarsHash != 0 &&
+                    applicationJarsHash != spliceSparkSession.getApplicationJarsHash()) {
+                    lcc.addUserJarsToSparkContext(spliceSparkSession);
+                }
+            }
+        }
     }
 
     /**

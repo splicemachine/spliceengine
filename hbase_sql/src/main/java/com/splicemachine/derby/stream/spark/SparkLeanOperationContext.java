@@ -138,7 +138,7 @@ public class SparkLeanOperationContext<Op extends SpliceOperation> implements Op
             if (activation != null && (op.isOlapServer() || SpliceClient.isClient())) {
                 LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
                 if (lcc != null) {
-                    lcc.setSparkContext(SpliceSpark.getSpliceSparkSession());
+                    lcc.setSpliceSparkSession(SpliceSpark.getSpliceSparkSession());
                 }
             }
             TaskContext taskContext = TaskContext.get();

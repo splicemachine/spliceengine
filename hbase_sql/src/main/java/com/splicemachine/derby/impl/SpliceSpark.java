@@ -22,6 +22,7 @@ import java.util.NoSuchElementException;
 import com.splicemachine.access.configuration.HBaseConfiguration;
 import com.splicemachine.client.SpliceClient;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.iapi.sql.conn.SpliceSparkSession;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.hbase.AdapterPipelineEnvironment;
@@ -110,10 +111,10 @@ public class SpliceSpark {
             ctx = new JavaSparkContext(session.getSparkSession().sparkContext());
         }
         else {
-            SparkSession =
+            SparkSession sparkSession =
               SparkSession.builder().
               config(sparkContext.getConf()).getOrCreate(); // Claims this is a singleton from documentation
-            spliceSparkSession.setSparkSession(SparkSession);
+            spliceSparkSession.setSparkSession(sparkSession);
             ctx = sparkContext;
         }
         initialized = true;
@@ -341,6 +342,7 @@ public class SpliceSpark {
         conf.set("spark.local.dir", System.getProperty("splice.spark.local.dir", System.getProperty("java.io.tmpdir")));
         conf.set("spark.logConf", System.getProperty("splice.spark.logConf", "true"));
         conf.set("spark.sql.orc.filterPushdown", System.getProperty("spark.sql.orc.filterPushdown", "true"));
+        conf.set("spark.files.overwrite", "true");  // So we can remove jars.
         conf.set("spark.master", master);
 
         if (master.startsWith("local[8]")) {
