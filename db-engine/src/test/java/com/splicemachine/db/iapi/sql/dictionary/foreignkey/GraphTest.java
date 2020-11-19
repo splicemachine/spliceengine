@@ -31,12 +31,12 @@ public class GraphTest {
         void call(List<String> permutation) throws StandardException;
     }
 
-    static void Permute(List<String> input, int k, PermuteClosure action) throws StandardException {
+    static void permute(List<String> input, int k, PermuteClosure action) throws StandardException {
         if (k == 1) {
             action.call(input);
         }
         for (int i = 0; i < k; ++i) {
-            Permute(input, k - 1, action);
+            permute(input, k - 1, action);
             if (i < k - 1) {
                 if (k % 2 == 0) {
                     Collections.swap(input, i, k - 1);
@@ -53,7 +53,7 @@ public class GraphTest {
         final String footer = edges.remove(edges.size() - 1);
         final List<String> result = new ArrayList<>(IntStream.rangeClosed(1, edges.size()).reduce(1, (int x, int y) -> x * y));
         result.add(graphviz);
-        Permute(edges, edges.size(), permutation -> {
+        permute(edges, edges.size(), permutation -> {
             StringBuilder permutedGraph = new StringBuilder(header);
             for (String edge : permutation) {
                 permutedGraph.append(edge);
@@ -216,7 +216,7 @@ public class GraphTest {
         }
     }
 
-    public static class NonParameterizedTest {
+    public static class NonParameterizedTests {
         @Test
         public void invalidGraphIsDetectedProperlyCase5() { // invalid cascade cycle
             try {
