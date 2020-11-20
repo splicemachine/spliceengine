@@ -35,7 +35,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.SQLBit;
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.sql.Types;
@@ -339,23 +342,36 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 	public void bindComparisonOperator()
 			throws StandardException
 	{
+		ValueNode left = normalizeOperand(leftOperand);
+		ValueNode right = normalizeOperand(rightOperand);
+
+		boolean cmp;
 		boolean nullableResult;
 
 		/*
 		** Can the types be compared to each other?  If not, throw an
 		** exception.
 		*/
-
-		boolean cmp = leftOperand.getTypeServices().comparable( rightOperand.getTypeServices() );
+		if (left instanceof ValueTupleNode && right instanceof ValueTupleNode) {
+			cmp = ((ValueTupleNode) left).typeComparable((ValueTupleNode) right);
+			nullableResult = ((ValueTupleNode) left).containsNullableElement() ||
+					((ValueTupleNode) right).containsNullableElement();
+		} else {
+			assert !(left instanceof ValueTupleNode || right instanceof ValueTupleNode) : "value tuple compared to non-tuple";
+			cmp = left.getTypeServices().comparable(right.getTypeServices());
+			nullableResult = left.getTypeServices().isNullable() ||
+					right.getTypeServices().isNullable();
+		}
 		// Bypass the comparable check if this is a rewrite from the 
 		// optimizer.  We will assume Mr. Optimizer knows what he is doing.
 		if (!cmp && !forQueryRewrite) {
+			DataTypeDescriptor leftDTD = left.getTypeServices();
+			DataTypeDescriptor rightDTD = right.getTypeServices();
 			throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE,
-					leftOperand.getTypeServices().getSQLTypeNameWithCollation() ,
-					rightOperand.getTypeServices().getSQLTypeNameWithCollation());
+					leftDTD == null ? "left type" : leftDTD.getSQLTypeNameWithCollation() ,
+					rightDTD == null ? "right type" : rightDTD.getSQLTypeNameWithCollation());
 		}
 
-		
 		/*
 		** Set the result type of this comparison operator based on the
 		** operands.  The result type is always SQLBoolean - the only question
@@ -363,11 +379,19 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		** nullable, the result of the comparison must be nullable, too, so
 		** we can represent the unknown truth value.
 		*/
-		nullableResult = leftOperand.getTypeServices().isNullable() ||
-							rightOperand.getTypeServices().isNullable();
 		setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
+	}
 
-
+	private static ValueNode normalizeOperand(ValueNode operand) throws StandardException {
+		if (operand instanceof ValueTupleNode) {
+			ValueTupleNode items = (ValueTupleNode) operand;
+			if (items.size() == 1) {
+				return items.get(0);
+			}
+		} else if (operand instanceof SubqueryNode) {
+			return ((SubqueryNode) operand).getRightOperand();
+		}
+		return operand;
 	}
 
 	/**
