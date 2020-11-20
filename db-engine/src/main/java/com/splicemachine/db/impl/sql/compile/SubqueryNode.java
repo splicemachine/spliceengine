@@ -648,8 +648,12 @@ public class SubqueryNode extends ValueNode{
          *    c1 = (select min(c1) from t2)
          * (This actually showed up in an app that a potential customer
          * was porting from SQL Server.)
+         * For now, don't perform this transformation if
+         * result set return multiple columns because we
+         * don't have visiting/code generation logic for
+         * tuple comparison.
          */
-        if(!doNotFlatten && (isIN() || isANY() || isExpression()) && resultSet.returnsAtMostOneRow()){
+        if(!doNotFlatten && (isIN() || isANY() || isExpression()) && resultSet.returnsAtMostOneRow() && resultSet.getResultColumns().size() == 1){
             if(!hasCorrelatedCRs()){
                 if (!isExpression())
                     changeToCorrespondingExpressionType();
@@ -788,10 +792,13 @@ public class SubqueryNode extends ValueNode{
                 // for non-correlated non-aggregate IN, ANY, if it is guaranteed that the subquery returns
                 // at most one row, we can convert the subquery to an expression subquery.
                 // such expression subquery may bring a good access path, so we do not want to flatten it
+                // Don't perform this transformation if result set return multiple columns because
+                // currently, we don't have visiting/code generation logic for tuple comparison.
                 if ((isIN() || isANY() || isExpression()) &&
                         !hasAggregation &&
                         !hasCorrelatedCRs() &&
-                        select.uniqueSubquery(false)) {
+                        select.uniqueSubquery(false) &&
+                        select.getResultColumns().size() == 1) {
                     // convert to expression subquery
                     if (!isExpression())
                         changeToCorrespondingExpressionType();
@@ -811,6 +818,7 @@ public class SubqueryNode extends ValueNode{
                     additionalEQ = additionalEQ &&
                             ((leftOperand instanceof ConstantNode) ||
                                     (leftOperand instanceof ColumnReference) ||
+                                    (leftOperand instanceof ValueTupleNode) ||
                                     (leftOperand.requiresTypeFromContext()));
                 /* If we got this far and we are an expression subquery
                  * then we want to set leftOperand to be the left side
@@ -2131,7 +2139,7 @@ public class SubqueryNode extends ValueNode{
      *
      * @return the right operand
      */
-    private ValueNode getRightOperand() throws StandardException {
+    public ValueNode getRightOperand() throws StandardException {
         if (resultSet.getResultColumns().size() == 1) {
             ResultColumn firstRC = resultSet.getResultColumns().elementAt(0);
             return firstRC.getExpression();
