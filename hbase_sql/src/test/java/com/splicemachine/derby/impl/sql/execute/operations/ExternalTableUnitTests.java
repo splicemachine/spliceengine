@@ -103,13 +103,12 @@ public class ExternalTableUnitTests {
         s = s.add("ws_sold_date_sk", DataTypes.DoubleType);
 
         try {
-            com.splicemachine.spark.splicemachine.PartitionSpec ps = SparkExternalTableUtil.parsePartitionsFromFiles(
-                    files, true, basePaths, s,null);
+            SparkExternalTableUtil.parsePartitionsFromFiles(files, true, basePaths, s,null);
             Assert.fail("no exception");
         }
-        catch(Exception e)
+        catch( Exception e)
         {
-
+            Assert.assertEquals(e.toString(), "java.lang.IllegalArgumentException: Column ws_sold_date_sk is double, can't parse HELLO");
         }
     }
 
