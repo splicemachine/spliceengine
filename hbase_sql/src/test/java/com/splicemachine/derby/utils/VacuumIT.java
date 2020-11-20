@@ -194,7 +194,7 @@ public class VacuumIT extends SpliceUnitTest{
 
     @Test
     public void testVacuumDoesNotDeleteTablePossiblyInUse() throws Exception {
-        int oldest = SpliceUnitTest.getOldestActiveTransaction(methodWatcher);
+        long oldest = SpliceUnitTest.getOldestActiveTransaction(methodWatcher);
         LOG.info("VacuumIT: oldest: " + oldest + "\n");
         Connection connection = spliceClassWatcher.getOrCreateConnection();
 
