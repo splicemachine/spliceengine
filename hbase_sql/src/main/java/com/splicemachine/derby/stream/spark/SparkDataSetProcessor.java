@@ -510,7 +510,7 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         try {
             partitionSpec = SparkExternalTableUtil.parsePartitionsFromFiles(files,
                     true, basePaths, givenPartitionColumns, null);
-        } catch(Exception e)
+        } catch( IllegalArgumentException e)
         {
             // wasn't able to use the given partition columns.
             partitionSpec = SparkExternalTableUtil.parsePartitionsFromFiles(files,

@@ -148,7 +148,7 @@ public class SparkExternalTableUtil {
                                                          boolean typeInference,
                                                          Set<Path> basePaths,
                                                          StructType userSpecifiedDataTypes,
-                                                         TimeZone timeZone) {
+                                                         TimeZone timeZone) throws IllegalArgumentException {
         List<Path> directories = getDistinctSubdirectoriesOf(files, basePaths);
         return parsePartitions( directories, typeInference, basePaths, userSpecifiedDataTypes, timeZone);
     }
@@ -165,7 +165,7 @@ public class SparkExternalTableUtil {
                                                 boolean typeInference,
                                                 Set<Path> basePaths,
                                                 StructType userDefTypeStruct,
-                                                TimeZone timeZone) {
+                                                TimeZone timeZone) throws IllegalArgumentException {
 
         scala.collection.Seq<Path> scala_directories =
                 scala.collection.JavaConverters.collectionAsScalaIterableConverter(directories).asScala().toList();
