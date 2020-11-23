@@ -26,9 +26,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportExecRowWriter;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportFile.COMPRESSION;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.window.WindowContext;
@@ -39,25 +36,13 @@ import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.spark.splicemachine.ShuffleUtils;
 import com.splicemachine.sparksql.ParserUtils;
 import com.splicemachine.system.CsvOptions;
-import com.splicemachine.utils.ByteDataInput;
 import com.splicemachine.utils.Pair;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.compress.CompressionCodec;
-import org.apache.hadoop.io.compress.CompressionCodecFactory;
-import org.apache.hadoop.mapred.FileAlreadyExistsException;
-import org.apache.hadoop.mapred.InvalidJobConfException;
-import org.apache.hadoop.mapreduce.JobContext;
-import org.apache.hadoop.mapreduce.RecordWriter;
-import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
-import org.apache.hadoop.mapreduce.security.TokenCache;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.scheduler.SparkListener;
 import org.apache.spark.sql.*;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.DataType;
@@ -65,14 +50,12 @@ import org.apache.spark.sql.types.StructType;
 import org.apache.spark.storage.StorageLevel;
 
 import javax.annotation.Nullable;
-import java.io.IOException;
-import java.io.OutputStream;
 import java.util.*;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
-import java.util.zip.GZIPOutputStream;
 
-import static com.splicemachine.derby.stream.spark.SparkDataSetProcessor.getCsvOptions;
+import static com.splicemachine.derby.stream.spark.SparkDataSet.generateTableSchema;
+import static com.splicemachine.derby.stream.spark.SparkExternalTableUtil.getCsvOptions;
 import static org.apache.spark.sql.functions.*;
 
 
@@ -89,7 +72,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
 
     private static String SPARK_COMPRESSION_OPTION = "compression";
 
-    public Dataset<Row> dataset;
+    private Dataset<Row> dataset;
     private Map<String,String> attributes;
     private ExecRow execRow;
     private OperationContext context;
@@ -123,15 +106,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         this.context = context;
     }
 
-    public NativeSparkDataSet(Dataset<Row> dataset, ExecRow execRow) {
-        this(dataset);
-        this.execRow = execRow;
-    }
-
-    public NativeSparkDataSet(Dataset<Row> dataset, String rddname) {
-        this(dataset);
-    }
-
     public NativeSparkDataSet(JavaRDD<V> rdd, String ignored, OperationContext context) {
         this(NativeSparkDataSet.<V>toSparkRow(rdd, context), context);
         try {
@@ -139,6 +113,10 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
         }
+    }
+
+    public Dataset<Row> getDataset() {
+        return dataset;
     }
 
     @Override
@@ -169,11 +147,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     /**
-     *
      * Execute the job and materialize the results as a List.  Be careful, all
      * data must be held in memory.
-     *
-     * @return
      */
     @Override
     public List<V> collect() {
@@ -184,12 +159,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      *
      * Perform the execution asynchronously and returns a Future<List>.  Be careful, all
      * data must be held in memory.
-     *
-     * @param isLast
-     * @param context
-     * @param pushScope
-     * @param scopeDetail
-     * @return
      */
     @Override
     public Future<List<V>> collectAsync(boolean isLast, OperationContext context, boolean pushScope, String scopeDetail) {
@@ -197,15 +166,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     /**
-     *
      * Wraps a function on an entire partition.
-     *
      * @see JavaRDD#mapPartitions(FlatMapFunction)
-     *
-     * @param f
-     * @param <Op>
-     * @param <U>
-     * @return
      */
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
@@ -223,14 +185,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     /**
-     *
      * Wraps a function on an entire partition.  IsLast is used for visualizing results.
-     *
-     * @param f
-     * @param isLast
-     * @param <Op>
-     * @param <U>
-     * @return
      */
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f, boolean isLast) {
@@ -525,7 +480,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
      * @param scopeDetail
      * @return
      */
-
     public DataSet<V> windows(WindowContext windowContext, OperationContext context,  boolean pushScope, String scopeDetail) {
         pushScopeIfNeeded(context, pushScope, scopeDetail);
         try {
@@ -670,7 +624,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     
     @Override
     public void close() {
-
     }
 
     @Override
@@ -684,82 +637,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
             return new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(dataset, this.context)).writeToDisk();
         } catch (Exception e) {
             throw Exceptions.throwAsRuntime(e);
-        }
-    }
-
-    public static class EOutputFormat extends FileOutputFormat<Void, ExecRow> {
-
-        /**
-         * Overridden to avoid throwing an exception if the specified directory
-         * for export already exists.
-         */
-        @Override
-        public void checkOutputSpecs(JobContext job) throws FileAlreadyExistsException, IOException {
-            Path outDir = getOutputPath(job);
-            if(outDir == null) {
-                throw new InvalidJobConfException("Output directory not set.");
-            } else {
-                TokenCache.obtainTokensForNamenodes(job.getCredentials(), new Path[]{outDir}, job.getConfiguration());
-                /*
-                if(outDir.getFileSystem(job.getConfiguration()).exists(outDir)) {
-                    System.out.println("Output dir already exists, no problem");
-                    throw new FileAlreadyExistsException("Output directory " + outDir + " already exists");
-                }
-                */
-            }
-        }
-
-        @Override
-        public RecordWriter<Void, ExecRow> getRecordWriter(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
-            Configuration conf = taskAttemptContext.getConfiguration();
-            String encoded = conf.get("exportFunction");
-            ByteDataInput bdi = new ByteDataInput(
-            Base64.decodeBase64(encoded));
-            SpliceFunction2<ExportOperation, OutputStream, Iterator<ExecRow>, Void> exportFunction;
-            try {
-                exportFunction = (SpliceFunction2<ExportOperation, OutputStream, Iterator<ExecRow>, Void>) bdi.readObject();
-            } catch (ClassNotFoundException e) {
-                throw new IOException(e);
-            }
-
-            final ExportOperation op = exportFunction.getOperation();
-            CompressionCodec codec = null;
-            String extension = ".csv";
-            COMPRESSION compression = op.getExportParams().getCompression();
-            if (compression == COMPRESSION.BZ2) {
-                extension += ".bz2";
-            }
-            else if (compression == COMPRESSION.GZ) {
-                extension += ".gz";
-            }
-
-            Path file = getDefaultWorkFile(taskAttemptContext, extension);
-            FileSystem fs = file.getFileSystem(conf);
-            OutputStream fileOut = fs.create(file, false);
-            if (compression == COMPRESSION.BZ2) {
-                CompressionCodecFactory factory = new CompressionCodecFactory(conf);
-                codec = factory.getCodecByClassName("org.apache.hadoop.io.compress.BZip2Codec");
-                fileOut = codec.createOutputStream(fileOut);
-            }
-            else if (compression == COMPRESSION.GZ) {
-                fileOut = new GZIPOutputStream(fileOut);
-            }
-            final ExportExecRowWriter rowWriter = ExportFunction.initializeRowWriter(fileOut, op.getExportParams());
-            return new RecordWriter<Void, ExecRow>() {
-                @Override
-                public void write(Void _, ExecRow locatedRow) throws IOException, InterruptedException {
-                    try {
-                        rowWriter.writeRow(locatedRow, op.getSourceResultColumnDescriptors());
-                    } catch (StandardException e) {
-                        throw new IOException(e);
-                    }
-                }
-
-                @Override
-                public void close(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
-                    rowWriter.close();
-                }
-            };
         }
     }
 
@@ -860,7 +737,7 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     // If the left DataSet defines more columns than the left DataFrame,
     // the column names will be off.  Let's fill the gaps to match the
     // ExecRowDefinition.
-    private Dataset<Row> fixupColumnNames(JoinOperation op, JoinType joinType,
+    static private Dataset<Row> fixupColumnNames(JoinOperation op, JoinType joinType,
                                           Dataset<Row> leftDF, Dataset<Row> rightDF,
                                           Dataset<Row> joinedDF,
                                           SpliceOperation leftOp,
@@ -1069,25 +946,6 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     /**
-     * Take a Splice SparkDataSet (RDD) in the consumer's context, with a single source,
-     * and convert it to a NativeSparkDataSet (Dataset<Row>) doing a map.
-     * @param context
-     * @return
-     * @throws Exception
-     */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    static <V> Dataset<Row> sourceRDDToSparkRow(JavaRDD<V> rdd, OperationContext context) {
-        try {
-            return SpliceSpark.getSession()
-                    .createDataFrame(
-                            rdd.map(new LocatedRowToRowFunction()),
-                            context.getOperation().getLeftOperation().schema());
-        } catch (Exception e) {
-            throw Exceptions.throwAsRuntime(e);
-        }
-    }
-
-    /**
      * Take a spark dataset and translate that to Splice format
      * @param dataSet
      * @param context
@@ -1116,8 +974,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<ExecRow> writeParquetFile(DataSetProcessor dsp, int[] partitionBy, String location,
                                              String compression, OperationContext context) throws StandardException {
-        {
-            getDataFrameWriter(partitionBy, context)
+        compression = SparkExternalTableUtil.getParquetCompression( compression );
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
                     .option(SPARK_COMPRESSION_OPTION, compression)
                     .parquet(location);
         }
@@ -1126,11 +985,28 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
-    public DataSet<ExecRow> writeAvroFile(DataSetProcessor dsp, int[] partitionBy, String location,
-                                          String compression, OperationContext context) throws StandardException {
-        {
-            compression = SparkDataSet.getAvroCompression(compression);
-            getDataFrameWriter(partitionBy, context)
+    public DataSet<ExecRow> writeAvroFile(DataSetProcessor dsp,
+                                          int[] partitionBy,
+                                          String location,
+                                          String compression,
+                                          OperationContext context) throws StandardException
+    {
+        StructType tableSchema = generateTableSchema(context);
+        StructType dataSchema = SparkExternalTableUtil.getDataSchemaAvro(dsp, tableSchema, partitionBy, location);
+        if (dataSchema == null)
+            dataSchema = tableSchema;
+        return writeAvroFile(dataSchema, partitionBy, location, compression, context);
+    }
+
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public DataSet<ExecRow> writeAvroFile(StructType tableSchema,
+                                          int[] partitionBy,
+                                          String location,
+                                          String compression,
+                                          OperationContext context) throws StandardException {
+        compression = SparkExternalTableUtil.getAvroCompression(compression);
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(dataset, tableSchema, partitionBy, context)
                     .option(SPARK_COMPRESSION_OPTION, compression)
                     .format("com.databricks.spark.avro").save(location);
         }
@@ -1140,8 +1016,8 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeTextFile(int[] partitionBy, String location, CsvOptions csvOptions,
                                           OperationContext context) throws StandardException {
-        {
-            getDataFrameWriter(partitionBy, context)
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
                     .options(getCsvOptions(csvOptions))
                     .csv(location);
         }
@@ -1150,15 +1026,21 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public DataSet<ExecRow> writeORCFile(int[] baseColumnMap, int[] partitionBy, String location,  String compression,
                                                     OperationContext context) throws StandardException {
-        {
-            getDataFrameWriter(partitionBy, context)
+        try( CountingListener counter = new CountingListener(context) ) {
+            getDataFrameWriter(dataset, generateTableSchema(context), partitionBy, context)
                     .option(SPARK_COMPRESSION_OPTION, compression)
                     .orc(location);
         }
         return getRowsWritten(context);
     }
 
-    class MapCountingFunction implements MapFunction<Row, Row>
+    class CountingListener implements AutoCloseable {
+        // this is an empty class to align with 3.x code
+        public CountingListener(OperationContext context) {}
+        public void close() { }
+    }
+
+    static class MapCountingFunction implements MapFunction<Row, Row>
     {
         OperationContext<?> operationContext;
         MapCountingFunction(OperationContext<?> operationContext)
@@ -1172,9 +1054,9 @@ public class NativeSparkDataSet<V> implements DataSet<V> {
         }
     }
 
-    private DataFrameWriter getDataFrameWriter(int[] partitionBy, OperationContext context) throws StandardException {
-        StructType tableSchema = SparkDataSet.generateTableSchema(context);
-
+    static private DataFrameWriter getDataFrameWriter(Dataset<Row> dataset, StructType tableSchema,
+                                                      int[] partitionBy, OperationContext context) throws StandardException {
+        // OperationContext context is used in 2.8
         Dataset<Row> insertDF = SpliceSpark.getSession().createDataFrame(
                 dataset.rdd(),
                 tableSchema);

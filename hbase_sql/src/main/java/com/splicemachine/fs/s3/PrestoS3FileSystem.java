@@ -201,7 +201,6 @@ public class PrestoS3FileSystem
         workingDirectory = path;
     }
 
-    @Override
     public FileStatus[] listStatus(Path path)
             throws IOException
     {
@@ -211,7 +210,17 @@ public class PrestoS3FileSystem
         while (iterator.hasNext()) {
             list.add(iterator.next());
         }
-        return toArray(list, LocatedFileStatus.class);
+        if( list.isEmpty() ) {
+            // Spark needs this so it can "list" single files, otherwise Spark.read().parquet("path/to/file.parquet") doesn't work
+            // The documnentation of FileSystem.listStatus only states behavior for directories, not for files:
+            // https://hadoop.apache.org/docs/stable/api/org/apache/hadoop/fs/FileSystem.html#listStatus-org.apache.hadoop.fs.Path-
+            // so the behavior for files is not exactly specified. However S3AFileSystem does it also like this:
+            // [2] https://github.com/apache/hadoop/blob/trunk/hadoop-tools/hadoop-aws/src/main/java/org/apache/hadoop/fs/s3a/S3AFileSystem.java#L2595
+            FileStatus fs = getFileStatus(path);
+            return new FileStatus[]{fs};
+        }
+        else
+            return toArray(list, LocatedFileStatus.class);
     }
 
     @Override
