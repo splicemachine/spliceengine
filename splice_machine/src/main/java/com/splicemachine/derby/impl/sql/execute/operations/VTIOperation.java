@@ -302,12 +302,17 @@ public class VTIOperation extends SpliceBaseOperation {
         super.close();
         if (fromTableDML_ResultSet != null && !fromTableDML_ResultSet.isClosed()) {
             // Flush out any rows from execution.  Should be just one.
-            if (fromTableDML_ResultSet.returnsRows())
-                while (fromTableDML_ResultSet.getNextRow() != null) {
-                }
-            // Release resources.
-            fromTableDML_ResultSet.close();
-            fromTableDML_ResultSet = null;
+            try {
+                if (fromTableDML_ResultSet.returnsRows())
+                    while (fromTableDML_ResultSet.getNextRow() != null) {
+                    }
+                // Release resources.
+            }
+            finally {
+                if (!fromTableDML_ResultSet.isClosed())
+                    fromTableDML_ResultSet.close();
+                fromTableDML_ResultSet = null;
+            }
         }
     }
 
