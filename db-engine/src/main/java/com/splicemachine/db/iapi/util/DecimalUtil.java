@@ -46,6 +46,7 @@ public interface DecimalUtil {
         }
         BigDecimal bigDecimal = null;
         Calendar cal = null;
+        int roundingMode = BigDecimal.ROUND_DOWN;
         switch (DataValueFactoryImpl.Format.formatFor(dvd)) {
             case TINYINT: // fallthrough
             case SMALLINT: // fallthrough
@@ -64,6 +65,7 @@ public interface DecimalUtil {
             break;
             case DECFLOAT: {
                 bigDecimal = SQLDecfloat.getBigDecimal(dvd);
+                roundingMode = BigDecimal.ROUND_HALF_EVEN; // should be configurable (DB-10672)
                 if (bigDecimal == null) return null;
             }
             break;
@@ -134,7 +136,7 @@ public interface DecimalUtil {
         if ((bigDecimal.precision() - bigDecimal.scale()) > (precision - scale)) {
             throw StandardException.newException(SQLState.LANG_INVALID_DECIMAL_CONVERSION, dvd.toString(), precision, scale); // DB2 SQLSTATE 22003
         }
-        bigDecimal = bigDecimal.setScale(scale, BigDecimal.ROUND_DOWN);
+        bigDecimal = bigDecimal.setScale(scale, roundingMode);
         return new SQLDecimal(bigDecimal, precision, scale);
     }
 }
