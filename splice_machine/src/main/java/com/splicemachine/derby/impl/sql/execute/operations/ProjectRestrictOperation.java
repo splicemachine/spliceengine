@@ -38,6 +38,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.EngineUtils;
+import com.splicemachine.si.api.txn.TxnView;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
@@ -383,4 +384,13 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	public ScanInformation<ExecRow> getScanInformation() {
 		return source.getScanInformation();
 	}
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        if (source instanceof VTIOperation ||
+		    source instanceof ProjectRestrictOperation)
+            return source.getCurrentTransaction();
+        else
+            return super.getCurrentTransaction();
+    }
 }

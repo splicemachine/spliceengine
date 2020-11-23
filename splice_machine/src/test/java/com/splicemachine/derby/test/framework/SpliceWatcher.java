@@ -249,6 +249,7 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
         while (rs.next()) {
             resultList.add((T) rs.getObject(1));
         }
+        rs.close();
         return resultList;
     }
 
@@ -265,6 +266,7 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
             }
             resultList.add(row);
         }
+        rs.close();
         return resultList;
     }
 
