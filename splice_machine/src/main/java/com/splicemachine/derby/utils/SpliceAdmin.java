@@ -52,7 +52,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
-import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.hbase.JMXThreadPool;
@@ -60,7 +59,6 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
-import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
@@ -2276,9 +2274,29 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException
     {
         List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false, true);
-        StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
-        sb.append(ddls.get(0));
-        sb.append(";') FOO (DDL)");
+        StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES ");
+
+        // There are two checks need to be bypassed:
+        // 1. string literal length check in parser (use string concatenation)
+        // 2. result string literal length check in binding (cast to clob)
+        final int MAX_STR_LITERAL_LENGTH = 32672;
+        String ddl = ddls.get(0);
+        if (ddl.length() >= MAX_STR_LITERAL_LENGTH) {  // not >, otherwise append a ';' may fail
+            for (int offset = 0; offset < ddl.length(); offset += MAX_STR_LITERAL_LENGTH) {
+                if (offset != 0) {
+                    sb.append(" || ");
+                }
+                sb.append("cast('");
+                sb.append(ddl, offset, Math.min(offset + MAX_STR_LITERAL_LENGTH, ddl.length()));
+                sb.append("' as clob)");
+            }
+            sb.append(" || ';'");
+        } else {
+            sb.append("'");
+            sb.append(ddl);
+            sb.append(";'");
+        }
+        sb.append(") FOO (DDL)");
         resultSet[0] = executeStatement(sb);
     }
 
