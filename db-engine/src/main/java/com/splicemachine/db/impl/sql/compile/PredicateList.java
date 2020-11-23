@@ -690,6 +690,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                                 Optimizable optTable, ConglomerateDescriptor conglomDesc)
             throws StandardException
     {
+        assert indexExprAst != null : "matchIndexExpression: indexExprAst is null";
         boolean match = false;
         int tableNumber = optTable.getTableNumber();  // OK to be -1, will be checked when use
         if (isIn) {
@@ -1170,8 +1171,10 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                 for (Predicate pred : predsForNewInList) {
                     InListOperatorNode inNode = pred.getSourceInList(true);
-                    if (inNode != null)
-                        vnl.addValueNode(inNode.getLeftOperand().getClone());
+                    if (inNode != null) {
+                        ValueNode leftOperand = inNode.getLeftOperand();
+                        vnl.addValueNode(leftOperand instanceof ColumnReference ? leftOperand.getClone() : leftOperand);
+                    }
                     else {
                         RelationalOperator relop = pred.getRelop();
                         if (! (relop instanceof BinaryRelationalOperatorNode))
@@ -1182,7 +1185,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                             colRef = brop.getLeftOperand();
                         else
                             colRef = brop.getRightOperand();
-                        vnl.addValueNode(colRef.getClone());
+                        vnl.addValueNode(colRef instanceof ColumnReference ? colRef.getClone() : colRef);
                     }
                 }
                 ilon =
@@ -1211,6 +1214,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     newPred.setIndexPosition(usefulPredicates[firstPred].getIndexPosition());
                     usefulPredicates[firstPred] = newPred;
                     multiColumnInListPred = newPred;
+
+                    setIndexExprInfoForMultiColumnInListPred(multiColumnInListPred, optTable, cd);
 
                     // Pack the remaining useful preds in usefulPredicates so
                     // there are no gaps.
@@ -1535,6 +1540,41 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                     addOptPredicate(thisPred);
                 }
             }
+        }
+    }
+
+    private void setIndexExprInfoForMultiColumnInListPred(Predicate pred, Optimizable optTable, ConglomerateDescriptor cd)
+            throws StandardException
+    {
+        IndexRowGenerator irg = cd == null ? null : cd.getIndexDescriptor();
+        if (irg != null && irg.getIndexDescriptor() == null) {
+            irg = null;
+        }
+        ValueNode andNode;
+
+        if (irg != null && irg.isOnExpression()) {
+            LanguageConnectionContext lcc = pred.getLanguageConnectionContext();
+            ValueNode[] exprAsts = irg.getParsedIndexExpressions(lcc, optTable);
+            for (int i = 0; i < exprAsts.length; i++) {
+                andNode = pred.getAndNode();
+                while(andNode instanceof AndNode) {
+                    AndNode currentAnd = (AndNode) andNode;
+                    ValueNode leftOperand = currentAnd.getLeftOperand();
+                    if (leftOperand instanceof BinaryOperatorNode) {
+                        BinaryOperatorNode binOp = (BinaryOperatorNode) leftOperand;
+                        if (exprAsts[i].semanticallyEquals(binOp.getLeftOperand())) {
+                            binOp.setMatchIndexExpr(optTable.getTableNumber(), i, cd, true);
+                        } else if (exprAsts[i].semanticallyEquals(binOp.getRightOperand())) {
+                            binOp.setMatchIndexExpr(optTable.getTableNumber(), i, cd, false);
+                        }
+                    }
+                    andNode = currentAnd.getRightOperand();
+                }
+            }
+            // Multi-column in-list predicate is built from all useful in-list predicates. If we
+            // are dealing with an index on expressions, then all useful predicates use index
+            // expressions. It is safe to set the flag here.
+            pred.setMatchIndexExpression(true);
         }
     }
 
