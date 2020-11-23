@@ -104,7 +104,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
             if (hasVariantQualifiers(qualifiers)) {
                 return locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
             }
-            if (activation.sparkExecutionType().isNonNative() && locatedRows instanceof NativeSparkDataSet) {
+            if (activation != null && activation.sparkExecutionType().isNonNative() && locatedRows instanceof NativeSparkDataSet) {
                 locatedRows = new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(((NativeSparkDataSet) locatedRows).dataset, operationContext));
             }
             return locatedRows;
@@ -154,7 +154,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         try {
             SparkDataSet dataSet = new SparkDataSet<>(rawRDD.map(f).filter(pred),
                     op != null ? op.getPrettyExplainPlan() : f.getPrettyFunctionName());
-            if (activation.sparkExecutionType().isNative()) {
+            if (activation != null && activation.sparkExecutionType().isNative()) {
                 return dataSet.upgradeToSparkNativeDataSet(operationContext);
             } else {
                 return dataSet;
