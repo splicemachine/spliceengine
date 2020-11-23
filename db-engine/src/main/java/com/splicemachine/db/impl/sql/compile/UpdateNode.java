@@ -54,7 +54,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.vti.DeferModification;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
@@ -897,7 +896,7 @@ public final class UpdateNode extends DMLModStatementNode
                 mb.push(this.resultSet.getFinalCostEstimate(false).getEstimatedCost());
                 mb.push(targetTableDescriptor.getVersion());
                 mb.push(this.printExplainInformationForActivation());
-                SPSDescriptor fromTableTriggerSPSDescriptor = DataDictionaryCache.fromTableTriggerSPSDescriptor.get();
+                SPSDescriptor fromTableTriggerSPSDescriptor = TriggerReferencingStruct.fromTableTriggerSPSDescriptor.get();
                 if (fromTableTriggerSPSDescriptor == null)
                     mb.pushNull("java.lang.String");
                 else {

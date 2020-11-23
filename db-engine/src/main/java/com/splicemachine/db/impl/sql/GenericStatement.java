@@ -46,14 +46,13 @@ import com.splicemachine.db.iapi.sql.depend.Dependency;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
 import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
 import com.splicemachine.db.impl.sql.compile.CharTypeCompiler;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
+import com.splicemachine.db.impl.sql.compile.TriggerReferencingStruct;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 import com.splicemachine.db.impl.sql.misc.CommentStripper;
 import com.splicemachine.system.SimpleSparkVersion;
@@ -65,7 +64,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
-import java.sql.Types;
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -687,8 +685,14 @@ public class GenericStatement implements Statement{
                 preparedStmt.compilingStatement=false;
                 preparedStmt.notifyAll();
             }
-            DataDictionaryCache.fromTableTriggerDescriptor.remove();
-            DataDictionaryCache.fromTableTriggerSPSDescriptor.remove();
+            TriggerReferencingStruct.fromTableTriggerDescriptor.remove();
+            TriggerReferencingStruct.fromTableTriggerSPSDescriptor.remove();
+            // Communicate to the immediate parent statement if its child
+            // contains a FROM TABLE clause.
+            if (BoundAndOptimizedStatement != null)
+                TriggerReferencingStruct.isFromTableStatement.get().setValue(true);
+            else
+                TriggerReferencingStruct.isFromTableStatement.get().setValue(false);
         }
 
         lcc.commitNestedTransaction();
@@ -902,7 +906,8 @@ public class GenericStatement implements Statement{
             preparedStmt.setRequiredPermissionsList(cc.getRequiredPermissionsList());
             preparedStmt.incrementVersionCounter();
             preparedStmt.setActivationClass(ac);
-            preparedStmt.setNeedsSavepoint(qt.needsSavepoint());
+            preparedStmt.setNeedsSavepoint(qt.needsSavepoint() ||
+                                           TriggerReferencingStruct.isFromTableStatement.get().booleanValue());
             preparedStmt.setCursorInfo((CursorInfo)cc.getCursorInfo());
             preparedStmt.setIsAtomic(qt.isAtomic());
             preparedStmt.setExecuteStatementNameAndSchema(qt.executeStatementName(), qt.executeSchemaName());
