@@ -327,9 +327,17 @@ class SICompactionStateMutate {
         }
         if (element.getTimestamp() == maxTombstone.getTimestamp() &&
                 CellUtils.getKeyValueType(maxTombstone) == CellType.TOMBSTONE &&
-                shouldRemoveMostRecentTombstone())
+                shouldRemoveMostRecentTombstone()) {
+            if (LOG.isDebugEnabled())
+                LOG.debug("Removing cell " + element + " because deleted and shouldRemoveMostRecentTombstone");
             return true;
-        return element.getTimestamp() < maxTombstone.getTimestamp();
+        }
+        if (element.getTimestamp() < maxTombstone.getTimestamp()) {
+            if (LOG.isDebugEnabled())
+                LOG.debug("Removing cell " + element + " because deleted");
+            return true;
+        }
+        return false;
     }
 
     private boolean purgeableOldUpdate(Cell element) {

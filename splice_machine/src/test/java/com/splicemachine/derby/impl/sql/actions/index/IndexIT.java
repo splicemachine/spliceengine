@@ -2362,4 +2362,87 @@ public class IndexIT extends SpliceUnitTest{
             Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
+
+    @Test
+    public void testMultiColumnInListPredicateOnIndexExpression() throws Exception {
+        String tableName = "TEST_MULTI_COLUMN_INLIST_INDEX_EXPR";
+        methodWatcher.executeUpdate(format("create table %s (c char(4), i int, d double)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values ('abc', 11, 1.1), ('def', 20, 2.2), ('jkl', 21, 2.2), ('ghi', 30, 3.3), ('xyz', 40, 3.3)", tableName));
+
+        methodWatcher.executeUpdate(format("CREATE INDEX %s_IDX ON %s (UPPER(C), mod(i, 2))", tableName, tableName));
+
+        // Both in-list predicates are useful, should be combined to a multi-column in-list probe
+        // predicate and pushed down to IndexScan.
+        String query = format(
+                "select upper(c) from %s --splice-properties index=%s_IDX\n " +
+                "where mod(i,2) in (0,1) and upper(c) in ('ABC', 'DEF')", tableName, tableName);
+
+        /* check plan */
+        String[] expectedOps = new String[] {
+                "ProjectRestrict",     // should be directly on top of IndexScan and no IndexLookup in between
+                "MultiProbeIndexScan",
+                "[((upper(C[-1:1]),(I[-1:2] mod 2)) IN ((ABC ,0),(ABC ,1),(DEF ,0),(DEF ,1)))]"
+        };
+        rowContainsQuery(new int[]{3,4,4}, "explain " + query, methodWatcher, expectedOps);
+
+        /* check result */
+        String expected = "1  |\n" +
+                "-----\n" +
+                "ABC |\n" +
+                "DEF |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // Only upper(c) in ('ABC', 'DEF') is useful, should be pushed down to IndexScan. The other
+        // in-list predicate should be evaluated after IndexLookup, since index is not covering.
+        query = format(
+                "select upper(c) from %s --splice-properties index=%s_IDX\n " +
+                "where i in (20,21) and upper(c) in ('ABC', 'DEF')", tableName, tableName);
+
+        /* check plan */
+        expectedOps = new String[] {
+                "ProjectRestrict",
+                "[(I[1:2] IN (20,21))]",
+                "IndexLookup",
+                "MultiProbeIndexScan",
+                "[(upper(C[1:1]) IN (ABC ,DEF ))]"
+        };
+        rowContainsQuery(new int[]{4,4,5,6,6}, "explain " + query, methodWatcher, expectedOps);
+
+        /* check result */
+        expected = "1  |\n" +
+                "-----\n" +
+                "DEF |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+
+        // Neither of in-list predicates is useful. Both should be evaluated after IndexLookup and
+        // not combined as a multi-column in-list predicate.
+        query = format(
+                "select upper(c) from %s --splice-properties index=%s_IDX\n " +
+                "where mod(i,2) in (0,1) and c in ('abc', 'def')", tableName, tableName);
+
+        /* check plan */
+        expectedOps = new String[] {
+                "ProjectRestrict",
+                "[(C[1:1] IN (abc ,def )),((I[1:2] mod 2) IN (0,1))]",
+                "IndexLookup",
+                "IndexScan"
+        };
+        rowContainsQuery(new int[]{4,4,5,6}, "explain " + query, methodWatcher, expectedOps);
+
+        /* check result */
+        expected = "1  |\n" +
+                "-----\n" +
+                "ABC |\n" +
+                "DEF |";
+
+        try (ResultSet rs = methodWatcher.executeQuery(query)) {
+            Assert.assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        }
+    }
 }

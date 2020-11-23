@@ -23,7 +23,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.hbase.SICompactionScanner;
-import com.splicemachine.hbase.TransactionsWatcher;
 import com.splicemachine.hbase.ZkUtils;
 import com.splicemachine.kvpair.KVPair;
 import com.splicemachine.pipeline.AclCheckerService;
@@ -40,11 +39,12 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.si.impl.server.*;
 import com.splicemachine.storage.*;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -62,6 +62,8 @@ import org.apache.hadoop.hbase.security.access.Permission;
 import org.apache.hadoop.hbase.security.access.TableAuthManager;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.wal.WALEdit;
+import org.apache.hadoop.hbase.wal.WAL;
+import org.apache.hadoop.hbase.wal.WALFactory;
 import org.apache.hadoop.hbase.wal.WALKey;
 import org.apache.hadoop.hbase.zookeeper.ZKWatcher;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -521,6 +523,25 @@ public class SIObserver implements RegionObserver, Coprocessor, RegionCoprocesso
                 CellType cellType = CellUtils.getKeyValueType(cell);
                 if (cellType == CellType.FIRST_WRITE_TOKEN) {
                     it.remove();
+                }
+            }
+
+        }
+    }
+
+    @Override
+    public void preReplayWALs(ObserverContext<? extends RegionCoprocessorEnvironment> ctx, RegionInfo info, Path edits) throws IOException {
+        if (LOG.isDebugEnabled()) {
+            Configuration conf = ctx.getEnvironment().getConfiguration();
+            FileSystem fs = FileSystem.get(edits.toUri(), conf);
+            try (WAL.Reader reader = WALFactory.createReader(fs, edits, conf)) {
+                WAL.Entry entry;
+                LOG.debug("WAL replay");
+                while ((entry = reader.next()) != null) {
+                    WALKey key = entry.getKey();
+                    WALEdit val = entry.getEdit();
+
+                    LOG.debug(key + " -> " + val);
                 }
             }
         }
