@@ -35,10 +35,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DateTimeDataValue;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * A TimeSpanNode is a node used to represent an added time interval
@@ -46,7 +46,6 @@ import java.util.List;
  * to be replaced by a function call to ADD_{DAYS,MONTHS,YEARS}
  */
 
-@SuppressFBWarnings(value="HE_INHERITS_EQUALS_USE_HASHCODE", justification="DB-9277")
 public class TimeSpanNode extends ValueNode
 {
     private int unit;
@@ -79,6 +78,20 @@ public class TimeSpanNode extends ValueNode
         {
             TimeSpanNode other = (TimeSpanNode) o;
             return this.unit == other.unit && value.isEquivalent(other.value);
+        }
+        return false;
+    }
+
+    public int hashCode() {
+        int result = Objects.hash(getBaseHashCode(), unit);
+        return 31 * result + (value == null ? 0 : value.hashCode());
+    }
+
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (isSameNodeType(o)) {
+            TimeSpanNode other = (TimeSpanNode) o;
+            return this.unit == other.unit && value.isSemanticallyEquivalent(other.value);
         }
         return false;
     }

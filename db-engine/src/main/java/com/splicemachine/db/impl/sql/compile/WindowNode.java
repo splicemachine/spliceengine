@@ -34,6 +34,8 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Superclass of window definition and window reference.
@@ -88,5 +90,9 @@ public abstract class WindowNode extends QueryTreeNode
     public abstract OverClause getOverClause();
 
     public abstract void setOverClause(OverClause overClause);
+
+    public abstract WindowNode replaceIndexExpression(ResultSetNode child) throws StandardException;
+
+    public abstract boolean collectExpressions(Map<Integer, Set<ValueNode>> exprMap);
 
 }

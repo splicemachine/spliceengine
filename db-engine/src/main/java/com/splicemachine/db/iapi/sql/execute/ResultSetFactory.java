@@ -35,6 +35,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 
 /**
  * ResultSetFactory provides a wrapper around all of
@@ -139,7 +140,8 @@ public interface ResultSetFactory {
                                  boolean outputKeysOnly,
                                  boolean skipSampling,
                                  double sampleFraction,
-                                 String indexName)
+                                 String indexName,
+                                 String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -190,7 +192,8 @@ public interface ResultSetFactory {
      */
     ResultSet getDeleteResultSet(NoPutResultSet source, double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan, String bulkDeleteDirectory, int colMapRefItem)
+                                 String explainPlan, String bulkDeleteDirectory, int colMapRefItem,
+                                 String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -236,7 +239,7 @@ public interface ResultSetFactory {
     ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
                                  GeneratedMethod checkGM, double optimizerEstimatedRowCount,
                                  double optimizerEstimatedCost, String tableVersion,
-                                 String explainPlan)
+                                 String explainPlan, String fromTableDmlSpsDescriptorAsString)
             throws StandardException;
 
     /**
@@ -825,53 +828,69 @@ public interface ResultSetFactory {
             throws StandardException;
 
 
-	/**
-		A VTI result set wraps a user supplied result set.
 
-		@param activation the activation for this result set,
-			against which the row operation is performed to
-			create the result set.
-		@param row a reference to a method in the activation
-			that creates the expected row.
-			<verbatim>
-				ExecRow row() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param constructor		The GeneratedMethod for the user's constructor
-		@param javaClassName	The java class name for the VTI
-		@param erdNumber		int for referenced column BitSet (so it can be turned back into an object)
-		@param version2			Whether or not VTI is a version 2 VTI.
-		@param isTarget			Whether or not VTI is a target VTI.
-		@param optimizerEstimatedRowCount	Estimated total # of rows by optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@param isDerbyStyleTableFunction    True if this is a Derby-style table function
-		@param returnTypeNumber	Which saved object contains the return type (a multi-set) serialized as a byte array
-		@param vtiProjectionNumber	Which saved object contains the projection for a RestrictedVTI
-		@param vtiRestrictionNumber	Which saved object contains the restriction for a RestrictedVTI
-	    @param vtiResultDescriptionNumber Which saved object contains the result description of a VTI
-		@return the row as a result set.
-		@exception StandardException thrown when unable to create the
-			result set
-	 */
-	public NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
-								   int resultSetNumber,
-								   GeneratedMethod constructor,
-								   String javaClassName,
-								   String pushedQualifiersField,
-								   int erdNumber,
-								   int ctcNumber,
-								   boolean isTarget,
-								   int scanIsolationLevel,
-								   double optimizerEstimatedRowCount,
-								   double optimizerEstimatedCost,
-								   boolean isDerbyStyleTableFunction,
-								   int returnTypeNumber,
-								   int vtiProjectionNumber,
-								   int vtiRestrictionNumber,
-								   int vtiResultDescriptionNumber,
-								   String explainPlan,
-								   boolean quotedEmptyIsNull)
-		 throws StandardException;
+    NoPutResultSet getVTIResultSet(
+            Activation activation,
+            GeneratedMethod row,
+            int resultSetNumber,
+            GeneratedMethod constructor,
+            String javaClassName,
+            com.splicemachine.db.iapi.store.access.Qualifier[][] pushedQualifiersField,
+            int erdNumber,
+            int ctcNumber,
+            boolean isTarget,
+            int scanIsolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            boolean isDerbyStyleTableFunction,
+            int returnTypeNumber,
+            int vtiProjectionNumber,
+            int vtiRestrictionNumber,
+            int vtiResultDescriptionNumber,
+            String explainPlan,
+            boolean quotedEmptyIsNull,
+            String fromTableDmlSpsAsString)
+            throws StandardException;
+
+    NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+                                          int resultSetNumber,
+                                          GeneratedMethod constructor,
+                                          String javaClassName,
+                                          String pushedQualifiersField,
+                                          int erdNumber,
+                                          int ctcNumber,
+                                          boolean isTarget,
+                                          int scanIsolationLevel,
+                                          double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost,
+                                          boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber,
+                                          int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
+                                          String explainPlan,
+                                          boolean quotedEmptyIsNull) throws StandardException;
+
+    NoPutResultSet getVTIResultSet(Activation activation, GeneratedMethod row,
+                                          int resultSetNumber,
+                                          GeneratedMethod constructor,
+                                          String javaClassName,
+                                          String pushedQualifiersField,
+                                          int erdNumber,
+                                          int ctcNumber,
+                                          boolean isTarget,
+                                          int scanIsolationLevel,
+                                          double optimizerEstimatedRowCount,
+                                          double optimizerEstimatedCost,
+                                          boolean isDerbyStyleTableFunction,
+                                          int returnTypeNumber,
+                                          int vtiProjectionNumber,
+                                          int vtiRestrictionNumber,
+                                          int vtiResultDescriptionNumber,
+                                          String explainPlan,
+                                          boolean quotedEmptyIsNull,
+                                          String fromTableDmlSpsAsString) throws StandardException;
+
 
 	/*
 	 * This method was purely added to get some stored prepared statements to pass the validation stage of their compilation.
@@ -926,65 +945,64 @@ public interface ResultSetFactory {
 		the scan.
 		<p>
 
-		@param activation the activation for this result set,
-			which provides the context for the row allocation operation.
-		@param conglomId the conglomerate of the table to be scanned.
-		@param scociItem The saved item for the static conglomerate info.
-		@param resultRowAllocator a reference to a method in the activation
-			that creates a holder for the rows from the scan.
-			<verbatim>
-				ExecRow rowAllocator() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param hashKeyColumn	The 0-based column # for the hash key.
-		@param tableName		The full name of the table
-		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
-		@param indexName		The name of the index, if one used to access table.
-		@param isConstraint		If index, if used, is a backing index for a constraint.
-		@param colRefItem		An saved item for a bitSet of columns that
-								are referenced in the underlying table.  -1 if
-								no item.
-		@param lockMode			The lock granularity to use (see
-								TransactionController in access)
-		@param tableLocked		Whether or not the table is marked as using table locking
-								(in sys.systables)
-		@param isolationLevel	Isolation level (specified or not) to use on scans
-		@param optimizerEstimatedRowCount	Estimated total # of rows by
-											optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-		@return the table scan operation as a result set.
+     @return the table scan operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
+         * @param activation the activation for this result set,
+             which provides the context for the row allocation operation.
+     * @param conglomId the conglomerate of the table to be scanned.
+     * @param scociItem The saved item for the static conglomerate info.
+     * @param resultRowAllocator a reference to a method in the activation
+    that creates a holder for the rows from the scan.
+    <verbatim>
+        ExecRow rowAllocator() throws StandardException;
+    </verbatim>
+     * @param resultSetNumber    The resultSetNumber for the ResultSet
+     * @param hashKeyColumn    The 0-based column # for the hash key.
+     * @param tableName        The full name of the table
+     * @param userSuppliedOptimizerOverrides        Overrides specified by the user on the sql
+     * @param indexName        The name of the index, if one used to access table.
+     * @param isConstraint        If index, if used, is a backing index for a constraint.
+     * @param colRefItem        An saved item for a bitSet of columns that
+                        are referenced in the underlying table.  -1 if
+                        no item.
+     * @param lockMode            The lock granularity to use (see
+                        TransactionController in access)
+     * @param tableLocked        Whether or not the table is marked as using table locking
+                        (in sys.systables)
+     * @param isolationLevel    Isolation level (specified or not) to use on scans
+     * @param optimizerEstimatedRowCount    Estimated total # of rows by
+                                    optimizer
+     * @param optimizerEstimatedCost        Estimated total cost by optimizer
 	 */
 	NoPutResultSet getDistinctScanResultSet(
-			                    Activation activation,
-								long conglomId,
-								int scociItem,			
-								GeneratedMethod resultRowAllocator,
-								int resultSetNumber,
-								int hashKeyColumn,
-								String tableName,
-								String userSuppliedOptimizerOverrides,
-								String indexName,
-								boolean isConstraint,
-								int colRefItem,
-								int lockMode,
-								boolean tableLocked,
-								int isolationLevel,
-								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost,
-                                String tableVersion,
-								String explainPlan,
-								boolean pin,
-								int splits,
-								String delimited,
-								String escaped,
-								String lines,
-								String storedAs,
-								String location,
-								int partitionByRefItem,
-								GeneratedMethod defaultRowFunc,
-								int defaultValueMapItem)
+            Activation activation,
+            long conglomId,
+            int scociItem,
+            GeneratedMethod resultRowAllocator,
+            int resultSetNumber,
+            int hashKeyColumn,
+            String tableName,
+            String userSuppliedOptimizerOverrides,
+            String indexName,
+            boolean isConstraint,
+            int colRefItem,
+            int lockMode,
+            boolean tableLocked,
+            int isolationLevel,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String tableVersion,
+            String explainPlan,
+            int splits,
+            String delimited,
+            String escaped,
+            String lines,
+            String storedAs,
+            String location,
+            int partitionByRefItem,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem)
 			throws StandardException;
 
 	/**
@@ -997,102 +1015,100 @@ public interface ResultSetFactory {
 		to be used when there are no predicates to be passed down
 		to the scan to limit its scope on the target table.
 
-		@param conglomId the conglomerate of the table to be scanned.
-		@param scociItem The saved item for the static conglomerate info.
-		@param activation the activation for this result set,
-			which provides the context for the row allocation operation.
-		@param resultRowAllocator a reference to a method in the activation
-			that creates a holder for the result row of the scan.  May
-			be a partial row.
-			<verbatim>
-				ExecRow rowAllocator() throws StandardException;
-			</verbatim>
-		@param resultSetNumber	The resultSetNumber for the ResultSet
-		@param startKeyGetter a reference to a method in the activation
-			that gets the start key indexable row for the scan.  Null
-			means there is no start key.
-			<verbatim>
-				ExecIndexRow startKeyGetter() throws StandardException;
-			</verbatim>
-		@param startSearchOperator The start search operator for opening
-			the scan
-		@param stopKeyGetter	a reference to a method in the activation
-			that gets the stop key indexable row for the scan.  Null means
-			there is no stop key.
-			<verbatim>
-				ExecIndexRow stopKeyGetter() throws StandardException;
-			</verbatim>
-		@param stopSearchOperator	The stop search operator for opening
-			the scan
-		@param sameStartStopPosition	Re-use the startKeyGetter for the stopKeyGetter
-										(Exact match search.)
-		@param qualifiersField the array of Qualifiers for the scan.
-			Null or an array length of zero means there are no qualifiers.
-		@param tableName		The full name of the table
-		@param userSuppliedOptimizerOverrides		Overrides specified by the user on the sql
-		@param indexName		The name of the index, if one used to access table.
-		@param isConstraint		If index, if used, is a backing index for a constraint.
-		@param forUpdate		True means open for update
-		@param colRefItem		An saved item for a bitSet of columns that
-								are referenced in the underlying table.  -1 if
-								no item.
-		@param lockMode			The lock granularity to use (see
-								TransactionController in access)
-		@param tableLocked		Whether or not the table is marked as using table locking
-								(in sys.systables)
-		@param isolationLevel	Isolation level (specified or not) to use on scans
-		@param oneRowScan		Whether or not this is a 1 row scan.
-		@param optimizerEstimatedRowCount	Estimated total # of rows by
-											optimizer
-		@param optimizerEstimatedCost		Estimated total cost by optimizer
-	    @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
-        @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
-
-		@return the table scan operation as a result set.
+     @return the table scan operation as a result set.
 		@exception StandardException thrown when unable to create the
 			result set
+         * @param activation the activation for this result set,
+             which provides the context for the row allocation operation.
+     * @param conglomId the conglomerate of the table to be scanned.
+     * @param scociItem The saved item for the static conglomerate info.
+     * @param resultRowAllocator a reference to a method in the activation
+    that creates a holder for the result row of the scan.  May
+    be a partial row.
+    <verbatim>
+        ExecRow rowAllocator() throws StandardException;
+    </verbatim>
+     * @param resultSetNumber    The resultSetNumber for the ResultSet
+     * @param startKeyGetter a reference to a method in the activation
+    that gets the start key indexable row for the scan.  Null
+    means there is no start key.
+    <verbatim>
+        ExecIndexRow startKeyGetter() throws StandardException;
+    </verbatim>
+     * @param startSearchOperator The start search operator for opening
+    the scan
+     * @param stopKeyGetter    a reference to a method in the activation
+    that gets the stop key indexable row for the scan.  Null means
+    there is no stop key.
+    <verbatim>
+        ExecIndexRow stopKeyGetter() throws StandardException;
+    </verbatim>
+     * @param stopSearchOperator    The stop search operator for opening
+    the scan
+     * @param sameStartStopPosition    Re-use the startKeyGetter for the stopKeyGetter
+                                (Exact match search.)
+     * @param qualifiersField the array of Qualifiers for the scan.
+    Null or an array length of zero means there are no qualifiers.
+     * @param tableName        The full name of the table
+     * @param userSuppliedOptimizerOverrides        Overrides specified by the user on the sql
+     * @param indexName        The name of the index, if one used to access table.
+     * @param isConstraint        If index, if used, is a backing index for a constraint.
+     * @param forUpdate        True means open for update
+     * @param colRefItem        An saved item for a bitSet of columns that
+                        are referenced in the underlying table.  -1 if
+                        no item.
+     * @param lockMode            The lock granularity to use (see
+                        TransactionController in access)
+     * @param tableLocked        Whether or not the table is marked as using table locking
+                        (in sys.systables)
+     * @param isolationLevel    Isolation level (specified or not) to use on scans
+     * @param oneRowScan        Whether or not this is a 1 row scan.
+     * @param optimizerEstimatedRowCount    Estimated total # of rows by
+                                    optimizer
+     * @param optimizerEstimatedCost        Estimated total cost by optimizer
+     * @param pastTxFunctor                a functor that returns the id of a committed transaction for time-travel queries
+     * @param minRetentionPeriod the minimum retention period for guaranteed correct time travel results.
 	 */
 	NoPutResultSet getTableScanResultSet(
-			                    Activation activation,
-								long conglomId,
-								int scociItem,
-								GeneratedMethod resultRowAllocator,
-								int resultSetNumber,
-								GeneratedMethod startKeyGetter,
-								int startSearchOperator,
-								GeneratedMethod stopKeyGetter,
-								int stopSearchOperator,
-								boolean sameStartStopPosition,
-                                boolean rowIdKey,
-								String qualifiersField,
-								String tableName,
-								String userSuppliedOptimizerOverrides,
-								String indexName,
-								boolean isConstraint,
-								boolean forUpdate,
-								int colRefItem,
-								int indexColItem,
-								int lockMode,
-								boolean tableLocked,
-								int isolationLevel,
-								boolean oneRowScan,
-								double optimizerEstimatedRowCount,
-								double optimizerEstimatedCost,
-                                String tableVersion,
-                                String explainPlan,
-								boolean pin,
-								int splits,
-								String delimited,
-								String escaped,
-								String lines,
-								String storedAs,
-								String location,
-								int partitionByRefItem,
-								GeneratedMethod defaultRowFunc,
-								int defaultValueMapItem,
-								GeneratedMethod pastTxFunctor,
-                                long minRetentionPeriod
-								)
+            Activation activation,
+            long conglomId,
+            int scociItem,
+            GeneratedMethod resultRowAllocator,
+            int resultSetNumber,
+            GeneratedMethod startKeyGetter,
+            int startSearchOperator,
+            GeneratedMethod stopKeyGetter,
+            int stopSearchOperator,
+            boolean sameStartStopPosition,
+            boolean rowIdKey,
+            String qualifiersField,
+            String tableName,
+            String userSuppliedOptimizerOverrides,
+            String indexName,
+            boolean isConstraint,
+            boolean forUpdate,
+            int colRefItem,
+            int indexColItem,
+            int lockMode,
+            boolean tableLocked,
+            int isolationLevel,
+            boolean oneRowScan,
+            double optimizerEstimatedRowCount,
+            double optimizerEstimatedCost,
+            String tableVersion,
+            String explainPlan,
+            int splits,
+            String delimited,
+            String escaped,
+            String lines,
+            String storedAs,
+            String location,
+            int partitionByRefItem,
+            GeneratedMethod defaultRowFunc,
+            int defaultValueMapItem,
+            GeneratedMethod pastTxFunctor,
+            long minRetentionPeriod
+    )
 			throws StandardException;
 
     NoPutResultSet getMergeJoinResultSet(NoPutResultSet leftResultSet,
@@ -1241,7 +1257,7 @@ public interface ResultSetFactory {
 			throws StandardException;
 
 	/**
-		A ResultSet which materializes the underlying ResultSet tree into a 
+		A ResultSet which materializes the underlying ResultSet tree into a
 		temp table on the 1st open.  All subsequent "scans" of this ResultSet
 		will return results from the temp table.
 
@@ -1254,15 +1270,15 @@ public interface ResultSetFactory {
 
 	 	@exception StandardException		Thrown on failure
 	 */
-	NoPutResultSet getMaterializedResultSet(NoPutResultSet source, 
+	NoPutResultSet getMaterializedResultSet(NoPutResultSet source,
 											int resultSetNumber,
 											double optimizerEstimatedRowCount,
-											double optimizerEstimatedCost) 
+											double optimizerEstimatedCost)
 		throws StandardException;
 
 	/**
 		A ResultSet which provides the insensitive scrolling functionality
-		for the underlying result set by materializing the underlying ResultSet 
+		for the underlying result set by materializing the underlying ResultSet
 		tree into a hash table while scrolling forward.
 
 		@param source the result set input to this result set.
@@ -1278,13 +1294,13 @@ public interface ResultSetFactory {
 	 	@exception StandardException		Thrown on failure
 	 */
 	NoPutResultSet getScrollInsensitiveResultSet(NoPutResultSet source,
-	                                        Activation activation, 
+	                                        Activation activation,
 											int resultSetNumber,
 											int sourceRowWidth,
 											boolean scrollable,
 											double optimizerEstimatedRowCount,
 											double optimizerEstimatedCost,
-											String explainPlan) 
+											String explainPlan)
 		throws StandardException;
 	/**
 	 A left outer join using a sort merge join.
@@ -1498,7 +1514,6 @@ NoPutResultSet getDistinctScanResultSet(
             double optimizerEstimatedCost,
             String tableVersion,
             String explainPlan,
-            boolean pin,
             int splits,
             String delimited,
             String escaped,
@@ -1524,7 +1539,7 @@ NoPutResultSet getMultiProbeTableScanResultSet(
             int colRefItem, int indexColItem, int lockMode,
             boolean tableLocked, int isolationLevel, boolean oneRowScan,
             double optimizerEstimatedRowCount, double optimizerEstimatedCost, String tableVersion,
-            String explainPlan, boolean pin, int splits,
+            String explainPlan, int splits,
             String delimited,
             String escaped,
             String lines,

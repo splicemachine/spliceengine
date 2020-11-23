@@ -52,6 +52,7 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.ddl.DDLMessage;
 import com.splicemachine.derby.ddl.DDLUtils;
 import com.splicemachine.derby.iapi.sql.execute.RunningOperation;
+import com.splicemachine.derby.impl.sql.catalog.upgrade.UpgradeManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.stream.ActivationHolder;
 import com.splicemachine.hbase.JMXThreadPool;
@@ -59,6 +60,7 @@ import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.pipeline.ErrorState;
 import com.splicemachine.pipeline.Exceptions;
 import com.splicemachine.pipeline.SimpleActivation;
+import com.splicemachine.procedures.ProcedureUtils;
 import com.splicemachine.protobuf.ProtoUtil;
 import com.splicemachine.si.api.data.TxnOperationFactory;
 import com.splicemachine.si.api.txn.TxnView;
@@ -1320,6 +1322,28 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
+    public static void SYSCS_INVALIDATE_STORED_STATEMENTS() throws SQLException{
+        SystemProcedures.SYSCS_INVALIDATE_PERSISTED_STORED_STATEMENTS();
+        SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE();
+    }
+
+    public static void SYSCS_EMPTY_GLOBAL_STORED_STATEMENT_CACHE() throws SQLException{
+        List<HostAndPort> servers;
+        try {
+            servers = EngineDriver.driver().getServiceDiscovery().listServers();
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+        for (HostAndPort server : servers) {
+            try (Connection connection = RemoteUser.getConnection(server.toString())) {
+                try (PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_EMPTY_STORED_STATEMENT_CACHE()")) {
+                    ps.execute();
+                }
+            }
+        }
+    }
+
     private static Collection<PartitionServer> getLoad() throws SQLException{
         try(PartitionAdmin admin=SIDriver.driver().getTableFactory().getAdmin()){
             return admin.allServers();
@@ -2252,9 +2276,18 @@ public class SpliceAdmin extends BaseAdminProcedures{
     @SuppressFBWarnings(value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE", justification="Intentional")
     public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException
     {
+        List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false, true);
+        StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
+        sb.append(ddls.get(0));
+        sb.append(";') FOO (DDL)");
+        resultSet[0] = executeStatement(sb);
+    }
+
+    public static List<String> SHOW_CREATE_TABLE_CORE(String schemaName, String tableName, boolean separateFK, boolean escapeDefaults) throws SQLException {
         Connection connection = getDefaultConn();
         schemaName = EngineUtils.validateSchema(schemaName);
         tableName = EngineUtils.validateTable(tableName);
+        List<String> ddls = Lists.newArrayList();
         try {
             TableDescriptor td = EngineUtils.verifyTableExists(connection, schemaName, tableName);
 
@@ -2338,27 +2371,32 @@ public class SpliceAdmin extends BaseAdminProcedures{
             boolean firstCol = true;
             cdl.sort(Comparator.comparing(columnDescriptor -> columnDescriptor.getPosition()));
             for (ColumnDescriptor col: cdl) {
-                createColString = createColumn(col);
+                createColString = createColumn(col, escapeDefaults);
                 colStringBuilder.append(firstCol ? createColString : "," + createColString).append("\n");
                 firstCol = false;
             }
 
-            colStringBuilder.append(createConstraint(td, schemaName, tableName));
+
+            colStringBuilder.append(createConstraint(td, schemaName, tableName, separateFK));
+
             String DDL = "CREATE " + tableTypeString + "TABLE \"" + schemaName + "\".\"" + tableName + "\" (\n" + colStringBuilder.toString() + ") ";
-            StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
-            sb.append(DDL);
             String extStr = extTblString.toString();
             if (extStr.length() > 0)
-                sb.append(extStr);
-            sb.append(";') FOO (DDL)");
-            resultSet[0] = executeStatement(sb);
+                DDL += extStr;
 
+            ddls.add(DDL);
+
+            if (separateFK) {
+                List<String> fks = getForeignKeyConstraints(td, schemaName, tableName);
+                ddls.addAll(fks);
+            }
+            return ddls;
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
 
-    private static String createColumn(ColumnDescriptor columnDescriptor) throws SQLException
+    private static String createColumn(ColumnDescriptor columnDescriptor, boolean escapeDefaults) throws SQLException
     {
         StringBuffer colDef = new StringBuffer();
 
@@ -2389,11 +2427,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         || colType.indexOf("TIME") > -1
                         || colType.indexOf("TIMESTAMP") > -1
                         ) {
-                    if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
-                        defaultText = "'" + defaultText + "'";
-                    if (columnDescriptor.getType().getTypeId().isBitTypeId() &&
-                            defaultText.startsWith("X'")) {
-                        defaultText = "X'" + defaultText.substring(1) + "'";
+                    if (escapeDefaults) {
+                        if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
+                            defaultText = "'" + defaultText + "'";
+                        if (columnDescriptor.getType().getTypeId().isBitTypeId() &&
+                                defaultText.startsWith("X'")) {
+                            defaultText = "X'" + defaultText.substring(1) + "'";
+                        }
                     }
                 }
             }
@@ -2403,8 +2443,50 @@ public class SpliceAdmin extends BaseAdminProcedures{
         return colDef.toString();
     }
 
-    @SuppressFBWarnings(value="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", justification="Intentional")
-    private static String createConstraint(TableDescriptor td, String schemaName, String tableName) throws SQLException, StandardException {
+    private static List<String> getForeignKeyConstraints(TableDescriptor td,
+                                                         String schemaName,
+                                                         String tableName) throws SQLException, StandardException {
+
+        List<String> fks = Lists.newArrayList();
+        Map<Integer, ColumnDescriptor> columnDescriptorMap = td.getColumnDescriptorList()
+                .stream()
+                .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
+
+        ConstraintDescriptorList constraintDescriptorList = td.getDataDictionary().getConstraintDescriptors(td);
+        for (ConstraintDescriptor cd: constraintDescriptorList) {
+            int type = cd.getConstraintType();
+            if (type == DataDictionary.FOREIGNKEY_CONSTRAINT) {
+                StringBuffer fkKeys = new StringBuffer();
+                int[] keyColumns = cd.getKeyColumns();
+                String fkName = cd.getConstraintName();
+                ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor = (ForeignKeyConstraintDescriptor) cd;
+                ConstraintDescriptor referencedCd = foreignKeyConstraintDescriptor.getReferencedConstraint();
+                TableDescriptor referencedTableDescriptor = referencedCd.getTableDescriptor();
+                int[] referencedKeyColumns = referencedCd.getKeyColumns();
+                String refTblName = referencedTableDescriptor.getQualifiedName();
+                ColumnDescriptorList referencedTableCDL = referencedTableDescriptor.getColumnDescriptorList();
+                Map<Integer, ColumnDescriptor> referencedTableCDM = referencedTableCDL
+                        .stream()
+                        .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
+
+                int updateType = foreignKeyConstraintDescriptor.getRaUpdateRule();
+                int deleteType = foreignKeyConstraintDescriptor.getRaDeleteRule();
+
+                List<String> referencedColNames = new LinkedList<>();
+                List<String> fkColNames = new LinkedList<>();
+                for (int index = 0; index < keyColumns.length; index++) {
+                    fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
+                    referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
+                }
+                String s = String.format("ALTER TABLE \"%s\".\"%s\" ADD ", schemaName, tableName);
+                fkKeys.append(s + buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
+                fks.add(fkKeys.toString() + "\n");
+            }
+        }
+        return fks;
+    }
+        @SuppressFBWarnings(value="OBL_UNSATISFIED_OBLIGATION_EXCEPTION_EDGE", justification="Intentional")
+    private static String createConstraint(TableDescriptor td, String schemaName, String tableName, boolean separateFK) throws SQLException, StandardException {
         Map<Integer, ColumnDescriptor> columnDescriptorMap = td.getColumnDescriptorList()
                 .stream()
                 .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
@@ -2448,28 +2530,30 @@ public class SpliceAdmin extends BaseAdminProcedures{
                         uniqueStr.append(")");
                     break;
                 case DataDictionary.FOREIGNKEY_CONSTRAINT:
-                    keyColumns = cd.getKeyColumns();
-                    String fkName = cd.getConstraintName();
-                    ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor = (ForeignKeyConstraintDescriptor)cd;
-                    ConstraintDescriptor referencedCd = foreignKeyConstraintDescriptor.getReferencedConstraint();
-                    TableDescriptor referencedTableDescriptor = referencedCd.getTableDescriptor();
-                    int[] referencedKeyColumns = referencedCd.getKeyColumns();
-                    String refTblName = referencedTableDescriptor.getQualifiedName();
-                    ColumnDescriptorList referencedTableCDL = referencedTableDescriptor.getColumnDescriptorList();
-                    Map<Integer, ColumnDescriptor> referencedTableCDM = referencedTableCDL
-                            .stream()
-                            .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
+                    if (!separateFK) {
+                        keyColumns = cd.getKeyColumns();
+                        String fkName = cd.getConstraintName();
+                        ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor = (ForeignKeyConstraintDescriptor) cd;
+                        ConstraintDescriptor referencedCd = foreignKeyConstraintDescriptor.getReferencedConstraint();
+                        TableDescriptor referencedTableDescriptor = referencedCd.getTableDescriptor();
+                        int[] referencedKeyColumns = referencedCd.getKeyColumns();
+                        String refTblName = referencedTableDescriptor.getQualifiedName();
+                        ColumnDescriptorList referencedTableCDL = referencedTableDescriptor.getColumnDescriptorList();
+                        Map<Integer, ColumnDescriptor> referencedTableCDM = referencedTableCDL
+                                .stream()
+                                .collect(Collectors.toMap(ColumnDescriptor::getStoragePosition, columnDescriptor -> columnDescriptor));
 
-                    int updateType = foreignKeyConstraintDescriptor.getRaUpdateRule();
-                    int deleteType = foreignKeyConstraintDescriptor.getRaDeleteRule();
+                        int updateType = foreignKeyConstraintDescriptor.getRaUpdateRule();
+                        int deleteType = foreignKeyConstraintDescriptor.getRaDeleteRule();
 
-                    List<String> referencedColNames = new LinkedList<>();
-                    List<String> fkColNames = new LinkedList<>();
-                    for (int index=0; index<keyColumns.length; index ++) {
-                        fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
-                        referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
+                        List<String> referencedColNames = new LinkedList<>();
+                        List<String> fkColNames = new LinkedList<>();
+                        for (int index = 0; index < keyColumns.length; index++) {
+                            fkColNames.add("\"" + columnDescriptorMap.get(keyColumns[index]).getColumnName() + "\"");
+                            referencedColNames.add("\"" + referencedTableCDM.get(referencedKeyColumns[index]).getColumnName() + "\"");
+                        }
+                        fkKeys.append(", " + buildForeignKeyConstraint(fkName, refTblName, referencedColNames, fkColNames, updateType, deleteType));
                     }
-                    fkKeys.append(", " + buildForeignKeyConstraint(fkName,refTblName,referencedColNames,fkColNames,updateType,deleteType));
                     break;
                 default:
                     break;
@@ -2605,5 +2689,4 @@ public class SpliceAdmin extends BaseAdminProcedures{
             throw PublicAPI.wrapStandardException(se);
         }
     }
-
 }

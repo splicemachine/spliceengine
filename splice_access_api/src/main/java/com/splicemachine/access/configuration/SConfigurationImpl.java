@@ -88,6 +88,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private final  long transactionsWatcherUpdateInterval;
     private final  String backupPath;
     private final  String replicationPath;
+    private final String rollingRestartPath;
     private final  String compressionAlgorithm;
     private final  String namespace;
     private final  String spliceRootPath;
@@ -226,6 +227,7 @@ public final class SConfigurationImpl implements SConfiguration {
     private String metadataRestrictionEnabled;
     private CompilerContext.NativeSparkModeType nativeSparkAggregationMode;
     private CompilerContext.NewMergeJoinExecutionType newMergeJoin;
+    private final String foreignKeyChecker;
 
     // StatsConfiguration
     private final  double fallbackNullFraction;
@@ -410,10 +412,13 @@ public final class SConfigurationImpl implements SConfiguration {
     public int getBackupIOBufferSize() {
         return backupIOBufferSize;
     }
-
     @Override
     public String getReplicationPath() {
         return replicationPath;
+    }
+    @Override
+    public String getRollingRestartPath() {
+        return rollingRestartPath;
     }
     @Override
     public boolean replicationEnabled() {
@@ -868,6 +873,10 @@ public final class SConfigurationImpl implements SConfiguration {
         return nestedLoopJoinBatchSize;
     }
     @Override
+    public String getForeignKeyChecker() {
+        return foreignKeyChecker;
+    }
+    @Override
     public int getRecursiveQueryIterationLimit() {
         return recursiveQueryIterationLimit;
     }
@@ -1027,6 +1036,7 @@ public final class SConfigurationImpl implements SConfiguration {
         transactionsWatcherUpdateInterval = builder.transactionsWatcherUpdateInterval;
         backupPath = builder.backupPath;
         replicationPath = builder.replicationPath;
+        rollingRestartPath = builder.rollingRestartPath;
         backupParallelism = builder.backupParallelism;
         backupKeepAliveInterval = builder.backupKeepAliveInterval;
         backupTimeout = builder.backupTimeout;
@@ -1141,6 +1151,7 @@ public final class SConfigurationImpl implements SConfiguration {
         metadataRestrictionEnabled = builder.metadataRestrictionEnabled;
         nativeSparkAggregationMode = builder.nativeSparkAggregationMode;
         newMergeJoin = builder.newMergeJoin;
+        foreignKeyChecker = builder.foreignKeyChecker;
     }
 
     private static final Logger LOG = Logger.getLogger("splice.config");

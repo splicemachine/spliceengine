@@ -52,8 +52,6 @@ import org.apache.spark.sql.types.StructField;
 import java.util.Collections;
 import java.util.List;
 
-import static com.splicemachine.db.impl.sql.compile.CharTypeCompiler.getDB2CompatibilityMode;
-
 /**
  * A ResultColumn represents a result column in a SELECT, INSERT, or UPDATE
  * statement.  In a SELECT statement, the result column just represents an
@@ -86,6 +84,8 @@ public class ResultColumn extends ValueNode
     String            exposedName;
     String            tableName;
     String            sourceTableName;
+    long              sourceConglomerateNumber;
+    int               sourceConglomerateColumnPosition;
     //Used by metadata api ResultSetMetaData.getSchemaName to get a column's table's schema.
     String            sourceSchemaName;
     ValueNode        expression;
@@ -138,6 +138,9 @@ public class ResultColumn extends ValueNode
 
     /* virtualColumnId is the ResultColumn's position (1-based) within the ResultSet */
     private int        virtualColumnId;
+
+    /* whether this result column comes from an expression-based index column */
+    private ValueNode indexExpression = null;
 
     /**
      * Different types of initializer parameters indicate different
@@ -441,6 +444,18 @@ public class ResultColumn extends ValueNode
     public String getSourceSchemaName()
     {
         return sourceSchemaName;
+    }
+
+    public long getSourceConglomerateNumber() { return sourceConglomerateNumber; }
+
+    public void setSourceConglomerateNumber(long sourceConglomerateName) {
+        this.sourceConglomerateNumber = sourceConglomerateName;
+    }
+
+    public int getSourceConglomerateColumnPosition() { return sourceConglomerateColumnPosition; }
+
+    public void setSourceConglomerateColumnPosition(int sourceConglomerateColumnPosition) {
+        this.sourceConglomerateColumnPosition = sourceConglomerateColumnPosition;
     }
 
     /**
@@ -1599,6 +1614,8 @@ public class ResultColumn extends ValueNode
         // good measure...
         newResultColumn.setSourceTableName(getSourceTableName());
         newResultColumn.setSourceSchemaName(getSourceSchemaName());
+        newResultColumn.setSourceConglomerateNumber(getSourceConglomerateNumber());
+        newResultColumn.setSourceConglomerateColumnPosition(getSourceConglomerateColumnPosition());
 
         /* Set the "is generated for unmatched column in insert" status in the new node
         This if for bug 4194*/
@@ -1641,6 +1658,7 @@ public class ResultColumn extends ValueNode
         }
 
         newResultColumn.fromLeftChild = this.fromLeftChild;
+        newResultColumn.indexExpression = this.indexExpression;
         return newResultColumn;
     }
 
@@ -1820,8 +1838,7 @@ public class ResultColumn extends ValueNode
                 String sourceValue = constantValue.getString();
                 int sourceWidth = sourceValue.length();
                 int posn;
-                boolean DB2CompatibilityMode =
-                        getCompilerContext().getVarcharDB2CompatibilityMode();
+
                 /*
                 ** If the input is already the right length, no normalization is
                 ** necessary - just return the source.
@@ -1830,13 +1847,9 @@ public class ResultColumn extends ValueNode
 
                 if (sourceWidth <= maxWidth)
                 {
-                    if(formatId == StoredFormatIds.VARCHAR_TYPE_ID) {
-                        if (DB2CompatibilityMode)
-                            return dvf.getVarcharDB2CompatibleDataValue(sourceValue);
-                        else
+                    if(formatId == StoredFormatIds.VARCHAR_TYPE_ID)
                             return dvf.getVarcharDataValue(sourceValue);
                     }
-                }
 
                 /*
                 ** Check whether any non-blank characters will be truncated.
@@ -1855,12 +1868,8 @@ public class ResultColumn extends ValueNode
                     }
                 }
 
-                if (formatId == StoredFormatIds.VARCHAR_TYPE_ID) {
-                    if (DB2CompatibilityMode)
-                        return dvf.getVarcharDB2CompatibleDataValue(sourceValue.substring(0, maxWidth));
-                    else
+                if (formatId == StoredFormatIds.VARCHAR_TYPE_ID)
                         return dvf.getVarcharDataValue(sourceValue.substring(0, maxWidth));
-                }
 
             case StoredFormatIds.LONGVARCHAR_TYPE_ID:
                 //No need to check widths here (unlike varchar), since no max width
@@ -1923,7 +1932,14 @@ public class ResultColumn extends ValueNode
     public int getTableNumber() {
         ResultColumn other = this;
         while (true) {
-            if (other.expression instanceof ColumnReference)
+            if (other.indexExpression != null) {
+                // an index expression has at least one column reference and all column
+                // references must refer to the same table
+                List<ColumnReference> crList = other.getHashableJoinColumnReference();
+                assert(!crList.isEmpty());
+                return crList.get(0).getTableNumber();
+            }
+            else if (other.expression instanceof ColumnReference)
                 return ((ColumnReference) other.expression).getTableNumber();
             else if (other.expression instanceof VirtualColumnNode) {
                 VirtualColumnNode vcn = (VirtualColumnNode) other.expression;
@@ -1963,8 +1979,24 @@ public class ResultColumn extends ValueNode
         return false;
     }
 
+    public boolean isSemanticallyEquivalent(ValueNode o) throws StandardException
+    {
+        if (o.getNodeType() == getNodeType()) {
+            ResultColumn other = (ResultColumn)o;
+            if (expression != null) {
+                return expression.isSemanticallyEquivalent(other.expression);
+            }
+        }
+        return false;
+    }
+
     public boolean equals(Object o){
         return this == o;
+    }
+
+    public int hashCode() {
+        int result = getBaseHashCode();
+        return 31 * result + (expression == null ? 0 : expression.hashCode());
     }
 
 
@@ -2004,7 +2036,7 @@ public class ResultColumn extends ValueNode
             return 0;
         ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
         int leftPosition = getColumnPosition();
-        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false, 0, 0).cardinality(leftPosition);
+        return getCompilerContext().getStoreCostController(this.getTableColumnDescriptor().getTableDescriptor(),cd, false, 0, 0).cardinality(false, leftPosition);
     }
     /**
      *
@@ -2099,6 +2131,21 @@ public class ResultColumn extends ValueNode
         return -1L;
     }
 
+    public ResultColumn getChildResultColumn() {
+        ValueNode expression = getExpression();
+        while (expression != null) {
+            if (expression instanceof VirtualColumnNode) {
+                return ((VirtualColumnNode) expression).getSourceColumn();
+            } else if (expression instanceof ColumnReference) {
+                return ((ColumnReference) expression).getSource();
+            } else if (expression instanceof CastNode) {
+                expression = ((CastNode) expression).getCastOperand();
+            } else {
+                expression = null;
+            }
+        }
+        return null;
+    }
 
     public void setFromLeftChild(boolean fromLeftChild) {
         this.fromLeftChild = fromLeftChild;
@@ -2106,6 +2153,66 @@ public class ResultColumn extends ValueNode
 
     public boolean isFromLeftChild() {
         return fromLeftChild;
+    }
+
+    public ValueNode getIndexExpression() {
+        return indexExpression;
+    }
+
+    public void setIndexExpression(ValueNode indexExpression) {
+        this.indexExpression = indexExpression;
+    }
+
+    /**
+     * Get a ColumnReference node referring to this ResultColumn. This method should be used only in
+     * case of replacing an index expression.
+     * @param originalExpr Original expression to be replaced.
+     *                     originalExpr.semanticallyEquals(getIndexExpression()) should always be true.
+     * @return A column reference referring to this ResultColumn.
+     */
+    public ColumnReference getColumnReference(ValueNode originalExpr) throws StandardException {
+        ColumnReference cr = (ColumnReference) getNodeFactory().getNode(
+                C_NodeTypes.COLUMN_REFERENCE,
+                getColumnName(),
+                getTableNameObject(),
+                getContextManager()
+        );
+        cr.setSource(this);
+        if (getTableNumber() >= 0) {
+            cr.setTableNumber(getTableNumber());
+        }
+        cr.setColumnNumber(getColumnPosition());
+        cr.columnName = this.name;
+        cr.setType(getTypeServices());
+        cr.markGeneratedToReplaceIndexExpression();
+
+        if (originalExpr != null) {
+            List<ColumnReference> origCRs = originalExpr.getHashableJoinColumnReference();
+            assert !origCRs.isEmpty();
+            ColumnReference origCR = origCRs.get(0);
+
+            cr.setOuterJoinLevel(origCR.getOuterJoinLevel());
+            cr.setNestingLevel(origCR.getNestingLevel());
+            cr.setSourceLevel(origCR.getSourceLevel());
+        }
+
+        return cr;
+    }
+
+    @Override
+    public ValueNode replaceIndexExpression(ResultColumnList childRCL) throws StandardException {
+        // For ResultColumn, never construct a new instance. Only replace expression
+        // and set indexExpression properly.
+        if (childRCL != null) {
+            for (ResultColumn childRC : childRCL) {
+                if (expression.semanticallyEquals(childRC.getIndexExpression())) {
+                    expression = childRC.getColumnReference(expression);
+                    indexExpression = childRC.getIndexExpression();
+                    break;
+                }
+            }
+        }
+        return this;
     }
 }
 

@@ -32,6 +32,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 
@@ -41,6 +42,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -51,6 +53,10 @@ import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.reference.ClassName;
 import org.apache.commons.lang3.mutable.MutableBoolean;
 
+import java.sql.Types;
+
+import static com.splicemachine.db.iapi.services.context.ContextService.getContext;
+
 /**
  * This class implements TypeCompiler for the SQL char datatypes.
  *
@@ -58,6 +64,20 @@ import org.apache.commons.lang3.mutable.MutableBoolean;
 
 public final class CharTypeCompiler extends BaseTypeCompiler
 {
+        protected ThreadLocal<MutableBoolean> db2VarcharCompatibilityMode =
+             new ThreadLocal<MutableBoolean>() {
+                 @Override public MutableBoolean initialValue() {
+                     return new MutableBoolean(false);
+             }
+        };
+
+        public void setDB2VarcharCompatibilityMode (boolean newValue) {
+            db2VarcharCompatibilityMode.get().setValue(newValue);
+        }
+
+        public boolean getDB2CompatibilityMode () {
+            return db2VarcharCompatibilityMode.get().booleanValue();
+        }
 
 	   /**
          * Tell whether this type (char) can be converted to the given type.
@@ -147,21 +167,33 @@ public final class CharTypeCompiler extends BaseTypeCompiler
                 return dts.getMaximumWidth();
         }
 
-        public static boolean getDB2CompatibilityMode() {
+        public static CharTypeCompiler getCurrentCharTypeCompiler(LanguageConnectionContext lcc) {
+            if (lcc == null)
+                return null;
+            ContextManager cm = lcc.getContextManager();
+            if (cm == null)
+                return null;
+            CompilerContext cc = (CompilerContext)cm.getContext(CompilerContext.CONTEXT_ID);
+            if (cc == null)
+                return null;
+            TypeCompilerFactory typeCompilerFactory =  cc.getTypeCompilerFactory();
+            if (typeCompilerFactory == null)
+                return null;
+            CharTypeCompiler charTypeCompiler =
+              (CharTypeCompiler)typeCompilerFactory.getTypeCompiler(TypeId.getBuiltInTypeId(Types.VARCHAR));
+            return charTypeCompiler;
+        }
+
+        public static boolean getDB2CompatibilityModeStatic() {
             LanguageConnectionContext lcc =
-               (LanguageConnectionContext) ContextService.getContext
-                (LanguageConnectionContext.CONTEXT_ID);
-            boolean DB2CompatibilityMode = false;
-            try {
-                DB2CompatibilityMode =
-                    PropertyUtil.getCachedDatabaseBoolean(
-                        lcc, Property.SPLICE_DB2_VARCHAR_COMPATIBLE);
-            }
-            catch (Exception e) {
-
-            }
-
-            return DB2CompatibilityMode;
+                (LanguageConnectionContext) getContext(LanguageConnectionContext.CONTEXT_ID);
+            if (lcc == null)
+                return false;
+            CharTypeCompiler charTC = getCurrentCharTypeCompiler(lcc);
+            if (charTC != null)
+                return charTC.getDB2CompatibilityMode();
+            else
+                return false;
         }
 
         String nullMethodName()

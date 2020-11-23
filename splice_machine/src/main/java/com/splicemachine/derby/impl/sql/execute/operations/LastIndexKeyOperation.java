@@ -18,7 +18,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowAndRowKeyFunction;
@@ -26,7 +25,6 @@ import com.splicemachine.derby.stream.function.TakeFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -66,7 +64,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 
         super(conglomId, activation, resultSetNumber, null, -1, null, -1,
                 true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
-                colRefItem, -1, false, optimizerEstimatedRowCount, optimizerEstimatedCost, tableVersion, false,
+                colRefItem, -1, false, optimizerEstimatedRowCount, optimizerEstimatedCost, tableVersion,
                 0, null, null, null, null, null, -1, null, -1, pastTxFunctor, minRetentionPeriod);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.tableDisplayName = tableName;

@@ -83,6 +83,8 @@ public interface C_NodeNames
 
     String COALESCE_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CoalesceFunctionNode";
 
+    String DECIMAL_FUNCTION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DecimalFunctionNode";
+
     String COLUMN_DEFINITION_NODE_NAME = "com.splicemachine.db.impl.sql.compile.ColumnDefinitionNode";
 
     String COLUMN_REFERENCE_NAME = "com.splicemachine.db.impl.sql.compile.ColumnReference";
@@ -345,10 +347,6 @@ public interface C_NodeNames
 	String KAFKA_EXPORT_NODE_NAME = "com.splicemachine.db.impl.sql.compile.KafkaExportNode";
 
     String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
-
-    String CREATE_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.CreatePinNode";
-
-    String DROP_PIN_NODE_NAME = "com.splicemachine.db.impl.sql.compile.DropPinNode";
 
     String SET_SESSION_PROPERTY_NAME = "com.splicemachine.db.impl.sql.compile.SetSessionPropertyNode";
 

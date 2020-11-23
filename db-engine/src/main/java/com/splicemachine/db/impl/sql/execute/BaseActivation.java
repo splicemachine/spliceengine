@@ -76,7 +76,7 @@ import java.util.*;
  * Doesn't actually implement any of the activation interface,
  * expects the subclasses to do that.
  */
-@SuppressFBWarnings(value = {"EI_EXPOSE_REP2", "EI_EXPOSE_REP", "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD"}, justification = "intentional")
+@SuppressFBWarnings(value = {"EI_EXPOSE_REP2", "EI_EXPOSE_REP", "UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD"}, justification = "intentional, not used fields could be referenced by generated code")
 public abstract class BaseActivation implements CursorActivation, GeneratedByteCode {
 //    private static final Logger LOG = Logger.getLogger(BaseActivation.class);
     private    LanguageConnectionContext    lcc;
@@ -393,7 +393,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
      */
     public void reset() throws StandardException
     {
-        if (resultSet != null)
+        if (resultSet != null && !resultSet.isClosed())
             resultSet.close();
 
         updateHeapCC = null;
@@ -905,7 +905,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     /**
      * @exception StandardException on error
      */
-    protected static void nullToPrimitiveTest(DataValueDescriptor dvd, String primitiveType)
+    public static void nullToPrimitiveTest(DataValueDescriptor dvd, String primitiveType)
         throws StandardException
     {
         if (dvd==null || dvd.isNull())

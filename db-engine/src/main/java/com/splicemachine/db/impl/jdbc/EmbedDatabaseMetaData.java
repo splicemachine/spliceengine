@@ -90,7 +90,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
     implements DatabaseMetaData, java.security.PrivilegedAction {
 
     private static final int ILLEGAL_UDT_TYPE = 0;
-    
+
     /*
     ** Property and values related to using
     ** stored prepared statements for metatdata.
@@ -151,8 +151,6 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * metadata_net.properties. This method must be invoked from
      * within a privileged block.
      */
-
-    @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "Intentional")
     private void PBloadQueryDescriptions() {
         String[] files = {
             "metadata.properties",
@@ -163,7 +161,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
             try {
                 props[i] = new Properties();
                 // SECURITY PERMISSION - IP3
-                InputStream is = getClass().getResourceAsStream(files[i]);
+                InputStream is = EmbedDatabaseMetaData.class.getResourceAsStream(files[i]);
                 props[i].load(is);
                 is.close();
             } catch (IOException ioe) {
@@ -1744,7 +1742,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         int dataType = rsProcCols.getInt("DATA_TYPE");
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
                         } else {
                             rowBuilder.getDvd(9).setToNull();
@@ -1752,7 +1751,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
                                 dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
                         } else {
                             rowBuilder.getDvd(10).setToNull();
@@ -1855,7 +1855,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         int dataType = rsProcCols.getInt("DATA_TYPE");
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(9).setValue(rsProcCols.getShort("SCALE"));
                         } else {
                             rowBuilder.getDvd(9).setToNull();
@@ -1863,7 +1864,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
                                 dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(10).setValue(rsProcCols.getShort("RADIX"));
                         } else {
                             rowBuilder.getDvd(10).setToNull();
@@ -1975,7 +1977,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         int dataType = rsFuncCols.getInt("DATA_TYPE");
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(9).setValue(rsFuncCols.getShort("SCALE"));
                         } else {
                             rowBuilder.getDvd(9).setToNull();
@@ -1983,7 +1986,8 @@ public class EmbedDatabaseMetaData extends ConnectionChild
                         if (dataType == Types.DECIMAL || dataType == Types.NUMERIC || dataType == Types.INTEGER ||
                                 dataType == Types.SMALLINT || dataType == Types.TINYINT || dataType == Types.BIGINT ||
                                 dataType == Types.DOUBLE || dataType == Types.FLOAT || dataType == Types.REAL ||
-                                dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP) {
+						dataType == Types.DATE || dataType == Types.TIME || dataType == Types.TIMESTAMP ||
+						dataType == com.splicemachine.db.iapi.reference.Types.DECFLOAT) {
                             rowBuilder.getDvd(10).setValue(rsFuncCols.getShort("RADIX"));
                         } else {
                             rowBuilder.getDvd(10).setToNull();
@@ -2508,7 +2512,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
         int nullableInIntForm = 0;
         if (nullable)
             nullableInIntForm = 1;
-      
+
         if (catalogPattern == null)
         {
             catalogPattern = "%";
@@ -3203,6 +3207,9 @@ public class EmbedDatabaseMetaData extends ConnectionChild
         s.setString(1, swapNull(schema));
         s.setString(2, swapNull(table)); //DERBY-1484: Must match table name as stored
         s.setBoolean(3, unique);
+        s.setString(4, swapNull(schema));
+        s.setString(5, swapNull(table)); //DERBY-1484: Must match table name as stored
+        s.setBoolean(6, unique);
         return s.executeQuery();
     }
 

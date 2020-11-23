@@ -22,17 +22,13 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import splice.com.google.common.collect.ArrayListMultimap;
 import com.splicemachine.EngineDriver;
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.*;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV2;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptorV3;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsImpl;
 import com.splicemachine.db.iapi.stats.ColumnStatisticsMerge;
 import com.splicemachine.db.iapi.stats.FakeColumnStatisticsImpl;
@@ -188,6 +184,16 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
             }
             @Override
             protected void readValue(Kryo kryo, Input input, SQLDecimal dvd) throws StandardException {
+                dvd.setBigDecimal(kryo.readObjectOrNull(input, BigDecimal.class));
+            }
+        });
+        instance.register(SQLDecfloat.class,new DataValueDescriptorSerializer<SQLDecfloat>(){
+            @Override
+            protected void writeValue(Kryo kryo, Output output, SQLDecfloat object) throws StandardException {
+                kryo.writeObjectOrNull(output, object.getObject(), BigDecimal.class);
+            }
+            @Override
+            protected void readValue(Kryo kryo, Input input, SQLDecfloat dvd) throws StandardException {
                 dvd.setBigDecimal(kryo.readObjectOrNull(input, BigDecimal.class));
             }
         });
@@ -867,5 +873,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(StringBuilder.class);
         instance.register(Vector.class);
         instance.register(KafkaReadFunction.Message.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TriggerDescriptorV4.class,EXTERNALIZABLE_SERIALIZER);
     }
 }

@@ -104,8 +104,9 @@ public class SpliceTransactionContext extends ContextImpl {
 
 			if (throwAway) {
 				// xact close will pop this context out of the context
-				// stack 
-				transaction.close();
+				// stack
+				if (transaction!= null)
+				    transaction.close();
 				transaction = null;
 			}
 		}

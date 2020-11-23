@@ -291,6 +291,9 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	 */
 	public long getConglomerateId() { return conglomId; }
 
+	@Override
+	public long getTargetConglomId() { return getConglomerateId(); }
+
 	public long[] getIndexCIDS() { return indexCIDS; }
 		
 	/**

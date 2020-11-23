@@ -40,42 +40,42 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 /**
- * This represents a list of column descriptors. 
+ * A list of column descriptors.
  */
 public class ColumnDescriptorList extends ArrayList<ColumnDescriptor>
 {
-	/**
-	 * Add the column.  Currently, the table id is ignored.
-	 *
-	 * @param tableID the table id (ignored)
-	 * @param column the column to add
-	 */	
-	public void add(UUID tableID, ColumnDescriptor column)
-	{
-		/*
-		** RESOLVE: The interface includes tableID because presumably
-		** the primary key for the columns table will be tableID +
-		** columnID (or possibly tableID + column name - both column
-		** name and ID must be unique within a table).  However, the
-		** ColumnDescriptor contains a reference to a tableID, so it
-		** seems like we don't need the parameter here.  I am going
-		** to leave it here just in case we decide we need it later.
-		*/
-		add(column);
-	}
+    /**
+     * Add the column.  Currently, the table id is ignored.
+     *
+     * @param tableID the table id (ignored)
+     * @param column the column to add.
+     */ 
+    public void add(UUID tableID, ColumnDescriptor column)
+    {
+        /*
+        ** RESOLVE: The interface includes tableID because presumably
+        ** the primary key for the columns table will be tableID +
+        ** columnID (or possibly tableID + column name - both column
+        ** name and ID must be unique within a table).  However, the
+        ** ColumnDescriptor contains a reference to a tableID, so it
+        ** seems like we don't need the parameter here.  I am going
+        ** to leave it here just in case we decide we need it later.
+        */
+        add(column);
+    }
 
-	/**
-	 * Get the column descriptor
-	 *
-	 * @param tableID the table id (ignored)
-	 * @param columnName the column get
-	 *
-	 * @return the column descriptor if found
-	 */	
-	public ColumnDescriptor getColumnDescriptor(UUID tableID,
-							String columnName)
-	{
-		ColumnDescriptor	returnValue = null;
+    /**
+     * Get the column descriptor
+     *
+     * @param tableID the table id (ignored)
+     * @param columnName the column get
+     *
+     * @return the column descriptor if found
+     */ 
+    public ColumnDescriptor getColumnDescriptor(UUID tableID,
+                            String columnName)
+    {
+        ColumnDescriptor returnValue = null;
 
         for (ColumnDescriptor columnDescriptor : this) {
             if (columnName.equals(columnDescriptor.getColumnName()) &&
@@ -85,53 +85,53 @@ public class ColumnDescriptorList extends ArrayList<ColumnDescriptor>
             }
         }
 
-		return returnValue;
-	}
+        return returnValue;
+    }
 
-	/**
-	 * Get the column descriptor
-	 *
-	 * @param tableID the table id (ignored)
-	 * @param columnID the column id
-	 *
-	 * @return the column descriptor if found
-	 */	
-	public ColumnDescriptor getColumnDescriptor(UUID tableID, int columnID) {
-		ColumnDescriptor returnValue = get(columnID-1);
+    /**
+     * Get the column descriptor
+     *
+     * @param tableID the table id (ignored)
+     * @param columnID the column id
+     *
+     * @return the column descriptor if found
+     */ 
+    public ColumnDescriptor getColumnDescriptor(UUID tableID, int columnID) {
+        ColumnDescriptor returnValue = get(columnID-1);
         return (returnValue !=null && tableID.equals(returnValue.getReferencingUUID()))?returnValue:null;
-	}
+    }
 
-	/**
-	 * Return the nth (0-based) element in the list.
-	 *
-	 * @param n	Which element to return.
-	 *
-	 * @return The nth element in the list.
-	 */
-	public ColumnDescriptor elementAt(int n)
-	{
-		return get(n);
-	}
+    /**
+     * Return the nth (0-based) element in the list.
+     *
+     * @param n Which element to return.
+     *
+     * @return The nth element in the list.
+     */
+    public ColumnDescriptor elementAt(int n)
+    {
+        return get(n);
+    }
 
-	/**
-	 * Get an array of strings for all the columns
-	 * in this CDL.
-	 *
-	 * @return the array of strings
-	 */
-	public String[] getColumnNames()
-	{
-		String strings[] = new String[size()];
+    /**
+     * Get an array of strings for all the columns
+     * in this CDL.
+     *
+     * @return the array of strings
+     */
+    public String[] getColumnNames()
+    {
+        String strings[] = new String[size()];
 
-		int size = size();
+        int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
-			ColumnDescriptor columnDescriptor = elementAt(index);
-			strings[index] = columnDescriptor.getColumnName();
-		}
-		return strings;
-	}
+        for (int index = 0; index < size; index++)
+        {
+            ColumnDescriptor columnDescriptor = elementAt(index);
+            strings[index] = columnDescriptor.getColumnName();
+        }
+        return strings;
+    }
 
     public int[] getFormatIds() throws StandardException {
         int[] formatIds;
@@ -145,6 +145,23 @@ public class ColumnDescriptorList extends ArrayList<ColumnDescriptor>
             }
         }
         return formatIds;
+    }
+
+    /**
+     * @return list of boolean indicating nullability status of each column.
+     */
+    public boolean[] getNullabilityFlags() {
+        boolean[] result;
+        int numCols = size();
+        result = new boolean[numCols];
+        for (int j = 0; j < numCols; ++j) {
+            ColumnDescriptor columnDescriptor = elementAt(j);
+            if(columnDescriptor != null) {
+                DataTypeDescriptor type = columnDescriptor.getType();
+                result[j] = type.isNullable();
+            }
+        }
+        return result;
     }
 
 }

@@ -23,6 +23,8 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
@@ -88,9 +90,15 @@ public class TriggerHandler {
     private boolean isSpark;
     private TxnView txn;
     private byte[] token;
+    private boolean hasSpecialFromTableTrigger;
+    private SPSDescriptor fromTableDmlSpsDescriptor;
+    boolean cleanup1Done = false;
+    boolean cleanup2Done = false;
+    protected TriggerInfo triggerInfo;
 
     private Function<Function<LanguageConnectionContext,Void>, Callable> withContext;
 
+    @SuppressFBWarnings(value = "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD",justification = "Intentional")
     public TriggerHandler(TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
                           Activation activation,
@@ -98,7 +106,8 @@ public class TriggerHandler {
                           TriggerEvent afterEvent,
                           FormatableBitSet heapList,
                           ExecRow templateRow,
-                          String tableVersion) throws StandardException {
+                          String tableVersion,
+                          SPSDescriptor fromTableDmlSpsDescriptor) throws StandardException {
         WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
         initConnectionContext(activation.getLanguageConnectionContext());
 
@@ -118,6 +127,9 @@ public class TriggerHandler {
         this.tableVersion = tableVersion;
         this.activation = activation;
         this.writeInfo = writeInfo;
+        this.hasSpecialFromTableTrigger = triggerInfo.hasSpecialFromTableTrigger();
+        this.fromTableDmlSpsDescriptor = fromTableDmlSpsDescriptor;
+        this.triggerInfo = triggerInfo;
         initTriggerActivator(activation, constantAction);
     }
 
@@ -211,7 +223,11 @@ public class TriggerHandler {
 
     }
 
-    public TriggerExecutionContext getTriggerExecutionContext() { return this.triggerActivator.getTriggerExecutionContext(); }
+    public TriggerExecutionContext getTriggerExecutionContext() {
+        if (triggerActivator != null)
+            return this.triggerActivator.getTriggerExecutionContext();
+        else return null;
+    }
 
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
         try {
@@ -246,7 +262,8 @@ public class TriggerHandler {
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
                     constantAction.getTriggerInfo(),
                     activation,
-                    null, SIDriver.driver().getExecutorService(), withContext, heapList, !SpliceClient.isRegionServer);
+                    null, SIDriver.driver().getExecutorService(), withContext,
+                    heapList, !SpliceClient.isRegionServer, fromTableDmlSpsDescriptor);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;
@@ -268,7 +285,9 @@ public class TriggerHandler {
         ConnectionContext existingContext = (ConnectionContext) lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
         if (existingContext == null) {
             try {
-                Connection connection = new EmbedConnectionMaker().createNew(new Properties());
+                Properties dbProperties = new Properties();
+                dbProperties.put(EmbedConnection.INTERNAL_CONNECTION, "true");
+                Connection connection = new EmbedConnectionMaker().createNew(dbProperties);
                 Context newContext = ((EmbedConnection) connection).getContextManager().getContext(ConnectionContext.CONTEXT_ID);
                 lcc.getContextManager().pushContext(newContext);
             } catch (SQLException e) {
@@ -278,11 +297,30 @@ public class TriggerHandler {
     }
 
     public void cleanup() throws StandardException {
-        if (triggerActivator != null) {
-            triggerActivator.cleanup(false);
+        // If an Exception is encountered, some resources may be closed more than
+        // once during unwinding of the call stack we want to make sure that
+        // full cleanup isn't indefinitely deferred, and isn't unnecessarily
+        // called multiple times, so add a cleanup1Done phase to indicate
+        // the next time around, we don't defer full cleanup any longer, and
+        // a cleanup2Done phase to indicate we've already done full cleanup
+        // and we don't accidentally try to clean already-cleaned resources.
+        //
+        // This is also needed for statements such as:
+        // SELECT * FROM FINAL TABLE (INSERT INTO t1 VALUES(1,2));
+        // The first time cleanup is called, for the DML statement,
+        // we want to retain the trigger result set for consumption
+        // by the SELECT statement, but once the SELECT completes,
+        // we want to make sure any buffers or temporary conglomerates
+        // are cleaned up.
+        if (triggerActivator != null && !cleanup2Done) {
+            if (cleanup1Done)
+                cleanup2Done = true;
+            triggerActivator.cleanup(hasSpecialFromTableTrigger && !cleanup1Done);
         }
-        if (triggerRowHolder != null)
-            triggerRowHolder.close();;
+        if (triggerRowHolder != null && !cleanup1Done) {
+            cleanup1Done = true;
+            triggerRowHolder.close();
+        }
     }
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
@@ -443,5 +481,4 @@ public class TriggerHandler {
             }
         };
     }
-
 }

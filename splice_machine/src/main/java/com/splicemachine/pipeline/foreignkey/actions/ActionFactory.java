@@ -31,8 +31,9 @@ public class ActionFactory {
         switch(constraintInfo.getDeleteRule()) {
             case StatementType.RA_SETNULL:
             case StatementType.RA_CASCADE:
-                return new OnDeleteSetNullOrCascade(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor);
-            case StatementType.RA_NOACTION:
+                return new OnDeleteSetNullOrCascade(backingIndexConglomId, constraintInfo, writeContext, txnOperationFactory, violationProcessor, parentTableName);
+            case StatementType.RA_NOACTION: // fallthrough
+            case StatementType.RA_RESTRICT:
                 return new OnDeleteNoAction(backingIndexConglomId, constraintInfo, writeContext, parentTableName, txnOperationFactory, violationProcessor);
             default:
                 throw StandardException.newException(String.format("Unexpected FK action type %d", constraintInfo.getDeleteRule()));

@@ -272,8 +272,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             return ndv;
         }
 
-        public final NumberDataValue getDecimalDataValue(Number value, NumberDataValue previous)
-                        throws StandardException
+        public final NumberDataValue getDecimalDataValue(Number value, NumberDataValue previous) throws StandardException
         {
                 if (previous == null)
                         return getDecimalDataValue(value);
@@ -282,9 +281,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 return previous;
         }
 
-        public final NumberDataValue getDecimalDataValue(String value,
-                                                                                                NumberDataValue previous)
-                        throws StandardException
+        public final NumberDataValue getDecimalDataValue(String value, NumberDataValue previous) throws StandardException
         {
                 if (previous == null)
                         return getDecimalDataValue(value);
@@ -293,8 +290,33 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                 return previous;
         }
 
-        public BooleanDataValue getDataValue(boolean value,
-                                                                                BooleanDataValue previous)
+        public final NumberDataValue getDecfloatDataValue(Number value)
+                throws StandardException
+        {
+            NumberDataValue ndv = getNullDecfloat((NumberDataValue) null);
+            ndv.setValue(value);
+            return ndv;
+        }
+
+        public final NumberDataValue getDecfloatDataValue(Number value, NumberDataValue previous) throws StandardException
+        {
+            if (previous == null)
+                return getDecfloatDataValue(value);
+
+            previous.setValue(value);
+            return previous;
+        }
+
+        public final NumberDataValue getDecfloatDataValue(String value, NumberDataValue previous) throws StandardException
+        {
+            if (previous == null)
+                return getDecfloatDataValue(value);
+
+            previous.setValue(value);
+            return previous;
+        }
+
+        public BooleanDataValue getDataValue(boolean value, BooleanDataValue previous)
                         throws StandardException
         {
                 if (previous == null)
@@ -1299,6 +1321,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             case StoredFormatIds.SQL_CLOB_ID: return new SQLClob();
             case StoredFormatIds.XML_ID: return new XML();
             case StoredFormatIds.SQL_ARRAY_ID: return new SQLArray();
+            case StoredFormatIds.SQL_DECFLOAT_ID: return new SQLDecfloat();
             case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID: return new HBaseRowLocation();
         default:return null;
         }
@@ -1359,6 +1382,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
             REAL(StoredFormatIds.SQL_REAL_ID),
             DOUBLE(StoredFormatIds.SQL_DOUBLE_ID),
             DECIMAL(StoredFormatIds.SQL_DECIMAL_ID),
+            DECFLOAT(StoredFormatIds.SQL_DECFLOAT_ID),
             REF(StoredFormatIds.SQL_REF_ID),
             USERTYPE(StoredFormatIds.SQL_USERTYPE_ID_V3),
             DATE(StoredFormatIds.SQL_DATE_ID),
@@ -1400,6 +1424,8 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
                         return DOUBLE;
                     case StoredFormatIds.SQL_DECIMAL_ID:
                         return DECIMAL;
+                    case StoredFormatIds.SQL_DECFLOAT_ID:
+                        return DECFLOAT;
                     case StoredFormatIds.SQL_BOOLEAN_ID:
                         return BOOLEAN;
                     case StoredFormatIds.SQL_TINYINT_ID:

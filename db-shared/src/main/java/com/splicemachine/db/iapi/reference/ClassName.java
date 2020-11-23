@@ -73,6 +73,7 @@ public interface ClassName
 
 	String BaseActivation = "com.splicemachine.db.impl.sql.execute.BaseActivation";
 	String BaseExpressionActivation = "com.splicemachine.db.impl.sql.execute.BaseExpressionActivation";
+	String BaseExecutableIndexExpression = "com.splicemachine.db.impl.sql.execute.BaseExecutableIndexExpression";
 
 	String CursorActivation = "com.splicemachine.db.impl.sql.execute.CursorActivation";
 
@@ -154,4 +155,6 @@ public interface ClassName
 	String RecursiveUnionResultSet = "com.splicemachine.derby.impl.sql.execute.operations.RecursiveUnionOperation";
 	String RowIdUtil = "com.splicemachine.db.iapi.util.RowIdUtil";
 	String TxnUtil = "com.splicemachine.db.iapi.util.TxnUtil";
+	String SPSDescriptor = "com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor";
+	String 	DecimalUtil = "com.splicemachine.db.iapi.util.DecimalUtil";
 }
