@@ -33,7 +33,7 @@ public class TableRowPrinter implements IRowPrinter {
     @Override
     public List<String> processRow(Result row) throws Exception {
         List<String> result = new ArrayList<>();
-        result.add( Utils.Colored.red("[ " + Utils.getRowId(row, this.tableCellPrinter.hbase) + " ]") );
+        result.add( Utils.Colored.red("[ " + Utils.getRowId(row, this.tableCellPrinter.hbase) + " ]\n") );
 
         for(Cell cell : row.listCells()) {
             tableCellPrinter.visit(cell);
