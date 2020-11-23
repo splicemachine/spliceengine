@@ -869,10 +869,10 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator, KryoPool.Kry
         instance.register(TriggerDescriptor.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerDescriptorV2.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(TriggerDescriptorV3.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(TriggerDescriptorV4.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(StringAggregator.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(StringBuilder.class);
         instance.register(Vector.class);
         instance.register(KafkaReadFunction.Message.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TriggerDescriptorV4.class,EXTERNALIZABLE_SERIALIZER);
     }
 }

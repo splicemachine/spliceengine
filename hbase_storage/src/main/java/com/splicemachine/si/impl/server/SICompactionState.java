@@ -71,13 +71,14 @@ public class SICompactionState {
      * @return the size of all cells in the `row` parameter.
      */
     public long mutate(List<Cell> rawList, List<TxnView> txns, List<Cell> results, PurgeConfig purgeConfig) throws IOException {
-        SICompactionStateMutate impl = new SICompactionStateMutate(purgeConfig, context);
-        return impl.mutate(rawList, txns, results);
+        return SICompactionStateMutate.mutate(purgeConfig, context, rawList, txns, results);
     }
 
     private void ensureTransactionCached(long timestamp,Cell element) throws IOException {
         if(!transactionStore.transactionCached(timestamp)){
             if(isFailedCommitTimestamp(element)){
+                if (LOG.isDebugEnabled())
+                    LOG.debug("Timestamp  " + timestamp + " is failed txn");
                 transactionStore.cache(new RolledBackTxn(timestamp));
             }else if (element.getValueLength()>0){ //shouldn't happen, but you never know
                 long commitTs = Bytes.toLong(element.getValueArray(),element.getValueOffset(),element.getValueLength());
