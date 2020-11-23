@@ -553,6 +553,9 @@ public final class TransactionResourceImpl
         else if (sqlState.equals(SQLState.LANG_FK_VIOLATION)) {
             se.setSeverity(-530);
         }
+        else if (sqlState.equals(SQLState.LANG_INVALID_FK_COL_FOR_SETNULL)) {
+            se.setSeverity(-629);
+        }
         else if (sqlState.equals(SQLState.DRDA_CURSOR_NOT_OPEN)) {
             se.setSeverity(-501);
         }
