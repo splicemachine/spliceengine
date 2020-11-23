@@ -38,7 +38,7 @@ import java.util.List;
  *
  * _true tests test existing tables; _false tests test nonexistent tables
  */
-public class DropTableIT {
+public class DropTableIT extends SpliceUnitTest {
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = DropTableIT.class.getSimpleName().toUpperCase();
@@ -76,7 +76,7 @@ public class DropTableIT {
         }
         String sqlText = String.format("DROP TABLE %s.NONEXISTENT_TABLE", schema.schemaName);
         List<String> expectedErrors = Arrays.asList("'DROP TABLE' cannot be performed on 'DROPTABLEIT.NONEXISTENT_TABLE' because it does not exist.");
-        SpliceUnitTest.testUpdateFail(sqlText, expectedErrors, methodWatcher);
+        testUpdateFail(sqlText, expectedErrors, methodWatcher);
     }
 
     @Test
