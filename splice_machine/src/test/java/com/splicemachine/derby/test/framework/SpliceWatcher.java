@@ -245,11 +245,11 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
      */
     public <T> List<T> queryList(String sql) throws Exception {
         List<T> resultList = Lists.newArrayList();
-        ResultSet rs = executeQuery(sql);
-        while (rs.next()) {
-            resultList.add((T) rs.getObject(1));
+        try (ResultSet rs = executeQuery(sql)) {
+            while (rs.next()) {
+                resultList.add((T) rs.getObject(1));
+            }
         }
-        rs.close();
         return resultList;
     }
 
@@ -258,15 +258,15 @@ public class SpliceWatcher extends TestWatcher implements AutoCloseable {
      */
     public <T> List<Object[]> queryListMulti(String sql, int columns) throws Exception {
         List<Object[]> resultList = Lists.newArrayList();
-        ResultSet rs = executeQuery(sql);
-        while (rs.next()) {
-            Object[] row = new Object[columns];
-            for (int i = 0; i < columns; i++) {
-                row[i] = rs.getObject(i + 1);
+        try (ResultSet rs = executeQuery(sql)) {
+            while (rs.next()) {
+                Object[] row = new Object[columns];
+                for (int i = 0; i < columns; i++) {
+                    row[i] = rs.getObject(i + 1);
+                }
+                resultList.add(row);
             }
-            resultList.add(row);
         }
-        rs.close();
         return resultList;
     }
 
