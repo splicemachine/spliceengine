@@ -399,26 +399,20 @@ public class SpliceUnitTest {
     }
 
     protected void testQuery(String sqlText, String expected, SpliceWatcher methodWatcher) throws Exception {
-        ResultSet rs = null;
-        try {
-            rs = methodWatcher.executeQuery(sqlText);
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
-        }
-        finally {
-            if (rs != null)
-                rs.close();
         }
     }
 
     protected void testQuery(String sqlText, String expected, Statement s) throws Exception {
-        ResultSet rs = null;
-        try {
-            rs = s.executeQuery(sqlText);
+        try (ResultSet rs = s.executeQuery(sqlText)) {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
-        finally {
-            if (rs != null)
-                rs.close();
+    }
+
+    protected void testQuery(String sqlText, String expected, TestConnection c) throws Exception {
+        try (ResultSet rs = c.query(sqlText)) {
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         }
     }
 
@@ -1176,5 +1170,22 @@ public class SpliceUnitTest {
         String err = "Couldn't find procedures jar file in either of " + Arrays.toString(paths);
         Assert.fail(err);
         throw new RuntimeException(err);
+    }
+
+    protected void checkDecimalExpression(String input, String output, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(output, rs.getBigDecimal(1).toString());
+        }
+    }
+
+    protected void checkBooleanExpression(String input, boolean output, TestConnection conn) throws SQLException {
+        String sql = format("select %s", input);
+        try(ResultSet rs = conn.query(sql)) {
+            rs.next();
+            Assert.assertEquals(output, rs.getBoolean(1));
+        }
+
     }
 }
