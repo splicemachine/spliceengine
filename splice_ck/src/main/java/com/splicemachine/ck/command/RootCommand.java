@@ -14,19 +14,52 @@
 
 package com.splicemachine.ck.command;
 
+import com.splicemachine.ck.ConnectionSingleton;
+import com.splicemachine.ck.Utils;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
-@Command(mixinStandardHelpOptions = true, name = "sck", description = "SpliceMachine check command suite", descriptionHeading = "Description:%n",
+import java.util.Scanner;
+
+@Command(mixinStandardHelpOptions = true, name = "spliceck", description = "SpliceMachine check command suite",
+        descriptionHeading = "Description:%n",
         optionListHeading = "Options:%n", subcommands = {TListCommand.class,
         TColsCommand.class, RegionOfCommand.class, TableOfCommand.class, RGetCommand.class, RPutCommand.class,
         TxListCommand.class, SListCommand.class})
 class RootCommand {
+    @SuppressFBWarnings("DM_DEFAULT_ENCODING") // intentional
     public static void main(String... args) {
         Logger.getRootLogger().setLevel(Level.OFF);
-        int exitCode = new CommandLine(new RootCommand()).setExecutionStrategy(new CommandLine.RunLast()).execute(args);
+        ConnectionSingleton c = new ConnectionSingleton();
+
+        int exitCode = 0;
+        if(!args[0].equals("interactive")) {
+            exitCode = new CommandLine(new RootCommand()).setExecutionStrategy(new CommandLine.RunLast()).execute(args);
+        }
+        else {
+            Scanner command = new Scanner(System.in);
+            CommandLine cl = new CommandLine(new RootCommand()).setExecutionStrategy(new CommandLine.RunLast());
+            while (true) {
+                System.out.print("spliceck> ");
+                String s = command.nextLine().trim();
+
+                if (s.equals("exit") || s.equals("quit") || s.equals("q") ) break;
+                if (s.length() == 0) continue;
+
+                String[] args2 = s.split(" ");
+                exitCode = cl.execute(args2);
+            }
+            command.close();
+        }
+
+        try {
+            c.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         System.exit(exitCode);
     }
 }

@@ -260,6 +260,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation {
                     case DataDictionary.FOREIGNKEY_CONSTRAINT:
                         if (td.getTableType() == TableDescriptor.EXTERNAL_TYPE)
                             throw StandardException.newException(SQLState.EXTERNAL_TABLES_NO_REFERENCE_CONSTRAINTS,td.getName());
+                        cca.validateSupported();
                         // Do everything but FK constraints first, then FK constraints on 2nd pass.
                         fkConstraints.add(cca);
                         break;

@@ -59,6 +59,7 @@ import java.util.Map;
 public final class GenericResultDescription
 	implements ResultDescription, Formatable
 {
+	public static final long serialVersionUID = 1L; //assign a long value
 
 	/********************************************************
 	**

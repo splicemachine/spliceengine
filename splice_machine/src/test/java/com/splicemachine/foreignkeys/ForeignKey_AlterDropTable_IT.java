@@ -231,6 +231,34 @@ public class ForeignKey_AlterDropTable_IT {
         }
     }
 
+    @Test
+    public void testAlterAddFKOnDeleteCascadeNotSupported() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table P(a1 int, b1 int, c1 int, primary key(a1))");
+            s.execute("create table C(a2 int, b2 int, c2 int)");
+            try {
+                s.execute("alter table C add constraint fk foreign key (a2) references P(a1) on delete cascade");
+                fail("Expected Feature not implemented: ON DELETE CASCADE exception");
+            } catch(Exception e) {
+                Assert.assertEquals("Feature not implemented: ON DELETE CASCADE.", e.getMessage());
+            }
+        }
+    }
+
+    @Test
+    public void testAlterAddFKOnDeleteSetNullNotSupported() throws Exception {
+        try(Statement s = conn.createStatement()) {
+            s.execute("create table P(a1 int, b1 int, c1 int, primary key(a1))");
+            s.execute("create table C(a2 int, b2 int, c2 int)");
+            try {
+                s.execute("alter table C add constraint fk foreign key (a2) references P(a1) on delete set null");
+                fail("Expected Feature not implemented: ON DELETE SET NULL exception");
+            } catch(Exception e) {
+                Assert.assertEquals("Feature not implemented: ON DELETE SET NULL.", e.getMessage());
+            }
+        }
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // helper methods

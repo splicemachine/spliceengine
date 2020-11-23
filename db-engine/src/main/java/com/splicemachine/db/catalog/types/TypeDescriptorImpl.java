@@ -36,12 +36,15 @@ import com.splicemachine.db.iapi.services.io.Formatable;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.shared.common.reference.JDBC30Translation;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.Types;
-                             
+import java.util.Objects;
+
+@SuppressFBWarnings({"EI_EXPOSE_REP2", "EI_EXPOSE_REP"})
 public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 	/********************************************************
 	**
@@ -66,11 +69,19 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 	/** @see TypeDescriptor#getCollationType() */
 	private int	collationType = StringDataValue.COLLATION_TYPE_UCS_BASIC;
 
+	// DO NOT CHANGE OR REMOVE THIS WITHOUT PROVIDING AN UPDATE SCRIPT
+	// it is needed for ObjectStreamClass.getDeclaredSUID. see DB-10665
+	public static final long serialVersionUID = -366780836777876368l;
+
 	/**
 	 * Public niladic constructor. Needed for Formatable interface to work.
 	 *
 	 */
     public	TypeDescriptorImpl() {}
+    @Override
+    public int hashCode() {
+		return Objects.hash(typeId, precision, scale, isNullable, maximumWidth, collationType);
+	}
 
 	/**
 	 * Constructor for use with numeric types
@@ -470,6 +481,9 @@ public class TypeDescriptorImpl implements TypeDescriptor, Formatable {
 	  */
 	public boolean equals(Object object)
 	{
+		if (object == null || !(object instanceof TypeDescriptor)) {
+			return false;
+		}
 		TypeDescriptor typeDescriptor = (TypeDescriptor)object;
 
 		if(!this.getTypeName().equals(typeDescriptor.getTypeName()) ||

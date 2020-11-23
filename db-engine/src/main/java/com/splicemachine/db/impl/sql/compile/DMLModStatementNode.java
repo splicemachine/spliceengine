@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Hashtable;
@@ -60,6 +61,7 @@ import java.util.Vector;
  *
  */
 
+@SuppressFBWarnings({"UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD"})
 abstract class DMLModStatementNode extends DMLStatementNode
 {
 //	protected DataDictionary	dataDictionary;
@@ -94,7 +96,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	protected long[] fkIndexConglomNumbers; //conglomerate number of the backing index
 	protected  boolean isDependentTable;
 	protected int[][] fkColArrays; 
-	protected Hashtable graphHashTable; 
+	protected Hashtable graphHashTable;
                           // Hash Table which maitains the querytreenode graph 
 	protected TableName synonymTableName;
     /* Primary Key Column numbers */
@@ -1520,11 +1522,17 @@ abstract class DMLModStatementNode extends DMLStatementNode
             ** If this index doesn't contain any updated
 			** columns, then we can skip it.
 			*/
-            if ((updatedColumns != null) &&
-                    (!updatedColumns.updateOverlaps(
-                            cd.getIndexDescriptor().baseColumnPositions()))) {
-                continue;
-            }
+            // We must include all indexes in the update for now,
+            // because the logic to determine which indexes need to
+            // be updated is broken and needs a lot of rework.
+            // TODO: Re-enable this code once UpdateOperation is
+            //       properly trained to detect which indexes
+            //       can skip the update.
+//            if ((updatedColumns != null) &&
+//                    (!updatedColumns.updateOverlaps(
+//                            cd.getIndexDescriptor().baseColumnPositions()))) {
+//                continue;
+//            }
 
             if (conglomVector != null) {
                 int i;

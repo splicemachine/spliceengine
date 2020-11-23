@@ -284,6 +284,7 @@ public class SITransactor implements Transactor{
             ConflictResults conflictResults=ConflictResults.NO_CONFLICT;
             KVPair kvPair=baseDataAndLock.getFirst();
             KVPair.Type writeType=kvPair.getType();
+            boolean checkedConflicts = false;
             if(!skipConflictDetection && (constraintChecker!=null || !KVPair.Type.INSERT.equals(writeType))){
                 /*
                  *
@@ -295,6 +296,7 @@ public class SITransactor implements Transactor{
                  * applied on key elements.
                  */
                 //todo -sf remove the Row key copy here
+                checkedConflicts = true;
                 possibleConflicts=bloomInMemoryCheck==null||bloomInMemoryCheck.get(i)?table.getLatest(kvPair.getRowKey(),possibleConflicts):null;
                 if(possibleConflicts!=null && !possibleConflicts.isEmpty()){
                     //we need to check for write conflicts
@@ -325,12 +327,13 @@ public class SITransactor implements Transactor{
             conflictingChildren[i] = conflictResults.getChildConflicts();
             boolean addFirstOccurrenceToken = false;
 
-            if (!skipConflictDetection) {
+            // todo DB-10761: improve this solution for the cases where we know that there's no conflicts and we don't need to check
+            if (checkedConflicts) {
                 if (possibleConflicts == null || possibleConflicts.isEmpty())
                 {
                     // First write
                     if (KVPair.Type.INSERT.equals(writeType) ||
-                        KVPair.Type.UPSERT.equals(writeType))
+                            KVPair.Type.UPSERT.equals(writeType))
                         addFirstOccurrenceToken = true;
                 } else if (KVPair.Type.DELETE.equals(writeType) && possibleConflicts.firstWriteToken() != null) {
                     // Delete following first write
