@@ -92,6 +92,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl snapshotTable = null;
     private volatile TabInfoImpl tokenTable = null;
     private volatile TabInfoImpl replicationTable = null;
+    private volatile TabInfoImpl naturalNumbersTable = null;
     private volatile TabInfoImpl ibmConnectionTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     protected boolean metadataAccessRestrictionEnabled;
@@ -371,6 +372,45 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         SpliceLogUtils.info(LOG, "View SYSKEYCOLUSE in SYSIBM is created!");
     }
 
+    private TabInfoImpl getNaturalNumbersTable() throws StandardException{
+        if(naturalNumbersTable==null){
+            naturalNumbersTable=new TabInfoImpl(new SYSNATURALNUMBERSRowFactory(uuidFactory,exFactory,dvf, this));
+        }
+        initSystemIndexVariables(naturalNumbersTable);
+        return naturalNumbersTable;
+    }
+
+    /**
+     * Populate SYSNATURALNUMBERS table with 1-2048.
+     *
+     * @throws StandardException Standard Derby error policy
+     */
+    private void populateSYSNATURALNUMBERS(TransactionController tc) throws StandardException{
+        SYSNATURALNUMBERSRowFactory.populateSYSNATURALNUMBERS(getNonCoreTI(SYSNATURALNUMBERS_CATALOG_NUM), tc);
+    }
+
+    public void createNaturalNumbersTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor systemSchema=getSystemSchemaDescriptor();
+
+        TabInfoImpl table=getNaturalNumbersTable();
+        addTableIfAbsent(tc,systemSchema,table,null, null);
+
+        populateSYSNATURALNUMBERS(tc);
+    }
+
+    public void updateNaturalNumbersTable(TransactionController tc) throws StandardException {
+        SchemaDescriptor sd = getSystemSchemaDescriptor();
+        tc.elevate("dictionary");
+
+        TableDescriptor td = getTableDescriptor("SYSNATURALNUMBERS", sd, tc);
+        if (td != null) {
+            dropAllColumnDescriptors(td.getUUID(), tc);
+            dropTableDescriptor(td, sd, tc);
+        }
+
+        createNaturalNumbersTable(tc);
+    }
+
     private TabInfoImpl getIBMADMConnectionTable() throws StandardException{
         if(ibmConnectionTable==null){
             ibmConnectionTable=new TabInfoImpl(new SYSMONGETCONNECTIONRowFactory(uuidFactory,exFactory,dvf, this));
@@ -598,6 +638,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         createPermissionTableSystemViews(tc);
 
         createReplicationTables(tc);
+
+        createNaturalNumbersTable(tc);
 
         createTableColumnViewInSysIBM(tc);
 

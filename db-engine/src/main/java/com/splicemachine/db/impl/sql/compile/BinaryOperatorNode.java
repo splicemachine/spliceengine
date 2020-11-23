@@ -40,6 +40,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -48,9 +49,6 @@ import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 /**
  * A BinaryOperatorNode represents a built-in binary operator as defined by
@@ -92,6 +90,27 @@ public class BinaryOperatorNode extends OperatorNode
     String        rightInterfaceType;
     String        resultInterfaceType;
     int            operatorType;
+
+    /* If an operand matches an index expression. Once set,
+     * values should be valid through the whole optimization
+     * process of the current query.
+     * -1  : no match
+     * >=0 : table number
+     */
+    protected int leftMatchIndexExpr  = -1;
+    protected int rightMatchIndexExpr = -1;
+
+    /* The following four fields record operand matches for
+     * which conglomerate and which column. These values
+     * are reset and valid only for the current access path.
+     * They should not be used beyond cost estimation.
+     */
+    protected ConglomerateDescriptor leftMatchIndexExprConglomDesc = null;
+    protected ConglomerateDescriptor rightMatchIndexExprConglomDesc = null;
+
+    // 0-based index column position
+    protected int leftMatchIndexExprColumnPosition  = -1;
+    protected int rightMatchIndexExprColumnPosition = -1;
 
     // At the time of adding XML support, it was decided that
     // we should avoid creating new OperatorNodes where possible.
@@ -976,25 +995,70 @@ public class BinaryOperatorNode extends OperatorNode
         }
     }
 
-        /**
-         * @inheritDoc
-         */
-        protected boolean isEquivalent(ValueNode o) throws StandardException
+    /**
+     * @inheritDoc
+     */
+    protected boolean isEquivalent(ValueNode o) throws StandardException
+    {
+        if (!isSameNodeType(o))
         {
-            if (!isSameNodeType(o))
-            {
-                return false;
-            }
-            BinaryOperatorNode other = (BinaryOperatorNode)o;
-            return methodName.equals(other.methodName)
-                   && leftOperand.isEquivalent(other.leftOperand)
-                   && rightOperand.isEquivalent(other.rightOperand);
+            return false;
         }
+        BinaryOperatorNode other = (BinaryOperatorNode)o;
+        return methodName.equals(other.methodName)
+               && leftOperand.isEquivalent(other.leftOperand)
+               && rightOperand.isEquivalent(other.rightOperand);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected boolean isSemanticallyEquivalent(ValueNode o) throws StandardException {
+        if (!isSameNodeType(o)) {
+            return false;
+        }
+        BinaryOperatorNode other = (BinaryOperatorNode)o;
+        if (methodName.equals(other.methodName)) {
+            if (isCommutative()) {
+                return (leftOperand.isSemanticallyEquivalent(other.leftOperand) &&
+                        rightOperand.isSemanticallyEquivalent(other.rightOperand)) ||
+                        (leftOperand.isSemanticallyEquivalent(other.rightOperand) &&
+                        rightOperand.isSemanticallyEquivalent(other.leftOperand));
+            } else {
+                return leftOperand.isSemanticallyEquivalent(other.leftOperand) &&
+                        rightOperand.isSemanticallyEquivalent(other.rightOperand);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Check if this binary operator is commutative on its operands.
+     * @return True if it is commutative, false otherwise.
+     */
+    public boolean isCommutative() {
+        // Only methodName is always set for all kinds of binary operators.
+        // Do not use operator or operatorType here.
+        switch (methodName) {
+            case "plus":
+            case "times":
+            case "equals":
+            case "notEquals":
+            case "and":
+            case "or":
+                return true;
+            default:
+                break;
+        }
+        return false;
+    }
 
     public int hashCode() {
-        int hashCode = methodName.hashCode();
-        hashCode = 31*hashCode+leftOperand.hashCode();
-        hashCode = 31*hashCode + rightOperand.hashCode();
+        int hashCode = getBaseHashCode();
+        hashCode = 31 * hashCode + methodName.hashCode();
+        hashCode = 31 * hashCode + leftOperand.hashCode();
+        hashCode = 31 * hashCode + rightOperand.hashCode();
         return hashCode;
     }
 
@@ -1057,5 +1121,30 @@ public class BinaryOperatorNode extends OperatorNode
     public boolean isRepeat () { return this.operatorType == REPEAT; }
 
     public int getOperatorType() { return operatorType; }
+
+    public void setMatchIndexExpr(int tableNumber, int columnPosition, ConglomerateDescriptor conglomDesc, boolean isLeft) {
+        if (isLeft) {
+            this.leftMatchIndexExpr = tableNumber;
+            this.leftMatchIndexExprColumnPosition = columnPosition;
+            this.leftMatchIndexExprConglomDesc = conglomDesc;
+        } else {
+            this.rightMatchIndexExpr = tableNumber;
+            this.rightMatchIndexExprColumnPosition = columnPosition;
+            this.rightMatchIndexExprConglomDesc = conglomDesc;
+        }
+    }
+
+    public int getLeftMatchIndexExprTableNumber() { return this.leftMatchIndexExpr; }
+    public int getRightMatchIndexExprTableNumber() { return this.rightMatchIndexExpr; }
+
+    @Override
+    public double getBaseOperationCost() throws StandardException { return getChildrenCost(); }
+
+    protected double getChildrenCost() throws StandardException {
+        double leftCost = leftOperand == null ? 0.0 : leftOperand.getBaseOperationCost();
+        double rightCost = rightOperand == null ? 0.0 : rightOperand.getBaseOperationCost();
+        return leftCost + rightCost;
+    }
+
 }
 

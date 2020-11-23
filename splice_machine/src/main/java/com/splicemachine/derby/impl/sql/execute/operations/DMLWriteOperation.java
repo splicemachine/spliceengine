@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -32,6 +33,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -52,12 +54,16 @@ import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.utils.Pair;
 import com.splicemachine.utils.SpliceLogUtils;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.SerializationUtils;
 import org.apache.log4j.Logger;
 import splice.com.google.common.base.Strings;
 
 import java.io.IOException;
 import java.util.*;
 
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_MODIFIED_FINAL_TABLE;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
 import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
 
@@ -84,6 +90,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     protected boolean isSpark;
     protected Txn nestedTxn = null;
     protected boolean exceptionHit = false;
+    protected SPSDescriptor fromTableDmlSpsDescriptor;
 
     public DMLWriteOperation(){
         super();
@@ -91,20 +98,26 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 
     public DMLWriteOperation(SpliceOperation source,Activation activation,
                              double optimizerEstimatedRowCount,
-                             double optimizerEstimatedCost,String tableVersion) throws StandardException{
+                             double optimizerEstimatedCost,String tableVersion,
+                             String fromTableDmlSpsDescriptorAsString) throws StandardException{
         super(activation,-1,optimizerEstimatedRowCount,optimizerEstimatedCost);
         this.source=source;
         this.activation=activation;
         this.tableVersion=tableVersion;
         this.writeInfo=new DerbyDMLWriteInfo();
+        if (fromTableDmlSpsDescriptorAsString != null)
+            fromTableDmlSpsDescriptor =
+                 SerializationUtils.deserialize(Base64.decodeBase64(fromTableDmlSpsDescriptorAsString));
     }
 
     public DMLWriteOperation(SpliceOperation source,
                              GeneratedMethod generationClauses,
                              GeneratedMethod checkGM,
                              Activation activation,double optimizerEstimatedRowCount,
-                             double optimizerEstimatedCost,String tableVersion) throws StandardException{
-        this(source,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+                             double optimizerEstimatedCost,String tableVersion,
+                             String fromTableDmlSpsDescriptorAsString) throws StandardException{
+        this(source,activation,optimizerEstimatedRowCount,optimizerEstimatedCost,
+             tableVersion,fromTableDmlSpsDescriptorAsString);
 
         if(generationClauses!=null){
             this.generationClausesFunMethodName=generationClauses.getMethodName();
@@ -243,7 +256,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     getAfterEvent(getClass()),
                     null,
                     getExecRowDefinition(),
-                    getTableVersion()
+                    getTableVersion(),
+                    fromTableDmlSpsDescriptor
             );
             this.triggerHandler.setIsSpark(isSpark);
         }

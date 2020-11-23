@@ -69,6 +69,7 @@ public class CreateTriggerNode extends DDLStatementNode {
 
     private SchemaDescriptor triggerSchemaDescriptor;
     private SchemaDescriptor compSchemaDescriptor;
+    private boolean isFinalTable = false;
 
     /*
      * The following arrary will include columns that will cause the trigger to
@@ -1087,4 +1088,16 @@ public class CreateTriggerNode extends DDLStatementNode {
         }
     }
 
+    public boolean isBefore() { return isBefore; }
+    public boolean isRow() { return isRow; }
+    public boolean isEnabled() { return isEnabled; }
+    public TableDescriptor getTriggerTableDescriptor() { return triggerTableDescriptor; }
+    public int[] getReferencedCols() { return referencedColInts; }
+    public int[] getReferencedColsInTriggerAction() { return referencedColsInTriggerAction; }
+    public List<String> getOriginalActionTextList() { return originalActionTextList; }
+    public String getOriginalWhenText() { return originalWhenText; }
+    public Vector<TriggerReferencingStruct> getRefClause() { return refClause; }
+    public boolean isFinalTable() { return isFinalTable; }
+    public void setIsFinalTable(boolean isFinalTable) { this.isFinalTable = isFinalTable; }
+    public TableName getTargetTableName() { return tableName; }
 }

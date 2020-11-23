@@ -257,7 +257,7 @@ public class InterruptStatus {
 //			}
 //		}
 
-        if (lcc.getInterruptedException() != null) {
+        if (lcc != null && lcc.getInterruptedException() != null) {
 
             lcc.setInterruptedException(null);
             // Set thread's interrupt status flag back on.

@@ -51,9 +51,11 @@ public class DeleteOperation extends DMLWriteOperation {
 
 	public DeleteOperation(SpliceOperation source, Activation activation,double optimizerEstimatedRowCount,
                            double optimizerEstimatedCost, String tableVersion,
-						   String bulkDeleteDirectory, int colMapRefItem) throws StandardException, IOException {
+						   String bulkDeleteDirectory, int colMapRefItem,
+                           String fromTableDmlSpsDescriptorAsString) throws StandardException, IOException {
 
-        super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion);
+        super(source, activation,optimizerEstimatedRowCount,optimizerEstimatedCost,tableVersion,
+              fromTableDmlSpsDescriptorAsString);
         this.bulkDeleteDirectory = bulkDeleteDirectory;
         this.colMapRefItem = colMapRefItem;
         init();
@@ -101,8 +103,9 @@ public class DeleteOperation extends DMLWriteOperation {
             // initTriggerRowHolders can't be called in the TriggerHandler constructor
             // because it has to be called after getCurrentTransaction() elevates the
             // transaction to writable.
-            if (triggerHandler != null)
-                triggerHandler.initTriggerRowHolders(isOlapServer(), txn, SpliceClient.token, 0);
+            if (triggerHandler != null) {
+                triggerHandler.initTriggerRowHolders(isOlapServer() || SpliceClient.isClient(), txn, SpliceClient.token, 0);
+            }
 
             if (bulkDeleteDirectory != null) {
                 dataSetWriterBuilder = set

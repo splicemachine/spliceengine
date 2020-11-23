@@ -272,4 +272,57 @@ public class DB2VarcharCompatibilityIT extends SpliceUnitTest {
 
     }
 
+    @Test
+    public void testInvalidateStoredStatements() throws Exception {
+        // Turn off DB2 varchar compatibility mode.
+        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
+        methodWatcher.executeUpdate("delete from t11");
+        methodWatcher.executeUpdate("create trigger trig1\n" +
+                                    "after insert on t1\n" +
+                                    "referencing new_table as NT\n" +
+                                    "for each statement\n" +
+                                    "insert into t11\n" +
+                                    "select * from t1 where b > 'a'\n");
+        // Cause the trigger to be compiled.
+        methodWatcher.executeUpdate("insert into t1 values (1, 'a     ')");
+
+        // Turn on DB2 varchar compatibility mode.
+        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
+
+        // The following statement should cause all triggers to be recompiled
+        // the next time they are fired.
+        methodWatcher.executeUpdate("CALL SYSCS_UTIL.SYSCS_INVALIDATE_STORED_STATEMENTS()");
+
+        methodWatcher.executeUpdate("delete from t11");
+
+        // This statement fires the trigger.
+        methodWatcher.executeUpdate("insert into t1 values (1, 'a       ')");
+
+        // t11 should note contain rows with column b values having 'a' followed by spaces
+        // since the trigger should have been recompiled with DB2 varchar compatibility mode on,
+        // in which case 'a ' > 'a' (from the predicate in the INSERT SELECT in the trigger)
+        // should evaluate to false for those rows.
+
+        String expected =
+            "A |  B  |\n" +
+            "----------\n" +
+            " 1 | a b |\n" +
+            " 1 | ab  |\n" +
+            " 1 | abc |\n" +
+            " 1 |abcd |";
+
+        String sqlText = "select * from t11";
+        testQuery(sqlText, expected, methodWatcher);
+        methodWatcher.executeUpdate("drop trigger trig1");
+        methodWatcher.executeUpdate("delete from t11");
+        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', null)");
+
+        // Delete the rows we created so we don't impact other tests.
+        methodWatcher.executeUpdate("delete from t1 where b = 'a     '");
+        methodWatcher.executeUpdate("delete from t1 where b = 'a       '");
+		methodWatcher.executeUpdate("insert into t11 select * from t1");
+
+        // Restore the flag setting to the value when this test started.
+        methodWatcher.executeUpdate("call syscs_util.syscs_set_global_database_property('splice.db2.varchar.compatible', true)");
+    }
 }

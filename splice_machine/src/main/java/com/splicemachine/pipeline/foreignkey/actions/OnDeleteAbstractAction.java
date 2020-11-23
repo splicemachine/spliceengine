@@ -51,6 +51,7 @@ public abstract class OnDeleteAbstractAction extends Action {
     protected final DDLMessage.FKConstraintInfo constraintInfo;
     protected final ObjectObjectHashMap<KVPair, KVPair> mutationBuffer;
     protected final CallBuffer<KVPair> pipelineBuffer;
+    protected final String parentTableName;
     Partition indexTable;
     private final TxnOperationFactory txnOperationFactory;
     protected final Map<String, KVPair> originators; // reverse lookup from child -> parent rows for propagating failures.
@@ -60,7 +61,9 @@ public abstract class OnDeleteAbstractAction extends Action {
     public OnDeleteAbstractAction(Long backingIndexConglomId,
                                   DDLMessage.FKConstraintInfo constraintInfo,
                                   WriteContext writeContext,
-                                  TxnOperationFactory txnOperationFactory, ForeignKeyViolationProcessor violationProcessor) throws Exception {
+                                  TxnOperationFactory txnOperationFactory,
+                                  ForeignKeyViolationProcessor violationProcessor,
+                                  String parentTableName ) throws Exception {
         super(constraintInfo.getChildTable().getConglomerate(), backingIndexConglomId);
         this.txnOperationFactory = txnOperationFactory;
         assert childBaseTableConglomId != null;
@@ -78,6 +81,7 @@ public abstract class OnDeleteAbstractAction extends Action {
         this.indexTable = null;
         this.violationProcessor = violationProcessor;
         this.originators = new HashMap<>();
+        this.parentTableName = parentTableName;
     }
 
     /*

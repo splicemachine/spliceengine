@@ -195,16 +195,6 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
     }
 
     @Override
-    public <V> DataSet<V> readPinnedTable(long conglomerateId, int[] baseColumnMap, String location, OperationContext context, Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
-        return delegate.readPinnedTable(conglomerateId, baseColumnMap, location, context, qualifiers, probeValue, execRow);
-    }
-
-    @Override
-    public void dropPinnedTable(long conglomerateId) throws StandardException {
-        delegate.dropPinnedTable(conglomerateId);
-    }
-
-    @Override
     public Boolean isCached(long conglomerateId) throws StandardException {
         return delegate.isCached(conglomerateId);
     }
@@ -242,4 +232,14 @@ public abstract class ForwardingDataSetProcessor implements DataSetProcessor{
 
     @Override
     public boolean isSparkDB2CompatibilityMode() { return delegate.isSparkDB2CompatibilityMode(); }
+
+    @Override
+    public void setTempTriggerConglomerate(long conglomID) {
+        delegate.setTempTriggerConglomerate(conglomID);
+    }
+
+    @Override
+    public long getTempTriggerConglomerate() {
+        return delegate.getTempTriggerConglomerate();
+    }
 }

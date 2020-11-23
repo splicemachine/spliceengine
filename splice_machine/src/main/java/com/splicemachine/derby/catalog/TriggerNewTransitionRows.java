@@ -140,8 +140,8 @@ public class TriggerNewTransitionRows
             DataSet<ExecRow> triggerRows = null;
             long conglomID;
 
+            TriggerExecutionContext tec = null;
             if (triggerRowsHolder == null) {
-                TriggerExecutionContext tec = null;
                 try {
                     tec = Factory.getTriggerExecutionContext();
                 }
@@ -159,6 +159,7 @@ public class TriggerNewTransitionRows
 
                 activation = triggerRowsHolder.getActivation();
                 sourceSet = triggerRowsHolder.getSourceSet();
+                tec = activation.getLanguageConnectionContext().getTriggerExecutionContext();
 
                 if (activation.getResultSet() instanceof DMLWriteOperation)
                     writeOperation = (DMLWriteOperation) (activation.getResultSet());
@@ -174,15 +175,17 @@ public class TriggerNewTransitionRows
             // Disable the persisted DataSet path for now.
             // It doesn't work properly with tables with generated columns.
             usePersistedDataSet = false;
+            boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
             if (usePersistedDataSet) {
                 sourceSet.persist();
                 triggerRows = sourceSet;
             }
             else {
                 DataSet<ExecRow> cachedRowsSet = null;
-                boolean isSpark = triggerRowsHolder == null || triggerRowsHolder.isSpark();
-                if (!isSpark)
-                    cachedRowsSet = new ControlDataSet<>(triggerRowsHolder.getCachedRowsIterator());
+
+                if (triggerRowsHolder != null)
+                    cachedRowsSet = dsp.createDataSet(triggerRowsHolder.getCachedRowsIterator());
+
                 if (conglomID != 0) {
                     String tableName = Long.toString(conglomID);
                     TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
@@ -234,12 +237,16 @@ public class TriggerNewTransitionRows
                         triggerRows = sourceSet;
                     else
                         triggerRows = sourceSet.union(cachedRowsSet, op.getOperationContext());
+
+                    if (!activation.isSubStatement() && tec.hasSpecialFromTableTrigger()) {
+                        dsp.setTempTriggerConglomerate(conglomID);
+                    }
                 }
                 else
                     triggerRows = cachedRowsSet;
             }
             boolean isOld = (this instanceof TriggerOldTransitionRows);
-            triggerRows = triggerRows.map(new TriggerRowsMapFunction<>(op.getOperationContext(), isOld));
+            triggerRows = triggerRows.map(new TriggerRowsMapFunction<>(op.getOperationContext(), isOld, tec));
             if (writeOperation != null)
                 writeOperation.registerCloseable(this);
 	    return triggerRows;

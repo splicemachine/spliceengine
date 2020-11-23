@@ -78,7 +78,7 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
             boolean tableLocked,
             int isolationLevel,
             int maxMemoryPerTable,
-            boolean genInListVals, String tableVersion, boolean pin,
+            boolean genInListVals, String tableVersion,
             int splits,
             String delimited,
             String escaped,
@@ -97,10 +97,10 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
          * 4) array of types of the in-list columns
          */
         if (genInListVals) {
-            numArgs = 39;
+            numArgs = 38;
         }
         else {
-            numArgs = 35 ;
+            numArgs = 34 ;
         }
 
         fillInScanArgs1(tc, mb, innerTable, storeRestrictionList, acb, resultRowAllocator);
@@ -125,7 +125,7 @@ public class CrossJoinStrategy extends BaseJoinStrategy {
             }
         }
 
-        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,pin,
+        fillInScanArgs2(mb,innerTable, bulkFetch, colRefItem, indexColItem, lockMode, tableLocked, isolationLevel,tableVersion,
                 splits, delimited, escaped, lines, storedAs, location, partitionRefItem);
         return numArgs;
     }

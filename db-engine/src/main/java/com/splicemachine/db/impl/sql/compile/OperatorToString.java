@@ -216,6 +216,7 @@ public class OperatorToString {
     // We don't support REAL (float), because the way spark
     // evaluates expressions involving float causes accuracy errors
     // that don't occur when splice does the evaluation.
+    // TODO(arnaud) add decfloat there
     private static boolean sparkSupportedType(int typeFormatId, ValueNode operand) {
 
         return (typeFormatId == BOOLEAN_TYPE_ID  ||
@@ -238,6 +239,7 @@ public class OperatorToString {
                 typeFormatId == INT_TYPE_ID      ||
                 typeFormatId == LONGINT_TYPE_ID  ||
                 typeFormatId == DECIMAL_TYPE_ID  ||
+                typeFormatId == DECFLOAT_TYPE_ID ||
                 typeFormatId == DOUBLE_TYPE_ID   ||
                 typeFormatId == REAL_TYPE_ID);
     }
@@ -245,6 +247,7 @@ public class OperatorToString {
     private static boolean isOverflowSensitive(ValueNode operand) throws StandardException {
         return (operand.getTypeId().getTypeFormatId() == LONGINT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DECIMAL_TYPE_ID ||
+                operand.getTypeId().getTypeFormatId() == DECFLOAT_TYPE_ID ||
                 operand.getTypeId().getTypeFormatId() == DOUBLE_TYPE_ID);
     }
     private static void checkOverflowHidingCases(BinaryArithmeticOperatorNode bao,
@@ -892,6 +895,13 @@ public class OperatorToString {
                 int typeFormatId = operand.getTypeId().getTypeFormatId();
                 if (!sparkSupportedType(typeFormatId, operand))
                     throwNotImplementedError();
+                if (operand.getTypeId().isCharOrVarChar()) {
+                    // Disallow cast to a string type for possible problematic cases.
+                    // CHAR and VARCHAR are mapped to the same String type in spark sql,
+                    // so char('', 2) and varchar('', 2) are resolved to the same type, with lenght 0
+                    // varchar('abc', 1) and char('abc', 1) don't truncate strings properly either
+                    throwNotImplementedError();
+                }
 
                 sb.append(format("CAST(%s ", opToString2(castOperand, vars)));
                 SparkExpressionNode childExpression = vars.sparkExpressionTree;

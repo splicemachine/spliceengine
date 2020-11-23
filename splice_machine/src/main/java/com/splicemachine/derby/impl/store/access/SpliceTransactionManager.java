@@ -25,9 +25,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.Storable;
 import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PartitionStatisticsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.store.access.conglomerate.*;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -1022,10 +1020,18 @@ public class SpliceTransactionManager implements XATransactionController,
      **/
     @Override
     public StoreCostController openStoreCost(TableDescriptor td, ConglomerateDescriptor cd, boolean skipDictionaryStats, long defaultRowCount, int requestedSplits) throws StandardException {
-        List<PartitionStatisticsDescriptor> partitionStatistics = new ArrayList<>();
-        if (!skipDictionaryStats)
-            partitionStatistics = cd.getDataDictionary().getPartitionStatistics(td.getBaseConglomerateDescriptor().getConglomerateNumber(),this);
-        return new StoreCostControllerImpl(td,cd,partitionStatistics, skipDictionaryStats?defaultRowCount:0, requestedSplits);
+        List<PartitionStatisticsDescriptor> tablePartitionStatistics = new ArrayList<>();
+        List<PartitionStatisticsDescriptor> exprIndexPartitionStatistics = new ArrayList<>();
+        if (!skipDictionaryStats) {
+            DataDictionary dd = cd.getDataDictionary();
+            tablePartitionStatistics = dd.getPartitionStatistics(td.getBaseConglomerateDescriptor().getConglomerateNumber(), this);
+
+            IndexRowGenerator irg = cd.getIndexDescriptor();
+            if (irg != null && irg.isOnExpression()) {
+                exprIndexPartitionStatistics = dd.getPartitionStatistics(cd.getConglomerateNumber(), this);
+            }
+        }
+        return new StoreCostControllerImpl(td, cd, tablePartitionStatistics, exprIndexPartitionStatistics, skipDictionaryStats?defaultRowCount:0, requestedSplits);
     }
      /**
      * @see TransactionController#getProperty

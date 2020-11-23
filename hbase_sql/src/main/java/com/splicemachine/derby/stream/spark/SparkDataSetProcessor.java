@@ -594,15 +594,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
 
 
     @Override
-    public void dropPinnedTable(long conglomerateId) throws StandardException {
-        if (SpliceSpark.getSession().catalog().isCached("SPLICE_"+conglomerateId)) {
-            SpliceSpark.getSession().catalog().uncacheTable("SPLICE_"+conglomerateId);
-            SpliceSpark.getSession().catalog().dropTempView("SPLICE_"+conglomerateId);
-
-        }
-    }
-
-    @Override
     public Boolean isCached(long conglomerateId) throws StandardException {
         return  SpliceSpark.getSession().catalog().tableExists("SPLICE_"+conglomerateId)
                 && SpliceSpark.getSession().catalog().isCached("SPLICE_"+conglomerateId);
@@ -685,22 +676,6 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         return col;
     }
 
-    @SuppressWarnings({ "rawtypes", "unchecked" })
-    @Override
-    public <V> DataSet<V> readPinnedTable(
-            long conglomerateId, int[] baseColumnMap, String location, OperationContext context,
-            Qualifier[][] qualifiers, DataValueDescriptor probeValue, ExecRow execRow) throws StandardException {
-        try {
-            Dataset<Row> table = SpliceSpark.getSession().table("SPLICE_"+conglomerateId);
-            table = processExternalDataset(execRow, table,baseColumnMap,qualifiers,probeValue);
-            return new SparkDataSet(table
-                    .rdd().toJavaRDD()
-                    .map(new RowToLocatedRowFunction(context,execRow)));
-        } catch (Exception e) {
-            throw StandardException.newException(
-                    SQLState.PIN_READ_FAILURE, e, e.getMessage());
-        }
-    }
     private <V> DataSet<V> checkExistingOrEmpty( String location, OperationContext context ) throws StandardException, IOException {
         FileInfo fileinfo = ImportUtils.getImportFileInfo(location);
         if( !fileinfo.exists() )
@@ -986,5 +961,18 @@ public class SparkDataSetProcessor implements DistributedDataSetProcessor, Seria
         if (broadcastedActivation == null)
             return false;
         return broadcastedActivation.isDB2VarcharCompatibilityMode();
+    }
+
+    @Override
+    public void setTempTriggerConglomerate(long conglomID) {
+        if (broadcastedActivation != null)
+            broadcastedActivation.setTempTriggerConglomerate(conglomID);
+    }
+
+    @Override
+    public long getTempTriggerConglomerate() {
+        if (broadcastedActivation == null)
+            return 0;
+        return broadcastedActivation.getTempTriggerConglomerate();
     }
 }

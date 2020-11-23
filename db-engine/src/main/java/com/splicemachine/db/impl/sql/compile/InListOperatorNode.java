@@ -46,6 +46,7 @@ import com.splicemachine.db.iapi.types.*;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Objects;
 
 /**
  * An InListOperatorNode represents an IN list.
@@ -166,7 +167,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			equal.setOuterJoinLevel(getOuterJoinLevel());
 			return equal;
 		}
-		else if (allLeftOperandsColumnReferences() &&
+		else if (allLeftOperandsContainColumnReferences() &&
 			     rightOperandList.containsOnlyConstantAndParamNodes())
 		{
 			boolean DB2CompatibilityMode = getCompilerContext().getVarcharDB2CompatibilityMode();
@@ -175,6 +176,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			 * parameter values.  Ex.:
 			 *
 			 *  select id, name from emp where id in (34, 28, ?)
+			 * or
+			 *  select id, name from emp where id + 3 in (34, 28, ?)
 			 *
 			 * Since the optimizer does not recognize InListOperatorNodes
 			 * as potential start/stop keys for indexes, it (the optimizer)
@@ -189,8 +192,8 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 			 *
 			 * What we do, then, is create an "IN-list probe predicate",
 			 * which is an internally generated equality predicate with a
-			 * parameter value on the right.  So for the query shown above
-			 * the probe predicate would be "id = ?".  We then replace
+			 * parameter value on the right.  So for the queries shown above
+			 * the probe predicates would be "id = ?" and "id+3 = ?".  We then replace
 			 * this InListOperatorNode with the probe predicate during
 			 * optimization.  The optimizer in turn recognizes the probe
 			 * predicate, which is disguised to look like a typical binary
@@ -288,7 +291,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
                  * type found above.
                  */
                 
-                DataValueDescriptor judgeODV = null;
+                DataValueDescriptor judgeODV;
                 
                 if (singleLeftOperand) {
                     judgeODV = ((DataTypeDescriptor) targetTypes.get(0)).getNull();
@@ -531,28 +534,6 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		}
 
 		return leftSide;
-	}
-
-	/**
-	 * See if this IN list operator is referencing the same table.
-	 *
-	 * @param cr	The column reference.
-	 *
-	 * @return	true if in list references the same table as in cr.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public boolean selfReference(ColumnReference cr)
-		throws StandardException
-	{
-		int size = rightOperandList.size();
-		for (int i = 0; i < size; i++)
-		{
-			ValueNode vn = (ValueNode) rightOperandList.elementAt(i);
-			if (vn.getTablesReferenced().get(cr.getTableNumber()))
-				return true;
-		}
-		return false;
 	}
 
 	/**
@@ -981,10 +962,7 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 	
 	@Override
 	public int hashCode(){
-		int result=(isOrdered?1:0);
-		result=31*result+(sortDescending?1:0);
-		result = 31*result + leftOperandList.hashCode();
-		result = 31*result + rightOperandList.hashCode();
-		return result;
+		int result = super.hashCode();
+		return Objects.hash(result, isOrdered, sortDescending);
 	}
 }

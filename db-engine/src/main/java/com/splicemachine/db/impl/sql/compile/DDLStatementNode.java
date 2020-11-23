@@ -370,9 +370,22 @@ abstract class DDLStatementNode extends StatementNode
 
         TableDescriptor td = getTableDescriptor(tableName.getTableName(), sd);
 
-        if (td == null) {
-            throw StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST,
-                        statementToString(), tableName);
+        if (td == null){
+            // Check if the reference is for a synonym.
+            TableName synonymTab=resolveTableToSynonym(tableName);
+            if (synonymTab == null)
+                throw StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST,
+                                                     statementToString(),
+                                                     tableName.toString());
+
+            tableName=  synonymTab;
+            sd = getSchemaDescriptor(tableName.getSchemaName());
+
+            td = getTableDescriptor(synonymTab.getTableName(),sd);
+            if (td == null)
+                throw StandardException.newException(SQLState.LANG_OBJECT_DOES_NOT_EXIST,
+                                                     statementToString(),
+                                                     tableName.toString());
         }
         return td;
     }

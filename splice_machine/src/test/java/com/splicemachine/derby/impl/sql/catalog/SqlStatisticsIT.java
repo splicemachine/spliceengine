@@ -14,29 +14,21 @@
 
 package com.splicemachine.derby.impl.sql.catalog;
 
-import java.sql.CallableStatement;
-import java.sql.ResultSet;
-
-import com.splicemachine.test.SerialTest;
+import com.splicemachine.derby.test.framework.*;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import java.sql.CallableStatement;
+import java.sql.ResultSet;
 
 /**
- * Tests for the SYSIBM.SQLPROCEDURECOLS stored procedure.
+ * Tests for the SYSIBM.SQLSTATISTICS stored procedure.
  * This stored procedure is used by the 'show indexes' command in ij.
  *
  * @author David Winters
@@ -50,17 +42,21 @@ public class SqlStatisticsIT extends SpliceUnitTest {
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 	private static final String TABLE_NAME_1 = CLASS_NAME + "_T1";
 	private static final String TABLE_NAME_2 = CLASS_NAME + "_T2";
+    private static final String TABLE_NAME_3 = CLASS_NAME + "_T3";
 	private static final String INDEX_NAME_1 = "IDX_" + TABLE_NAME_1 + "_C1";
 	private static final String INDEX_NAME_2 = "IDX_" + TABLE_NAME_2 + "_C1C2C3";
+    private static final String INDEX_NAME_3 = "IDX_" + TABLE_NAME_3 + "_ON_EXPR";
     private static String tableDef = "(C1 INT, C2 INT, C3 INT)";
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE_NAME_1, CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE_NAME_2, CLASS_NAME, tableDef);
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE_NAME_3, CLASS_NAME, tableDef);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher1)
-            .around(spliceTableWatcher2);
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher3);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -90,7 +86,6 @@ public class SqlStatisticsIT extends SpliceUnitTest {
     	SpliceIndexWatcher indexWatcher = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
     	indexWatcher.starting(null);
         Assert.assertTrue("Incorrect rows returned!", getResultSetCountFromShowIndexes(null, null) > 50);   // There should be roughly 74 indexes.  No hard coding since the # of indexes in SYS is subject to change.
-        Assert.assertEquals("Incorrect rows returned!", 1, getResultSetCountFromShowIndexes(CLASS_NAME, null));  // There should be 1 index row for the APP schema.
         Assert.assertEquals("Incorrect rows returned!", 1, getResultSetCountFromShowIndexes(CLASS_NAME, TABLE_NAME_1));  // There should be 1 index row for the T1 table.
         Assert.assertEquals("Incorrect rows returned!", 1, getResultSetCountFromShowIndexes(null, TABLE_NAME_1));   // There should be 1 index row for the T1 table.
         indexWatcher.finished(null);
@@ -103,11 +98,27 @@ public class SqlStatisticsIT extends SpliceUnitTest {
     	indexWatcher1.starting(null);
     	indexWatcher2.starting(null);
         Assert.assertTrue("Incorrect rows returned!", getResultSetCountFromShowIndexes(null, null) > 50);   // There should be roughly 77 indexes.  No hard coding since the # of indexes in SYS is subject to change.
-        Assert.assertEquals("Incorrect rows returned!", 4, getResultSetCountFromShowIndexes(CLASS_NAME, null));  // There should be 4 index rows for the APP schema.
         Assert.assertEquals("Incorrect rows returned!", 3, getResultSetCountFromShowIndexes(CLASS_NAME, TABLE_NAME_2));  // There should be 3 index rows for the T2 table.
         Assert.assertEquals("Incorrect rows returned!", 3, getResultSetCountFromShowIndexes(null, TABLE_NAME_2));   // There should be 3 index rows for the T2 table.
         indexWatcher1.finished(null);
         indexWatcher2.finished(null);
+    }
+
+    @Test
+    public void testCreateIndexOnExpressions() throws Exception {
+        SpliceIndexWatcher indexWatcher1 = new SpliceIndexWatcher(TABLE_NAME_1, CLASS_NAME, INDEX_NAME_1, CLASS_NAME, "(C1)", false);
+        SpliceIndexWatcher indexWatcher3 = new SpliceIndexWatcher(TABLE_NAME_3, CLASS_NAME, INDEX_NAME_3, CLASS_NAME, "(C2*3, C1+4)", false);
+        indexWatcher1.starting(null);
+        indexWatcher3.starting(null);
+        Assert.assertTrue("Incorrect rows returned!", getResultSetCountFromShowIndexes(null, null) > 50);   // There should be roughly 77 indexes.  No hard coding since the # of indexes in SYS is subject to change.
+        Assert.assertEquals("Incorrect rows returned!", 2, getResultSetCountFromShowIndexes(CLASS_NAME, TABLE_NAME_3));         // There should be 2 index rows for the T3 table.
+        Assert.assertEquals("Incorrect rows returned!", 2, getResultSetCountFromShowIndexes(null, TABLE_NAME_3));    // There should be 2 index rows for the T3 table.
+
+        String query = format("call SYSIBM.SQLSTATISTICS(null, '%s', '%s', 1, 1, null)", CLASS_NAME, TABLE_NAME_3);
+        columnInRowsContainsQuery(new int[]{1,2}, 9, query, methodWatcher, "C2*3", "C1+4");
+
+        indexWatcher1.finished(null);
+        indexWatcher3.finished(null);
     }
 
     private int getResultSetCountFromShowIndexes(String schemaName, String tableName) throws Exception {

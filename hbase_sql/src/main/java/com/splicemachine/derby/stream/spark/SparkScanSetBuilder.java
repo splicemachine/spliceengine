@@ -78,10 +78,6 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
         else // this call works even if activation is null
             operationContext = dsp.createOperationContext(activation);
 
-        if (pin) {
-            ScanOperation operation = (ScanOperation) op;
-            return dsp.readPinnedTable(Long.parseLong(tableName),baseColumnMap,location,operationContext,operation.getScanInformation().getScanQualifiers(),null,operation.getExecRowDefinition()).filter(new TableScanPredicateFunction(operationContext));
-        }
         if (storedAs!= null) {
             StructType schema = ExternalTableUtils.getSchema(activation, Long.parseLong(tableName));
 

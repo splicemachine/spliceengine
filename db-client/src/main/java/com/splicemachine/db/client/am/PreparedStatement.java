@@ -2905,6 +2905,7 @@ public class PreparedStatement extends Statement
                 java.sql.Types.LONGVARCHAR ,
                 java.sql.Types.CHAR,
                 java.sql.Types.DECIMAL,
+                com.splicemachine.db.iapi.reference.Types.DECFLOAT,
                 java.sql.Types.INTEGER,
                 java.sql.Types.SMALLINT,
                 java.sql.Types.REAL,
@@ -2962,6 +2963,7 @@ public class PreparedStatement extends Statement
                 java.sql.Types.LONGVARCHAR,
                 java.sql.Types.CHAR,
                 java.sql.Types.DECIMAL,
+                com.splicemachine.db.iapi.reference.Types.DECFLOAT,
                 java.sql.Types.INTEGER,
                 java.sql.Types.SMALLINT,
                 java.sql.Types.REAL,
@@ -3042,6 +3044,7 @@ public class PreparedStatement extends Statement
                 java.sql.Types.CHAR,
                 java.sql.Types.NUMERIC,
                 java.sql.Types.DECIMAL,
+                com.splicemachine.db.iapi.reference.Types.DECFLOAT,
                 java.sql.Types.INTEGER,
                 java.sql.Types.SMALLINT,
                 java.sql.Types.FLOAT,
@@ -3061,6 +3064,7 @@ public class PreparedStatement extends Statement
                 java.sql.Types.CHAR,
                 java.sql.Types.NUMERIC,
                 java.sql.Types.DECIMAL,
+                com.splicemachine.db.iapi.reference.Types.DECFLOAT,
                 java.sql.Types.INTEGER,
                 java.sql.Types.SMALLINT,
                 java.sql.Types.FLOAT,
@@ -3164,6 +3168,7 @@ public class PreparedStatement extends Statement
                 java.sql.Types.CHAR,
                 java.sql.Types.NUMERIC,
                 java.sql.Types.DECIMAL,
+                com.splicemachine.db.iapi.reference.Types.DECFLOAT,
                 java.sql.Types.INTEGER,
                 java.sql.Types.SMALLINT,
                 java.sql.Types.FLOAT,
@@ -3229,32 +3234,17 @@ public class PreparedStatement extends Statement
             switch(typeOfVariable){
                 
             case java.sql.Types.SMALLINT:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
             case java.sql.Types.INTEGER:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
             case java.sql.Types.BIGINT:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
             case java.sql.Types.REAL:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
             case java.sql.Types.FLOAT:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
             case java.sql.Types.DOUBLE:
-                return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
             case java.sql.Types.DECIMAL:
+            case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
                 return POSSIBLE_TYPES_FOR_GENERIC_SCALAR_NULL;
-                
+
             case java.sql.Types.CHAR:
-                return POSSIBLE_TYPES_FOR_GENERIC_CHARACTERS_NULL;
-                
             case java.sql.Types.VARCHAR:
-                return POSSIBLE_TYPES_FOR_GENERIC_CHARACTERS_NULL;
-                
             case java.sql.Types.LONGVARCHAR:
                 return POSSIBLE_TYPES_FOR_GENERIC_CHARACTERS_NULL;
                 

@@ -18,12 +18,11 @@ import com.splicemachine.access.HConfiguration;
 import com.splicemachine.access.api.SConfiguration;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.si.impl.driver.SIDriver;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.util.Shell;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -38,6 +37,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 /**
  * Created by jyuan on 5/24/17.
  */
+@SuppressFBWarnings("SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE")
 @Category(value = {SerialTest.class})
 public class PhysicalDeletionIT extends SpliceUnitTest {
 

@@ -116,7 +116,9 @@ public interface SConfiguration {
 
     boolean replicationEnabled();
 
-    public String getReplicationPath();
+    String getReplicationPath();
+
+    String getRollingRestartPath();
 
     int getReplicationSnapshotInterval();
 
@@ -318,6 +320,8 @@ public interface SConfiguration {
     String getStorageFactoryHome();
 
     int getNestedLoopJoinBatchSize();
+
+    String getForeignKeyChecker();
 
     // StatsConfiguration
     double getFallbackNullFraction();
