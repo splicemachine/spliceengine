@@ -3822,6 +3822,7 @@ public class FromBaseTable extends FromTable {
         PredicateList newList = (PredicateList)getNodeFactory().getNode(
                 C_NodeTypes.PREDICATE_LIST,
                 getContextManager());
+        boolean translated = false;
 
         for (int i = 0; i < predList.size(); i++) {
             Predicate pred = predList.elementAt(i);
@@ -3864,11 +3865,14 @@ public class FromBaseTable extends FromTable {
                     ge.markQualifier();
                 }
                 newList.addOptPredicate(ge);
+                translated = true;
             } else {
                 newList.addOptPredicate(pred);
             }
         }
-        newList.classify(this, getTrulyTheBestAccessPath().getConglomerateDescriptor(), true);
+        if (translated) {
+            newList.classify(this, getTrulyTheBestAccessPath().getConglomerateDescriptor(), true);
+        }
         return newList;
     }
 }
