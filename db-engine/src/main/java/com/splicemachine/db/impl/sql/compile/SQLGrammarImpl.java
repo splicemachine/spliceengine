@@ -1145,14 +1145,15 @@ class SQLGrammarImpl {
                                                 Integer createBehavior) throws StandardException {
         // NOT LOGGED is allways true
         // if ON COMMIT behavior not explicitly specified in DECLARE command, default to ON COMMIT PRESERVE ROWS
+        assert declareTableClauses.length == 3;
         if (declareTableClauses[1] == null) {
             declareTableClauses[1] = Boolean.FALSE;
-        } else if (declareTableClauses[1].equals(Boolean.TRUE)) {
+        } else if (declareTableClauses[1].equals(Boolean.TRUE) ) {
             // ON COMMIT DELETE ROWS is not supported
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "COMMIT");
         }
         // if ON ROLLBACK behavior not explicitly specified in DECLARE command, default to ON ROLLBACK DELETE ROWS
-        if (declareTableClauses[2].equals(Boolean.TRUE)) {
+        if (declareTableClauses[2] != null && declareTableClauses[2].equals(Boolean.TRUE) ) {
             // ON ROLLBACK DELETE ROWS is not supported
             throw StandardException.newException(SQLState.LANG_TEMP_TABLE_DELETE_ROWS_NO_SUPPORTED, "ROLLBACK");
         } else {
