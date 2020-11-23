@@ -5438,25 +5438,6 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         if(constraint.getConstraintType()==DataDictionary.FOREIGNKEY_CONSTRAINT){
             baseNum=SYSFOREIGNKEYS_CATALOG_NUM;
             indexNum=SYSFOREIGNKEYSRowFactory.SYSFOREIGNKEYS_INDEX1_ID;
-
-            /*
-            ** If we have a foreign key, we need to decrement the
-            ** reference count of the contraint that this FK references.
-            ** We need to do this *before* we drop the foreign key
-            ** because of the way FK.getReferencedConstraint() works.
-            */
-            ReferencedKeyConstraintDescriptor refDescriptor=(ReferencedKeyConstraintDescriptor)getConstraintDescriptor(
-                    ((ForeignKeyConstraintDescriptor)constraint).
-                            getReferencedConstraintId());
-
-            if(refDescriptor!=null){
-                refDescriptor.decrementReferenceCount();
-
-                int[] colsToSet=new int[1];
-                colsToSet[0]=SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
-
-                updateConstraintDescriptor(refDescriptor,refDescriptor.getUUID(),colsToSet,tc);
-            }
             ti = getNonCoreTI(baseNum);
         }else if(constraint.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT){
             ti=getPkTable();

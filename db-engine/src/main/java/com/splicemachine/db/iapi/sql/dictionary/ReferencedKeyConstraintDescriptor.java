@@ -51,15 +51,11 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 		<li>public ConstraintDescriptorList getForeignKeyConstraints(int type) throws StandardException;</li>
 		<li>public boolean isReferenced();</li>
 		<li>public int getReferenceCount();</li>
-		<li>public int incrementReferenceCount();</li>
-		<li>public int decrementReferenceCount();</li>
 		</ol>
 	*/
 
 	//Implementation
 	private final int constraintType;
-
-	int			referenceCount;
 
 	// enabled foreign keys
 	private	ConstraintDescriptorList fkEnabledConstraintList;
@@ -83,7 +79,6 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 	 * @param indexId			The UUID for the backing index
 	 * @param schemaDesc		The SchemaDescriptor for the constraint
 	 * @param isEnabled			is the constraint enabled?
-	 * @param referenceCount	number of FKs (enabled only)
 	 */
 	protected ReferencedKeyConstraintDescriptor(int constraintType,
 		    DataDictionary dataDictionary,
@@ -97,12 +92,11 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 			SchemaDescriptor schemaDesc,
 			boolean	isEnabled,
 			int referenceCount
-			)							
+			)
 	{
 		super(dataDictionary, table, constraintName, deferrable,
 			  initiallyDeferred, columns, 
 			  constraintId, indexId, schemaDesc, isEnabled);
-		this.referenceCount = referenceCount;
 		this.constraintType = constraintType;
 	}
 
@@ -270,9 +264,8 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 	 *
 	 * @return false
 	 */
-	public boolean isReferenced()
-	{
-		return referenceCount != 0;
+	public boolean isReferenced() throws StandardException {
+		return getReferenceCount() > 0;
 	}
 
 	/**
@@ -281,29 +274,8 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 	 *
 	 * @return the number of fks
 	 */
-	public int getReferenceCount()
-	{
-		return referenceCount;
-	}
-
-	/**
-	 * Bump the reference count by one.
-	 *
-	 * @return the number of fks
-	 */
-	public int incrementReferenceCount()
-	{
-		return referenceCount++;
-	}
-
-	/**
-	 * Decrement the reference count by one.
-	 *
-	 * @return the number of fks
-	 */
-	public int decrementReferenceCount()
-	{
-		return referenceCount--;
+	public int getReferenceCount() throws StandardException {
+		return getDataDictionary().getForeignKeys(constraintId).size();
 	}
 
 	/**
@@ -318,8 +290,7 @@ public class ReferencedKeyConstraintDescriptor extends KeyConstraintDescriptor
 	 *
 	 * @return true/false
 	 */
-	public boolean needsToFire(int stmtType, int[] modifiedCols)
-	{
+	public boolean needsToFire(int stmtType, int[] modifiedCols) throws StandardException {
 		/*
 		** If we are disabled, we never fire
 		*/
