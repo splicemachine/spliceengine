@@ -51,17 +51,41 @@ public class ConnectionWrapper implements AutoCloseable {
         return this;
     }
 
-    public ResultScanner scanSingleRowAllVersions(String key) throws IOException {
+    /**
+     * @param rowKey the row key to scan for
+     * @param versions number of versions. if 0, all versions
+     */
+    public ResultScanner scanSingleRow(String rowKey, int versions) throws IOException {
         assert table != null;
         Scan scan = new Scan();
         tell("hbase scan table", table.getName().toString(), "with all versions");
-        byte[] startRow = Bytes.fromHex(key);
+        byte[] startRow = Bytes.fromHex(rowKey);
         byte[] stopRow = new byte[startRow.length + 1];
         Array.copy(startRow, 0, stopRow, 0, startRow.length);
         stopRow[stopRow.length - 1] = 0; // inclusive
-        scan.setStartRow(startRow).setStopRow(stopRow).setMaxVersions();
+        scan = scan.setStartRow(startRow).setStopRow(stopRow);
+        if(versions == 0)
+            scan.setMaxVersions();
+        else
+            scan.setMaxVersions(versions);
         return table.getScanner(scan);
     }
+
+    /**
+     * @param limit maximum number of elements to return
+     * @param versions  number of versions. if 0, all versions
+     */
+    public ResultScanner scanVersions(int limit, int versions) throws IOException {
+        assert table != null;
+        Scan scan = new Scan();
+        if(limit != 0 ) scan.setMaxResultSize(limit);
+        if(versions == 0)
+            scan.setMaxVersions();
+        else
+            scan.setMaxVersions(versions);
+        return table.getScanner( scan );
+    }
+
 
     public ResultScanner scanColumn(byte[] col) throws IOException {
         assert table != null;
