@@ -119,13 +119,13 @@ public class GenericStatement implements Statement{
         return prepare(lcc, forMetaData, null);
     }
 
-    // If BoundAndOptimizedStatement is passed in, we don't try to
+    // If boundAndOptimizedStatement is passed in, we don't try to
     // parse, bind and optimize the statement from its SQL text
     // before passing to code generation.
-    // Instead we just directly compile BoundAndOptimizedStatement.
+    // Instead we just directly compile boundAndOptimizedStatement.
     public PreparedStatement prepare(LanguageConnectionContext lcc,
                                      boolean forMetaData,
-                                     StatementNode BoundAndOptimizedStatement) throws StandardException{
+                                     StatementNode boundAndOptimizedStatement) throws StandardException{
         /*
         ** Note: don't reset state since this might be
         ** a recompilation of an already prepared statement.
@@ -134,7 +134,7 @@ public class GenericStatement implements Statement{
         final int depth=lcc.getStatementDepth();
         boolean recompile=false;
         try{
-            return prepMinion(lcc,true,null,null,forMetaData, BoundAndOptimizedStatement);
+            return prepMinion(lcc,true,null,null,forMetaData, boundAndOptimizedStatement);
         } catch(StandardException se){
             // There is a chance that we didn't see the invalidation
             // request from a DDL operation in another thread because
@@ -280,7 +280,7 @@ public class GenericStatement implements Statement{
                                          Object[] paramDefaults,
                                          SchemaDescriptor spsSchema,
                                          boolean internalSQL,
-                                         StatementNode BoundAndOptimizedStatement) throws StandardException{
+                                         StatementNode boundAndOptimizedStatement) throws StandardException{
 
         /*
          * An array holding timestamps for various points in time. The order is
@@ -442,8 +442,8 @@ public class GenericStatement implements Statement{
             ** call a noop.
             */
             CompilerContext cc = null;
-            if (BoundAndOptimizedStatement != null)
-                cc = BoundAndOptimizedStatement.getCompilerContext();
+            if (boundAndOptimizedStatement != null)
+                cc = boundAndOptimizedStatement.getCompilerContext();
             else {
                 cc = lcc.pushCompilerContext(compilationSchema);
 
@@ -674,7 +674,7 @@ public class GenericStatement implements Statement{
                 }
                 cc.setVarcharDB2CompatibilityMode(varcharDB2CompatibilityMode);
             }
-            fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc,BoundAndOptimizedStatement);
+            fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc,boundAndOptimizedStatement);
         }catch(StandardException se){
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
@@ -689,7 +689,7 @@ public class GenericStatement implements Statement{
             TriggerReferencingStruct.fromTableTriggerSPSDescriptor.remove();
             // Communicate to the immediate parent statement if its child
             // contains a FROM TABLE clause.
-            if (BoundAndOptimizedStatement != null)
+            if (boundAndOptimizedStatement != null)
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(true);
             else
                 TriggerReferencingStruct.isFromTableStatement.get().setValue(false);
@@ -718,13 +718,13 @@ public class GenericStatement implements Statement{
                                   Timestamp beginTimestamp,
                                   boolean foundInCache,
                                   CompilerContext cc,
-                                  StatementNode BoundAndOptimizedStatement) throws StandardException{
+                                  StatementNode boundAndOptimizedStatement) throws StandardException{
         lcc.logStartCompiling(getSource());
         long startTime = System.nanoTime();
         try {
 
             StatementNode qt;
-            if (BoundAndOptimizedStatement == null) {
+            if (boundAndOptimizedStatement == null) {
                 qt = parse(lcc, paramDefaults, timestamps, cc);
 
                 /*
@@ -739,7 +739,7 @@ public class GenericStatement implements Statement{
             }
             else {
                 lcc.beginNestedTransaction(true);
-                qt = BoundAndOptimizedStatement;
+                qt = boundAndOptimizedStatement;
             }
             /* we need to move the commit of nested sub-transaction
              * after we mark PS valid, during compilation, we might need
@@ -750,7 +750,7 @@ public class GenericStatement implements Statement{
              * Otherwise we would just erase the DDL's invalidation when
              * we mark it valid.
              */
-            generate(lcc, timestamps, cc, qt, BoundAndOptimizedStatement != null);
+            generate(lcc, timestamps, cc, qt, boundAndOptimizedStatement != null);
 
             saveTree(qt, CompilationPhase.AFTER_GENERATE);
 
@@ -760,7 +760,7 @@ public class GenericStatement implements Statement{
             throw e;
         }  finally{ // for block introduced by pushCompilerContext()
             lcc.resetDB2VarcharCompatibilityMode();
-            if (BoundAndOptimizedStatement == null)
+            if (boundAndOptimizedStatement == null)
                 lcc.popCompilerContext(cc);
         }
     }
