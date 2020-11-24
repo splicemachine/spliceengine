@@ -2277,15 +2277,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
     public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException, StandardException
     {
         List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false);
-
-//        There are two solutions to have one place to escape single quotes. During the PR can chosen be the best one:
-//        1) just to replace single quote by double quotes before wrapping to sql
-//        StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
-//        sb.append(ddls.get(0).replace("'", "''"));
-//        sb.append(";') FOO (DDL)");
-//        resultSet[0] = executeStatement(sb);
-
-//        2) to use ProcedureUtils.generateResult
         resultSet[0] = ProcedureUtils.generateResult("DDL", ddls.get(0) + ";");
     }
 
