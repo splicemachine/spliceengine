@@ -39,16 +39,21 @@ import com.splicemachine.derby.catalog.TriggerNewTransitionRows;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.vti.SpliceFileVTI;
 import com.splicemachine.derby.vti.iapi.DatasetProvider;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.txn.TxnView;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+
+import static com.splicemachine.db.shared.common.reference.SQLState.LANG_INTERNAL_ERROR;
 
 /*
 
@@ -130,6 +135,7 @@ public class VTIOperation extends SpliceBaseOperation {
     private boolean convertTimestamps;
     private boolean quotedEmptyIsNull;
     private GenericStorablePreparedStatement fromTableDML_SPS = null;
+    private ResultSet fromTableDML_ResultSet = null;
 
 
 	/**
@@ -286,8 +292,57 @@ public class VTIOperation extends SpliceBaseOperation {
             LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
             fromTableDML_SPS.setValid();
             getActivation().setSingleExecution();
-            fromTableDML_SPS.executeSubStatement(lcc, false, 0L);
+            fromTableDML_ResultSet = fromTableDML_SPS.executeSubStatement(lcc, false, 0L);
         }
+    }
+
+    @Override
+    public void close() throws StandardException{
+        super.close();
+        if (fromTableDML_ResultSet != null && !fromTableDML_ResultSet.isClosed()) {
+            // Flush out any rows from execution.  Should be just one.
+            try {
+                if (fromTableDML_ResultSet.returnsRows())
+                    while (fromTableDML_ResultSet.getNextRow() != null) {
+                    }
+                // Release resources.
+            }
+            finally {
+                if (!fromTableDML_ResultSet.isClosed())
+                    fromTableDML_ResultSet.close();
+                fromTableDML_ResultSet = null;
+            }
+        }
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        if (isFromTableStatement())
+            return elevateTransaction();
+        else
+            return super.getCurrentTransaction();
+    }
+
+    @Override
+    public boolean isFromTableStatement() {
+        return fromTableDML_SPS != null;
+    }
+
+    long getFromTableTargetConglomId() throws StandardException {
+        if (fromTableDML_SPS == null)
+            return 0;
+        if (this.fromTableDML_SPS.getConstantAction() instanceof WriteCursorConstantOperation) {
+            WriteCursorConstantOperation constantOperation =
+            (WriteCursorConstantOperation) this.fromTableDML_SPS.getConstantAction();
+            return constantOperation.getTargetConglomId();
+        }
+        else
+            throw StandardException.newException(LANG_INTERNAL_ERROR,
+                   "FROM TABLE statement without target conglomerate id.");
+    }
+
+    public byte[] getDestinationTable() throws StandardException {
+        return Bytes.toBytes(Long.toString(getFromTableTargetConglomId()));
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
