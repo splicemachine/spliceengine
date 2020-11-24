@@ -31,6 +31,7 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
+import org.apache.commons.lang3.mutable.MutableBoolean;
 import splice.com.google.common.base.Optional;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -90,8 +91,6 @@ public class DataDictionaryCache {
     private ManagedCache<UUID, ConstraintDescriptorList> constraintDescriptorListCache;
     private DataDictionary dd;
 
-    public static final ThreadLocal<TriggerDescriptor> fromTableTriggerDescriptor = new ThreadLocal<>();
-    public static final ThreadLocal<SPSDescriptor> fromTableTriggerSPSDescriptor = new ThreadLocal<>();
     @SuppressFBWarnings(value = "MS_PKGPROTECT", justification = "DB-9844")
     private static final String [] cacheNames = new String[] {"oidTdCache", "nameTdCache", "spsNameCache", "sequenceGeneratorCache", "permissionsCache", "partitionStatisticsCache",
             "storedPreparedStatementCache", "conglomerateCache", "statementCache", "schemaCache", "aliasDescriptorCache", "roleCache", "defaultRoleCache", "roleGrantCache",
