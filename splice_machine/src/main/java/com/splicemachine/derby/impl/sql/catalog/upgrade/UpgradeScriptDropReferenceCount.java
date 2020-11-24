@@ -24,7 +24,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
 /**
- * Created by jyuan on 10/17/14.
+ * Created by Igor on 11/24/20.
  */
 public class UpgradeScriptDropReferenceCount extends UpgradeScriptBase {
 	protected static final Logger LOG = Logger.getLogger(UpgradeScriptDropReferenceCount.class);
@@ -37,6 +37,6 @@ public class UpgradeScriptDropReferenceCount extends UpgradeScriptBase {
     protected void upgradeSystemTables() throws StandardException {
         sdd.updateSysConstraintTable(tc);
 
-        SpliceLogUtils.info(LOG, "Catalog upgraded: dropped column REFERENCECOUNT from SYSNATURALNUMBERS system table");
+        SpliceLogUtils.info(LOG, "Catalog upgraded: dropped column REFERENCECOUNT from SYSCONSTRAINTS system table");
     }
 }
