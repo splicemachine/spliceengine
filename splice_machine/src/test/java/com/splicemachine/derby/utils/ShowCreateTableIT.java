@@ -621,7 +621,7 @@ public class ShowCreateTableIT extends SpliceUnitTest
     }
 
     @Test
-    public void testTable2100Columns() throws Exception {
+    public void testTableDDLLonger32672() throws Exception {
         StringBuilder columnsDdlBuilder = new StringBuilder();
         final String columnTypes[] = {"VARCHAR(30)", "CHAR(10)", "BIGINT", "DATE", "INTEGER", "DECIMAL(4,2)"};
         Random rand = new Random();
@@ -634,11 +634,11 @@ public class ShowCreateTableIT extends SpliceUnitTest
             columnsDdlBuilder.append(String.format("\"COL_%d\" %s\n", columnCounter++, columnTypes[rand.nextInt(columnTypes.length)]));
         }
 
-        String ddl = String.format("CREATE TABLE \"%s\".\"TEST_2100\" (\n%s) ", SCHEMA, columnsDdlBuilder.toString()) ;
+        String ddl = String.format("CREATE TABLE \"%s\".\"TEST_LONG_DDL\" (\n%s) ", SCHEMA, columnsDdlBuilder.toString()) ;
 
         methodWatcher.execute(ddl);
 
-        try (ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TEST_2100')")){
+        try (ResultSet rs = methodWatcher.executeQuery("call syscs_util.SHOW_CREATE_TABLE('SHOWCREATETABLEIT','TEST_LONG_DDL')")){
             rs.next();
             String result = rs.getString(1);
             Assert.assertEquals(ddl + ";", result);
