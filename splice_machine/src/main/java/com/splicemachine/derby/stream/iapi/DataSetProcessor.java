@@ -23,6 +23,7 @@ import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.Partitioner;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.procedures.external.GetSchemaExternalResult;
 import com.splicemachine.si.api.txn.TxnView;
 import com.splicemachine.system.CsvOptions;
 import org.apache.spark.sql.types.StructField;
@@ -187,7 +188,9 @@ public interface DataSetProcessor {
      * @param csvOptions
      * @return
      */
-    StructType getExternalFileSchema(String storedAs, String location, boolean mergeSchema, CsvOptions csvOptions) throws StandardException;
+    GetSchemaExternalResult getExternalFileSchema(String storedAs, String location, boolean mergeSchema,
+                                                  CsvOptions csvOptions, StructType nonPartitionColumns,
+                                                  StructType partitionColumns) throws StandardException;
     /**
      * This is used when someone modify the external table outside of Splice.
      * One need to refresh the schema table if the underlying file have been modify outside Splice because

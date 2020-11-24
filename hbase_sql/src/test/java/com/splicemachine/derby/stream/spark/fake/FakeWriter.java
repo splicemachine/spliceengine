@@ -38,7 +38,7 @@ public class FakeWriter implements TableWriter {
     }
 
     @Override
-    public void open(TriggerHandler triggerHandler, SpliceOperation dmlWriteOperation) throws StandardException {
+    public void open(TriggerHandler triggerHandler, SpliceOperation dmlWriteOperation, boolean loadReplaceMode) throws StandardException {
     }
 
     @Override
