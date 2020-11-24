@@ -27,6 +27,7 @@ package com.splicemachine.db.client.am;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.math.BigDecimal;
+import java.math.MathContext;
 import java.sql.SQLException;
 import java.io.BufferedInputStream;
 import java.io.BufferedReader;
@@ -376,7 +377,7 @@ public abstract class Cursor {
     }
 
     private BigDecimal get_DECFLOAT(int column) throws SqlException {
-        return new BigDecimal(getVARCHAR(column));
+        return new BigDecimal(getVARCHAR(column), MathContext.DECIMAL128);
     }
 
     // Build a Java double from a fixed point decimal byte representation.
@@ -1056,7 +1057,7 @@ public abstract class Cursor {
                 // but converted directly from decimal bytes to a string.
                 return String.valueOf(get_DECIMAL(column));
             case com.splicemachine.db.iapi.reference.Types.DECFLOAT:
-                return getVARCHAR(column);
+                return String.valueOf(get_DECFLOAT(column));
             case java.sql.Types.DATE:
                 return getStringFromDATE(column);
             case java.sql.Types.TIME:
