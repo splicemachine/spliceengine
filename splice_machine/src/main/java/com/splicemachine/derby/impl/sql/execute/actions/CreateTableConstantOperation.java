@@ -116,7 +116,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
      *  @param tableType	Type of table (e.g., BASE, global temporary table).
      *  @param columnInfo	Information on all the columns in the table.
      *		 (REMIND tableDescriptor ignored)
-     *  @param constraintActions	CreateConstraintConstantAction[] for constraints
+     *  @param constraintActions	ConstraintConstantOperation[] for constraints
      *  @param properties	Optional table properties
      * @param lockGranularity	The lock granularity.
      * @param onCommitDeleteRows	If true, on commit delete rows else on commit preserve rows of temporary table.
