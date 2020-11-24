@@ -35,10 +35,10 @@ public class GraphAnnotator {
 
         public String toString(Graph g) {
             StringBuilder sb = new StringBuilder();
-            sb.append("PATH action: ").append(action).append(" ");
-            for(int v : vertices) {
+            for(int v : removeSurrogates(vertices)) {
                 sb.append(g.getName(v)).append(" ");
             }
+            sb.append("(delete action: ").append(action).append(")");
             return sb.toString();
         }
 
