@@ -410,7 +410,6 @@ public class SubqueryNode extends ValueNode{
                                              String columnName,
                                              int columnPosition)   throws StandardException {
         ResultColumn rc;
-        boolean replacementDone = false;
         if (setOperatorNode.getLeftResultSet() instanceof SetOperatorNode) {
             updateColumnNamesInSetQuery((SetOperatorNode)setOperatorNode.getLeftResultSet(), columnName, columnPosition);
 
@@ -425,7 +424,7 @@ public class SubqueryNode extends ValueNode{
             rc = setOperatorNode.getRightResultSet().getResultColumns().elementAt(columnPosition);
             rc.setName(columnName);
         }
-        rc = setOperatorNode.getResultColumns().elementAt(columnPosition);;
+        rc = setOperatorNode.getResultColumns().elementAt(columnPosition);
         rc.setName(columnName);
         ColumnReference columnReference = (ColumnReference) getNodeFactory().getNode(
             C_NodeTypes.COLUMN_REFERENCE,
@@ -535,8 +534,7 @@ public class SubqueryNode extends ValueNode{
         if (resultSet instanceof SetOperatorNode &&
             this.subqueryType != SubqueryNode.FROM_SUBQUERY &&
             (resultSet.getResultColumns().size() == 1 ||
-             this.subqueryType == EXISTS_SUBQUERY     ||
-             this.subqueryType == NOT_EXISTS_SUBQUERY ))
+             this.subqueryType == EXISTS_SUBQUERY))
             wrapSetQueryInDerivedTable();
 
         resultColumns=resultSet.getResultColumns();
