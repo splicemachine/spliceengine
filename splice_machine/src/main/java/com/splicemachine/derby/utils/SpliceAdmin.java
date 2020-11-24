@@ -2274,16 +2274,13 @@ public class SpliceAdmin extends BaseAdminProcedures{
     }
 
     @SuppressFBWarnings(value="SQL_NONCONSTANT_STRING_PASSED_TO_EXECUTE", justification="Intentional")
-    public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException
+    public static void SHOW_CREATE_TABLE(String schemaName, String tableName, ResultSet[] resultSet) throws SQLException, StandardException
     {
-        List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false, true);
-        StringBuilder sb = new StringBuilder("SELECT * FROM (VALUES '");
-        sb.append(ddls.get(0));
-        sb.append(";') FOO (DDL)");
-        resultSet[0] = executeStatement(sb);
+        List<String> ddls = SHOW_CREATE_TABLE_CORE(schemaName, tableName, false);
+        resultSet[0] = ProcedureUtils.generateResult("DDL", ddls.get(0) + ";");
     }
 
-    public static List<String> SHOW_CREATE_TABLE_CORE(String schemaName, String tableName, boolean separateFK, boolean escapeDefaults) throws SQLException {
+    public static List<String> SHOW_CREATE_TABLE_CORE(String schemaName, String tableName, boolean separateFK) throws SQLException {
         Connection connection = getDefaultConn();
         schemaName = EngineUtils.validateSchema(schemaName);
         tableName = EngineUtils.validateTable(tableName);
@@ -2323,11 +2320,11 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 if (td.getDelimited() != null || td.getLines() != null) {
                     extTblString.append("\nROW FORMAT DELIMITED");
                     if ((tmpStr = td.getDelimited()) != null)
-                        extTblString.append(" FIELDS TERMINATED BY ''" + tmpStr + "''");
+                        extTblString.append(" FIELDS TERMINATED BY '" + tmpStr + "'");
                     if ((tmpStr = td.getEscaped()) != null)
-                        extTblString.append(" ESCAPED BY ''" + tmpStr + "''");
+                        extTblString.append(" ESCAPED BY '" + tmpStr + "'");
                     if ((tmpStr = td.getLines()) != null)
-                        extTblString.append(" LINES TERMINATED BY ''" + tmpStr + "''");
+                        extTblString.append(" LINES TERMINATED BY '" + tmpStr + "'");
                 }
                 // Storage type
                 if ((tmpStr = td.getStoredAs()) != null) {
@@ -2351,7 +2348,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 }
                 // Location
                 if ((tmpStr = td.getLocation()) != null) {
-                    extTblString.append("\nLOCATION ''" + tmpStr + "''");
+                    extTblString.append("\nLOCATION '" + tmpStr + "'");
                 }
             }//End External Table
             else if (td.getTableType() == TableDescriptor.VIEW_TYPE) {
@@ -2371,7 +2368,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
             boolean firstCol = true;
             cdl.sort(Comparator.comparing(columnDescriptor -> columnDescriptor.getPosition()));
             for (ColumnDescriptor col: cdl) {
-                createColString = createColumn(col, escapeDefaults);
+                createColString = createColumn(col);
                 colStringBuilder.append(firstCol ? createColString : "," + createColString).append("\n");
                 firstCol = false;
             }
@@ -2396,7 +2393,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
         }
     }
 
-    private static String createColumn(ColumnDescriptor columnDescriptor, boolean escapeDefaults) throws SQLException
+    private static String createColumn(ColumnDescriptor columnDescriptor) throws SQLException
     {
         StringBuffer colDef = new StringBuffer();
 
@@ -2419,23 +2416,6 @@ public class SpliceAdmin extends BaseAdminProcedures{
                 colDef.append(" ");
             } else {
                 colDef.append(" DEFAULT ");
-                if (colType.indexOf("CHAR") > -1
-                        || colType.indexOf("VARCHAR") > -1
-                        || colType.indexOf("LONG VARCHAR") > -1
-                        || colType.indexOf("CLOB") > -1
-                        || colType.indexOf("DATE") > -1
-                        || colType.indexOf("TIME") > -1
-                        || colType.indexOf("TIMESTAMP") > -1
-                        ) {
-                    if (escapeDefaults) {
-                        if ((defaultText = defaultText.toUpperCase()).startsWith("'"))
-                            defaultText = "'" + defaultText + "'";
-                        if (columnDescriptor.getType().getTypeId().isBitTypeId() &&
-                                defaultText.startsWith("X'")) {
-                            defaultText = "X'" + defaultText.substring(1) + "'";
-                        }
-                    }
-                }
             }
             colDef.append(defaultText);
         }
@@ -2503,7 +2483,7 @@ public class SpliceAdmin extends BaseAdminProcedures{
                     if (!cd.isEnabled())
                         break;
 
-                    chkStr.append(", CONSTRAINT " + cd.getConstraintName() + " CHECK " + cd.getConstraintText().replace("'", "''"));
+                    chkStr.append(", CONSTRAINT " + cd.getConstraintName() + " CHECK " + cd.getConstraintText());
                     break;
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
                     int[] keyColumns = cd.getKeyColumns();
