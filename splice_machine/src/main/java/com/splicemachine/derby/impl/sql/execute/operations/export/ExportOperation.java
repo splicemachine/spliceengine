@@ -15,6 +15,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.si.api.txn.TxnView;
 import splice.com.google.common.base.Strings;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.impl.sql.compile.ExportNode;
@@ -204,5 +205,10 @@ public class ExportOperation extends SpliceBaseOperation {
         }
         else
             return dataset;
+    }
+
+    @Override
+    public TxnView getCurrentTransaction() throws StandardException{
+        return source.getCurrentTransaction();
     }
 }

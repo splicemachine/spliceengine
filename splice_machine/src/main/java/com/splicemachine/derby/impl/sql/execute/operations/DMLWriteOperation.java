@@ -492,4 +492,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
         else
             return false;
     }
+
+    public boolean forFromTableStatement() {
+        return fromTableDmlSpsDescriptor != null;
+    }
 }
