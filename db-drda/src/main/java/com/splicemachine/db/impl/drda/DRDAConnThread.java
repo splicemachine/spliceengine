@@ -97,6 +97,8 @@ class DRDAConnThread extends Thread {
 
     private static final Logger AUDITLOG =Logger.getLogger("splice-audit");
 
+    private static final Logger log = Logger.getLogger(DRDAConnThread.class);
+
     private static final Pattern PARSE_TIMESTAMP_PATTERN =
             Pattern.compile("[-.]");
 
@@ -288,9 +290,10 @@ class DRDAConnThread extends Thread {
      * @param logConnections
      **/
 
-    DRDAConnThread(Session session, NetworkServerControlImpl server,
-                          long timeSlice,
-                          boolean logConnections) {
+    DRDAConnThread(Session session,
+                   NetworkServerControlImpl server,
+                   long timeSlice,
+                   boolean logConnections) {
 
        super();
 
@@ -306,13 +309,22 @@ class DRDAConnThread extends Thread {
         initialize();
     }
 
+    private String getSessionName() {
+        return session == null ? "" : session.toString();
+    }
+
+    private void debug(String message) {
+        if(log.isDebugEnabled()) {
+            log.debug(message);
+        }
+    }
+
     /**
      * Main routine for thread, loops until the thread is closed
      * Gets a session, does work for the session
      */
     public void run() {
-        if (SanityManager.DEBUG)
-            trace("Starting new connection thread");
+        debug(String.format("Thread %s is starting new connection", getName()));
 
         Session prevSession;
         while(!closed())
@@ -368,6 +380,7 @@ class DRDAConnThread extends Thread {
                         ((DRDAProtocolException)e).isDisconnectException())
                 {
                      // client went away - this is O.K. here
+                    debug("client went away");
                     closeSession();
                 }
                 else
@@ -380,6 +393,8 @@ class DRDAConnThread extends Thread {
                 // TODO: Could make use of Throwable.addSuppressed here when
                 //       compiled as Java 7 (or newer).
                 try {
+                    debug("encountered error " + error.getMessage());
+                    error.printStackTrace(server.logWriter);
                     closeSession();
                 } catch (Throwable t) {
                     // One last attempt...
@@ -395,8 +410,7 @@ class DRDAConnThread extends Thread {
                 }
             }
         }
-        if (SanityManager.DEBUG)
-            trace("Ending connection thread");
+        debug(String.format("Ending connection thread %s", getName()));
         server.removeThread(this);
 
     }
@@ -774,9 +788,7 @@ class DRDAConnThread extends Thread {
                 try {
                     stmt.rsClose();
                 } catch (SQLException ec) {
-                    if (SanityManager.DEBUG) {
-                        trace("Warning: Error closing result set");
-                    }
+                    trace("Warning: Error closing result set, error message: " + ec.getMessage());
                 }
                 writeABNUOWRM();
                 writeSQLCARD(sqle, CodePoint.SVRCOD_ERROR, 0, 0);
@@ -1188,6 +1200,9 @@ class DRDAConnThread extends Thread {
                     server.consoleExceptionPrint(sqle);
                     SanityManager.THROWASSERT("Unexpected exception after " +
                             "codePoint "+cpStr, sqle);
+                } catch (Exception e) {
+                    server.consoleExceptionPrint(e);
+                    throw e;
                 }
             }
 
@@ -1220,7 +1235,7 @@ class DRDAConnThread extends Thread {
     {
         if (reader.terminateChainOnErr() && (getExceptionSeverity(e) > CodePoint.SVRCOD_ERROR))
         {
-            if (SanityManager.DEBUG)  trace("terminating the chain on error...");
+            debug("terminating the chain on error...");
             skipRemainder(false);
         }
     }
@@ -8689,6 +8704,8 @@ class DRDAConnThread extends Thread {
         if (session == null)
             return;
 
+        debug("attempt to close session " + getSessionName());
+
         /* DERBY-2220: Rollback the current XA transaction if it is
            still associated with the connection. */
         if (xaProto != null)
@@ -8697,13 +8714,23 @@ class DRDAConnThread extends Thread {
         server.removeFromSessionTable(session.connNum);
         try {
             session.close();
-        } catch (SQLException se)
+            debug(getSessionName() + " closed");
+        }
+        catch (SQLException se)
         {
             // If something went wrong closing down the session.
             // Print an error to the console and close this
             //thread. (6013)
+            debug("encountered exception while closing session " + getSessionName());
             sendUnexpectedException(se);
             close();
+        }
+        catch (Exception e)
+        {
+            // log the exception and rethrow.
+            debug("encountered exception while closing session "+ getSessionName());
+            server.consoleExceptionPrintTrace(e);
+            throw e;
         }
         finally {
             session = null;
@@ -8725,6 +8752,7 @@ class DRDAConnThread extends Thread {
             if (e instanceof DRDAProtocolException) {
                 // protocol error - write error message
                 sendProtocolException((DRDAProtocolException) e);
+                server.consoleExceptionPrintTrace(e);
             } else {
                 // something unexpected happened
                 sendUnexpectedException(e);
