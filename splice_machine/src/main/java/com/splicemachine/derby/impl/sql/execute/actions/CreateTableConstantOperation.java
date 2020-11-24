@@ -516,9 +516,13 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             } else if (!fileInfo.isDirectory()) {
                 throw StandardException.newException(SQLState.DIRECTORY_REQUIRED, location);
             } else {
+                StructType nonPartitionColumns = getStructType(false);
+                StructType partitionColumns = getStructType(true);
+
                 CsvOptions csvOptions = new CsvOptions(delimited, escaped, lines);
                 Future<GetSchemaExternalResult> futureResult = EngineDriver.driver().getOlapClient().
-                        submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions));
+                        submit(new DistributedGetSchemaExternalJob(location, jobGroup, storedAs, mergeSchema, csvOptions,
+                                nonPartitionColumns, partitionColumns));
                 GetSchemaExternalResult result = null;
                 SConfiguration config = EngineDriver.driver().getConfiguration();
 
@@ -538,9 +542,9 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                          */
                     }
                 }
-                StructType externalSchema = result.getSchema();
+
                 boolean isCsv = storedAs.equalsIgnoreCase("t");
-                checkSchema(externalSchema, activation, isCsv);
+                checkSchema(nonPartitionColumns, partitionColumns, result, isCsv);
             }
         } catch (Exception e) {
             throw StandardException.plainWrapException(e);
@@ -627,90 +631,97 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         return cdlArray;
     }
 
-    private void checkSchema(StructType externalSchema, Activation activation,
-                             boolean isCsv) throws StandardException {
-        if(isCsv && externalSchema.fields().length == 0)
-        {
-            // CSV table is empty, don't check
-            return;
-        }
-
-        ExecRow template = new ValueRow(columnInfo.length);
-        DataValueDescriptor[] dvds = template.getRowArray();
-        for (int i = 0; i < columnInfo.length; ++i) {
-            dvds[i] = columnInfo[i].dataType.getNull();
-        }
-
-        //Make sure we have the same amount of attributes in the definition compared to the external file
-        if (externalSchema.fields().length != template.length()) {
-            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
-                    template.length(), externalSchema.fields().length,
-                    location, ExternalTableUtils.getSuggestedSchema(externalSchema));
-        }
-
-
+    int getNumPartitionedColumns()
+    {
         int nPartitionColumns = 0;
         for (ColumnInfo column:columnInfo) {
             if (column.partitionPosition >= 0)
                 nPartitionColumns++;
         }
+        return nPartitionColumns;
+    }
 
-        ExecRow nonPartitionColumns = new ValueRow(template.nColumns()-nPartitionColumns);
-        DataValueDescriptor[] dvds_nonpart = nonPartitionColumns.getRowArray();
-        String[] name_nonpart = new String[template.nColumns()-nPartitionColumns];
+    StructType getStructType(boolean partitionedColumns) throws StandardException {
+        int nPartitionColumns = getNumPartitionedColumns();
 
-        ExecRow partitionColumns = new ValueRow(nPartitionColumns);
-        DataValueDescriptor[] dvds_part = partitionColumns.getRowArray();
-        String[] name_part = new String[nPartitionColumns];
+        int N = partitionedColumns ? nPartitionColumns : columnInfo.length-nPartitionColumns;
+        ExecRow execRow = new ValueRow(N);
+        String[] names = new String[N];
+        DataValueDescriptor[] dvds_part = execRow.getRowArray();
+
 
         int index1 = 0;
         for(int i = 0; i < columnInfo.length; ++i) {
             if (columnInfo[i].partitionPosition >=0) {
-                dvds_part[columnInfo[i].partitionPosition] = dvds[i];
-                name_part[columnInfo[i].partitionPosition] = columnInfo[i].name;
+                if(!partitionedColumns) continue;
+
+                dvds_part[columnInfo[i].partitionPosition] = columnInfo[i].dataType.getNull();
+                names[columnInfo[i].partitionPosition] = columnInfo[i].name;
             }
-            else {
-                dvds_nonpart[index1] = dvds[i];
-                name_nonpart[index1] = columnInfo[i].name;
+            else if(!partitionedColumns) {
+                dvds_part[index1] = columnInfo[i].dataType.getNull();
+                names[index1] = columnInfo[i].name;
                 index1++;
             }
+        }
+
+        StructType result = new StructType();
+        StructField[] in = execRow.schema().fields();
+        for( int i = 0; i < N; i++) {
+            result = result.add(names[i], in[i].dataType());
+        }
+        return result;
+    }
+
+    private void checkSchema(StructType nonPartitionColumns, StructType partitionColumns,
+                             GetSchemaExternalResult externalSchema, boolean isCsv) throws StandardException
+    {
+        StructType fullExSchema = externalSchema.getFullSchema();
+        if(isCsv && fullExSchema.fields().length == 0)
+        {
+            // CSV table is empty, don't check
+            return;
+        }
+
+        //Make sure we have the same amount of attributes in the definition compared to the external file
+        if (fullExSchema.fields().length != columnInfo.length) {
+            throw StandardException.newException(SQLState.INCONSISTENT_NUMBER_OF_ATTRIBUTE,
+                    columnInfo.length, fullExSchema.fields().length,
+                    location, externalSchema.getSuggestedSchema() );
         }
 
         // csv will infer all columns as strings currently, so don't do a check for types
         if( !isCsv ) {
             // Compare non-partition columns
-            for (int i = 0; i < nonPartitionColumns.nColumns(); ++i) {
+            for (int i = 0; i < nonPartitionColumns.size(); ++i) {
                 //compare the data type
-                StructField externalField = externalSchema.fields()[i];
-                StructField definedField = nonPartitionColumns.schema().fields()[i];
-                if (!definedField.dataType().equals(externalField.dataType())) {
-                    if (!supportAvroDateToString(storedAs, externalField, definedField)) {
-                        throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES,
-                                name_nonpart[i], ExternalTableUtils.getSqlTypeName(definedField.dataType()),
-                                externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType()),
-                                location, ExternalTableUtils.getSuggestedSchema(externalSchema));
-                    }
-                }
+                StructField externalField = fullExSchema.fields()[i];
+                StructField definedField = nonPartitionColumns.fields()[i];
+                checkDataType(externalSchema, externalField, definedField);
             }
         }
 
         // Compare partition columns
-        for (int i = 0; i < partitionColumns.nColumns(); ++i) {
-            StructField externalField = externalSchema.fields()[nonPartitionColumns.nColumns() + i];
-            StructField definedField = partitionColumns.schema().fields()[i];
-            if (!definedField.dataType().equals(externalField.dataType())) {
-                if (!supportAvroDateToString(storedAs,externalField,definedField)) {
-                    Object[] objects = new Object[]{
-                            name_part[i], ExternalTableUtils.getSqlTypeName(definedField.dataType()),
-                            externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType()),
-                            location, ExternalTableUtils.getSuggestedSchema(externalSchema) };
-                    SQLWarning warning = StandardException.newWarning(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES, objects);
-                    activation.addWarning(warning);
-                }
-            }
+        for (int i = 0; i < partitionColumns.size(); ++i) {
+            StructField externalField = fullExSchema.fields()[nonPartitionColumns.size() + i];
+            StructField definedField = partitionColumns.fields()[i];
+            checkDataType(externalSchema, externalField, definedField);
         }
 
     }
+
+    private void checkDataType(GetSchemaExternalResult externalSchema, StructField externalField,
+                               StructField definedField) throws StandardException {
+        if (!definedField.dataType().equals(externalField.dataType())) {
+            if (!supportAvroDateToString(storedAs, externalField, definedField)) {
+                throw StandardException.newException(SQLState.INCONSISTENT_DATATYPE_ATTRIBUTES,
+                        definedField.name(), ExternalTableUtils.getSqlTypeName(definedField.dataType()),
+                        externalField.name(), ExternalTableUtils.getSqlTypeName(externalField.dataType()),
+                        location, externalSchema.getSuggestedSchema());
+            }
+        }
+    }
+
     private boolean supportAvroDateToString(String storedAs, StructField externalField, StructField definedField){
         return storedAs.toLowerCase().equals("a") && externalField.dataType().equals(DataTypes.StringType) && definedField.dataType().equals(DataTypes.DateType);
     }
