@@ -255,5 +255,10 @@ public class MemFileSystem extends DistributedFileSystem{
         public boolean exists(){
             return Files.exists(p);
         }
+
+        @Override
+        public FileInfo[] listRecursive(){
+            throw new UnsupportedOperationException("IMPLEMENT");
+        }
     }
 }

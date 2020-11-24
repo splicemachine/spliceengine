@@ -504,6 +504,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
      * @return true/false
      */
     public boolean needsToFire(int stmtType, int[] modifiedCols) throws StandardException {
+        // never fire for LOAD_REPLACE
+        if( stmtType == StatementType.LOAD_REPLACE ) return false;
 
         if (SanityManager.DEBUG) {
             if (!((stmtType == StatementType.INSERT) ||

@@ -105,7 +105,7 @@ public class SparkScanSetBuilder<V> extends TableScannerBuilder<V> {
                 return locatedRows.filter(new TableScanPredicateFunction<>(operationContext));
             }
             if (activation != null && activation.sparkExecutionType().isNonNative() && locatedRows instanceof NativeSparkDataSet) {
-                locatedRows = new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(((NativeSparkDataSet) locatedRows).dataset, operationContext));
+                locatedRows = new SparkDataSet<>(NativeSparkDataSet.<V>toSpliceLocatedRow(((NativeSparkDataSet) locatedRows).getDataset(), operationContext));
             }
             return locatedRows;
         }
