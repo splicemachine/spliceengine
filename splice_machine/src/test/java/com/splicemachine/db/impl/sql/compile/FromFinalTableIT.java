@@ -17,6 +17,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
@@ -28,11 +29,14 @@ import org.junit.runners.Parameterized;
 import splice.com.google.common.collect.Lists;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 
 /**
  * Test the FROM FINAL TABLE clause.
@@ -53,6 +57,7 @@ public class FromFinalTableIT extends SpliceUnitTest {
     public static final String CLASS_NAME = FromFinalTableIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    protected int runningOperations;
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -122,7 +127,14 @@ public class FromFinalTableIT extends SpliceUnitTest {
 
     @Before
     public void createDataSet() throws Exception {
+        runningOperations = getNumberOfRunningOperations();
         createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
+    }
+
+    public int
+    getNumberOfRunningOperations() throws Exception{
+        List results = methodWatcher.queryList("CALL SYSCS_UTIL.SYSCS_GET_RUNNING_OPERATIONS()");
+        return results.size();
     }
 
     @Test
@@ -328,4 +340,32 @@ public class FromFinalTableIT extends SpliceUnitTest {
 
     }
 
-}
+    @Test
+    public void testTxnDoesNotLeak() throws Exception {
+        methodWatcher.setAutoCommit(false);
+        String sql = "SELECT a, b FROM FINAL TABLE (INSERT INTO A1 --splice-properties useSpark=" + useSpark.toString() +
+        "\n values (1,'alias1')) ";
+        String
+        expected =
+            "A |   B   |\n" +
+            "------------\n" +
+            " 1 |alias1 |";
+
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+        testQuery(sql, expected, methodWatcher);
+
+        int currentRunningOperations = getNumberOfRunningOperations();
+        assertEquals(
+          format("Current number of running operations:  %d \n" +
+                 "does not match original number of running operations:  %d",
+                 currentRunningOperations, runningOperations),
+           runningOperations, currentRunningOperations);
+
+        methodWatcher.rollback();
+        methodWatcher.commit();
+        methodWatcher.setAutoCommit(true);
+}}

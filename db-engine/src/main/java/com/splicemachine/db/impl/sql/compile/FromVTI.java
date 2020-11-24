@@ -41,27 +41,22 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionFactory;
-import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
-import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.db.impl.sql.catalog.DataDictionaryCache;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.vti.*;
 import org.apache.commons.codec.binary.Base64;
@@ -604,7 +599,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         TriggerInfo triggerInfo = new TriggerInfo(targetTableDescriptor, null, triggerList);
         // A special location to hold the temporary trigger descriptor
         // so we don't muck around with the dictionary cache.
-        DataDictionaryCache.fromTableTriggerDescriptor.set(triggerd);
+        TriggerReferencingStruct.fromTableTriggerDescriptor.set(triggerd);
 
         TriggerExecutionContext tec =
         getNewTriggerExecutionContext(lcc, triggerd.getTriggerDefinition(0), triggerInfo, targetTableDescriptor.getUUID(),
@@ -616,7 +611,7 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 
         // A special location to hold the temporary SPS descriptor
         // so we don't muck around with the dictionary cache.
-        DataDictionaryCache.fromTableTriggerSPSDescriptor.set(spsd);
+        TriggerReferencingStruct.fromTableTriggerSPSDescriptor.set(spsd);
 
         // Need to make the new TEC accessible to the outer query
         // so it knows where to find the NEW table trigger rows.
