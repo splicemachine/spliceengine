@@ -1,0 +1,86 @@
+option java_package = "com.splicemachine.db.catalog.types";
+option java_outer_classname = "CatalogMessage";
+option java_generic_services = true;
+option java_generate_equals_and_hash = true;
+option optimize_for = SPEED;
+
+message AggregateAliasInfo {
+    optional TypeDescriptorImpl forType=1;
+    optional TypeDescriptorImpl returnType=2;
+}
+
+message TypeDescriptorImpl {
+  optional BaseTypeIdImpl typeId=1;
+  optional int32 precision=2;
+  optional int32 scale=3;
+  optional int32 collationType=4;
+  optional bool isNullable=5;
+  optional int32 maximumWidth=6;
+  repeated TypeDescriptorImpl children=7;
+}
+
+message BaseTypeIdImpl {
+  extensions 1000 to max;
+  enum Type
+  {
+    BaseTypeIdImpl = 1;
+    UserDefinedTypeIdImpl = 2;
+    DecimalTypeIdImpl = 3;
+    RowMultiSetImpl=4;
+  }
+  optional Type type = 1;
+
+  optional int32 JDBCTypeId=2;
+  optional int32 formatId = 3;
+  optional string schemaName=4;
+  optional string unqualifiedName=5;
+}
+
+message MethodAliasInfo {
+  optional string methodName=1;
+}
+
+message RoutineAliasInfo{
+    optional string specificName=1;
+    optional int32 dynamicResultSets=2;
+    optional int32 parameterStyle=3;
+    optional int32 sqlOptions=4;
+    optional TypeDescriptorImpl returnType=5;
+    optional bool calledOnNullInput=6;
+    optional int32 expansionNum=7;
+    repeated string parameterNames=8;
+    repeated TypeDescriptorImpl parameterTypes=9;
+    repeated int32 parameterModes=10;
+    optional string language=11;
+    optional bytes compiledPyCode=12;
+}
+
+message SynonymAliasInfo {
+  optional string schemaName=1;
+  optional string tableName=2;
+}
+
+message UserDefinedTypeIdImpl {
+  extend BaseTypeIdImpl
+  {
+    required UserDefinedTypeIdImpl userDefinedTypeImpl = 1000;
+  }
+  optional string className=1;
+}
+
+message DecimalTypeIdImpl {
+  extend BaseTypeIdImpl
+  {
+    required DecimalTypeIdImpl decimalTypeIdImpl = 1001;
+  }
+  optional bool isNumeric=1;
+}
+
+message RowMultiSetImpl {
+  extend BaseTypeIdImpl
+  {
+    required RowMultiSetImpl rowMultiSetImpl = 1002;
+  }
+  repeated string columnNames = 1;
+  repeated TypeDescriptorImpl types = 2;
+}

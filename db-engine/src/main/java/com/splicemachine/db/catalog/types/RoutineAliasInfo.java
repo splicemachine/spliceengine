@@ -31,6 +31,8 @@
 
 package com.splicemachine.db.catalog.types;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.ExtensionRegistry;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
@@ -38,9 +40,12 @@ import com.splicemachine.db.catalog.TypeDescriptor;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.Arrays;
+
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
 
 /**
  * Describe a routine (procedure or function) alias.
@@ -308,10 +313,73 @@ public class RoutineAliasInfo extends MethodAliasInfo
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
+	@Override
 	public void readExternal( ObjectInput in )
+			throws IOException, ClassNotFoundException {
+		if (BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION < 2) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	public void readExternalNew( ObjectInput in )
+			throws IOException, ClassNotFoundException
+	{
+		super.readExternalNew(in);
+		byte[] bs = ArrayUtil.readByteArray(in);
+		ExtensionRegistry extensionRegistry = ExtensionRegistry.newInstance();
+		extensionRegistry.add(CatalogMessage.UserDefinedTypeIdImpl.userDefinedTypeImpl);
+		extensionRegistry.add(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+		extensionRegistry.add(CatalogMessage.RowMultiSetImpl.rowMultiSetImpl);
+
+		CatalogMessage.RoutineAliasInfo routineAliasInfo = CatalogMessage.RoutineAliasInfo.parseFrom(bs, extensionRegistry);
+		if (routineAliasInfo.hasSpecificName()) {
+			specificName = routineAliasInfo.getSpecificName();
+		}
+		dynamicResultSets = routineAliasInfo.getDynamicResultSets();
+		parameterCount = routineAliasInfo.getParameterNamesCount();
+		parameterStyle = (short)routineAliasInfo.getParameterStyle();
+		sqlOptions = (short)routineAliasInfo.getSqlOptions();
+		if (routineAliasInfo.hasReturnType()) {
+			returnType = getStoredType(TypeDescriptorImpl.fromProtobuf(routineAliasInfo.getReturnType()));
+		}
+		calledOnNullInput = routineAliasInfo.getCalledOnNullInput();
+		// expansionNum is used for adding more fields in the future.
+		// It is an indicator for whether extra fields exist and need
+		// to be written
+		expansionNum = routineAliasInfo.getExpansionNum();
+
+		if (parameterCount != 0) {
+			parameterNames = new String[parameterCount];
+			parameterTypes = new TypeDescriptor[parameterCount];
+			parameterModes = new int[parameterCount];
+
+			for (int i = 0; i < parameterCount; ++i) {
+				parameterNames[i] = routineAliasInfo.getParameterNames(i);
+				parameterModes[i] = routineAliasInfo.getParameterModes(i);
+				parameterTypes[i] = getStoredType(TypeDescriptorImpl.fromProtobuf(routineAliasInfo.getParameterTypes(i)));
+			}
+		} else {
+			parameterNames = null;
+			parameterTypes = null;
+			parameterModes = null;
+		}
+		if(expansionNum == 1){
+			if (routineAliasInfo.hasLanguage()) {
+				language = routineAliasInfo.getLanguage();
+			}
+			if (routineAliasInfo.hasCompiledPyCode()) {
+				compiledPyCode = routineAliasInfo.getCompiledPyCode().toByteArray();
+			}
+		}
+	}
+
+	public void readExternalOld( ObjectInput in )
 		 throws IOException, ClassNotFoundException
 	{
-		super.readExternal(in);
+		super.readExternalOld(in);
 		specificName = (String) in.readObject();
 		dynamicResultSets = in.readInt();
 		parameterCount = in.readInt();
@@ -371,10 +439,56 @@ public class RoutineAliasInfo extends MethodAliasInfo
 	 *
 	 * @exception IOException		thrown on error
 	 */
-	public void writeExternal( ObjectOutput out )
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		if (BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION < 2) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	public void writeExternalNew( ObjectOutput out )
+			throws IOException
+	{
+		super.writeExternalNew(out);
+		CatalogMessage.RoutineAliasInfo.Builder builder = CatalogMessage.RoutineAliasInfo.newBuilder();
+		if (specificName != null) {
+			builder.setSpecificName(specificName);
+		}
+		if (returnType != null) {
+			builder.setReturnType(((TypeDescriptorImpl)returnType).toProtobuf());
+		}
+		builder.setDynamicResultSets(dynamicResultSets)
+				.setDynamicResultSets(dynamicResultSets)
+				.setParameterStyle(parameterStyle)
+				.setSqlOptions(sqlOptions)
+				.setCalledOnNullInput(calledOnNullInput)
+				.setExpansionNum(expansionNum);
+		if (parameterCount > 0) {
+			builder.addAllParameterNames(Arrays.asList(parameterNames));
+		}
+		for (int i = 0; i < parameterCount; ++i) {
+			builder.addParameterTypes(((TypeDescriptorImpl)parameterTypes[i]).toProtobuf());
+			builder.addParameterModes(parameterModes[i]);
+		}
+		if(expansionNum==1){
+			if (language != null) {
+				builder.setLanguage(language);
+			}
+			if (compiledPyCode != null) {
+				builder.setCompiledPyCode(ByteString.copyFrom(compiledPyCode));
+			}
+		}
+		ArrayUtil.writeByteArray(out, builder.build().toByteArray());
+	}
+
+
+	public void writeExternalOld( ObjectOutput out )
 		 throws IOException
 	{
-		super.writeExternal(out);
+		super.writeExternalOld(out);
 		out.writeObject(specificName);
 		out.writeInt(dynamicResultSets);
 		out.writeInt(parameterCount);

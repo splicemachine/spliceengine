@@ -350,7 +350,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             coreInfo[SYSSCHEMAS_CORE_NUM].setIndexConglomerate(
                     SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID,
                     getBootParameter(startParams,CFG_SYSSCHEMAS_INDEX2_ID,true));
-
+            SPLICE_CATALOG_SERIALIZATION_VERSION = (int)getBootParameter(startParams,CFG_CATALOG_SERIALIZATION_VERSION,false);
         }
 
         dataDictionaryCache = new DataDictionaryCache(startParams,this);
@@ -6703,7 +6703,10 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
                         coreInfo[SYSSCHEMAS_CORE_NUM].getIndexConglomerate(
                                 SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX2_ID)));
 
-        //Add the SYSIBM Schema
+        params.put(CFG_CATALOG_SERIALIZATION_VERSION, Integer.toString(CURRENT_CATALOG_SERIALIZATION_VERSION));
+
+        SPLICE_CATALOG_SERIALIZATION_VERSION = CURRENT_CATALOG_SERIALIZATION_VERSION;
+                //Add the SYSIBM Schema
         sysIBMSchemaDesc=addSystemSchema(SchemaDescriptor.IBM_SYSTEM_SCHEMA_NAME,SchemaDescriptor.SYSIBM_SCHEMA_UUID,tc);
 
         //Add the SYSIBMADM Schema

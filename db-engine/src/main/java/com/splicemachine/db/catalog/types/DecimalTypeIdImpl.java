@@ -30,7 +30,10 @@
  */
 
 package com.splicemachine.db.catalog.types;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.impl.sql.catalog.BaseDataDictionary;
+
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
@@ -65,12 +68,43 @@ public class DecimalTypeIdImpl extends BaseTypeIdImpl
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
+	@Override
 	public void readExternal( ObjectInput in )
+			throws IOException, ClassNotFoundException {
+		if (BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION < 2) {
+			readExternalOld(in);
+		}
+		else {
+			readExternalNew(in);
+		}
+	}
+
+	public void readExternalNew( ObjectInput in )
+			throws IOException, ClassNotFoundException
+	{
+		byte[] bs = ArrayUtil.readByteArray(in);
+		CatalogMessage.BaseTypeIdImpl baseTypeId = CatalogMessage.BaseTypeIdImpl.parseFrom(bs);
+		init(baseTypeId);
+	}
+
+	@Override
+	protected void init(CatalogMessage.BaseTypeIdImpl baseTypeId ) {
+		super.init(baseTypeId);
+		CatalogMessage.DecimalTypeIdImpl decimalTypeId =
+				baseTypeId.getExtension(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl);
+		boolean isNumeric = decimalTypeId.getIsNumeric();
+		if (isNumeric)
+		{
+			setNumericType();
+		}
+	}
+
+	public void readExternalOld( ObjectInput in )
 		 throws IOException, ClassNotFoundException
 	{
 		boolean isNumeric = in.readBoolean();
 
-		super.readExternal(in);
+		super.readExternalOld(in);
 
 		if (isNumeric)
 		{
@@ -86,17 +120,48 @@ public class DecimalTypeIdImpl extends BaseTypeIdImpl
 	 *
 	 * @exception IOException		thrown on error
 	 */
-	public void writeExternal( ObjectOutput out )
+	@Override
+	public void writeExternal(ObjectOutput out) throws IOException {
+		if (BaseDataDictionary.SPLICE_CATALOG_SERIALIZATION_VERSION < 2) {
+			writeExternalOld(out);
+		}
+		else {
+			writeExternalNew(out);
+		}
+	}
+
+	public void writeExternalNew( ObjectOutput out )
+			throws IOException
+	{
+		CatalogMessage.BaseTypeIdImpl typeId = toProtobuf();
+		byte[] bs = typeId.toByteArray();
+		ArrayUtil.writeByteArray(out, bs);
+	}
+
+	public void writeExternalOld( ObjectOutput out )
 		 throws IOException
 	{
 		out.writeBoolean(getJDBCTypeId() == Types.NUMERIC);
 
-		super.writeExternal(out);
+		super.writeExternalOld(out);
 	}
 
-	private void setNumericType()
+	protected void setNumericType()
 	{
 		unqualifiedName = "NUMERIC";
 		JDBCTypeId = Types.NUMERIC;
+	}
+
+	@Override
+	public CatalogMessage.BaseTypeIdImpl toProtobuf() {
+		CatalogMessage.DecimalTypeIdImpl decimalTypeId = CatalogMessage.DecimalTypeIdImpl.newBuilder()
+				.setIsNumeric(getJDBCTypeId() == Types.NUMERIC)
+				.build();
+
+		CatalogMessage.BaseTypeIdImpl baseTypeId = super.toProtobuf();
+		CatalogMessage.BaseTypeIdImpl.Builder builder = CatalogMessage.BaseTypeIdImpl.newBuilder().mergeFrom(baseTypeId);
+		builder.setType(CatalogMessage.BaseTypeIdImpl.Type.DecimalTypeIdImpl)
+				.setExtension(CatalogMessage.DecimalTypeIdImpl.decimalTypeIdImpl, decimalTypeId);
+		return builder.build();
 	}
 }
